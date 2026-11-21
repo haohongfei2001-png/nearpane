@@ -1,0 +1,43 @@
+{
+  "events": [
+    {
+      "kind": "startPressed",
+      "offsetSeconds": 0.5523446666775271
+    },
+    {
+      "kind": "captureReady",
+      "offsetSeconds": 1.1309908750117756
+    },
+    {
+      "kind": "stimulusStarted",
+      "offsetSeconds": 1.1605350416793954
+    },
+    {
+      "kind": "stimulusFinished",
+      "offsetSeconds": 2.931139541673474
+    },
+    {
+      "kind": "pausePressed",
+      "offsetSeconds": 3.622157541656634
+    },
+    {
+      "kind": "pauseObserved",
+      "offsetSeconds": 3.8718064166605473
+    }
+  ],
+  "physicalInputTransport": "bltn",
+  "physicalOutputTransport": "bltn",
+  "pid": 62435,
+  "playbackVolume": 0.6499999761581421,
+  "spaceAfterPause": {
+    "id": 4,
+    "type": 0,
+    "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+  },
+  "spaceBeforeStart": {
+    "id": 4,
+    "type": 0,
+    "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+  },
+  "stimulusSeconds": 1.6450625
+}

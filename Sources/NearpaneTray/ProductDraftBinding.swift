@@ -9,15 +9,27 @@ struct DraftAutomationUnavailable: Error {
     let state: AutomationPermissionState
 }
 
+struct CandidateDraftRoute: Error {
+    let session, window, tab: String
+    let url: URL
+}
+
+struct ReadOnlyDraftEntry: Error {
+    let confirmed: Bool
+    var notice: String {
+        confirmed ? "已识别此网站的附件入口，截图仍在托盘中。" : "尚未确认此网站的附件入口，截图仍在托盘中。"
+    }
+}
+
 extension AutomationPermissionState {
     var attachmentNotice: String? {
         switch self {
         case .granted: nil
-        case .browserNotRunning: "请打开 Chrome，再重新检查草稿附加权限。"
-        case .browserNotInstalled: "此 Mac 未找到 Chrome，截图可继续留在托盘。"
-        case .denied: "请在系统设置的「隐私与安全性 → 自动化」中允许 Nearpane 控制 Chrome，再重新检查。"
-        case .notRequested: "尚未授予 Nearpane 控制 Chrome 的权限。"
-        case .unavailable, .notNeeded: "无法核实当前 Chrome 或附件守卫，请确认目标浏览器后重新检查。"
+        case .browserNotRunning: "请打开 Chrome 或 Microsoft Edge，再检查草稿附加权限。"
+        case .browserNotInstalled: "未找到 Chrome 或 Microsoft Edge，截图已保留。"
+        case .denied: "请在系统设置的「隐私与安全性 → 自动化」中允许 Nearpane 控制当前浏览器。"
+        case .notRequested: "尚未授予 Nearpane 控制当前浏览器的权限。"
+        case .unavailable, .notNeeded: "无法核实当前浏览器或草稿，请确认目标浏览器后重新检查。"
         }
     }
 }
@@ -28,16 +40,24 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     let nonce, process, window, tab, assetID, sha256: String
     let boundAt, expiresAt: Double
     var timeOrigin: Double
+    // Claims written before multi-browser support always addressed Chrome.
+    var applicationID: String? = nil
+    private var receiver: String { applicationID ?? AttachmentBrowser.chrome.rawValue }
 
     func accepts(_ target: TargetLease) -> Bool {
-        target.adapterID == "chatgpt-web" && target.applicationID == "com.google.Chrome" &&
+        target.adapterID == "chatgpt-web" && AttachmentBrowser(rawValue: receiver) != nil && target.applicationID == receiver &&
         target.surface == .webChat && target.sessionID == process && target.windowID == window && target.tabID == tab &&
         !target.documentID.isEmpty && !target.composerID.isEmpty && !target.draftGeneration.isEmpty &&
         target.clickBindingID?.uuidString.lowercased() == nonce
     }
 
-    private static func signedChrome(pid: pid_t) -> Bool {
-        let rule = #"anchor apple generic and identifier "com.google.Chrome" and certificate leaf[subject.OU] = "EQHXZ8M8AV""#
+    private static func signedBrowser(pid: pid_t, receiver: AttachmentBrowser) -> Bool {
+        let team: String
+        switch receiver {
+        case .chrome: team = "EQHXZ8M8AV"
+        case .edge: team = "UBF8T346G9"
+        }
+        let rule = #"anchor apple generic and identifier "\#(receiver.rawValue)" and certificate leaf[subject.OU] = "\#(team)""#
         var requirement: SecRequirement?
         var process: SecCode?
         let query = [kSecGuestAttributePid as String: NSNumber(value: pid)] as CFDictionary
@@ -51,9 +71,31 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         return "(" + guardSource + ")({...(" + spec + "),mode:'product'},{action:'armProductDraft'})"
     }
 
+    /// Read the exact installed browser generation's existing grant. This operation
+    /// does not address a browser window, resolve a tab, or construct an attachment.
+    @MainActor static func existingChromeAutomation() async -> String {
+        guard NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") != nil else { return "browserNotInstalled" }
+        let apps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").filter { !$0.isTerminated }
+        guard !apps.isEmpty else { return "browserNotRunning" }
+        guard apps.count == 1, let identity = ChromeProcessIdentity.read(pid: apps[0].processIdentifier),
+              signedBrowser(pid: identity.pid, receiver: .chrome), identity.isCurrent() else { return "unverifiedBrowser" }
+        let access = await NativeAutomationPermissionChecker().check(askUserIfNeeded: false, expectedSession: identity.session)
+        guard identity.isCurrent(), signedBrowser(pid: identity.pid, receiver: .chrome) else { return "generationChanged" }
+        switch access {
+        case .granted: return "granted"
+        case .denied: return "denied"
+        case .notRequested: return "notRequested"
+        case .browserNotRunning: return "browserNotRunning"
+        case .browserNotInstalled: return "browserNotInstalled"
+        case .notNeeded, .unavailable: return "unavailable"
+        }
+    }
+
     @MainActor static func arm(_ asset: ImportedAsset, guardSource: String) throws -> Self {
-        guard let app = NSWorkspace.shared.frontmostApplication, app.bundleIdentifier == "com.google.Chrome",
-              let identity = ChromeProcessIdentity.read(pid: app.processIdentifier), signedChrome(pid: identity.pid)
+        guard let app = NSWorkspace.shared.frontmostApplication, let bundle = app.bundleIdentifier,
+              let receiver = AttachmentBrowser(rawValue: bundle),
+              let identity = ChromeProcessIdentity.read(pid: app.processIdentifier, applicationID: bundle),
+              signedBrowser(pid: identity.pid, receiver: receiver)
         else { throw WebAdapterError.browserNotFrontmost }
         // The persisted checkbox is user intent. Check the authority of this exact
         // running process before the first browser event, without requesting consent.
@@ -63,14 +105,19 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
         guard access == .granted else { throw DraftAutomationUnavailable(state: access) }
         guard identity.isCurrent(), NSWorkspace.shared.frontmostApplication?.processIdentifier == identity.pid
         else { throw WebAdapterError.browserNotFrontmost }
-        let route = try AcceptanceBrowserRoute.front(pid: identity.pid)
+        let route = try AcceptanceBrowserRoute.front(pid: identity.pid, applicationID: bundle)
         let url = try route.selectedURL()
-        guard url.scheme == "https", url.host == "chatgpt.com", url.port == nil, url.user == nil, url.password == nil,
-              url.path.isEmpty || url.path == "/" || url.path.range(of: #"^/c/[A-Za-z0-9-]+/?$"#, options: .regularExpression) != nil,
-              identity.isCurrent() else { throw WebAdapterError.invalidTarget }
+        guard identity.isCurrent(), url.scheme == "https", url.host != nil, url.port == nil || url.port == 443,
+              url.user == nil, url.password == nil else { throw WebAdapterError.invalidTarget }
+        guard url.host == "chatgpt.com" else {
+            throw CandidateDraftRoute(session: identity.session, window: route.windowID, tab: route.tabID, url: url)
+        }
+        guard url.port == nil, url.path.isEmpty || url.path == "/" ||
+              url.path.range(of: #"^/c/[A-Za-z0-9-]+/?$"#, options: .regularExpression) != nil
+        else { throw WebAdapterError.invalidTarget }
         let now = Date().timeIntervalSince1970
         var b = Self(nonce: UUID().uuidString.lowercased(), process: identity.session, window: route.windowID, tab: route.tabID,
-                     assetID: asset.id.uuidString.lowercased(), sha256: asset.sha256, boundAt: now, expiresAt: now + 120, timeOrigin: 0)
+                     assetID: asset.id.uuidString.lowercased(), sha256: asset.sha256, boundAt: now, expiresAt: now + 120, timeOrigin: 0, applicationID: bundle)
         struct Reply: Decodable { let timeOrigin: Double }
         // Run at mouse-down, before any asynchronous resolution can bind a new document or editor.
         let result = try route.observe(armScript(draft: b, guardSource: guardSource))
@@ -83,8 +130,10 @@ struct ProductDraftBinding: Codable, Equatable, Sendable {
     @MainActor func requireSelected() throws {
         let segments = process.split(separator: ":")
         guard segments.count == 4, let pid = Int32(segments[1]),
-              ChromeProcessIdentity.read(pid: pid)?.session == process, Self.signedChrome(pid: pid),
-              try AcceptanceBrowserRoute(pid: pid, window: window, tab: tab).selected() else {
+              let browser = AttachmentBrowser(rawValue: receiver),
+              ChromeProcessIdentity.read(pid: pid, applicationID: receiver)?.session == process,
+              Self.signedBrowser(pid: pid, receiver: browser),
+              try AcceptanceBrowserRoute(pid: pid, window: window, tab: tab, applicationID: receiver).selected() else {
             throw WebAdapterError.invalidTarget
         }
     }
@@ -116,6 +165,7 @@ enum ImportedAttachmentError: Error { case previousAttempt }
 @MainActor final class ProductDraftExecutor: WebClickTargetPinning {
     typealias Arm = @MainActor (ImportedAsset) throws -> ProductDraftBinding
     typealias Selected = @MainActor (ProductDraftBinding) throws -> Void
+    typealias Inspect = @MainActor (CandidateDraftRoute) throws -> Task<Bool, Error>
 
     private struct Click {
         let binding: ProductDraftBinding, target: TargetLease
@@ -129,18 +179,23 @@ enum ImportedAttachmentError: Error { case previousAttempt }
     private let base: any WebClickTargetPinning
     private let guardSource: String
     private let arm: Arm, selected: Selected
+    private let inspect: Inspect
     private var pendingAsset: ImportedAsset?
     private var clicks = [UUID: Click]()
     private var generation = UUID()
     private var cached: (original: String, program: WebPageProgram)?
 
     init(root: URL, base: any WebClickTargetPinning, guardSource: String,
-         arm: Arm? = nil, selected: Selected? = nil) {
+         arm: Arm? = nil, selected: Selected? = nil, inspect: Inspect? = nil) {
         claims = root.appendingPathComponent("draft-input-claims", isDirectory: true)
         self.base = base
         self.guardSource = guardSource
         self.arm = arm ?? { try ProductDraftBinding.arm($0, guardSource: guardSource) }
         self.selected = selected ?? { try $0.requireSelected() }
+        self.inspect = inspect ?? { route in
+            guard let browser = base as? ChromeAppleEventsExecutor else { throw WebAdapterError.invalidTarget }
+            return try browser.inspectOriginalEntry(session: route.session, window: route.window, tab: route.tab, url: route.url)
+        }
     }
 
     func cancelSelections() {
@@ -195,11 +250,26 @@ enum ImportedAttachmentError: Error { case previousAttempt }
             // Only observe can use this previously spent lease.
             return Task { claim.identity.target }
         }
-        let b = try arm(asset)
+        let b: ProductDraftBinding
+        do { b = try arm(asset) }
+        catch let route as CandidateDraftRoute {
+            let observation = try inspect(route)
+            return Task {
+                let confirmed = try await withTaskCancellationHandler { try await observation.value } onCancel: { observation.cancel() }
+                try Task.checkCancellation()
+                throw ReadOnlyDraftEntry(confirmed: confirmed)
+            }
+        }
         guard b.assetID == asset.id.uuidString.lowercased(), b.sha256 == asset.sha256 else { throw WebAdapterError.invalidRequest }
         try selected(b)
         let current = generation
-        let capture = try base.targetForClick(program: program)
+        let capture: Task<TargetLease, Error>
+        if let browser = base as? ChromeAppleEventsExecutor {
+            guard let nonce = UUID(uuidString: b.nonce) else { throw WebAdapterError.invalidTarget }
+            capture = try browser.targetForClick(program: program, witnessID: nonce)
+        } else {
+            capture = try base.targetForClick(program: program)
+        }
         return Task {
             let target = try await withTaskCancellationHandler { try await capture.value } onCancel: { capture.cancel() }
             try Task.checkCancellation()
@@ -261,6 +331,8 @@ enum ImportedAttachmentError: Error { case previousAttempt }
     }
 
     private func readClaim(_ id: UUID) throws -> Claim? {
+        var directory = stat()
+        if lstat(claims.path, &directory) == -1 && errno == ENOENT { return nil }
         let file = try claimURL(id)
         let fd = open(file.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         if fd < 0 && errno == ENOENT { return nil }
@@ -289,5 +361,12 @@ enum ImportedAttachmentError: Error { case previousAttempt }
         guard dir >= 0 else { throw WebAdapterError.invalidPrivateFile }
         defer { close(dir) }
         guard fsync(dir) == 0 else { throw WebAdapterError.invalidPrivateFile }
+    }
+}
+
+
+extension TrayModule {
+    @MainActor public static func existingChromeAutomation() async -> String {
+        await ProductDraftBinding.existingChromeAutomation()
     }
 }

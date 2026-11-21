@@ -14,6 +14,38 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        if args.first == "--read-stage-engine-scope" {
+            guard (2...5).contains(args.count), let challenge = UUID(uuidString: args[1]) else { exit(2) }
+            let options = Set(args.dropFirst(2))
+            let deferred = options.contains("--await-registered-window")
+            let spacesCycle = options.contains("--enrolled-spaces-cycle")
+            guard options.count == args.count-2,
+                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle"]),
+                  !deferred || (options.contains("--private-receipt") && !options.contains("--registered-window")),
+                  !spacesCycle || (deferred && Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
+                      Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha") else { exit(2) }
+            let channel: StageScopeReply?
+            let fixture: StageEngineHostScope.Fixture?
+            do {
+                channel = options.contains("--private-receipt") ? try StageScopeReply(challenge) : nil
+                fixture = options.contains("--registered-window") ? try StageEnginePackageProbe.enrolledFixture(channel) : nil
+            } catch { exit(2) }
+            let application = NSApplication.shared
+            if application.activationPolicy() != .prohibited { _ = application.setActivationPolicy(.prohibited) }
+            guard application.activationPolicy() == .prohibited else { exit(3) }
+            Task { exit(await StageEnginePackageProbe.readScope(challenge: challenge, fixture: fixture, channel: channel,
+                                                                awaitRegistration: deferred, enrolledSpacesCycle: spacesCycle)) }
+            RunLoop.main.run()
+            return
+        }
+        if args.first == "--verify-stage-window-engine" || args.first == "--probe-stage-window-engine" {
+            let observe = args.first == "--probe-stage-window-engine"
+            let challenge = args.count == 2 ? UUID(uuidString: args[1]) : nil
+            guard args.count == 1 || (observe && challenge != nil) else { exit(2) }
+            Task { exit(await StageEnginePackageProbe.run(observeSystem: observe, challenge: challenge)) }
+            RunLoop.main.run()
+            return
+        }
         if args == ["--check-helper-runtime"] {
             do {
                 let child = Process()
@@ -237,6 +269,17 @@ struct NearpaneApp {
     }
 }
 
+enum HostOpenIntent: String {
+    case unmarked, service, login, background
+
+    init(event: NSAppleEventDescriptor?, backgroundLaunch: Bool = false) {
+        if event?.paramDescriptor(forKeyword: keyAELaunchedAsServiceItem) != nil { self = .service }
+        else if event?.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil { self = .login }
+        else if backgroundLaunch { self = .background }
+        else { self = .unmarked }
+    }
+}
+
 @MainActor
 final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     #if canImport(RiftletCore) && canImport(SaytileKit)
@@ -304,16 +347,24 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Finder can deliver the open or reopen event before the asynchronous profile lease is ready.
     // A background relaunch used for an update must stay out of the foreground.
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        guard !CommandLine.arguments.contains("--background") else { return false }
-        let event = NSAppleEventManager.shared().currentAppleEvent
-        if event?.paramDescriptor(forKeyword: keyAELaunchedAsLogInItem) != nil ||
-            event?.paramDescriptor(forKeyword: keyAELaunchedAsServiceItem) != nil { return false }
+        guard permitsSettingsOpen(reopen: false) else { return false }
         return requestMainWindow()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        _ = requestMainWindow()
+        if permitsSettingsOpen(reopen: true) { _ = requestMainWindow() }
         return false
+    }
+
+    private func permitsSettingsOpen(reopen: Bool) -> Bool {
+        let intent = HostOpenIntent(event: NSAppleEventManager.shared().currentAppleEvent,
+                                    backgroundLaunch: !reopen && CommandLine.arguments.contains("--background"))
+        // Monotonic phase evidence for whether Services delivery actually passed through the Host open delegate.
+        // No Apple event contents, source application, window, or document is logged.
+        let phase = reopen ? "reopen" : "open"
+        Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "HostOpen")
+            .notice("hostOpen phase=\(phase, privacy: .public) marker=\(intent.rawValue, privacy: .public) uptime=\(ProcessInfo.processInfo.systemUptime, privacy: .public)")
+        return intent == .unmarked
     }
 
     @discardableResult private func requestMainWindow() -> Bool {
@@ -342,6 +393,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func observeDesktopSession() {
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.didDeactivateApplicationNotification,
                      NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
                      NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification,
                      NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
@@ -361,9 +413,44 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var lastPermissionDiagnostic: TimeInterval = -.infinity
+    private var draftQualificationPending = false
 
     @objc private func readPreviewMetrics(_ notification: Notification) {
         guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value) else { return }
+        #if canImport(RiftletAdapters) && canImport(SaytileKit)
+        if notification.userInfo?["check"] as? String == "draft-qualification-read-only-v1" {
+            guard !draftQualificationPending, let privateHome = ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"],
+                  let pw = getpwuid(getuid()), let lease = profileLease else { return }
+            let home = URL(fileURLWithPath:privateHome), base = home.deletingLastPathComponent()
+            let caches = URL(fileURLWithPath:String(cString:pw.pointee.pw_dir)).appendingPathComponent("Library/Caches")
+            guard home.path == home.resolvingSymlinksInPath().path, home.lastPathComponent == "home",
+                  base.deletingLastPathComponent().path == caches.path, base.lastPathComponent.hasPrefix("nearpane-native-acceptance."),
+                  lease.root.path == home.appendingPathComponent("Library/Application Support").appendingPathComponent(CandidateProfile.containerName).path,
+                  ProcessInfo.processInfo.systemUptime - lastPermissionDiagnostic >= 1 else { return }
+            lastPermissionDiagnostic = ProcessInfo.processInfo.systemUptime
+            draftQualificationPending = true
+            Task {
+                defer { draftQualificationPending = false }
+                let state = await TrayModule.existingChromeAutomation()
+                Logger(subsystem:"com.holdsnow.nearpane.alpha",category:"PermissionCheck")
+                    .notice("Draft qualification \(nonce.uuidString, privacy: .public) chrome=\(state, privacy: .public)")
+                DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                    object:nonce.uuidString, userInfo:["pid":NSNumber(value:getpid()),"checked":"draft-qualification-read-only-v1"],deliverImmediately:true)
+            }
+            return
+        }
+        #endif
+        #if NEARPANE_P0_DIAGNOSTIC && canImport(RiftletCore) && canImport(SaytileKit)
+        if notification.userInfo?["check"] as? String == "p0-space-probe-read-only-v1" {
+            guard let profile = profileLease?.root, let panels else { return }
+            Task {
+                guard await P0HostProbe.run(nonce:nonce, profile:profile, stageOwnsDispatch:panels.systemManagesWindows) else { return }
+                DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                    object:nonce.uuidString, userInfo:["pid":NSNumber(value:getpid()),"checked":"p0-space-probe-read-only-v1"],deliverImmediately:true)
+            }
+            return
+        }
+        #endif
         if notification.userInfo?["check"] as? String == "permissions" {
             let now = ProcessInfo.processInfo.systemUptime
             guard now - lastPermissionDiagnostic >= 1 else { return }
@@ -371,16 +458,27 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let screen = CGPreflightScreenCaptureAccess()
             let accessibility = AXIsProcessTrusted()
             let postEvent = CGPreflightPostEventAccess()
+            let listenEvent = CGPreflightListenEventAccess()
             // Keep privacy status in the Host log. The distributed reply only acknowledges sampling.
             Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "PermissionCheck")
-                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public)")
+                .notice("Permission check \(nonce.uuidString, privacy: .public) screen=\(screen, privacy: .public) accessibility=\(accessibility, privacy: .public) postEvent=\(postEvent, privacy: .public) listenEvent=\(listenEvent, privacy: .public)")
             DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
                 object: nonce.uuidString, userInfo: ["pid": NSNumber(value: getpid()), "checked": "permissions"], deliverImmediately: true)
             return
         }
-        guard let metrics = modules?.windowPreviewMetrics else { return }
+        guard var metrics = modules?.windowPreviewMetrics, let host else { return }
+        metrics["stageManagerOwnsDispatch"] = NSNumber(value: panels?.systemManagesWindows == true)
+        metrics["windowDispatchEligible"] = NSNumber(value: overviewAvailable)
+        metrics["overviewShortcutRegistered"] = NSNumber(value: DesktopOverviewShortcut.shared.registered)
+        let missionControl = panels?.missionControlDispatchState
+        metrics["missionControlPresented"] = NSNumber(value: missionControl == "ordinary" ? 0 : missionControl == "exposed" ? 1 : -1)
+        metrics["surfaceHidden"] = NSNumber(value: host.configuration.surfaceHidden)
+        metrics["visibilityRevision"] = NSNumber(value: host.surfaceVisibilityRevision)
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
-            object: nonce.uuidString, userInfo: metrics.merging(["pid": NSNumber(value: getpid())]) { a, _ in a },
+            object: nonce.uuidString, userInfo: (metrics as [String: Any]).merging([
+                "pid": NSNumber(value: getpid()),
+                "missionControlObservation": panels?.missionControlDispatchEvidence ?? "unavailable"
+            ]) { a, _ in a },
             deliverImmediately: true)
     }
 
@@ -413,6 +511,19 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 if !sessionUnavailable { return }
             }
         }
+    }
+
+    private var selectionService: SelectionTranslation?
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        #if canImport(RiftletCore) && canImport(SaytileKit)
+        if CandidateProfile.selected, acceptanceSession == nil,
+           let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let service = SelectionTranslation(support: support)
+            selectionService = service
+            service.register()
+        }
+        #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -492,6 +603,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        if let selectionService, testSession == nil, candidate, let id = UUID(uuidString: support.lastPathComponent) {
+            modules.bindSelectionService(selectionService, generation: id)
+        }
         modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
         if !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }
@@ -624,8 +738,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let ids = displays.compactMap { UUID(uuidString: $0)?.uuidString }.sorted()
             modules?.workRect?.send((["topology"] + ids).joined(separator: " "))
         }
-        panels.managementChanged = { [weak modules] id, state, deadline in
+        panels.managementChanged = { [weak self, weak modules] id, state, deadline in
             guard UUID(uuidString: id) != nil else { return }
+            #if canImport(SaytileKit)
+            if state == "hold", let self {
+                let screens = MultiDisplayPresentationCoordinator.identifiedScreens(placementScreens())
+                let resident = screens.first { $0.id == self.host?.configuration.preferredDisplayID } ?? screens.first
+                if resident?.id == id { modules?.voice.interruptForHost(.fullscreen) }
+            }
+            #endif
             let expiry = deadline.map { " " + String($0) } ?? ""
             modules?.workRect?.ordinaryPresentation(state, display: id, deadline: deadline)
             modules?.workRect?.send("presentation " + state + " " + id + expiry)
@@ -664,8 +785,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if passiveDisplayID == nil {
             installMenu()
             if ProcessInfo.processInfo.environment["NEARPANE_NATIVE_ACCEPTANCE"] == nil, testSession == nil {
-                DesktopOverviewShortcut.shared.show = { [weak self] in self?.showWindowOverview() }
-                DesktopOverviewShortcut.shared.configure(session.configuration.overviewShortcut)
+                DesktopOverviewShortcut.shared.start(session.configuration.overviewShortcut,
+                    eligible: { [weak self] in self?.overviewAvailable == true },
+                    open: { [weak self] in self?.openWindowOverview() == true })
                 Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "WindowOverview").notice("Shortcut: \(DesktopOverviewShortcut.shared.status, privacy: .public)")
             }
             if pendingMainWindow { pendingMainWindow = false; showSettings() }
@@ -677,6 +799,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // waiting for our reply can bypass the remaining work.
         guard terminationTask == nil else { return .terminateLater }
         terminationTask = Task {
+            defer { DesktopOverviewShortcut.shared.refreshOwnership() }
             if let updater, !(await updater.permitsTermination()) {
                 terminationTask = nil
                 sender.reply(toApplicationShouldTerminate: false)
@@ -710,6 +833,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             #endif
             startupTask?.cancel()
+            await modules?.prepareStageWindowShutdown()
             panels?.stop()
             host?.stop()
             await modules?.finishStopping()
@@ -722,6 +846,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             #endif
             sender.reply(toApplicationShouldTerminate: true)
         }
+        DesktopOverviewShortcut.shared.refreshOwnership()
         return .terminateLater
     }
 
@@ -784,6 +909,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        if let overview = menu.items.first(where: { $0.action == #selector(showWindowOverview) }) {
+            let managed = panels?.systemManagesWindows == true
+            overview.title = managed ? "本屏窗口由台前调度管理" : "显示本屏窗口总览"
+            overview.isEnabled = overviewAvailable
+        }
         guard let entry = menu.items.first(where: { $0.action == #selector(toggleSurface) }) else { return }
         entry.title = host?.configuration.surfaceHidden == true ? "显示侧栏" : "隐藏侧栏"
         entry.isEnabled = host?.isRunning == true
@@ -796,19 +926,31 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showSettings()
     }
 
-    @objc private func showWindowOverview() {
+    private var overviewAvailable: Bool {
         guard let host, host.isRunning, !sessionUnavailable, terminationTask == nil, passiveDisplayID == nil,
-              host.registry.preferences.contains(where: { $0.id == BuiltinCatalog.desktop && $0.enabled }),
-              let panels else { return }
+              panels?.windowDispatchEligible == true else { return false }
+        return host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+    }
+
+    @objc private func showWindowOverview() { _ = openWindowOverview() }
+
+    private func openWindowOverview() -> Bool {
+        guard overviewAvailable, let host, let panels else { return false }
         let point = NSEvent.mouseLocation
         let hits = SystemScreens.geometry().filter { screen in
             let r = screen.frame
             return NSPointInRect(point, NSRect(x: r.x, y: r.y, width: r.width, height: r.height))
         }
-        guard hits.count == 1, let screen = hits.first else { return }
-        host.setSurfaceHidden(false)
-        panels.request(screen.id)
-        updatePanels()
+        guard hits.count == 1, let screen = hits.first else { return false }
+        Task { @MainActor [weak self] in
+            guard await panels.confirmWindowDispatch(), let self, self.host === host,
+                  self.panels === panels, overviewAvailable,
+                  SystemScreens.geometry().contains(where: { $0.id == screen.id }) else { return }
+            host.setSurfaceHidden(false)
+            panels.request(screen.id)
+            updatePanels()
+        }
+        return true
     }
 
     @objc private func hideStatusIcon() {
@@ -832,9 +974,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func applyDesktopSessionState() {
-        if sessionUnavailable { modules?.stopWindowContentPreview() }
+        if sessionUnavailable { selectionService?.invalidateSelectionContext() }
+        if sessionUnavailable { modules?.stopWindowContentPreview(reason: "session-unavailable") }
         #if canImport(SaytileKit)
-        if sessionUnavailable { modules?.voice.stopArchivePlayback() }
+        if sessionUnavailable {
+            modules?.voice.stopArchivePlayback()
+            modules?.voice.interruptForHost(.session)
+        }
         #endif
         refreshSettingsExposure()
         modules?.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
@@ -845,6 +991,17 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func desktopChanged(_ note: Notification) {
+        if note.name == NSWorkspace.didDeactivateApplicationNotification {
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            if app?.bundleIdentifier == "com.apple.systempreferences" {
+                DesktopOverviewShortcut.shared.refreshOwnership(recheckReservation: true)
+            }
+            return
+        }
+        if note.name == NSWorkspace.didActivateApplicationNotification {
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            selectionService?.foregroundChanged(to: app?.processIdentifier)
+        }
         switch note.name {
         case NSWorkspace.willSleepNotification: desktopAvailabilityChanged(.willSleep)
         case NSWorkspace.didWakeNotification: desktopAvailabilityChanged(.didWake, settling: true)
@@ -853,7 +1010,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case NSWorkspace.sessionDidResignActiveNotification: desktopAvailabilityChanged(.resigned)
         case NSWorkspace.sessionDidBecomeActiveNotification: desktopAvailabilityChanged(.becameActive, settling: true)
         case NSWorkspace.activeSpaceDidChangeNotification:
-            modules?.stopWindowContentPreview()
+            selectionService?.invalidateSelectionContext()
+            modules?.stopWindowContentPreview(spaceChanged: true, reason: "active-space")
             host?.invalidateDesktop()
         default:
             modules?.desktopWindowsChanged()
@@ -862,6 +1020,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updatePanels() {
+        DesktopOverviewShortcut.shared.refreshOwnership()
         guard host?.isRunning == true else { return }
         #if canImport(SaytileKit)
         if CandidateProfile.selected, requestsDesktopFixture || enrolledFullscreenTrial, let passiveDisplayID {
@@ -879,7 +1038,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func screensChanged() {
-        modules?.stopWindowContentPreview()
+        selectionService?.invalidateSelectionContext()
+        modules?.stopWindowContentPreview(reason: "screen-parameters")
         let before = desktopAvailability
         readDesktopAvailability(.sample)
         if before != desktopAvailability {
@@ -1029,6 +1189,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         try JSONEncoder().encode(titles).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
         window.close()
+        await embedded.prepareStageWindowShutdown()
         host.stop()
         await embedded.finishStopping()
     }
@@ -1071,6 +1232,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
         let operation = Task { @MainActor () throws -> ProfileReply in
             // Retire every action surface before releasing the global writer lease.
+            guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
             settingsPreview.withdraw()
             panels?.stop()
             surface?.window?.orderOut(nil)

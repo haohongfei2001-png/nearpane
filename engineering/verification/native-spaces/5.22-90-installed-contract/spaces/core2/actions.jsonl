@@ -1,0 +1,20 @@
+{"event":"scenario-result","monotonic":234114.367455958,"scenario":"D01","status":"BLOCKED","reason":"Installed Host move capability is false or unknown; zero drag inputs dispatched."}
+{"event":"creation-ledger","monotonic":234114.490730416,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/9362834f-2d64-4c21-b74f-6783ff27fb18/provision","operation":"00b560ff-67c8-4572-853d-e46fc527f4e5"}
+{"event":"system-fixture-intent","monotonic":234114.639961291,"operation":"add","current":4,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234115.232770833,"operation":"add","target":null,"issued":true,"acknowledged":true}
+{"event":"system-fixture-created","monotonic":234115.571136625,"desktop":{"id":4860,"type":0,"uuid":"0D93F300-F237-CE63-9B49-F5CDA00AF50F"},"oldCurrent":4,"newCurrent":4}
+{"event":"system-fixture-intent","monotonic":234115.869275958,"operation":"select","current":4,"target":4860,"other":null}
+{"event":"system-fixture-result","monotonic":234116.651424041,"operation":"select","target":4860,"acknowledged":true,"issued":true}
+{"event":"creation-ledger","monotonic":234117.166465916,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/4d15af7f-0ba0-4bfd-af35-115d11851a35/provision","operation":"b21db93f-e6e7-4c1c-854f-82e49eef89b4"}
+{"event":"system-fixture-intent","monotonic":234117.326486166,"operation":"add","current":4860,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234117.587806458,"operation":"add","target":null,"issued":false,"reason":"before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)","acknowledged":false}
+{"event":"scenario-result","monotonic":234117.587964125,"scenario":"S03","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588004,"scenario":"R01","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588040208,"scenario":"S02","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588096375,"scenario":"N01","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588155875,"scenario":"W01","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588209625,"scenario":"S01","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"scenario-result","monotonic":234117.588246458,"scenario":"W02","status":"BLOCKED","reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"suite-stopped","monotonic":234117.5882805,"reason":"add: before-system-action: installed Host process/path changed from PID 56101 (current=4860, expected=4860)"}
+{"event":"system-fixture-intent","monotonic":234118.077820083,"operation":"select","current":4860,"target":4,"other":null}
+{"event":"system-fixture-result","monotonic":234118.151385,"operation":"select","target":4,"reason":"Mission Control was already open","acknowledged":false,"issued":false}

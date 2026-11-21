@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "scope": "offlinePolicyAndRealShimABIBuild",
+  "hashes": {
+    "Sources/NearpaneHost/StageEngineHostScope.swift": "19bac4b8739d81ae6b6b7fb1bbe701d8cad0288d59fcf0f75657a573210380da",
+    "Tests/NearpaneHostTests/StageEngineHostScopeTests.swift": "5dc648a486719a60636051b2417088586922c8aad8cfd1d331a12f4f224fb4cf",
+    "Engine/nearpane-window-engine/include/nearpane_host_scope.h": "35be8ae7452d13dddf5ed616e49f81d8a648d02984a2c99cf3c785980b772fd6",
+    "Engine/nearpane-window-engine/src/corner/host_scope.inc": "8bb2c26286aad9ca7a3f9726f5543572ed5315ddacd1c6027838f77992ab4e64"
+  },
+  "tests": 6,
+  "physicalReadback": "NOT_RUN",
+  "windowActions": 0,
+  "target": "sameProcessReadOnlyHostScope"
+}

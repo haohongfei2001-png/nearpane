@@ -37,19 +37,96 @@ struct NativeSidebarDestination: Equatable {
 struct NativeSidebarMember: Equatable {
     let source: NativeSidebarDestination
     let key: DesktopWindowKey
+    let originalWindow: UUID?
+    let selectionOnly: Bool
+    var location: NativeSidebarWindowLocation? {
+        guard source.kind == .ordinary, let display = UUID(uuidString: source.display) else { return nil }
+        return .init(window: .init(pid: key.pid, birth: key.birth, number: key.number), display: display,
+                     space: source.space, spaceUUID: source.uuid)
+    }
     init?(_ window: WindowObservation, source: NativeSidebarDestination) {
         guard let m = window.metadata, m.pid > 1, m.number > 0, let birth = m.launchMicroseconds, birth > 0,
               case .known(let ids) = window.membership, ids.contains(source.space),
               window.displayID == source.display else { return nil }
         self.source = source
+        originalWindow = window.sidebarOriginalWindow
+        selectionOnly = originalWindow != nil && m.overviewOrdinaryRole != true
         key = .init(pid: m.pid, birth: birth, number: m.number)
     }
 
     func resolve(_ snapshot: DesktopSnapshot) -> WindowObservation? {
         guard let live = source.resolve(snapshot), let row = live.rows.first(where: { $0.id == source.space }) else { return nil }
         return row.windows.first(where: {
-            $0.metadata?.number == key.number && $0.metadata?.pid == key.pid && $0.metadata?.launchMicroseconds == key.birth
+            $0.metadata?.number == key.number && $0.metadata?.pid == key.pid && $0.metadata?.launchMicroseconds == key.birth &&
+                (originalWindow == nil || $0.sidebarOriginalWindow == originalWindow)
         })
+    }
+}
+
+/// One presentation of each background window, with its actual Space retained for dispatch.
+struct SidebarBackgroundWindows: Identifiable {
+    let destination: NativeSidebarDestination
+    let windows: [WindowObservation]
+    var id: UUID { destination.uuid }
+
+    static func sections(in catalog: NativeSpaceCatalog) -> [Self] {
+        var seen = Set<DesktopWindowKey>()
+        return catalog.rows.compactMap { row in
+            guard !row.record.isCurrent, let destination = NativeSidebarDestination(row, in: catalog) else { return nil }
+            let windows = row.windows.filter { window in
+                guard let metadata = window.metadata, metadata.minimized != true,
+                      (window.sidebarOriginalWindow != nil || (metadata.overviewOrdinaryRole ?? window.canWitnessCurrentSpace)),
+                      case .known(let spaces) = window.membership, !spaces.contains(catalog.current.id),
+                      let member = NativeSidebarMember(window, source: destination) else { return false }
+                return seen.insert(member.key).inserted
+            }
+            return windows.isEmpty ? nil : Self(destination: destination, windows: windows)
+        }
+    }
+}
+
+struct SelectionForeground: Equatable {
+    let pid: Int32
+    let birth: UInt64
+
+    static func read(_ pid: Int32?) -> Self? {
+        guard let pid, let owner = AdmissionBirth.read(pid), owner.start > 0 else { return nil }
+        return .init(pid: pid, birth: owner.start)
+    }
+}
+
+struct CrossSpaceFocusContinuity {
+    let source: SelectionForeground
+    let target: SelectionForeground
+    private(set) var reachedTarget = false
+    private(set) var revoked = false
+
+    mutating func observe(_ owner: SelectionForeground?) -> Bool {
+        guard !revoked else { return false }
+        if owner == target { reachedTarget = true }
+        else if owner != source || reachedTarget { revoked = true }
+        return !revoked
+    }
+}
+
+@MainActor private final class CrossSpaceFocusWatch {
+    var continuity: CrossSpaceFocusContinuity
+    private var observer: NSObjectProtocol?
+    init(source: SelectionForeground, target: SelectionForeground) {
+        continuity = .init(source: source, target: target)
+        observer = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            MainActor.assumeIsolated { _ = self?.continuity.observe(.read(app?.processIdentifier)) }
+        }
+    }
+    func current() -> Bool {
+        continuity.observe(.read(NSWorkspace.shared.frontmostApplication?.processIdentifier))
+    }
+    func stop() {
+        if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
+        observer = nil
     }
 }
 
@@ -60,19 +137,40 @@ struct NativeSidebarMember: Equatable {
     typealias Work = @MainActor (UUID) async throws -> Void
     private var generation = UUID()
     private var activeSelection: NativeSelectionPermit?
+    private(set) var dispatchAvailable = true
+    private(set) var ownershipEpoch = UUID()
+    @ObservationIgnored let windowSwitch = WindowSwitchTransition()
+
+    func setDispatchAvailable(_ available: Bool) {
+        guard dispatchAvailable != available else { return }
+        dispatchAvailable = available
+        windowSwitch.cancel()
+        ownershipEpoch = UUID()
+        generation = UUID()
+        activeSelection?.revoke()
+        pending.removeAll()
+        issue = nil
+        canSwitch = false
+        canMove = false
+        recordedCapability = nil
+    }
+    @ObservationIgnored var stageOwnsWindowDispatch: @MainActor () -> Bool = { false }
+    @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
     private var recordedCapability: String?
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
-    private struct Job { let token: UUID, selection: Bool, run: Work }
+    private struct Job { let token: UUID, epoch: UUID, selection: Bool, stage: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
     private(set) var issue: String?
     private(set) var canSwitch = false
     private(set) var canMove = false
 
-    func probe(display: String) async {
+    @discardableResult func probe(display: String) async -> Bool {
+        guard dispatchAvailable else { return false }
+        let epoch = ownershipEpoch
         let request = NativeSpaceCommand(id: UUID(), action: .probe, display: display, source: "", target: "")
         let reply = await NativeSpaceActionClient.shared.run(request)
-        guard !Task.isCancelled, reply.id == request.id else { return }
+        guard dispatchAvailable, ownershipEpoch == epoch, !Task.isCancelled, reply.id == request.id else { return false }
         canSwitch = reply.state == .ready && reply.canSwitch
         canMove = reply.state == .ready && reply.canMove
         let capability = "ready=\(reply.state == .ready) canSwitch=\(canSwitch) canMove=\(canMove)"
@@ -80,127 +178,34 @@ struct NativeSidebarMember: Equatable {
             Self.log.notice("nativeSpaceCapabilities \(capability, privacy: .public)")
             recordedCapability = capability
         }
+        return canSwitch
     }
 
-    func submit(selection: Bool = true, _ work: @escaping Work) {
+    func submit(selection: Bool = true, stage: Bool = false, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
+        guard dispatchAvailable, stage || !stageOwnsWindowDispatch() else { return }
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
         activeSelection?.revoke()
         generation = UUID(); issue = nil
-        pending.append(Job(token: generation, selection: selection, run: work))
+        if let prepare { prepare() } else { windowSwitch.cancel() }
+        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage, run: work))
         guard !running else { return }
         running = true
         Task {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
+                guard dispatchAvailable, job.epoch == ownershipEpoch, job.stage || !stageOwnsWindowDispatch() else { continue }
+                if let confirmDispatch {
+                    guard await confirmDispatch(), dispatchAvailable, job.epoch == ownershipEpoch,
+                          !job.selection || isCurrent(job.token), job.stage || !stageOwnsWindowDispatch() else { continue }
+                }
                 do { try await job.run(job.token) }
-                catch where !job.selection || job.token == generation { issue = error.localizedDescription }
+                catch where job.epoch == ownershipEpoch && (!job.selection || job.token == generation) { issue = error.localizedDescription }
                 catch {}
             }
             running = false
         }
     }
 
-    func isCurrent(_ token: UUID) -> Bool { generation == token }
-
-    func select(_ destination: NativeSidebarDestination, member: NativeSidebarMember?, feed: CurrentDesktopWindows,
-                allowed: @escaping @MainActor () -> Bool) {
-        let userInput = NativeSelectionPermit.inputCounters()
-        let lifetime = member.flatMap { feed.lifetime(of: $0.key) }
-        submit { [weak self] token in
-            @MainActor func valid() -> Bool {
-                guard self?.isCurrent(token) == true, allowed(), WindowContentPreview.sessionAvailable(),
-                      NativeSelectionPermit.inputCounters() == userInput else { return false }
-                return member.map { lifetime != nil && feed.lifetime(of: $0.key) == lifetime } ?? true
-            }
-            guard valid(), let before = await feed.readNow(), let map = destination.resolve(before),
-                  member == nil || member?.resolve(before) != nil, valid() else {
-                throw OrdinaryWindowFailure("桌面或窗口已变化，请重新选择。")
-            }
-            let bound: OrdinaryWindowAX?
-            if map.current.id != destination.space, let member {
-                // Retain the exact AX element across the switch and focus operation.
-                // A rebuilt window with the same CG number cannot inherit the click.
-                bound = try await DesktopWindowSelection.bind(member.key)
-                guard valid(), let fresh = await feed.readNow(), member.resolve(fresh) != nil,
-                      destination.resolve(fresh)?.current.id == map.current.id, valid() else {
-                    throw OrdinaryWindowFailure("所选窗口或来源桌面已变化。")
-                }
-            } else { bound = nil }
-            let permit = NativeSelectionPermit(current: valid, checkOriginalWindow: {
-                guard let bound else { return member == nil }
-                return await bound.stillSelected()
-            })
-            self?.activeSelection = permit
-            defer { if self?.activeSelection === permit { self?.activeSelection = nil } }
-            var current = before
-            if map.current.id != destination.space {
-                guard let sourceUUID = map.current.nativeUUID, let sourceKind = map.current.nativeKind else { throw OrdinaryWindowFailure("当前空间无法执行此操作。") }
-                let request = NativeSpaceCommand(id: UUID(), action: .select, display: destination.display,
-                    source: map.current.id, target: destination.space, sourceUUID: sourceUUID, targetUUID: destination.uuid,
-                    window: member.map { .init(pid: $0.key.pid, birth: $0.key.birth, number: $0.key.number) },
-                    sourceKind: sourceKind, targetKind: destination.kind)
-                let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
-                feed.changed()
-                guard reply.id == request.id, reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
-                guard valid() else { return }
-                // A coalesced overview read may have begun before the helper's final
-                // WindowServer acknowledgement. Wait for an independent settled read.
-                let end = ContinuousClock.now.advanced(by: .milliseconds(1100))
-                var reached: DesktopSnapshot?
-                repeat {
-                    if let read = await feed.readNow(), destination.resolve(read)?.current.id == destination.space {
-                        reached = read; break
-                    }
-                    guard valid() else { return }
-                    try await Task.sleep(for: .milliseconds(70))
-                } while ContinuousClock.now < end
-                guard let reached else { throw OrdinaryWindowFailure("尚未确认目标桌面。") }
-                current = reached
-            }
-            guard valid(), let member else { return }
-            guard let window = member.resolve(current), let target = DesktopWindowTarget(window, in: current),
-                  target.overviewSpace == destination.space else { throw OrdinaryWindowFailure("所选窗口已离开这个桌面。") }
-            try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 4,
-                verifySpace: {
-                    guard valid(), let fresh = await feed.readNow() else { return false }
-                    return destination.resolve(fresh)?.current.id == destination.space && target.present(in: fresh)
-                }, stillCurrent: valid, bound: bound, permit: permit)
-        }
-    }
-
-    func move(_ member: NativeSidebarMember, into dest: NativeSidebarDestination, lifetime: UUID, feed: CurrentDesktopWindows,
-              allowed: @escaping @MainActor () -> Bool) {
-        guard member.source != dest, member.source.kind == .ordinary, dest.kind == .ordinary else { return }
-        submit(selection: false) { [weak self] _ in
-            @MainActor func transfer() async throws {
-                guard allowed(), let current = await feed.readNow(), let map = dest.resolve(current),
-                      member.source.display == dest.display, let w = member.resolve(current),
-                      case .known(let ids) = w.membership, ids == [member.source.space],
-                      feed.lifetime(of: member.key) == lifetime, map.rows.contains(where: { $0.id == member.source.space }), allowed() else {
-                    throw OrdinaryWindowFailure("拖动的窗口或目标桌面已变化。")
-                }
-                let request = NativeSpaceCommand(id: UUID(), action: .move, display: dest.display,
-                    source: member.source.space, target: dest.space, sourceUUID: member.source.uuid, targetUUID: dest.uuid,
-                    window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number))
-                let reply = await NativeSpaceActionClient.shared.run(request)
-                feed.changed()
-                guard reply.id == request.id, reply.state != .outcomeUnknown else {
-                    throw UnconfirmedSpaceMove("窗口归属变化尚未确认，已保留原管理记录。")
-                }
-                guard reply.state == .confirmed else { throw OrdinaryWindowFailure(reply.detail) }
-                guard reply.membershipBefore == [member.source.space], reply.membershipAfter == [dest.space] else {
-                    throw UnconfirmedSpaceMove("窗口迁移的归属回读不完整。")
-                }
-            }
-            if let tiling = feed.automaticTiling {
-                let source = OrdinaryDesktopIdentity(display: member.source.display, record: member.source.space, uuid: member.source.uuid)
-                let target = OrdinaryDesktopIdentity(display: dest.display, record: dest.space, uuid: dest.uuid)
-                self?.issue = try await tiling.transfer(member.key, lifetime: lifetime, from: source, to: target, perform: transfer)
-            } else {
-                try await transfer()
-                self?.issue = "窗口已移入目标桌面。该桌面未授权自动分屏。"
-            }
-        }
-    }
+    func isCurrent(_ token: UUID) -> Bool { dispatchAvailable && generation == token }
 }

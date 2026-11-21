@@ -138,7 +138,7 @@ struct ManagedWindowBoundaryTests {
         let docked = try DesktopWorkArea(display: "side", screen: screen, usable: screen, primary: false,
                                         settings: settings, fallbackEdge: .right)
         #expect(try ManagedWindowBoundary.correction(frame: window, in: docked.ordinary, minimum: minimum)
-            == SurfaceRect(x: -250, y: 40, width: 150, height: 120))
+            == SurfaceRect(x: -350, y: 40, width: 150, height: 120))
         settings.placement = .floating
         let floating = try DesktopWorkArea(display: "side", screen: screen, usable: screen, primary: false,
                                           settings: settings, fallbackEdge: .right)

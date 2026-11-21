@@ -72,10 +72,23 @@ function page() {
         if (s === '*') return true;
         if (s.startsWith('#')) return this.id === s.slice(1);
         if (s === ':disabled') return !!this.disabled;
-        const m = /^([\w-]+)?(?:\[([\w-]+)(?:(\^?=)"([^"]*)")?\])?$/.exec(s);
+        const taggedClass = /^([\w-]+)\.([\w-]+)$/.exec(s);
+        if (taggedClass) return this.tagName === taggedClass[1].toUpperCase()
+          && (this.getAttribute('class') || '').split(/\s+/).includes(taggedClass[2]);
+        const joined = /^([^\[]*\[[^\]]+\])(\[.+\])$/.exec(s);
+        if (joined) return this.matches(joined[1]) && this.matches(joined[2]);
+        const m = /^([\w-]+)?(?:\[([\w-]+)(?:([\^~]?=)"([^"]*)")?\])?$/.exec(s);
         if (!m) throw Error('Unsupported synthetic selector: ' + s);
-        return (!m[1] || this.tagName === m[1].toUpperCase()) && (!m[2] ||
-          (this.hasAttribute(m[2]) && (!m[3] || (m[3] === '=' ? this.attrs[m[2]] === m[4] : this.attrs[m[2]].startsWith(m[4])))));
+        if (m[1] && this.tagName !== m[1].toUpperCase()) return false;
+        if (!m[2]) return true;
+        if (!this.hasAttribute(m[2])) return false;
+        const value = this.attrs[m[2]];
+        switch (m[3]) {
+          case '=': return value === m[4];
+          case '^=': return value.startsWith(m[4]);
+          case '~=': return value.split(/\s+/).includes(m[4]);
+          default: return true;
+        }
       });
     }
     closest(s) { for (let n = this; n; n = n.parentElement) if (n.matches(s)) return n; return null; }

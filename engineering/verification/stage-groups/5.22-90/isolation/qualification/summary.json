@@ -1,0 +1,42 @@
+{
+  "source": "13c7ada938fa0e46f9249eea42954acee00620b5",
+  "installedHost": "NOT_RUN",
+  "trials": {
+    "minimize": {
+      "status": "FAIL",
+      "reason": "dockWindowTiles",
+      "recording": {
+        "status": "PASS",
+        "seconds": 12.163333333333334,
+        "inspectorSeconds": 11.95312800000002,
+        "bytes": 591660
+      },
+      "fixtureOwnersExited": true
+    },
+    "corner": {
+      "status": "FAIL",
+      "reason": "parkedWindowReceivedRealMouseDown",
+      "recording": {
+        "status": "PASS",
+        "seconds": 6.16,
+        "inspectorSeconds": 5.884733707999999,
+        "bytes": 165223
+      },
+      "fixtureOwnersExited": true
+    },
+    "wallpaper": {
+      "status": "PASS",
+      "reason": "nativeRevealAndRestoreObserved",
+      "recording": {
+        "status": "PASS",
+        "seconds": 2.08,
+        "inspectorSeconds": 1.8127650409999774,
+        "bytes": 72879
+      },
+      "fixtureOwnersExited": true
+    }
+  },
+  "osBuild": "25G332",
+  "tenRoundTrips": "NOT_RUN",
+  "fiftyRoundTrips": "NOT_RUN"
+}

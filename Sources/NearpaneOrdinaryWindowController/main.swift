@@ -1,6 +1,9 @@
 import AppKit
 import Darwin
 import NearpaneCore
+#if !NEARPANE_WINDOW_SELECTION_FIXTURE
+import NearpaneOrdinaryWindowRuntime
+#endif
 import Security
 
 // No command-line targeting: one installed Host owns both pipes and the worker can bind only one
@@ -36,7 +39,9 @@ final class Worker {
     private var creationHandles = Set<ManagedWindowID>()
     var windowsByID = [ManagedWindowID: WindowMonitor]()
     let previewWindow: UInt32?
-    init(_ parent: pid_t, previewWindow: UInt32? = nil) {
+    let scopeProbeOnly: Bool
+    init(_ parent: pid_t, previewWindow: UInt32? = nil, scopeProbeOnly: Bool = false) {
+        self.scopeProbeOnly = scopeProbeOnly
         self.parent = parent
         self.previewWindow = previewWindow
     }
@@ -45,8 +50,22 @@ final class Worker {
         var reply = OrdinaryWindowReply(r.nonce)
         do {
             try require(getppid() == parent, "调用方已退出。")
+            guard r.action != .stageRead && r.action != .stagePlace && !(r.action == .watchCreated && r.desktop != nil)
+            else { throw Refusal("调度组操作只可由当前正式 Host 的已登记窗口会话执行。") }
+            if let scope = r.focusScope {
+                try require((r.action == .inspectFocusScope || r.action == .focusCurrent) && r.id != nil && r.expected != nil &&
+                    r.destination == nil && r.desktop == nil && r.pairPlacement == nil &&
+                    r.focusDisplay == scope.desktop.display && r.focusSpace == scope.desktop.record &&
+                    OrdinaryFocusScope(display: scope.desktop.display, topology: scope.topology, order: scope.order,
+                                       physicalDisplay: scope.physicalDisplay, separateSpaces: scope.separateSpaces) == scope,
+                    "定向读回与本次选窗不一致。")
+            }
+            if let placement = r.pairPlacement {
+                try require(r.action == .write && (r.desktop == nil || r.desktop == placement.desktop), "双窗授权只能用于本次指定桌面的写入。")
+            }
             if let previewWindow {
-                try require(r.action.allowedForStillPreview && r.destination == nil &&
+                let allowed = scopeProbeOnly ? r.action.allowedForFocusScopeProbe : r.action.allowedForStillPreview
+                try require(allowed && r.destination == nil &&
                             (r.action == .list || r.id?.number == previewWindow), "此通道仅核对已选预览窗口。")
             }
             if r.action == .checkFocusPermission || r.action == .requestFocusPermission {
@@ -95,12 +114,24 @@ final class Worker {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
                 switch r.action {
+                case .stageRead, .stagePlace:
+                    throw Refusal("调度组操作只可由当前正式 Host 的已登记窗口会话执行。")
+                case .inspectFocusScope:
+                    guard let scope = r.focusScope, let frame = r.expected else { throw Refusal("缺少定向选窗读回凭据。") }
+                    try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
+                    let trace = CurrentFocusScope.Trace(includeConfirmed: scopeProbeOnly)
+                    reply.focusScopeEvidence = CurrentFocusScope.inspect(scope, number: id.number, trace: trace) {
+                        CurrentFocusScope.original(id, element: m.element, frame: frame, display: scope.desktop.display, trace: trace)
+                    }
+                    reply.focusScopeFindings = trace.findings
+                    try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)
                 case .focusCurrent:
                     guard let expected = r.expected, let display = r.focusDisplay, let deadline = r.focusDeadline,
                           r.destination == nil else { throw Refusal("缺少当前桌面的选窗凭据。") }
                     var nextStep = 0
                     try focusCurrentWindow(id: id, element: m.element, owner: owner, bundle: r.bundle,
-                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace) {
+                                           frame: expected, display: display, deadline: deadline, space: r.focusSpace, scope: r.focusScope,
+                                           timing: r.focusTimingID.map(WindowFocusTiming.init(id:))) {
                         var challenge = OrdinaryWindowReply(r.nonce)
                         challenge.focusStep = nextStep
                         let decision: NativeSpaceStepPermission
@@ -135,10 +166,16 @@ final class Worker {
                     }
                 case .write:
                     guard let expected = r.expected, let to = r.destination else { throw Refusal("缺少明确的窗口目标。") }
-                    (reply.pair,reply.steps) = try m.write(from:expected,to:to)
+                    let retainedPeer = r.pairPlacement.flatMap { windowsByID[$0.left == id ? $0.right : $0.left] }
+                    if let retainedPeer { try require(retainedPeer.canListAgain, "已登记的同伴窗口不再有效。") }
+                    var completed = [OrdinaryWindowStep]()
+                    defer { reply.steps = completed }
+                    reply.pair = try m.write(from: expected, to: to, placement: r.pairPlacement,
+                                             retainedPeer: retainedPeer?.element) { completed.append($0) }
                 case .watchCreated:
                     try checkOwner(owner, pid: r.pid, launch: r.launch, bundle: r.bundle)
-                    guard let token = r.creationGrant, m.hasObserver, m.canListAgain else { throw Refusal("原窗口授权已失效。") }
+                    guard let token = r.creationGrant, m.canListAgain else { throw Refusal("原窗口授权已失效。") }
+                    guard r.desktop == nil, m.hasObserver else { throw Refusal("原窗口授权已失效。") }
                     creationWatch = try CreatedWindowWatch(anchor: id, grant: token)
                 case .endCreated:
                     if creationWatch?.anchor == id, creationWatch?.grant == r.creationGrant { creationWatch = nil }
@@ -179,10 +216,11 @@ guard verifyParent(parent) else { exit(64) }
 let args = CommandLine.arguments.dropFirst()
 let previewWindow: UInt32?
 if args.isEmpty { previewWindow = nil }
-else if args.count == 2, args.first == "--read-only-preview", let number = UInt32(args.last!), number > 0 {
+else if args.count == 2, args.first == "--read-only-preview" || args.first == "--read-only-focus-scope",
+        let number = UInt32(args.last!), number > 0 {
     previewWindow = number
 } else { exit(64) }
-let worker = Worker(parent, previewWindow: previewWindow)
+let worker = Worker(parent, previewWindow: previewWindow, scopeProbeOnly: args.first == "--read-only-focus-scope")
 final class CommandInput {
     let worker: Worker
     var pending = Data()

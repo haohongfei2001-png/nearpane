@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "original": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "version": "5.22",
+    "build": "90",
+    "tree": "8255226250460e19451c356fcd021f3c7d38b9a45db2fc253f29adfe3bd10a89",
+    "root": [
+      16777233,
+      301433254
+    ],
+    "host": [
+      16777233,
+      301433259
+    ]
+  },
+  "candidate": {
+    "source": "7ad17dc635f8ed30af41ef465d297074a05c5196",
+    "cdhash": "03afbfc1c8611c64e2128e6b0d0fa64230e205fc",
+    "version": "5.22",
+    "build": "90",
+    "tree": "568e90ff098848eed7b6142800cbaf373d1980a49a28068eb38f49a0793d6c7d",
+    "root": [
+      16777233,
+      301981027
+    ],
+    "host": [
+      16777233,
+      301981032
+    ]
+  },
+  "dailyConfiguration": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+  },
+  "isolatedHostGeneration": "/Users/hhf/Library/Caches/nearpane-native-acceptance.7tbh5gwv/home/Library/Application Support/Nearpane Alpha Profiles/generations/2ead4ea9-321f-4805-865d-d318d4e327fa",
+  "restoredDailyHost": [
+    45770,
+    1795213266,
+    164816
+  ],
+  "focusScenario": "pair-drag",
+  "restoration": "PASS",
+  "cleanup": "PASS",
+  "trials": {
+    "P2": {
+      "status": "BLOCKED",
+      "exit": 2,
+      "receipt": "p2/result.json",
+      "sha256": "57b48b16632236a143b5b33496d1e8b0e51c5532b2b3812e5820aa339cb8e1b8"
+    }
+  },
+  "originalReceiptSHA256": "c74e12fae8506e3147611ab9fcf4ec15cf530058f3fac52f4cb8d26835698b04",
+  "hostCapture": "RECORDED",
+  "hostLog": [
+    {
+      "timestamp": "2026-11-21 06:20:54.684089+0800",
+      "processID": 44613,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 06:20:56.722538+0800",
+      "processID": 44613,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 06:20:57.222690+0800",
+      "processID": 44613,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDrop"
+    },
+    {
+      "timestamp": "2026-11-21 06:20:57.459035+0800",
+      "processID": 44613,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairResolving"
+    }
+  ]
+}

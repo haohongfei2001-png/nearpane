@@ -1,0 +1,80 @@
+{
+  "final-profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 83871,
+    "commandExit": 1,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  },
+  "owned-profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 81726,
+    "commandExit": 0,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  },
+  "profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 80850,
+    "commandExit": 2,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  },
+  "route-profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 82616,
+    "commandExit": 0,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  },
+  "stage-profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 83384,
+    "commandExit": 2,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  },
+  "verified-profile": {
+    "installed": "/Applications/Nearpane.app",
+    "build": "90",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "startedWithDailyHost": true,
+    "normalLaunch": true,
+    "isolatedLockConfirmed": true,
+    "isolatedPID": 84486,
+    "commandExit": 0,
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true
+  }
+}

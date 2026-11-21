@@ -1,0 +1,13 @@
+{
+  "codeRestored": true,
+  "currentSHA256": "70b2b02b47e8a59ce72b9e5ca35db80e940cb667a38f409af3c9d0c8041536f9",
+  "installed": false,
+  "mutualSigningRequirements": 13,
+  "oldArchiveUnchanged": true,
+  "permissionSubjects": 8,
+  "previousSHA256": "04b555b2da30e86ec2bcf4e262c4fef628759749ddacba200ca2c21a12ad0356",
+  "previousSource": "32b9f92c96ac387e7cd5bc110f398b3911c2045b",
+  "scope": "two non-running private unpacked bundles",
+  "status": "PRIVATE_PACKAGE_ROUNDTRIP_VERIFIED",
+  "userDataOrPermissionsTested": false
+}

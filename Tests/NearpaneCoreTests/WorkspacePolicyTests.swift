@@ -121,7 +121,7 @@ struct WorkspacePolicyTests {
                 voice: true, tray: true, spacesEnabled: true, uptime: 5
             ).map(\.content)
         }
-        #expect(try work().ordinary.width == 700)
+        #expect(try work().ordinary.width == 600)
         #expect(try planner.update(area: work(), layout: tiler)?.count == 2)
         #expect(plans() == [.full, .spacesOnly])
         presentation.dismiss("s")
@@ -141,7 +141,7 @@ struct WorkspacePolicyTests {
         #expect(try planner.update(area: work(), layout: tiler) == nil)
         #expect(
             try DesktopWorkArea(display: "p", screen: f, usable: f, primary: true, settings: .init(), fallbackEdge: .right)
-                .ordinary.width == 700)
+                .ordinary.width == 600)
     }
     @Test func quitPreservesUserPartitionWhileRelaunchUsesOnlyCurrentEligibleWindows() throws {
         let id = WorkspaceID.virtual(UUID())

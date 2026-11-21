@@ -46,6 +46,7 @@ public enum SurfacePlacement {
 public struct SurfaceLayout: Equatable, Sendable {
     public let voice: SurfaceRect
     public let screenshots: SurfaceRect
+    public let additionalTools: [String: SurfaceRect]
     public let desktop: SurfaceRect
     public let moduleRail: SurfaceRect?
     public let expanded: SurfaceRect?
@@ -61,31 +62,52 @@ public struct SurfaceLayout: Equatable, Sendable {
 }
 
 public enum LayoutComposer {
-    /// Pinned tools lead the configured desktop section. Expansion overlays its remaining content.
     public static func compose(width: Double, height: Double, pinnedCount: Int, expanded: Bool,
                                settings: DisplaySettings = .init(), content: PanelContent = .full,
-                               voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil) -> SurfaceLayout {
+                               voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil,
+                               voiceCompact: Bool = false, trayRows: Int = 1,
+                               toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> SurfaceLayout {
         let w = width.isFinite ? max(0, width) : 0
         let h = height.isFinite ? max(0, height) : 0
-        let sizes = settings.contentHeights(referenceHeight ?? h, content: content, voice: voiceEnabled, tray: trayEnabled)
-        let voice = min(h, sizes.voice)
-        let trayY = min(h, voice + (voice > 0 && sizes.tray > 0 ? sizes.gap : 0))
-        let tray = min(h - trayY, sizes.tray)
-        let tools = min(h, trayY + tray + (trayY + tray > 0 && sizes.spaces > 0 ? sizes.gap : 0))
-        let desktop = SurfaceRect(y: tools, width: w, height: min(h - tools, sizes.spaces))
-        let railHeight = pinnedCount > 0 ? min(settings.points(.railHeight,in:h), desktop.height) : 0
+        let reference = referenceHeight ?? h
+        let sizes = settings.contentHeights(reference, content: content, voice: voiceEnabled, tray: trayEnabled)
+        let inset = min(settings.glass.inset(width: w), h / 2)
+        let bottom = h - inset
+        var y = inset
+        var frames: [String: SurfaceRect] = [:]
+        for id in toolOrder where frames[id] == nil {
+            let preferred: Double
+            switch id {
+            case BuiltinCatalog.voice where sizes.voice > 0:
+                preferred = voiceCompact ? 40 : sizes.voice
+            case BuiltinCatalog.screenshots where sizes.tray > 0:
+                preferred = settings.measures[.trayHeight] == nil && trayRows > 1 ? 144 : sizes.tray
+            case BuiltinCatalog.memo, BuiltinCatalog.tasks:
+                preferred = content == .full || content == .toolsOnly ? 128 : 0
+            default: continue
+            }
+            guard preferred > 0 else { continue }
+            let section = SurfaceRect(y: y, width: w, height: min(preferred, max(0, bottom - y)))
+            frames[id] = section
+            y = min(bottom, y + section.height + sizes.gap)
+        }
+        let available = content == .full || content == .spacesOnly ? max(0, bottom - y) : 0
+        let rail = pinnedCount > 0 ? settings.points(.railHeight, in: reference) : 0
+        let toolExpansion = expanded && rail > 0 ? settings.points(.moduleHeight, in: reference) : 0
+        let sectionHeight = content == .toolsOnly
+            ? min(max(0, bottom - y), rail + toolExpansion)
+            : min(available, settings.points(.spacesHeight, in: reference))
+        let desktop = SurfaceRect(y: y, width: w, height: sectionHeight)
+        let railHeight = min(rail, desktop.height)
         let windowHeight = desktop.height - railHeight
-        let unit = max(1, settings.points(.railButtonWidth,in:w) + 4)
+        let unit = max(1, settings.points(.railButtonWidth, in: w) + 4)
         let capacity = max(1, Int(max(0, w - 16) / unit))
-        return SurfaceLayout(
-            voice: SurfaceRect(width:w, height:voice),
-            screenshots: SurfaceRect(y:trayY,width:w,height:tray),
-            desktop: desktop,
-            moduleRail: railHeight > 0 ? SurfaceRect(y: tools, width: w, height: railHeight) : nil,
-            expanded: expanded ? SurfaceRect(x: min(6, w / 2), y: tools + railHeight + min(6, windowHeight / 2),
-                                             width:max(0,w - 12),height:max(0, min(windowHeight, settings.points(.moduleHeight,in:windowHeight)) - 12)) : nil,
-            railCapacity: capacity,
-            overflowCount: max(0, pinnedCount - capacity)
-        )
+        let empty = SurfaceRect(width: w, height: 0)
+        return SurfaceLayout(voice: frames.removeValue(forKey: BuiltinCatalog.voice) ?? empty,
+            screenshots: frames.removeValue(forKey: BuiltinCatalog.screenshots) ?? empty, additionalTools: frames,
+            desktop: desktop, moduleRail: railHeight > 0 ? SurfaceRect(y: y, width: w, height: railHeight) : nil,
+            expanded: expanded ? SurfaceRect(x: min(6, w / 2), y: y + railHeight + min(6, windowHeight / 2),
+                width: max(0, w - 12), height: max(0, min(windowHeight, settings.points(.moduleHeight, in: windowHeight)) - 12)) : nil,
+            railCapacity: capacity, overflowCount: max(0, pinnedCount - capacity))
     }
 }

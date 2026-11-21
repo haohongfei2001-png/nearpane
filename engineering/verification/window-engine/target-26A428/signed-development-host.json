@@ -1,0 +1,96 @@
+{
+  "scope": "readOnlyIsolatedDevelopmentHost",
+  "qualifiedBackends": [],
+  "officialHostRoundTrip": "NOT_RUN",
+  "dailyBefore": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90"
+  },
+  "status": "PASS",
+  "system": {
+    "version": "27.0",
+    "build": "26A428",
+    "sip": "System Integrity Protection status: enabled."
+  },
+  "signedHost": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "d6b20d593055a70d84b59499ca98fb96096af103",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "0.2.0",
+    "build": "1"
+  },
+  "hostSHA256": "835ca3bd874b2fb6950dca39d06cc7691b48980f9ad97984c3a1dbc707eba134",
+  "engineBoundary": {
+    "abi": 1,
+    "challenge": "f908d197-d1e6-4714-a680-f9b5630e9e89",
+    "closed": true,
+    "displays": 1,
+    "engines": [
+      {
+        "backend": "corner",
+        "readOnlyProbe": {
+          "detail": 46,
+          "flags": 0,
+          "status": 0
+        },
+        "unqualifiedWriteRefused": true
+      },
+      {
+        "backend": "spaces",
+        "readOnlyProbe": {
+          "detail": 222,
+          "flags": 0,
+          "status": 2
+        },
+        "unqualifiedWriteRefused": true
+      }
+    ],
+    "permissions": {
+      "accessibility": true,
+      "listenEvents": true
+    }
+  },
+  "launch": "Launch Services background, challenge correlated",
+  "sameExecutableDirectInvocation": {
+    "abi": 1,
+    "closed": true,
+    "displays": 1,
+    "engines": [
+      {
+        "backend": "corner",
+        "readOnlyProbe": {
+          "detail": 46,
+          "flags": 0,
+          "status": 0
+        },
+        "unqualifiedWriteRefused": true
+      },
+      {
+        "backend": "spaces",
+        "readOnlyProbe": {
+          "detail": 222,
+          "flags": 0,
+          "status": 2
+        },
+        "unqualifiedWriteRefused": true
+      }
+    ],
+    "permissions": {
+      "accessibility": true,
+      "listenEvents": true
+    }
+  },
+  "sourceHead": "ddac854ef070e6eb6ac8988cd844d74a3b443349",
+  "sourceState": "clean",
+  "signedBundleVerified": true,
+  "dailyAfter": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90"
+  }
+}

@@ -1,0 +1,107 @@
+--- AudioCapture.swift
++++ AudioCapture.swift
+@@ -38,14 +38,18 @@
+     var recordingID: UUID?
+     var speech: (any RecognitionSession)?
+     var retired: [any RecognitionSession] = []
++    var localReadbacks: [UUID: Task<Void, Never>] = [:]
++    let observedFinal: (@Sendable (NearpaneVoiceReadback) -> Void)?
++    var currentIsLocal = false
+     var converter: AVAudioConverter
+     var sourceFormat: AVAudioFormat
+     var targetFormat: AVAudioFormat
+     var runTask: Task<Void, Never>?
+     var stopping = false
+-    init(store: SaytileStore, ring: AudioRing, sampleRate: Double, recognitionEnabled: Bool = true, recognitionFactory: RecognitionSessionFactory = RecognitionSessionFactory(), journalIO: PCMJournal.IO = .live, update: @escaping @Sendable (Bool, Float) -> Void, failed: @escaping @MainActor @Sendable (String) -> Void) throws {
++    init(store: SaytileStore, ring: AudioRing, sampleRate: Double, recognitionEnabled: Bool = true, recognitionFactory: RecognitionSessionFactory = RecognitionSessionFactory(), journalIO: PCMJournal.IO = .live, observedFinal: (@Sendable (NearpaneVoiceReadback) -> Void)? = nil, update: @escaping @Sendable (Bool, Float) -> Void, failed: @escaping @MainActor @Sendable (String) -> Void) throws {
+         self.store = store; self.ring = ring; self.sampleRate = sampleRate; self.recognitionEnabled = recognitionEnabled; self.update = update; self.failed = failed
+         self.journalIO = journalIO
++        self.observedFinal = observedFinal
+         self.recognitionFactory = recognitionFactory
+         segmenter = try VoiceSegmenter()
+         sourceFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: 1, interleaved: false)!
+@@ -173,6 +177,7 @@
+                 ? store.beginFusionRecognition(recordingID: record.id, mode: config.inputMode)
+                 : store.beginRecognition(recordingID: record.id))
+             speech = recognitionFactory.make(store: store, ticket: ticket, snapshot: snapshot, newCapture: true)
++            currentIsLocal = !config.cloudEnabled
+         } catch { speech = nil }
+     }
+     func append(_ data: Data) async throws {
+@@ -203,8 +208,8 @@
+         speech?.finish()
+         // Closed-input sessions finish independently. Admission is bounded by the
+         // cloud factory, never by cancelling older accepted recognition results.
+-        retired.removeAll { $0.isComplete }
+-        if let speech { retired.append(speech) }
++        if let speech { retire(speech, isLocal: currentIsLocal) }
++        currentIsLocal = false
+         self.speech = nil; self.journal = nil; self.recordingID = nil
+         } catch { await cleanupCaptureFailure(error); throw error }
+     }
+@@ -230,7 +235,7 @@
+         }
+         speech = nil; journal = nil; self.recordingID = nil
+     }
+-    func hasPendingRecognition() -> Bool { speech?.isComplete == false || retired.contains { !$0.isComplete } }
++    func hasPendingRecognition() -> Bool { !localReadbacks.isEmpty || speech?.isComplete == false || retired.contains { !$0.isComplete } }
+     func cancelRecognitionAndWait(recordingID: UUID? = nil) async {
+         let sessions = (retired + (speech.map { [$0] } ?? [])).filter { recordingID == nil || $0.recordingID == recordingID }
+         let cancelledIDs = Set(sessions.map { ObjectIdentifier($0) })
+@@ -473,10 +478,10 @@
+             state = .paused; level = 0
+         }
+         let worker = try CaptureWorker(store: store, ring: ring, sampleRate: 16_000,
+-            recognitionEnabled: !recordOnly, recognitionFactory: recognitionFactory,
++            recognitionEnabled: !recordOnly, recognitionFactory: recognitionFactory, observedFinal: nearpaneReadbackObserver,
+             update: { updates.yield(($0, $1)) }, failed: { [weak self] message in self?.issue = message })
+         let clock = ContinuousClock(), began = clock.now
+-        state = .listening
++        state = .starting
+         await worker.start()
+         let buffer = AVAudioPCMBuffer(pcmFormat: source.processingFormat, frameCapacity: 320)!
+         do {
+@@ -699,7 +704,7 @@
+             guard let sampleRate = pinned?.sampleRate ?? format?.sampleRate else { throw AudioFailure.message("没有可用的麦克风") }
+             let ring = try AudioRing(capacity: UInt32(sampleRate * 4))
+             let meterContinuation = beginMeterObservation()
+-            let worker = try CaptureWorker(store: store, ring: ring, sampleRate: sampleRate, recognitionFactory: recognitionFactory, update: { speaking, level in
++            let worker = try CaptureWorker(store: store, ring: ring, sampleRate: sampleRate, recognitionFactory: recognitionFactory, observedFinal: nearpaneReadbackObserver, update: { speaking, level in
+                 meterContinuation.yield((speaking, level))
+             }, failed: { [weak self] message in Task { @MainActor in await self?.suspend(reason: message) } })
+             if let pinned {
+@@ -721,7 +726,8 @@
+                 waitingForOpenLid = requestedRunning
+                 throw AudioFailure.message(MicrophoneLid.reason)
+             }
+-            self.engine = engine; self.ring = ring; self.worker = worker; state = .listening
++            // Publish standby from the first real input buffer, including silence.
++            self.engine = engine; self.ring = ring; self.worker = worker
+             restoringStandby = false
+             await worker.start()
+             prepareLocalSpeechResourcesIfNeeded()
+@@ -1066,6 +1072,15 @@
+             if let lease { try? await store.releaseAudioLease(lease) }
+         }
+     }
++    public var nearpaneCaptureIntent: UUID?
++    public var nearpaneLocalFinal: (@Sendable (UUID?, NearpaneVoiceReadback) -> Void)?
++    private var nearpaneReadbackObserver: (@Sendable (NearpaneVoiceReadback) -> Void)? {
++        guard let callback = nearpaneLocalFinal else { return nil }
++        let intent = nearpaneCaptureIntent
++        return { proof in callback(intent, proof) }
++    }
++    public func nearpaneLocalAvailability() async -> SpeechAvailability { await recognitionFactory.localAvailability() }
++
+     public func shutdown() async {
+         if let shutdownTask { await shutdownTask.value; return }
+         isShuttingDown = true; requestedRunning = false; playbackResume = false
+@@ -1083,7 +1098,7 @@
+             for release in Array(leaseReleaseTasks.values) { await release.value }
+             leaseReleaseTasks.removeAll()
+             await stopCapture()
+-            for worker in drainingWorkers { await worker.cancelRecognitionAndWait() }
++            await CaptureWorker.finishForShutdown(drainingWorkers)
+             drainingWorkers.removeAll()
+             await retryTask?.value; await recoveryTask?.value; await lifecycleTask?.value
+             await automaticAssetTask?.value; await assetTask?.value; await availabilityTask?.value

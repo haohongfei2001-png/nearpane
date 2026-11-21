@@ -1,0 +1,377 @@
+{
+  "actions": [
+    {
+      "axReturn": 0,
+      "id": 53,
+      "lastObserved": [
+        {
+          "appKitFrame": [
+            20,
+            397,
+            140,
+            132
+          ],
+          "axFrame": [
+            20,
+            239,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            20,
+            239,
+            140,
+            132
+          ],
+          "id": 52,
+          "input": "",
+          "ownerKey": true,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            1023,
+            -43,
+            140,
+            132
+          ],
+          "axFrame": [
+            1023,
+            679,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            1023,
+            679,
+            140,
+            132
+          ],
+          "id": 53,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            280,
+            397,
+            140,
+            132
+          ],
+          "axFrame": [
+            280,
+            239,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            280,
+            239,
+            140,
+            132
+          ],
+          "id": 54,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            390,
+            397,
+            140,
+            132
+          ],
+          "axFrame": [
+            390,
+            239,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            390,
+            239,
+            140,
+            132
+          ],
+          "id": 55,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            500,
+            397,
+            140,
+            132
+          ],
+          "axFrame": [
+            500,
+            239,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 56,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            610,
+            397,
+            140,
+            124
+          ],
+          "axFrame": [
+            610,
+            247,
+            140,
+            124
+          ],
+          "axMin": false,
+          "cg": [
+            610,
+            247,
+            140,
+            124
+          ],
+          "id": 57,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        }
+      ],
+      "park": true,
+      "state": "mayHaveIssued",
+      "uptime": 1184.1207577083335
+    },
+    {
+      "axReturn": 0,
+      "id": 53,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 1187.2936527083334
+    }
+  ],
+  "auxiliaryID": 57,
+  "axTrusted": true,
+  "baseline": [
+    {
+      "appKitFrame": [
+        20,
+        397,
+        140,
+        132
+      ],
+      "axFrame": [
+        20,
+        239,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        20,
+        239,
+        140,
+        132
+      ],
+      "id": 52,
+      "input": "",
+      "ownerKey": true,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        120,
+        397,
+        140,
+        132
+      ],
+      "axFrame": [
+        120,
+        239,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        120,
+        239,
+        140,
+        132
+      ],
+      "id": 53,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        280,
+        397,
+        140,
+        132
+      ],
+      "axFrame": [
+        280,
+        239,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        280,
+        239,
+        140,
+        132
+      ],
+      "id": 54,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        390,
+        397,
+        140,
+        132
+      ],
+      "axFrame": [
+        390,
+        239,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        390,
+        239,
+        140,
+        132
+      ],
+      "id": 55,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        500,
+        397,
+        140,
+        132
+      ],
+      "axFrame": [
+        500,
+        239,
+        140,
+        132
+      ],
+      "axMin": true,
+      "cg": [],
+      "id": 56,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": true,
+      "ownerVisible": false
+    },
+    {
+      "appKitFrame": [
+        610,
+        397,
+        140,
+        124
+      ],
+      "axFrame": [
+        610,
+        247,
+        140,
+        124
+      ],
+      "axMin": false,
+      "cg": [
+        610,
+        247,
+        140,
+        124
+      ],
+      "id": 57,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    }
+  ],
+  "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+  "dockAfterCleanup": 1,
+  "dockBaseline": 1,
+  "dockBeforeUserMinimized": 0,
+  "dockNoExtraTiles": false,
+  "dockPeak": 1,
+  "fiftyCycles": "NOT_RUN",
+  "installedHost": "NOT_RUN",
+  "maskPresented": false,
+  "method": "corner",
+  "nativeWrites": 0,
+  "owners": [
+    {
+      "birth": 1795230281552910,
+      "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+      "identifier": "net.example.nearpane.stage-group-a",
+      "numbers": [
+        52,
+        53
+      ],
+      "onActiveSpace": true,
+      "pid": 23918
+    },
+    {
+      "birth": 1795230282072104,
+      "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+      "identifier": "net.example.nearpane.stage-group-b",
+      "numbers": [
+        54,
+        55,
+        56,
+        57
+      ],
+      "onActiveSpace": true,
+      "pid": 23921
+    }
+  ],
+  "reason": "inactiveGeometryOrMinimizationNotConfirmed",
+  "restoredOriginals": true,
+  "screenRecordingAllowed": true,
+  "stageManager": false,
+  "status": "FAIL",
+  "steps": [],
+  "systemVersion": "Version 26.7.2 (Build 25G332)",
+  "tenCycles": "NOT_RUN",
+  "userMinimizedID": 56,
+  "fixtureOwnersExited": true,
+  "recording": {
+    "status": "BLOCKED",
+    "reason": "captureUnavailable"
+  }
+}

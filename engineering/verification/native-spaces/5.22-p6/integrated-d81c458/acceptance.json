@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "version": "5.22",
+  "build": "90",
+  "candidateSource": "d81c458f58b8b2efcb393acc0d8fff8db07345a6",
+  "candidateSHA256": "82ee3f86fb0b3bca5dbbd0fb724d5859f72e4d36d75d00669d9b275651440196",
+  "draftAssetID": 773368509,
+  "release": "DRAFT",
+  "gates": {
+    "P0": {
+      "run18ForegroundAndDockFollow": "CONFIRMED",
+      "upstreamAutomation": "UNKNOWN",
+      "isolatedDiagnostic": "BLOCKED",
+      "setupShortcutIssued": false,
+      "hostSwitchesIssued": 0,
+      "rejectedEndpoint": "UNKNOWN",
+      "formalAdjacentRoundTrip": "NOT_RUN",
+      "ten": "NOT_RUN",
+      "fifty": "NOT_RUN",
+      "macOS27ProductionSwitchEnabled": false,
+      "evidence": [
+        {
+          "path": "5.22-p0/post-reassessment/run18-system.json",
+          "sha256": "a0c4bb86d5251e9a6e85e5526d4d6f0f9c6165b65d35fc97c81f99e10a00b07d"
+        },
+        {
+          "path": "5.22-p0/post-reassessment/observer-isolated.json",
+          "sha256": "0db26820d79e93747216077d099f1e810d0ce6ea3386c1646e0ba1cb1f26f9f1"
+        },
+        {
+          "path": "5.22-p0/post-reassessment/isolated-97109f4/booked-adjacent.json",
+          "sha256": "6052ef1b32cb23eea010686ee672f58ae2535aff27f4c1c5b5a8d927e78f06da"
+        },
+        {
+          "path": "5.22-p0/post-reassessment/isolated-97109f4/rejected-census.json",
+          "sha256": "480e67e6a75abf37a2c8c2845c270f221a07ee9d570cf28581cc445718f9fb4b"
+        }
+      ]
+    },
+    "P1": {
+      "selectorABIAndLifetime": "PASS",
+      "actualMove": "NOT_RUN",
+      "systemMoveDispatches": 0,
+      "evidence": {
+        "path": "5.22-p1-bridge/bridge-abi.json",
+        "sha256": "a881f6872399b3a9dd77416c750f943968a7ab2edc625f93dedf86f73c1b0cc9"
+      }
+    },
+    "P2": {
+      "installedSameAppTwoWindowFocusAndUniqueKeyboardMarkers": "PASS",
+      "confirmed": 10,
+      "attempted": 10,
+      "separateEarlierPassingRun": 10,
+      "evidence": [
+        {
+          "path": "5.22-90-active-display-previews/same-space-focus/registered-document-runs/09/summary.json",
+          "sha256": "6b79bc0ea81b0c59e010d90abcb2c2df5021155e2e771e8a9b0003df78e3a8c6"
+        },
+        {
+          "path": "5.22-90-active-display-previews/same-space-focus/registered-document-runs/08/summary.json",
+          "sha256": "8db9116437d25e5a2b0d603905483ed3db7f59e09bb7b6d4734d2f7d3bc3aeb5"
+        }
+      ]
+    },
+    "P3": {
+      "installedChromeAppleEvents": "notRequested",
+      "authorizedRemoteDraft": "BLOCKED",
+      "pageReads": 0,
+      "uploads": 0,
+      "sends": 0,
+      "evidence": {
+        "path": "5.22-p3/installed-946afb9/qualification.json",
+        "sha256": "31c61bb6391714e2d219cba9443b46d3a583bb0747c4be9fc58f7323681bf3f7"
+      }
+    },
+    "P4": {
+      "installedServicesHandoff": "PASS",
+      "missingModelFeedbackPixels": "PASS",
+      "confirmedFeedbackPixelSamples": 5,
+      "selectionFocusRetention": "FAIL",
+      "productionTranslation": "BLOCKED",
+      "seededWordReopen": "PASS",
+      "newTranslatedWordReopen": "NOT_RUN",
+      "digitalColdOnsetAndTail": "PASS",
+      "recognizedFinalsScored": 0,
+      "physicalMicStarts": "NOT_RUN",
+      "evidence": [
+        {
+          "path": "5.22-p4/installed-d81c458/result.json",
+          "sha256": "b57fb0814ac4aac4defc5c32dd162a6eedaf1ef5b32b2eaf77e53337e376087e"
+        },
+        {
+          "path": "5.22-p4/installed-d81c458/host-foreground.json",
+          "sha256": "596273881ea9230d57896afc4388131fabb6cc72e3289fe7702d8a0f7cda1e05"
+        },
+        {
+          "path": "5.22-p4/installed-9ba33eb/seeded-wordbook.json",
+          "sha256": "b0add3657bb5a5c5b164dcdc47d970ad5225726882e8272376dc27a9b056d5c2"
+        },
+        {
+          "path": "5.22-p4/local-corpus/summary.json",
+          "sha256": "f7a0c98b42a17036d21c55535b9a8488f940e5106e5051728e652ea168ccca00"
+        }
+      ]
+    },
+    "P5": {
+      "offlineLayoutLifecycle": "PASS",
+      "offlineBenchmarkArithmetic": "PASS",
+      "multiPhysicalDisplay": "NOT_RUN",
+      "twoWindowSplitView": "NOT_RUN",
+      "physicalWake": "NOT_RUN",
+      "appleMatchedLatency": "NOT_RUN",
+      "evidence": [
+        {
+          "path": "5.22-p5/offline-qualification.json",
+          "sha256": "89a35410dc8b47e6a3833b8c984abc9057f78d38a866471b0a1fc600151d696c"
+        },
+        {
+          "path": "5.22-p5/lifecycle-scheduling.json",
+          "sha256": "054d0e0d0532d6b4f7de0459668ea1552557c4890af137fff0f5134a69e50c1b"
+        }
+      ]
+    },
+    "P6": {
+      "distributionSignatures": "PASS",
+      "binaries": 13,
+      "architectureSlices": 18,
+      "publicKeyConfigured": false,
+      "privateNotarySubmission": "NOT_RUN",
+      "cleanGatekeeper26": "FAIL",
+      "physicalGatekeeper27": "FAIL",
+      "policyReason": [
+        "Notary Ticket Missing"
+      ],
+      "cleanLaunch": "NOT_RUN",
+      "candidateQualificationRun": 44819249099,
+      "evidence": [
+        {
+          "path": "5.22-p6/integrated-d81c458/package.json",
+          "sha256": "f6f442e9ae2babb7a1fb9828b5ff2d19929ab150b36de56ce989f32062c17d24"
+        },
+        {
+          "path": "5.22-p6/integrated-d81c458/system-policy.json",
+          "sha256": "d11e125fe14ebd3b80d3f8b362240c7490bd711aaec772984070cbeeb0bf1d94"
+        },
+        {
+          "path": "5.22-p6/integrated-d81c458/hosted-macos-26.json",
+          "sha256": "a8e0c97578c4ce5fa6f2eac325a3a783021fd38fb4a60f10a5a5e374c756511c"
+        }
+      ]
+    }
+  },
+  "testing": {
+    "completeSwift": {
+      "tests": 592,
+      "sha256": "17b8ba6121bdcb789b5a9be1f9a15bfbf1dd458a193c779f8f09ebef03aa0df6",
+      "suites": 94,
+      "status": "PASS"
+    },
+    "acceptancePythonWithArchivedRecordings": {
+      "tests": 269,
+      "sha256": "010fa4a8f68a928da1271a6171d614fa9276e72e7eff59d5dafb526396e54f7e",
+      "skipped": 0,
+      "status": "PASS"
+    },
+    "signingPython": {
+      "tests": 9,
+      "sha256": "7c758af7411e05fc2e6c4fb89045f7a03d9a5957d5305092903a23a66373d034"
+    },
+    "notaryPython": {
+      "tests": 10,
+      "sha256": "1a902fd4c537c33c9c15041b84a9ad5661cfe31a3f4d21f81c9f7ae7a631eec6"
+    }
+  },
+  "restoration": {
+    "ordinarySource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "status": "PASS",
+    "protectedRollbackSource": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+    "rollbackSHA256": "c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052",
+    "receipt": {
+      "path": "5.22-p6/integrated-d81c458/protected-installation.json",
+      "sha256": "5573dd9a54502f9a4d86bfee1e02aa9d02cb1b85c085bd96c28892ccba2bcc42"
+    }
+  }
+}

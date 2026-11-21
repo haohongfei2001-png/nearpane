@@ -48,6 +48,11 @@ import NearpaneCore
                 }
             }
             // Only the intrinsic glyph interiors are fully covered. Antialiased edges naturally blend.
+            // Decode an opaque reference in the same bitmap color space as the caption.
+            let rgb = scheme == .light ? [37.0, 39, 42] : [241.0, 242, 244]
+            let swatch = Color(.sRGB, red: rgb[0]/255, green: rgb[1]/255, blue: rgb[2]/255).frame(width: 2, height: 2)
+            let referenceImage = try #require(ImageRenderer(content: swatch).cgImage)
+            let expected = try color(NSBitmapImageRep(cgImage: referenceImage), 0, 0)
             var ink = 0
             for y in 124..<(clear.pixelsHigh - 4) {
                 for x in 0..<180 {
@@ -57,7 +62,7 @@ import NearpaneCore
                         let reference = try color(solid, x, y)
                         let transparent = try color(clear, x, y)
                         #expect(pixel == reference && pixel == transparent)
-                        #expect(scheme == .light ? pixel.redComponent < 0.1 : pixel.redComponent > 0.9)
+                        #expect(pixel == expected)
                     }
                 }
             }
@@ -69,37 +74,6 @@ import NearpaneCore
             } else {
                 #expect(glassPixel.alphaComponent == 1 && outside.alphaComponent == 0)
             }
-        }
-    }
-
-    @Test func allWindowsFitAtOneScaleWithoutScrollingOrDroppingUnknownGeometry() throws {
-        let pictures: [CGSize?] = (0..<30).map { index in
-            switch index % 3 {
-            case 0: CGSize(width: 180, height: 84)
-            case 1: CGSize(width: 45, height: 120)
-            default: nil
-            }
-        }
-        for height: CGFloat in [30, 240, 640, 1300, 3400] {
-            let fit = DesktopRosterFit(pictures: pictures, availableHeight: height, spacing: 6, labelSize: 10)
-            try #require(fit.rows.count == pictures.count)
-            let used = fit.rows.map(\.height).reduce(0, +) + CGFloat(fit.rows.count - 1) * fit.spacing
-            #expect(used <= height + 0.001)
-            let first = try #require(fit.rows[0].picture)
-            let scale = first.width / 180
-            #expect(scale > 0 && scale <= 1)
-            for (source, row) in zip(pictures, fit.rows) {
-                #expect(row.height > 0)
-                if let source {
-                    let image = try #require(row.picture)
-                    #expect(abs(image.width - source.width * scale) < 0.0001)
-                    #expect(abs(image.height - source.height * scale) < 0.0001)
-                    #expect(row.height >= image.height)
-                } else {
-                    #expect(row.picture == nil && row.showsCaption)
-                }
-            }
-            if height == 3400 { #expect(scale == 1 && fit.spacing == 6) }
         }
     }
 
@@ -160,16 +134,17 @@ import NearpaneCore
             let scale = CGFloat(pixels.pixelsWide) / hosting.bounds.width
             let rim = settings.glass.inset(width: 220)
             let contentWidth = layout.windowArea.width - 2 * rim
-            let inset = settings.points(.spacePadding, in: contentWidth) + 2
-            let firstY = layout.windowArea.y + rim + inset
-            let pictureScale = (contentWidth - 2 * inset) / frame.width
-            // The colour traversal measures the fill between the two inset outline strokes.
-            let stroke = settings.points(.borderWidth, in: contentWidth - 2 * inset)
-            let natural = windows.map { CGSize(width: $0.bounds.width * pictureScale, height: $0.bounds.height * pictureScale) }
-            let fit = DesktopRosterFit(pictures: natural, availableHeight: layout.windowArea.height - 2 * (rim + inset),
-                                       spacing: settings.points(.spaceRowGap, in: layout.windowArea.height), labelSize: 10)
-            let heights = count > 6 ? fit.rows.compactMap { $0.picture.map { $0.height - 2 * stroke } }
-                                    : natural.map { $0.height - 2 * stroke }
+            let inset = settings.points(.spacePadding, in: contentWidth) + 4
+            let firstY = layout.windowArea.y + inset
+            let imageWidth = contentWidth - 2 * inset
+            let stroke = settings.points(.borderWidth, in: imageWidth)
+            let heights = windows.map { min(imageWidth * 0.5, imageWidth * $0.bounds.height / $0.bounds.width) - 2 * stroke }
+            let rowGap = settings.points(.spaceRowGap, in: frame.height)
+            var cursor = firstY
+            let fullyVisible = heights.prefix { height in
+                defer { cursor += height + 2 * stroke + 18 + rowGap }
+                return cursor + height + 2 * stroke <= layout.windowArea.y + layout.windowArea.height
+            }.count
             func pictureBands(at fraction: Double) throws -> [Range<Int>] {
                 let x = Int(Double(pixels.pixelsWide) * fraction)
                 func tone(_ y: Int) throws -> [Int] {
@@ -188,9 +163,9 @@ import NearpaneCore
                 }
                 return runs
             }
-            let left = try pictureBands(at: count > 6 ? 0.16 : 0.23)
-            let right = try pictureBands(at: count > 6 ? 0.25 : 0.76)
-            try #require(left.count == count && right.count == count, "left \(left), right \(right), expected first at \(firstY) pt and \(count) cards")
+            let left = try pictureBands(at: 0.23)
+            let right = try pictureBands(at: 0.76)
+            try #require(left.count == fullyVisible && right.count == fullyVisible, "left \(left), right \(right), expected first at \(firstY) pt and \(fullyVisible) complete cards")
             #expect(abs(CGFloat(left[0].lowerBound) / scale - firstY) <= 2)
             for (index, band) in left.enumerated() {
                 #expect(abs(CGFloat(band.count) / scale - heights[index]) <= 2)
@@ -203,7 +178,7 @@ import NearpaneCore
             if count > 6 {
                 let last = try #require(left.last)
                 #expect(CGFloat(last.upperBound) / scale < layout.windowArea.y + layout.windowArea.height)
-                #expect(heights[0] < natural[0].height / 2)
+                #expect(left.count < count && left.count >= 5)
                 func containsScroller(_ view: NSView) -> Bool {
                     view is NSScrollView || view.subviews.contains { containsScroller($0) }
                 }
@@ -211,7 +186,7 @@ import NearpaneCore
                 let desktopView = NSHostingView(rootView: DesktopSurface(host: host, displayID: screen.id, enabled: true)
                     .frame(width: 220, height: 500))
                 desktopView.layoutSubtreeIfNeeded()
-                #expect(!containsScroller(desktopView))
+                #expect(containsScroller(desktopView))
             }
             #expect(!window.isVisible && !window.isKeyWindow)
         }

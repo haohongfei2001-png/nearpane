@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "scope": "signedProductFirstThirdPartyWindowCycle",
+  "date": "2026-11-21",
+  "product": "Nearpane 5.22 (90)",
+  "branch": "codex/r4-native-candidate-20261120",
+  "base": "48866a91c808b6754a30e664cce675e647e2cebf",
+  "productSource": "666e26fe8a758fc0ba5539c09cfcd6d631cbf464",
+  "fixtureRunnerSource": "93fad82058adb323502c5faa885f2c59437300a6",
+  "target": {
+    "version": "27.0",
+    "osBuild": "26A428",
+    "sipEnabled": true,
+    "hardware": "physical Mac",
+    "displays": 1
+  },
+  "daily": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "pid": 59938,
+    "birth": 1795224294017017,
+    "sameProcessAndSignatureAfter": true,
+    "hasEngine": false,
+    "permissions": {
+      "screenCapture": true,
+      "accessibility": true,
+      "postEvent": true,
+      "listenEvent": null
+    },
+    "inputMonitoring": "UNKNOWN"
+  },
+  "stagedProduct": {
+    "cdhash": "a82bb2abda2a66d591dd7bd1d822adc2e67c55f5",
+    "launchReadback": {
+      "errorCode": 0,
+      "errorDomain": "",
+      "exactLaunchPath": false,
+      "pid": 59938
+    },
+    "ownRuntimePermissions": "UNKNOWN",
+    "scope": "BLOCKED"
+  },
+  "developmentHost": {
+    "source": "666e26fe8a758fc0ba5539c09cfcd6d631cbf464",
+    "cdhash": "4f6bd4e0c91c3b718948b5cb2f347528556f4d6a",
+    "pid": 98669,
+    "birth": 1795256908524248,
+    "ownPermissions": {
+      "accessibility": true,
+      "listenEvent": true,
+      "postEvent": true
+    },
+    "ordinaryPhysicalScope": "PASS",
+    "nativeType": 0,
+    "nativeID": 6,
+    "sampleCount": 2,
+    "notifiedChanges": 0,
+    "windowNumber": 61357,
+    "windowOwnerPID": 98617,
+    "windowOwnerBirth": 1795256907099163,
+    "windowOwnerCDHash": "ef4d40fef8f00b4e3935fa4f593648bb76cf2ff6",
+    "membership": {
+      "reason": "exclusiveReverseAndExactForward",
+      "spaceToWindow": {
+        "reason": "oneHitInEachSpaceRead",
+        "status": "PASS"
+      },
+      "status": "PASS",
+      "windowToSpaces": {
+        "reason": "exclusiveInBothWindowReads",
+        "status": "PASS"
+      }
+    },
+    "inProcessAXAndGeometry": "CONFIRMED",
+    "guardianHandoff": "NO_LIVE_HANDOFF_IN_THIS_HOST",
+    "guardianRecovery": "BLOCKED",
+    "fixtureClosedAndExited": true,
+    "rawHostSHA256": "04930a388b39710ac922e8cbbf150ebac813991cbfb2fd9290de803aeb814ad8"
+  },
+  "backends": {
+    "Corner": {
+      "BUILD_PASS": "PASS",
+      "ABI_PASS": "PASS",
+      "HOST_PERMISSION_PASS": "BLOCKED",
+      "TARGET_SCOPE_PASS": "BLOCKED",
+      "SINGLE_WINDOW_HIDE_RESTORE_PASS": "NOT_RUN",
+      "PRODUCTION_QUALIFIED": false,
+      "eligibility": "BLOCKED",
+      "formalPermissionMeasurement": "UNKNOWN",
+      "firstMutationDispatched": false,
+      "mouseDownDragUp": "NOT_RUN",
+      "realRestoreGeometry": "NOT_RUN",
+      "unmanagedWindowAndDock": "NOT_RUN",
+      "survivingGuardianRecovery": "NOT_RUN"
+    },
+    "Spaces": {
+      "BUILD_PASS": "PASS",
+      "ABI_PASS": "PASS",
+      "HOST_PERMISSION_PASS": "BLOCKED",
+      "TARGET_SCOPE_PASS": "BLOCKED",
+      "SINGLE_WINDOW_HIDE_RESTORE_PASS": "NOT_RUN",
+      "PRODUCTION_QUALIFIED": false,
+      "eligibility": "BLOCKED",
+      "formalPermissionMeasurement": "UNKNOWN",
+      "firstMutationDispatched": false,
+      "ownedPanelCanary": "NOT_RUN",
+      "temporarySpacesCreated": 0,
+      "thirdPartyMembershipRoundTrip": "NOT_RUN"
+    }
+  },
+  "writtenThirdPartyWindows": 0,
+  "spaceMutations": 0,
+  "syntheticPointerEvents": 0,
+  "permissionRequests": 0,
+  "tenRuns": 0,
+  "fiftyRuns": 0,
+  "formalGroupRoundTrip": "NOT_RUN",
+  "qualifiedBackends": 0,
+  "voiceFirstColdTimeout": "UNKNOWN",
+  "ci": {
+    "productSource": "666e26fe8a758fc0ba5539c09cfcd6d631cbf464",
+    "rustPassed": 87,
+    "swiftPassed": 61,
+    "productionCABI": "PASS",
+    "hostedGUI": "BLOCKED",
+    "hostedGUIReason": "ordinaryUUIDFieldsPresentButUnusableTwice",
+    "sourceAndGUI": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44893427099",
+    "previousHostedUnknown": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44892866455",
+    "nativeProtocol": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44892866427",
+    "embeddedTools": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44893427120",
+    "fixtureSourceJob": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44894513769"
+  },
+  "receiptSHA256": {
+    "01-observer-cold-compile-timeout.json": "7b6867b48850e8cfb54f877f2d5b253773a33199a3a7248eadb96e1b38c9649d",
+    "02-installed-permissions.json": "d378bd9c3f1393fb3b41022b75e4f06b9ede28faef8ef3470d0f5b040f3b270b",
+    "03-installed-scope-capability.json": "b23a628caa49722666866c639c6b6f65339993a8afe94585e7cfada710abc99a",
+    "04-scope-offline.json": "e4b01e25e9ab0313506ba775872989554236805c8d2bf2f7972db46d3906e920",
+    "05-host-ax-tests.json": "debb646cf71d2fc1f9b0085623582725e5c58b97eccc36c04b0dba0f8cfdca02",
+    "06-guardian-offline.json": "0112f48fb23e7ef52c0728298879d3a69f7e0bc26ffd99d31eac693df3269dc2",
+    "07-signed-package.json": "5f914f92c60926b1d64f94cbba046c08a4585b2bb1f21e5201bf133abe02ce1b",
+    "07-signed-preparation-first-failure.json": "ece2f1a0ccdb3c73bd863f08cc8d324305056298a5e40d0ee4381b8751f3e389",
+    "08-signed-product-scope.json": "d66ce834ab77750eebfaf3700652626e10e48edc4e1e28152d4d8b1470b65008",
+    "09-development-permissions-and-denials.json": "a77c611528a8b01dc9f2679b143d323bc52b4ccb4efacdcb123039c66b55ccf1",
+    "09-development-scope.json": "ef10f363e16a09b6db431aa207ab411414035a8f0bae44a42b4ea1cd29d75723",
+    "10-fixture-membership.json": "c08d81df46b03fbebfed5dbd6952a751f4346ab34dd4eb915dc07933584d4949",
+    "10-startup-exit.json": "873ce61bd1a6c42586d2f9bb4e32709b81caf213add4b758a12c533af644cd37",
+    "11-public-projection.json": "403f6c2b603347eebe222e7fa654f90e19f751872385c38b0872667d19477fcb",
+    "11-registered-membership-host.json": "d22fe80022656c87ce1477f699daa34831755d0055c88aa5c72c55c7dc5aefb6",
+    "11-registered-membership.json": "05c3dbf8e886e6ed409cf11927e1c305e00d74be54eb326fa4650107078aa232",
+    "12-owned-cleanup.json": "5c7d0e25f0b3485fbc21dd7f3c4dc1387e5bd305b4188b788925eac085eb98b0",
+    "13-daily-after.json": "e9fe26f8bccdd355e0a88c51a756eaf68fbd930c15172266f39cb4455a95299d",
+    "ci-44892866455/hosted-result.json": "3563be46ed89fdd742d8e185d94d03db1d087ca06d806b6835c830926d972021",
+    "ci-44892866455/reads.json": "277ef070c7b5cf60ded5f6e16e52930fd493a923c7c3b2d4302fe26daf349a6b",
+    "ci-44892866455/source-result.json": "38be7b02f29df5f7c9808ac33ae9823a4b5c88b51b4d380498ddcd688b9e7399",
+    "ci-44893427099/hosted-result.json": "c2466eca0a8d46c9912ad8200456641af585b076574de186c4bb8dcb475f8d86",
+    "ci-44893427099/reads.json": "9aedf17c9c0e08f50dfe28b3b09fa028391fd16710c32713f726b97fe1cd8796",
+    "ci-44893427099/source-result.json": "49b573bea988451bd51147412c46540895b8434d0a4e060fdc51a49a720d38d4",
+    "offline-ci/prior-1-clt.json": "8aacab65e8338628e9882a3048e83f078283f5f7a451fce9d59d069337593439",
+    "offline-ci/prior-2-changing-integration.json": "02f4caeb85978443413916c529775ac11ae3e72308725fe0a64e5e683c5aefc9",
+    "offline-ci/prior-3-combined-log.json": "da78c7d0607048e93bb9c527081cb3307b6bf1ca39723762290aa824f74088ce",
+    "offline-ci/source.json": "6824e2a24e4bff83ff9a1791ad1df39718a5692d19f7e974c9e98a12c9aff137",
+    "offline-ci/index.json": "09acee98bf58be084235088919c947e4e215c69810941874f56db21068f491d3"
+  }
+}

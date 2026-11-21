@@ -1,0 +1,63 @@
+{
+  "birth": 1795211991947528,
+  "closureConfirmed": true,
+  "digest": "659b2bd62fe4e70cb64cc418d881b9959c1d3ffe3b82e63d3583632d572787d4",
+  "events": [
+    {
+      "active": true,
+      "clock": 285385.22716062504,
+      "key": 53861,
+      "main": 53861,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "arm"
+    },
+    {
+      "active": true,
+      "clock": 285388.73725420836,
+      "key": 53861,
+      "main": 53861,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "end"
+    }
+  ],
+  "intent": "d519a4ef-f376-4a1c-9339-07b5c60f56b4",
+  "keyDelivery": {
+    "attributedDown": 0,
+    "attributedUp": 0,
+    "mode": "pidNumericKeypad",
+    "overflow": false,
+    "physicalSuperseded": false,
+    "posterBound": false,
+    "sequenceMatches": false,
+    "unattributedDown": 0,
+    "unattributedUp": 0
+  },
+  "numbers": [
+    53861,
+    53863
+  ],
+  "pid": 28056,
+  "readerHash": "cd70b85bee3855530dc9b1f20e7709c0b46cac4b",
+  "receiverDisposition": "LIVE_SENDER_ENROLLMENT_UNCONFIRMED",
+  "sender": {
+    "status": "NOT_ATTEMPTED"
+  },
+  "session": "0f45dd97-c6f1-4342-af1f-d26141eae9a0",
+  "status": "SEALED",
+  "target": 53863,
+  "truncated": false
+}

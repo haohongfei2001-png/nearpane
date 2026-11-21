@@ -1,0 +1,30 @@
+{
+  "status": "BLOCKED",
+  "installedProductPresses": 0,
+  "confirmedTypedMarkers": 0,
+  "enrolledDocumentWindowNumbers": [
+    53234,
+    53233
+  ],
+  "additionalSurfaces": [
+    {
+      "number": 53238,
+      "owner": "enrolled",
+      "role": "window",
+      "subrole": "dialog"
+    },
+    {
+      "number": 53238,
+      "owner": "enrolled",
+      "role": "window",
+      "subrole": "dialog"
+    }
+  ],
+  "reportedWindowCount": 4,
+  "actualCopiedCount": 4,
+  "exactPriorTrialHadSameDialog": "NOT_PROVEN",
+  "dialogTitleRead": false,
+  "dialogContentsRead": false,
+  "eventPostedToAdditionalSurface": false,
+  "normalExitOfBothOwnedFilesConfirmedAfterDialogWentAway": true
+}

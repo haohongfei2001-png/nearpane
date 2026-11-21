@@ -1,0 +1,33 @@
+# 三组真实窗口隔离 · 5.22（90）
+
+**正式 Host 整组切换 BLOCKED。** 夹具在 macOS 26.7.2（25G332）的真实 WindowServer 上分别完成两次 A→B→C→A，对应最小化与角落停放各一次。两种机制均通过窗口呈现、布局、四次真实键盘输入及旁窗保持，但各自在单次准入的另一个条件失败。10 次和 50 次均为 NOT_RUN。日常 macOS 27 的 Dock 设置不同。 [机器清单](results.json) · [最终托管收据](qualification/summary.json) · [该修订的原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44860356509)
+
+## 受控窗口与独立读回
+
+两款临时签名普通 App 经 Launch Services 启动。第一款打开两扇独立文档窗，分别作为 A 和 B。第二款打开 C、一个未管理文档窗、一个由应用所有者在试验前最小化的窗，以及一个辅助面板。测试仅登记这些窗。每次确认可见集合、原几何和真正接收键盘的窗口时均取得两份新读数。每项试验结束后两个夹具进程都已退出。 [逐窗身份、代际和最小化前后矩形](qualification/minimize.json) · [角落与点击事件](qualification/corner.json)
+
+| 项目 | 单次结果 | 实际表现 |
+| --- | --- | --- |
+| 逐窗 AX 最小化 | FAIL | A、B、C、A 各次只有目标管理窗处于工作区，按键分别写入预期接收者。原本最小化的窗口贡献一个 Dock 图块，另外两扇离场窗把计数增至三个。清理后恢复为一个。 |
+| 存位、角落停放、非激活遮罩 | FAIL | WindowServer 和 AX 确认窗口缩至屏内一条 1 点宽的残条，遮罩盖住实际残条，Dock 无新增图块。在 (1023.5, 681) 发送正常鼠标按下，处于停放状态的窗 54 收到事件，键盘焦点随之改变。已还原原始窗口和触发前焦点。 |
+| 点击墙纸的系统让渡 | PASS，托管夹具与生产监视器源码 | 两次点击均落在系统桌面。窗口真实移开时监视器处于暂停，随后恢复原几何并解除暂停，得到六次恢复采样。 |
+| 写前日志、按只读桌面分区和分屏复核 | PASS，自动化层 | 覆盖资料迁移、跨桌面成员失配、活组唯一性、写后未知不重放及用户后来改变旁窗。一次全量回归揭示旧清单可能早于分屏动作；现在对操作后新清单中的两个全局矩形逐窗比对。 |
+| 已安装候选的完整组隔离 | BLOCKED | 当前配置下两种机制均有实测失败；正式 Host 没有开放多窗隐藏。夹具试验没有使用生产侧栏，不能计为其通过。 |
+| 10 次、50 次、组合离场再返回、正式崩溃回收 | NOT_RUN | 先通过同一安装品的单次完整合同。现有同屏精确选窗和左右分屏保留各自原有证据。 |
+| 独立的原生 Space 数字 ID、多块物理屏 | UNKNOWN / BLOCKED | 托管夹具通过所有者验证当前桌面，未独立确认托管机的原生 ID。物理机只有内屏。没有人为生成第二屏或切换系统桌面。 |
+
+真实屏幕帧和录屏均来自隔离的托管桌面，包含刻意保留的未管理窗与面板。最小化、角落和墙纸的完整录制分别为 12.16、6.16、2.08 秒。 [最小化录屏](qualification/minimize.mp4) · [抽帧](qualification/minimize.png) · [角落录屏](qualification/corner.mp4) · [抽帧](qualification/corner.png) · [墙纸录屏](qualification/wallpaper.mp4) · [抽帧](qualification/wallpaper.png) · [墙纸原始读数](qualification/wallpaper.json)
+
+## 失败链与回滚
+
+首轮 CI 在目录重新打开的检查中失败，未执行比较。下一轮把两个验收入口分开。新证据显示 Dock 稳定过程中可用工作区高度变化，先后使用不同工作区归一化会产生不同的比例；修正后独立比较原始绝对矩形、保存的归一化基准及新工作区。第一次角落夹具设置了 48 点高度上限，读到 89 点便停止。后续按完整遮罩覆盖量验证，并从 AX 命中推进至真实鼠标接收。早期命中试验的一段影片虽然可解码，但捕获进程退出异常；最后一轮核对了进程退出、视频轨时长及试验覆盖。 [初始目录失败](earlier/directory-ee81028.json) · [工作区诊断](earlier/directory-6737c6d.json) · [第一次角落测量](earlier/6737c6d-corner.json) · [仅 AX 命中的上一轮](earlier/dcb98e0-corner.json)
+
+物理机当前为 macOS 27.0（26A428），台前调度关闭，Dock 已启用“将窗口最小化至应用程序图标”，前台属于日常会话。该设置值得在隔离的同配置会话验证；它不能证明目标系统已经完成一次调度。日常安装源修订为 `d2d0bb6`。生产路径没有写入 Dock 或 WindowManager 偏好。v2 目录使用单独文件，回退时原 v1 文件仍在；可能已派发的动作有独立日志。 [实体机只读预检](physical-preflight.json) · [历史正式选窗与分屏](../../../native-spaces/5.22-90-sidebar-pair/RESULTS.md)
+
+## 签名安装与放行状态
+
+候选产品源码为 `565d311076ca20d23f63567172ea244571cf1276`，夹具收据来自 `13c7ada938fa0e46f9249eea42954acee00620b5`。此后产品增加了分屏几何的新读数检查。正式 Host 的整组鼠标点击、组内焦点、旁窗和布局恢复必须在具备合格隐藏方式后验证。 [候选源码](https://github.com/haohongfei2001-png/nearpane/tree/565d311076ca20d23f63567172ea244571cf1276) · [回归与未运行项](results.json)
+
+已用原生 Developer ID 签署 13 个代码对象、18 个架构切片，并从未公开的草稿中重新下载核对归档。两份非运行包的替换与原位回滚通过签名身份及摘要校验。 [签名与草稿下载收据](signed-candidate.json) · [私有包回滚](private-rollback.json)
+
+同一 SHA-256 的 ZIP 在干净的 macOS 26.7.2 登录环境实际装入 `/Applications/Nearpane.app`，从安装路径再次核对 13 个签名对象。Gatekeeper 给出 `Unnotarized Developer ID`，分发检查给出 `Notary Ticket Missing`，因此首次启动记为 BLOCKED、安装 Host 交互记为 NOT_RUN。已清理这份安装和临时下载凭据。该 CI 在另一轮新登录环境再次观察到两项机制失败以及墙纸让渡成功。物理 Mac 的前后只读预检相同。 [安装路径与 Gatekeeper 原始回执](../../../native-spaces/5.22-p6/integrated-565d311/hosted-macos-26.json) · [复测清单](earlier/installed-ci-summary.json) · [原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/44861706918)

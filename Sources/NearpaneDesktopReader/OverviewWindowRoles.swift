@@ -1,16 +1,25 @@
 import AppKit
 import ApplicationServices
+import NearpaneCore
+import WindowGeometryCore
 
 /// Roster evidence only. No title, document, child contents or action handle leaves this read.
 struct OverviewWindowRole {
     let ordinary: Bool?
     let minimized: Bool?
     let fullscreen: Bool?
+    var frame: Rect? = nil
 
     struct Owner {
         var windows: [UInt32: OverviewWindowRole] = [:]
         var everyNumberKnown = true
         var allRolesRead = true
+    }
+
+    static func classification(of number: UInt32, owner: Owner?, current: Bool) -> Bool? {
+        if let row = owner?.windows[number] { return row.ordinary }
+        // AXWindows may return a complete, empty list after the owner’s Space becomes inactive.
+        return current && owner?.everyNumberKnown == true ? false : nil
     }
 
     struct Target: Equatable {
@@ -36,14 +45,14 @@ struct OverviewWindowRole {
         return Array(array[first...]) + array[..<first]
     }
 
-    static func read(targets: [Target], revision: UInt64, deadline: Double) -> [Int32: Owner] {
+    static func read(targets: [Target], revision: UInt64, deadline: Double, frameNumbers: Set<UInt32> = []) -> [Int32: Owner] {
         let clock = ProcessInfo.processInfo
         return schedule(rotated(targets, revision: revision), deadline: deadline, now: { clock.systemUptime }) {
-            readOwner($0, revision: revision, deadline: $1)
+            readOwner($0, revision: revision, deadline: $1, includeFrame: !$0.numbers.isDisjoint(with: frameNumbers))
         }
     }
 
-    private static func readOwner(_ target: Target, revision: UInt64, deadline: Double) -> Owner? {
+    private static func readOwner(_ target: Target, revision: UInt64, deadline: Double, includeFrame: Bool) -> Owner? {
         let clock = ProcessInfo.processInfo
         func setTimeout(_ element: AXUIElement, until limit: Double) -> Bool {
             let remaining = limit - clock.systemUptime
@@ -52,11 +61,9 @@ struct OverviewWindowRole {
         }
 
         let app = AXUIElementCreateApplication(target.pid)
-        var rows: CFArray?
-        guard setTimeout(app, until: deadline),
-              AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, 129, &rows) == .success,
-              let windows = rows as? [AXUIElement], windows.count <= 128 else { return nil }
-        let attributes = [kAXRoleAttribute, kAXSubroleAttribute, kAXMinimizedAttribute, "AXFullScreen", kAXModalAttribute] as CFArray
+        guard let windows = AXWindowList.read(app, limit: 128, canRead: { setTimeout(app, until: deadline) }).windows else { return nil }
+        var attributes = [kAXRoleAttribute, kAXSubroleAttribute, kAXMinimizedAttribute, "AXFullScreen", kAXModalAttribute]
+        if includeFrame { attributes += [kAXPositionAttribute, kAXSizeAttribute] }
         return readRows(rotated(windows, revision: revision), wanted: target.numbers, deadline: deadline,
                         now: { clock.systemUptime }, number: { window, limit in
             var pid: pid_t = 0
@@ -66,14 +73,24 @@ struct OverviewWindowRole {
         }, role: { window, limit in
             var values: CFArray?
             guard setTimeout(window, until: limit),
-                  AXUIElementCopyMultipleAttributeValues(window, attributes, [], &values) == .success,
-                  let fields = values as? [Any], fields.count == 5 else { return nil }
+                  AXUIElementCopyMultipleAttributeValues(window, attributes as CFArray, [], &values) == .success,
+                  let fields = values as? [Any], fields.count == attributes.count else { return nil }
             let role = fields[0] as? String, subrole = fields[1] as? String
             let ordinary: Bool?
             if (fields[4] as? Bool) == true { ordinary = false }
             else if let role, let subrole { ordinary = role == kAXWindowRole && subrole == kAXStandardWindowSubrole }
             else { ordinary = nil }
-            return Self(ordinary: ordinary, minimized: fields[2] as? Bool, fullscreen: fields[3] as? Bool)
+            var frame: Rect?
+            if includeFrame, CFGetTypeID(fields[5] as CFTypeRef) == AXValueGetTypeID(),
+               CFGetTypeID(fields[6] as CFTypeRef) == AXValueGetTypeID() {
+                var origin = CGPoint.zero, size = CGSize.zero
+                if AXValueGetValue(fields[5] as! AXValue, .cgPoint, &origin),
+                   AXValueGetValue(fields[6] as! AXValue, .cgSize, &size) {
+                    let rect = Rect(origin.x, origin.y, size.width, size.height)
+                    if rect.isValid { frame = rect }
+                }
+            }
+            return Self(ordinary: ordinary, minimized: fields[2] as? Bool, fullscreen: fields[3] as? Bool, frame: frame)
         })
     }
 

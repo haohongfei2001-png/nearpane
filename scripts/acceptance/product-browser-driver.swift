@@ -9,6 +9,7 @@ import RiftletAdapters
 struct FixtureError: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
 
 @MainActor private final class PipeTransport: WebClickTargetPinning {
+    var witness: UUID?
     func request(_ value: [String:Any]) throws -> Data {
         let bytes = try JSONSerialization.data(withJSONObject:value)
         FileHandle.standardOutput.write(bytes + Data([10]))
@@ -17,7 +18,11 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
         return Data(data.utf8)
     }
     func targetForClick(program: WebPageProgram) throws -> Task<TargetLease, Error> {
-        let bytes = try request(["cmd":"invoke", "command":["action":"captureTarget"], "source":program.functionSource])
+        guard let witness, let pin = program.pinSource else { throw FixtureError("missing original click witness") }
+        self.witness = nil
+        let pinned = try request(["cmd":"pin", "witness":witness.uuidString, "source":pin])
+        guard String(decoding: pinned, as: UTF8.self) == "bound" else { throw FixtureError("original document refused pin") }
+        let bytes = try request(["cmd":"invoke", "command":["action":"captureTarget","clickWitnessID":witness.uuidString], "source":program.functionSource])
         let target = try JSONDecoder().decode(TargetLease.self, from: bytes)
         return Task { target }
     }
@@ -65,6 +70,7 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
               let settings = try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String:Any],
               let id = (settings["assetID"] as? String).flatMap(UUID.init(uuidString:)),
               let expected = settings["sha256"] as? String, let pid = settings["chromePID"] as? Int32,
+              let browser = (settings["browserID"] as? String).flatMap(AttachmentBrowser.init(rawValue:)),
               let width = settings["width"] as? Int, let height = settings["height"] as? Int,
               let origin = (settings["origin"] as? String).flatMap(AssetOrigin.init(rawValue:)) else { throw FixtureError("arguments") }
         let base = URL(fileURLWithPath:args[2], isDirectory:true).standardizedFileURL
@@ -81,24 +87,28 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
         let store = try QueueStore(databaseURL:base.appendingPathComponent("queue.sqlite"), mode:.production)
         if args[3] == "click" { _ = try await store.importAsset(asset) }
         let pipe = PipeTransport()
+        let browserName = browser == .edge ? "Microsoft Edge" : "Google Chrome"
+        let prefix = browser == .edge ? "edge" : "chrome"
         var process = proc_bsdinfo(), executable = [CChar](repeating:0,count:4096)
         let size=Int32(MemoryLayout.size(ofValue:process))
         guard proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&process,size)==size, process.pbi_pid==UInt32(pid),
               process.pbi_uid==getuid(), process.pbi_start_tvsec>0,
               proc_pidpath(pid,&executable,UInt32(executable.count))>0,
-              String(cString:executable)=="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" else { throw FixtureError("headless process birth") }
-        let proc="chrome-kernel-v1:\(pid):\(process.pbi_start_tvsec):\(process.pbi_start_tvusec)"
+              String(cString:executable)=="/Applications/\(browserName).app/Contents/MacOS/\(browserName)" else { throw FixtureError("headless process birth") }
+        let proc="\(prefix)-kernel-v1:\(pid):\(process.pbi_start_tvsec):\(process.pbi_start_tvusec)"
         _ = try pipe.request(["cmd":"process", "value":proc])
         let source = try String(contentsOfFile:args[1], encoding:.utf8)
-        let locked = WebPageProgram(sourceID:ChatGPTWebPageProgram.sourceID, functionSource:source,
-            maximumChunkBytes:256 * 1024, inputDiscoveryTimeout:3)
+        let locked = try ChatGPTWebPageProgram.load()
+        guard locked.functionSource == source else { throw FixtureError("packaged browser program differs") }
         let guardSource = try String(contentsOf:root.appendingPathComponent("build/debug/Nearpane.app/Contents/Resources/AcceptanceTargetGuard.js"), encoding:.utf8)
         let bound = ProductDraftExecutor(root:base, base:pipe, guardSource:guardSource, arm:{ image in
             let now = Date().timeIntervalSince1970
-            let nonce = UUID().uuidString.lowercased()
+            let witness = UUID()
+            pipe.witness = witness
+            let nonce = witness.uuidString.lowercased()
             func binding(_ timeOrigin: Double) -> ProductDraftBinding {
                 ProductDraftBinding(nonce:nonce, process:proc, window:"1", tab:"1", assetID:image.id.uuidString.lowercased(),
-                    sha256:image.sha256, boundAt:now, expiresAt:now+60, timeOrigin:timeOrigin)
+                    sha256:image.sha256, boundAt:now, expiresAt:now+60, timeOrigin:timeOrigin, applicationID:browser.rawValue)
             }
             let script = try ProductDraftBinding.armScript(draft:binding(0), guardSource:guardSource)
             let raw = try pipe.request(["cmd":"arm","script":script])
@@ -112,7 +122,7 @@ struct FixtureError: Error { let reason: String; init(_ reason: String) { self.r
             profile:policy.observationProfile, productStore:store, productOrigins:policy.productOrigins)
         let module = TrayModule(productAttachments:true) { notify, report in
             let owner = TrayOwner(store:store, root:base, adapter:adapter, policy:policy.receiptPolicy, captureEntry:false,
-                                  pin:{ try adapter.targetForClick() }, permission:{ _,_ in true }, notify:notify, report:report)
+                                  pin:{ try adapter.targetForClick() }, permission:{ _,_ in .granted }, notify:notify, report:report)
             owner.checkAsset = { try bound.checkAsset($0) }
             owner.cancelDraftSelections = { bound.cancelSelections() }
             return owner

@@ -1,0 +1,415 @@
+"""Headless tests for timing, privacy admission and conservative P0 visual verdicts."""
+import copy
+import json
+import os
+import subprocess
+import importlib.util
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+spec = importlib.util.spec_from_file_location("p0visual", Path(__file__).with_name("p0-visual.py"))
+visual = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(visual)
+
+
+class VisualTests(unittest.TestCase):
+    def setUp(self):
+        self.request = {"topology": {"current": 4}, "target": 5}
+        self.pre = {"current": 4, "windows": [42, 43], "uptime": 9.97}
+        self.post = {"current": 5, "windows": [42, 43], "uptime": 10.15}
+        self.frames = []
+        for n in range(13):
+            t = 10 + n*.01
+            source = n < 5
+            self.frames.append(dict(displayTime=t, callback=t+.003, status=0, space=4 if source else 5, safe=True, lit=True,
+                                    visible="source" if source else "target", matchesSource=source, matchesTarget=not source))
+        self.data = dict(frames=[], ready=True, width=192, height=108, postSpace=5, refreshLimitHz=60, displayModeHz=60,
+                         physical=dict(armed=True, sourceFrameReadyBeforePress=True, censusAfter=True, filter="display-excluding-other-apps", frames=self.frames))
+    def result(self, data=None, press=10.013, end=10.106):
+        return visual.score(self.data if data is None else data, self.request, press, end, self.pre, self.post)
+    def test_keeper_checks_both_windows_and_witness_still_checks_input_and_topology(self):
+        kit = Path("/private/tmp/fake-kit")
+        source = dict(pid=7, birth=11, number=17, identifier="net.example.spaces-route-witness",
+                      executable=str(kit/"Route Notes.app/Contents/MacOS/FieldNotes"), hash="a")
+        target = dict(pid=9, birth=12, number=19, identifier="net.example.spaces-document",
+                      executable=str(kit/"Field Notes.app/Contents/MacOS/FieldNotes"), hash="b")
+        topology = dict(current=4, display="FFFFFFFF-9999-4444-8888-000000000001", records=[{"id":4},{"id":5}])
+        p = dict(topology=topology, sourceWindow=source, targetWindow=target, target=5, hid=10)
+        state = dict(topology=topology, hid=10, uptime=123)
+        def keeper(windows):
+            self.assertEqual(windows, [source, target])
+            return {"windows": [dict(w, forward=True, standard=True, reverse=[n]) for w, n in zip(windows, [4,5])]}
+        with patch.object(visual, "kit_paths", return_value=(kit, kit/"reader")), patch.object(visual, "ask", return_value=state) as read:
+            self.assertEqual(visual.witness(kit, p, 4, keeper)["current"], 4)
+            read.assert_called_once_with(kit/"reader", "state")
+            state["hid"] = 11
+            with self.assertRaises(ValueError):
+                visual.witness(kit, p, 4, keeper)
+            with self.assertRaises(ValueError):
+                visual.witness(kit, p, 4, lambda _: {"windows":[]})
+
+    def test_contiguous_visible_display_marker_and_exact_landing(self):
+        proof = self.result()
+        self.assertEqual(proof["status"], "PASS")
+        self.assertAlmostEqual(proof["coverage"]["maxGapMS"], 10)
+        self.frames[7].update(status=1)
+        self.assertEqual(self.result()["status"], "PASS")
+    def test_async_crops_neither_introduce_nor_bridge_presentation_gaps(self):
+        aux=dict(origin="guarded-current-display-crop",safe=False,**{"from":10.019,"to":10.095})
+        self.frames.insert(3,aux)
+        proof=self.result()
+        self.assertEqual(proof["status"],"PASS")
+        self.assertAlmostEqual(proof["coverage"]["maxGapMS"],10)
+        supplement=proof["displayProbe"]["auxiliaryRequests"][0]
+        self.assertEqual(supplement["nativePresentationsInsideRequest"],8)
+        self.assertFalse(supplement["usedForCoverage"])
+        self.frames[:]=[r for r in self.frames if r==aux or not 10.025<r["displayTime"]<10.085]
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertTrue(proof["coverage"]["uncoveredIntervals"])
+        self.frames[:]=[aux]
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_native_early_callback_requires_unchanged_ownership_after_presentation(self):
+        self.frames[7]["callback"]-=.008
+        proof=self.result()
+        self.assertEqual(proof["coverage"]["earlyEventsWithFollowingProof"],1)
+        self.assertEqual(proof["status"],"PASS")
+        for change in (dict(visible="source"),dict(safe=False),dict(callback=11.0),dict(space=4)):
+            data=copy.deepcopy(self.data);data["physical"]["frames"][8].update(change)
+            self.assertEqual(self.result(data)["status"],"UNKNOWN")
+        self.frames[7]["callback"]-=.020
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def version_three(self):
+        for r in self.frames:
+            t=r["displayTime"]
+            r["presentationMachTicks"]=round(t*1e9)
+            r["displayTime"]=r["presentationMachTicks"]/1e9
+            r["postPresentationSurfaces"]=[{"from":t+d,"to":t+d+.001,"space":r["space"],"visible":r["visible"],
+                                           "reason":"exactOpaqueFixture","sameDisplayAndInput":True} for d in (.002,.008)]
+        terminal=dict(eligible=True,sameStream=True,freshFramesAgreeWithEnrolledCrop=True,shareableTargetOnScreen=True,
+                      independentTargetAndDisplayAgree=True,linkedToNativeTarget=True,nativeTargetTime=self.frames[12]["displayTime"],
+                      sampleRequested=10.112,sampleReturned=10.115,confirmedConsecutiveCensuses=2)
+        self.data["physical"].update(presentationReviewVersion=3,terminalTarget=terminal,machTimebase={"numerator":1,"denominator":1})
+
+    def test_post_presentation_requires_two_real_consistent_reads_in_50ms(self):
+        self.version_three()
+        self.frames[7]["callback"]-=.012
+        self.frames[8]["callback"]+=.14  # The OS buffer arrives late, both eligible readings actually occurred on time.
+        self.assertEqual(self.result()["status"],"PASS")
+        for delta in ({"space":4},{"visible":"source"},{"reason":"unknown"},{"sameDisplayAndInput":False},{"to":10.1201}):
+            d=copy.deepcopy(self.data);d["physical"]["frames"][7]["postPresentationSurfaces"][1].update(delta)
+            proof=self.result(d)
+            self.assertEqual(proof["status"],"UNKNOWN")
+            self.assertEqual(proof["coverage"]["timingFailureCount"],1)
+        d=copy.deepcopy(self.data);r=d["physical"]["frames"][7]
+        r.update(spanningSurface=dict(r["postPresentationSurfaces"][0],space=4,**{"from":10.069,"to":10.071}))
+        self.assertEqual(self.result(d)["status"],"UNKNOWN")
+        self.data["physical"]["terminalTarget"]["confirmedConsecutiveCensuses"]=1
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_timed_display_blank_wins_over_unrelated_bad_frame_gap_and_end_census(self):
+        self.version_three()
+        r=self.frames[9];r["status"]=2;r["safe"]=False;r["blankDisplayBound"]=True;r.pop("visible")
+        for read in r["postPresentationSurfaces"]:read.update(visible=None,reason="noPositivePhysicalLayer")
+        self.frames[6]["safe"]=False
+        self.data["physical"]["censusAfter"]=False
+        self.data["stoppedEarly"]=True
+        proof=visual.score(self.data,self.request,10.013,10.106,self.pre,None)
+        self.assertEqual(proof["status"],"FAIL")
+        self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],1)
+        r["postPresentationSurfaces"][0]["sameDisplayAndInput"]=False
+        self.assertEqual(visual.score(self.data,self.request,10.013,10.106,self.pre,None)["status"],"UNKNOWN")
+
+    def test_integer_native_threshold_distinguishes_exactly_50ms_and_one_tick_over(self):
+        self.version_three()
+        del self.frames[4:8]  # The native gap from 10.03 to 10.08 is exactly 50,000,000 nanoseconds.
+        self.assertEqual(self.result()["status"],"PASS")
+        r=self.frames[4];r["presentationMachTicks"]+=1;r["displayTime"]=r["presentationMachTicks"]/1e9
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertAlmostEqual(proof["coverage"]["uncoveredIntervals"][0]["gapMS"],50.000001,places=9)
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_LANDING"),"requires presentation-pair/ten-01")
+    def test_old_uncovered_landing_cannot_be_repaired_from_later_frames(self):
+        attempt=Path(os.environ["NEARPANE_P0_ARCHIVED_LANDING"]).resolve()
+        with tempfile.TemporaryDirectory() as temp:
+            proof=visual.replay(attempt,Path(temp).resolve()/"review.json")["review"]
+            self.assertEqual(proof["status"],"UNKNOWN")
+            self.assertEqual(proof["coverage"]["timingFailureCount"],18)
+            self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],0)
+            self.assertTrue(proof["subchecks"]["streamingTargetMatched"])
+            self.assertFalse(proof["subchecks"]["independentTerminalTargetMatched"])
+            self.assertGreater(proof["coverage"]["maxGapMS"],50)
+            self.assertEqual(proof["displayProbe"]["targetCompleteColorCounts"]["allTargetSurfaceCompleteIncludingTransition"],6)
+
+    def test_terminal_withheld_frames_after_original_interval_are_disclosed_and_never_fill_either_required_window(self):
+        self.version_three()
+        tail=self.frames[-1]
+        for n in range(13,26):
+            t=10+n*.01;r=copy.deepcopy(tail);r.update(displayTime=t,callback=t+.003,presentationMachTicks=round(t*1e9))
+            for i,read in enumerate(r["postPresentationSurfaces"]):read.update({"from":t+.002+i*.004,"to":t+.003+i*.004})
+            self.frames.append(r)
+        self.post["uptime"]=10.3
+        ph=self.data["physical"];ph["presentationReviewVersion"]=4;ph["censusAfter"]=False
+        term=ph["terminalTarget"]
+        term.update(strictCleanAt=10.155,sampleRequested=10.165,sampleReturned=10.195,nativeTargetTime=10.21,
+                    nativeTargetCompleteTime=10.21,corroboratedAt=10.23,withheldPixelIntervals=[{"from":10.125,"to":10.145}],
+                    observations=[{"censusQualified":False},{"censusQualified":True,"membershipFrom":10.141,"membershipThrough":10.143},
+                                  {"censusQualified":True,"membershipFrom":10.15,"membershipThrough":10.154}])
+        self.frames[13].update(safe=False,blockedBy="pixelsWithheldForUnexpectedTerminalMember")
+        proof=self.result();self.assertEqual(proof["status"],"PASS",proof["reason"])
+        self.assertLess(proof["coverage"]["to"],10.125)
+        self.assertEqual(len(proof["displayProbe"]["postActionTargetCorroboration"]["heldPixelsAfterObservedAction"]),1)
+        self.frames[18].update(safe=False)
+        proof=self.result();self.assertEqual(proof["status"],"UNKNOWN");self.assertEqual(proof["subchecks"]["continuousVisibleLight"],"PASS")
+        self.frames[18].update(safe=True)
+        for r in self.frames[:11]:r["matchesTarget"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+        self.frames[8].update(safe=False)
+        self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"UNKNOWN")
+
+    def test_retained_argv_reader_reuses_its_system_state_and_attests_identity(self):
+        kit=Path("/private/tmp/nearpane-d01.example")
+        a=dict(pid=7,birth=11,number=17,hash="a",identifier="net.example.spaces-route-witness",executable=str(kit/"Route Notes.app/Contents/MacOS/FieldNotes"))
+        b=dict(pid=8,birth=12,number=18,hash="b",identifier="net.example.spaces-document",executable=str(kit/"Field Notes.app/Contents/MacOS/FieldNotes"))
+        top=dict(current=4,display="FFFFFFFF-9999-4444-8888-000000000001",records=[{"id":4},{"id":5}])
+        helper=dict(pid=21,birth=33,executable=str(kit/"p0-card"),identifier="owned-reader",hash="a"*40)
+        req=dict(topology=top,sourceWindow=a,targetWindow=b,target=5,hid=[42])
+        def live(windows):return {"state":dict(topology=top,hid=[42],uptime=11),"reader":helper,
+            "windows":[dict(w,forward=True,standard=True,reverse=[sid]) for w,sid in zip(windows,[4,5])]}
+        with patch.object(visual,"kit_paths",return_value=(kit,kit/"p0-card")),patch.object(visual,"ask") as spawn:
+            result=visual.witness(kit,req,4,live)
+            self.assertEqual(result["registeredReader"],helper);self.assertEqual(result["stateSource"],"retained-reader");spawn.assert_not_called()
+            helper["executable"]="/outside"
+            with self.assertRaises(ValueError):visual.witness(kit,req,4,live)
+            spawn.assert_not_called()
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires the compiled native auxiliary classifier")
+    def test_only_the_same_endpoint_exact_nonstandard_auxiliary_outside_the_crop_is_admitted(self):
+        def window(pid,n):return dict(pid=pid,birth=pid*100,number=n,identifier="net.example.spaces-document",executable=f"/private/tmp/fixture-{pid}",hash=str(pid)*8)
+        target,other=window(3,9),window(4,10)
+        row=dict(classification="otherWindowOfEnrolledFixtureProcess",confirmedForeignOrdinary=False,privateKitExecutable=True,
+            ownerPID=3,ownedPID=3,ownerBirth=300,ownedBirth=300,ownedCDHash=target["hash"],ownedExecutable=target["executable"],
+            windowNumber=11,layer=0,cropRelation="outside",sourceReportForwardAndReverse=True,forwardAtDetail=True,
+            reverseAtDetail=True,reverseExclusive=True,ax=dict(query="exactNumberAndPID",roleIsWindow=True,standard=False,main=False,minimized=False))
+        def check(details,count=2,exact=1,peer_numbers=(10,)):
+            data=dict(endpoint=target,opposite=other,ordinaryCount=count,exactFixtureCount=exact,extraOrdinary=details,oppositeForwardWindowNumbers=peer_numbers)
+            return json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-fixture-auxiliary"],input=json.dumps(data),text=True))
+        self.assertEqual(check([row]),{"allOrdinaryAccounted":True,"verifiedFixtureAuxiliaryCount":1})
+        for changes in [dict(classification="registeredKeeper"),dict(classification="unregisteredOrdinaryProcess"),dict(confirmedForeignOrdinary=True),
+                 dict(ownedBirth=301),dict(ownerPID=4),dict(ownedCDHash="different"),dict(ownedExecutable="/elsewhere"),
+                 dict(privateKitExecutable=False),dict(windowNumber=9),dict(windowNumber=10),dict(cropRelation="intersects"),
+                 dict(cropRelation="contains"),dict(forwardAtDetail=False),dict(reverseExclusive=False),dict(reverseAtDetail=None)]:
+            with self.subTest(changes=changes):self.assertFalse(check([dict(row,**changes)])["allOrdinaryAccounted"])
+        for change in [dict(query="ambiguous"),dict(standard=True),dict(standard=None),dict(main=True),dict(main=None),
+                       dict(roleIsWindow=False),dict(minimized=True)]:
+            with self.subTest(ax=change):self.assertFalse(check([dict(row,ax=dict(row["ax"],**change))])["allOrdinaryAccounted"])
+        self.assertFalse(check([row],peer_numbers=[10,11])["allOrdinaryAccounted"])
+        self.assertFalse(check([row],peer_numbers=None)["allOrdinaryAccounted"])
+        self.assertFalse(check([row,row],3)["allOrdinaryAccounted"])
+        self.assertFalse(check([row],3)["allOrdinaryAccounted"])
+        self.assertFalse(check([row],2,0)["allOrdinaryAccounted"])
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_AUXILIARY") and os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires archived terminal-pair and the compiled classifier")
+    def test_all_twenty_saved_auxiliary_observations_match_without_promoting_the_original_outcome(self):
+        root=Path(os.environ["NEARPANE_P0_ARCHIVED_AUXILIARY"]);request=json.loads((root/"identity.json").read_bytes())
+        physical=json.loads((root/"visual/frames.json").read_bytes())["physical"]
+        seen=[o["membership"] for o in physical["terminalTarget"]["observations"] if "membership" in o]
+        self.assertEqual(len(seen),20);self.assertEqual(json.loads((root/"visual/receipt.json").read_bytes())["status"],"UNKNOWN")
+        for sample in seen:
+            for side,peer,want in [("source","target",0),("target","source",1)]:
+                facts=sample[side]
+                data=dict(endpoint=request[side+"Window"],opposite=request[peer+"Window"],ordinaryCount=facts["ordinaryCount"],
+                          exactFixtureCount=facts["exactFixtureCount"],extraOrdinary=facts["extraOrdinary"],
+                          oppositeForwardWindowNumbers=[request[peer+"Window"]["number"]]+[x["windowNumber"] for x in sample[peer]["extraOrdinary"]])
+                decision=json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-fixture-auxiliary"],input=json.dumps(data),text=True))
+                self.assertTrue(decision["allOrdinaryAccounted"]);self.assertEqual(decision["verifiedFixtureAuxiliaryCount"],want)
+
+    def test_handoff_requires_its_own_image_and_two_forward_opaque_foreground_reads(self):
+        self.version_three();self.data["physical"]["presentationReviewVersion"]=5
+        h=self.frames[5]
+        h.update(presentationKind="ownedHandoff",space=None,visible="ownedHandoff",handoffSpaceChanged=True,handoffSurfaceChanged=False,
+                 handoffPixelRead=True,matchesTarget=False,matchesSource=False)
+        post=h["postPresentationSurfaces"];post[0]["space"]=4
+        def proof():return visual.presentation_proof(self.frames,5,4,5,60,5)[0]
+        self.assertTrue(proof());self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"PASS")
+        self.assertEqual(len(self.result()["coverage"]["handoffEvents"]),1)
+        h.update(handoffSurfaceChanged=True);post[0]["visible"]="source"
+        self.assertFalse(proof())
+        h["matchesSource"]=True;self.assertTrue(proof())
+        for patch in [dict(handoffPixelRead=False),dict(safe=False),dict(status=1),dict(matchesSource=False),dict(lit=None),dict(visible="target",space=5)]:
+            candidate=dict(h,**patch);self.assertFalse(visual.presentation_proof([candidate],0,4,5,60,5)[0])
+        for patch in [dict(space=7),dict(reason="verifiedSealedWallpaper"),dict(visible="appleWallpaper"),dict(sameDisplayAndInput=False),{"to":h["displayTime"]+.051}]:
+            candidate=copy.deepcopy(h);candidate["postPresentationSurfaces"][1].update(patch)
+            self.assertFalse(visual.presentation_proof([candidate],0,4,5,60,5)[0])
+        h["lit"]=False;self.assertEqual(self.result()["subchecks"]["continuousVisibleLight"],"UNKNOWN");h["lit"]=True
+        h.update(status=2,blankDisplayBound=True,safe=False,handoffPixelRead=False)
+        self.assertEqual(self.result()["status"],"FAIL")
+        h["presentationKind"]="displayBlankDuringSpaceHandoff"
+        for reading in post:reading.update(visible=None,reason="noPositivePhysicalLayer")
+        self.assertEqual(self.result()["status"],"FAIL")
+        post[1]["sameDisplayAndInput"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_handoff_rejects_returning_to_source_and_never_certifies_stable_destination(self):
+        self.version_three();self.data["physical"]["presentationReviewVersion"]=5
+        h=self.frames[5]
+        h.update(presentationKind="ownedHandoff",space=None,visible="ownedHandoff",handoffSpaceChanged=True,handoffSurfaceChanged=True,
+                 handoffPixelRead=True,matchesTarget=True,matchesSource=False)
+        reads=h["postPresentationSurfaces"];reads[0].update(space=4,visible="source")
+        span=dict(reads[0],**{"from":h["displayTime"]-.001,"to":h["displayTime"]+.001})
+        h["spanningSurface"]=span
+        self.assertEqual(self.result()["coverage"]["reverseReads"],[])
+        for field,changed in [("space",5),("visible","target"),("reason","other"),("from",h["displayTime"]-.051)]:
+            test=copy.deepcopy(h);test["spanningSurface"][field]=changed
+            self.assertFalse(visual.presentation_proof([test],0,4,5,60,5)[0])
+        self.frames[6]["postPresentationSurfaces"][0].update(visible="source")
+        self.assertTrue(self.result()["coverage"]["reverseReads"])
+        for r in self.frames[6:]:r["matchesTarget"]=False
+        self.assertFalse(self.result()["subchecks"]["streamingTargetMatched"])
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_HANDOFF") and os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires auxiliary-pair and compiled observer")
+    def test_archived_unread_handoff_is_only_positive_for_scoping(self):
+        root=Path(os.environ["NEARPANE_P0_ARCHIVED_HANDOFF"]);pair=json.loads((root/"identity.json").read_bytes())
+        row=json.loads((root/"visual/frames.json").read_bytes())["physical"]["frames"][23]
+        self.assertEqual(row["blockedBy"],"twoPostPresentationSurfacesDisagree");self.assertNotIn("lit",row)
+        data=dict(source=pair["topology"]["current"],target=pair["target"],row=row)
+        result=json.loads(subprocess.check_output([os.environ["NEARPANE_P0_VISUAL_BINARY"],"--test-handoff"],input=json.dumps(data),text=True))
+        self.assertEqual(result,dict(metadataEligible=True,surfaceChanged=False,spaceChanged=True,pixelRead=False))
+        self.assertEqual(visual.handoff_metadata(row,data["source"],data["target"]),(False,True))
+        self.assertFalse(visual.presentation_proof([row],0,data["source"],data["target"],60,4)[0])
+        self.assertEqual(json.loads((root/"visual/receipt.json").read_bytes())["status"],"UNKNOWN")
+
+    def test_native_blank_survives_overlapping_static_reads(self):
+        at=self.frames[7]["displayTime"]
+        self.frames[7]["status"]=2
+        self.frames.insert(7,{"origin":"guarded-current-display-crop","safe":True,"from":at-.02,"to":at+.02})
+        proof=self.result()
+        self.assertEqual(proof["status"],"FAIL")
+        self.assertEqual(proof["subchecks"]["scopedNativeBlankEventsDuringPress"],1)
+        self.frames[8]["safe"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    def test_target_in_same_stream_and_independent_current_target_must_both_match(self):
+        terminal=dict(eligible=True,sameStream=True,freshFramesAgreeWithEnrolledCrop=True,shareableTargetOnScreen=True,
+                      independentTargetAndDisplayAgree=True,linkedToNativeTarget=True,nativeTargetTime=self.frames[12]["displayTime"],
+                      sampleRequested=10.112,sampleReturned=10.115)
+        self.data["physical"].update(presentationReviewVersion=2,terminalTarget=terminal)
+        proof=self.result()
+        self.assertTrue(proof["subchecks"]["streamingTargetMatched"])
+        self.assertTrue(proof["subchecks"]["independentTerminalTargetMatched"])
+        self.assertEqual(proof["status"],"PASS")
+        # A matching post-stop screenshot cannot replace the continuous stream's colored destination.
+        for r in self.frames:r["matchesTarget"]=False
+        proof=self.result()
+        self.assertEqual(proof["status"],"UNKNOWN")
+        self.assertEqual(proof["subchecks"]["continuousVisibleLight"],"PASS")
+        self.assertFalse(proof["subchecks"]["streamingTargetMatched"])
+        for r in self.frames:r["matchesTarget"]=r["visible"]=="target"
+        for patch in ({"independentTargetAndDisplayAgree":False},{"eligible":False},{"linkedToNativeTarget":False},{"sampleReturned":10.123},{"nativeTargetTime":10.119}):
+            data=copy.deepcopy(self.data);data["physical"]["terminalTarget"].update(patch)
+            self.assertEqual(self.result(data)["status"],"UNKNOWN")
+        self.frames[12]["safe"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_ARCHIVED_PRESENTATIONS"),"requires the separately archived installed display-pair/ten-01 receipts")
+    def test_preserved_real_windowserver_presentation_replay(self):
+        attempt=Path(os.environ["NEARPANE_P0_ARCHIVED_PRESENTATIONS"]).resolve()
+        with tempfile.TemporaryDirectory() as temp:
+            dest=Path(temp).resolve()/"review.json"
+            review=visual.replay(attempt,dest);result=review["review"]
+            self.assertEqual(review["originalVisual"]["status"],"UNKNOWN")
+            self.assertEqual((review["originalNavigation"],result["status"]),("PASS","UNKNOWN"))
+            self.assertEqual(result["subchecks"]["continuousVisibleLight"],"PASS")
+            self.assertFalse(result["subchecks"]["streamingTargetMatched"])
+            self.assertEqual(result["coverage"]["samples"],167)
+            self.assertAlmostEqual(result["coverage"]["maxGapMS"],33.334125,places=5)
+            self.assertEqual(result["displayProbe"]["targetCompleteColorCounts"]["matchingNeither"],17)
+            self.assertEqual(result["displayProbe"]["auxiliaryRequestCount"],13)
+            self.assertEqual(result["coverage"]["uncoveredIntervals"],[])
+            with self.assertRaises(FileExistsError):visual.replay(attempt,dest)
+            with self.assertRaises(ValueError):visual.replay(attempt,attempt/"result.json")
+
+    def test_filtered_window_video_or_displays_without_isolation_are_unknown(self):
+        for change in (dict(armed=False), dict(censusAfter=False), dict(error=True), dict(filter="windowGroup")):
+            trial = copy.deepcopy(self.data)
+            trial["physical"].update(change)
+            self.assertEqual(self.result(trial)["status"], "UNKNOWN")
+    def test_a_dark_crop_cannot_claim_black_display(self):
+        self.frames[7].update(lit=False)
+        self.assertEqual(self.result()["status"], "UNKNOWN")
+        self.frames[7].update(status=2)
+        self.assertEqual(self.result()["status"], "FAIL")
+    def test_private_occluder_unavailable_metadata_and_missed_presentation(self):
+        for diff in (dict(safe=False), dict(displayTime=None), dict(callback=11.0), dict(status=3)):
+            trial = copy.deepcopy(self.data)
+            trial["physical"]["frames"][7].update(diff)
+            self.assertEqual(self.result(trial)["status"], "UNKNOWN")
+        trial = copy.deepcopy(self.data)
+        del trial["physical"]["frames"][3:9]
+        self.assertEqual(self.result(trial)["status"], "UNKNOWN")
+    def test_recycled_owners_and_unknown_target_are_never_pass(self):
+        self.data["changed"] = True
+        self.assertEqual(self.result()["status"], "UNKNOWN")
+        self.data["changed"] = False
+        for f in self.frames:
+            f["matchesTarget"] = False
+        self.assertEqual(self.result()["status"], "UNKNOWN")
+        for f in self.frames:
+            f.update(matchesTarget=True, visible="appleWallpaper")
+        self.assertEqual(self.result()["status"], "UNKNOWN")
+    def test_refused_press_and_unobserved_end_never_pass(self):
+        self.assertEqual(self.result(press=0,end=0)["status"], "UNKNOWN")
+        self.assertEqual(self.result(end=10.128)["status"], "UNKNOWN")
+    def test_foreign_paths_and_symlinks_refused_before_io(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()
+            (path/"owned").write_text("fixture")
+            (path/"alias").symlink_to(path/"owned")
+            with self.assertRaises(ValueError):
+                visual.read(path/"alias")
+            with self.assertRaises(ValueError):
+                visual.kit_paths(path)
+    def test_diagnostics_survive_the_temporary_enrollment_and_must_match_the_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            attempt=Path(tmp).resolve();work=attempt/"calibration";work.mkdir()
+            data=dict(nonce="one",sourceSpace=4,targetSpace=5,failed=["wallpaper outside sealed system directories"])
+            visual.write(work/"admission.json",data)
+            self.assertEqual(visual.enrollment_admission(work,attempt,self.request,"one"),data)
+            self.assertEqual(visual.read(attempt/"visual-calibration.json"),data)
+            with self.assertRaises(ValueError):visual.enrollment_admission(work,attempt,self.request,"two")
+    def test_actual_physical_source_readiness_is_required_despite_a_ready_movie(self):
+        self.data["physical"]["sourceFrameReadyBeforePress"]=False
+        self.assertEqual(self.result()["status"],"UNKNOWN")
+        self.data["physical"]["admission"]={"failed":["missing endpoint calibration"]}
+        self.assertEqual(self.result()["reason"],"missing endpoint calibration")
+    @unittest.skipUnless(os.environ.get("NEARPANE_P0_VISUAL_BINARY"),"requires the compiled macOS metadata reader")
+    def test_private_asset_and_nonimage_never_enter_the_receipt(self):
+        executable=os.environ["NEARPANE_P0_VISUAL_BINARY"]
+        with tempfile.TemporaryDirectory() as tmp:
+            personal=Path(tmp)/"private-image-sentinel.heic";personal.touch()
+            run=subprocess.run([executable,"--test-wallpaper-file",str(personal)],text=True,capture_output=True,check=True)
+            self.assertFalse(json.loads(run.stdout)["qualified"])
+            self.assertNotIn(personal.name,run.stdout);self.assertNotIn(str(personal.parent),run.stdout)
+        live=json.loads(subprocess.check_output([executable,"--wallpaper-metadata"],text=True))["screens"]
+        for screen in live:
+            if screen["qualified"]:
+                self.assertIn(screen["source"],["systemDesktopPictures","systemWallpapers"])
+                self.assertTrue(all(screen[key] for key in ("rootOwned","regularFile","sameSystemVolume","readOnlyVolume","recognizedImage")))
+    def test_endpoint_binding_survives_reverse_and_refuses_reassigned_windows(self):
+        p = dict(topology={"current": 4, "display": "test", "records": [4,5]}, target=5,
+                 sourceWindow=dict(pid=7, birth=10, number=20, identifier="a", hash="one"),
+                 targetWindow=dict(pid=8, birth=11, number=21, identifier="b", hash="two"))
+        reverse = dict(p, topology=dict(p["topology"], current=5), target=4,
+                       sourceWindow=p["targetWindow"].copy(), targetWindow=p["sourceWindow"].copy())
+        self.assertEqual(visual.pair_id(p), visual.pair_id(reverse))
+        reverse["sourceWindow"]["birth"] += 1
+        self.assertNotEqual(visual.pair_id(p), visual.pair_id(reverse))
+
+
+if __name__ == "__main__":
+    unittest.main()

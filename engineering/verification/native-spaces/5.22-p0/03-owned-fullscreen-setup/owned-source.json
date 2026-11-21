@@ -1,0 +1,56 @@
+{
+  "origin": {
+    "current": 4,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "records": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+      },
+      {
+        "id": 2000,
+        "type": 4,
+        "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+      }
+    ]
+  },
+  "originalUserSpace": 2000,
+  "owned": {
+    "birth": 1795169238870906,
+    "executable": "/private/tmp/nearpane-d01.B2nCdofF/Lifecycle Window.app/Contents/MacOS/Lifecycle",
+    "hash": "88646d96c6618f0df115957b2a74d6f4decae364",
+    "identifier": "org.nearpane.acceptance.LifecycleWindow",
+    "number": 48236,
+    "pid": 39702
+  },
+  "witnesses": [
+    {
+      "birth": 1795169238870906,
+      "focused": 48236,
+      "forward": true,
+      "number": 48236,
+      "pid": 39702,
+      "reverse": [
+        4
+      ],
+      "standard": true
+    },
+    {
+      "birth": 1795169238870906,
+      "focused": 48236,
+      "forward": true,
+      "number": 48237,
+      "pid": 39702,
+      "reverse": [
+        4
+      ],
+      "standard": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "run": "p2-registered-05",
+  "candidate": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "candidateVersion": "5.22",
+  "candidateBuild": "90",
+  "loadedHostMatchesDisk": true,
+  "hostAX": true,
+  "hostPostEvent": true,
+  "status": "BLOCKED",
+  "operationStatus": "NOT_RUN",
+  "reason": "fixturePreparationUnconfirmed:independentPreparedFixtureFocusUnconfirmed",
+  "fixturePreparation": "BLOCKED",
+  "launchServicesOpens": 1,
+  "formalAXPresses": 0,
+  "targetedMarkerPosts": 0,
+  "confirmed": 0,
+  "attempts": [],
+  "notRunTrials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "fixtureRegistration": true,
+  "firstDocumentCapture": "NOT_RUN",
+  "cleanup": {
+    "fixture": "PASS",
+    "stage": "PASS",
+    "dailyHostRestored": true,
+    "dailyProfileAndConfigurationUnchanged": true,
+    "isolatedHomeRemoved": true,
+    "dailyFocusStatus": "UNKNOWN"
+  },
+  "sha256": {
+    "registered-documents.json": "703150d39ad48ff85dd2a6e7976506ee36eaec30db9092ca1a11ff9d3b0e6f47",
+    "actions.jsonl": "a2fb11811b07163c7943212a6f619c0be1bc70b4714041dffc55fe7a08305a39"
+  },
+  "preparationForegroundCounts": {
+    "fixture": 0,
+    "other": 16
+  }
+}

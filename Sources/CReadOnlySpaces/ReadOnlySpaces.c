@@ -68,6 +68,8 @@ static CopyManaged managed;
 static CopyMembership membership;
 typedef CGError (*ReadLogicalBounds)(int, uint32_t, CGRect *);
 static ReadLogicalBounds logicalBounds;
+typedef CFArrayRef (*CopySpaceWindowNumbers)(int, uint32_t, CFArrayRef, uint32_t, uint64_t *, uint64_t *);
+static CopySpaceWindowNumbers spaceWindowNumbers;
 static int connection;
 
 static MainConnection mainConnection;
@@ -82,8 +84,10 @@ static void resolveGetters(void) {
 #if defined(__arm64__)
     char build[64] = {0};
     size_t length = sizeof(build);
-    if (!sysctlbyname("kern.osversion", build, &length, NULL, 0) && !strcmp(build, "26A428"))
+    if (!sysctlbyname("kern.osversion", build, &length, NULL, 0) && !strcmp(build, "26A428")) {
         logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
+        spaceWindowNumbers = (CopySpaceWindowNumbers)dlsym(handle, "SLSCopyWindowsWithOptionsAndTags");
+    }
 #endif
 }
 
@@ -145,6 +149,22 @@ static CFArrayRef checkedArray(CFArrayRef copy) {
         return NULL;
     }
     return copy;
+}
+
+CFArrayRef NPReadCatalogSpaceWindowNumbers(uint64_t space) {
+    if (connection <= 0 || !spaceWindowNumbers || !space || space > INT64_MAX) return NULL;
+    int64_t sid = (int64_t)space;
+    CFNumberRef number = CFNumberCreate(NULL, kCFNumberSInt64Type, &sid);
+    if (!number) return NULL;
+    const void *values[] = { number };
+    CFArrayRef request = CFArrayCreate(NULL, values, 1, &kCFTypeArrayCallBacks);
+    CFRelease(number);
+    if (!request) return NULL;
+    uint64_t setTags = 0, clearTags = 0;
+    CFArrayRef result = checkedArray(spaceWindowNumbers(connection, 0, request, 7, &setTags, &clearTags));
+    CFRelease(request);
+    if (result && CFArrayGetCount(result) > 8192) { CFRelease(result); return NULL; }
+    return result;
 }
 
 CFArrayRef NPReadInventory(void) {

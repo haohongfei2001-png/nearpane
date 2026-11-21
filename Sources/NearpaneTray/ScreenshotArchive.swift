@@ -26,6 +26,7 @@ struct ScreenshotArchiveEntry: Identifiable {
         case .preparing: attachment = "正在准备附加"
         case .needsReview, .checkDraft: attachment = "结果待核对"
         case .handedOff: attachment = "已开始上传，待确认"
+        case .originalCardFailed: attachment = "原草稿中的附件显示失败"
         case .confirmedFailure: attachment = "附加失败"
         case .notAttached: attachment = "未附加"
         case .attached:

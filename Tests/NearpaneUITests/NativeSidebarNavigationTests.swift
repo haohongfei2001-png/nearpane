@@ -1,22 +1,36 @@
+import AppKit
 import Foundation
 import NearpaneCore
 @testable import NearpaneUI
 import Testing
 
 @MainActor struct NativeSidebarNavigationTests {
+    @Test func externalActivationRetiresOnlyThePendingCrossSpaceFocus() {
+        let source = SelectionForeground(pid: 100, birth: 10)
+        let target = SelectionForeground(pid: 200, birth: 20)
+        for superseding in [nil, source, SelectionForeground(pid: 200, birth: 21), SelectionForeground(pid: 300, birth: 30)] {
+            var continuity = CrossSpaceFocusContinuity(source: source, target: target)
+            let sequence = [source, target, superseding, target].map { continuity.observe($0) }
+            #expect(sequence == [true, true, false, false])
+        }
+        var related = CrossSpaceFocusContinuity(source: target, target: target)
+        let sameApp = [target, target].map { related.observe($0) }
+        #expect(sameApp == [true, true])
+    }
     let a = UUID(), b = UUID(), c = UUID(), session = UUID()
     let frame = SurfaceRect(x: 10, y: 20, width: 300, height: 200)
 
-    func window(_ number: UInt32, _ spaces: [String], front: Int, birth: UInt64 = 9) -> WindowObservation {
+    func window(_ number: UInt32, _ spaces: [String], front: Int, birth: UInt64 = 9,
+                role: Bool? = true, minimized: Bool = false) -> WindowObservation {
         .init(id: "w" + String(number), displayID: "screen", bounds: frame,
               membership: spaces.isEmpty ? .unknown : .known(recordIDs: spaces), confidence: .unknown,
               metadata: .init(number: number, pid: 54, launchMicroseconds: birth, element: nil, globalFrame: frame,
-                frontToBack: front, minimized: false, fullScreen: nil, isOnscreen: spaces.contains("1"),
-                onActiveDesktop: spaces.contains("1"), overviewSpaceID: spaces.contains("1") ? "1" : nil, overviewOrdinaryRole: true))
+                frontToBack: front, minimized: minimized, fullScreen: nil, isOnscreen: spaces.contains("1"),
+                onActiveDesktop: spaces.contains("1"), overviewSpaceID: spaces.contains("1") ? "1" : nil, overviewOrdinaryRole: role))
     }
 
     func snapshot(_ windows: [WindowObservation], complete: Bool = true, rev: UInt64 = 1,
-                  backgroundID: UUID? = nil, topology: String = "screens") -> DesktopSnapshot {
+                  backgroundID: UUID? = nil, topology: String = "screens", fullscreenID: UUID? = nil) -> DesktopSnapshot {
         let size = SurfaceRect(width: 800, height: 600), now = Date(), uptime = ProcessInfo.processInfo.systemUptime
         return .observed(.init(session: session, revision: rev, parentPID: 1, fixtureWindows: nil,
                                anchors: [], experimentalSpaces: false), from: now, to: now, build: "fixture",
@@ -24,7 +38,7 @@ import Testing
                 displays: [.init(id: "screen", frame: size, rotationDegrees: 0, backingScale: 1, usable: size)],
                 scopes: [.init(id: "scope", displayID: "screen", records: [
                     .init(id: "1", isCurrent: true, ordinaryUUID: a), .init(id: "2", isCurrent: false, ordinaryUUID: backgroundID ?? b),
-                    .init(id: "3", isCurrent: false, ordinaryUUID: c), .init(id: "7", isCurrent: false)
+                    .init(id: "3", isCurrent: false, ordinaryUUID: c), .init(id: "7", isCurrent: false, fullscreenUUID: fullscreenID)
                 ])], windows: windows, evidence: .init(population: .workWindows, accessibility: .available,
                         spaces: .observed, rows: [], windowLimitReached: false, beganUptime: uptime, endedUptime: uptime,
                         catalogComplete: complete))
@@ -34,7 +48,43 @@ import Testing
         try #require(NativeSpaceCatalog(s, displayID: "screen", now: .now, uptime: ProcessInfo.processInfo.systemUptime))
     }
 
-    @Test func navigatorIncludesNeverVisitedAndEmptySpacesWithoutLeakingIntoCurrentCards() throws {
+    @Test func ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow() throws {
+        let panel = EdgePanel(contentRect: .init(x: 0, y: 0, width: 200, height: 200),
+                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        let content = try #require(panel.contentView)
+        let first = window(8, ["1"], front: 0), second = window(9, ["1"], front: 1)
+        let catalog = try map(snapshot([first, second]))
+        let destination = try #require(NativeSidebarDestination(catalog.rows[0], in: catalog))
+        let a = try #require(NativeSidebarMember(first, source: destination))
+        let b = try #require(NativeSidebarMember(second, source: destination))
+        var clicks = [UInt32](), placements = [SidebarPairDrop](), live = true
+        for (i, member) in [a, b].enumerated() {
+            let area = SidebarCardPointer.CardArea(frame: .init(x: 20, y: i * 85 + 10, width: 160, height: 70))
+            area.card = SidebarCardPointer(member: member, lifetime: UUID(), current: { live },
+                select: { clicks.append(member.key.number) }, place: { placements.append($0) }, highlight: { _ in })
+            content.addSubview(area)
+        }
+        func route(_ type: NSEvent.EventType, _ x: Int, _ y: Int, _ flags: NSEvent.ModifierFlags = []) throws -> Bool {
+            let event = try #require(NSEvent.mouseEvent(with: type, location: .init(x: x, y: y), modifierFlags: flags,
+                timestamp: 1, windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+            return panel.cardPointer.receive(event, in: panel)
+        }
+        #expect(try !route(.leftMouseDown, 25, 25, .control))
+        #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseUp, 26, 25))
+        #expect(clicks == [8])
+        for x in [32, 160] {
+            #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseDragged, x, 120) && route(.leftMouseUp, x, 120))
+        }
+        #expect(placements.map(\.draggedOnLeft) == [true, false])
+        #expect(placements.allSatisfy { $0.dragged == a && $0.target == b })
+        #expect(try route(.leftMouseDown, 25, 25) && route(.leftMouseDragged, 120, 30) && route(.leftMouseUp, 120, 30))
+        #expect(try route(.leftMouseDown, 25, 25))
+        live = false
+        #expect(try route(.leftMouseUp, 150, 120))
+        #expect(clicks == [8] && placements.count == 2)
+    }
+
+    @Test func internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch() throws {
         let all = snapshot([window(8, ["1"], front: 2), window(9, ["2"], front: 1), window(7, ["1","2"], front: 0)])
         let rows = try map(all).rows
         #expect(rows.map(\.id) == ["1","2","3"])
@@ -43,6 +93,33 @@ import Testing
         #expect(all.currentDesktopWindows(on: "screen", now: .now, uptime: ProcessInfo.processInfo.systemUptime).map(\.id) == ["w7","w8"])
         #expect(try !map(snapshot([], complete: false)).rows[2].regularWindowListComplete)
         #expect(try !map(snapshot([window(9, [], front: 0)])).rows[2].regularWindowListComplete)
+    }
+
+    @Test func emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries() throws {
+        for complete in [true, false] {
+            let catalog = try map(snapshot([], complete: complete, fullscreenID: UUID()))
+            #expect(catalog.rows.count == 4)
+            #expect(SidebarBackgroundWindows.sections(in: catalog).isEmpty)
+        }
+    }
+
+    @Test func onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose() throws {
+        let sharedWithCurrent = window(8, ["1","2"], front: 0)
+        let sharedInBackground = window(9, ["2","3"], front: 1)
+        let fullscreenDocument = window(10, ["7"], front: 2)
+        let uncertain = window(11, [], front: 3)
+        let panel = window(12, ["2"], front: 4, role: false)
+        let unclassified = window(13, ["2"], front: 5, role: nil)
+        let minimized = window(14, ["3"], front: 6, minimized: true)
+        let noOwnerBirth = window(15, ["3"], front: 7, birth: 0)
+        let others = [sharedWithCurrent, uncertain, panel, unclassified, minimized, noOwnerBirth]
+        let fullscreenID = UUID()
+        let visible = try map(snapshot(others + [sharedInBackground, fullscreenDocument], complete: false, fullscreenID: fullscreenID))
+        let sections = SidebarBackgroundWindows.sections(in: visible)
+        #expect(sections.map { $0.windows.map(\.id) } == [["w9"], ["w10"]])
+        #expect(sections.map(\.destination.kind) == [.ordinary, .fullscreen])
+        let afterClosing = try map(snapshot(others, fullscreenID: fullscreenID))
+        #expect(SidebarBackgroundWindows.sections(in: afterClosing).isEmpty)
     }
 
     @Test func gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology() throws {
@@ -54,6 +131,22 @@ import Testing
         #expect(member.resolve(snapshot([w], backgroundID: UUID())) == nil)
         #expect(member.resolve(snapshot([w], topology: "reconnected")) == nil)
         #expect(member.resolve(snapshot([window(8, ["1"], front: 0)])) == nil)
+    }
+
+    @Test func groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() async {
+        let router = NativeSidebarNavigation()
+        var owner = false, effects = [String]()
+        var resume: CheckedContinuation<Void,Never>?
+        router.stageOwnsWindowDispatch = { owner }
+        router.submit(selection:false) { _ in await withCheckedContinuation { resume = $0 } }
+        while resume == nil { await Task.yield() }
+        router.submit(selection:false) { _ in effects.append("queued drag") }
+        owner = true
+        router.submit(prepare:{ effects.append("ordinary focus preparation") }) { _ in effects.append("ordinary focus") }
+        router.submit(stage:true) { _ in effects.append("group") }
+        resume?.resume()
+        for _ in 0..<100 where effects.isEmpty { await Task.yield() }
+        #expect(effects == ["group"])
     }
 
     @Test func newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent() async {

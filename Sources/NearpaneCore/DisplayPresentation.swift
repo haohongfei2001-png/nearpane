@@ -29,26 +29,29 @@ public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
         switch self {
         case .panelWidth, .reservedWidth: .init(12.5, .percent)
         case .panelHeight, .textHeight, .desktopWidth, .desktopHeight, .scrollHeight: .init(100, .percent)
-        case .voiceHeight: .init(22.5, .percent)
-        case .trayHeight: .init(15, .percent)
-        case .spacesHeight: .init(62.5, .percent)
+        case .voiceHeight: .init(144)
+        case .trayHeight: .init(76)
+        case .spacesHeight: .init(100, .percent)
+        case .sectionGap: .init(10)
         case .cellHeight, .cellWidth, .trayMenuHeight: .init(50, .percent)
         case .moduleHeight: .init(68, .percent)
         case .spaceRowHeight: .init(100, .percent)
-        case .textPadding, .buttonGap: .init(8)
+        case .textPadding: .init(12)
+        case .buttonGap: .init(8)
         case .textSize: .init(14)
         case .copySize, .iconSize: .init(13)
         case .waveformSize: .init(28)
-        case .lineGap: .init(2)
+        case .lineGap: .init(3)
         case .voiceButtonWidth, .railHeight: .init(32)
         case .voiceButtonHeight: .init(26)
-        case .columnGap, .rowGap, .spacePadding: .init(4)
-        case .spaceRowGap: .init(6)
-        case .trayPadding: .init(5)
+        case .columnGap, .rowGap: .init(6)
+        case .spacePadding: .init(0)
+        case .spaceRowGap: .init(11)
+        case .trayPadding: .init(6)
         case .trayButtonSize: .init(18)
-        case .cornerRadius: .init(5)
-        case .borderWidth: .init(0.8)
-        case .labelSize: .init(10)
+        case .cornerRadius: .init(16)
+        case .borderWidth: .init(0.5)
+        case .labelSize: .init(11)
         case .hitSize: .init(18)
         case .railButtonWidth: .init(28)
         case .modulePadding: .init(12)
@@ -68,7 +71,7 @@ public enum DisplayMetric: String, Codable, CaseIterable, Sendable {
 public enum SpacePanelPlacement: String, Codable, CaseIterable, Sendable { case docked, floating }
 public enum SecondaryPolicy: String, Codable, CaseIterable, Sendable { case onDemand, contextualAuto, pinned }
 public enum PanelAnchor: String, Codable, CaseIterable, Sendable { case top, center, bottom }
-public enum PanelContent: Equatable, Sendable { case full, compact, voiceOnly, trayOnly, spacesOnly, hidden }
+public enum PanelContent: Equatable, Sendable { case full, compact, toolsOnly, voiceOnly, trayOnly, spacesOnly, hidden }
 
 public enum PanelSizeForm: Equatable, Sendable { case full, compact, icon }
 
@@ -77,7 +80,7 @@ public enum PanelSizeMetrics {
     public static let iconSide = 16.0
     public static let glassInset = 2.0
     public static var minimumSide: Double { iconSide + 2 * glassInset }
-    public static func cardInset(width: Double) -> Double { min(8, max(2, width * 0.04)) }
+    public static func cardInset(width: Double) -> Double { min(max(0, width) / 2, 12) }
 }
 
 /// Percent transparent (0 = opaque). Unset card values follow the original light/dark palette.
@@ -133,7 +136,15 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
         measures = try values.decodeIfPresent([DisplayMetric: Measure].self, forKey: .measures) ?? [:]
     }
     public func points(_ key: DisplayMetric, in extent: Double) -> Double {
-        (measures[key] ?? key.factory).points(in: max(0, extent))
+        if measures[key] == nil, key == .panelWidth || key == .reservedWidth {
+            return Self.recommendedPanelWidth(in: extent)
+        }
+        return (measures[key] ?? key.factory).points(in: max(0, extent))
+    }
+
+    public static func recommendedPanelWidth(in extent: Double) -> Double {
+        guard extent.isFinite, extent > 0 else { return 0 }
+        return min(extent * 0.25, max(extent * 0.125, min(360, max(240, extent * 0.16)))).rounded()
     }
 
     private func extentRange(_ extent: Double, inset: Double) -> ClosedRange<Double> {
@@ -156,7 +167,14 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
 
     func committedPanelWidth(in available: Double) -> Double {
         let range = extentRange(available, inset: points(.sideInset, in: available))
-        return min(range.upperBound, max(range.lowerBound, points(.panelWidth, in: available)))
+        var desired = points(.panelWidth, in: available)
+        if measures[.panelWidth] == nil, let savedReservation = measures[.reservedWidth] {
+            let usable = savedReservation.points(in: available) - points(.sideInset, in: available)
+            // Older profiles could save a reservation for the original 1/8 default.
+            // Keep that valid reservation while fitting the new recommended width.
+            if usable >= DisplayMetric.panelWidth.factory.points(in: available) { desired = min(desired, usable) }
+        }
+        return min(range.upperBound, max(range.lowerBound, desired))
     }
     public func panel(
         on screen: ScreenGeometry, fallbackEdge: SurfaceEdge, heightFraction: Double = 1, floating: Bool = false
@@ -304,18 +322,26 @@ extension DisplaySettings {
 
     /// Fit ordinary module controls at their configured sizes. Condensing the panel never changes their stored metrics.
     public func sizeForm(width: Double, height: Double, content: PanelContent, voice: Bool, tray: Bool,
-                         referenceHeight: Double? = nil, temporarilyExpanded: Bool = false) -> PanelSizeForm {
+                         referenceHeight: Double? = nil, temporarilyExpanded: Bool = false,
+                         voiceCompact: Bool = false, trayRows: Int = 1,
+                         toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> PanelSizeForm {
         let minimum = PanelSizeMetrics.minimumSide
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
+        if content == .full, (voice || tray), width < 176, !temporarilyExpanded { return .compact }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
-            settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight)
+            settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
+            voiceCompact: voiceCompact, trayRows: trayRows, toolOrder: toolOrder)
         let cardPadding = 2 * glass.inset(width: width)
-        let sections = (voice: max(0, layout.voice.height - cardPadding), tray: max(0, layout.screenshots.height - cardPadding),
-                        spaces: max(0, layout.desktop.height - cardPadding))
+        let sections = (voice: max(0, layout.voice.height), tray: max(0, layout.screenshots.height),
+                        spaces: max(0, layout.desktop.height))
         let width = max(0, width - cardPadding)
-        if voice && [.full, .compact, .voiceOnly].contains(content) {
+        let showsVoice = voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content)
+        if showsVoice && voiceCompact {
+            // Saytile's paused row contains one 48 × 27 control and two 12 pt margins.
+            if width < 72 || sections.voice < 27 { return .compact }
+        } else if showsVoice {
             let pad = points(.textPadding, in: width)
             let requestedFont = points(.textSize, in: sections.voice)
             let font = readableFontSize(.textSize, in: sections.voice) ?? requestedFont
@@ -331,7 +357,7 @@ extension DisplaySettings {
             if width < 2 * pad + max(rowWidth, 2 * font)
                 || min(height, sections.voice) < 2 * pad + buttonHeight + lineHeight + Self.voiceFooterGap { return .compact }
         }
-        if tray && [.full, .compact, .trayOnly].contains(content) {
+        if tray && [.full, .compact, .toolsOnly, .trayOnly].contains(content) {
             let pad = points(.trayPadding, in: width)
             let glyph = points(.trayButtonSize, in: sections.tray)
             if width < 2 * pad + 2 * glyph + points(.columnGap, in: width)
@@ -359,17 +385,15 @@ extension DisplaySettings {
         voice: Double, tray: Double, spaces: Double, gap: Double
     ) {
         let h = max(0, height)
-        let showVoice = voice && [.full, .compact, .voiceOnly].contains(content)
-        let showTray = tray && [.full, .compact, .trayOnly].contains(content)
+        let showVoice = voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content)
+        let showTray = tray && [.full, .compact, .toolsOnly, .trayOnly].contains(content)
         let showSpaces = content == .full || content == .spacesOnly
         let gaps = max(0, [showVoice, showTray, showSpaces].filter { $0 }.count - 1)
         let gap = min(points(.sectionGap, in: h), h / Double(max(1, gaps + 1)))
-        let amounts = [
-            showVoice ? points(.voiceHeight, in: h) : 0, showTray ? points(.trayHeight, in: h) : 0,
-            showSpaces ? (content == .spacesOnly && measures[.spacesHeight] == nil ? h : points(.spacesHeight, in: h)) : 0,
-        ]
-        let scale = min(1, max(0, h - Double(gaps) * gap) / max(Double.leastNormalMagnitude, amounts.reduce(0, +)))
-        return (amounts[0] * scale, amounts[1] * scale, amounts[2] * scale, gap)
+        let v = showVoice ? points(.voiceHeight, in: h) : 0
+        let t = showTray ? points(.trayHeight, in: h) : 0
+        let remaining = max(0, h - v - t - Double(gaps) * gap)
+        return (v, t, showSpaces ? min(remaining, points(.spacesHeight, in: h)) : 0, gap)
     }
 }
 

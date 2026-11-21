@@ -1,0 +1,26 @@
+{"event":"scenario-result","monotonic":234493.299364333,"scenario":"D01","status":"BLOCKED","reason":"Installed Host move capability is false or unknown; zero drag inputs dispatched."}
+{"event":"creation-ledger","monotonic":234493.486786958,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/0a1e6ef3-f686-496f-90df-cd104b492e69/provision","operation":"e67a2032-c083-4379-a918-4b49450b58a4"}
+{"event":"system-fixture-intent","monotonic":234493.723196375,"operation":"add","current":2000,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234494.781997166,"operation":"add","target":null,"acknowledged":true,"issued":true}
+{"event":"system-fixture-created","monotonic":234496.133323375,"desktop":{"id":4867,"type":0,"uuid":"5B90B6CD-C16C-583B-5BA3-80CA310234A4"},"oldCurrent":2000,"newCurrent":2000}
+{"event":"system-fixture-intent","monotonic":234496.777363625,"operation":"select","current":2000,"target":4867,"other":null}
+{"event":"system-fixture-result","monotonic":234497.794271,"operation":"select","target":4867,"acknowledged":true,"issued":true}
+{"event":"creation-ledger","monotonic":234498.722213375,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/8042606d-a19a-4664-81dc-a8e746754030/provision","operation":"72f17523-f0a1-4e2d-9ac6-3a238cd8ffdb"}
+{"event":"system-fixture-intent","monotonic":234499.083862875,"operation":"add","current":4867,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234499.802280916,"operation":"add","target":null,"acknowledged":true,"issued":true}
+{"event":"system-fixture-created","monotonic":234500.453227958,"desktop":{"id":4870,"type":0,"uuid":"9B79F8F1-D4F7-B06B-6994-475483B04B74"},"oldCurrent":4867,"newCurrent":4867}
+{"event":"creation-ledger","monotonic":234500.6700285,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/e1b6b7cb-232f-42e5-a5c8-eac4745bef11/provision","operation":"70b16efc-5263-45d5-af97-25494bbd3e61"}
+{"event":"system-fixture-intent","monotonic":234500.939937916,"operation":"add","current":4867,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234501.645631291,"operation":"add","target":null,"issued":true,"acknowledged":true}
+{"event":"system-fixture-created","monotonic":234502.282967833,"desktop":{"id":4871,"type":0,"uuid":"589BC961-CC5B-0606-324E-EC4D2A0A90A1"},"oldCurrent":4867,"newCurrent":4867}
+{"event":"scenario-result","monotonic":234514.26381475,"scenario":"W01","status":"BLOCKED","reason":"Synthetic input receipt or unchanged sibling failed; stopped after the first discrepancy."}
+{"event":"system-fixture-intent","monotonic":234515.31306875,"operation":"select","current":4867,"target":2000,"other":null}
+{"event":"system-fixture-result","monotonic":234516.24235925,"operation":"select","target":2000,"issued":true,"acknowledged":true}
+{"event":"system-fixture-intent","monotonic":234517.58000175,"operation":"remove","current":2000,"target":4871,"other":null}
+{"event":"system-fixture-result","monotonic":234518.677173916,"operation":"remove","target":4871,"overviewComposite":{"number":45493,"newSinceOverview":true,"owner":"com.apple.WindowManager","otherOrdinary":0,"pid":647},"issued":true,"acknowledged":true}
+{"event":"system-fixture-removal-reconciled","monotonic":234519.992923375,"target":4871}
+{"event":"system-fixture-removed","monotonic":234519.993103875,"target":4871}
+{"event":"system-fixture-intent","monotonic":234520.632128791,"operation":"remove","current":2000,"target":4870,"other":null}
+{"event":"system-fixture-result","monotonic":234521.69310475,"operation":"remove","target":4870,"issued":true,"overviewComposite":{"newSinceOverview":true,"owner":"com.apple.WindowManager","otherOrdinary":0,"pid":647,"number":45513},"acknowledged":true}
+{"event":"system-fixture-removal-reconciled","monotonic":234523.155816458,"target":4870}
+{"event":"system-fixture-removed","monotonic":234523.155998166,"target":4870}

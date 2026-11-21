@@ -1,0 +1,5 @@
+{"event":"creation-ledger","monotonic":234585.883094333,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/54379535-9020-4b68-b6ac-ddae1e4ebf30/provision","operation":"d23e241c-f95a-4a35-a7d3-6d65daa067bf"}
+{"event":"system-fixture-intent","monotonic":234586.025416333,"operation":"add","current":4,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234589.678442583,"operation":"add","target":null,"reason":"system overview is not exposed","acknowledged":false,"issued":false}
+{"event":"scenario-result","monotonic":234589.678995375,"scenario":"S02","status":"BLOCKED","reason":"add: system overview is not exposed"}
+{"event":"suite-stopped","monotonic":234589.679186208,"reason":"add: system overview is not exposed"}

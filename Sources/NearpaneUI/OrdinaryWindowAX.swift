@@ -22,7 +22,7 @@ private actor OrdinaryWindowChannel {
     private let process: Process
     private let input, output, alertsInput: FileHandle
 
-    init(alerts: BoundaryAlerts, previewWindow: UInt32? = nil) throws {
+    init(alerts: BoundaryAlerts, previewWindow: UInt32? = nil, scopeProbeOnly: Bool = false) throws {
         let root = Bundle.main.bundleURL.resolvingSymlinksInPath()
         let executable = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
         guard executable.resolvingSymlinksInPath().path == executable.path,
@@ -36,7 +36,10 @@ private actor OrdinaryWindowChannel {
         guard fcntl(commands.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1) == 0
         else { throw OrdinaryWindowFailure("无法安全建立窗口控制通道。") }
         process.executableURL = executable
-        if let previewWindow { process.arguments = ["--read-only-preview", String(previewWindow)] }
+        // Match the desktop reader's actual-login preferences. A disposable Host
+        // profile describes its own data, not WindowManager or the physical display.
+        process.environment = ["PATH": "/usr/bin:/bin"]
+        if let previewWindow { process.arguments = [scopeProbeOnly ? "--read-only-focus-scope" : "--read-only-preview", String(previewWindow)] }
         process.standardInput = commands
         process.standardOutput = replies
         // Only the nonce-checked stdout RPC can issue or acknowledge an operation.
@@ -61,6 +64,9 @@ private actor OrdinaryWindowChannel {
         }
     }
 
+    nonisolated var pid: pid_t { process.processIdentifier }
+    nonisolated var isRunning: Bool { process.isRunning }
+
     nonisolated func interrupt() {
         if process.isRunning { process.terminate() }
     }
@@ -72,7 +78,8 @@ private actor OrdinaryWindowChannel {
         try? output.close()
     }
 
-    func call(_ command: OrdinaryWindowRequest, permit: NativeSelectionPermit? = nil) throws -> OrdinaryWindowReply {
+    func call(_ command: OrdinaryWindowRequest, permit: NativeSelectionPermit? = nil,
+              timeout: TimeInterval = 8) throws -> OrdinaryWindowReply {
         guard process.isRunning else { throw OrdinaryWindowFailure("窗口助手已结束，原授权失效。") }
         let reply: OrdinaryWindowReply
         do {
@@ -80,7 +87,7 @@ private actor OrdinaryWindowChannel {
             bytes.append(10)
             try input.write(contentsOf: bytes)
             var nextStep = 0
-            let deadline = ProcessInfo.processInfo.systemUptime + 8
+            let deadline = ProcessInfo.processInfo.systemUptime + timeout
             while true {
                 var result = Data()
                 while result.count <= 64_000 {
@@ -114,6 +121,9 @@ private actor OrdinaryWindowChannel {
         }
         if let error = reply.failure {
             if command.action == .list, reply.listAccessDenied == true { throw AdmissionReadFailure.permission }
+            if command.action == .write, command.pairPlacement != nil {
+                throw IncompletePairWrite(reason: error, steps: reply.steps ?? [])
+            }
             throw OrdinaryWindowFailure(error)
         }
         return reply
@@ -121,12 +131,72 @@ private actor OrdinaryWindowChannel {
 }
 
 @MainActor final class OrdinaryWindowDirectory {
+    private struct UnboundFocusWorker: Sendable {
+        let channel: OrdinaryWindowChannel
+        let alerts: BoundaryAlerts
+        let hostImage, helperImage: OrdinaryProcessImage
+
+        func belongsToCurrentInstall() -> Bool {
+            channel.isRunning && (try? OrdinaryProcessImage.read(getpid())) == hostImage &&
+                (try? OrdinaryProcessImage.read(channel.pid)) == helperImage
+        }
+    }
+
+    private static let focusStandby = FocusWorkerStandby<UnboundFocusWorker>()
+
+    private static func startUnboundFocusWorker() -> Task<UnboundFocusWorker, Error> {
+        let alerts = BoundaryAlerts()
+        return Task.detached(priority:.userInitiated) {
+            try Task.checkCancellation()
+            let host = try OrdinaryProcessImage.read(getpid())
+            let channel = try OrdinaryWindowChannel(alerts:alerts)
+            // This read-only readiness request has neither an owner nor a window.
+            // Discard the permission value. The worker checks AX trust again when the real
+            // click lists its owner and when the Host approves each individual write.
+            let ready = try await channel.call(.init(.checkFocusPermission, pid:0, launch:0, bundle:""), timeout:1)
+            try Task.checkCancellation()
+            guard ready.focusPermission != nil, try OrdinaryProcessImage.read(getpid()) == host else {
+                throw OrdinaryWindowFailure("窗口控制助手的安装代际已变化。")
+            }
+            return try UnboundFocusWorker(channel:channel, alerts:alerts, hostImage:host,
+                                          helperImage:OrdinaryProcessImage.read(channel.pid))
+        }
+    }
+
+    @discardableResult static func prepareSidebarFocus() -> Bool { focusStandby.prepare(startUnboundFocusWorker) }
+
+    static func forSidebarFocus(_ app: AdmissionApplication) async throws -> OrdinaryWindowDirectory {
+        let worker: UnboundFocusWorker
+        do { worker = try await focusStandby.take(startUnboundFocusWorker) }
+        catch is CancellationError { throw CancellationError() }
+        catch { return try OrdinaryWindowDirectory(app) }
+        // A short-lived empty process carries no target. If its code image was replaced,
+        // discard it and run the ordinary signed startup for this selection.
+        guard worker.belongsToCurrentInstall() else {
+            worker.channel.interrupt()
+            return try OrdinaryWindowDirectory(app)
+        }
+        return OrdinaryWindowDirectory(app, worker:worker)
+    }
+
     /// Ask the signed process that actually selects windows. This channel never lists or binds a window.
     static func focusPermission(prompt: Bool) async -> Bool? {
         do {
-            let channel = try OrdinaryWindowChannel(alerts: BoundaryAlerts())
+            let alerts = BoundaryAlerts()
+            let channel = try OrdinaryWindowChannel(alerts:alerts)
             let action: OrdinaryWindowRequest.Action = prompt ? .requestFocusPermission : .checkFocusPermission
-            return try await channel.call(.init(action, pid: 0, launch: 0, bundle: "")).focusPermission
+            let response = try await channel.call(.init(action, pid:0, launch:0, bundle:""))
+            if response.focusPermission != nil {
+                // The settings probe already has a signed, nonce-checked empty channel. Only
+                // its process is reusable; the original permission answer is returned to Settings.
+                focusStandby.prepare {
+                    Task {
+                        try UnboundFocusWorker(channel:channel, alerts:alerts, hostImage:OrdinaryProcessImage.read(getpid()),
+                                               helperImage:OrdinaryProcessImage.read(channel.pid))
+                    }
+                }
+            }
+            return response.focusPermission
         } catch { return nil }
     }
 
@@ -135,11 +205,17 @@ private actor OrdinaryWindowChannel {
     private let alerts: BoundaryAlerts
     private(set) var handles = [UUID: OrdinaryWindowAX]()
 
-    init(_ app: AdmissionApplication, previewWindow: UInt32? = nil) throws {
+    private init(_ app: AdmissionApplication, worker: UnboundFocusWorker) {
+        self.app = app
+        alerts = worker.alerts
+        channel = worker.channel
+    }
+
+    init(_ app: AdmissionApplication, previewWindow: UInt32? = nil, scopeProbeOnly: Bool = false) throws {
         self.app = app
         let alerts = BoundaryAlerts()
         self.alerts = alerts
-        channel = try OrdinaryWindowChannel(alerts: alerts, previewWindow: previewWindow)
+        channel = try OrdinaryWindowChannel(alerts: alerts, previewWindow: previewWindow, scopeProbeOnly: scopeProbeOnly)
     }
 
     func choices(initial: Bool) async throws -> [AdmissionWindowChoice] {
@@ -168,6 +244,7 @@ private actor OrdinaryWindowChannel {
 
 @MainActor final class OrdinaryWindowAX {
     let id: ManagedWindowID, bundle: String, applicationName: String
+    var workerPID: pid_t { channel.pid }
     private let channel: OrdinaryWindowChannel
     private let alerts: BoundaryAlerts
     private var closed = false
@@ -236,22 +313,37 @@ private actor OrdinaryWindowChannel {
         return !closed && choices.compactMap { $0 }.filter { $0.number == id.number } == [id]
     }
 
-    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit) async throws {
+    func inspectFocusScope(_ scope: OrdinaryFocusScope, frame: SurfaceRect) async throws -> (evidence: OrdinaryFocusScopeEvidence, findings: [OrdinaryFocusScopeFinding]) {
+        guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
+        let answer = try await channel.call(.init(.inspectFocusScope, pid: id.pid, launch: id.launch, bundle: bundle,
+            id: id, expected: frame, focusDisplay: scope.desktop.display, focusSpace: scope.desktop.record, focusScope: scope))
+        guard !closed, let evidence = answer.focusScopeEvidence else { throw OrdinaryWindowFailure("无法核对原选窗范围。") }
+        return (evidence, answer.focusScopeFindings ?? [])
+    }
+
+    func focusCurrent(frame: SurfaceRect, display: String, deadline: TimeInterval, space: String?, permit: NativeSelectionPermit,
+                      timing: WindowFocusTiming? = nil, scope: OrdinaryFocusScope? = nil) async throws {
         guard !closed else { throw OrdinaryWindowFailure("窗口已关闭。") }
         _ = try await channel.call(.init(.focusCurrent, pid: id.pid, launch: id.launch, bundle: bundle, id: id,
-                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space), permit: permit)
+                                         expected: frame, focusDisplay: display, focusDeadline: deadline, focusSpace: space,
+                                         focusTimingID: timing?.id, focusScope: scope), permit: permit)
     }
 
     func verify(expected: SurfaceRect) async throws -> AdmissionPair { try await sample(.verify, from: expected) }
+    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement) async throws -> AdmissionPair {
+        try await sample(.write, from: from, to: to, placement: placement)
+    }
+
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair {
         try await sample(.write, from: from, to: to)
     }
 
-    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil) async throws -> AdmissionPair {
+    private func sample(_ action: OrdinaryWindowRequest.Action, from: SurfaceRect? = nil, to: SurfaceRect? = nil, revision: UUID? = nil,
+                        placement: OrdinaryWindowPairPlacement? = nil) async throws -> AdmissionPair {
         guard !closed else { throw OrdinaryWindowFailure("该窗口授权已结束。") }
         let response = try await channel.call(.init(action, pid: id.pid, launch: id.launch, bundle: bundle,
                                                     id: id, expected: from, destination: to, boundaryRevision: revision,
-                                                    desktop: desktopBinding))
+                                                    desktop: desktopBinding, pairPlacement: placement))
         if !closed, action == .verify, let witness = response.closure, witness.id == id, response.pair == nil {
             throw witness
         }

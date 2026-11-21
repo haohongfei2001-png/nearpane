@@ -1,0 +1,20 @@
+{
+  "cloudCancelledBeforeGrace" : true,
+  "delayedFinal" : {
+    "audioSHA256" : "1f62dbb105782a1b742bc54366b77acec07d3924a20a60cc0dd8cab2a3c5c72f",
+    "finalSHA256" : "537656b5d2e88d544ea75881977f8a8e3c8bd6ba8a65258c9e521d9ae2f3a872",
+    "frames" : 1600,
+    "recording" : "9B7B7F6C-EBD2-4DC4-B390-9534AC581A78",
+    "state" : "final"
+  },
+  "inputs" : "synthetic PCM and two controlled RecognitionSession completions; no audio device",
+  "path" : "AudioController.shutdown → pinned CaptureWorker → PCMJournal\/SaytileStore → close\/reopen",
+  "selectedProviderTested" : false,
+  "timeout" : {
+    "audioSHA256" : "c43fc866621fb5e1210a2c7cb4d5fab10dae9e8e7b8402d82430a947b884745c",
+    "finalSHA256" : null,
+    "frames" : 1600,
+    "recording" : "5CCFF092-DDFC-4932-8330-8D17AD8D3B2E",
+    "state" : "recoverable"
+  }
+}

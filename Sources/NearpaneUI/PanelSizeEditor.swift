@@ -51,8 +51,8 @@ struct PanelSizeDraft: Equatable {
     var width: Dimension
     var height: Dimension
 
-    init(_ settings: DisplaySettings = .init()) {
-        width = Dimension(settings.measures[.panelWidth], factory: DisplayMetric.panelWidth.factory)
+    init(_ settings: DisplaySettings = .init(), screenWidth: Double = 1440) {
+        width = Dimension(settings.measures[.panelWidth], factory: Measure(100 * DisplaySettings.recommendedPanelWidth(in: screenWidth) / max(1, screenWidth), .percent))
         height = Dimension(settings.measures[.panelHeight], factory: DisplayMetric.panelHeight.factory)
     }
 
@@ -82,7 +82,7 @@ struct PanelSizeDraft: Equatable {
 /// Both native controls edit the same live draft, including between SwiftUI redraws.
 @MainActor @Observable final class PanelSizeEditing {
     var draft: PanelSizeDraft
-    init(_ settings: DisplaySettings) { draft = PanelSizeDraft(settings) }
+    init(_ settings: DisplaySettings, screenWidth: Double = 1440) { draft = PanelSizeDraft(settings, screenWidth: screenWidth) }
 
     func dimension(_ axis: WritableKeyPath<PanelSizeDraft, PanelSizeDraft.Dimension>) -> Binding<PanelSizeDraft.Dimension> {
         Binding(get: { self.draft[keyPath: axis] }, set: { self.draft[keyPath: axis] = $0 })
@@ -183,7 +183,7 @@ struct PanelSizeEditor: View {
         self.voice = voice
         self.tray = tray
         self.apply = apply
-        _editing = State(initialValue: PanelSizeEditing(settings))
+        _editing = State(initialValue: PanelSizeEditing(settings, screenWidth: screen.visibleFrame.width))
     }
 
     var body: some View {
@@ -203,7 +203,7 @@ struct PanelSizeEditor: View {
                 Button("应用宽高") { apply(editing.draft) }
                     .disabled(proposed == nil || proposed == settings)
                     .accessibilityIdentifier("panel-size-apply")
-                Button("恢复默认宽高") { editing.draft = PanelSizeDraft() }
+                Button("恢复默认宽高") { editing.draft = PanelSizeDraft(screenWidth: screen.visibleFrame.width) }
                     .accessibilityIdentifier("panel-size-defaults")
             }
         }

@@ -1,0 +1,190 @@
+{
+  "dateLocal": "2026-11-20",
+  "platform": {
+    "os": "27.0",
+    "osBuild": "26A428",
+    "arch": "arm64"
+  },
+  "upgrade": {
+    "from": "90",
+    "to": "91",
+    "source": "687fd7119dbc1cf182f237b1226806e114c62220",
+    "sourceState": "clean",
+    "assetSHA256": "f37b0ec0dadc3f5ac218da0cffefbef72e178123699dfbc5eed590545989cb26",
+    "size": 24439269,
+    "hostCDHash": "74f022c53245a9b8cc56843f24456b0bdda6712f",
+    "stableDesignatedRequirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+    "sameDesignatedRequirement": true,
+    "subjects": 8,
+    "bidirectionalChecks": 16,
+    "deepSignature": "PASS",
+    "normalTermination": true,
+    "atomicInstallPath": "/Applications/Nearpane.app"
+  },
+  "download": {
+    "releaseId": 452279145,
+    "draft": true,
+    "tag": "r4-native-5.22-91-candidate",
+    "url": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-c9723598de5994fe9db1",
+    "asset": "Nearpane-5.22-91-macOS-arm64.zip",
+    "assetId": 770730903,
+    "digest": "sha256:f37b0ec0dadc3f5ac218da0cffefbef72e178123699dfbc5eed590545989cb26",
+    "retiredSupersededBuilds": [
+      88,
+      89,
+      90
+    ]
+  },
+  "permissionSubject": "com.holdsnow.nearpane.alpha",
+  "preMigrationAllowedRecords": {
+    "kTCCServiceAccessibility": {
+      "value": 2,
+      "requirement": "cdhash H\"19590850e7631065e6ecc243d2944e4e51f5cccd\"",
+      "matchesInstalled": false
+    },
+    "kTCCServiceScreenCapture": {
+      "value": 2,
+      "requirement": "cdhash H\"b92a4d5b3626572eaca143162d924c133cdcea56\"",
+      "matchesInstalled": false
+    }
+  },
+  "beforeMigrationHost": {
+    "accessibility": false,
+    "screen": false,
+    "postEvent": false
+  },
+  "scopedReset": {
+    "method": "macOS tccutil per bundle and service",
+    "removedTwoLegacyRequirements": true
+  },
+  "justBeforeUpgrade": {
+    "build": "90",
+    "systemRecords": {
+      "kTCCServiceAccessibility": {
+        "value": 0,
+        "requirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+        "matchesInstalled": true
+      }
+    },
+    "host": {
+      "accessibility": false,
+      "screen": false,
+      "postEvent": false
+    }
+  },
+  "afterUpgrade": {
+    "build": "91",
+    "queriedAt": "2026-11-20T06:33:46.804836+00:00",
+    "systemRecords": {
+      "kTCCServiceAccessibility": {
+        "value": 0,
+        "requirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+        "matchesInstalled": true
+      }
+    },
+    "host": {
+      "accessibility": false,
+      "screen": false,
+      "postEvent": false
+    },
+    "loadedMatchesInstalled": true,
+    "catalog": {
+      "highlightMatchesSystem": true,
+      "independentCount": 4,
+      "rowIdentitiesMatch": true,
+      "sidebarCount": 4
+    },
+    "nativeSpaceCapabilities": [
+      {
+        "canMove": false,
+        "canSwitch": false,
+        "ready": true
+      }
+    ]
+  },
+  "crossBuildSignatureComparisons": [
+    {
+      "build": "86",
+      "sha256": "239682cd13ca1a45f37cbe0a46a8b6652de8593debf4164e71eab624cd142e6d",
+      "cdhash": "212f08ce48c73f10b67d4811cdd3f1811a49d2db",
+      "subjects": 8,
+      "mutualRequirementChecks": 16,
+      "strictSignature": "PASS",
+      "againstInstalledBuild": "90"
+    },
+    {
+      "build": "88",
+      "sha256": "6d68348973e1700bd3740054947a4f28c138123f6e299c928d6af22692272468",
+      "cdhash": "da641e78e6b9482db30500eb053a989d45799084",
+      "subjects": 8,
+      "mutualRequirementChecks": 16,
+      "strictSignature": "PASS",
+      "againstInstalledBuild": "90"
+    },
+    {
+      "build": "89",
+      "sha256": "3bc6f3bb17bc477121be227b3f240c811f1f517fbe85844a7c384d2f8e962abb",
+      "cdhash": "e23af9f1e83e77b7f0d359fe8a11b71e7d9a37cf",
+      "subjects": 8,
+      "mutualRequirementChecks": 16,
+      "strictSignature": "PASS",
+      "againstInstalledBuild": "90"
+    },
+    {
+      "build": "90",
+      "sha256": "33c16dd2215cfa344877a7bed7509f2e9cb7c0ab638058adeb14d81f7a76f4cb",
+      "cdhash": "695ef3835ef18ddfe1f30b225e72e74401668c13",
+      "subjects": 8,
+      "mutualRequirementChecks": 16,
+      "strictSignature": "PASS",
+      "againstInstalledBuild": "90"
+    }
+  ],
+  "deniedExportTest": {
+    "intactBundleSeal": true,
+    "canonicalIdentifier": true,
+    "testLocation": "uninstalled export directory",
+    "status": 1,
+    "publishedApplication": false,
+    "publishedReceipt": false
+  },
+  "profiles": {
+    "profileDirectoryInode": true,
+    "indexSHA256": true,
+    "generationDirectories": true
+  },
+  "localCleanup": {
+    "roots": "Applications and user application, desktop, downloads, documents, shared folders, Nearpane worktrees and caches, accessible temporary folders and Trash",
+    "registeredApplications": {
+      "com.holdsnow.nearpane.alpha": [
+        "/Applications/Nearpane.app"
+      ]
+    },
+    "onDiskProductCounts": {
+      "installedApp": 1,
+      "installerZIP": 1
+    },
+    "remainingBuilds": [
+      "91"
+    ],
+    "permanentlyRemovedPreviouslyTrashedTestFixtures": 92,
+    "otherUnreadableDirectories": [
+      "unrelated temporary fixture-trash with no owner read bit"
+    ]
+  },
+  "tests": {
+    "swiftIntegrated": 516,
+    "candidateIdentity": 8,
+    "updateRuntime": 4,
+    "appIcon": 5,
+    "nativeAcceptanceRunner": 21
+  },
+  "outstanding": {
+    "grantedAcrossUpgrade": "NOT_VERIFIED: neither permission was granted before installation",
+    "exactKeyboardFocus": "BLOCKED",
+    "nativeSpaceSwitch": "BLOCKED",
+    "crossSpaceMove": "BLOCKED",
+    "productionWindowPreviewPixels": "BLOCKED",
+    "onlineAppcastInstall": "NOT_RUN: production channel has no configured public key"
+  }
+}

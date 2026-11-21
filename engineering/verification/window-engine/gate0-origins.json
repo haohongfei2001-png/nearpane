@@ -1,0 +1,26 @@
+{
+  "upstream": "eugene-tea/stage-manager",
+  "commit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
+  "tree": "1bcc92e00ad44d6e455fa0a5f335805b4cf66ae1",
+  "upstreamLicense": "MIT",
+  "origins": [
+    {
+      "local": "LICENSE.upstream",
+      "upstream": "LICENSE",
+      "blob": "afcd9230ee12e85e3ffd84bfefd79261e08db939",
+      "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
+      "localSHA256": "16851449171a13fcc5f978373f836cd2466ab3c0de85f8766f4a8c07f8cfc933"
+    },
+    {
+      "local": "src/contract.rs",
+      "upstream": "src/platform/window_engine.rs",
+      "blob": "9cce0e0f1f7c4b18008caf0ad7b6228d649e3457",
+      "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
+      "localSHA256": "126a255f9371c175f58c8c5d9ac15815ddd9f6b4ffd9ce31a9a0bd9232aba065"
+    }
+  ],
+  "firstPartyPackage": "nearpane-window-engine",
+  "cargoLockSHA256": "c429e35f06d6b3cd35033d2e0f057c35cca49bd19ceae06f2174d37c0a4cd280",
+  "externalCargoDependencies": [],
+  "status": "PASS"
+}

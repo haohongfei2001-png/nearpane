@@ -51,7 +51,7 @@ public struct AccentSettings: View {
 
     public var body: some View {
         HStack {
-            Picker("主题色", selection: Binding(get: { host.configuration.accent }, set: host.setAccent)) {
+            Picker("主题色", selection: Binding(get: { host.configuration.accent }, set: { host.setAccent($0) })) {
                 ForEach(ProductAccent.allCases, id: \.self) { accent in Text(accent.label).tag(accent) }
             }
             .pickerStyle(.menu).fixedSize().accessibilityIdentifier("nearpane-accent")

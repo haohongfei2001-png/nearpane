@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "transaction": "3a25991a-2e4c-422d-a8ae-8a315f1b1f52",
+  "original": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "version": "5.22",
+    "build": "90",
+    "tree": "8255226250460e19451c356fcd021f3c7d38b9a45db2fc253f29adfe3bd10a89",
+    "root": [
+      16777233,
+      301433254
+    ],
+    "host": [
+      16777233,
+      301433259
+    ]
+  },
+  "candidate": {
+    "source": "9ba33eb6bce7fe1fb13deb2c4f3ddd2716d8f329",
+    "cdhash": "ff512ed7d1963cf8a3adbb73e701893e66c8b520",
+    "version": "5.22",
+    "build": "90",
+    "tree": "25f67ca24797deae618a7c307a4f15d427a4249b03a8e33d0226b5978963239a",
+    "root": [
+      16777233,
+      301676758
+    ],
+    "host": [
+      16777233,
+      301676763
+    ]
+  },
+  "dailyConfiguration": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+  },
+  "initialDailyHost": [
+    73267,
+    1795205046,
+    609473
+  ],
+  "restoredDailyHost": [
+    74822,
+    1795205144,
+    778308
+  ],
+  "restoration": "PASS",
+  "cleanup": "PASS",
+  "trials": {
+    "P3": {
+      "status": "BLOCKED",
+      "exit": 0,
+      "receipt": "p3.json",
+      "sha256": "fdacccf2d39b865b125e2b0b72e095449990244ef234bf82801ad317f815b304"
+    },
+    "P4": {
+      "status": "UNKNOWN",
+      "exit": 2,
+      "receipt": "p4/result.json",
+      "sha256": "c8afc0af04fa5370b0e89d0c9058e7d6bf8834272db9373dd33bb6caac1263ef"
+    },
+    "P4-wordbook": {
+      "status": "PASS",
+      "exit": 0,
+      "receipt": "p4-wordbook/result.json",
+      "sha256": "b0add3657bb5a5c5b164dcdc47d970ad5225726882e8272376dc27a9b056d5c2"
+    }
+  },
+  "stage": "restored",
+  "terminationSignal": null,
+  "rawJournalSHA256": "0fdbcd6bf02b6938699daa7696d8f93f8632f82829ae310165ceafbeda02ff26",
+  "steps": [
+    "enrolled",
+    "quitting-original",
+    "swapping-to-candidate",
+    "launching-isolated",
+    "isolated-running",
+    "running-P3",
+    "finished-P3",
+    "running-P4",
+    "finished-P4",
+    "quitting-first-isolated-for-wordbook",
+    "launching-isolated",
+    "isolated-running",
+    "running-P4-wordbook",
+    "finished-P4-wordbook",
+    "quitting-isolated",
+    "restoring-original-bundle",
+    "launching-original",
+    "restored",
+    "restored"
+  ]
+}

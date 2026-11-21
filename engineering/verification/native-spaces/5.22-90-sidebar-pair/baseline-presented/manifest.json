@@ -1,0 +1,30 @@
+{
+  "source": "d81c458f58b8b2efcb393acc0d8fff8db07345a6",
+  "fixtureAndPanelOnly": true,
+  "files": {
+    "actions.jsonl": "1284ffeda6c9ef229164674191bfb0745ebd31958179c8498d4aa2a27ecad483",
+    "first-registered-document.png": "1ecd8934bdec0569e334ecae1fa103aeeca3743ffae6d8651b223b02ba12707f",
+    "marker-witness-01.json": "13b20c6bf7917f988e5509ffc976363f068fab3a8f2bb8889f15c38c9c6b5b26",
+    "marker-witness-02.json": "e1994ecd149b93d5d7208db9c54166cb6406c0aa87caaeaaadae0a2637d85422",
+    "marker-witness-03.json": "c40dba3e13ea6cffe49ed1b23a5075327cde118be8d8e9b678d2c2ad6a82b102",
+    "marker-witness-04.json": "d1d62309554909ac63318ebea1238a16585f3a6b14ea83ad9b0cf040d6bdddaf",
+    "marker-witness-05.json": "ef6bb021a55840d671064cb9c3b8430cba4189867e41ae4942c88a12e035607e",
+    "marker-witness-06.json": "4c6e06bfd35d6c7a67786903ed4bf60cc0e9ced548fffd9883130be852142b96",
+    "marker-witness-07.json": "82b09fe5a769ee38263bb85f6c288e9e010562097ef2654b8e74e41e3c29b571",
+    "marker-witness-08.json": "a42923eb8f79db006e854a4380802e3ea73d0833d6d7e8fed8c7d2dca034b0c9",
+    "marker-witness-09.json": "2f0a2eb7154edff00cb10f7dce522b46f51ab18bc9a01d302730d14fdd93ef07",
+    "marker-witness-10.json": "649f1d172fc96ca901712d86950c9071c371704d30bc580b784741403575bbb8",
+    "pair-pointer.json": "7eb8a43c51f78d1ee4b16a19b9af5cbb71861d57b8533b3464cbdbe8e9711c8a",
+    "protected-installation.json": "71f52a0bc4b2eda66c9867772a47c7e3fe91670c35c8cc0c954414832f6773c3",
+    "window-presentation-01.json": "7c8aeb7e395df282538c57754cf048b5af8cdb6966656e3d38d9e1d56df2fc8f",
+    "window-presentation-02.json": "c18f5c3be3d0ab3bdf0b400b71b3d13936d32930989def1cf237f87388a4b280",
+    "window-presentation-03.json": "4076e043617d8382d2354f2bb1e9dc23ad0b83091a24fc3bdafe41dd98e9b670",
+    "window-presentation-04.json": "6cbb238aa94af73911ec047d5f921dea616d6c9b81c22fd53fc3fdadbf418c13",
+    "window-presentation-05.json": "8b9715f7a2de46857f5b95ed0c19d2455c736501f1503b7e30ac8762a625ca4a",
+    "window-presentation-06.json": "47b9bac0ccc88fb351ec136ba85d44aa655df73b24f6bcda8daa75bedc33a1b3",
+    "window-presentation-07.json": "ac0b3d8550a1873419c09f7a7f1224193549e33dab2c6d4c2e7043cfe35194a2",
+    "window-presentation-08.json": "b7f64d15c3a54b7c21233ca4215ea85e5f8a8a217236cf69c53d77c67733e2cf",
+    "window-presentation-09.json": "cab7fa19ebf465f79e6d802e4f1f8297b68fe2941e04cb27b8953faad7f38a35",
+    "window-presentation-10.json": "ea20d02db48a429baeef4d3a5fe9c33e6ac6f8496ce704b6bc998b354ff7aa66"
+  }
+}

@@ -3,6 +3,8 @@ import NearpaneCore
 import Testing
 @testable import NearpaneUI
 
+private let fixtureDisplayID = "7AE8A89E-A767-4F89-9303-85AE9A867EDD"
+
 @MainActor private final class WindowDouble: OrdinaryWindowObserving {
     let id: ManagedWindowID
     var desktopBinding: OrdinaryDesktopIdentity?
@@ -48,7 +50,7 @@ import Testing
         func sample(_ at: Double) -> AdmissionSample {
             var s = AdmissionSample(pid: id.pid, launch: id.launch, number: id.number, bundle: bundle, uptime: at)
             s.element = id.element; s.axNumber = id.number; s.axFrame = frame; s.cgFrame = reportedCGFrame ?? frame
-            s.minimized = false; s.fullscreen = false; s.onScreen = true; s.layer = 0; s.display = "side"
+            s.minimized = false; s.fullscreen = false; s.onScreen = true; s.layer = 0; s.display = fixtureDisplayID
             s.minimum = .init(width: 100, height: 160); s.permission = true; s.positionSettable = true
             s.sizeSettable = true; s.selectionContinuity = true; s.role = .ordinary
             s.liveObservation = token
@@ -99,7 +101,7 @@ import Testing
 
 @MainActor private final class OrdinaryScope {
     let support = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
-    var context = AdmissionContext(display: "side", screen: .init(width: 1000, height: 800),
+    var context = AdmissionContext(display: fixtureDisplayID, screen: .init(width: 1000, height: 800),
         usable: .init(width: 1000, height: 800), primary: false, settings: .init(),
         edge: .right, preferences: .init(), recoveryClear: true, exclusive: true)
     func manager() -> OrdinaryWindowManager {
@@ -114,32 +116,44 @@ import Testing
 
 @Suite @MainActor struct OrdinaryWindowManagerTests {
     @MainActor private final class DesktopFixture {
-        let space = OrdinaryDesktopIdentity(display: "side", record: "91", uuid: UUID())
+        let space = OrdinaryDesktopIdentity(display: fixtureDisplayID, record: "91", uuid: UUID())
         var current: OrdinaryDesktopIdentity
         var windows = [WindowDouble]()
         var offStage = Set<UInt32>()
         var sticky = Set<UInt32>()
+        var reportedFrames = [UInt32: SurfaceRect]()
+        var readable = true
+        var stageEnabled: Bool? = false
+        var catalogComplete: Bool?
+        var missingFromAX = Set<UInt32>(), nonOrdinary = Set<UInt32>()
         init() { current = space }
         func snapshot(_ request: DesktopReadRequest) -> DesktopSnapshot {
             let now = Date(), time = ProcessInfo.processInfo.systemUptime
             let f = SurfaceRect(width: 1000, height: 800)
             let members = windows.enumerated().map { index, h in
                 let id = h.id, visible = !offStage.contains(id.number)
-                return WindowObservation(id: String(id.number), displayID: "side", bounds: h.frame,
+                let frame = reportedFrames[id.number] ?? h.frame
+                return WindowObservation(id: String(id.number), displayID: fixtureDisplayID, bounds: frame,
                     membership: .known(recordIDs: sticky.contains(id.number) ? [current.record, "900"] : [current.record]),
                     confidence: .unknown, metadata: .init(number: id.number, pid: id.pid, launchMicroseconds: id.launch,
-                        element: nil, globalFrame: h.frame, frontToBack: index, minimized: false, fullScreen: nil,
-                        isOnscreen: visible, onActiveDesktop: visible, overviewSpaceID: current.record, overviewIsPresented: true))
+                        element: nil, globalFrame: frame, frontToBack: index, minimized: missingFromAX.contains(id.number) ? nil : false,
+                        fullScreen: nil, isOnscreen: visible, onActiveDesktop: visible && !missingFromAX.contains(id.number),
+                        overviewSpaceID: current.record, hasCatalogGeometry: visible, overviewIsPresented: true,
+                        overviewOrdinaryRole: nonOrdinary.contains(id.number) || missingFromAX.contains(id.number) ? false : true))
             }
             return .observed(request, from: now, to: now, build: "test", topology: "one-display", consistent: true, separateSpaces: true,
-                displays: [.init(id: "side", frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],
-                scopes: [.init(id: "scope", displayID: "side", records: [.init(id: current.record, isCurrent: true, ordinaryUUID: current.uuid),
+                displays: [.init(id: fixtureDisplayID, frame: f, rotationDegrees: 0, backingScale: 2, usable: f)],
+                scopes: [.init(id: "scope", displayID: fixtureDisplayID, records: [.init(id: current.record, isCurrent: true, ordinaryUUID: current.uuid),
                     .init(id: "900", isCurrent: false)])], windows: members,
                 evidence: .init(population: .workWindows, accessibility: .available, spaces: .observed, rows: [],
-                    windowLimitReached: false, beganUptime: time, endedUptime: time))
+                    windowLimitReached: false, beganUptime: time, endedUptime: time, stageManagerEnabled: stageEnabled, catalogComplete: catalogComplete))
+        }
+        func read(_ request: DesktopReadRequest) throws -> DesktopSnapshot {
+            guard readable else { throw WorkspaceFailure.unavailable }
+            return snapshot(request)
         }
         func feed() -> CurrentDesktopWindows {
-            CurrentDesktopWindows(read: { request in await self.snapshot(request) }, sessionAvailable: { true }, fingerprint: { 0 })
+            CurrentDesktopWindows(read: { request in try await self.read(request) }, sessionAvailable: { true }, fingerprint: { 0 })
         }
         func until(_ predicate: () -> Bool) async throws {
             let limit = ContinuousClock.now.advanced(by: .seconds(4))
@@ -159,6 +173,170 @@ import Testing
         }
     }
 
+    @Test func localDropPlacesOnlyItsTwoCardsAndReleasesTemporaryGrants() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let a = WindowDouble(pid: 101, number: 101), b = WindowDouble(pid: 101, number: 102), other = WindowDouble()
+        a.desktopBinding = world.space; b.desktopBinding = world.space
+        let feed = world.feed(), windows = world.automation(manager, feed)
+        world.windows = [a, b, other]; feed.observe(true)
+        defer { feed.observe(false) }
+        let sample = try #require(await feed.readNow())
+        let map = try #require(NativeSpaceCatalog(sample, displayID: fixtureDisplayID, now: .now, uptime: ProcessInfo.processInfo.systemUptime))
+        let dest = try #require(map.rows.first(where: { $0.id == world.space.record }).flatMap { NativeSidebarDestination($0, in: map) })
+        let x = try #require(NativeSidebarMember(sample.windows[0], source: dest)), y = try #require(NativeSidebarMember(sample.windows[1], source: dest))
+        let xLife = try #require(feed.lifetime(of: x.key)), yLife = try #require(feed.lifetime(of: y.key))
+        func drop(_ left: Bool, life: UUID) -> SidebarPairDrop {
+            .init(dragged: x, target: y, draggedLifetime: life, targetLifetime: yLife, draggedOnLeft: left)
+        }
+        #expect(SidebarPairDrop.left(at: 0, width: 100) == true)
+        #expect(SidebarPairDrop.left(at: 50, width: 100) == false)
+        #expect(SidebarPairDrop.left(at: .nan, width: 100) == nil)
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: UUID()), allowed: { true }) }
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { false }) }
+        #expect(a.writes == 0 && b.writes == 0)
+        for left in [false, true] {
+            try await windows.place(drop(left, life: xLife), allowed: { true })
+            #expect((left ? a : b).frame == .init(width: 420, height: 800))
+            #expect((left ? b : a).frame == .init(x: 420, width: 420, height: 800))
+            #expect(manager.activeIDs.isEmpty && !manager.blocked && !FileManager.default.fileExists(atPath: env.journal.path))
+            let stored = feed.groups.groups(on: try #require(UUID(uuidString: world.space.display)))
+            let pair = try #require(stored.first { $0.members.count == 2 })
+            #expect(Set(pair.members.map { $0.windowHint.number }) == [a.id.number, b.id.number])
+            #expect(pair.members.allSatisfy { $0.layout?.width == 0.42 })
+            #expect(other.writes == 0 && other.frame == other.original)
+        }
+        world.sticky.insert(a.id.number)
+        await #expect(throws: (any Error).self) { try await windows.place(drop(false, life: xLife), allowed: { true }) }
+        #expect(a.writes == 2 && b.writes == 2)
+    }
+
+    @Test func twoVerifiedAXPlacementsCannotCommitAGroupWithStaleCatalogGeometry() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let a = WindowDouble(pid: 1801, number: 1801), b = WindowDouble(pid: 1802, number: 1802)
+        world.windows = [a,b]
+        let feed = world.feed(), tiling = world.automation(manager, feed)
+        feed.observe(true)
+        defer { feed.observe(false) }
+        try await world.until { feed.snapshot != nil }
+        let original = try #require(feed.snapshot)
+        let catalog = try #require(NativeSpaceCatalog(original, displayID: fixtureDisplayID, now: Date(), uptime: ProcessInfo.processInfo.systemUptime))
+        let destination = try #require(NativeSidebarDestination(catalog.rows[0], in: catalog))
+        let x = try #require(NativeSidebarMember(original.windows[0], source: destination))
+        let y = try #require(NativeSidebarMember(original.windows[1], source: destination))
+        let attempt = SidebarPairDrop(dragged: x, target: y, draggedLifetime: try #require(feed.lifetime(of: x.key)),
+                                      targetLifetime: try #require(feed.lifetime(of: y.key)), draggedOnLeft: true)
+        world.reportedFrames[b.id.number] = b.frame
+        await #expect(throws: (any Error).self) { try await tiling.place(attempt, allowed: { true }) }
+        #expect(a.writes == 1 && b.writes == 1)
+        #expect(feed.groups.groups(on: try #require(UUID(uuidString: fixtureDisplayID))).allSatisfy { $0.members.count == 1 })
+    }
+
+    enum SwapChange: CaseIterable {
+        case unreadableSidebar, omittedFromAX, disappeared, changedMembership, replaced, changedRole
+        case inputAfterDrop, feedInvalidated, workerLost, crossOwner, finalInventoryUnavailable
+    }
+
+    @Test(arguments: SwapChange.allCases)
+    func swappingAfterRightPlacementKeepsOnlyTheProvenOriginalPair(_ change: SwapChange) async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let feed = world.feed(), tiling = world.automation(manager, feed)
+        let birth = UInt64.random(in: 2000...UInt64.max)
+        let a = WindowDouble(launch: birth, pid: 301), b = WindowDouble(launch: birth, pid: change == .crossOwner ? 302 : 301)
+        world.windows = [a,b]
+        feed.observeManagement(true)
+        defer { feed.observeManagement(false) }
+        let sample = try #require(await feed.readNow())
+        let map = try #require(NativeSpaceCatalog(sample, displayID: world.space.display, now: .now, uptime: ProcessInfo.processInfo.systemUptime))
+        let row = try #require(map.rows.first { $0.id == world.space.record })
+        let space = try #require(NativeSidebarDestination(row, in: map))
+        let first = try #require(NativeSidebarMember(sample.windows[0], source: space))
+        let second = try #require(NativeSidebarMember(sample.windows[1], source: space))
+        let firstLife = try #require(feed.lifetime(of: first.key)), secondLife = try #require(feed.lifetime(of: second.key))
+        func drop(left: Bool) -> SidebarPairDrop {
+            .init(dragged: first, target: second, draggedLifetime: firstLife, targetLifetime: secondLife, draggedOnLeft: left)
+        }
+        try await tiling.place(drop(left: false), allowed: { true })
+        let originalRight = a.frame, originalLeft = b.frame
+        var intentCurrent = true
+        // Both original worker handles are now bound. Force a real feed read from inside
+        // the manager's awaited verification and restore the roster before its next poll.
+        a.nextVerify = {
+            switch change {
+            case .disappeared:
+                world.catalogComplete = true
+                world.windows = [a]
+            case .changedMembership: world.sticky.insert(b.id.number)
+            case .replaced:
+                world.windows = [a,WindowDouble(pid: b.id.pid, number: b.id.number)]
+            case .omittedFromAX: world.missingFromAX.insert(b.id.number)
+            case .changedRole: world.nonOrdinary.insert(b.id.number)
+            case .feedInvalidated: feed.invalidate()
+            case .inputAfterDrop: intentCurrent = false
+            case .workerLost: b.valid = false
+            case .unreadableSidebar, .crossOwner: world.readable = false
+            case .finalInventoryUnavailable: b.immediatelyBeforeWrite = { world.readable = false }
+            }
+            let during = await feed.readNow()
+            if change == .unreadableSidebar || change == .crossOwner {
+                #expect(during == nil && feed.lifetime(of: first.key) == nil)
+            } else if [.disappeared,.changedMembership,.replaced,.changedRole].contains(change) {
+                #expect(during != nil && feed.boundSidebarPair?.loss != nil)
+            }
+            world.catalogComplete = nil; world.readable = true
+            world.windows = [a,b]; world.sticky.removeAll()
+            world.missingFromAX.removeAll(); world.nonOrdinary.removeAll()
+            _ = await feed.readNow()
+        }
+        if change == .unreadableSidebar || change == .omittedFromAX {
+            try await tiling.place(drop(left: true), allowed: { intentCurrent })
+            #expect(a.frame == originalLeft && b.frame == originalRight)
+            #expect(a.writes == 2 && b.writes == 2)
+        } else {
+            await #expect(throws: (any Error).self) { try await tiling.place(drop(left: true), allowed: { intentCurrent }) }
+            if change == .finalInventoryUnavailable {
+                #expect(a.frame == originalLeft && b.frame == originalRight)
+                #expect(a.writes == 2 && b.writes == 2)
+            } else {
+                #expect(a.frame == originalRight && b.frame == originalLeft)
+                #expect(a.writes == 1 && b.writes == 1)
+            }
+        }
+        #expect(feed.boundSidebarPair == nil)
+    }
+
+    @Test func localDropPreservesGrantedRatioAndLeavesAnUnselectedManagedSiblingInPlace() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        env.context.settings.measures[.reservedWidth] = .init(160)
+        let a = WindowDouble(), b = WindowDouble(), c = WindowDouble()
+        let plan = try await manager.prepare([a, b], context: env.context)
+        try await manager.confirm(plan, context: env.context)
+        try await manager.editPair(leftPercent: 60, swap: false, context: env.context)
+        try await manager.placeSidebarPair(left: b, right: a, desktop: world.space, context: env.context, current: { true })
+        #expect(b.frame == .init(width: 504, height: 800) && a.frame == .init(x: 504, width: 336, height: 800))
+        let third = try await manager.prepare([c], context: env.context)
+        try await manager.confirm(third, context: env.context)
+        let frame = c.frame, writes = c.writes
+        try await manager.placeSidebarPair(left: a, right: b, desktop: world.space, context: env.context, current: { true })
+        #expect(a.frame.width == 420 && b.frame.x == 420)
+        #expect(c.frame == frame && c.writes == writes && Set(manager.activeIDs) == [a.id, b.id, c.id])
+        try await manager.stop()
+    }
+
+    @Test func partialSidebarWriteKeepsRecoveryAndNeverDispatchesAnotherWindow() async throws {
+        let env = OrdinaryScope(), world = DesktopFixture(), manager = env.manager()
+        let a = WindowDouble(), b = WindowDouble()
+        a.desktopBinding = world.space; b.desktopBinding = world.space
+        b.immediatelyBeforeWrite = { throw IncompletePairWrite(reason: "second window clamped", steps: []) }
+        await #expect(throws: IncompletePairWrite.self) {
+            try await manager.placeSidebarPair(left: a, right: b, desktop: world.space, context: env.context, current: { true })
+        }
+        #expect(manager.blocked && manager.paused && a.writes == 1 && b.writes == 0)
+        let record = try JSONDecoder().decode(OrdinaryJournal.Record.self, from: Data(contentsOf: env.journal))
+        #expect(record.entries.first(where: { $0.id == b.id })?.intended != nil)
+        try manager.keepCurrent()
+    }
+
     @Test func currentDeskGrantAutomaticallyTilesTwoDifferentOwnersAndRestoresThem() async throws {
         let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
         s.context.settings.measures[.reservedWidth] = .init(160)
@@ -166,7 +344,7 @@ import Testing
         b.bundle = "test.second.app"
         let feed = world.feed(), automation = world.automation(manager, feed)
         world.windows = [a]
-        let choice = try #require(await automation.proposed(on: "side"))
+        let choice = try #require(await automation.proposed(on: fixtureDisplayID))
         #expect(a.writes == 0 && manager.activeIDs.isEmpty)
         await automation.start(choice)
         try await world.until { manager.verifiedIDs.contains(a.id) && !manager.busy }
@@ -262,15 +440,54 @@ import Testing
         try await manager.performUserAction { try await manager.stop() }
     }
 
+    @Test func systemHandoffRevokesResolvedAutomaticWorkButRetainsTheDesktopGrant() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), world = DesktopFixture()
+        let a = WindowDouble(number: 101), b = WindowDouble(number: 102), feed = world.feed()
+        var available = true
+        var resume: CheckedContinuation<Void, Never>?
+        let tiling = DesktopAutomaticTiling(manager: manager) { keys, scope, _ in
+            let handles = world.windows.filter { window in keys.contains { $0.matches(window.id) } }
+            for handle in handles { handle.desktopBinding = scope }
+            if handles.contains(where: { $0 === a }) {
+                await withCheckedContinuation { resume = $0 }
+            }
+            return handles
+        }
+        tiling.nativeModeAvailable = { available }
+        tiling.connect(feed)
+        world.windows = [a]
+        await tiling.start(world.space)
+        try await world.until { resume != nil }
+        available = false
+        tiling.dispatchAvailabilityChanged(false)
+        #expect(tiling.scope == world.space && manager.activeIDs.isEmpty)
+        world.windows = [b]
+        feed.changed()
+        available = true
+        tiling.dispatchAvailabilityChanged(true)
+        resume?.resume()
+        try await world.until { manager.verifiedIDs == [b.id] && !manager.busy }
+        #expect(a.writes == 0 && b.writes == 1 && tiling.scope == world.space)
+        try await manager.performUserAction { try await manager.stop() }
+    }
+
+    @Test func losingDispatchDuringConfirmationMakesAnOldPreviewUnusableAfterReturn() async throws {
+        let env = OrdinaryScope(), manager = env.manager(), window = WindowDouble()
+        let review = try await manager.prepare([window], context: env.context)
+        window.nextVerify = { manager.withdrawWindowDispatch() }
+        await #expect(throws: OrdinaryRefusal.self) { try await manager.confirm(review, context: env.context) }
+        #expect(window.writes == 0 && manager.activeIDs.isEmpty)
+    }
+
     @Test func virtualModeCannotInheritTheNativeDesktopGrant() async throws {
         let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
         let a = WindowDouble(); world.windows = [a]
         let feed = world.feed(), auto = world.automation(manager, feed)
-        let proposed = try #require(await auto.proposed(on: "side"))
+        let proposed = try #require(await auto.proposed(on: fixtureDisplayID))
         auto.nativeModeAvailable = { false }
         await auto.start(proposed)
         #expect(auto.scope == nil && a.writes == 0)
-        #expect(await auto.proposed(on: "side") == nil)
+        #expect(await auto.proposed(on: fixtureDisplayID) == nil)
     }
 
     @Test func onlyTheOriginalProfileCanConsumeACleanDesktopHandoffOnce() throws {
@@ -301,7 +518,7 @@ import Testing
         auto.end()
         let nextManager = s.manager(), nextFeed = world.feed(), next = world.automation(nextManager, nextFeed)
         let b = WindowDouble(number: 333)
-        world.current = .init(display: "side", record: saved.record, uuid: UUID())
+        world.current = .init(display: fixtureDisplayID, record: saved.record, uuid: UUID())
         world.windows = [b]
         next.awaitCleanDesktop(saved)
         try await world.until { nextFeed.snapshot != nil }
@@ -319,8 +536,8 @@ import Testing
         let s = OrdinaryScope(), manager = s.manager(), world = DesktopFixture()
         let a = WindowDouble(); world.windows = [a]
         let feed = world.feed(), auto = world.automation(manager, feed)
-        let old = try #require(await auto.proposed(on: "side"))
-        world.current = .init(display: "side", record: old.record, uuid: UUID())
+        let old = try #require(await auto.proposed(on: fixtureDisplayID))
+        world.current = .init(display: fixtureDisplayID, record: old.record, uuid: UUID())
         await auto.start(old)
         #expect(auto.scope == nil && a.writes == 0 && manager.activeIDs.isEmpty)
         await auto.start(world.current)
@@ -461,8 +678,8 @@ import Testing
         anchor.nextCreation = eligible
         await manager.checkNewWindows()
         #expect(manager.activeIDs == [anchor.id, eligible.id] && eligible.writes == 1)
-        #expect(anchor.frame == SurfaceRect(width: 438, height: 800))
-        #expect(eligible.frame == SurfaceRect(x: 438, width: 437, height: 800))
+        #expect(anchor.frame == SurfaceRect(width: 380, height: 800))
+        #expect(eligible.frame == SurfaceRect(x: 380, width: 380, height: 800))
         await manager.checkNewWindows()
         #expect(eligible.writes == 1)
         try manager.pause()
@@ -489,11 +706,11 @@ import Testing
     @Test func primaryWindowNeedsTheSelectedDisplayAndNeverInheritsASecondaryAcceptanceScope() {
         let frame = SurfaceRect(width: 1470, height: 956)
         let primary = ScreenGeometry(id: "main", frame: frame, visibleFrame: frame)
-        let side = ScreenGeometry(id: "side", frame: frame, visibleFrame: frame)
+        let side = ScreenGeometry(id: fixtureDisplayID, frame: frame, visibleFrame: frame)
         #expect(CandidateWorkRect.selectedDisplay("main", on: [primary], restrictedTo: nil) == primary)
-        #expect(CandidateWorkRect.selectedDisplay("main", on: [primary], restrictedTo: "side") == nil)
-        #expect(CandidateWorkRect.selectedDisplay("side", on: [primary], restrictedTo: "side") == nil)
-        #expect(CandidateWorkRect.selectedDisplay("side", on: [primary, side], restrictedTo: "side") == side)
+        #expect(CandidateWorkRect.selectedDisplay("main", on: [primary], restrictedTo: fixtureDisplayID) == nil)
+        #expect(CandidateWorkRect.selectedDisplay(fixtureDisplayID, on: [primary], restrictedTo: fixtureDisplayID) == nil)
+        #expect(CandidateWorkRect.selectedDisplay(fixtureDisplayID, on: [primary, side], restrictedTo: fixtureDisplayID) == side)
         #expect(CandidateWorkRect.selectedDisplay("main", on: [primary, primary], restrictedTo: nil) == nil)
     }
 
@@ -629,6 +846,19 @@ import Testing
 
     @Test func aCompletedDragWakesTheManagerAndUsesOnlyTheTargetsFreeSlot() async throws {
         let scope = OrdinaryScope(), manager = scope.manager(), a = WindowDouble(), b = WindowDouble()
+        let idle = AsyncStream<Void>.makeStream(), boundary = AsyncStream<Void>.makeStream()
+        defer { idle.continuation.finish(); boundary.continuation.finish() }
+        var boundaryWaits = 0
+        manager.monitorDelay = { interval in
+            let ticks: AsyncStream<Void>
+            switch interval {
+            case .seconds(1): ticks = idle.stream
+            case .milliseconds(260): boundaryWaits += 1; ticks = boundary.stream
+            default: Issue.record("Unexpected monitor interval"); throw CancellationError()
+            }
+            var reader = ticks.makeAsyncIterator()
+            guard await reader.next() != nil else { throw CancellationError() }
+        }
         try await manager.confirm(manager.prepare([a,b], context: scope.context), context: scope.context)
         let safe = a.frame, sibling = b.frame
         var beyond = safe
@@ -637,14 +867,19 @@ import Testing
         a.externalChange(to: beyond)
         let signal = try #require(a.boundaryAlert)
         signal()
+        let scheduled = try #require(manager.boundaryWake)
         signal()
-        // The private completion signal wakes the normal transaction before the idle scan.
-        let deadline = ContinuousClock.now + .milliseconds(850)
-        while a.writes == 1 && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(!manager.blocked && a.writes == 2 && a.frame == safe)
-        #expect(b.writes == 1 && b.frame == sibling)
+        let duplicate = try #require(manager.boundaryWake)
+        #expect(duplicate == scheduled)
+        // The periodic scan stays suspended. The native completion hint alone must
+        // wake one full observe/acknowledge/write transaction for the registered window.
+        boundary.continuation.yield(())
+        boundary.continuation.finish()
+        await scheduled.value
+        await duplicate.value
+        #expect(boundaryWaits == 1 && a.boundaryAcknowledgements == 1)
+        #expect(!manager.busy && !manager.blocked && a.writes == 2 && a.frame == safe)
+        #expect(b.writes == 1 && b.frame == sibling && b.boundaryAcknowledgements == 0)
         try await manager.stop()
         #expect(a.boundaryAlert == nil && b.boundaryAlert == nil)
     }
@@ -662,14 +897,14 @@ import Testing
         let now = ProcessInfo.processInfo.systemUptime
         candidate.ordinaryPresentation("unknown", display: "isolated", deadline: nil)
         #expect(candidate.permitsOrdinaryPresentation(on: "isolated", uptime: now))
-        candidate.ordinaryPresentation("ordinary", display: "side", deadline: now + 3)
-        #expect(candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
-        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now + 3))
-        candidate.ordinaryPresentation("unknown", display: "side", deadline: nil)
-        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
+        candidate.ordinaryPresentation("ordinary", display: fixtureDisplayID, deadline: now + 3)
+        #expect(candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: now))
+        #expect(!candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: now + 3))
+        candidate.ordinaryPresentation("unknown", display: fixtureDisplayID, deadline: nil)
+        #expect(!candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: now))
         for deadline in [nil, .nan, .infinity, now - 1, now + 100] as [Double?] {
-            candidate.ordinaryPresentation("ordinary", display: "side", deadline: deadline)
-            #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: now))
+            candidate.ordinaryPresentation("ordinary", display: fixtureDisplayID, deadline: deadline)
+            #expect(!candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: now))
         }
         candidate.ordinaryPresentation("ordinary", display: "other", deadline: nil)
         #expect(!candidate.permitsOrdinaryPresentation(on: "other", uptime: now))
@@ -680,7 +915,7 @@ import Testing
         let manager = candidate.ordinary
         scope.context.settings.placement = .docked
         func send(_ state: String) {
-            candidate.ordinaryPresentation(state, display: "side", deadline: ProcessInfo.processInfo.systemUptime + 8)
+            candidate.ordinaryPresentation(state, display: fixtureDisplayID, deadline: ProcessInfo.processInfo.systemUptime + 8)
         }
         manager.liveContext = { [weak candidate] display in
             candidate?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) == true ? scope.context : nil
@@ -695,13 +930,13 @@ import Testing
         #expect(!manager.blocked && window.writes == before)
         send("unknown")
         send("ordinary")
-        #expect(!candidate.permitsOrdinaryPresentation(on: "side", uptime: ProcessInfo.processInfo.systemUptime))
+        #expect(!candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: ProcessInfo.processInfo.systemUptime))
         await #expect(throws: OrdinaryRefusal.scope) { try await manager.update(context: scope.context) }
         await manager.poll()
         #expect(!manager.blocked && window.writes == before)
         #expect(FileManager.default.fileExists(atPath: scope.journal.path))
         send("returned")
-        #expect(candidate.permitsOrdinaryPresentation(on: "side", uptime: ProcessInfo.processInfo.systemUptime))
+        #expect(candidate.permitsOrdinaryPresentation(on: fixtureDisplayID, uptime: ProcessInfo.processInfo.systemUptime))
         try await manager.stop()
         #expect(window.frame == window.original && window.writes == before + 1)
     }

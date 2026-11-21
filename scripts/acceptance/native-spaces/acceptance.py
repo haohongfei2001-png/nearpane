@@ -10,6 +10,7 @@ import platform
 import plistlib
 import re
 import subprocess
+import sys
 import time
 import uuid
 
@@ -185,7 +186,7 @@ def wait_state(path, predicate, deadline):
     return {}
 
 
-def controlled_window(observer, initial, frozen, rec, count, inspect_only=False):
+def controlled_window(observer, initial, frozen, rec, count, inspect_only=False, *, lease_hid=None, lease_workspace=None, lease_admission=None):
     if not frozen["signatureValid"] or not frozen["loadedMatchesInstalled"] or not frozen["source"]:
         return "A signed running candidate with a frozen source revision is required."
     if not initial["observerAX"] or len(initial["displays"]) != 1 or len(initial.get("scopes") or []) != 1:
@@ -193,6 +194,9 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
     scope = initial["scopes"][0]
     if not any(r["id"] == scope["current"] and r["type"] == 0 for r in scope["records"]):
         return "Original desktop is not an ordinary Space."
+    if count == 2 and not inspect_only:
+        from p2_documents import RegisteredRun
+        return RegisteredRun(observer, initial, rec, lease_hid, lease_workspace, lease_admission).run()
     app = observer.parent / "Field Notes.app"
     fx = app / "Contents/MacOS/FieldNotes"
     sign = identity(fx)["CDHash"]
@@ -210,7 +214,6 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
     independent = lambda: json.loads(checked([str(observer)]))
     trials = []
     numbers = []
-    reason = "Two-window fixture subtest finished; actual document application coverage requires its own run."
     try:
         state = wait_state(path, lambda d: d.get("session") == session and d.get("pid") == proc.pid and
                            d.get("birth", 0) > 0 and len(set(d.get("numbers", []))) == count, time.monotonic() + 8)
@@ -221,7 +224,7 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
         numbers = state["numbers"]
         rec.log("fixture-bound", numbers=numbers, pid=proc.pid, generation=state["birth"])
         time.sleep(.6)
-        for turn in range(10 if count == 2 else 1):
+        for turn in range(1):
             idx = turn % count
             n = numbers[idx]
             args = [str(host["pid"]), host["codeHash"], str(proc.pid), str(n), str(app), sign,
@@ -255,7 +258,9 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
                         productLog=selection_logs(host["pid"], issued_wall))
                 return "Product selection did not reach the exact owned key/main window; no marker was sent."
             marker = "NP" + uuid.uuid4().hex[:10]
-            sent = json.loads(checked([str(observer), "marker", *args], env={**os.environ, "NP_TRIAL_MARKER": marker}))
+            env = {**os.environ, "NP_TRIAL_MARKER": marker}
+            env.pop("NP_TRIAL_MARKER_TAG", None)
+            sent = json.loads(checked([str(observer), "marker", *args], env=env))
             rec.log("pid-targeted-marker", intent=intent, result=sent)
             if not sent.get("issued"):
                 attempt["status"] = "FAIL"
@@ -270,7 +275,7 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
             if not after:
                 return "Synthetic input receipt or unchanged sibling failed; stopped after the first discrepancy."
             trials.append(n)
-        return reason if count == 2 else "Single-window synthetic document received the marker through the installed sidebar; sibling/cross-Space cases are separate."
+        return "Single-window synthetic document received the marker through the installed sidebar; sibling/cross-Space cases are separate."
     finally:
         (folder / "close").touch()
         try:
@@ -288,6 +293,26 @@ def controlled_window(observer, initial, frozen, rec, count, inspect_only=False)
         rec.log("cleanup", **rec.summary["cleanup"])
 
 
+def recover_sidebar(before, current, same_host, show, sample, wait=3):
+    if not same_host:
+        return {"restored": False, "reason": "installed Host changed"}
+    if current.get("surfaceHidden") == before["surfaceHidden"] and current["visibleDisplays"] == before["visibleDisplays"]:
+        return {"restored": True, "reason": "already in original presentation"}
+    # A system menu can change the frontmost PID. Only another sidebar decision
+    # supersedes the hide we issued. Never toggle an unverified or later state.
+    if current.get("visibilityRevision") != before["visibilityRevision"] + 1 or current.get("surfaceHidden") != 1:
+        return {"restored": False, "reason": "newer or unconfirmed visibility decision"}
+    outcome = show()
+    deadline = time.monotonic() + wait
+    while True:
+        current = sample()
+        if current.get("surfaceHidden") == 0 and current["visibleDisplays"] == before["visibleDisplays"]:
+            return {"restored": True, "reason": "production sidebar visible again", "menuResult": outcome}
+        if time.monotonic() >= deadline:
+            return {"restored": False, "reason": "show not confirmed", "menuResult": outcome}
+        time.sleep(.1)
+
+
 def hidden_budget(observer, initial, frozen, rec):
     host = initial.get("host", {})
     if not frozen["signatureValid"] or not frozen["loadedMatchesInstalled"] or not host:
@@ -296,19 +321,29 @@ def hidden_budget(observer, initial, frozen, rec):
     counters = lambda: json.loads(checked([str(observer.parent / "metrics"), str(pid)]))
     before = counters()
     rec.log("metrics-visible", sample=before)
-    if before["visibleDisplays"] > 1 or before["gallerySessions"]:
+    # A visible R4 sidebar runs one window-gallery capture loop on this display.
+    # In an owned fresh profile that loop is the subject of the hide measurement.
+    from installed_profile import PROFILE, owns_profile, validate_home
+    home = os.environ.get("NEARPANE_TEST_HOME")
+    owns_gallery = False
+    if home and before["visibleDisplays"] == 1 and before["gallerySessions"] == 1:
+        validate_home(Path(home))
+        owns_gallery = owns_profile(pid, Path(home) / PROFILE)
+    if before["visibleDisplays"] > 1 or (before["gallerySessions"] and not owns_gallery):
         return "Multiple preview surfaces open; user-owned presentation preserved."
     was_visible = before["visibleDisplays"] == 1
-    changed = False
+    if was_visible and ("visibilityRevision" not in before or before.get("surfaceHidden") != 0):
+        return "Cannot identify and restore this Host's visibility decision."
+    requested_hide = False
     def toggle(direction):
         result = json.loads(checked([str(observer), "surface", str(pid), host["codeHash"], direction]))
         rec.log("status-menu-toggle", direction=direction, result=result)
         return result
     try:
         if was_visible:
+            requested_hide = True
             sent = toggle("hide")
-            changed = sent["issued"]
-            if not changed or sent.get("axError") != 0:
+            if not sent["issued"] or sent.get("axError") != 0:
                 return "Hide not confirmed via product menu."
         start = time.monotonic()
         points = []
@@ -324,17 +359,24 @@ def hidden_budget(observer, initial, frozen, rec):
                                        "priorScreenPermission": (frozen.get("installedHostCurrentPermissions") or {}).get("screen")}
         return "Hidden interval completed; remaining N01 visual, native timing and memory batches require separate samples."
     finally:
-        if changed:
+        if requested_hide:
             live = json.loads(checked([str(observer)]))
-            if (live.get("host") == host and not counters()["visibleDisplays"] and
-                    live.get("frontmostPID") == initial.get("frontmostPID")):
-                toggle("show")
-                time.sleep(.6)
-            rec.summary["sidebarVisibilityRestored"] = counters()["visibleDisplays"] == before["visibleDisplays"]
+            same = live.get("host") == host
+            result = recover_sidebar(before, counters() if same else {}, same, lambda: toggle("show"), counters)
+            rec.log("restore-sidebar", **result)
+            rec.summary["sidebarVisibilityRestored"] = result["restored"]
 
 
 def main():
+    contracts = {"S01", "S02", "S03", "W01", "W02", "D01", "R01"}
+    args = sys.argv[1:]
+    entry = Path(__file__).with_name("run.sh")
+    if args and args[0] in {"core-contract", "cleanup-contract", "same-space-documents"}:
+        raise SystemExit(subprocess.call([entry, *args]))
+    if len(args) == 2 and args[0].upper() in contracts:
+        raise SystemExit(subprocess.call([entry, "core-contract", args[1], "--scenarios", args[0].upper()]))
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.epilog = "Use core-contract OUTPUT [--scenarios S01,S02,S03,W01,W02,D01,R01] [--performance]; cleanup-contract OUTPUT recovers a saved run."
     ap.add_argument("--observer", required=True, type=Path)
     ap.add_argument("mode", choices=("preflight", "controlled-window", "single-window", "fixture-inventory", "hidden-budget", "title-image"))
     ap.add_argument("output", type=Path, help="fresh evidence directory")
@@ -370,8 +412,9 @@ def main():
             reason = controlled_window(args.observer, second, frozen, rec, 2 if args.mode == "controlled-window" else 1,
                                        inspect_only=args.mode == "fixture-inventory")
             rec.summary["controlledWindowConclusion"] = reason
-            rec.scenarios["W01"] = {"status": "FAIL" if any(x["status"] == "FAIL" for x in rec.attempts) else "NOT_RUN",
-                                    "reason": reason}
+            if "registeredDocuments" not in rec.summary:
+                rec.scenarios["W01"] = {"status": "FAIL" if any(x["status"] == "FAIL" for x in rec.attempts) else "NOT_RUN",
+                                        "reason": reason}
     except (OSError, ValueError, subprocess.SubprocessError) as ex:
         rec.summary["error"] = type(ex).__name__
         raise

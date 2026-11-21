@@ -1,0 +1,583 @@
+{
+  "scope": "Ordinary Swift tray, executor, WebAttachmentAdapter and queue with a pipe to the headless browser. Intercepted fixture pages.",
+  "transport": "fresh headless profile; reject proxy; private CDP pipe; synthetic native window/tab route; intercepted fixture documents",
+  "assetSHA256": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+  "cases": [
+    {
+      "scenario": "owned-normal",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 1
+      },
+      "events": {
+        "setter": 1,
+        "input": 1,
+        "change": 1,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 1,
+        "hash": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+        "fileName": "riftlet-88C1D3DE-3674-444E-91D8-5554B53EE77E.png",
+        "previewSize": [
+          2,
+          2
+        ],
+        "textPreserved": true
+      },
+      "domain": {
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "cmd": "done",
+        "operation": "88c1d3de-3674-444e-91d8-5554b53ee77e",
+        "receipt": "uploadStarted",
+        "status": "transferring",
+        "start": "uploadStarted",
+        "driverPID": 53182,
+        "feedback": "截图 1 · 已开始上传，尚无完成回执。",
+        "phase": "inputTriggered",
+        "attempt": 1
+      },
+      "freshProcess": {
+        "status": "transferring",
+        "cmd": "done",
+        "operation": "88c1d3de-3674-444e-91d8-5554b53ee77e",
+        "feedback": "截图 1 · 已开始上传，尚无完成回执。",
+        "driverPID": 53238,
+        "attempt": 1,
+        "start": "uploadStarted",
+        "receipt": "uploadStarted",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "phase": "inputTriggered"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 0,
+      "pageObservations": [
+        {
+          "action": "commit",
+          "state": "inputTriggered",
+          "exactImage": false,
+          "operation": "88C1D3DE-3674-444E-91D8-5554B53EE77E",
+          "attempt": 1
+        },
+        {
+          "action": "observe",
+          "state": "uploadStarted",
+          "startSignal": "attachmentAccepted",
+          "inputCount": 1,
+          "exactImage": true,
+          "operation": "88C1D3DE-3674-444E-91D8-5554B53EE77E",
+          "attempt": 1
+        }
+      ],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 1
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "owned",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 59
+      },
+      "events": {
+        "setter": 1,
+        "input": 1,
+        "change": 1,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": "f1120c48cadee89ff51643f41826d883c877db6449421bf2290c4e39affe6016",
+        "fileName": "riftlet-BAE137A6-A3D6-42F1-ABB9-2C007E197FA3.png",
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "phase": "unknown",
+        "status": "unknown",
+        "operation": "bae137a6-a3d6-42f1-abb9-2c007e197fa3",
+        "cmd": "done",
+        "attempt": 1,
+        "driverPID": 53239,
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。"
+      },
+      "freshProcess": {
+        "phase": "unknown",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "attempt": 1,
+        "status": "unknown",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "driverPID": 53377,
+        "cmd": "done",
+        "operation": "bae137a6-a3d6-42f1-abb9-2c007e197fa3"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 0,
+      "pageObservations": [
+        {
+          "action": "commit",
+          "state": "inputTriggered",
+          "exactImage": false,
+          "operation": "BAE137A6-A3D6-42F1-ABB9-2C007E197FA3",
+          "attempt": 1
+        }
+      ],
+      "repeat": {
+        "operation": "bae137a6-a3d6-42f1-abb9-2c007e197fa3",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "status": "unknown",
+        "phase": "unknown",
+        "driverPID": 53374,
+        "cmd": "done",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "attempt": 1
+      },
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 59
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "detached",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 1,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "phase": "failed",
+        "attempt": 1,
+        "operation": "cbd1bc0f-3c74-47d3-af2b-b59aef782624",
+        "feedback": "截图 1 · 附加失败，请核对原草稿。",
+        "status": "failed",
+        "cmd": "done",
+        "driverPID": 53382
+      },
+      "freshProcess": {
+        "attempt": 1,
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "status": "failed",
+        "driverPID": 53384,
+        "feedback": "截图 1 · 附加失败，请核对原草稿。",
+        "phase": "failed",
+        "cmd": "done",
+        "operation": "cbd1bc0f-3c74-47d3-af2b-b59aef782624"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 0,
+      "pageObservations": [
+        {
+          "action": "commit",
+          "state": "invalidated",
+          "exactImage": false,
+          "operation": "CBD1BC0F-3C74-47D3-AF2B-B59AEF782624",
+          "attempt": 1
+        }
+      ],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "composer-replaced",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 60
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "phase": "unknown",
+        "driverPID": 53385,
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "attempt": 1,
+        "operation": "223a0095-b503-4f08-a349-1f3e1f274cc8",
+        "status": "unknown",
+        "cmd": "done",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57"
+      },
+      "freshProcess": {
+        "status": "unknown",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "cmd": "done",
+        "driverPID": 53519,
+        "attempt": 1,
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "phase": "unknown",
+        "operation": "223a0095-b503-4f08-a349-1f3e1f274cc8"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 61,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 60
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "reload",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 59
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "attempt": 1,
+        "status": "unknown",
+        "operation": "140f93df-2276-4059-8891-1eff2340bac0",
+        "phase": "unknown",
+        "cmd": "done",
+        "driverPID": 53521,
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57"
+      },
+      "freshProcess": {
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "attempt": 1,
+        "operation": "140f93df-2276-4059-8891-1eff2340bac0",
+        "phase": "unknown",
+        "status": "unknown",
+        "driverPID": 53542,
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "cmd": "done"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 60,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 59
+      },
+      "changedTab": false,
+      "oldDocument": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      }
+    },
+    {
+      "scenario": "tab-switch",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "cmd": "done",
+        "status": "pending",
+        "issue": "未能确认附加；请检查原草稿。截图和原操作均已保留。",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "driverPID": 53548
+      },
+      "freshProcess": {
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "status": "pending",
+        "driverPID": 53552,
+        "cmd": "done"
+      },
+      "nativeRefusals": 1,
+      "pageRefusals": 0,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1
+      },
+      "changedTab": true,
+      "otherDraft": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      }
+    },
+    {
+      "scenario": "route-changed",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 60
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "status": "unknown",
+        "phase": "unknown",
+        "operation": "1e0984d6-16ee-45f3-a7ce-6087351b2abd",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "driverPID": 53553,
+        "attempt": 1,
+        "cmd": "done"
+      },
+      "freshProcess": {
+        "phase": "unknown",
+        "cmd": "done",
+        "attempt": 1,
+        "operation": "1e0984d6-16ee-45f3-a7ce-6087351b2abd",
+        "feedback": "截图 1 · 结果未知，请核对原草稿。",
+        "status": "unknown",
+        "driverPID": 53565,
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 61,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1,
+        "captureTarget": 1,
+        "validate": 1,
+        "begin": 1,
+        "chunk": 1,
+        "commit": 1,
+        "observe": 60
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "focused-other-editor",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "driverPID": 53567,
+        "status": "pending",
+        "cmd": "done",
+        "issue": "未能确认目标草稿，截图仍在托盘中。"
+      },
+      "freshProcess": {
+        "cmd": "done",
+        "status": "pending",
+        "driverPID": 53568,
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57"
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 1,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1
+      },
+      "changedTab": false
+    },
+    {
+      "scenario": "modal-over-composer",
+      "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+      "commands": {
+        "arm": 1
+      },
+      "events": {
+        "setter": 0,
+        "input": 0,
+        "change": 0,
+        "foreignSetter": 0,
+        "foreignChange": 0,
+        "sendClick": 0,
+        "submit": 0,
+        "foreignPickerRequests": 0,
+        "previews": 0,
+        "hash": null,
+        "fileName": null,
+        "previewSize": null,
+        "textPreserved": true
+      },
+      "domain": {
+        "cmd": "done",
+        "issue": "未能确认目标草稿，截图仍在托盘中。",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "status": "pending",
+        "driverPID": 53570
+      },
+      "freshProcess": {
+        "status": "pending",
+        "cmd": "done",
+        "assetID": "ea4037e5-6fbd-41b2-a9e8-2869119c4d57",
+        "driverPID": 53582
+      },
+      "nativeRefusals": 0,
+      "pageRefusals": 1,
+      "pageObservations": [],
+      "firstClickCommands": {
+        "arm": 1
+      },
+      "changedTab": false
+    }
+  ],
+  "browser": "Google Chrome",
+  "engine": "Chrome/157.0.8103.79",
+  "fixtureDocumentResponses": 11,
+  "otherRequestsDenied": 0
+}

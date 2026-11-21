@@ -7,6 +7,7 @@ from pathlib import Path
 import plistlib
 import re
 import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("alpha_gate", ROOT / "check-alpha-distribution.py")
@@ -37,7 +38,9 @@ def seal_components(temp, seal):
     additional = [automation] if automation.exists() else []
     space_action = helpers / "NearpaneSpaceAction"
     action_helpers = [space_action] if space_action.exists() else []
-    for binary in (*readers, writer, *additional, *action_helpers):
+    guardian = helpers / "NearpaneCornerGuardian"
+    guardians = [guardian] if guardian.exists() else []
+    for binary in (*readers, writer, *additional, *action_helpers, *guardians):
         if binary.is_symlink() or not binary.is_file():
             raise ValueError("Expected regular helper binary")
         # Standalone helpers retain the identifiers used by their earlier builds.
@@ -51,6 +54,8 @@ def seal_components(temp, seal):
     pin(temp, "NearpaneOrdinaryWindowControllerSHA256", writer)
     if action_helpers:
         pin(temp, "NearpaneSpaceActionSHA256", space_action)
+    if guardians:
+        pin(temp, "NearpaneCornerGuardianSHA256", guardian)
     if additional:
         plist = temp / "Contents/Info.plist"
         info = plistlib.loads(plist.read_bytes())
@@ -67,46 +72,7 @@ def seal_components(temp, seal):
                                    (fixture, "NearpaneDesktopReaderSHA256", readers[1])):
         if plistlib.loads((bundle / "Contents/Info.plist").read_bytes())[key] != sha(executable):
             raise ValueError("Nested signing invalidated helper binding")
-    return 3 + len(additional) + len(action_helpers)
-
-
-# These executables can participate in a macOS permission decision.
-def designated_requirement(path):
-    output = gate.cmd("/usr/bin/codesign", "-d", "-r-", str(path))
-    return gate.requirement(output)
-
-
-# Stable shipping identifiers include the historical standalone helper identifiers.
-PRODUCT_SIGNING_TEAM = "ZB9D4T66QB"
-PRODUCT_IDENTIFIERS = {
-    ".": "com.holdsnow.nearpane.alpha",
-    "Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
-    "Contents/Helpers/NearpaneOrdinaryWindowController": "NearpaneOrdinaryWindowController",
-    "Contents/Helpers/NearpaneSpaceAction": "NearpaneSpaceAction",
-    "Contents/Helpers/NearpaneAutomation": "com.holdsnow.nearpane.automation",
-    "Contents/Helpers/NearpaneFrameController.app": "org.nearpane.lab.NearpaneFrameController",
-    "Contents/Helpers/NearpaneFixtureWindows.app": "org.nearpane.lab.NearpaneFixtureWindows",
-    "Contents/Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
-}
-
-
-def normalized_requirement(text):
-    return " ".join(text.replace("/* exists */", "").replace('"', "").split())
-
-
-def verify_install_identity(candidate):
-    for relative, identifier in PRODUCT_IDENTIFIERS.items():
-        subject = candidate / relative
-        rule = (f'identifier "{identifier}" and anchor apple generic and '
-                'certificate 1[field.1.2.840.113635.100.6.2.6] and '
-                'certificate leaf[field.1.2.840.113635.100.6.1.13] and '
-                f'certificate leaf[subject.OU] = "{PRODUCT_SIGNING_TEAM}"')
-        gate.cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + rule, str(subject))
-        # The operating system records the designated requirement itself. A custom
-        # requirement pinned to this binary or certificate would break the next update.
-        actual = designated_requirement(subject)
-        if normalized_requirement(actual) != normalized_requirement(rule):
-            raise ValueError("Unstable permission identity: " + relative)
+    return 3 + len(additional) + len(action_helpers) + len(guardians)
 
 
 def check_continuity(previous, candidate):
@@ -114,12 +80,12 @@ def check_continuity(previous, candidate):
     fields = gate.cmd("/usr/bin/codesign", "-dvv", str(previous)).splitlines()
     if "Signature=adhoc" in fields:
         return
-    for subject in PRODUCT_IDENTIFIERS:
+    for subject in gate.product_identifiers(candidate):
         old, new = previous / subject, candidate / subject
         if not old.exists():
             continue
         for source, target in ((old, new), (new, old)):
-            requirement = designated_requirement(source)
+            requirement = gate.designated_requirement(source)
             gate.cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + requirement, str(target))
 
 
@@ -135,13 +101,13 @@ def require_developer_team(fingerprint, listing):
 
 def product_fingerprint(listing):
     possible = re.findall(r'^\s*\d+\)\s+([A-F0-9]{40})\s+"Developer ID Application: [^"\n]+ '
-                          rf'\({PRODUCT_SIGNING_TEAM}\)"\s*$', listing, re.MULTILINE)
+                          rf'\({gate.PRODUCT_SIGNING_TEAM}\)"\s*$', listing, re.MULTILINE)
     if len(possible) != 1:
         raise ValueError("Select the authorized Nearpane Developer ID certificate by its full fingerprint")
     return possible[0]
 
 
-def sign_staged(candidate, fingerprint):
+def sign_staged(candidate, fingerprint, *, distribution=False):
     if (candidate.is_symlink() or candidate.parent.is_symlink()
             or not candidate.parent.name.startswith(".nearpane-stage.")
             or candidate.parent.stat().st_uid != os.getuid() or candidate.parent.stat().st_mode & 0o077):
@@ -152,18 +118,32 @@ def sign_staged(candidate, fingerprint):
     if fingerprint == "installed-product":
         fingerprint = product_fingerprint(listing)
     team = require_developer_team(fingerprint, listing)
+    if team != gate.PRODUCT_SIGNING_TEAM:
+        raise ValueError("Selected certificate belongs to a different Developer ID team")
 
     def seal(component, identifier):
-        # Keep the current local package's hardened-runtime and entitlement semantics.
+        # Internal builds retain their original flags. Distribution requires a secure Apple timestamp and runtime on every nested executable.
         metadata = gate.cmd("/usr/bin/codesign", "-dvvv", str(component))
-        runtime = ["--options", "runtime"] if re.search(r"flags=0x[\da-f]+\([^)]*\bruntime\b", metadata) else []
-        gate.cmd("/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp=none",
-                 "--preserve-metadata=entitlements", *runtime, "--identifier", identifier, str(component))
+        runtime = ["--options", "runtime"] if distribution or re.search(r"flags=0x[\da-f]+\([^)]*\bruntime\b", metadata) else []
+        command = ["/usr/bin/codesign", "--force", "--sign", fingerprint, "--timestamp" if distribution else "--timestamp=none"]
+        if component == app:
+            required = plistlib.loads((ROOT.parent / "Resources/NearpaneHost.entitlements").read_bytes())
+            merged = {**gate.entitlements(component), **required}
+            with tempfile.NamedTemporaryFile(suffix=".entitlements") as profile:
+                profile.write(plistlib.dumps(merged))
+                profile.flush()
+                gate.cmd(*command, "--entitlements", profile.name, *runtime, "--identifier", identifier, str(component))
+        else:
+            gate.cmd(*command, "--preserve-metadata=entitlements", *runtime, "--identifier", identifier, str(component))
 
     seal_components(app, seal)
     after = gate.inspect(app)
+    if not all(after["hostResourceEntitlements"].values()):
+        raise ValueError("Signed Host lacks Chrome automation or microphone resource access")
     if set(original["binaries"]) != set(after["binaries"]):
         raise ValueError("Nested binary inventory changed during local signing")
+    if distribution and after["missingDistributionSignatures"]:
+        raise ValueError("Distribution signature fields missing: " + ", ".join(after["missingDistributionSignatures"]))
     for relative, meta in after["binaries"].items():
         requirement = meta["designatedRequirement"]
         if (meta["signingTeam"] != team or "anchor apple generic" not in requirement
@@ -175,9 +155,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("staged_app", type=Path)
     parser.add_argument("--identity", required=True, help="Authorized local Developer ID Application fingerprint")
+    parser.add_argument("--distribution", action="store_true", help="Apply hardened runtime and secure timestamps to the staged package")
     args = parser.parse_args()
     try:
-        sign_staged(args.staged_app, args.identity)
+        sign_staged(args.staged_app, args.identity, distribution=args.distribution)
     except subprocess.CalledProcessError as error:
         parser.exit(1, f"{error}\n{error.stdout or ''}\n")
     except (KeyError, OSError, ValueError) as error:

@@ -13,6 +13,10 @@ enum LibraryError: LocalizedError {
     }
 }
 
+public enum RiftletLibraryFormat {
+    public static let supported = [4, 5, 6]
+}
+
 /// Opening QueueStore directly can CREATE or migrate. Require the existing app lock and exact
 /// production format first. The pinned upstream lock is also held by the standalone app.
 struct ExistingLibrary {
@@ -38,7 +42,8 @@ struct ExistingLibrary {
                   sqlite3_step(statement) == SQLITE_ROW, let value = sqlite3_column_text(statement, 0) else { return nil }
             return String(cString: value)
         }
-        guard rc == SQLITE_OK, scalar("PRAGMA user_version") == "4",
+        guard rc == SQLITE_OK, let raw = scalar("PRAGMA user_version"), let version = Int(raw),
+              RiftletLibraryFormat.supported.contains(version),
               scalar("SELECT value FROM metadata WHERE key='mode'") == StoreMode.production.rawValue else {
             throw LibraryError.incompatible
         }

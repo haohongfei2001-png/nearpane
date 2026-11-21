@@ -128,6 +128,9 @@ public struct WindowObservation: Codable, Equatable, Identifiable, Sendable {
     public let membership: WindowMembership
     public let confidence: IdentityConfidence
     public var metadata: ObservedWindowMetadata?
+    /// Added by the Host after an independent live check. Never accepted from a reader or exported in its wire format.
+    public var sidebarOriginalWindow: UUID? = nil
+    private enum CodingKeys: String, CodingKey { case id, displayID, bounds, membership, confidence, metadata }
     public init(id: String, displayID: String, bounds: SurfaceRect, membership: WindowMembership,
                 confidence: IdentityConfidence, metadata: ObservedWindowMetadata? = nil) {
         self.id = id; self.displayID = displayID; self.bounds = bounds; self.membership = membership

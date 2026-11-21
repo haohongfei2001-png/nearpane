@@ -1,0 +1,48 @@
+{
+  "source": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+  "version": "5.22 (90)",
+  "swift": {
+    "tests": 539,
+    "suites": 82,
+    "status": "PASS",
+    "runner": "scripts/test.sh --no-parallel",
+    "completion": "✔ Test run with 539 tests in 82 suites passed after 13.046 seconds."
+  },
+  "productionReadyProbe": [
+    {
+      "canMove": false,
+      "canSwitch": false,
+      "ready": true
+    }
+  ],
+  "permissions": {
+    "accessibility": true,
+    "screen": true,
+    "postEvent": true
+  },
+  "registeredPaths": {
+    "com.holdsnow.nearpane.alpha": [
+      "/Applications/Nearpane.app"
+    ]
+  },
+  "runningHostCount": 1,
+  "installBeforeAfterSameExactFocus": true,
+  "installBeforeAfterSameTopology": true,
+  "ordinarySystemControls": "available",
+  "previousExperimentActionReplayed": false,
+  "offlineAcceptanceAfterHarnessFixes": {
+    "status": "PASS",
+    "discoveryTests": 87,
+    "p0GateTests": 27,
+    "skipped": 0,
+    "includesArchivedPhysicalEvents": true,
+    "scope": "Tests of the acceptance tools; physical product outcome recorded separately."
+  },
+  "hostedSameNativeTree": {
+    "id": 44742149243,
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44742149243",
+    "status": "PASS",
+    "head": "56edb04b0da45d82537378451ea29fe25f632409",
+    "cleanMacInstall": false
+  }
+}

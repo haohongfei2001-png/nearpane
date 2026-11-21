@@ -6,6 +6,54 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct WorkspacePanelTests {
+    @Test func compactLiveVoiceAndTrayKeepTheirControlsWhenTheSwitcherYields() throws {
+        let rect = SurfaceRect(width: 1470, height: 923)
+        let screen = ScreenGeometry(id: "primary", frame: rect, visibleFrame: rect)
+        let layout = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
+            content: .toolsOnly, voice: true, tray: true, floating: false, voiceCompact: true))
+        #expect(layout.form == .full)
+        #expect(layout.frame.height < rect.height / 3)
+        let twoRows = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
+            content: .toolsOnly, voice: true, tray: true, floating: false, voiceCompact: true, trayRows: 2))
+        #expect(twoRows.form == .full && twoRows.frame.height > layout.frame.height)
+    }
+
+    @Test func stageManagerOwnsTheSwitcherAndReleasesItWithoutChangingSettings() async throws {
+        let host = HostSession(store: MemoryConfigurationStore())
+        await host.start()
+        let panel = EdgeWindowController(host: host)
+        let panels = DisplayPanels(host: host, primary: panel, present: { _ in })
+        defer { panels.stop(); panel.close(); host.stop() }
+        let rect = SurfaceRect(width: 1440, height: 900)
+        let screen = ScreenGeometry(id: "primary", frame: rect, visibleFrame: rect)
+        var preferences = DisplaySettings()
+        preferences.measures[.panelHeight] = .init(850)
+        host.setDisplaySettings(preferences, id: screen.id)
+        panels.update(screens: [screen])
+        let originalContent = host.panelContents[screen.id]
+        let originalHeight = try #require(panel.requestedFrame?.height)
+        panels.setSystemManagesWindows(true)
+        panels.request(screen.id)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .toolsOnly)
+        #expect(try #require(panel.requestedFrame?.height) < originalHeight)
+        #expect(panel.window?.collectionBehavior.contains(.transient) == true)
+        #expect(panel.window?.collectionBehavior.contains(.stationary) == false)
+        panels.setMissionControl(.exposed)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .hidden)
+        panels.setMissionControl(.ordinary)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == .toolsOnly)
+        panels.setSystemManagesWindows(false)
+        #expect(!panels.windowDispatchEligible)
+        panels.setMissionControl(.ordinary)
+        panels.update(screens: [screen])
+        #expect(host.panelContents[screen.id] == originalContent)
+        #expect(panel.requestedFrame?.height == originalHeight)
+        #expect(host.configuration.displays[screen.id] == preferences)
+    }
+
     @Test func residentCanRequestTheOnlyDesktopWithBothInputModulesOff() async throws {
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()
@@ -131,7 +179,7 @@ import Testing
         presented.removeAll()
         panels.update(screens: [b,a])
         #expect(presented.first === main && panels.secondaryIDs == ["b"])
-        #expect(main.window === primaryWindow && main.requestedFrame?.width == 200)
+        #expect(main.window === primaryWindow && main.requestedFrame?.width == 256)
         #expect(host.configuration == saved && host.registry.states == states)
         host.setSurfaceHidden(true)
         presented.removeAll()
@@ -306,7 +354,7 @@ import Testing
         let second = called.first { $0 !== main }
         #expect(second?.requestedFrame?.width == 213.5)
         #expect(second?.window?.frame == second?.requestedFrame || second?.window?.frame == second?.requestedFrame?.integral)
-        #expect(main.window?.frame.width == 200 && main.window?.collectionBehavior.contains(.fullScreenNone) == true)
+        #expect(main.window?.frame.width == 256 && main.window?.collectionBehavior.contains(.fullScreenNone) == true)
         panels.dismiss("b")
         panels.update(screens: screens)
         #expect(panels.secondaryIDs.isEmpty && host.registry.states == original)
@@ -432,7 +480,7 @@ import Testing
         let compact = try #require(panel.requestedFrame)
         panel.toggleTemporaryExpansion()
         let opened = try #require(panel.requestedFrame)
-        #expect(panel.temporarilyExpanded && opened.width == 100 && opened.height == 1280)
+        #expect(panel.temporarilyExpanded && opened.width == 200 && opened.height == 1280)
         let basis = Double(opened.height) - PanelSizeMetrics.minimumSide
         let voice = settings.contentHeights(basis, content: .full, voice: true, tray: true).voice
         #expect(settings.readableFontSize(.textSize, in: voice) == DisplayMetric.textSize.factory.value)

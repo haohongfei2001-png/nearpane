@@ -33,6 +33,7 @@ extension WindowAdmissionReader: AdmissionReading {}
 
     private let reader: any AdmissionReading
     private let exposure: SettingsPreviewExposure?
+    private let waitForExpiry: @MainActor (TimeInterval) async throws -> Void
     private(set) var opened = false
     @ObservationIgnored var cancelOrdinaryPreview: (() -> Void)?
     private var generation = 0
@@ -57,9 +58,14 @@ extension WindowAdmissionReader: AdmissionReading {}
     var reading = false
     var expired = false
 
-    init(reader: any AdmissionReading, exposure: SettingsPreviewExposure? = nil) {
+    init(reader: any AdmissionReading, exposure: SettingsPreviewExposure? = nil,
+         waitForExpiry: @escaping @MainActor (TimeInterval) async throws -> Void = { deadline in
+             let remaining = deadline - ProcessInfo.processInfo.systemUptime
+             if remaining > 0 { try await Task.sleep(for: .seconds(remaining)) }
+         }) {
         self.reader = reader
         self.exposure = exposure
+        self.waitForExpiry = waitForExpiry
     }
 
     func invalidate(discardPlan: Bool = true) {
@@ -114,13 +120,14 @@ extension WindowAdmissionReader: AdmissionReading {}
         failure = error.localizedDescription
     }
 
-    private func expire(at uptime: TimeInterval) {
+    @discardableResult
+    private func expire(at uptime: TimeInterval) -> Task<Void, Never> {
         expiration?.cancel()
         let request = generation
-        let delay = max(0, uptime - ProcessInfo.processInfo.systemUptime)
-        expiration = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
-            guard let self, self.generation == request else { return }
+        let task = Task { [weak self, waitForExpiry] in
+            do { try await waitForExpiry(uptime) } catch { return }
+            // A completed wait can resume after a replacement review in the same selection.
+            guard !Task.isCancelled, let self, self.generation == request else { return }
             if self.ordinaryReview != nil {
                 self.cancelOrdinaryPreview?()
                 self.ordinaryReview = nil
@@ -128,13 +135,16 @@ extension WindowAdmissionReader: AdmissionReading {}
             }
             self.expired = true
         }
+        expiration = task
+        return task
     }
 
-    func present(_ review: OrdinaryWindowReview, context: AdmissionContext) {
+    @discardableResult
+    func present(_ review: OrdinaryWindowReview, context: AdmissionContext) -> Task<Void, Never> {
         ordinaryReview = review
         ordinaryContext = context
         sampledAt = Date()
-        expire(at: review.validUntil)
+        return expire(at: review.validUntil)
     }
 
     func recheckListingAfterGrant(_ target: AdmissionApplication) async {

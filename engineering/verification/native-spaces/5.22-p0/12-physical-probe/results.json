@@ -1,0 +1,186 @@
+{
+  "blankScreen": "UNKNOWN",
+  "blankScreenScope": "ten",
+  "cleanup": {
+    "errors": [],
+    "independentFocusReadbacks": [
+      {
+        "number": 49540,
+        "pid": 19635
+      },
+      {
+        "number": 49540,
+        "pid": 19635
+      }
+    ],
+    "newerHumanInput": false,
+    "ordinary": {
+      "cleanupCurrent": 6,
+      "created": 2,
+      "errors": [],
+      "focusRestored": true,
+      "originalCurrent": 6,
+      "originalOrderRestored": true,
+      "outstanding": [],
+      "preservedLatestOrder": true,
+      "removed": 2,
+      "retainedUserSelectedSpace": false,
+      "topologyRestored": true
+    },
+    "originalCurrentRestored": true,
+    "originalFocusRestoration": {
+      "actions": [
+        "activation accepted"
+      ],
+      "issued": true,
+      "observations": [
+        {
+          "systemFocus": {
+            "number": null,
+            "pid": 702
+          },
+          "uptime": 248439.45531487503
+        },
+        {
+          "systemFocus": {
+            "number": 49540,
+            "pid": 19635
+          },
+          "uptime": 248439.49280937502
+        },
+        {
+          "systemFocus": {
+            "number": 49540,
+            "pid": 19635
+          },
+          "uptime": 248439.49544445836
+        },
+        {
+          "systemFocus": {
+            "number": 49540,
+            "pid": 19635
+          },
+          "uptime": 248439.50758616667
+        },
+        {
+          "systemFocus": {
+            "number": 49540,
+            "pid": 19635
+          },
+          "uptime": 248439.62420829167
+        }
+      ],
+      "restored": true
+    },
+    "originalFocusedWindowRestored": true,
+    "originalForegroundRestored": true,
+    "originalOrderAndUUIDsRestored": true,
+    "ownedAppsExited": true,
+    "ownedWindowsGone": true,
+    "retainedFocusConfirmedTwice": true,
+    "status": "PASS"
+  },
+  "privateContentCaptured": false,
+  "setupRoute": "ordinary",
+  "stages": {
+    "fifty": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "reason": "10-switch gate did not pass every required subcheck",
+      "requested": 50,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "roundTrip": {
+      "blankScreen": "UNKNOWN",
+      "navigationConfirmed": 2,
+      "navigationDispatched": 2,
+      "navigationStatus": "PASS",
+      "requested": 2,
+      "samples": [
+        {
+          "axIssued": true,
+          "blankScreen": "UNKNOWN",
+          "hostIssued": true,
+          "hostJournalFile": "10711D64-104B-416F-A468-AD9208C96AF9.json",
+          "hostProof": {
+            "confirmed": true,
+            "id": "10711d64-104b-416f-a468-ad9208c96af9",
+            "phaseEvidence": true,
+            "submittedSteps": 1,
+            "terminal": "confirmed"
+          },
+          "index": 1,
+          "invokedDriver": true,
+          "lateObservationSeconds": 2.0,
+          "latencyMS": 314.95,
+          "navigationStatus": "PASS",
+          "reason": "one exact installed action and independently stable adjacent destination",
+          "screenshotTaken": false,
+          "source": 5006,
+          "status": "PASS",
+          "target": 5005
+        },
+        {
+          "axIssued": true,
+          "blankScreen": "UNKNOWN",
+          "hostIssued": true,
+          "hostJournalFile": "4E27636B-4AD3-4D86-BD4C-6B934424ABEB.json",
+          "hostProof": {
+            "confirmed": true,
+            "id": "4e27636b-4ad3-4d86-bd4c-6b934424abeb",
+            "phaseEvidence": true,
+            "submittedSteps": 1,
+            "terminal": "confirmed"
+          },
+          "index": 2,
+          "invokedDriver": true,
+          "lateObservationSeconds": 2.0,
+          "latencyMS": 285.63,
+          "navigationStatus": "PASS",
+          "reason": "one exact installed action and independently stable adjacent destination",
+          "screenshotTaken": false,
+          "source": 5005,
+          "status": "PASS",
+          "target": 5006
+        }
+      ],
+      "status": "PASS"
+    },
+    "ten": {
+      "blankScreen": "UNKNOWN",
+      "navigationConfirmed": 1,
+      "navigationDispatched": 1,
+      "navigationStatus": "BLOCKED",
+      "reason": "Foreground layer, wallpaper, process identity or frame-time binding unavailable during transition",
+      "requested": 10,
+      "samples": [
+        {
+          "axIssued": true,
+          "blankScreen": "UNKNOWN",
+          "hostIssued": true,
+          "hostJournalFile": "BFE8A71E-92E0-4D56-B8FB-DB7018762054.json",
+          "hostProof": {
+            "confirmed": true,
+            "id": "bfe8a71e-92e0-4d56-b8fb-db7018762054",
+            "phaseEvidence": true,
+            "submittedSteps": 1,
+            "terminal": "confirmed"
+          },
+          "index": 1,
+          "invokedDriver": true,
+          "lateObservationSeconds": 2.0,
+          "latencyMS": 345.79,
+          "navigationStatus": "PASS",
+          "reason": "Foreground layer, wallpaper, process identity or frame-time binding unavailable during transition",
+          "screenshotTaken": false,
+          "source": 5006,
+          "status": "UNKNOWN",
+          "target": 5005
+        }
+      ],
+      "status": "UNKNOWN"
+    }
+  },
+  "status": "UNKNOWN"
+}

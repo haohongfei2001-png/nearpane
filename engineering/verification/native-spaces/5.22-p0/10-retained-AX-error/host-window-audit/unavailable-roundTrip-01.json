@@ -1,0 +1,1716 @@
+{
+  "after": {
+    "focusedNumber": 49206,
+    "frontPID": 5796,
+    "hid": [
+      5409,
+      68,
+      0,
+      2986,
+      126817,
+      17747,
+      35,
+      0
+    ],
+    "observerAX": true,
+    "systemFocus": {
+      "number": 49206,
+      "pid": 5796
+    },
+    "topology": {
+      "current": 5001,
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "records": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        {
+          "id": 4983,
+          "type": 4,
+          "uuid": "9199A966-CB66-4069-B473-BFE8582B9713"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+        },
+        {
+          "id": 5000,
+          "type": 0,
+          "uuid": "66FD02D3-0763-EF64-7E68-E2903E7D5457"
+        },
+        {
+          "id": 5001,
+          "type": 0,
+          "uuid": "84FB42BD-7FE3-DF26-FF58-BEB0F44DF65F"
+        }
+      ]
+    },
+    "uptime": 246633.6179239167,
+    "workspaceFrontPID": 5796
+  },
+  "before": {
+    "focusedNumber": 49206,
+    "frontPID": 5796,
+    "hid": [
+      5409,
+      68,
+      0,
+      2986,
+      126817,
+      17747,
+      35,
+      0
+    ],
+    "observerAX": true,
+    "systemFocus": {
+      "number": 49206,
+      "pid": 5796
+    },
+    "topology": {
+      "current": 5001,
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "records": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        {
+          "id": 4983,
+          "type": 4,
+          "uuid": "9199A966-CB66-4069-B473-BFE8582B9713"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+        },
+        {
+          "id": 5000,
+          "type": 0,
+          "uuid": "66FD02D3-0763-EF64-7E68-E2903E7D5457"
+        },
+        {
+          "id": 5001,
+          "type": 0,
+          "uuid": "84FB42BD-7FE3-DF26-FF58-BEB0F44DF65F"
+        }
+      ]
+    },
+    "uptime": 246633.5511225,
+    "workspaceFrontPID": 5796
+  },
+  "bytesRead": 80882,
+  "completeRecords": 103,
+  "context": {
+    "control": {
+      "error": "official background card census [\"visited\": 23, \"scanComplete\": true, \"matches\": 0, \"currentControls\": 1, \"backgroundControls\": 0]",
+      "issued": false,
+      "ready": false
+    },
+    "source": 5001,
+    "target": 5000
+  },
+  "host": {
+    "birth": 1795173220672067,
+    "executable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "hash": "3ba58287df04fa9b9d680e73fdbb83992b269a38",
+    "identifier": "com.holdsnow.nearpane.alpha",
+    "pid": 5444
+  },
+  "malformedLines": 0,
+  "phase": "unavailable-roundTrip-01",
+  "records": [
+    {
+      "line": 64,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 64,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "reader",
+        "uptime": 246627.4766709167,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 65,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 64,
+        "stage": "history-candidate",
+        "uptime": 246627.47681770835,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 66,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "original-not-held-or-expired",
+        "requestMatched": true,
+        "revision": 64,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246627.49058483334,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 67,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 64,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "publish",
+        "uptime": 246627.490949625,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 68,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 65,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "reader",
+        "uptime": 246627.71405666668,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 69,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 65,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "reader",
+        "uptime": 246627.71422470835,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 70,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 65,
+        "stage": "history-candidate",
+        "uptime": 246627.71429650002,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 71,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 65,
+        "stage": "history-candidate",
+        "uptime": 246627.71434575002,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 72,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "same-original-confirmed",
+        "requestMatched": true,
+        "revision": 65,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246627.72250625002,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 73,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "original-not-held-or-expired",
+        "requestMatched": true,
+        "revision": 65,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246627.72262000002,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 74,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "revision": 65,
+        "stage": "history-original-applied",
+        "uptime": 246627.7226692917,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 75,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 65,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "publish",
+        "uptime": 246627.722970875,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 76,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": true,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 65,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "publish",
+        "uptime": 246627.72309450002,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 77,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 66,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "reader",
+        "uptime": 246627.92640754167,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 78,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 66,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "reader",
+        "uptime": 246627.92658920833,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 79,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 66,
+        "stage": "history-candidate",
+        "uptime": 246627.92672633336,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 80,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 66,
+        "stage": "history-candidate",
+        "uptime": 246627.9267850417,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 81,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "same-original-confirmed",
+        "requestMatched": true,
+        "revision": 66,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246627.94084312502,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 82,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "original-not-held-or-expired",
+        "requestMatched": true,
+        "revision": 66,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246627.94094704167,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 83,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "revision": 66,
+        "stage": "history-original-applied",
+        "uptime": 246627.94100166668,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 84,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 66,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "publish",
+        "uptime": 246627.94132616668,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 85,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": true,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 66,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "publish",
+        "uptime": 246627.94142400002,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 86,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 67,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "reader",
+        "uptime": 246628.17841416667,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 87,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 67,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "reader",
+        "uptime": 246628.17857454167,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 88,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 67,
+        "stage": "history-candidate",
+        "uptime": 246628.1786459167,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 89,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 67,
+        "stage": "history-candidate",
+        "uptime": 246628.17873370834,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 90,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "same-original-confirmed",
+        "requestMatched": true,
+        "revision": 67,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246628.18963058334,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 91,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "original-not-held-or-expired",
+        "requestMatched": true,
+        "revision": 67,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246628.18975812502,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 92,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "revision": 67,
+        "stage": "history-original-applied",
+        "uptime": 246628.18980983336,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 93,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 67,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "publish",
+        "uptime": 246628.19017325,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 94,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": true,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 67,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "publish",
+        "uptime": 246628.19029400003,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 95,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 68,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "reader",
+        "uptime": 246631.24701908336,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 96,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 68,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "reader",
+        "uptime": 246631.24720200003,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 97,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 68,
+        "stage": "history-candidate",
+        "uptime": 246631.24727854168,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 98,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "revision": 68,
+        "stage": "history-candidate",
+        "uptime": 246631.24732695834,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 99,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "same-original-confirmed",
+        "requestMatched": true,
+        "revision": 68,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246631.25586375,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 100,
+      "record": {
+        "current": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "hadOriginal": true,
+        "reason": "original-not-held-or-expired",
+        "requestMatched": true,
+        "revision": 68,
+        "stage": "signed-helper-reply",
+        "state": "ready",
+        "uptime": 246631.25595645834,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "workerPID": 5461,
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 101,
+      "record": {
+        "current": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "revision": 68,
+        "stage": "history-original-applied",
+        "uptime": 246631.256014,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 102,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": false,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": false,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": true,
+          "catalogueAvailable": true,
+          "currentRoleRequested": false,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": false,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": false,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": false,
+        "readerCGOnscreen": false,
+        "readerEmittedTarget": true,
+        "readerHasScopedAudit": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": false,
+        "readerSpaces": "observed",
+        "revision": 68,
+        "spaceIDs": [
+          "5000"
+        ],
+        "stage": "publish",
+        "uptime": 246631.2563499167,
+        "window": {
+          "birth": 1795173230836416,
+          "number": 49190,
+          "pid": 5733
+        },
+        "writerPID": 5444
+      }
+    },
+    {
+      "line": 103,
+      "record": {
+        "backgroundModel": false,
+        "catalogAvailable": true,
+        "currentModel": true,
+        "epoch": "148D1214-C050-45B1-830F-694F5DB3BDC5",
+        "feed": "5F68DF33-0F1F-4CAB-9D22-82860D58F41A",
+        "originalAvailable": true,
+        "reader": {
+          "backgroundInventory": true,
+          "backgroundRoleRequested": false,
+          "catalogueAvailable": true,
+          "currentRoleRequested": true,
+          "first.addedBySpaceLookup": false,
+          "first.appKitAllSpaces": true,
+          "first.publicCG": true,
+          "first.rowDrawn": true,
+          "first.rowFound": true,
+          "first.rowHasBounds": true,
+          "first.rowLayerZero": true,
+          "first.sameProcessBirth": true,
+          "firstAccepted": true,
+          "listedAXWindow": true,
+          "membershipExclusive": true,
+          "membershipStable": true,
+          "ownerAXListRead": true,
+          "ownerAllNumbersRead": true,
+          "readerAXTrusted": true,
+          "scopedMetadataEmitted": true,
+          "second.addedBySpaceLookup": false,
+          "second.appKitAllSpaces": true,
+          "second.publicCG": true,
+          "second.rowDrawn": true,
+          "second.rowFound": true,
+          "second.rowHasBounds": true,
+          "second.rowLayerZero": true,
+          "second.sameProcessBirth": true,
+          "secondAccepted": true
+        },
+        "readerAccessibility": "available",
+        "readerAppKitActive": true,
+        "readerCGOnscreen": true,
+        "readerCurrentMembership": "5001",
+        "readerEmittedTarget": true,
+        "readerFullscreen": false,
+        "readerHasScopedAudit": true,
+        "readerMinimized": false,
+        "readerOrdinary": true,
+        "readerPopulation": "workWindows",
+        "readerPresented": true,
+        "readerSpaces": "observed",
+        "revision": 68,
+        "spaceIDs": [
+          "5001"
+        ],
+        "stage": "publish",
+        "uptime": 246631.25644608334,
+        "window": {
+          "birth": 1795173235113754,
+          "number": 49206,
+          "pid": 5796
+        },
+        "writerPID": 5444
+      }
+    }
+  ],
+  "registeredAfterLine": 63,
+  "registeredAtUptime": 246627.3246641667,
+  "sameWitnessInterval": true,
+  "source": "isolated installed Host",
+  "sourceLines": 103,
+  "sourceSHA256": "96ec4b68aea1338be6e4ad4839b12c0f690fcf0c1203af3e5846601e2c9ece5e",
+  "status": "OBSERVED",
+  "targets": [
+    {
+      "birth": 1795173230836416,
+      "number": 49190,
+      "pid": 5733
+    },
+    {
+      "birth": 1795173235113754,
+      "number": 49206,
+      "pid": 5796
+    }
+  ],
+  "trailingIncompleteBytes": 0,
+  "unmatchedHostEnvelopeLines": 0,
+  "withheldNonMetadataLines": 0
+}

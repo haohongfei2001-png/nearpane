@@ -39,6 +39,13 @@ struct WorkspacePolicySettings: View {
                     Text("优先新建，受限时继续分割").tag(WindowOverflowPolicy.newAboveEight)
                     Text("继续分割").tag(WindowOverflowPolicy.continuousSplit)
                 }
+                Section("点击墙纸显示桌面") {
+                    Text("在「系统设置 → 桌面与程序坞 → 显示桌面」选择始终允许点击墙纸。点击墙纸可移开窗口，再点一次可恢复原布局。桌面项目的显示由 macOS 单独设置。")
+                        .font(.caption)
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") {
+                        Link("打开桌面与程序坞设置", destination: url)
+                    }
+                }
                 Button("选择要排除的应用…") {
                     applicationError = nil
                     choosingApplication = true

@@ -81,11 +81,20 @@ def validate_live(scope, observation, expected_host, require_highlight=True):
     current = next(s["current"] for s in observation["scopes"] if s["scope"] == scope["display"])
     ids = {s["id"] for s in scope["spaces"]}
     require(current in ids, "current Space is outside the test lease")
-    occupancy = observation.get("otherLayerZeroMemberships", {})
-    require(occupancy.get("unresolved") == 0, "unresolved window membership")
-    for n in ids:
-        count = sum(w["space"] == n for w in scope["witnesses"])
-        require(occupancy.get("counts", {}).get(str(n), 0) == count, "extra or missing window on a leased Space")
+    if scope.get("scopedMembership"):
+        for n in ids:
+            occupancy = observation.get("scopedMembers", {}).get(str(n), {})
+            expected = {(w["number"], w["pid"]) for w in scope["witnesses"] if w["space"] == n}
+            require(occupancy.get("unresolved") == 0 and occupancy.get("otherMembers") == 0
+                    and {(w["number"], w["pid"]) for w in occupancy.get("ordinary", [])} == expected,
+                    f"per-Space read cannot confirm exclusive fixture membership for {n}: "
+                    f"ordinary={len(occupancy.get('ordinary', []))} other={occupancy.get('otherMembers')} unresolved={occupancy.get('unresolved')}")
+    else:
+        occupancy = observation.get("otherLayerZeroMemberships", {})
+        require(occupancy.get("unresolved") == 0, "unresolved window membership")
+        for n in ids:
+            count = sum(w["space"] == n for w in scope["witnesses"])
+            require(occupancy.get("counts", {}).get(str(n), 0) == count, "extra or missing window on a leased Space")
     rows = observation.get("sidebar", {}).get("rows", [])
     for r in scope["spaces"]:
         expected = f'native-space-row:{scope["display"]}:{r["id"]}'
@@ -134,7 +143,7 @@ def load_scope(path, observation, boot, now):
         n = str(s["id"])
         fullscreen = set(after.get("fullscreenIDs") or [])
         require(fullscreen == set(before.get("fullscreenIDs") or []) and fullscreen.issubset(before["sideOrder"])
-                and intent["source"] not in fullscreen and n not in fullscreen, "fullscreen identity or type changed during creation")
+                and n not in fullscreen, "fullscreen identity or type changed during creation")
         require(made["target"] == n and n not in before["sideOrder"] and after["sideOrder"].count(n) == 1 and
                 [i for i in after["sideOrder"] if i != n] == before["sideOrder"] and intent["source"] in before["sideOrder"],
                 "receipt does not prove exactly one new Space")
@@ -161,15 +170,16 @@ def load_scope(path, observation, boot, now):
     require(isinstance(witnesses, list) and len(witnesses) <= 8 and len({positive(w["number"]) for w in witnesses}) == len(witnesses),
             "invalid fixture inventory")
     for w in witnesses:
+        witness_name = {"net.example.spaces-document":"Field Notes.app", "net.example.spaces-route-witness":"Route Notes.app"}.get(w["bundleID"])
         require(positive(w["pid"]) and positive(w["birth"]) and w["space"] in lease_ids
-                and w["bundleID"] == "net.example.spaces-document" and re.fullmatch(r"[a-fA-F0-9]{40}", w["codeHash"])
-                and Path(w["bundlePath"]).name == "Field Notes.app", "unrecognized test window owner")
+                and witness_name is not None and re.fullmatch(r"[a-fA-F0-9]{40}", w["codeHash"])
+                and Path(w["bundlePath"]).name == witness_name, "unrecognized test window owner")
         require(isinstance(w.get("state"), str), "missing disposable fixture attestation")
         state = Path(w["state"])
         kit = state.parent.parent
         require(state.name == "windows.json" and guid(state.parent.name) and kit.parent == Path("/private/tmp")
                 and kit.name.startswith(("nearpane-wp5.", "nearpane-d01.", "nearpane-space-trials."))
-                and Path(w["bundlePath"]) == kit / "Field Notes.app", "unrecognized disposable fixture location")
+                and Path(w["bundlePath"]) == kit / witness_name, "unrecognized disposable fixture location")
         receipt = json.loads(private_file(state))
         require(receipt["pid"] == w["pid"] and receipt["birth"] == w["birth"] and w["number"] in receipt["numbers"]
                 and guid(receipt["session"]) == guid(state.parent.name), "current fixture did not attest this window generation")

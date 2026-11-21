@@ -1,5 +1,7 @@
 # Nearpane — 产品定义与功能规格
 
+**窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](engineering/research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
+
 > **当前侧栏裁决（2026-11-18）**　Native 侧栏仅呈现本屏当前桌面的窗口，一窗一项，按本屏统一比例缩放，紧接工具区向下滚动。点击只选择这扇窗口。全桌面导航、跨桌面拖放和自动平铺属于独立能力，打开此列表不发起这些操作。本文及此前专项中关于多桌面地图的条款仅记录原方案。
 
 > **2026-11-18 原生空间增量：** 本专项的产品交互、技术路线与验收采用 [已确定的专项决定](engineering/native-spaces/DECISIONS.md) 和 [验收合同](engineering/native-spaces/ACCEPTANCE.md)。Native 优先；Virtual 定义保留但不替代本轮目标。以下既定 WorkRect、平铺和管理策略继续有效；此增量不宣称工程已经完成。

@@ -11,32 +11,23 @@ import uuid
 from acceptance import checked, identity, manifest, wait_state
 
 
-def same_scale(sizes, previews):
-    """AX reports preview dimensions rounded to points. Intersect the possible shared scales."""
-    if len(sizes) != 2 or len(previews) != 2 or sizes[0] == sizes[1]:
+def fits_window(size, preview, width):
+    """The fixture uses factory density. Fit each owner frame in its own width × half-width box."""
+    if not width or len(size) != 2 or len(preview) != 2 or min(size + preview) <= 0:
         return False
-    return scale_possible(sizes, previews)
-
-
-def scale_possible(sizes, previews):
-    intervals = []
-    for source, preview in zip(sizes, previews):
-        if len(source) != 2 or len(preview) != 2 or min(source) <= 0 or min(preview) <= 0:
-            return False
-        intervals.extend(((p - .51) / s, (p + .51) / s) for s, p in zip(source, preview))
-    return bool(intervals) and max(lo for lo, _ in intervals) <= min(hi for _, hi in intervals)
+    scale = min(width / size[0], 0.5 * width / size[1])
+    return all(abs(dimension * scale - actual) <= 1 for dimension, actual in zip(size, preview))
 
 
 def evaluate(sizes, cards):
     if len(sizes) != 2 or len(cards) != 2 or not all(card.get("observed") for card in cards):
         return {"status": "BLOCKED", "reason": "Could not bind both installed controls to the exact owned windows"}
-    top, bottom = sorted(cards, key=lambda card: card["cardY"])
+    top, bottom = cards
     vertical = all(c["cardHeight"] > 0 for c in cards) and top["cardY"] + top["cardHeight"] <= bottom["cardY"] + 1
-    no_desktops = all(card["spaceRows"] == 0 for card in cards)
     fits = all(
         (f := card.get("fit", {})).get("cardCount", 0) >= len(cards)
-        and f.get("cardCount") == f.get("measured") and f.get("allOnscreen")
-        and f.get("insideOnePanel") and f.get("ordered") and f.get("scrollAreas") == 0
+        and f.get("cardCount") == f.get("measured") and f.get("insidePanelColumns")
+        and f.get("ordered") and f.get("scrollAreas") == 1
         for card in cards
     )
     witnesses = []
@@ -48,20 +39,20 @@ def evaluate(sizes, cards):
         different = len(cg or []) == 2 and any(abs(a-b) > 1 for a, b in zip(cg, size))
         ax_confirms = len(ax or []) == 2 and all(abs(a-b) <= 1 for a, b in zip(ax, size))
         withheld = card["value"] == "窗口尺寸待核对"
-        witnesses.append({"window": card["window"], "ownerSize": size, "preview": thumbnail,
+        witnesses.append({"window": card["window"], "ownerSize": size, "preview": thumbnail, "cardWidth": card.get("cardWidth"),
                           "cgDiffersFromOwner": different, "observerAXConfirmsOwner": ax_confirms,
                           "geometryExplicitlyWithheld": withheld,
                           "presentationMismatchSafelyWithheld": different and ax_confirms and withheld})
     usable = [w for w in witnesses if w["preview"] is not None]
-    faithful = scale_possible([w["ownerSize"] for w in usable], [w["preview"] for w in usable]) if usable else None
-    if not no_desktops or not vertical or not fits or faithful is False:
-        status, reason = "FAIL", "Window shape, row order, visible non-scrolling bounds or navigation rows contradicted their witnesses"
-    elif len(usable) == 2 and same_scale(sizes, [w["preview"] for w in witnesses]):
-        status, reason = "PASS", "Both confirmed window dimensions used one scale in separate, vertically ordered cards"
+    faithful = all(fits_window(w["ownerSize"], w["preview"], w["cardWidth"]) for w in usable)
+    if not vertical or not fits or not faithful:
+        status, reason = "FAIL", "Window aspect fit, stable row order or the independent scrolling column contradicted its witness"
+    elif len(usable) == 2:
+        status, reason = "PASS", "Both exact owner frames fit independent, vertically ordered preview cards"
     else:
-        status, reason = "BLOCKED", "Both windows were listed but both true preview dimensions were not established"
-    return {"status": status, "reason": reason, "nonoverlappingTopToBottom": vertical, "noSpaceRows": no_desktops,
-            "allMeasuredCardsFit": bool(fits), "windowGeometry": witnesses, "realPixelsIndependentlyVerified": False}
+        status, reason = "BLOCKED", "Both true preview dimensions could not be established"
+    return {"status": status, "reason": reason, "nonoverlappingTopToBottom": vertical,
+            "independentScrollColumn": bool(fits), "windowGeometry": witnesses, "realPixelsIndependentlyVerified": False}
 
 
 def pixel_verdict(numbers, measurements):
@@ -112,6 +103,11 @@ def measure(observer, output):
             return result.update(reason="No two distinct fixture windows")
         numbers = state["numbers"]
         sizes = state["sizes"]
+        camera = observer.parent / "r4-scene"
+        if camera.is_file() and initial.get("observerScreenRead") and len(numbers) == 2:
+            scene = subprocess.run([str(camera), str(output / "controlled-desktop.png"), str(proc.pid),
+                                    *map(str, numbers), str(app)], capture_output=True, timeout=12)
+            result["ownedDesktopSceneCaptured"] = scene.returncode == 0
         samples = []
         first_observed = None
         inspect_pixels = bool(initial.get("observerScreenRead") and (result.get("permissions") or {}).get("screen"))

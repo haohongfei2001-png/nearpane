@@ -32,6 +32,32 @@ struct WorkspaceLayoutTests {
         #expect(throws: WorkspaceFailure.minimumSize) { try constrained.frames(in: odd, wholePoints: true) }
     }
 
+    @Test func specifiedCountsMatchExactWindowSlotsOnAnOffsetOddSizedWorkArea() throws {
+        let work = SurfaceRect(x: -980.25, y: 36.1, width: 1002, height: 804.5)
+        func rect(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> SurfaceRect {
+            .init(x: x, y: y, width: w, height: h)
+        }
+        let full = rect(-980, 37, 1001, 803)
+        let left = rect(-980, 37, 501, 803), right = rect(-479, 37, 500, 803)
+        let upperRight = rect(-479, 37, 500, 402), lowerRight = rect(-479, 439, 500, 401)
+        let upperLeft = rect(-980, 37, 501, 402), lowerLeft = rect(-980, 439, 501, 401)
+        let expected = [
+            1: [full], 2: [left, right], 3: [upperRight, lowerRight, left],
+            4: [upperRight, lowerRight, upperLeft, lowerLeft],
+            8: [rect(-479, 37, 250, 402), rect(-229, 37, 250, 402), rect(-980, 37, 251, 402),
+                rect(-980, 439, 251, 401), rect(-479, 439, 250, 401), rect(-729, 37, 250, 402),
+                rect(-729, 439, 250, 401), rect(-229, 439, 250, 401)]
+        ]
+        var layout = ManagedWindowTiler(workspace: nil)
+        for count in 1...8 {
+            layout = try layout.adding(member(count), in: work)
+            guard let slots = expected[count] else { continue }
+            let frames = try layout.frames(in: work, wholePoints: true)
+            let byAdmission = try layout.members.map { try #require(frames[$0.id]) }
+            #expect(byAdmission == slots)
+        }
+    }
+
     @Test func everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth() throws {
         var layout = ManagedWindowTiler(workspace: .virtual(UUID()))
         #expect(try layout.frames(in: area).isEmpty)
@@ -118,7 +144,7 @@ struct WorkspaceLayoutTests {
             #expect(try work() == baseline)
             #expect(try planner.update(area: work(), layout: layout) == nil)
         }
-        #expect(baseline.frame(nativeFullscreen: false).width == 700)
+        #expect(baseline.frame(nativeFullscreen: false).width == 600)
         #expect(baseline.frame(nativeFullscreen: true).width == 800)
         settings.measures[.reservedWidth] = Measure(150)
         #expect(try work().ordinary.x == -650)

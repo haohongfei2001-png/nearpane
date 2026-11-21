@@ -1,0 +1,229 @@
+{
+  "unassisted": "BLOCKED",
+  "temporaryDesktop": {
+    "cleanup": {
+      "cleanupCurrent": 6,
+      "created": 1,
+      "errors": [],
+      "focusRestored": false,
+      "originalCurrent": 6,
+      "originalOrderRestored": true,
+      "outstanding": [],
+      "preservedLatestOrder": true,
+      "removed": 1,
+      "retainedUserSelectedSpace": false,
+      "topologyRestored": true
+    },
+    "issue": "select: no independently hit-tested system desktop tile point"
+  },
+  "nativeShortcutSetup": {
+    "cleanup": {
+      "cleanupCurrent": 2000,
+      "created": 0,
+      "errors": [],
+      "focusRestored": true,
+      "originalCurrent": 2000,
+      "originalOrderRestored": true,
+      "outstanding": [],
+      "preservedLatestOrder": true,
+      "removed": 0,
+      "retainedUserSelectedSpace": false,
+      "topologyRestored": true
+    },
+    "issue": "add: unique running system Dock unavailable",
+    "mode": "system setup only; no input addressed to any application window"
+  },
+  "passiveEmpty": {
+    "status": "BLOCKED",
+    "observations": [
+      {
+        "elapsed": 0.1,
+        "ready": false,
+        "windowCards": null,
+        "spaceRows": null,
+        "reason": "requires the signed Host on one observed ordinary desktop"
+      }
+    ]
+  },
+  "firstOwnedFixture": {
+    "build": "90",
+    "checkpoints": {
+      "empty-before": {
+        "captured": true,
+        "independentRoster": {
+          "cards": 0,
+          "classifiedCards": {},
+          "duplicateControls": 0,
+          "knownWrongCards": 0,
+          "missingProvenVisible": 0,
+          "pixelsRequested": 0,
+          "privateTitlesRead": false,
+          "provenVisibleStandard": 0,
+          "status": "INCONCLUSIVE",
+          "systemExcluded": {
+            "hiddenApp": 6,
+            "noPresentation": 1,
+            "otherLayer": 7,
+            "otherSpace": 11
+          },
+          "unconfirmedCards": 0,
+          "unconfirmedEvidence": {},
+          "unconfirmedNotice": false
+        },
+        "proof": {
+          "crop": [
+            1243,
+            182,
+            214,
+            761
+          ],
+          "desktopCount": 4,
+          "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "expectedCards": 0,
+          "expectedIDsMatch": true,
+          "explicitGroups": 0,
+          "matchedFixtureCards": 0,
+          "number": 47299,
+          "otherWindowCards": 0,
+          "pid": 83384,
+          "placeholderLabels": [],
+          "ready": true,
+          "rosterRegions": 1,
+          "signature": "a929ca16ebd692e73698960b1929fade35283c52",
+          "spaceRows": 0,
+          "windowCards": 0
+        },
+        "status": "PASS"
+      }
+    },
+    "fixtureExited": true,
+    "hostCDHash": "a929ca16ebd692e73698960b1929fade35283c52",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "status": "BLOCKED",
+    "windowNumbersGone": false
+  },
+  "secondOwnedFixture": {
+    "build": "90",
+    "checkpoints": {
+      "empty-before": {
+        "captured": true,
+        "independentRoster": {
+          "cards": 0,
+          "classifiedCards": {},
+          "duplicateControls": 0,
+          "knownWrongCards": 0,
+          "missingProvenVisible": 0,
+          "pixelsRequested": 0,
+          "privateTitlesRead": false,
+          "provenVisibleStandard": 0,
+          "status": "INCONCLUSIVE",
+          "systemExcluded": {
+            "hiddenApp": 6,
+            "noPresentation": 1,
+            "otherLayer": 7,
+            "otherSpace": 12
+          },
+          "unconfirmedCards": 0,
+          "unconfirmedEvidence": {},
+          "unconfirmedNotice": false
+        },
+        "isolatedProfile": true,
+        "proof": {
+          "crop": [
+            1243,
+            182,
+            214,
+            761
+          ],
+          "desktopCount": 4,
+          "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "expectedCards": 0,
+          "expectedIDsMatch": true,
+          "explicitGroups": 0,
+          "matchedFixtureCards": 0,
+          "number": 47320,
+          "otherWindowCards": 0,
+          "pid": 83871,
+          "placeholderLabels": [],
+          "ready": true,
+          "rosterRegions": 1,
+          "signature": "a929ca16ebd692e73698960b1929fade35283c52",
+          "spaceRows": 0,
+          "windowCards": 0
+        },
+        "status": "PASS",
+        "wallpaperIncluded": true
+      },
+      "two-documents": {
+        "captured": true,
+        "independentRoster": {
+          "cards": 2,
+          "classifiedCards": {
+            "visibleStandard": 2
+          },
+          "duplicateControls": 0,
+          "knownWrongCards": 0,
+          "missingProvenVisible": 0,
+          "pixelsRequested": 0,
+          "privateTitlesRead": false,
+          "provenVisibleStandard": 2,
+          "status": "PASS",
+          "systemExcluded": {
+            "hiddenApp": 6,
+            "noPresentation": 1,
+            "otherLayer": 7,
+            "otherSpace": 12
+          },
+          "unconfirmedCards": 0,
+          "unconfirmedEvidence": {},
+          "unconfirmedNotice": false
+        },
+        "isolatedProfile": true,
+        "proof": {
+          "crop": [
+            1243,
+            182,
+            214,
+            761
+          ],
+          "desktopCount": 4,
+          "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "expectedCards": 2,
+          "expectedIDsMatch": true,
+          "explicitGroups": 0,
+          "matchedFixtureCards": 2,
+          "number": 47320,
+          "otherWindowCards": 0,
+          "pid": 83871,
+          "placeholderLabels": [],
+          "ready": true,
+          "rosterRegions": 1,
+          "signature": "a929ca16ebd692e73698960b1929fade35283c52",
+          "spaceRows": 0,
+          "windowCards": 2
+        },
+        "status": "PASS",
+        "wallpaperIncluded": true
+      }
+    },
+    "fixture": {
+      "birth": 1795166216049759,
+      "bundle": "net.example.spaces-document",
+      "numbers": [
+        47335,
+        47336
+      ],
+      "pid": 84091,
+      "visible": [
+        true,
+        true
+      ]
+    },
+    "fixtureExited": true,
+    "hostCDHash": "a929ca16ebd692e73698960b1929fade35283c52",
+    "source": "365fdc40c19853e4fa4343f9f20c240c85b7583b",
+    "status": "BLOCKED",
+    "windowNumbersGone": true
+  },
+  "mediaScope": "Earlier trials retain their readbacks here. Published PNGs and results.json belong to the final physical run."
+}

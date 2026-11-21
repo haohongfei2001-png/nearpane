@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import NearpaneCore
 import Observation
@@ -22,6 +23,7 @@ struct PanelCapturePresentation: Equatable {
 
 @MainActor
 protocol VoiceInput: AnyObject {
+    func setCaptureIntent(_ id: UUID?)
     func start(requestPermission: Bool) async throws
     func pause() async
     func retry(_ id: UUID) async throws
@@ -32,10 +34,15 @@ protocol VoiceInput: AnyObject {
     func shutdown() async
 }
 
+extension VoiceInput {
+    func setCaptureIntent(_ id: UUID?) {}
+}
+
 @MainActor
 private final class DomainInput: VoiceInput {
     let audio: AudioController
     private let recordings: SaytileStore
+    private var captureGeneration: UInt64 = 0
     var observation: AnyCancellable?
     private var playbackObservation: AnyCancellable?
     private var archivePlayingID: UUID?
@@ -50,23 +57,44 @@ private final class DomainInput: VoiceInput {
         // A controller first created for replay has no authority to resume recognition jobs.
         audio = credentials?.controller(store: store, configuration: configuration, startupRecoveryReady: false)
             ?? AudioController(store: store, recognitionConfiguration: configuration, startupRecoveryReady: false)
+        audio.nearpaneLocalFinal = { intent, proof in
+            if let intent {
+                LocalToolStage.voiceRecordingLinked.emit(intent, hash: LocalToolStage.digest(Data(proof.recording.uuidString.utf8)))
+            }
+            if let audioHash = proof.audioSHA256 { LocalToolStage.voiceAudioPersisted.emit(proof.recording, hash: audioHash) }
+            switch proof.state {
+            case .final: LocalToolStage.voiceFinal.emit(proof.recording, hash: proof.finalSHA256)
+            case .recoverable: LocalToolStage.voiceRecoverable.emit(proof.recording, hash: proof.audioSHA256)
+            case .discarded: LocalToolStage.voiceDiscarded.emit(proof.recording)
+            case .unverified: LocalToolStage.voiceUnverified.emit(proof.recording)
+            }
+        }
         observation = Publishers.CombineLatest3(audio.$state, audio.$level, audio.$issue).sink {
             changed($0, $1, $2)
         }
     }
+    func setCaptureIntent(_ id: UUID?) {
+        captureGeneration &+= 1
+        audio.nearpaneCaptureIntent = id
+    }
     func start(requestPermission: Bool) async throws {
+        let generation = captureGeneration
         // Do not trigger engine asset installation as a side effect of trying the voice button.
         if VoiceInputRoute.current() == .disconnected { throw AudioFailure.message(VoiceInputRoute.disconnected.label) }
         try await prepareConfiguration()
         if !configuration.cloudEnabled {
-            let availability = await AppleSpeechService.availability()
+            let availability = await audio.nearpaneLocalAvailability()
             guard availability.installed else { throw AudioFailure.message(availability.message) }
         }
         try Task.checkCancellation()
+        guard generation == captureGeneration else { throw CancellationError() }
         audio.completeStartupRecovery()
         await audio.start(requestPermission: requestPermission && !requireExistingPermissions)
     }
-    func pause() async { await audio.pause() }
+    func pause() async {
+        captureGeneration &+= 1
+        await audio.pause()
+    }
     func retry(_ id: UUID) async throws {
         let selected = try profile?.configurationForInput() ?? RecognitionConfiguration()
         await configure(selected)
@@ -95,7 +123,21 @@ private final class DomainInput: VoiceInput {
         configuration = value
         await audio.setRecognitionConfiguration(value)
     }
-    func shutdown() async { observation = nil; await audio.shutdown() }
+    func shutdown() async {
+        captureGeneration &+= 1
+        observation = nil
+        await audio.shutdown()
+    }
+}
+
+public enum VoiceHostInterruption {
+    case fullscreen, session
+    var message: String {
+        switch self {
+        case .fullscreen: "已因进入全屏暂停收音，返回后可继续。"
+        case .session: "桌面会话已中断收音，返回后可继续。"
+        }
+    }
 }
 
 @MainActor @Observable
@@ -106,7 +148,11 @@ public final class VoiceModule: HostModule {
     @ObservationIgnored private var store: SaytileStore?
     @ObservationIgnored private var panelReads = 0
     @ObservationIgnored private var waitingForPanelReads: CheckedContinuation<Void, Never>?
+    @ObservationIgnored private var audioRecoveryReady = false
     @ObservationIgnored private var input: (any VoiceInput)?
+    @ObservationIgnored private var intent: UUID?
+    @ObservationIgnored private var awaitingFirstPCM = false
+    @ObservationIgnored private var boundaryPause: Task<Void, Never>?
     typealias ManualInputFactory = (SaytileStore) throws -> NearpaneManualInsertion
     @ObservationIgnored private var makeManualInput: ManualInputFactory?
     @ObservationIgnored private var manualInput: NearpaneManualInsertion?
@@ -131,6 +177,17 @@ public final class VoiceModule: HostModule {
     public private(set) var active = false
     private(set) var busy = false
     public private(set) var capture: CaptureState = .paused
+    public var panelIsCompact: Bool {
+        switch capture {
+        case .paused, .interrupted: return true
+        case .starting, .listening, .speaking: return false
+        }
+    }
+    var microphoneDenied: Bool {
+        let permission = AVCaptureDevice.authorizationStatus(for: .audio)
+        return permission == .denied || permission == .restricted
+    }
+
     /// Only activity flags enter the app updater. Audio and transcript stay in the domain.
     public var updateRequiresVoiceToFinish: Bool {
         if busy || changingRecognition || inserting || archivePlaybackParagraph != nil { return true }
@@ -186,12 +243,25 @@ public final class VoiceModule: HostModule {
                     openingFailed?()
                     return
                 }
-                await refresh()
+                await recoverOnOpen(epoch)
             }
         } else {
             try open()
-            transition = Task { [weak self] in await self?.refresh() }
+            transition = Task { [weak self] in await self?.recoverOnOpen(epoch) }
         }
+    }
+
+    private func recoverOnOpen(_ epoch: Int) async {
+        guard active, generation == epoch, let store else { return }
+        do {
+            _ = try await AudioDiagnostics.recoverAudio(store: store)
+            guard active, generation == epoch else { return }
+            audioRecoveryReady = true
+        } catch {
+            guard active, generation == epoch else { return }
+            issue = "原音恢复尚未完成，可在语音档案中查看已保存的文字。"
+        }
+        await refresh()
     }
 
     private func open() throws {
@@ -223,6 +293,12 @@ public final class VoiceModule: HostModule {
     public func stop() {
         guard active else { return }
         let endingPlayback = archivePlaybackTask
+        let endingPause = boundaryPause
+        boundaryPause = nil
+        if let intent { LocalToolStage.voiceInterrupted.emit(intent) }
+        input?.setCaptureIntent(nil)
+        intent = nil
+        awaitingFirstPCM = false
         stopArchivePlayback()
         manualInput?.finish()
         manualInput = nil
@@ -237,12 +313,13 @@ public final class VoiceModule: HostModule {
         let closingGeneration = generation
         let previous = transition, oldInput = input, oldStore = store, writes = draftWrite
         draftWrite = nil
-        input = nil; store = nil; rows = []; capture = .paused; control = .init(.paused, 0)
+        input = nil; store = nil; audioRecoveryReady = false; rows = []; capture = .paused; control = .init(.paused, 0)
         busy = false; hasEarlier = false; issue = nil; limit = 60
         transition = Task {
             await previous?.value
             await endingInsertion?.value
             await endingPlayback?.value
+            await endingPause?.value
             await oldInput?.shutdown()
             await writes?.value
             // Cancelling a view refresh does not cancel an already admitted SQLite read.
@@ -259,13 +336,21 @@ public final class VoiceModule: HostModule {
 
     private func currentInput() throws -> any VoiceInput {
         if let input { return input }
-        if store == nil { try open() }
+        guard audioRecoveryReady else { throw StoreError.database("原音恢复尚未完成。") }
         guard let store else { throw StoreError.missingRecording }
         let epoch = generation
         let input = makeInput(store) { [weak self] state, level, error in
             guard let self, active, generation == epoch else { return }
             let changed = capture != state
             capture = state
+            if awaitingFirstPCM, state == .listening || state == .speaking, let intent {
+                LocalToolStage.firstPCM.emit(intent)
+                awaitingFirstPCM = false
+            }
+            if changed, case .interrupted = state, let intent {
+                LocalToolStage.voiceInterrupted.emit(intent)
+                awaitingFirstPCM = false
+            }
             if changed { acceptanceEvent?("captureState") }
             if changed && state == .speaking { trackRevisions() }
             control = .init(state, level)
@@ -275,8 +360,30 @@ public final class VoiceModule: HostModule {
         return input
     }
 
+    /// A verified boundary on the resident display pauses the existing capture, including a start awaiting assets.
+    /// Returning to the ordinary desktop requires another explicit start.
+    @discardableResult public func interruptForHost(_ reason: VoiceHostInterruption) -> Task<Void, Never>? {
+        guard active, boundaryPause == nil, let device = input, let intent else { return nil }
+        LocalToolStage.voiceInterrupted.emit(intent)
+        self.intent = nil
+        device.setCaptureIntent(nil)
+        awaitingFirstPCM = false
+        let epoch = generation
+        boundaryPause = Task { [weak self] in
+            await device.pause()
+            guard let self, active, epoch == generation else { return }
+            capture = .interrupted(reason.message)
+            control = .init(capture, 0)
+            issue = reason.message
+            boundaryPause = nil
+            trackRevisions()
+            await refresh()
+        }
+        return boundaryPause
+    }
+
     func toggle(requestPermission: Bool = true) async {
-        guard active, !busy, !changingRecognition else { return }
+        guard active, !busy, !changingRecognition, boundaryPause == nil else { return }
         stopArchivePlayback()
         busy = true
         let epoch = generation
@@ -286,11 +393,33 @@ public final class VoiceModule: HostModule {
         issue = nil
         do {
             let device = try currentInput()
-            if capture.isRunning { acceptanceEvent?("userPause"); await device.pause() }
-            else { acceptanceEvent?("userStart"); try await device.start(requestPermission: requestPermission) }
+            if capture.isRunning {
+                if let intent { LocalToolStage.voicePaused.emit(intent) }
+                device.setCaptureIntent(nil)
+                intent = nil
+                awaitingFirstPCM = false
+                acceptanceEvent?("userPause")
+                await device.pause()
+            } else {
+                let id = UUID()
+                intent = id
+                awaitingFirstPCM = true
+                device.setCaptureIntent(id)
+                LocalToolStage.voiceStarted.emit(id)
+                acceptanceEvent?("userStart")
+                try await device.start(requestPermission: requestPermission)
+                if !capture.isRunning { intent = nil; awaitingFirstPCM = false }
+            }
             guard active, generation == epoch else { return }
             trackRevisions(); await refresh()
-        } catch { if generation == epoch { issue = error.localizedDescription } }
+        } catch {
+            if generation == epoch {
+                if let intent { LocalToolStage.voiceInterrupted.emit(intent) }
+                intent = nil
+                awaitingFirstPCM = false
+                if !(error is CancellationError) { issue = error.localizedDescription }
+            }
+        }
     }
 
     private func trackRevisions() {

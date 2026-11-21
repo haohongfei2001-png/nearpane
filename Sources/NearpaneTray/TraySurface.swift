@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 import RiftletCore
 import NearpaneCore
 
@@ -19,72 +20,92 @@ public struct TraySurface: View {
 
     public var body: some View {
         GeometryReader { outer in
-          Group {
-            if module.connected {
-                GeometryReader { g in
-                    let layout = TrayLayout(ids: module.rows.map(\.id), size: g.size,
-                                            captureEntry: module.captureEntry, expanded: module.expanded, settings:settings)
-                    let cell = layout.cellSize
-                    let unit = g.size.width / 246
-                    let buttonSize = settings.points(.trayButtonSize, in: outer.size.height)
-                    VStack(spacing:layout.rowGap) {
-                        ScrollView(.vertical) {
-                            LazyVGrid(columns:[GridItem(.fixed(cell.width),spacing:layout.columnGap),GridItem(.fixed(cell.width))],spacing:layout.rowGap) {
-                                ForEach(module.rows) { row in
-                                    thumbnail(row, cell: cell, unit: unit)
-                                }
-                                if module.captureEntry && !module.expanded {
-                                    Button { module.toggleMenu() } label: {
-                                        TrayCameraGlyph(width: min(buttonSize, cell.width * 0.75, cell.height))
-                                            .matchedGeometryEffect(id: "systemCamera", in: morph)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
-                                    }.frame(width: cell.width, height: cell.height)
-                                    .buttonStyle(TrayCaptureStyle(unit: unit)).accessibilityLabel("展开截图方式")
-                                }
+            let pad = settings.points(.trayPadding, in: outer.size.width)
+            let gap = settings.points(.columnGap, in: outer.size.width)
+            let rowGap = settings.points(.rowGap, in: outer.size.height)
+            let slots = module.slots
+            let rows = module.rowCount
+            let room = CGSize(width: max(1, outer.size.width - 2 * pad - gap),
+                              height: max(1, outer.size.height - 2 * pad - CGFloat(rows - 1) * rowGap))
+            let cell = CGSize(width: max(1, min(room.width / 2, settings.measures[.cellWidth]?.points(in: room.width) ?? room.width)),
+                              height: max(1, min(room.height / CGFloat(rows), settings.measures[.cellHeight]?.points(in: room.height) ?? room.height)))
+            LazyVGrid(columns: [GridItem(.fixed(cell.width), spacing: gap), GridItem(.fixed(cell.width))], spacing: rowGap) {
+                ForEach(slots, id: \.self) { slot in
+                    Group {
+                        switch slot {
+                        case .shot(let id):
+                            if let row = module.rows.first(where: { $0.id == id }) {
+                                thumbnail(row, cell: cell, unit: outer.size.width / 246)
                             }
-                            .padding(.top, layout.cells.first?.frame.minY ?? 0)
-                        }
-                        .frame(height: layout.imageViewport)
-                        .onScrollPhaseChange { _, phase in if phase != .idle { module.cancelArrival() } }
-                        if layout.menu != nil {
-                            HStack(spacing: min(4 * unit, layout.columnGap)) {
-                                ForEach(module.menuOrder, id: \.self) { action in
-                                    Button { module.capture(action) } label: {
-                                        Group {
-                                            if action == .system {
-                                                Image(systemName: action.symbol).matchedGeometryEffect(id: "systemCamera", in: morph)
-                                            } else { Image(systemName: action.symbol) }
-                                        }.fontWeight(.medium)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                        case .camera:
+                            if module.expanded {
+                                HStack(spacing: 1) {
+                                    ForEach(module.menuOrder, id: \.self) { action in
+                                        Button { module.capture(action) } label: {
+                                            Image(systemName: action.symbol).frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        }.accessibilityLabel(action.label).help(action.label)
                                     }
-                                    .accessibilityLabel(action.label).help(action.label)
-                                    .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
-                                }
+                                }.buttonStyle(.borderless)
+                                .frame(maxHeight: settings.measures[.trayMenuHeight]?.points(in: room.height) ?? cell.height)
+                                .accessibilityAction(named: "收起截图方式") { module.collapseMenu() }
+                            } else {
+                                Button {
+                                    Task {
+                                        if !module.connected { await module.connect() }
+                                        module.toggleMenu()
+                                    }
+                                } label: {
+                                    Image(systemName: "camera").font(.system(size: 21))
+                                        .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                                }.buttonStyle(.plain).accessibilityLabel("展开截图方式").accessibilityIdentifier("tray-camera-entry")
                             }
-                            .buttonStyle(TrayCaptureStyle(unit: unit)).frame(height:layout.menu?.height)
-                            .contextMenu { Button("收起截图方式") { module.toggleMenu() } }
+                        case .folder:
+                            Image(systemName: "folder").font(.system(size: 21))
+                                .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .accessibilityLabel("文件拖放区").accessibilityIdentifier("tray-file-drop")
+                        case .file(let id):
+                            if let file = module.files.first(where: { $0.id == id }) {
+                                Image(nsImage: NSWorkspace.shared.icon(forFile: file.url.path))
+                                    .resizable().scaledToFit().padding(6)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .onDrag { NSItemProvider(object: file.url as NSURL) }
+                                    .help(file.url.lastPathComponent).accessibilityLabel(file.url.lastPathComponent)
+                                    .accessibilityIdentifier("tray-saved-file-" + id.uuidString)
+                            }
                         }
                     }
-                    .frame(width: g.size.width, height: g.size.height, alignment: .top)
-                    .background { Color.clear.contentShape(Rectangle()).onTapGesture { if module.expanded { module.toggleMenu() } } }
-                    .onExitCommand { if module.expanded { module.toggleMenu() } }
-                    .animation(reducedMotion ? nil : .easeOut(duration: 0.16), value: module.expanded)
-                    .animation(reducedMotion ? nil : .easeOut(duration: 0.16), value: module.rows.map(\.id))
-                    .clipped()
+                    .frame(width: cell.width, height: cell.height)
+                    .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 9))
                 }
-            } else {
-                Text("尚未连接截图托盘").font(.caption).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }
-        .font(.system(size:settings.points(.trayButtonSize,in:outer.size.height)))
-        .padding(settings.points(.trayPadding,in:outer.size.width))
-        .overlay(alignment: .bottomLeading) {
-            if let message = module.issue ?? module.attachmentFeedback {
-                Text(message).font(.caption2).lineLimit(2).help(message)
-                    .padding(3).background(.regularMaterial).allowsHitTesting(false)
+            .padding(pad)
+            .frame(width: outer.size.width, height: outer.size.height, alignment: .top)
+            .contentShape(Rectangle())
+            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                let files = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
+                guard !files.isEmpty else { return false }
+                Task {
+                    for provider in files {
+                        let url: URL? = await withCheckedContinuation { resume in
+                            provider.loadDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
+                                resume.resume(returning: data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) })
+                            }
+                        }
+                        if let url, url.isFileURL { await module.importFiles([url]) }
+                    }
+                }
+                return true
             }
-        }
+            .accessibilityElement(children: .contain).accessibilityLabel("截图与文件托盘").accessibilityIdentifier("tray-content")
+            .onExitCommand { module.collapseMenu() }
+            .overlay(alignment: .bottomLeading) {
+                if let message = module.issue ?? module.attachmentFeedback {
+                    Text(message).font(.caption2).lineLimit(2).help(message)
+                        .padding(3).background(.background, in: RoundedRectangle(cornerRadius: 4)).allowsHitTesting(false)
+                }
+            }
         }
     }
 

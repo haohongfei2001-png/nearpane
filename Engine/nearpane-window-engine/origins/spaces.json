@@ -1,0 +1,56 @@
+[
+  {
+    "local": "src/spaces/mod.rs",
+    "upstream": "src/platform/spaces/engine.rs",
+    "blob": "3ebb7d98a056c1eacfdf147bc1d71c86ea2b6f81",
+    "modifications": "Actor-local per-display/group/desktop parking spaces, bound window identities and receipts; ownership-preserving empty-only cleanup."
+  },
+  {
+    "local": "src/spaces/mod.rs",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Own-window route trial without switching native desktops; independently read forward and reverse membership and return to the exact native desktop."
+  },
+  {
+    "local": "src/spaces/mod.rs",
+    "upstream": "src/engine/engine_choice.rs",
+    "blob": "2e432ed0265734abde8c9ecbb2362f5d8fd8faa0",
+    "modifications": "Bounded readback retry and three late-read strikes per sixty seconds; no resend of an ambiguously delivered action."
+  },
+  {
+    "local": "src/spaces/mod.rs",
+    "upstream": "src/engine/spaces.rs",
+    "blob": "ff61749381d82bdc16ff07733fd61f22159e97f3",
+    "modifications": "Preserve original frame and original native desktop; no geometry, model or membership authority copied from the upstream app."
+  },
+  {
+    "local": "src/spaces/platform.m",
+    "upstream": "src/platform/spaces/ffi.rs",
+    "blob": "07fd308828d042ca29d6f2f45d12655765739708",
+    "modifications": "Narrow reviewed classic create/destroy and C or exact-typed ObjC add/remove, read both directions; no transform, global ordering or show-private-Space path."
+  },
+  {
+    "local": "src/spaces/system.rs",
+    "upstream": "src/platform/spaces/ffi.rs",
+    "blob": "07fd308828d042ca29d6f2f45d12655765739708",
+    "modifications": "Typed Rust worker-side wrappers, explicit incomplete reads, ephemeral generation-bound AX witness and retained reference cleanup."
+  },
+  {
+    "local": "src/spaces/launch.rs",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Adapt the own-window launch lifecycle to a previously reviewed route; one-use self-owned canary, exact before/after membership, separate readback-only reconciliation, and no transfer of authority before cleanup."
+  },
+  {
+    "local": "src/spaces/launch-panel.inc",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Adapt the nonactivating transparent probe panel. Require the installed Developer ID identity, a retained private instance, unchanged external focus, bounded main-thread calls and positive AppKit/CG disappearance."
+  },
+  {
+    "local": "src/spaces/installed.rs",
+    "upstream": "src/platform/spaces/probe.rs",
+    "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
+    "modifications": "Reuse the existing own-panel, temporary-Space, bound-window and return paths for a single independently enrolled fixture. Keep its authority, durable evidence and state separate from production qualification."
+  }
+]

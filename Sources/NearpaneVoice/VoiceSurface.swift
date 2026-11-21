@@ -24,35 +24,58 @@ public struct VoiceSurface: View {
     }
 
     public var body: some View {
-        GeometryReader { content(size:$0.size) }
+        if module.panelIsCompact && editing == nil {
+            compact
+        } else {
+            GeometryReader { content(size: $0.size) }
+        }
+    }
+
+    private var compact: some View {
+        HStack(spacing: 6) {
+            if module.microphoneDenied {
+                Text("麦克风不可用").font(.system(size: 12))
+                Spacer()
+                Button {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: { Image(systemName: "gearshape").frame(width: 48, height: 27) }
+                    .accessibilityLabel("打开麦克风权限设置")
+            } else {
+                if let issue = module.issue { Text(issue).font(.caption).lineLimit(1).help(issue) }
+                Spacer(minLength: 0)
+                Button { Task { await module.toggle() } } label: {
+                    Image(systemName: "play.fill").font(.system(size: 13)).frame(width: 48, height: 27)
+                }.disabled(module.busy || !module.active).accessibilityLabel("开始或恢复收音")
+                    .accessibilityIdentifier("voice-capture-toggle")
+                    .accessibilityValue("暂停")
+            }
+        }
+        .buttonStyle(VoiceGlassControlStyle(copy: false, height: 27))
+        .padding(.horizontal, 12).frame(maxHeight: .infinity)
+        .contextMenu {
+            Button("复制当前文字") { copied = copy(module.transcript, to: pasteboard) }.disabled(module.transcript.isEmpty)
+        }
     }
 
     static func captureButtonSize(in size: CGSize, settings: DisplaySettings) -> CGSize {
-        let reference = SaytileVoiceUI.VoicePanelFootprint.controlSize
-        let height = settings.measures[.voiceButtonHeight]?.points(in: size.height) ?? reference.height
-        if let saved = settings.measures[.voiceButtonWidth] {
-            return CGSize(width: saved.points(in: size.width), height: height)
-        }
-        let copy = max(height, settings.points(.copySize, in: size.height))
-        let available = size.width - copy - 2 * settings.points(.textPadding, in: size.width)
-            - 2 * settings.points(.buttonGap, in: size.width)
-        // Retain Nearpane's compact hit target while expanding into the shared Saytile capsule.
-        let minimum = settings.points(.voiceButtonWidth, in: size.width)
-        return CGSize(width: max(minimum, min(reference.width, available)), height: height)
+        let height = settings.measures[.voiceButtonHeight]?.points(in: size.height) ?? 27
+        let width = settings.measures[.voiceButtonWidth]?.points(in: size.width) ?? 48
+        return CGSize(width: width, height: height)
     }
 
     private func content(size: CGSize) -> some View {
-        let fontSize = settings.readableFontSize(.textSize, in: size.height)
+        let fontSize = settings.readableFontSize(.textSize, in: size.height) ?? 14
         let lineSpacing = settings.points(.lineGap, in: size.height)
         let captureButton = Self.captureButtonSize(in: size, settings: settings)
         let buttonWidth = captureButton.width
         let buttonHeight = captureButton.height
-        let reference = VoicePanelMetrics(width: size.width)
         let copySide = max(buttonHeight, settings.points(.copySize, in: size.height))
         // Keep the wider Saytile copy bezel only while the two hit targets fit.
         let footerRoom = size.width - 2 * settings.points(.textPadding, in: size.width)
             - settings.points(.buttonGap, in: size.width) - buttonWidth
-        let copyWidth = max(copySide, min(reference.copyWidth, footerRoom))
+        let copyWidth = max(copySide, min(30, footerRoom))
         return VStack(alignment: .leading, spacing: DisplaySettings.voiceFooterGap) {
             if let id = editing {
                 TranscriptEditor(text: Binding(get: { draft }, set: { draft = $0; module.stageDraft(id, text: $0) }),
@@ -78,7 +101,7 @@ public struct VoiceSurface: View {
                         if module.rows.allSatisfy({ $0.text.isEmpty && $0.recognitionState != .failed }),
                            module.capture == .paused, module.issue == nil {
                             Text("点播放按钮开始收音")
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(Color(nsColor: SidebarTextColor.secondary))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         if module.hasEarlier {
@@ -108,7 +131,7 @@ public struct VoiceSurface: View {
                 }.frame(maxWidth: .infinity, maxHeight: min(size.height,settings.points(.textHeight,in:size.height)), alignment: .topLeading)
             }
             if let issue = module.issue ?? module.insertionNotice {
-                Text(issue).font(.caption2).foregroundStyle(.secondary).lineLimit(2).help(issue)
+                Text(issue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2).help(issue)
             }
             HStack(spacing:settings.points(.buttonGap,in:size.width)) {
                 Button {
@@ -135,6 +158,7 @@ public struct VoiceSurface: View {
                 .buttonStyle(VoiceGlassControlStyle(copy: false, height: buttonHeight))
                 .disabled(module.busy || !module.active)
                 .help(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
+                .accessibilityIdentifier("voice-capture-toggle")
                 .accessibilityLabel(module.capture.isRunning ? "暂停收音" : "开始或恢复收音")
                 .accessibilityValue(module.control.state == .standby ? "待命" : module.control.state == .recognizing ? "正在识别" : "暂停")
             }
@@ -160,21 +184,15 @@ private struct VoiceGlassControlStyle: ButtonStyle {
     @Environment(\.accessibilityReduceTransparency) private var opaque
 
     func makeBody(configuration: Configuration) -> some View {
-        let scale = height / ReferencePanelStyle.controlHeight
-        let outline = RoundedRectangle(cornerRadius: (copy ? 13 : ReferencePanelStyle.controlHeight / 2) * scale,
-                                       style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: copy ? 9 : height / 2, style: .continuous)
         configuration.label
-            .foregroundStyle(scheme == .light && contrast == .standard ? ReferencePanelStyle.copyInk : Color.primary)
+            .foregroundStyle(Color(nsColor: enabled ? SidebarTextColor.primary : SidebarTextColor.secondary))
             .background {
-                if scheme == .light && !opaque && contrast == .standard {
-                    ReferenceControlSurface(copy: copy, scale: scale)
-                } else {
-                    outline.fill(opaque ? Color(nsColor: .controlBackgroundColor) : .white.opacity(0.10))
-                        .overlay { outline.strokeBorder(contrast == .increased ? Color.primary : .white.opacity(0.25),
-                                                        lineWidth: contrast == .increased ? 1 : 0.7) }
-                }
+                shape.fill(opaque ? Color(nsColor: .controlBackgroundColor) :
+                    Color.white.opacity(configuration.isPressed ? 0.58 : scheme == .dark ? 0.1 : 0.42))
+                    .overlay { shape.strokeBorder(.primary.opacity(contrast == .increased ? 0.65 : 0.09),
+                                                 lineWidth: contrast == .increased ? 1 : 0.5) }
             }
-            .opacity(!enabled ? 0.5 : configuration.isPressed ? 0.62 : 1)
     }
 }
 
@@ -241,7 +259,7 @@ struct TranscriptLine: NSViewRepresentable {
         view.textContainer?.lineFragmentPadding = 0
         view.textContainer?.widthTracksTextView = false
         view.font = transcriptFont(fontSize)
-        view.textColor = .labelColor
+        view.textColor = SidebarTextColor.primary
         return view
     }
 

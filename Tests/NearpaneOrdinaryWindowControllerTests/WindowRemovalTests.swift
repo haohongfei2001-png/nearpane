@@ -1,5 +1,5 @@
 import Testing
-@testable import NearpaneOrdinaryWindowController
+@testable import NearpaneOrdinaryWindowRuntime
 
 struct WindowRemovalTests {
     @Test func genuineCGClosingAnimationMustSettleBeforeTwoConfirmedReads() throws {

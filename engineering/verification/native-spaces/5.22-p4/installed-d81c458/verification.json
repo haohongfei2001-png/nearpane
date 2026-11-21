@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "scope": "One installed request from a controlled text field, plus a read-only replay of its signed Host and RunningBoard log events.",
+  "source": "d81c458f58b8b2efcb393acc0d8fff8db07345a6",
+  "request": "66BF345A-9231-4CA8-A835-66CE5C86246C",
+  "overall": "FAIL",
+  "fixtureFocusAcrossService": {
+    "after": false,
+    "before": true
+  },
+  "sampleCount": 6,
+  "sampleWindow": 53822,
+  "allTwelveForegroundAndAXReads": "installedHost",
+  "atOriginalSelection": 0,
+  "atOriginalPointer": 6,
+  "allConditionsPassed": 0,
+  "captureAPICalls": 5,
+  "capturedUnobscuredFinalNotice": 5,
+  "exactOCRAndRequestBoundAXMatches": 5,
+  "firstSampleCapture": "WITHHELD_TARGET_IDENTITY_GEOMETRY_OR_OPACITY_CHANGED",
+  "selectionSourceAttribution": "BLOCKED_UNVERIFIED",
+  "genericFeedbackWindow": "PASS",
+  "genericFeedbackContent": "PASS",
+  "preciseSelectionPlacement": "BLOCKED_UNVERIFIED_SOURCE",
+  "sameRequestWordRows": 0,
+  "translationModel": "BLOCKED_MODEL_MISSING",
+  "wordAfterRestart": "NOT_RUN",
+  "pngWidthHeightPixels": {
+    "translation/selection.png": [
+      920,
+      364
+    ],
+    "translation/generic-feedback.png": [
+      552,
+      74
+    ]
+  },
+  "originalSHA256": {
+    "result.json": "b57fb0814ac4aac4defc5c32dd162a6eedaf1ef5b32b2eaf77e53337e376087e",
+    "registration/result.json": "5c64b5b4d601e5041ad3a9f4455a3b5e09e89fb6d85cb43d46387903f2dc9398",
+    "translation/result.json": "f00699961628368135174ac093700c9302adca589311a01efcae536245517d5d",
+    "translation/selection.png": "49f1f433a98af09920534d77b4b30e5834c926a256ab1776728912702e1aa2de",
+    "translation/generic-feedback.png": "d91c0d4a13126af46da8bee3fced99dfb5e9648d88492676904486b464441bc9",
+    "host-permissions.json": "594e09f957a5d68a9af92372d5d4988ff95bd1cd1b9bd23d08c4dc1076ac22de"
+  }
+}

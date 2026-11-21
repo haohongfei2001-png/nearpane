@@ -1,0 +1,28 @@
+{
+  "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+  "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+  "initial": {
+    "fullscreenIDs": [
+      "2000"
+    ],
+    "geometry": [
+      "37D8832A-2D66-02CA-B9F7-8F30A301B230:{{0, 0}, {1470, 956}}:0:2"
+    ],
+    "primaryScope": null,
+    "sideOrder": [
+      "4",
+      "2000",
+      "6",
+      "5"
+    ],
+    "spaceUUIDs": {
+      "2000": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0",
+      "4": "0695C8A7-8344-4AEC-A780-2FE0562E63B9",
+      "5": "32E0240D-643C-360E-6D15-60A85CF55F1A",
+      "6": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+    }
+  },
+  "issuedUptime": 234388.63732237503,
+  "operation": "a7155348-b8a8-401e-9bee-7e3d82331c88",
+  "source": "4"
+}

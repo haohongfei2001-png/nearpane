@@ -1,0 +1,119 @@
+{
+  "owners": [
+    {
+      "fullscreen": [
+        false,
+        false
+      ],
+      "key": 0,
+      "numbers": [
+        48794,
+        48795
+      ],
+      "pid": 79235,
+      "zoomed": [
+        false,
+        false
+      ]
+    }
+  ],
+  "system": {
+    "focusedNumber": 38013,
+    "frontPID": 91990,
+    "hid": [
+      5402,
+      68,
+      0,
+      2952,
+      126817,
+      17747,
+      35,
+      0
+    ],
+    "observerAX": true,
+    "topology": {
+      "current": 4,
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "records": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        {
+          "id": 4983,
+          "type": 4,
+          "uuid": "9199A966-CB66-4069-B473-BFE8582B9713"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+        },
+        {
+          "id": 4987,
+          "type": 0,
+          "uuid": "5AE18171-CE4B-B27F-E90B-3360A172EB62"
+        },
+        {
+          "id": 4988,
+          "type": 0,
+          "uuid": "CAD49517-21F6-167A-852A-A6D998E87479"
+        }
+      ]
+    },
+    "uptime": 244772.49435966669
+  },
+  "witnesses": [
+    {
+      "windows": [
+        {
+          "axFullscreen": false,
+          "axListRead": true,
+          "axMatches": 1,
+          "axMinimized": false,
+          "axRole": "AXWindow",
+          "axStandardNow": true,
+          "axSubrole": "AXStandardWindow",
+          "axWindowListStatus": 0,
+          "birth": 1795171374080549,
+          "focused": 48794,
+          "forward": true,
+          "number": 48794,
+          "ownedWindowGeneration": null,
+          "pid": 79235,
+          "reverse": [
+            4
+          ],
+          "roleEvidence": "current AX list",
+          "standard": true
+        }
+      ]
+    },
+    {
+      "windows": [
+        {
+          "axFullscreen": false,
+          "axListRead": true,
+          "axMatches": 1,
+          "axMinimized": false,
+          "axRole": "AXWindow",
+          "axStandardNow": true,
+          "axSubrole": "AXStandardWindow",
+          "axWindowListStatus": 0,
+          "birth": 1795171374080549,
+          "focused": 48794,
+          "forward": true,
+          "number": 48795,
+          "ownedWindowGeneration": null,
+          "pid": 79235,
+          "reverse": [
+            4
+          ],
+          "roleEvidence": "current AX list",
+          "standard": true
+        }
+      ]
+    }
+  ]
+}

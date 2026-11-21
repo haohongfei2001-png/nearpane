@@ -1,0 +1,14 @@
+{
+  "status": "FAIL",
+  "source": "86b73bc3b48c9bbd8b2333f51dcdb8512989c7c9",
+  "osBuild": "26A428",
+  "stage": "candidate component deployment validation before signing or product launch",
+  "stderr": [
+    "Missing/incompatible macOS arm64 slice: Helpers/NearpaneCornerGuardian"
+  ],
+  "productMinimum": "26.0",
+  "observedGuardianMinimum": "27.0",
+  "buildLogSHA256": "cd95b4be8320577f4352e1d1f9e85d0bdba16b8f2de9b0d477ca8e87c8cfe6fb",
+  "productLaunched": false,
+  "windowActions": 0
+}

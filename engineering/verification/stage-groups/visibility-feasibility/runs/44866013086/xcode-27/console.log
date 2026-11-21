@@ -1,0 +1,9 @@
+2026-11-21T04:25:18.0047370Z ##[group]Run python3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility"
+2026-11-21T04:25:18.0048480Z ^[[36;1mpython3 -B engineering/verification/stage-groups/visibility-feasibility/poc/run.py "$RUNNER_TEMP/window-visibility"^[[0m
+2026-11-21T04:25:18.0110100Z shell: /bin/bash -e {0}
+2026-11-21T04:25:18.0110420Z ##[endgroup]
+2026-11-21T04:25:25.6078090Z /Users/runner/work/_temp/nearpane-visibility-iwe9z62t/bin/Fixture: replacing existing signature
+2026-11-21T04:25:26.7380450Z /Users/runner/work/_temp/nearpane-visibility-iwe9z62t/bin/Inspect: replacing existing signature
+2026-11-21T04:25:27.8435190Z /Users/runner/work/_temp/nearpane-visibility-iwe9z62t/bin/Order: replacing existing signature
+2026-11-21T04:25:28.8186160Z /Users/runner/work/_temp/nearpane-visibility-iwe9z62t/bin/Display: replacing existing signature
+2026-11-21T04:27:14.7017040Z {"methods": {"A.single": "FAIL", "A.sameAppSecond": "NOT_RUN", "A.userDock": "OBSERVED", "A.focusedTarget": "OBSERVED", "B.ownerControl": "FAIL", "B.cold-main": "FAIL", "B.appkit-load": "FAIL", "B.app-main": "FAIL", "B.independent": "FAIL", "B.transaction": "FAIL", "C.virtual": "FAIL"}, "cleanup": {"fixtureLaunchersExit": [0, 0], "fixtureCount": 2, "dockRestored": true, "temporaryDirectoryRemoved": true}}

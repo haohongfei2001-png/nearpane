@@ -1,0 +1,11 @@
+{"event": "fixture-created", "monotonic": 273186.966087666, "fixturePID": 24330, "cdhash": "18ae08d4195725ae25fd5a8f8c26088cfb00bc71", "session": "ecc30cc9-df2f-44dd-805c-fb54d9f5a66e"}
+{"event": "fixture-bound", "monotonic": 273187.407931125, "numbers": [53268, 53269], "pid": 24330, "generation": 1795199795695881}
+{"event": "window-intent", "monotonic": 273188.111114708, "intent": "ebbe47b2-c3d0-4fba-864c-4b6fc963a78b", "target": 53268, "sibling": 53269, "beforeFocus": 24041}
+{"event": "sidebar-press", "monotonic": 273188.220963166, "intent": "ebbe47b2-c3d0-4fba-864c-4b6fc963a78b", "result": {"axError": 0, "control": "current-desktop-window:24330:53268", "issued": true}}
+{"event": "pid-targeted-marker", "monotonic": 273188.7715285, "intent": "ebbe47b2-c3d0-4fba-864c-4b6fc963a78b", "result": {"axFocusedWindow": 53268, "issued": true, "targetedOnly": true}}
+{"event": "input-readback", "monotonic": 273189.605749458, "intent": "ebbe47b2-c3d0-4fba-864c-4b6fc963a78b", "match": true, "expectedDocumentDigests": ["a812ece5c61c22b1e97fea8e16243a130129ba09bdf22724013ae19a96d0b6d9", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"], "productLog": []}
+{"event": "window-intent", "monotonic": 273189.723223416, "intent": "b436d83b-2f3f-484a-8367-2a2148e22f14", "target": 53269, "sibling": 53268, "beforeFocus": 24330}
+{"event": "sidebar-press", "monotonic": 273189.852379583, "intent": "b436d83b-2f3f-484a-8367-2a2148e22f14", "result": {"axError": 0, "control": "current-desktop-window:24330:53269", "issued": true}}
+{"event": "pid-targeted-marker", "monotonic": 273190.342690333, "intent": "b436d83b-2f3f-484a-8367-2a2148e22f14", "result": {"axFocusedWindow": 53269, "issued": true, "targetedOnly": true}}
+{"event": "input-readback", "monotonic": 273193.163608458, "intent": "b436d83b-2f3f-484a-8367-2a2148e22f14", "match": false, "expectedDocumentDigests": ["a812ece5c61c22b1e97fea8e16243a130129ba09bdf22724013ae19a96d0b6d9", "a8473e900da54dbde53218bf4f72e29c1a7255274cb19b6c9e150247603a14e6"], "productLog": []}
+{"event": "cleanup", "monotonic": 273193.438551375, "ownedProcessExited": true, "frontmostRestored": false, "originalFocusedWindowRestored": false, "windowNumbersGone": true, "scopesRestored": true}

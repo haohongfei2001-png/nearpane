@@ -20,7 +20,7 @@ struct PhysicalInput: Equatable {
         }
     }
 }
-let physical = PhysicalInput()
+var physical = PhysicalInput()
 func trialSend(_ object: Object) {
     if let data = try? JSONSerialization.data(withJSONObject: object, options: .sortedKeys) {
         FileHandle.standardOutput.write(data + Data([10]))
@@ -59,23 +59,53 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
     guard let current, scope.spaces.contains(where: { $0.id == current }),
           let windows = CGWindowListCopyWindowInfo([.optionAll,.excludeDesktopElements], kCGNullWindowID) as? [Object]
     else { throw TrialRefusal("current Space escaped scope or CG unavailable") }
+#if NATIVE_CONTRACT
+    guard let census=NPContractMemberReport(scope.spaces.map { NSNumber(value:$0.id) } as CFArray,app.processIdentifier) as? [String:[String:Any]],
+          scope.spaces.allSatisfy({ s in
+              guard let entry=census[String(s.id)], entry["unresolved"] as? Int == 0, entry["otherMembers"] as? Int == 0,
+                    let rows=entry["ordinary"] as? [[String:NSNumber]] else {return false}
+              return rows.count == scope.witnesses.filter({$0.space==s.id}).count && rows.allSatisfy({ r in
+                  scope.witnesses.contains { $0.space==s.id && $0.pid==r["pid"]?.int32Value && $0.number==r["number"]?.uint32Value }
+              })
+          }) else {throw TrialRefusal("per-Space membership no longer limited to fixtures")}
+#else
     let trialOccupancy = occupancy(windows, excluding: app.processIdentifier)
     guard trialOccupancy["unresolved"] as? Int == 0, let counts = trialOccupancy["counts"] as? [String:Int],
           scope.spaces.allSatisfy({ s in counts[String(s.id), default:0] == scope.witnesses.filter { $0.space == s.id }.count })
     else { throw TrialRefusal("window inventory no longer limited to witnesses") }
+#endif
     for w in scope.witnesses {
         var b = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: b))
         guard proc_pidinfo(w.pid, PROC_PIDTBSDINFO, 0, &b, size) == size, b.pbi_pid == UInt32(w.pid), b.pbi_uid == getuid(),
-              b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec == w.birth,
-              let fx = NSRunningApplication(processIdentifier: w.pid), fx.bundleIdentifier == "net.example.spaces-document",
-              fx.bundleIdentifier == w.bundleID, fx.bundleURL?.resolvingSymlinksInPath().path == w.bundlePath,
-              fx.bundleURL?.lastPathComponent == "Field Notes.app", runningCodeHash(w.pid) == w.codeHash,
-              windows.filter({ $0[kCGWindowNumber as String] as? UInt32 == w.number &&
-                               $0[kCGWindowOwnerPID as String] as? Int32 == w.pid }).count == 1,
-              (NPReadWindowSpaces(w.number) as? [UInt64]) == [w.space]
-        else { throw TrialRefusal("witness identity or membership changed") }
+              b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec == w.birth else {
+            throw TrialRefusal("fixture PID or process birth changed: \(w.pid)")
+        }
+        let identities=["net.example.spaces-document":"Field Notes.app","net.example.spaces-route-witness":"Route Notes.app"]
+        guard identities[w.bundleID]==URL(fileURLWithPath:w.bundlePath).lastPathComponent else {
+            throw TrialRefusal("unenrolled fixture bundle identity: \(w.pid)")
+        }
+        var bytes=[CChar](repeating:0,count:4096)
+        guard proc_pidpath(w.pid,&bytes,UInt32(bytes.count))>0 else {throw TrialRefusal("fixture kernel path unavailable: \(w.pid)")}
+        let executable=URL(fileURLWithPath:String(cString:bytes)).resolvingSymlinksInPath().standardizedFileURL
+        let expected=URL(fileURLWithPath:w.bundlePath).appendingPathComponent("Contents/MacOS/FieldNotes").resolvingSymlinksInPath().standardizedFileURL
+        guard executable==expected else {throw TrialRefusal("fixture kernel executable differs from enrolled file: \(w.pid)")}
+        guard Bundle(url:URL(fileURLWithPath:w.bundlePath))?.bundleIdentifier==w.bundleID else {
+            throw TrialRefusal("fixture's signed bundle identifier differs: \(w.pid)")
+        }
+        guard runningCodeHash(w.pid)==w.codeHash else {throw TrialRefusal("fixture CDHash changed: \(w.pid)")}
+        guard (NPReadWindowSpaces(w.number) as? [UInt64]) == [w.space] else {
+            throw TrialRefusal("reverse membership changed for fixture window \(w.number) on \(w.space)")
+        }
+#if !NATIVE_CONTRACT
+        // The standalone legacy observer lacks the per-Space owner census used above.
+        guard windows.filter({ $0[kCGWindowNumber as String] as? UInt32 == w.number &&
+                               $0[kCGWindowOwnerPID as String] as? Int32 == w.pid }).count==1 else {
+            throw TrialRefusal("public window owner unavailable: \(w.number)")
+        }
+#endif
     }
+#if !NATIVE_CONTRACT
     let foreground = NSWorkspace.shared.frontmostApplication
     let focused = focusedNumber(foreground?.processIdentifier)
     let focusedTest = scope.witnesses.contains { $0.pid == foreground?.processIdentifier && $0.number == focused }
@@ -86,6 +116,10 @@ func validateTrial(_ scope: TrialScope, original: [Object], geometry: [Object]) 
                                           kAXFocusedWindowAttribute as CFString, &finderFocus) == .noValue
         } == true
     guard focusedTest || emptyFinder else { throw TrialRefusal("foreground is outside controlled windows") }
+#endif
+    // The contract driver sends AXPress only to a verified installed Host row. The
+    // scoped census and independently checked source cover even a genuinely empty
+    // target, where macOS need not nominate a focused window.
     return (app, windows, current)
 }
 if let line = readLine(), let scope = try? JSONDecoder().decode(TrialScope.self, from: Data(line.utf8)),
@@ -94,6 +128,7 @@ if let line = readLine(), let scope = try? JSONDecoder().decode(TrialScope.self,
     while let message = readLine() {
         var attempts: [Object] = []
         do {
+            physical = PhysicalInput()
             guard let input = try JSONSerialization.jsonObject(with: Data(message.utf8)) as? Object,
                   let targets = input["targets"] as? [UInt64], targets.count <= 5,
                   let allowedSources = input["sources"] as? [UInt64]

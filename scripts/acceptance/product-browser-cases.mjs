@@ -94,9 +94,10 @@ async function drive(exe, args, settings, onCall) {
 export async function runProductCases({run,compose,source,png,sha,fixture,call,send,evalPage,navigate,primary,chromePID}) {
   const cases=[];
   const id=fixture.assetID || randomUUID();
-  const native={applicationID:'com.google.Chrome',sessionID:null,windowID:'1',tabID:'1'};
+  const browser = fixture.browser ?? 'chrome';
+  const native={applicationID:browser==='edge'?'com.microsoft.edgemac':'com.google.Chrome',sessionID:null,windowID:'1',tabID:'1'};
   const settings={assetID:id,sha256:sha,origin:fixture.origin??'systemScreenshot',
-    width:fixture.width??2,height:fixture.height??2,chromePID,measureLiveFeedback:fixture.scenario==='composer-replaced'};
+    width:fixture.width??2,height:fixture.height??2,chromePID,browserID:native.applicationID,measureLiveFeedback:fixture.scenario==='composer-replaced'};
   const scenarios = fixture.scenario ? [fixture.scenario] :
     ['owned-normal','owned','detached','composer-replaced','reload','tab-switch','route-changed','focused-other-editor','modal-over-composer'];
   for(const scenario of scenarios) {
@@ -119,7 +120,12 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
     let selected=true;
     const pageObservations = [];
     async function callDriver(m) {
-      if(m.cmd==='process'){native.sessionID=m.value;assert.ok(m.value.startsWith('chrome-kernel-v1:'+chromePID+':'));return 'ok';}
+      if(m.cmd==='process'){native.sessionID=m.value;assert.ok(m.value.startsWith(browser+'-kernel-v1:'+chromePID+':'));return 'ok';}
+      if(m.cmd==='pin'){
+        if(!selected)return undefined;
+        const command={action:'pinTarget',clickWitnessID:m.witness,address:url};
+        return await evalPage('('+m.source+')('+JSON.stringify(command)+',{})');
+      }
       if(m.cmd==='arm'){
         actionCounts.arm=(actionCounts.arm??0)+1;
         try {return await evalPage(m.script);} catch {pageRefusals++;return undefined;}
@@ -250,7 +256,7 @@ export async function runProductCases({run,compose,source,png,sha,fixture,call,s
     cases.push({scenario,assetID:id,commands:actionCounts,events,domain,freshProcess:fresh,
       nativeRefusals,pageRefusals,pageObservations,repeat,firstClickCommands,changedTab:!!other,otherDraft:otherSnapshot,oldDocument:documentBeforeReload});
   }
-  return {scope:'ordinary Swift tray, executor, WebAttachmentAdapter and original queue policy with pipe in place of OS Chrome addressing. Local intercepted DOMs; no ChatGPT service.',
+  return {scope:'Ordinary Swift tray, executor, WebAttachmentAdapter and queue with a pipe to the headless browser. Intercepted fixture pages.',
     transport:'fresh headless profile; reject proxy; private CDP pipe; synthetic native window/tab route; intercepted fixture documents',
     candidateBrowserResources:fixture.candidateBrowserResources,assetSHA256:sha,cases};
 }

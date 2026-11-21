@@ -1,0 +1,56 @@
+{
+  "fixtureProcessesExited": true,
+  "groupVisibilitySwitch": "NOT_RUN",
+  "installedHost": "NOT_RUN",
+  "nativeWrites": 0,
+  "physicalMultiDisplay": "NOT_RUN",
+  "profileRemoved": true,
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "5EE0F8F6-E329-4AD8-93E2-7BE973A3B215",
+      "8E029C49-4D8A-48DA-8901-49E66BF0647A"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11314,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "5EE0F8F6-E329-4AD8-93E2-7BE973A3B215",
+      "8E029C49-4D8A-48DA-8901-49E66BF0647A"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11315,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false
+  },
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "sourceRevision": "7533170c55ad1b54afb9cf3c421096a58dead031",
+  "status": "PASS",
+  "gitHubRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44855351770"
+}

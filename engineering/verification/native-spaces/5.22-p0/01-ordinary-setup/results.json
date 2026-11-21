@@ -1,0 +1,50 @@
+{
+  "blankScreen": "UNKNOWN",
+  "cleanup": {
+    "errors": [
+      "automatic restoration of original current, foreground or exact focus unconfirmed"
+    ],
+    "newerHumanInput": false,
+    "ordinary": {
+      "cleanupCurrent": 6,
+      "created": 1,
+      "errors": [],
+      "focusRestored": true,
+      "originalCurrent": 6,
+      "originalOrderRestored": true,
+      "outstanding": [],
+      "preservedLatestOrder": true,
+      "removed": 1,
+      "retainedUserSelectedSpace": false,
+      "topologyRestored": true
+    },
+    "originalCurrentRestored": true,
+    "originalFocusedWindowRestored": false,
+    "originalForegroundRestored": false,
+    "originalOrderAndUUIDsRestored": true,
+    "ownedAppsExited": true,
+    "ownedWindowsGone": true,
+    "status": "UNKNOWN"
+  },
+  "privateContentCaptured": false,
+  "reason": "unrelated foreground app appeared before fixture operation",
+  "setupRoute": "ordinary",
+  "stages": {
+    "fifty": {
+      "requested": 50,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "roundTrip": {
+      "requested": 2,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "ten": {
+      "requested": 10,
+      "samples": [],
+      "status": "NOT_RUN"
+    }
+  },
+  "status": "BLOCKED"
+}

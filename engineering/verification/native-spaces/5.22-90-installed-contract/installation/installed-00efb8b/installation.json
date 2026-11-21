@@ -1,0 +1,21 @@
+{
+  "bundlePath": "/Applications/Nearpane.app",
+  "continuityCheckedBothDirections": 16,
+  "deepSignatureValid": true,
+  "fromBuild": "91",
+  "newSignature": {
+    "CDHash": "14505083ceee2f1dc588b7fa121fb53208bda870",
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "normalExit": true,
+  "oldSignature": {
+    "CDHash": "74f022c53245a9b8cc56843f24456b0bdda6712f",
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "resourceAndRuntimeCheck": true,
+  "source": "00efb8b2fc6478cf842eea0c304608a946f0548e",
+  "stableRequirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+  "toBuild": "90"
+}

@@ -140,7 +140,7 @@ private final class RosterPanel: NSPanel {
     static func run() async {
         NSApplication.shared.setActivationPolicy(.prohibited)
         let original = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        var result = [String:Any](), owners = [Process]()
+        var result = [String:Any](), owners = [NSRunningApplication]()
         verification: do {
             guard let original, WindowContentPreview.sessionAvailable(), let screen = NSScreen.screens.first,
                   NSScreen.screens.count == 1, let d = SystemScreens.geometry().first, CGPreflightScreenCaptureAccess(),
@@ -154,13 +154,20 @@ private final class RosterPanel: NSPanel {
             result["allSpacesDocuments"] = allSpacesDocuments
             result["publicVisibleFixture"] = sticky
             result["coldBackgroundFixture"] = coldBackground
-            for (bundle,exe,id) in [("Design Notes.app","Notes","net.example.nearpane-window-selection"),("Sketch Board.app","Board","net.example.nearpane-window-board")] {
+            for (bundle,id) in [("Design Notes.app","net.example.nearpane-window-selection"),("Sketch Board.app","net.example.nearpane-window-board")] {
                 let url=folder.appendingPathComponent(bundle)
                 guard Bundle(url:url)?.bundleIdentifier == id else { throw TrialError("测试包身份不符") }
-                let p=Process(); p.executableURL=url.appendingPathComponent("Contents/MacOS/"+exe)
-                p.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : []) + (mixed ? ["--mixed-roles"] : [])
-                if stageHistory { p.arguments?.append("--stage-history") }
-                try p.run(); owners.append(p)
+                let config = NSWorkspace.OpenConfiguration()
+                config.activates = false
+                config.addsToRecentItems = false
+                config.createsNewApplicationInstance = true
+                config.arguments = ["--roster"] + (sticky ? ["--public-visible"] : []) + (allSpacesDocuments ? ["--all-spaces-documents"] : []) + (mixed ? ["--mixed-roles"] : [])
+                if stageHistory { config.arguments.append("--stage-history") }
+                let app = try await NSWorkspace.shared.openApplication(at: url, configuration: config)
+                guard app.bundleIdentifier == id, app.bundleURL?.resolvingSymlinksInPath().path == url.resolvingSymlinksInPath().path else {
+                    throw TrialError("启动的窗口所有者与本次测试包不符")
+                }
+                owners.append(app)
             }
             func report(_ name: String) -> OwnerReport? {
                 (try? Data(contentsOf:folder.appendingPathComponent(name+".json"))).flatMap { try? JSONDecoder().decode(OwnerReport.self,from:$0) }
@@ -540,8 +547,8 @@ private final class RosterPanel: NSPanel {
             result["owners"]=pids.count; result["pass"]=true
         } catch {result["pass"]=false; result["reason"]=error.localizedDescription}
         try? Data().write(to:folder.appendingPathComponent("finish-roster"),options:.atomic)
-        for _ in 0..<80 where owners.contains(where:{$0.isRunning}) {try? await Task.sleep(for:.milliseconds(30))}
-        result["ownedProcessesExited"]=owners.allSatisfy{!$0.isRunning}
+        for _ in 0..<80 where owners.contains(where:{!$0.isTerminated}) {try? await Task.sleep(for:.milliseconds(30))}
+        result["ownedProcessesExited"]=owners.allSatisfy(\.isTerminated)
         result["originalFrontPreserved"]=original != nil && NSWorkspace.shared.frontmostApplication?.processIdentifier==original
         if result["ownedProcessesExited"] as? Bool != true || result["originalFrontPreserved"] as? Bool != true { result["pass"]=false }
         if let data = try? JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]) { FileHandle.standardOutput.write(data) }

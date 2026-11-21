@@ -1,0 +1,135 @@
+{
+  "source": "02422473f8cb897baa60db82604a7400c9e9ea00",
+  "cdhash": "80f7cf70d681c4767df8c630d8bd17880ec153cd",
+  "formalHost": "/Applications/Nearpane.app",
+  "build": "90",
+  "case": "P2 same-application same-Space exact keyboard focus",
+  "status": "PASS",
+  "trials": [
+    {
+      "trial": 1,
+      "window": "B",
+      "id": 53673,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "c48b0a8e5292d4544b65bf9d0e98f89362ecbdd246c9078a0e7a52a2fa2dd91f",
+      "siblingDocumentSHA256": "265e178e08b7c650f70ca5a782d1ec54f1b64cbc323f3e3e37cde2fc4f08b45a",
+      "status": "PASS"
+    },
+    {
+      "trial": 2,
+      "window": "A",
+      "id": 53671,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "b1d41d60e45b37d248c569d1178e9b92e85c838e35a1ead1a8b2a3f63f2eb7d8",
+      "siblingDocumentSHA256": "c48b0a8e5292d4544b65bf9d0e98f89362ecbdd246c9078a0e7a52a2fa2dd91f",
+      "status": "PASS"
+    },
+    {
+      "trial": 3,
+      "window": "B",
+      "id": 53673,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "114a9a3731e014a483e4dd3161f857b4374b2bff289f20c40fd00faff2e7fd8c",
+      "siblingDocumentSHA256": "b1d41d60e45b37d248c569d1178e9b92e85c838e35a1ead1a8b2a3f63f2eb7d8",
+      "status": "PASS"
+    },
+    {
+      "trial": 4,
+      "window": "A",
+      "id": 53671,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "2d75048d14d1f1eba6b104da871bd3a49d18bc5e2ef6047113abe1b06b9de341",
+      "siblingDocumentSHA256": "114a9a3731e014a483e4dd3161f857b4374b2bff289f20c40fd00faff2e7fd8c",
+      "status": "PASS"
+    },
+    {
+      "trial": 5,
+      "window": "B",
+      "id": 53673,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "232fa8e6cc06364b90075da25cd4d91c0a3e7ef9a581fa56c27beaedda65660d",
+      "siblingDocumentSHA256": "2d75048d14d1f1eba6b104da871bd3a49d18bc5e2ef6047113abe1b06b9de341",
+      "status": "PASS"
+    },
+    {
+      "trial": 6,
+      "window": "A",
+      "id": 53671,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "8b6d4278f7d56a7c68a90c96e822b764ba4a9a4857c940bea8cb84acb5e001b2",
+      "siblingDocumentSHA256": "232fa8e6cc06364b90075da25cd4d91c0a3e7ef9a581fa56c27beaedda65660d",
+      "status": "PASS"
+    },
+    {
+      "trial": 7,
+      "window": "B",
+      "id": 53673,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "411b5cc4729528f9c6935d015c95813dd8dc1a565a4d5ded9a1b2fbaeb8b12d1",
+      "siblingDocumentSHA256": "8b6d4278f7d56a7c68a90c96e822b764ba4a9a4857c940bea8cb84acb5e001b2",
+      "status": "PASS"
+    },
+    {
+      "trial": 8,
+      "window": "A",
+      "id": 53671,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "4f101b1c1b483cd742c7e5f666d3936fd4286d61f931cd337b59e75b0632b920",
+      "siblingDocumentSHA256": "411b5cc4729528f9c6935d015c95813dd8dc1a565a4d5ded9a1b2fbaeb8b12d1",
+      "status": "PASS"
+    },
+    {
+      "trial": 9,
+      "window": "B",
+      "id": 53673,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "1c7f6573e182ec14d33c06c4bdf42d06dd19c82a131acdf1f45dc03e7ba2dc8b",
+      "siblingDocumentSHA256": "4f101b1c1b483cd742c7e5f666d3936fd4286d61f931cd337b59e75b0632b920",
+      "status": "PASS"
+    },
+    {
+      "trial": 10,
+      "window": "A",
+      "id": 53671,
+      "verifiedKeyPairs": 12,
+      "targetDocumentSHA256": "515349bd3563ac387e7865d08a64f27bf2eab0713288bc0d8a72965d3cd412e7",
+      "siblingDocumentSHA256": "1c7f6573e182ec14d33c06c4bdf42d06dd19c82a131acdf1f45dc03e7ba2dc8b",
+      "status": "PASS"
+    }
+  ],
+  "isolatedProfile": true,
+  "signedRegisteredFixture": {
+    "birth": 1795207429807369,
+    "bundle": "net.example.spaces-document",
+    "bundleURL": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app",
+    "cdHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "executable": "/private/tmp/nearpane-d01.p2-stage-readback.wgBUMbcb/Field Notes.app/Contents/MacOS/FieldNotes",
+    "kernelExecutableConfirmed": true,
+    "launch": 1795207429.804066,
+    "pid": 89081,
+    "regular": true,
+    "team": "ZB9D4T66QB"
+  },
+  "humanInputSuperseded": false,
+  "testDesktopsCreated": 0,
+  "stageRestored": "PASS",
+  "dailyInstallationAndConfig": "PASS",
+  "fixtureCleanup": "PASS",
+  "scope": "10 alternating registered ordinary windows selections in one signed two-document application",
+  "archiveSHA256": "e8957ac8f1e187cf1e1e3125d814e2891dff3abda23ece0ee5ef07dd3b99f3aa",
+  "rawChecksums": {
+    "actions.jsonl": "fe0c6fa8ae4c037f6cbed203eeb925898cc728b1b43ea5e983ed5b85a1fdb5d6",
+    "first-registered-document.png": "b7c008e4b71580d312ca6c6fddeb63d7355523dcd9a143a9265b8c820bcc223d",
+    "marker-witness-01.json": "c5d7a11d74e50a16b46d9df97397dcc1818ae4f9ebc8b6033744ab5ff7a447aa",
+    "marker-witness-02.json": "2875e4af4915830dfe41b9cd114dc70db418020eb20f191f3febde961212b59f",
+    "marker-witness-03.json": "4ec6069c8933d89f6410e8977795bff898a06a5be4266c8e6e7ade55bacb6e70",
+    "marker-witness-04.json": "c590facf71f9b6572a2a38dcd0580e8187703c5310cb3e60e2d8c10e8f0df0b3",
+    "marker-witness-05.json": "77050f5506e17bb27be1514456a4663d0ec3d530e7459794e829841e6224c531",
+    "marker-witness-06.json": "1be732e716d64600711e8562a923b2554492f9bf8ba7863ba469c8152ca700c7",
+    "marker-witness-07.json": "c8db7b526aceca4b879cf0fe48c7640689f7e3b9d427f63596cd06275340572b",
+    "marker-witness-08.json": "a29f5a62644008246aa0d14c57604d036e8dd716a93129c1370e530d947cbcab",
+    "marker-witness-09.json": "3cdcf356a641b4444610249450d1a289ebf78fa9dcb2a089d24d830be52aaf11",
+    "marker-witness-10.json": "95ca5c7f85b76a6a82a25775155ad283564e60c791864ca57bdbc3ea2fef80df",
+    "registered-documents.json": "b39aee84a61e55719cebb524e4ec63f116eeff3f29eda43abe9dc18555ea0c85"
+  }
+}

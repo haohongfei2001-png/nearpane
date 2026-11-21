@@ -1,0 +1,1931 @@
+{
+  "clickDownUptime": [
+    289175.6891134583,
+    289175.69721041666
+  ],
+  "clickUpUptime": [
+    289175.7359375,
+    289175.7359474167
+  ],
+  "clockUncertaintySeconds": 2.479151589795947e-06,
+  "completeDeliveries": 28,
+  "cropPoints": [
+    726,
+    513,
+    8,
+    8
+  ],
+  "displayPointBounds": [
+    0,
+    0,
+    1470,
+    956
+  ],
+  "downToVisibleMS": {
+    "lower": 392.50320836436003,
+    "upper": 420.7378333667293
+  },
+  "evidenceKind": "firstObservedNativeFrame",
+  "finalTargetStackMatched": true,
+  "firstPhysicalTarget": [
+    289176.0893320417,
+    289176.08993633336,
+    1
+  ],
+  "firstTargetDisplayUptime": 289176.1063827292,
+  "firstTargetPhysicalBracketSeconds": 0.008851041668094695,
+  "firstTargetPresentationMachTicks": 6940226553127,
+  "fixtureWindows": [
+    54291,
+    54293
+  ],
+  "frameDiagnostics": [
+    {
+      "callback": 289175.66120179166,
+      "composition": "source",
+      "displayUptime": 289175.6730489792,
+      "machTicks": 6940216153117,
+      "physicalBracket": [
+        289175.66867391666,
+        289175.669151375,
+        289175.6738335417,
+        289175.67606050003
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.6730442702,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.67630391667,
+      "composition": "source",
+      "displayUptime": 289175.6897156875,
+      "machTicks": 6940216553118,
+      "physicalBracket": [
+        289175.682039625,
+        289175.68257479166,
+        289175.6913850417,
+        289175.6924229167
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.6897109792,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.6925602917,
+      "composition": "source",
+      "displayUptime": 289175.7063823542,
+      "machTicks": 6940216953118,
+      "physicalBracket": [
+        289175.69259445835,
+        289175.69309795834,
+        289175.7089502917,
+        289175.70939183334
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7063776452,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.7095047917,
+      "composition": "source",
+      "displayUptime": 289175.7230490625,
+      "machTicks": 6940217353119,
+      "physicalBracket": [
+        289175.71723837504,
+        289175.71791345836,
+        289175.72465633333,
+        289175.72570787504
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7230443542,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.72582225,
+      "composition": "source",
+      "displayUptime": 289175.7397157708,
+      "machTicks": 6940217753120,
+      "physicalBracket": [
+        289175.7295854167,
+        289175.7304467917,
+        289175.74061850004,
+        289175.742300375
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7397110622,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.74277675,
+      "composition": "source",
+      "displayUptime": 289175.7563823958,
+      "machTicks": 6940218153119,
+      "physicalBracket": [
+        289175.753604625,
+        289175.7539806667,
+        289175.7572565,
+        289175.7598953333
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7563776872,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.76000245835,
+      "composition": "source",
+      "displayUptime": 289175.7730491042,
+      "machTicks": 6940218553120,
+      "physicalBracket": [
+        289175.76643575,
+        289175.766938875,
+        289175.774182375,
+        289175.78265475004
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7730443952,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.78318908333,
+      "composition": "source",
+      "displayUptime": 289175.7897157708,
+      "machTicks": 6940218953120,
+      "physicalBracket": [
+        289175.7827246667,
+        289175.783137,
+        289175.7931090834,
+        289175.7936114167
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.7897110622,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.79375320836,
+      "composition": "source",
+      "displayUptime": 289175.8063824792,
+      "machTicks": 6940219353121,
+      "physicalBracket": [
+        289175.8015829584,
+        289175.80207695835,
+        289175.80750525004,
+        289175.82076470833
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.8063777702,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.82127720834,
+      "composition": "source",
+      "displayUptime": 289175.8230491458,
+      "machTicks": 6940219753121,
+      "physicalBracket": [
+        289175.82083008334,
+        289175.8212302083,
+        289175.82417391666,
+        289175.8257202917
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.8230444372,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.8262242917,
+      "composition": "source",
+      "displayUptime": 289175.8397158542,
+      "machTicks": 6940220153122,
+      "physicalBracket": [
+        289175.83683625003,
+        289175.83743041666,
+        289175.8408447917,
+        289175.842140125
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.8397111452,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.8422522917,
+      "composition": "source",
+      "displayUptime": 289175.8563825208,
+      "machTicks": 6940220553122,
+      "physicalBracket": [
+        289175.84987308335,
+        289175.8503115417,
+        289175.85714695835,
+        289175.85886895837
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.8563778122,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.85900575004,
+      "composition": "source",
+      "displayUptime": 289175.87304918753,
+      "machTicks": 6940220953122,
+      "physicalBracket": [
+        289175.86159658333,
+        289175.86201283336,
+        289175.87543245836,
+        289175.8758259583
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.87304447923,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.8759275,
+      "composition": "source",
+      "displayUptime": 289175.8897158958,
+      "machTicks": 6940221353123,
+      "physicalBracket": [
+        289175.8849790834,
+        289175.8853551667,
+        289175.89084025,
+        289175.8922369167
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.8897111872,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.89234995836,
+      "composition": "source",
+      "displayUptime": 289175.9063825625,
+      "machTicks": 6940221753123,
+      "physicalBracket": [
+        289175.89766370837,
+        289175.8981245417,
+        289175.90751725005,
+        289175.90873462503
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9063778542,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.9089031667,
+      "composition": "source",
+      "displayUptime": 289175.9230492708,
+      "machTicks": 6940222153124,
+      "physicalBracket": [
+        289175.9213735,
+        289175.9218687917,
+        289175.92417354166,
+        289175.92598945834
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9230445622,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.92610225,
+      "composition": "source",
+      "displayUptime": 289175.9397158958,
+      "machTicks": 6940222553123,
+      "physicalBracket": [
+        289175.9335926667,
+        289175.9339574167,
+        289175.940870875,
+        289175.94274200004
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9397111872,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.94284229167,
+      "composition": "source",
+      "displayUptime": 289175.9563826458,
+      "machTicks": 6940222953125,
+      "physicalBracket": [
+        289175.9455931667,
+        289175.945911875,
+        289175.95727066667,
+        289175.959842875
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9563779372,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.9604066667,
+      "composition": "source",
+      "displayUptime": 289175.9730493125,
+      "machTicks": 6940223353125,
+      "physicalBracket": [
+        289175.96959233336,
+        289175.96999125,
+        289175.97407295834,
+        289175.97613537504
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9730446042,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.9763427917,
+      "composition": "source",
+      "displayUptime": 289175.9897160208,
+      "machTicks": 6940223753126,
+      "physicalBracket": [
+        289175.980994625,
+        289175.98140395834,
+        289175.98986795836,
+        289175.993161375
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289175.9897113122,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289175.99364975,
+      "composition": "source",
+      "displayUptime": 289176.00638277084,
+      "machTicks": 6940224153128,
+      "physicalBracket": [
+        289176.00568883336,
+        289176.0061500417,
+        289176.0067041667,
+        289176.0090247917
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0063780622,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.009162625,
+      "composition": "source",
+      "displayUptime": 289176.0230493125,
+      "machTicks": 6940224553125,
+      "physicalBracket": [
+        289176.0167597917,
+        289176.0172454167,
+        289176.0244769583,
+        289176.02630483336
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0230446042,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.0264838333,
+      "composition": "source",
+      "displayUptime": 289176.0397160625,
+      "machTicks": 6940224953127,
+      "physicalBracket": [
+        289176.0296194167,
+        289176.030332125,
+        289176.04040475003,
+        289176.0456879167
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0397113542,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.04630545835,
+      "composition": "source",
+      "displayUptime": 289176.05638268753,
+      "machTicks": 6940225353126,
+      "physicalBracket": [
+        289176.053245375,
+        289176.05371725,
+        289176.0610167917,
+        289176.0629504167
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0563779792,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.06095245836,
+      "composition": "source",
+      "displayUptime": 289176.0730493958,
+      "machTicks": 6940225753127,
+      "physicalBracket": [
+        289176.06517225003,
+        289176.06588383333,
+        289176.0741117917,
+        289176.075552
+      ],
+      "physicalSlots": [
+        0,
+        0
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0730446872,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.0756699584,
+      "composition": "sourceWhileTargetRaised",
+      "displayUptime": 289176.0897161042,
+      "machTicks": 6940226153128,
+      "physicalBracket": [
+        289176.0773850417,
+        289176.07772145834,
+        289176.0902335417,
+        289176.093125
+      ],
+      "physicalSlots": [
+        0,
+        1
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.0897113952,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          64,
+          0
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.09325487504,
+      "composition": "target",
+      "displayUptime": 289176.1063827292,
+      "machTicks": 6940226553127,
+      "physicalBracket": [
+        289176.10100025,
+        289176.1018445,
+        289176.1073422083,
+        289176.1098512917
+      ],
+      "physicalSlots": [
+        1,
+        1
+      ],
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.1063780202,
+      "raster": {
+        "cleanAperture": [
+          0,
+          0,
+          1654,
+          1076
+        ],
+        "nonOpaque": 0,
+        "opaqueBySlot": [
+          0,
+          64
+        ],
+        "opaqueOffPalette": 0,
+        "pixelFormat": 1111970369,
+        "pixelRect": [
+          817,
+          578,
+          8,
+          8
+        ],
+        "pixelsPerPoint": [
+          1.125170068027211,
+          1.1255230125523012
+        ],
+        "size": [
+          1654,
+          1076
+        ]
+      },
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    },
+    {
+      "callback": 289176.10999425,
+      "displayUptime": 289176.1230494792,
+      "machTicks": 6940226953129,
+      "pixelFormat": 1111970369,
+      "ptsUptime": 289176.1230447702,
+      "size": [
+        1654,
+        1076
+      ],
+      "status": 0
+    }
+  ],
+  "frames": [
+    {
+      "callback": 289175.66120179166,
+      "displayUptime": 289175.6730489792,
+      "presentationMachTicks": 6940216153117,
+      "slot": 0,
+      "stackAfter": [
+        289175.6738335417,
+        289175.67606050003,
+        0
+      ],
+      "stackBefore": [
+        289175.66867391666,
+        289175.669151375,
+        0
+      ]
+    },
+    {
+      "callback": 289175.67630391667,
+      "displayUptime": 289175.6897156875,
+      "presentationMachTicks": 6940216553118,
+      "slot": 0,
+      "stackAfter": [
+        289175.6913850417,
+        289175.6924229167,
+        0
+      ],
+      "stackBefore": [
+        289175.682039625,
+        289175.68257479166,
+        0
+      ]
+    },
+    {
+      "callback": 289175.6925602917,
+      "displayUptime": 289175.7063823542,
+      "presentationMachTicks": 6940216953118,
+      "slot": 0,
+      "stackAfter": [
+        289175.7089502917,
+        289175.70939183334,
+        0
+      ],
+      "stackBefore": [
+        289175.69259445835,
+        289175.69309795834,
+        0
+      ]
+    },
+    {
+      "callback": 289175.7095047917,
+      "displayUptime": 289175.7230490625,
+      "presentationMachTicks": 6940217353119,
+      "slot": 0,
+      "stackAfter": [
+        289175.72465633333,
+        289175.72570787504,
+        0
+      ],
+      "stackBefore": [
+        289175.71723837504,
+        289175.71791345836,
+        0
+      ]
+    },
+    {
+      "callback": 289175.72582225,
+      "displayUptime": 289175.7397157708,
+      "presentationMachTicks": 6940217753120,
+      "slot": 0,
+      "stackAfter": [
+        289175.74061850004,
+        289175.742300375,
+        0
+      ],
+      "stackBefore": [
+        289175.7295854167,
+        289175.7304467917,
+        0
+      ]
+    },
+    {
+      "callback": 289175.74277675,
+      "displayUptime": 289175.7563823958,
+      "presentationMachTicks": 6940218153119,
+      "slot": 0,
+      "stackAfter": [
+        289175.7572565,
+        289175.7598953333,
+        0
+      ],
+      "stackBefore": [
+        289175.753604625,
+        289175.7539806667,
+        0
+      ]
+    },
+    {
+      "callback": 289175.76000245835,
+      "displayUptime": 289175.7730491042,
+      "presentationMachTicks": 6940218553120,
+      "slot": 0,
+      "stackAfter": [
+        289175.774182375,
+        289175.78265475004,
+        0
+      ],
+      "stackBefore": [
+        289175.76643575,
+        289175.766938875,
+        0
+      ]
+    },
+    {
+      "callback": 289175.78318908333,
+      "displayUptime": 289175.7897157708,
+      "presentationMachTicks": 6940218953120,
+      "slot": 0,
+      "stackAfter": [
+        289175.7931090834,
+        289175.7936114167,
+        0
+      ],
+      "stackBefore": [
+        289175.7827246667,
+        289175.783137,
+        0
+      ]
+    },
+    {
+      "callback": 289175.79375320836,
+      "displayUptime": 289175.8063824792,
+      "presentationMachTicks": 6940219353121,
+      "slot": 0,
+      "stackAfter": [
+        289175.80750525004,
+        289175.82076470833,
+        0
+      ],
+      "stackBefore": [
+        289175.8015829584,
+        289175.80207695835,
+        0
+      ]
+    },
+    {
+      "callback": 289175.82127720834,
+      "displayUptime": 289175.8230491458,
+      "presentationMachTicks": 6940219753121,
+      "slot": 0,
+      "stackAfter": [
+        289175.82417391666,
+        289175.8257202917,
+        0
+      ],
+      "stackBefore": [
+        289175.82083008334,
+        289175.8212302083,
+        0
+      ]
+    },
+    {
+      "callback": 289175.8262242917,
+      "displayUptime": 289175.8397158542,
+      "presentationMachTicks": 6940220153122,
+      "slot": 0,
+      "stackAfter": [
+        289175.8408447917,
+        289175.842140125,
+        0
+      ],
+      "stackBefore": [
+        289175.83683625003,
+        289175.83743041666,
+        0
+      ]
+    },
+    {
+      "callback": 289175.8422522917,
+      "displayUptime": 289175.8563825208,
+      "presentationMachTicks": 6940220553122,
+      "slot": 0,
+      "stackAfter": [
+        289175.85714695835,
+        289175.85886895837,
+        0
+      ],
+      "stackBefore": [
+        289175.84987308335,
+        289175.8503115417,
+        0
+      ]
+    },
+    {
+      "callback": 289175.85900575004,
+      "displayUptime": 289175.87304918753,
+      "presentationMachTicks": 6940220953122,
+      "slot": 0,
+      "stackAfter": [
+        289175.87543245836,
+        289175.8758259583,
+        0
+      ],
+      "stackBefore": [
+        289175.86159658333,
+        289175.86201283336,
+        0
+      ]
+    },
+    {
+      "callback": 289175.8759275,
+      "displayUptime": 289175.8897158958,
+      "presentationMachTicks": 6940221353123,
+      "slot": 0,
+      "stackAfter": [
+        289175.89084025,
+        289175.8922369167,
+        0
+      ],
+      "stackBefore": [
+        289175.8849790834,
+        289175.8853551667,
+        0
+      ]
+    },
+    {
+      "callback": 289175.89234995836,
+      "displayUptime": 289175.9063825625,
+      "presentationMachTicks": 6940221753123,
+      "slot": 0,
+      "stackAfter": [
+        289175.90751725005,
+        289175.90873462503,
+        0
+      ],
+      "stackBefore": [
+        289175.89766370837,
+        289175.8981245417,
+        0
+      ]
+    },
+    {
+      "callback": 289175.9089031667,
+      "displayUptime": 289175.9230492708,
+      "presentationMachTicks": 6940222153124,
+      "slot": 0,
+      "stackAfter": [
+        289175.92417354166,
+        289175.92598945834,
+        0
+      ],
+      "stackBefore": [
+        289175.9213735,
+        289175.9218687917,
+        0
+      ]
+    },
+    {
+      "callback": 289175.92610225,
+      "displayUptime": 289175.9397158958,
+      "presentationMachTicks": 6940222553123,
+      "slot": 0,
+      "stackAfter": [
+        289175.940870875,
+        289175.94274200004,
+        0
+      ],
+      "stackBefore": [
+        289175.9335926667,
+        289175.9339574167,
+        0
+      ]
+    },
+    {
+      "callback": 289175.94284229167,
+      "displayUptime": 289175.9563826458,
+      "presentationMachTicks": 6940222953125,
+      "slot": 0,
+      "stackAfter": [
+        289175.95727066667,
+        289175.959842875,
+        0
+      ],
+      "stackBefore": [
+        289175.9455931667,
+        289175.945911875,
+        0
+      ]
+    },
+    {
+      "callback": 289175.9604066667,
+      "displayUptime": 289175.9730493125,
+      "presentationMachTicks": 6940223353125,
+      "slot": 0,
+      "stackAfter": [
+        289175.97407295834,
+        289175.97613537504,
+        0
+      ],
+      "stackBefore": [
+        289175.96959233336,
+        289175.96999125,
+        0
+      ]
+    },
+    {
+      "callback": 289175.9763427917,
+      "displayUptime": 289175.9897160208,
+      "presentationMachTicks": 6940223753126,
+      "slot": 0,
+      "stackAfter": [
+        289175.98986795836,
+        289175.993161375,
+        0
+      ],
+      "stackBefore": [
+        289175.980994625,
+        289175.98140395834,
+        0
+      ]
+    },
+    {
+      "callback": 289175.99364975,
+      "displayUptime": 289176.00638277084,
+      "presentationMachTicks": 6940224153128,
+      "slot": 0,
+      "stackAfter": [
+        289176.0067041667,
+        289176.0090247917,
+        0
+      ],
+      "stackBefore": [
+        289176.00568883336,
+        289176.0061500417,
+        0
+      ]
+    },
+    {
+      "callback": 289176.009162625,
+      "displayUptime": 289176.0230493125,
+      "presentationMachTicks": 6940224553125,
+      "slot": 0,
+      "stackAfter": [
+        289176.0244769583,
+        289176.02630483336,
+        0
+      ],
+      "stackBefore": [
+        289176.0167597917,
+        289176.0172454167,
+        0
+      ]
+    },
+    {
+      "callback": 289176.0264838333,
+      "displayUptime": 289176.0397160625,
+      "presentationMachTicks": 6940224953127,
+      "slot": 0,
+      "stackAfter": [
+        289176.04040475003,
+        289176.0456879167,
+        0
+      ],
+      "stackBefore": [
+        289176.0296194167,
+        289176.030332125,
+        0
+      ]
+    },
+    {
+      "callback": 289176.04630545835,
+      "displayUptime": 289176.05638268753,
+      "presentationMachTicks": 6940225353126,
+      "slot": 0,
+      "stackAfter": [
+        289176.0610167917,
+        289176.0629504167,
+        0
+      ],
+      "stackBefore": [
+        289176.053245375,
+        289176.05371725,
+        0
+      ]
+    },
+    {
+      "callback": 289176.06095245836,
+      "displayUptime": 289176.0730493958,
+      "presentationMachTicks": 6940225753127,
+      "slot": 0,
+      "stackAfter": [
+        289176.0741117917,
+        289176.075552,
+        0
+      ],
+      "stackBefore": [
+        289176.06517225003,
+        289176.06588383333,
+        0
+      ]
+    },
+    {
+      "callback": 289176.0756699584,
+      "displayUptime": 289176.0897161042,
+      "presentationMachTicks": 6940226153128,
+      "slot": 0,
+      "stackAfter": [
+        289176.0902335417,
+        289176.093125,
+        1
+      ],
+      "stackBefore": [
+        289176.0773850417,
+        289176.07772145834,
+        0
+      ]
+    },
+    {
+      "callback": 289176.09325487504,
+      "displayUptime": 289176.1063827292,
+      "presentationMachTicks": 6940226553127,
+      "slot": 1,
+      "stackAfter": [
+        289176.1073422083,
+        289176.1098512917,
+        1
+      ],
+      "stackBefore": [
+        289176.10100025,
+        289176.1018445,
+        1
+      ]
+    }
+  ],
+  "idleDeliveries": 0,
+  "lastPhysicalStack": [
+    289176.11003458337,
+    289176.11041979166,
+    1
+  ],
+  "lastSourceDisplayUptime": 289176.0897161042,
+  "maxStackQueryMS": 13.259458297397941,
+  "method": "twoEnrolledWindowDisplayRasterWithPhysicalStackAtEightPointCrop",
+  "physicalStackCoverageTotals": {
+    "behindOpaqueEnrolledWindow": 146,
+    "frontCoverageUnknown": 0,
+    "frontDisjoint": 365,
+    "frontIntersecting": 0,
+    "frontTransparent": 0,
+    "verifiedEnrolledRows": 146
+  },
+  "requestedRaster": [
+    1654,
+    1076
+  ],
+  "retainedPixelBytes": 0,
+  "sourceSlot": 0,
+  "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+  "stackQueryAttempts": 73,
+  "stackQueryCount": 73,
+  "startedWithoutClock": 0,
+  "startedWithoutPixels": 0,
+  "status": "OBSERVED",
+  "streamObservation": "targetFrameObserved",
+  "targetFrameObserved": true,
+  "targetSlot": 1,
+  "unbracketedBeforeEnrollment": 0,
+  "upToVisibleMS": {
+    "lower": 353.7662083399482,
+    "upper": 373.91379167092964
+  }
+}

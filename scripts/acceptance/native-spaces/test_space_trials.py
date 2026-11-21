@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import runpy
 import tempfile
 import unittest
 import uuid
@@ -10,6 +11,21 @@ from unittest.mock import patch
 
 import space_scope as gates
 from space_trials import observed_order, scenarios
+
+
+class RetainedSelectionResultsTests(unittest.TestCase):
+    def test_fifty_dispatches_require_fifty_confirmed_arrivals(self):
+        driver = runpy.run_path(str(Path(__file__).with_name("retained-selections.py")))
+        passed = {"issued": True, "status": "PASS"}
+        failed = {"issued": True, "status": "FAIL"}
+        unknown = {"status": "UNKNOWN"}
+        counts = driver["counts"]([passed] * 49 + [failed])
+        self.assertEqual(counts["issued"], 50)
+        self.assertFalse(driver["completed"](counts))
+        incomplete = driver["counts"]([passed, unknown])
+        self.assertEqual((incomplete["intents"], incomplete["issued"], incomplete["unknown"]), (2, 1, 1))
+        self.assertTrue(driver["completed"](driver["counts"]([passed] * 50)))
+
 
 def uid():
     return str(uuid.uuid4()).upper()

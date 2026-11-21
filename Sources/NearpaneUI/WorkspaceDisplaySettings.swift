@@ -147,7 +147,9 @@ public struct WorkspaceDisplaySettings: View {
                             Text($0.label).tag($0)
                         }
                     }
-                    let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? key.factory : key.factory
+                    let defaultWidth = Measure(DisplaySettings.recommendedPanelWidth(in: screen.visibleFrame.width))
+                    let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? defaultWidth :
+                        (key == .panelWidth ? defaultWidth : key.factory)
                     let basis = settings.referenceExtent(for: key, screen: screen, primary: primary == screen.id)
                     MeasureEditor(metric: key, configured: settings.measures[key], factory: defaultMeasure, extent: basis) {
                         value in
@@ -155,15 +157,6 @@ public struct WorkspaceDisplaySettings: View {
                         updated.measures[key] = value
                         save(updated)
                     }.id("\(screen.id)-\(key.rawValue)-\(String(describing:settings.measures[key]))")
-                    if primary == screen.id, let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) {
-                        let h = panel.height
-                        let total = [DisplayMetric.voiceHeight, .trayHeight, .spacesHeight].map { settings.points($0, in: h) }.reduce(0, +) + 2 * settings.points(.sectionGap, in: h)
-                        if total > h + 0.01 {
-                            let actual = settings.contentHeights(h, content: .full, voice: true, tray: true)
-                            Text("分区合计超过面板高度，当前等比适配。实际高度为文字 \(actual.voice, specifier: "%.1f")、托盘 \(actual.tray, specifier: "%.1f")、空间 \(actual.spaces, specifier: "%.1f") pt。")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
                     if key == .reservedWidth {
                         Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，窗口避让仅对已明确授权且符合条件的窗口生效。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
                             .caption)

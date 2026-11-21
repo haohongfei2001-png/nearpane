@@ -12,6 +12,7 @@ private typealias ViewState<T> = State<T>
     var sizeForm: PanelSizeForm = .full
     var usesDefaultExpandedRim = false
     var interactionVisible = false
+    @ObservationIgnored var updateMaterial: ((SurfaceLayout) -> Void)?
     @ObservationIgnored weak var pointer: WorkspacePointerRegistry?
 }
 
@@ -21,8 +22,12 @@ struct DesktopSurface: View {
     let enabled: Bool
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
-    @ViewState private var appBadges: [String: WindowAppBadges.Badge] = [:]
-    @ViewState private var choices = WindowChoiceQueue()
+    @ViewState private var appBadges: [DesktopWindowKey: WindowAppBadges.Badge] = [:]
+    private let navigation = NativeSidebarNavigation.shared
+    private var canNavigate: Bool {
+        navigation.dispatchAvailable && enabled && host.isRunning && !host.configuration.surfaceHidden &&
+            display?.interactionVisible == true && display?.id == displayID && WindowContentPreview.sessionAvailable()
+    }
     @ViewState private var selectionIssue: String?
 
     private var rawOverview: DesktopSnapshot? {
@@ -39,14 +44,15 @@ struct DesktopSurface: View {
             // standard-window witness is the only usable fallback for actual users.
             snapshot.windows.removeAll { !$0.canWitnessCurrentSpace }
         }
-        return snapshot
+        return display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.snapshotForGroups(snapshot) ?? snapshot
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             roster
-            if let selectionIssue {
-                Text(selectionIssue).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+            let feed = display?.pointer?.windowPreviews?.currentDesktop
+            if let selectionIssue = navigation.issue ?? selectionIssue ?? feed?.groups.loadIssue ?? feed?.groupIssue {
+                Text(selectionIssue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2)
                     .layoutPriority(1)
             }
             if enabled, display?.interactionVisible == true, !host.configuration.surfaceHidden,
@@ -62,6 +68,19 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+        .alert("允许窗口组调度？", isPresented: Binding(get: {
+            display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.scope.display.uuidString.caseInsensitiveCompare(displayID ?? "") == .orderedSame
+        }, set: { _ in })) {
+            Button("允许") { display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.answerConsent(allow:true) }
+            Button("取消",role:.cancel) { display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.answerConsent(allow:false) }
+        } message: {
+            let n = display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.lifetimes.count ?? 0
+            Text("允许在此屏当前桌面暂时移出、恢复和排列所选组的 \(n) 扇已登记窗口。授权后请再次选择窗口组。")
+        }
+        .onChange(of: canNavigate) { _, available in
+            if !available { navigation.windowSwitch.cancel(on: displayID) }
+        }
+        .onDisappear { navigation.windowSwitch.cancel(on: displayID) }
     }
 
     @ViewBuilder private var roster: some View {
@@ -71,32 +90,128 @@ struct DesktopSurface: View {
                 let now = Date.now
                 let uptime = ProcessInfo.processInfo.systemUptime
                 if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached {
-                    let windows = snapshot.currentDesktopWindows(on: screen.id, now: now, uptime: uptime)
+                    let feed = display?.pointer?.windowPreviews?.currentDesktop
+                    let observed = native.population == .markedFixture
+                        ? snapshot.currentDesktopWindows(on: screen.id, now: now, uptime: uptime)
+                        : snapshot.activeSpaceWindows(on: screen.id, now: now, uptime: uptime)
+                    let split = snapshot.currentSplitView(on: screen.id, now: now, uptime: uptime)
+                    let windows = feed?.ordered(observed, on: screen.id) ?? observed
+                    let catalog = NativeSpaceCatalog(snapshot, displayID: screen.id, now: now, uptime: uptime)
                     GeometryReader { area in
                         let width = min(area.size.width, settings.points(.desktopWidth, in: area.size.width))
-                        let height = min(area.size.height, settings.points(.desktopHeight, in: area.size.height))
-                        let inset = min(settings.points(.spacePadding, in: width) + 2, min(width, height) / 3)
-                        Group {
-                            if windows.isEmpty {
-                                let unconfirmed = (rawOverview ?? snapshot).unconfirmedCurrentDesktopWindowCount(on: screen.id, now: now, uptime: uptime)
-                                if unconfirmed > 0 {
-                                    status(native.accessibility == .denied ? "辅助功能权限尚未生效，暂时无法核对窗口。" : "正在等待应用确认窗口类型。")
-                                        .accessibilityIdentifier("window-roster-unconfirmed")
+                        let inset = min(settings.points(.spacePadding, in: width) + 4, max(0, width / 4))
+                        let innerWidth = max(0, width - 2 * inset)
+                        let current = catalog.flatMap { map in
+                            map.rows.first(where: { $0.record.isCurrent }).flatMap { NativeSidebarDestination($0, in: map) }
+                        }
+                        ScrollView(.vertical) {
+                            VStack(alignment: .leading, spacing: 11) {
+                                if let split {
+                                    DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,
+                                        gallery: feed == nil ? nil : display?.pointer?.windowPreviews?.gallery,
+                                        permitted: picturesAllowed, badges: appBadges)
                                 } else {
-                                    status("当前屏幕没有可显示的窗口")
+                                    if !windows.isEmpty { windowList(windows,snapshot:snapshot,screen:screen,width:innerWidth,source:current) }
+                                    if let feed, let current {
+                                        ForEach(feed.stageEngine.heldGroups.filter { $0.scope.display.uuidString.caseInsensitiveCompare(screen.id) == .orderedSame &&
+                                            $0.scope.nativeSpace == current.uuid }) { held in
+                                            let id = held.state.window
+                                            let key = DesktopWindowKey(pid:id.pid,birth:id.birth,number:id.number)
+                                            CurrentWindowCard(label:held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count),
+                                                badge:nil,size:nil,target:nil,key:key,gallery:nil,permitted:false,border:1,fontSize:10,
+                                                selected:{ nil },describe:{ _ in "已核对的非活动窗口组" },select:{
+                                                    let input = NativeSelectionPermit.inputCounters()
+                                                    navigation.submit(stage:true) { token in
+                                                        try await feed.stageEngine.chooseHeld(held,in:feed,current:{
+                                                            canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
+                                                        })
+                                                    }
+                                                },selectable:canNavigate)
+                                                .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
+                                        }
+                                    }
                                 }
-                            } else {
-                                windowList(windows, snapshot: snapshot, screen: screen,
-                                           width: max(0, width - 2 * inset), height: max(0, height - 2 * inset),
-                                           spacing: settings.points(.spaceRowGap, in: height))
+                            }
+                            .task(id: GalleryRun(display: screen.id, visible: display?.interactionVisible == true,
+                                permitted: picturesAllowed, generation: display?.pointer?.windowPreviews?.gallery.generation ?? 0)) {
+                                WindowOverviewAccess.shared.refresh()
+                                guard picturesAllowed, let previews = display?.pointer?.windowPreviews else { return }
+                                await previews.gallery.run(on: screen.id, snapshot: { overview }, allowed: {
+                                    picturesAllowed && previews.visibleDisplays.contains(screen.id)
+                                }, recheck: feed.map { feed in { await feed.readNow() } })
+                            }
+                            .frame(width: innerWidth, alignment: .topLeading)
+                            .padding(inset)
+                        }
+                        .frame(width: width, alignment: .leading)
+                        .task(id: BadgeRefresh(session: snapshot.sessionID, members: windows.compactMap(DesktopWindowKey.init), visible: canNavigate)) {
+                            if canNavigate {
+                                let badges = WindowAppBadges.resolve(windows)
+                                appBadges = Dictionary(uniqueKeysWithValues: DesktopWindowRow.rows(windows).compactMap { row in
+                                    guard let badge = badges[row.window.id] else { return nil }
+                                    return (row.id, badge)
+                                })
                             }
                         }
-                        .padding(inset)
-                        .frame(width: width, height: height, alignment: .topLeading)
                     }
-                } else { status("正在更新本屏窗口") }
+                }
             }
-        } else { status(enabled ? "正在读取本屏窗口" : "窗口预览已停用") }
+        }
+    }
+
+    private var picturesAllowed: Bool {
+        canNavigate && host.configuration.showsWindowThumbnails && WindowPermissionProbe.screen.allowed()
+    }
+
+    private func workArea(for screen: DisplayObservation) -> SurfaceRect? {
+        guard let usable = screen.usable else { return nil }
+        let bounds = SurfaceRect(width: screen.frame.width, height: screen.frame.height)
+        return try? DesktopWorkArea(display: screen.id, screen: bounds, usable: usable,
+            primary: display?.secondary != true, settings: settings, fallbackEdge: host.configuration.edge).ordinary
+    }
+
+    private func choose(_ member: NativeSidebarMember, group: UUID, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows) {
+        guard let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
+              let lifetime = feed.lifetime(of:member.key) else { return }
+        guard feed.stageEngine.routesGroupChoice else {
+            selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member)
+            return
+        }
+        let input = NativeSelectionPermit.inputCounters()
+        navigation.submit(stage:true) { token in
+            let valid: @MainActor () -> Bool = {
+                canNavigate && navigation.isCurrent(token) && feed.lifetime(of:member.key) == lifetime &&
+                    NativeSelectionPermit.inputCounters() == input
+            }
+            guard valid(), let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
+            let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid)
+            if !handled && valid() { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member) }
+        }
+    }
+
+    private func editGroup(_ members: [NativeSidebarMember], change: @escaping @MainActor (DesktopSnapshot) throws -> Void) {
+        guard canNavigate, let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
+        selectionIssue = nil
+        let lifetimes = members.compactMap { feed.lifetime(of: $0.key) }
+        let input = NativeSelectionPermit.inputCounters()
+        guard lifetimes.count == members.count else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
+        navigation.submit(selection: false) { token in
+            guard let fresh = await feed.readNow(), canNavigate, navigation.isCurrent(token), input == NativeSelectionPermit.inputCounters(),
+                  zip(members, lifetimes).allSatisfy({ feed.lifetime(of: $0.0.key) == $0.1 })
+            else { throw StageGroupError.staleBinding }
+            try change(fresh)
+        }
+    }
+
+    private func place(_ pair: SidebarPairDrop, feed: CurrentDesktopWindows) {
+        guard let tiling = feed.automaticTiling, canNavigate else { return }
+        selectionIssue = nil
+        let input = NativeSelectionPermit.inputCounters()
+        navigation.submit(selection: false) { token in
+            try await tiling.place(pair, allowed: {
+                canNavigate && navigation.isCurrent(token) && NativeSelectionPermit.inputCounters() == input
+            })
+        }
     }
 
     private struct GalleryRun: Equatable {
@@ -104,98 +219,120 @@ struct DesktopSurface: View {
     }
 
     private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, screen: DisplayObservation,
-                            width: CGFloat, height: CGFloat, spacing: CGFloat) -> some View {
+                            width: CGFloat, source: NativeSidebarDestination?) -> some View {
         let previews = display?.pointer?.windowPreviews
         let gallery = previews?.gallery
-        let id = screen.id
         let visible = display?.interactionVisible == true && !host.configuration.surfaceHidden
         let pictures = visible && host.configuration.showsWindowThumbnails && WindowContentPreview.sessionAvailable()
         let permitted = pictures && WindowPermissionProbe.screen.allowed()
-        let run = GalleryRun(display: id, visible: visible, permitted: permitted, generation: gallery?.generation ?? 0)
         var captured = gallery?.capturedSizes(for: windows, in: snapshot, permitted: permitted) ?? [:]
         if pictures, let proof = previews?.binding, captured[proof.number] == nil,
            let window = windows.first(where: { $0.metadata?.number == proof.number }),
            let target = DesktopWindowTarget(window, in: snapshot), selectedPicture(for: target) != nil {
             captured[proof.number] = CGSize(width: proof.bounds.width, height: proof.bounds.height)
         }
-        let thumbnailLayout = DesktopWindowThumbnailLayout(windows: windows, display: screen, availableWidth: width, capturedSizes: captured)
+        let thumbnailLayout = DesktopWindowThumbnailLayout(display: screen, capturedSizes: captured)
         let labelSize = settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10
-        let fit = DesktopRosterFit(pictures: windows.map(thumbnailLayout.size), availableHeight: height,
-                                   spacing: spacing, labelSize: labelSize)
-        let groups = Dictionary(grouping: windows, by: { $0.metadata?.pid })
-        return VStack(alignment: .leading, spacing: fit.spacing) {
-            ForEach(Array(windows.enumerated()), id: \.element.id) { index, window in
-                let badge = appBadges[window.id]
-                let siblings = groups[window.metadata?.pid] ?? []
+        let spacing = settings.points(.spaceRowGap, in: display?.referenceHeight ?? 600)
+        let siblingsByApp = Dictionary(grouping: windows, by: { $0.metadata?.pid })
+        let feed = previews?.currentDesktop
+        let members = source.map { dest in windows.compactMap { NativeSidebarMember($0, source: dest) } } ?? []
+        let visibleGroups = feed?.visibleGroups(in: snapshot, on: screen) ?? [:]
+        return VStack(alignment: .leading, spacing: spacing) {
+            ForEach(DesktopWindowRow.rows(windows)) { row in
+                let window = row.window
+                let badge = appBadges[row.id]
+                let siblings = siblingsByApp[window.metadata?.pid] ?? []
                 let ordinal = siblings.firstIndex(of: window).map { $0 + 1 } ?? 1
                 let name = badge?.name ?? "窗口"
                 let label = siblings.count > 1 ? "\(name) · \(ordinal)" : name
                 let target = DesktopWindowTarget(window, in: snapshot)
+                let liveTarget = DesktopWindowTarget.preview(window, in: snapshot)
                 let lifetime = target.flatMap { previews?.currentDesktop?.lifetime(of: $0.key) }
-                let automatic = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
-                let selected = pictures && automatic == nil ? selectedPicture(for: target) : nil
-                let row = fit.rows[index]
-                let pictureSize = row.picture
-                // When all windows are fitted into a dense list the caption can disappear.
-                // Never display old pixels unless their visible label also fits.
-                let captionWidth = row.inlineCaption ? width - (pictureSize?.width ?? 0) - 4 : width
-                let canLabelPrevious = row.showsCaption && captionWidth >= 24 + labelSize * 4
-                let previous = automatic == nil && selected == nil && canLabelPrevious ? target.flatMap {
-                    gallery?.previousImage(for: $0, permitted: permitted)
-                } : nil
-                let caption = previous == nil ? label : "上次画面 · " + label
-                let picture = automatic ?? selected ?? previous
-                let reason: String? = if !host.configuration.showsWindowThumbnails { "窗口画面已关闭" }
-                    else if !pictures { "窗口画面暂不可用" }
-                    else if !permitted { nil }
-                    else if previous != nil { "上次画面，最长保留一分钟" }
-                    else if target == nil || target.map({ gallery?.lacksPicture($0) == true }) == true { "暂无窗口画面" }
-                    else { nil }
-                Button {
-                    if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) }
-                } label: {
-                    DesktopWindowCard(label: caption, icon: badge?.icon, image: picture, pictureSize: pictureSize,
-                                      borderWidth: settings.points(.borderWidth, in: width),
-                                      labelSize: labelSize, row: row,
-                                      currentImage: {
-                        guard let target, display?.interactionVisible == true, display?.id == target.display,
-                              !host.configuration.surfaceHidden, host.isRunning, host.configuration.showsWindowThumbnails,
-                              WindowContentPreview.sessionAvailable(), target.present(in: overview),
-                              previews?.currentDesktop == nil || (lifetime != nil && lifetime == previews?.currentDesktop?.lifetime(of: target.key)) else { return nil }
-                        if previous != nil { return gallery?.previousImage(for: target, permitted: true) }
-                        return gallery?.image(for: target, permitted: true) ?? selectedPicture(for: target)
-                    })
+                let pictureSize = thumbnailLayout.fittedSize(for: window, width: width,
+                    heightLimit: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5)
+                let member = target.flatMap { _ in source.flatMap { NativeSidebarMember(window, source: $0) } }
+                let chooseCurrent: @MainActor () -> Void = {
+                    if let feed, feed.stageEngine.routesGroupChoice, let member, let w = feed.groupWindow(member, in:snapshot),
+                       let group = feed.groups.projectedGroups(on:w.display,among:[w]).first(where: { $0.members.count == 1 }) {
+                        choose(member, group:group.id, snapshot:snapshot, feed:feed)
+                    } else if let target {
+                        selectWindow(target, snapshot:snapshot, lifetime:lifetime)
+                    }
                 }
-                .buttonStyle(.plain).disabled(target == nil)
-                .accessibilityLabel(label).accessibilityHint("将这扇窗口切换到前台")
-                .accessibilityIdentifier("current-desktop-window:\(window.metadata?.pid ?? 0):\(window.metadata?.number ?? 0)")
-                .accessibilityValue(cardDescription(window, within: screen, size: pictureSize, index: index,
-                    source: automatic != nil ? "窗口画面" : selected != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"))
-                .help([target == nil ? "窗口身份或呈现状态尚未确认" : "切换到" + label, reason].compactMap { $0 }.joined(separator: " · "))
-                .onAppear { if let target { gallery?.setCard(target.key, on: id, visible: true) } }
-                .onDisappear { if let target { gallery?.setCard(target.key, on: id, visible: false) } }
-                .onChange(of: target?.key) { previous, next in
-                    if let previous { gallery?.setCard(previous, on: id, visible: false) }
-                    if let next { gallery?.setCard(next, on: id, visible: true) }
+                if let member, let identity = member.location?.window, let group = visibleGroups[identity], let feed {
+                    let keys = Set(group.members.map(\.windowHint))
+                    if members.first(where: { $0.location.map { keys.contains($0.window) } == true })?.key == member.key {
+                        let grouped = windows.filter { w in NativeSidebarMember(w, source: member.source)?.location.map { keys.contains($0.window) } == true }
+                        NativeWindowGroupCard(destination: member.source, display: screen,
+                            feed: feed, badges: Dictionary(uniqueKeysWithValues: grouped.compactMap { w in
+                                DesktopWindowKey(w).flatMap { appBadges[$0] }.map { (w.id, $0) }
+                            }), gallery: gallery,
+                            permitted: permitted, workArea: workArea(for: screen),
+                            select: { choose($0, group: group.id, snapshot: snapshot, feed: feed) },
+                            id: group.id, windows: grouped, snapshot: snapshot,
+                            place: { place($0, feed: feed) }, remove: { chosen in
+                                editGroup([chosen]) { fresh in
+                                    guard let w = feed.groupWindow(chosen, in: fresh) else { throw StageGroupError.staleBinding }
+                                    try feed.groups.detach(w)
+                                }
+                            }, dissolve: {
+                                editGroup([member]) { fresh in
+                                    guard let w = feed.groupWindow(member, in: fresh),
+                                          feed.visibleGroups(in: fresh, on: screen)[w.identity]?.id == group.id else { throw StageGroupError.staleBinding }
+                                    try feed.groups.dissolve(group.id, on: w.display)
+                                }
+                            })
+                            .id(group.id)
+                    }
+                } else {
+                    CurrentWindowCard(label: label, badge: badge, size: pictureSize, target: liveTarget, key: row.id,
+                        gallery: gallery, permitted: permitted, border: settings.points(.borderWidth, in: width),
+                        fontSize: labelSize, selected: { pictures && target?.present(in: overview) == true ? selectedPicture(for: target) : nil },
+                        describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
+                        select: { chooseCurrent() },
+                        selectable: target != nil)
+                    .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
+                        width: width, feed: feed,
+                        select: { chooseCurrent() },
+                        place: { pair in if let feed { place(pair, feed: feed) } },
+                        prepare: { if let target { prepareSwitch(target, in: snapshot) } }))
+                    .contextMenu {
+                        if let member, let feed, member.source.kind == .ordinary {
+                            if let w = feed.groupWindow(member, in: snapshot), feed.groups.needsRebinding(w) {
+                                Button("重新关联此窗口到已保存的调度组") {
+                                    editGroup([member]) { fresh in
+                                        guard let current = feed.groupWindow(member, in: fresh), current.lifetime == w.lifetime
+                                        else { throw StageGroupError.staleBinding }
+                                        try feed.groups.rebind(current)
+                                    }
+                                }
+                            }
+                            if let w = feed.groupWindow(member, in: snapshot), feed.groups.needsReassignment(w) {
+                                Button("将此窗口归入当前屏幕和桌面") {
+                                    editGroup([member]) { fresh in
+                                        guard let current = feed.groupWindow(member, in: fresh) else { throw StageGroupError.staleBinding }
+                                        try feed.groups.assignToObservedDisplay(current)
+                                    }
+                                }
+                            }
+                            ForEach(Array(windows.enumerated()), id: \.element.id) { i, other in
+                                if let second = NativeSidebarMember(other, source: member.source), second.key != member.key {
+                                    Button("与 \(DesktopWindowKey(other).flatMap { appBadges[$0]?.name } ?? "窗口") · \(i + 1) 组合") {
+                                        editGroup([member, second]) { try feed.join(member, second, in: $0) }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        .frame(width: width, height: height, alignment: .topLeading)
+        .frame(width: width, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("本屏窗口，\(windows.count) 扇")
-        .task(id: BadgeRefresh(session: snapshot.sessionID, members: windows.map(\.id), visible: visible)) {
-            if visible { appBadges = WindowAppBadges.resolve(windows) }
-        }
         .task(id: host.bus.desktop?.revision) {
             if let previews, previews.binding?.display == screen.id { await previews.validate(host.bus.desktop) }
-        }
-        .task(id: run) {
-            WindowOverviewAccess.shared.refresh()
-            guard permitted, let gallery else { return }
-            await gallery.run(on: id, snapshot: { overview }, allowed: {
-                host.isRunning && !host.configuration.surfaceHidden && host.configuration.showsWindowThumbnails &&
-                    display?.interactionVisible == true && previews?.visibleDisplays.contains(id) == true
-            }, recheck: previews?.currentDesktop.map { feed in { await feed.readNow() } })
         }
     }
 
@@ -218,37 +355,55 @@ struct DesktopSurface: View {
         return pixels + "，" + geometry
     }
 
-    private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?) {
-        guard let native = snapshot.native, let previews = display?.pointer?.windowPreviews else { return }
+    private func prepareSwitch(_ target: DesktopWindowTarget, in snapshot: DesktopSnapshot, operation: UUID? = nil) {
+        guard let previews = display?.pointer?.windowPreviews else { return }
+        navigation.windowSwitch.prepare(target, snapshot: snapshot, previews: previews, operation: operation,
+            allowed: { canNavigate && host.configuration.showsWindowThumbnails })
+    }
+
+    private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?,
+                              member: NativeSidebarMember? = nil) {
+        let timing = WindowFocusTiming.begin()
+        guard snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
         let feed = previews.currentDesktop
         let userInput = NativeSelectionPermit.inputCounters()
         let visibility = previews.visibilityGeneration[target.display]
         func stillCurrent() -> Bool {
-            host.isRunning && !host.configuration.surfaceHidden && display?.interactionVisible == true &&
-                (feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime)) &&
-                display?.id == target.display && generation == previews.gallery.generation &&
-                visibility == previews.visibilityGeneration[target.display] && target.remainsSelection(in: overview) &&
-                WindowContentPreview.sessionAvailable() && NativeSelectionPermit.inputCounters() == userInput
+            guard navigation.dispatchAvailable, host.isRunning, !host.configuration.surfaceHidden, display?.interactionVisible == true,
+                  display?.id == target.display else { return DesktopWindowSelection.refusedCurrentCard("display or sidebar") }
+            guard feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime) else {
+                return DesktopWindowSelection.refusedCurrentCard("window lifetime")
+            }
+            if let original = member?.originalWindow, let location = member?.location, feed?.tracks(original, at: location) != true {
+                return DesktopWindowSelection.refusedCurrentCard("group window identity")
+            }
+            guard generation == previews.gallery.generation, visibility == previews.visibilityGeneration[target.display] else {
+                return DesktopWindowSelection.refusedCurrentCard("visibility generation")
+            }
+            guard target.remainsSelection(in: overview) else { return DesktopWindowSelection.refusedCurrentCard("roster target") }
+            guard WindowContentPreview.sessionAvailable() else { return DesktopWindowSelection.refusedCurrentCard("console session") }
+            guard NativeSelectionPermit.inputCounters() == userInput else { return DesktopWindowSelection.refusedCurrentCard("new input") }
+            return true
         }
         guard target.present(in: overview), stillCurrent() else { selectionIssue = "桌面已变化，请重新选择。"; return }
         selectionIssue = nil
-        choices.choose(target.key, input: userInput) { isLatest in
+        navigation.submit(prepare: { prepareSwitch(target, in: snapshot, operation: timing.id) }) { token in
+            let isLatest = { navigation.isCurrent(token) }
             let verifySpace: (() async -> Bool)? = previews.currentDesktop.map { feed in
                 { target.remainsSelection(in: await feed.readNow()) }
             }
             do {
-                if target.overviewSpace == nil, let verifySpace {
-                    guard await verifySpace(), stillCurrent() else { throw OrdinaryWindowFailure("窗口已离开这个桌面。") }
-                }
-                let path = try await DesktopWindowSelection.select(target, deadline: native.beganUptime + 12,
-                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() })
+                let path = try await DesktopWindowSelection.select(target, deadline: ProcessInfo.processInfo.systemUptime + 5,
+                    verifySpace: verifySpace, stillCurrent: { isLatest() && stillCurrent() }, timing: timing,
+                    beforeFocus: { navigation.windowSwitch.beforeFocus(timing.id, current: { isLatest() && stillCurrent() }) })
                 if isLatest() { selectionIssue = path.focusNotice }
             } catch {
+                navigation.windowSwitch.cancel(timing.id)
                 // An explicitly superseded choice must not clear the newer pending click.
                 if isLatest() { throw error }
             }
-        } failed: { selectionIssue = $0.localizedDescription }
+        }
     }
 
     static func windowDescription(index: Int, frame: SurfaceRect, within desktop: SurfaceRect) -> String {
@@ -259,13 +414,10 @@ struct DesktopSurface: View {
     }
 
     private struct BadgeRefresh: Equatable {
-        let session: UUID, members: [String], visible: Bool
+        let session: UUID, members: [DesktopWindowKey], visible: Bool
     }
 
-    private func status(_ text: String) -> some View {
-        Text(text).font(.caption).foregroundStyle(.secondary).padding(4)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
+
 }
 
 extension PreviewWindowBinding {

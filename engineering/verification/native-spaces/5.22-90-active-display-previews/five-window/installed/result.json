@@ -1,0 +1,5099 @@
+{
+  "status": "PASS",
+  "case": "five signed ordinary fixture apps on one active display/Space",
+  "scope": "one physical installed Host buffer, five current cards, five independent sources; no saved pixels",
+  "phases": [
+    {
+      "step": 0,
+      "changedSlot": null,
+      "expected": [
+        "0/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "cards": [
+              {
+                "end": 272767.1894249584,
+                "start": 272765.673539625,
+                "color": "0/0"
+              },
+              {
+                "end": 272767.1894249584,
+                "start": 272765.673539625,
+                "color": "0/1"
+              },
+              {
+                "end": 272767.1894249584,
+                "start": 272765.673539625,
+                "color": "0/2"
+              },
+              {
+                "end": 272767.1894249584,
+                "start": 272765.673539625,
+                "color": "0/3"
+              },
+              {
+                "end": 272767.1894249584,
+                "start": 272765.673539625,
+                "color": "0/4"
+              }
+            ],
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "savedPixels": 0,
+            "after": 272767.226652625,
+            "sources": [
+              {
+                "end": 272765.8913540834,
+                "start": 272765.67346254166,
+                "color": "0/0"
+              },
+              {
+                "end": 272766.13678345835,
+                "start": 272765.6734665,
+                "color": "0/1"
+              },
+              {
+                "end": 272766.67320675,
+                "start": 272765.6734952917,
+                "color": "0/2"
+              },
+              {
+                "end": 272766.38366295834,
+                "start": 272765.6735224167,
+                "color": "0/3"
+              },
+              {
+                "end": 272766.93276670837,
+                "start": 272765.67353233334,
+                "color": "0/4"
+              }
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "onePanelSampleBuffer": true,
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "before": 272765.46313337504,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "run": {
+              "hostBirth": 1795199358994413,
+              "hostPID": 19710,
+              "space": 5095,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "owners": [
+                {
+                  "pid": 19924,
+                  "birth": 1795199367517704,
+                  "slot": 0,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "number": 53164
+                },
+                {
+                  "pid": 19965,
+                  "birth": 1795199368505419,
+                  "slot": 1,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "number": 53178
+                },
+                {
+                  "pid": 20005,
+                  "birth": 1795199369480318,
+                  "slot": 2,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "number": 53188
+                },
+                {
+                  "pid": 20043,
+                  "birth": 1795199370578708,
+                  "slot": 3,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "number": 53198
+                },
+                {
+                  "pid": 20066,
+                  "birth": 1795199371865367,
+                  "slot": 4,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "number": 53208
+                }
+              ],
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+            },
+            "geometry": {
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "panel": 53157,
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ]
+            },
+            "ready": true
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "sources": [
+              {
+                "color": "0/0",
+                "start": 272768.01107683335,
+                "end": 272769.31497558334
+              },
+              {
+                "color": "0/1",
+                "start": 272768.01107916667,
+                "end": 272768.78231804166
+              },
+              {
+                "color": "0/2",
+                "start": 272768.011095375,
+                "end": 272769.0529331667
+              },
+              {
+                "color": "0/3",
+                "start": 272768.0111069583,
+                "end": 272769.624484375
+              },
+              {
+                "color": "0/4",
+                "start": 272768.011125125,
+                "end": 272768.2437940417
+              }
+            ],
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "geometry": {
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157
+            },
+            "savedPixels": 0,
+            "onePanelSampleBuffer": true,
+            "before": 272767.78886133333,
+            "after": 272769.6689244167,
+            "cards": [
+              {
+                "color": "0/0",
+                "end": 272768.532891875,
+                "start": 272768.01112925
+              },
+              {
+                "color": "0/1",
+                "end": 272768.532891875,
+                "start": 272768.01112925
+              },
+              {
+                "color": "0/2",
+                "end": 272768.532891875,
+                "start": 272768.01112925
+              },
+              {
+                "color": "0/3",
+                "end": 272768.532891875,
+                "start": 272768.01112925
+              },
+              {
+                "color": "0/4",
+                "end": 272768.532891875,
+                "start": 272768.01112925
+              }
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "ready": true,
+            "run": {
+              "hostBirth": 1795199358994413,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "hostPID": 19710,
+              "owners": [
+                {
+                  "number": 53164,
+                  "slot": 0,
+                  "birth": 1795199367517704,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "pid": 19924
+                },
+                {
+                  "number": 53178,
+                  "slot": 1,
+                  "birth": 1795199368505419,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "pid": 19965
+                },
+                {
+                  "number": 53188,
+                  "slot": 2,
+                  "birth": 1795199369480318,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "pid": 20005
+                },
+                {
+                  "number": 53198,
+                  "slot": 3,
+                  "birth": 1795199370578708,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "pid": 20043
+                },
+                {
+                  "number": 53208,
+                  "slot": 4,
+                  "birth": 1795199371865367,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "pid": 20066
+                }
+              ],
+              "space": 5095
+            },
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.854
+    },
+    {
+      "step": 1,
+      "changedSlot": 0,
+      "expected": [
+        "1/0",
+        "0/1",
+        "0/2",
+        "0/3",
+        "0/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "savedPixels": 0,
+            "after": 272772.31952995836,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "onePanelSampleBuffer": true,
+            "before": 272770.36192270834,
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "run": {
+              "owners": [
+                {
+                  "slot": 0,
+                  "pid": 19924,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "number": 53164,
+                  "birth": 1795199367517704
+                },
+                {
+                  "slot": 1,
+                  "pid": 19965,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "number": 53178,
+                  "birth": 1795199368505419
+                },
+                {
+                  "slot": 2,
+                  "pid": 20005,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "number": 53188,
+                  "birth": 1795199369480318
+                },
+                {
+                  "slot": 3,
+                  "pid": 20043,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "number": 53198,
+                  "birth": 1795199370578708
+                },
+                {
+                  "slot": 4,
+                  "pid": 20066,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "number": 53208,
+                  "birth": 1795199371865367
+                }
+              ],
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "hostBirth": 1795199358994413,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "space": 5095,
+              "hostPID": 19710
+            },
+            "ready": true,
+            "cards": [
+              {
+                "start": 272770.647626125,
+                "end": 272772.28126245836,
+                "color": "1/0"
+              },
+              {
+                "start": 272770.647626125,
+                "end": 272772.28126245836,
+                "color": "0/1"
+              },
+              {
+                "start": 272770.647626125,
+                "end": 272772.28126245836,
+                "color": "0/2"
+              },
+              {
+                "start": 272770.647626125,
+                "end": 272772.28126245836,
+                "color": "0/3"
+              },
+              {
+                "start": 272770.647626125,
+                "end": 272772.28126245836,
+                "color": "0/4"
+              }
+            ],
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "sources": [
+              {
+                "color": "1/0",
+                "end": 272771.99986020837,
+                "start": 272770.64755912503
+              },
+              {
+                "color": "0/1",
+                "end": 272771.73943762504,
+                "start": 272770.6475575
+              },
+              {
+                "color": "0/2",
+                "end": 272771.46930241666,
+                "start": 272770.6475760834
+              },
+              {
+                "color": "0/3",
+                "end": 272771.1740511667,
+                "start": 272770.64759658335
+              },
+              {
+                "color": "0/4",
+                "end": 272770.873464,
+                "start": 272770.6476148334
+              }
+            ],
+            "geometry": {
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157
+            }
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "geometry": {
+              "panel": 53157,
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ]
+            },
+            "savedPixels": 0,
+            "run": {
+              "space": 5095,
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "hostBirth": 1795199358994413,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostPID": 19710,
+              "owners": [
+                {
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "number": 53164,
+                  "slot": 0,
+                  "pid": 19924,
+                  "birth": 1795199367517704
+                },
+                {
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "number": 53178,
+                  "slot": 1,
+                  "pid": 19965,
+                  "birth": 1795199368505419
+                },
+                {
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "number": 53188,
+                  "slot": 2,
+                  "pid": 20005,
+                  "birth": 1795199369480318
+                },
+                {
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "number": 53198,
+                  "slot": 3,
+                  "pid": 20043,
+                  "birth": 1795199370578708
+                },
+                {
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "number": 53208,
+                  "slot": 4,
+                  "pid": 20066,
+                  "birth": 1795199371865367
+                }
+              ]
+            },
+            "ready": true,
+            "onePanelSampleBuffer": true,
+            "sources": [
+              {
+                "end": 272773.4324127917,
+                "start": 272773.2010307083,
+                "color": "1/0"
+              },
+              {
+                "end": 272773.7041722083,
+                "start": 272773.20106275,
+                "color": "0/1"
+              },
+              {
+                "end": 272774.797345125,
+                "start": 272773.2010676667,
+                "color": "0/2"
+              },
+              {
+                "end": 272774.5452927083,
+                "start": 272773.20108695835,
+                "color": "0/3"
+              },
+              {
+                "end": 272774.00822825,
+                "start": 272773.201103125,
+                "color": "0/4"
+              }
+            ],
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "before": 272772.905788125,
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "after": 272774.83419595833,
+            "cards": [
+              {
+                "start": 272773.20111695834,
+                "end": 272774.28793287504,
+                "color": "1/0"
+              },
+              {
+                "start": 272773.20111695834,
+                "end": 272774.28793287504,
+                "color": "0/1"
+              },
+              {
+                "start": 272773.20111695834,
+                "end": 272774.28793287504,
+                "color": "0/2"
+              },
+              {
+                "start": 272773.20111695834,
+                "end": 272774.28793287504,
+                "color": "0/3"
+              },
+              {
+                "start": 272773.20111695834,
+                "end": 272774.28793287504,
+                "color": "0/4"
+              }
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.759
+    },
+    {
+      "step": 2,
+      "changedSlot": 1,
+      "expected": [
+        "1/0",
+        "1/1",
+        "0/2",
+        "0/3",
+        "0/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "savedPixels": 0,
+            "run": {
+              "space": 5095,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostPID": 19710,
+              "hostBirth": 1795199358994413,
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "owners": [
+                {
+                  "pid": 19924,
+                  "birth": 1795199367517704,
+                  "number": 53164,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "slot": 0
+                },
+                {
+                  "pid": 19965,
+                  "birth": 1795199368505419,
+                  "number": 53178,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "slot": 1
+                },
+                {
+                  "pid": 20005,
+                  "birth": 1795199369480318,
+                  "number": 53188,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "slot": 2
+                },
+                {
+                  "pid": 20043,
+                  "birth": 1795199370578708,
+                  "number": 53198,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "slot": 3
+                },
+                {
+                  "pid": 20066,
+                  "birth": 1795199371865367,
+                  "number": 53208,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "slot": 4
+                }
+              ],
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d"
+            },
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "cards": [
+              {
+                "start": 272775.6961375417,
+                "end": 272777.2497864167,
+                "color": "1/0"
+              },
+              {
+                "start": 272775.6961375417,
+                "end": 272777.2497864167,
+                "color": "1/1"
+              },
+              {
+                "start": 272775.6961375417,
+                "end": 272777.2497864167,
+                "color": "0/2"
+              },
+              {
+                "start": 272775.6961375417,
+                "end": 272777.2497864167,
+                "color": "0/3"
+              },
+              {
+                "start": 272775.6961375417,
+                "end": 272777.2497864167,
+                "color": "0/4"
+              }
+            ],
+            "sources": [
+              {
+                "end": 272776.4534790417,
+                "start": 272775.69608,
+                "color": "1/0"
+              },
+              {
+                "end": 272776.19397379167,
+                "start": 272775.6960774167,
+                "color": "1/1"
+              },
+              {
+                "end": 272776.7052399167,
+                "start": 272775.696096625,
+                "color": "0/2"
+              },
+              {
+                "end": 272775.9134009167,
+                "start": 272775.6961234167,
+                "color": "0/3"
+              },
+              {
+                "end": 272776.96185325,
+                "start": 272775.696137375,
+                "color": "0/4"
+              }
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "onePanelSampleBuffer": true,
+            "geometry": {
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157,
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ]
+            },
+            "after": 272777.2884602917,
+            "ready": true,
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "before": 272775.48329166666,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "sources": [
+              {
+                "start": 272778.1691780417,
+                "end": 272779.175088,
+                "color": "1/0"
+              },
+              {
+                "start": 272778.16917770833,
+                "end": 272779.44423583336,
+                "color": "1/1"
+              },
+              {
+                "start": 272778.16919362504,
+                "end": 272779.712410125,
+                "color": "0/2"
+              },
+              {
+                "start": 272778.16922129167,
+                "end": 272778.65874804166,
+                "color": "0/3"
+              },
+              {
+                "start": 272778.169231,
+                "end": 272778.9162694167,
+                "color": "0/4"
+              }
+            ],
+            "onePanelSampleBuffer": true,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "before": 272777.8501502917,
+            "geometry": {
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "panel": 53157,
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ]
+            },
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "cards": [
+              {
+                "start": 272778.16923625,
+                "end": 272778.38336525,
+                "color": "1/0"
+              },
+              {
+                "start": 272778.16923625,
+                "end": 272778.38336525,
+                "color": "1/1"
+              },
+              {
+                "start": 272778.16923625,
+                "end": 272778.38336525,
+                "color": "0/2"
+              },
+              {
+                "start": 272778.16923625,
+                "end": 272778.38336525,
+                "color": "0/3"
+              },
+              {
+                "start": 272778.16923625,
+                "end": 272778.38336525,
+                "color": "0/4"
+              }
+            ],
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "savedPixels": 0,
+            "after": 272779.74958762503,
+            "ready": true,
+            "run": {
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostBirth": 1795199358994413,
+              "space": 5095,
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "hostPID": 19710,
+              "owners": [
+                {
+                  "slot": 0,
+                  "number": 53164,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "pid": 19924,
+                  "birth": 1795199367517704
+                },
+                {
+                  "slot": 1,
+                  "number": 53178,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "pid": 19965,
+                  "birth": 1795199368505419
+                },
+                {
+                  "slot": 2,
+                  "number": 53188,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "pid": 20005,
+                  "birth": 1795199369480318
+                },
+                {
+                  "slot": 3,
+                  "number": 53198,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "pid": 20043,
+                  "birth": 1795199370578708
+                },
+                {
+                  "slot": 4,
+                  "number": 53208,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "pid": 20066,
+                  "birth": 1795199371865367
+                }
+              ],
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+            }
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.572
+    },
+    {
+      "step": 3,
+      "changedSlot": 2,
+      "expected": [
+        "1/0",
+        "1/1",
+        "1/2",
+        "0/3",
+        "0/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "sources": [
+              {
+                "start": 272780.61331645836,
+                "color": "1/0",
+                "end": 272781.628091375
+              },
+              {
+                "start": 272780.6133152917,
+                "color": "1/1",
+                "end": 272781.37255283335
+              },
+              {
+                "start": 272780.6133310417,
+                "color": "1/2",
+                "end": 272782.1540037917
+              },
+              {
+                "start": 272780.6133612917,
+                "color": "0/3",
+                "end": 272781.1003940417
+              },
+              {
+                "start": 272780.6133835834,
+                "color": "0/4",
+                "end": 272780.82862808334
+              }
+            ],
+            "onePanelSampleBuffer": true,
+            "savedPixels": 0,
+            "before": 272780.3923610417,
+            "after": 272782.20395108336,
+            "geometry": {
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157,
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ]
+            },
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "run": {
+              "space": 5095,
+              "hostPID": 19710,
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "hostBirth": 1795199358994413,
+              "owners": [
+                {
+                  "number": 53164,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "pid": 19924,
+                  "slot": 0,
+                  "birth": 1795199367517704
+                },
+                {
+                  "number": 53178,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "pid": 19965,
+                  "slot": 1,
+                  "birth": 1795199368505419
+                },
+                {
+                  "number": 53188,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "pid": 20005,
+                  "slot": 2,
+                  "birth": 1795199369480318
+                },
+                {
+                  "number": 53198,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "pid": 20043,
+                  "slot": 3,
+                  "birth": 1795199370578708
+                },
+                {
+                  "number": 53208,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "pid": 20066,
+                  "slot": 4,
+                  "birth": 1795199371865367
+                }
+              ],
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+            },
+            "ready": true,
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "cards": [
+              {
+                "start": 272780.61338733335,
+                "end": 272781.87764670834,
+                "color": "1/0"
+              },
+              {
+                "start": 272780.61338733335,
+                "end": 272781.87764670834,
+                "color": "1/1"
+              },
+              {
+                "start": 272780.61338733335,
+                "end": 272781.87764670834,
+                "color": "1/2"
+              },
+              {
+                "start": 272780.61338733335,
+                "end": 272781.87764670834,
+                "color": "0/3"
+              },
+              {
+                "start": 272780.61338733335,
+                "end": 272781.87764670834,
+                "color": "0/4"
+              }
+            ],
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "ready": true,
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "savedPixels": 0,
+            "onePanelSampleBuffer": true,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "cards": [
+              {
+                "color": "1/0",
+                "end": 272783.7588300417,
+                "start": 272783.0122911667
+              },
+              {
+                "color": "1/1",
+                "end": 272783.7588300417,
+                "start": 272783.0122911667
+              },
+              {
+                "color": "1/2",
+                "end": 272783.7588300417,
+                "start": 272783.0122911667
+              },
+              {
+                "color": "0/3",
+                "end": 272783.7588300417,
+                "start": 272783.0122911667
+              },
+              {
+                "color": "0/4",
+                "end": 272783.7588300417,
+                "start": 272783.0122911667
+              }
+            ],
+            "before": 272782.80721395835,
+            "sources": [
+              {
+                "end": 272784.53917629167,
+                "start": 272783.01220708335,
+                "color": "1/0"
+              },
+              {
+                "end": 272783.227770125,
+                "start": 272783.01220583334,
+                "color": "1/1"
+              },
+              {
+                "end": 272784.27740845835,
+                "start": 272783.0122376667,
+                "color": "1/2"
+              },
+              {
+                "end": 272783.50119337504,
+                "start": 272783.012247,
+                "color": "0/3"
+              },
+              {
+                "end": 272784.01548529166,
+                "start": 272783.01225545834,
+                "color": "0/4"
+              }
+            ],
+            "run": {
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostBirth": 1795199358994413,
+              "owners": [
+                {
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "slot": 0,
+                  "pid": 19924,
+                  "birth": 1795199367517704,
+                  "number": 53164
+                },
+                {
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "slot": 1,
+                  "pid": 19965,
+                  "birth": 1795199368505419,
+                  "number": 53178
+                },
+                {
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "slot": 2,
+                  "pid": 20005,
+                  "birth": 1795199369480318,
+                  "number": 53188
+                },
+                {
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "slot": 3,
+                  "pid": 20043,
+                  "birth": 1795199370578708,
+                  "number": 53198
+                },
+                {
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "slot": 4,
+                  "pid": 20066,
+                  "birth": 1795199371865367,
+                  "number": 53208
+                }
+              ],
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "space": 5095,
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "hostPID": 19710
+            },
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "after": 272784.575879,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "geometry": {
+              "panel": 53157,
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ]
+            }
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.554
+    },
+    {
+      "step": 4,
+      "changedSlot": 3,
+      "expected": [
+        "1/0",
+        "1/1",
+        "1/2",
+        "1/3",
+        "0/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "onePanelSampleBuffer": true,
+            "run": {
+              "hostBirth": 1795199358994413,
+              "hostPID": 19710,
+              "space": 5095,
+              "owners": [
+                {
+                  "slot": 0,
+                  "pid": 19924,
+                  "number": 53164,
+                  "birth": 1795199367517704,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b"
+                },
+                {
+                  "slot": 1,
+                  "pid": 19965,
+                  "number": 53178,
+                  "birth": 1795199368505419,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a"
+                },
+                {
+                  "slot": 2,
+                  "pid": 20005,
+                  "number": 53188,
+                  "birth": 1795199369480318,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b"
+                },
+                {
+                  "slot": 3,
+                  "pid": 20043,
+                  "number": 53198,
+                  "birth": 1795199370578708,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85"
+                },
+                {
+                  "slot": 4,
+                  "pid": 20066,
+                  "number": 53208,
+                  "birth": 1795199371865367,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f"
+                }
+              ],
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d"
+            },
+            "before": 272785.26102591667,
+            "geometry": {
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157
+            },
+            "savedPixels": 0,
+            "ready": true,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "after": 272787.0929670833,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "sources": [
+              {
+                "start": 272785.503053125,
+                "end": 272786.28038783337,
+                "color": "1/0"
+              },
+              {
+                "start": 272785.503052375,
+                "end": 272786.796113625,
+                "color": "1/1"
+              },
+              {
+                "start": 272785.5030657917,
+                "end": 272785.72055520833,
+                "color": "1/2"
+              },
+              {
+                "start": 272785.503094875,
+                "end": 272786.004058,
+                "color": "1/3"
+              },
+              {
+                "start": 272785.5031194583,
+                "end": 272786.54620800004,
+                "color": "0/4"
+              }
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "cards": [
+              {
+                "start": 272785.50312383333,
+                "color": "1/0",
+                "end": 272787.054636375
+              },
+              {
+                "start": 272785.50312383333,
+                "color": "1/1",
+                "end": 272787.054636375
+              },
+              {
+                "start": 272785.50312383333,
+                "color": "1/2",
+                "end": 272787.054636375
+              },
+              {
+                "start": 272785.50312383333,
+                "color": "1/3",
+                "end": 272787.054636375
+              },
+              {
+                "start": 272785.50312383333,
+                "color": "0/4",
+                "end": 272787.054636375
+              }
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "geometry": {
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ],
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157,
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ]
+            },
+            "ready": true,
+            "run": {
+              "space": 5095,
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "hostPID": 19710,
+              "hostBirth": 1795199358994413,
+              "owners": [
+                {
+                  "birth": 1795199367517704,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "pid": 19924,
+                  "number": 53164,
+                  "slot": 0
+                },
+                {
+                  "birth": 1795199368505419,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "pid": 19965,
+                  "number": 53178,
+                  "slot": 1
+                },
+                {
+                  "birth": 1795199369480318,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "pid": 20005,
+                  "number": 53188,
+                  "slot": 2
+                },
+                {
+                  "birth": 1795199370578708,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "pid": 20043,
+                  "number": 53198,
+                  "slot": 3
+                },
+                {
+                  "birth": 1795199371865367,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "pid": 20066,
+                  "number": 53208,
+                  "slot": 4
+                }
+              ],
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+            },
+            "before": 272787.63665833336,
+            "sources": [
+              {
+                "color": "1/0",
+                "end": 272789.19228641666,
+                "start": 272787.87213333335
+              },
+              {
+                "color": "1/1",
+                "end": 272788.6164327917,
+                "start": 272787.87213458336
+              },
+              {
+                "color": "1/2",
+                "end": 272789.47895358334,
+                "start": 272787.87214887503
+              },
+              {
+                "color": "1/3",
+                "end": 272788.08598537504,
+                "start": 272787.8721795417
+              },
+              {
+                "color": "0/4",
+                "end": 272788.3589192917,
+                "start": 272787.87218833336
+              }
+            ],
+            "savedPixels": 0,
+            "onePanelSampleBuffer": true,
+            "after": 272789.5154453333,
+            "cards": [
+              {
+                "end": 272788.87250912504,
+                "start": 272787.8722057917,
+                "color": "1/0"
+              },
+              {
+                "end": 272788.87250912504,
+                "start": 272787.8722057917,
+                "color": "1/1"
+              },
+              {
+                "end": 272788.87250912504,
+                "start": 272787.8722057917,
+                "color": "1/2"
+              },
+              {
+                "end": 272788.87250912504,
+                "start": 272787.8722057917,
+                "color": "1/3"
+              },
+              {
+                "end": 272788.87250912504,
+                "start": 272787.8722057917,
+                "color": "0/4"
+              }
+            ],
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.564
+    },
+    {
+      "step": 5,
+      "changedSlot": 4,
+      "expected": [
+        "1/0",
+        "1/1",
+        "1/2",
+        "1/3",
+        "1/4"
+      ],
+      "samples": [
+        {
+          "batch": {
+            "onePanelSampleBuffer": true,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "after": 272791.926113375,
+            "ready": true,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ],
+            "before": 272790.1697665417,
+            "sources": [
+              {
+                "color": "1/0",
+                "start": 272790.39557583333,
+                "end": 272791.89124483336
+              },
+              {
+                "color": "1/1",
+                "start": 272790.3955748333,
+                "end": 272791.1183763333
+              },
+              {
+                "color": "1/2",
+                "start": 272790.39559045836,
+                "end": 272791.6388704167
+              },
+              {
+                "color": "1/3",
+                "start": 272790.39563004166,
+                "end": 272791.383803125
+              },
+              {
+                "color": "1/4",
+                "start": 272790.39562741667,
+                "end": 272790.59923500003
+              }
+            ],
+            "savedPixels": 0,
+            "run": {
+              "hostBirth": 1795199358994413,
+              "hostPID": 19710,
+              "space": 5095,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "owners": [
+                {
+                  "birth": 1795199367517704,
+                  "pid": 19924,
+                  "number": 53164,
+                  "slot": 0,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b"
+                },
+                {
+                  "birth": 1795199368505419,
+                  "pid": 19965,
+                  "number": 53178,
+                  "slot": 1,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a"
+                },
+                {
+                  "birth": 1795199369480318,
+                  "pid": 20005,
+                  "number": 53188,
+                  "slot": 2,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b"
+                },
+                {
+                  "birth": 1795199370578708,
+                  "pid": 20043,
+                  "number": 53198,
+                  "slot": 3,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85"
+                },
+                {
+                  "birth": 1795199371865367,
+                  "pid": 20066,
+                  "number": 53208,
+                  "slot": 4,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f"
+                }
+              ],
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+            },
+            "cards": [
+              {
+                "start": 272790.39563391666,
+                "end": 272790.8434762917,
+                "color": "1/0"
+              },
+              {
+                "start": 272790.39563391666,
+                "end": 272790.8434762917,
+                "color": "1/1"
+              },
+              {
+                "start": 272790.39563391666,
+                "end": 272790.8434762917,
+                "color": "1/2"
+              },
+              {
+                "start": 272790.39563391666,
+                "end": 272790.8434762917,
+                "color": "1/3"
+              },
+              {
+                "start": 272790.39563391666,
+                "end": 272790.8434762917,
+                "color": "1/4"
+              }
+            ],
+            "geometry": {
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "panel": 53157,
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ]
+            }
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        },
+        {
+          "batch": {
+            "savedPixels": 0,
+            "before": 272792.46698875003,
+            "geometry": {
+              "pictures": [
+                [
+                  1348,
+                  222,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  330,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  437,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  545,
+                  4,
+                  4
+                ],
+                [
+                  1348,
+                  653,
+                  4,
+                  4
+                ]
+              ],
+              "panel": 53157,
+              "region": [
+                1242,
+                181,
+                216,
+                763
+              ],
+              "displayBounds": [
+                0,
+                0,
+                1470,
+                956
+              ],
+              "sources": [
+                [
+                  540,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  331,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  926,
+                  477,
+                  4,
+                  4
+                ],
+                [
+                  540,
+                  623,
+                  4,
+                  4
+                ]
+              ]
+            },
+            "cards": [
+              {
+                "start": 272792.698848875,
+                "end": 272794.2796935,
+                "color": "1/0"
+              },
+              {
+                "start": 272792.698848875,
+                "end": 272794.2796935,
+                "color": "1/1"
+              },
+              {
+                "start": 272792.698848875,
+                "end": 272794.2796935,
+                "color": "1/2"
+              },
+              {
+                "start": 272792.698848875,
+                "end": 272794.2796935,
+                "color": "1/3"
+              },
+              {
+                "start": 272792.698848875,
+                "end": 272794.2796935,
+                "color": "1/4"
+              }
+            ],
+            "kindsAfter": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "onePanelSampleBuffer": true,
+            "run": {
+              "hostBirth": 1795199358994413,
+              "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+              "space": 5095,
+              "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+              "hostPID": 19710,
+              "owners": [
+                {
+                  "slot": 0,
+                  "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b",
+                  "number": 53164,
+                  "pid": 19924,
+                  "birth": 1795199367517704
+                },
+                {
+                  "slot": 1,
+                  "hash": "551bca933b766cbd58888ca16ee10889e791957a",
+                  "number": 53178,
+                  "pid": 19965,
+                  "birth": 1795199368505419
+                },
+                {
+                  "slot": 2,
+                  "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b",
+                  "number": 53188,
+                  "pid": 20005,
+                  "birth": 1795199369480318
+                },
+                {
+                  "slot": 3,
+                  "hash": "0080a3ae388406f906787d124f93d298947d4d85",
+                  "number": 53198,
+                  "pid": 20043,
+                  "birth": 1795199370578708
+                },
+                {
+                  "slot": 4,
+                  "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f",
+                  "number": 53208,
+                  "pid": 20066,
+                  "birth": 1795199371865367
+                }
+              ],
+              "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+            },
+            "ready": true,
+            "kindsBefore": [
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面",
+              "窗口画面"
+            ],
+            "after": 272794.32548970834,
+            "hardware": [
+              5759,
+              70,
+              0,
+              3049,
+              136752
+            ],
+            "sources": [
+              {
+                "start": 272792.69876654167,
+                "end": 272793.973799875,
+                "color": "1/0"
+              },
+              {
+                "start": 272792.69876266667,
+                "end": 272792.9194633333,
+                "color": "1/1"
+              },
+              {
+                "start": 272792.69877558335,
+                "end": 272793.1960051667,
+                "color": "1/2"
+              },
+              {
+                "start": 272792.6988232917,
+                "end": 272793.70766791666,
+                "color": "1/3"
+              },
+              {
+                "start": 272792.69883858337,
+                "end": 272793.45488958334,
+                "color": "1/4"
+              }
+            ],
+            "sourceModes": [
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface",
+              "registeredSyntheticIOSurface"
+            ]
+          },
+          "verdicts": [
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH",
+            "MATCH"
+          ]
+        }
+      ],
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "elapsed": 4.458
+    }
+  ],
+  "checkpoints": [
+    {
+      "label": "emptyBefore",
+      "elapsed": 0.136,
+      "reads": [
+        {
+          "cardCount": 0,
+          "cards": [],
+          "census": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": []
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [],
+          "stageOff": true,
+          "uptime": 272758.20747566666
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "emptyConfirmed",
+      "elapsed": 0.173,
+      "reads": [
+        {
+          "cardCount": 0,
+          "cards": [],
+          "census": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": []
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [],
+          "stageOff": true,
+          "uptime": 272758.5614455
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "beforeLaunch2",
+      "elapsed": 0.193,
+      "reads": [
+        {
+          "cardCount": 0,
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 1,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": true,
+            "fixtureIsFrontmost": true,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 3,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            false
+          ],
+          "privatePixelsWritten": 0,
+          "ready": false,
+          "reason": "missingDuplicateOrUnenrolledCard",
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272759.63521804166
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "beforeLaunch3",
+      "elapsed": 0.21,
+      "reads": [
+        {
+          "cardCount": 2,
+          "cards": [
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                185,
+                208,
+                96.5
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53164,
+              "panelBound": true,
+              "patch": [
+                1348,
+                222,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                185,
+                208,
+                78.5
+              ],
+              "pid": 19924,
+              "role": "AXButton",
+              "slot": 0
+            },
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口轮廓",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                292.5,
+                208,
+                97
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53178,
+              "panelBound": true,
+              "patch": [
+                1348,
+                330,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                292.5,
+                208,
+                79
+              ],
+              "pid": 19965,
+              "role": "AXButton",
+              "slot": 1
+            }
+          ],
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164,
+              53178
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 1,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53178,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2,
+              "fixtureAuxiliary/enrolledNonDocument": 1
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 5,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [
+              [
+                1348,
+                222,
+                4,
+                4
+              ],
+              [
+                1348,
+                330,
+                4,
+                4
+              ]
+            ],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": [
+              [
+                540,
+                331,
+                4,
+                4
+              ],
+              [
+                926,
+                331,
+                4,
+                4
+              ]
+            ]
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            true,
+            true
+          ],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ],
+            [
+              743,
+              263,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272760.5400562917
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "beforeLaunch4",
+      "elapsed": 0.253,
+      "reads": [
+        {
+          "cardCount": 2,
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164,
+              53178,
+              53188
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53178,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 1,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53188,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2,
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 7,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            true,
+            true,
+            false
+          ],
+          "privatePixelsWritten": 0,
+          "ready": false,
+          "reason": "missingDuplicateOrUnenrolledCard",
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ],
+            [
+              743,
+              263,
+              370,
+              140
+            ],
+            [
+              357,
+              409,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272761.6329035
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "beforeLaunch5",
+      "elapsed": 0.255,
+      "reads": [
+        {
+          "cardCount": 3,
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164,
+              53178,
+              53188,
+              53198
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53178,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 1,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53198,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53188,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2,
+              "fixtureAuxiliary/enrolledNonDocument": 3
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 9,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            true,
+            true,
+            true,
+            false
+          ],
+          "privatePixelsWritten": 0,
+          "ready": false,
+          "reason": "missingDuplicateOrUnenrolledCard",
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ],
+            [
+              743,
+              263,
+              370,
+              140
+            ],
+            [
+              357,
+              409,
+              370,
+              140
+            ],
+            [
+              743,
+              409,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272762.91075104167
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "allFiveCurrent",
+      "elapsed": 0.946,
+      "reads": [
+        {
+          "cardCount": 4,
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164,
+              53178,
+              53188,
+              53198,
+              53208
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53178,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 1,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  555,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53208,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53198,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53188,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2,
+              "fixtureAuxiliary/enrolledNonDocument": 4
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 11,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            true,
+            true,
+            true,
+            true,
+            false
+          ],
+          "privatePixelsWritten": 0,
+          "ready": false,
+          "reason": "missingDuplicateOrUnenrolledCard",
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ],
+            [
+              743,
+              263,
+              370,
+              140
+            ],
+            [
+              357,
+              409,
+              370,
+              140
+            ],
+            [
+              743,
+              409,
+              370,
+              140
+            ],
+            [
+              357,
+              555,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272763.98483383335
+        },
+        {
+          "cardCount": 5,
+          "cards": [
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                185,
+                208,
+                96.5
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53164,
+              "panelBound": true,
+              "patch": [
+                1348,
+                222,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                185,
+                208,
+                78.5
+              ],
+              "pid": 19924,
+              "role": "AXButton",
+              "slot": 0
+            },
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                292.5,
+                208,
+                97
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53178,
+              "panelBound": true,
+              "patch": [
+                1348,
+                330,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                292.5,
+                208,
+                79
+              ],
+              "pid": 19965,
+              "role": "AXButton",
+              "slot": 1
+            },
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                400.5,
+                208,
+                96.5
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53188,
+              "panelBound": true,
+              "patch": [
+                1348,
+                437,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                400.5,
+                208,
+                78.5
+              ],
+              "pid": 20005,
+              "role": "AXButton",
+              "slot": 2
+            },
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                508,
+                208,
+                97
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53198,
+              "panelBound": true,
+              "patch": [
+                1348,
+                545,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                508,
+                208,
+                79
+              ],
+              "pid": 20043,
+              "role": "AXButton",
+              "slot": 3
+            },
+            {
+              "axValue": {
+                "declaredPreviewPoints": [
+                  208,
+                  79
+                ],
+                "kind": "窗口画面",
+                "sizePending": false,
+                "valueType": "text"
+              },
+              "children": [],
+              "frame": [
+                1246,
+                616,
+                208,
+                96.5
+              ],
+              "geometryReady": true,
+              "geometrySource": "boundCardAboveFixedCaption",
+              "number": 53208,
+              "panelBound": true,
+              "patch": [
+                1348,
+                653,
+                4,
+                4
+              ],
+              "pictureFrame": [
+                1246,
+                616,
+                208,
+                78.5
+              ],
+              "pid": 20066,
+              "role": "AXButton",
+              "slot": 4
+            }
+          ],
+          "census": {
+            "admitted": true,
+            "expected": [
+              53164,
+              53178,
+              53188,
+              53198,
+              53208
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53164,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  555,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53208,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53198,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  357,
+                  409,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53188,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 2,
+                "axStandard": true,
+                "bounds": [
+                  743,
+                  263,
+                  370,
+                  140
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 53178,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5095
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2,
+              "fixtureAuxiliary/enrolledNonDocument": 5
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 12,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [
+              [
+                1348,
+                222,
+                4,
+                4
+              ],
+              [
+                1348,
+                330,
+                4,
+                4
+              ],
+              [
+                1348,
+                437,
+                4,
+                4
+              ],
+              [
+                1348,
+                545,
+                4,
+                4
+              ],
+              [
+                1348,
+                653,
+                4,
+                4
+              ]
+            ],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": [
+              [
+                540,
+                331,
+                4,
+                4
+              ],
+              [
+                926,
+                331,
+                4,
+                4
+              ],
+              [
+                540,
+                477,
+                4,
+                4
+              ],
+              [
+                926,
+                477,
+                4,
+                4
+              ],
+              [
+                540,
+                623,
+                4,
+                4
+              ]
+            ]
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [
+            [
+              357,
+              263,
+              370,
+              140
+            ],
+            [
+              743,
+              263,
+              370,
+              140
+            ],
+            [
+              357,
+              409,
+              370,
+              140
+            ],
+            [
+              743,
+              409,
+              370,
+              140
+            ],
+            [
+              357,
+              555,
+              370,
+              140
+            ]
+          ],
+          "stageOff": true,
+          "uptime": 272764.56819745834
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "emptyAfter",
+      "elapsed": 0.129,
+      "reads": [
+        {
+          "cardCount": 0,
+          "cards": [],
+          "census": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": []
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [],
+          "stageOff": true,
+          "uptime": 272794.8646820417
+        }
+      ],
+      "ready": true
+    },
+    {
+      "label": "emptyAfterConfirmed",
+      "elapsed": 0.135,
+      "reads": [
+        {
+          "cardCount": 0,
+          "cards": [],
+          "census": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {
+              "appleWindowManager/signedCompositor": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "signedCompositor",
+                "drawn": true,
+                "fixtureAXStandard": null,
+                "fixtureAXSubroleReported": null,
+                "fixtureAXWindowRole": null,
+                "inPublicAll": false,
+                "inPublicCurrent": false,
+                "onscreen": false,
+                "owner": "appleWindowManager",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "otherLayerEvidence": [
+              {
+                "exclusive": true,
+                "layer": 0,
+                "onscreen": true,
+                "owner": "installedHost",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": -1,
+                "onscreen": true,
+                "owner": "appleDock",
+                "visibleQuery": true
+              },
+              {
+                "exclusive": true,
+                "layer": 24,
+                "onscreen": false,
+                "owner": "appleWindowServer",
+                "visibleQuery": false
+              }
+            ],
+            "otherLayers": 3,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "geometry": {
+            "displayBounds": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "panel": 53157,
+            "pictures": [],
+            "region": [
+              1242,
+              181,
+              216,
+              763
+            ],
+            "sources": []
+          },
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "membership": true,
+          "present": [],
+          "privatePixelsWritten": 0,
+          "ready": true,
+          "region": [
+            1242,
+            181,
+            216,
+            763
+          ],
+          "sourceFrames": [],
+          "stageOff": true,
+          "uptime": 272795.18902708334
+        }
+      ],
+      "ready": true
+    }
+  ],
+  "cleanup": {
+    "status": "PASS",
+    "fixtures": [
+      {
+        "slot": 0,
+        "pid": 19924,
+        "birth": 1795199367517704,
+        "generationExited": true,
+        "launcherExited": true
+      },
+      {
+        "slot": 1,
+        "pid": 19965,
+        "birth": 1795199368505419,
+        "generationExited": true,
+        "launcherExited": true
+      },
+      {
+        "slot": 2,
+        "pid": 20005,
+        "birth": 1795199369480318,
+        "generationExited": true,
+        "launcherExited": true
+      },
+      {
+        "slot": 3,
+        "pid": 20043,
+        "birth": 1795199370578708,
+        "generationExited": true,
+        "launcherExited": true
+      },
+      {
+        "slot": 4,
+        "pid": 20066,
+        "birth": 1795199371865367,
+        "generationExited": true,
+        "launcherExited": true
+      }
+    ]
+  },
+  "perCard": [
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS"
+  ],
+  "installed": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "build": "90",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "pid": 19710
+  },
+  "run": {
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795199358994413,
+    "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "hostPID": 19710,
+    "owners": [
+      {
+        "slot": 0,
+        "pid": 19924,
+        "birth": 1795199367517704,
+        "number": 53164,
+        "hash": "6480e26ab52d27deb40c2784f4a492f4ba763b9b"
+      },
+      {
+        "slot": 1,
+        "pid": 19965,
+        "birth": 1795199368505419,
+        "number": 53178,
+        "hash": "551bca933b766cbd58888ca16ee10889e791957a"
+      },
+      {
+        "slot": 2,
+        "pid": 20005,
+        "birth": 1795199369480318,
+        "number": 53188,
+        "hash": "142ddee44ded21daf9fe6fb3a8fd65fcd075c18b"
+      },
+      {
+        "slot": 3,
+        "pid": 20043,
+        "birth": 1795199370578708,
+        "number": 53198,
+        "hash": "0080a3ae388406f906787d124f93d298947d4d85"
+      },
+      {
+        "slot": 4,
+        "pid": 20066,
+        "birth": 1795199371865367,
+        "number": 53208,
+        "hash": "ffc33ab517d4fe24046b4068b35dd32b7366a67f"
+      }
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "membership": "PASS",
+  "fiveCardInteriorsInSameViewport": "PASS"
+}

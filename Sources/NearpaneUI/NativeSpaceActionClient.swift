@@ -13,20 +13,24 @@ final class NativeSelectionPermit: @unchecked Sendable {
     // Do not collect keys, events or window content. A new physical press supersedes an
     // older programmatic selection even when the user clicked outside Nearpane.
     static func inputCounters() -> [UInt32] {
-        let kinds: [CGEventType] = [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]
-        return kinds.map { CGEventSource.counterForEventType(.hidSystemState, eventType: $0) }
+        WindowSelectionInput.counters()
     }
 
     private let current: @MainActor @Sendable () -> Bool
+    private let requiredOriginal: UUID?
+    private let confirmDispatch: @MainActor @Sendable () async -> Bool
     private let checkOriginalWindow: @MainActor @Sendable () async -> Bool
-    init(current: @escaping @MainActor @Sendable () -> Bool = { true },
+    init(current: @escaping @MainActor @Sendable () -> Bool = { true }, requiredOriginal: UUID? = nil,
+         confirmDispatch: @escaping @MainActor @Sendable () async -> Bool = { true },
          checkOriginalWindow: @escaping @MainActor @Sendable () async -> Bool = { true }) {
         self.current = current
+        self.confirmDispatch = confirmDispatch
+        self.requiredOriginal = requiredOriginal
         self.checkOriginalWindow = checkOriginalWindow
     }
 
-    func gesturePermission(for id: UUID, after steps: Int) async -> NativeSpaceStepPermission {
-        guard lock.withLock({ active }), await checkOriginalWindow() else {
+    func gesturePermission(for id: UUID, after steps: Int, original: UUID? = nil) async -> NativeSpaceStepPermission {
+        guard original == requiredOriginal, lock.withLock({ active }), await checkOriginalWindow(), await confirmDispatch() else {
             return .init(id: id, submittedSteps: steps, proceed: false)
         }
         return permission(for: id, after: steps)
@@ -47,8 +51,34 @@ final class NativeSelectionPermit: @unchecked Sendable {
     static let shared = NativeSpaceActionClient()
     private let channel = SpaceActionChannel()
 
+    func observe(_ probes: [NativeSidebarWindowProbe], audit: NativeSidebarWindowAudit.Sample? = nil) async -> NativeSidebarWindowHistory.Batch {
+        guard !probes.isEmpty, probes.count <= 16 else { return .init([]) }
+        let command = NativeSpaceCommand(id: UUID(), action: .observeWindows, display: "", source: "", target: "",
+                                         observations: probes)
+        let reply = await run(command)
+        if let audit {
+            for (i, probe) in probes.enumerated() where probe.audit == true {
+                var info: [String: Any] = ["state": reply.state.rawValue, "requestMatched": reply.id == command.id,
+                                          "current": probe.current, "hadOriginal": probe.original != nil]
+                info["workerPID"] = reply.observationWorkerPID
+                info["withheldOriginal"] = reply.withheldOriginals?.contains(i) == true
+                if let facts = reply.observationFacts, facts.indices.contains(i) { info["axEvidence"] = facts[i] }
+                if let reasons = reply.observationReasons, reasons.indices.contains(i) { info["reason"] = reasons[i] }
+                if reply.state != .ready { info["reason"] = reply.detail }
+                audit.event("signed-helper-reply", info, window: probe.location.window)
+            }
+        }
+        guard reply.id == command.id, reply.state == .ready, let tokens = reply.observedWindows,
+              tokens.count == probes.count else { return .init([]) }
+        let withheld = Set(reply.withheldOriginals ?? [])
+        guard withheld.allSatisfy({ tokens.indices.contains($0) && tokens[$0] == nil && probes[$0].original != nil })
+        else { return .init([]) }
+        return .init(tokens, withheld: withheld)
+    }
+
     func run(_ command: NativeSpaceCommand, permit: NativeSelectionPermit? = nil) async -> NativeSpaceReply {
-        await channel.exchange(command, permit: permit)
+        if let refusal = command.nativeWriteRefusal { return refusal }
+        return await channel.exchange(command, permit: permit)
     }
 }
 
@@ -63,6 +93,7 @@ private actor SpaceActionChannel {
             if process.isRunning { process.terminate() }
         }
     }
+    private let switchJournal = NativeSwitchJournal.installed()
     private var connection: Connection?
     private var exchanging = false
     private var waiting = [CheckedContinuation<Void, Never>]()
@@ -120,37 +151,64 @@ private actor SpaceActionChannel {
         defer {
             if waiting.isEmpty { exchanging = false } else { waiting.removeFirst().resume() }
         }
+        if (command.action == .select || command.action == .probe) && switchJournal.suspended {
+            return .init(id: command.id, state: command.action == .probe ? .ready : .failed,
+                         detail: "此系统版本的上次切换未获确认。请使用系统桌面控制。", canSwitch: false, canMove: false)
+        }
+        var journaled = false
         var mayHaveIssued = false
         do {
             try Task.checkCancellation()
             guard command.isFresh(at: ProcessInfo.processInfo.systemUptime) else { throw CocoaError(.userCancelled) }
             var request = try JSONEncoder().encode(command)
-            guard request.count < 4096 else { throw CocoaError(.coderInvalidValue) }
+            guard request.count < (command.action == .observeWindows ? 16384 : 4096) else { throw CocoaError(.coderInvalidValue) }
             request.append(10)
             let channel = try connect()
             try Task.checkCancellation()
+            // A command can wait behind another exchange. Check on this side of the
+            // queue before the helper receives authority to make even its first write.
+            if command.action == .select || command.action == .move {
+                guard permit?.permission(for: command.id, after: 0).proceed == true else {
+                    return .init(id: command.id, state: .failed, detail: "窗口调度已交还系统，请重新选择。", canSwitch: false, canMove: false)
+                }
+            }
+            if command.action == .select {
+                try switchJournal.begin(command)
+                journaled = true
+            }
             try channel.input.write(contentsOf: request)
-            mayHaveIssued = command.action == .move
+            let confirmedMove = command.action == .move && command.confirmMoveBeforeSubmission == true
+            mayHaveIssued = command.action == .move && !confirmedMove
             let deadline = command.deadlineUptime + 0.8
             var granted = 0
             while true {
                 let reply = try readReply(channel, deadline: deadline)
                 guard reply.id == command.id else { throw CocoaError(.coderReadCorrupt) }
-                if reply.state != .awaitingStep { return reply }
-                guard command.action == .select, granted < 16, reply.submittedSteps == granted
+                if reply.state != .awaitingStep {
+                    if confirmedMove && !mayHaveIssued && (reply.issuedAtUptime != nil || reply.submittedSteps != 0) {
+                        // An incompatible response is never evidence that an ungranted move succeeded.
+                        mayHaveIssued = true
+                        throw CocoaError(.coderReadCorrupt)
+                    }
+                    if journaled { try switchJournal.finish(command, result: reply) }
+                    return reply
+                }
+                guard command.action == .select || confirmedMove, granted == 0, reply.submittedSteps == granted
                 else { throw CocoaError(.coderReadCorrupt) }
-                let decision = await permit?.gesturePermission(for: command.id, after: granted)
+                let decision = await permit?.gesturePermission(for: command.id, after: granted, original: reply.originalWindow)
                     ?? .init(id: command.id, submittedSteps: granted, proceed: false)
-                try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
                 mayHaveIssued = mayHaveIssued || decision.proceed
+                try channel.input.write(contentsOf: JSONEncoder().encode(decision) + Data([10]))
                 granted += 1
             }
         } catch {
             connection?.close()
             connection = nil
-            return NativeSpaceReply(id: command.id, state: mayHaveIssued ? .outcomeUnknown : .failed,
+            let result = NativeSpaceReply(id: command.id, state: mayHaveIssued ? .outcomeUnknown : .failed,
                                     detail: mayHaveIssued ? "空间助手未返回可核对的结果。" : "空间助手暂时不可用。",
                                     canSwitch: false, canMove: false)
+            if journaled { try? switchJournal.finish(command, result: result) }
+            return result
         }
     }
 }

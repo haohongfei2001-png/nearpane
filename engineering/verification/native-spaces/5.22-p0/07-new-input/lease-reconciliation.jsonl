@@ -1,0 +1,12 @@
+{"event": "recovery-protected-order", "monotonic": 244827.724706541, "ids": [4, 4983, 6], "originalOrderMatches": true}
+{"event": "cleanup-host-bound", "monotonic": 244827.780902916, "original": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795171372.70266, "pid": 79173}, "current": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795171391.783146, "pid": 80090}}
+{"event": "recovery-protected-order", "monotonic": 244828.605637541, "ids": [4, 4983, 6], "originalOrderMatches": true}
+{"event": "system-fixture-intent", "monotonic": 244828.937114541, "operation": "remove", "current": 4983, "target": 4988, "other": null}
+{"event": "system-fixture-result", "monotonic": 244829.889752333, "operation": "remove", "target": 4988, "overviewDock": {"pid": 697, "executable": "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock", "birth": 1794786957587871, "appleSignature": true}, "issued": true, "windowServerConfirmedBeforeClose": true, "overviewCloseAction": "native launcher", "overviewComposite": {"number": 48842, "owner": "com.apple.WindowManager", "newSinceOverview": true, "pid": 647, "otherOrdinary": 0}, "acknowledged": true, "overviewDismissed": true}
+{"event": "system-fixture-removal-reconciled", "monotonic": 244830.661033875, "target": 4988}
+{"event": "system-fixture-removed", "monotonic": 244830.661113625, "target": 4988}
+{"event": "system-fixture-intent", "monotonic": 244830.89724475, "operation": "remove", "current": 4983, "target": 4987, "other": null}
+{"event": "system-fixture-result", "monotonic": 244831.865384208, "operation": "remove", "target": 4987, "overviewCloseAction": "native launcher", "acknowledged": true, "issued": true, "windowServerConfirmedBeforeClose": true, "overviewDismissed": true, "overviewComposite": {"number": 48857, "pid": 647, "otherOrdinary": 0, "newSinceOverview": true, "owner": "com.apple.WindowManager"}, "overviewDock": {"appleSignature": true, "birth": 1794786957587871, "pid": 697, "executable": "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"}}
+{"event": "system-fixture-removal-reconciled", "monotonic": 244832.673951291, "target": 4987}
+{"event": "system-fixture-removed", "monotonic": 244832.674025625, "target": 4987}
+{"event": "workspace-cleanup", "monotonic": 244832.777561916, "topologyRestored": true, "focusRestored": false, "originalCurrent": 4, "cleanupCurrent": 4983, "originalOrderRestored": true, "preservedLatestOrder": true, "retainedUserSelectedSpace": true, "created": 2, "removed": 2, "outstanding": [], "errors": []}

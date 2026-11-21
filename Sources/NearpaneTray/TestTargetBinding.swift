@@ -43,8 +43,12 @@ enum GuardedDraftProgram {
     static func compose(_ original: WebPageProgram, guardSource: String, binding: String, product: Bool = false) throws -> WebPageProgram {
         // The digest covers *all* paths in the reviewed source, including future unanchored side effects.
         let digest = SHA256.hash(data: Data(original.functionSource.utf8)).map { String(format: "%02x", $0) }.joined()
-        guard digest == "5fffb4b9fcee31af401a00259b3cf0cdbf7577c8f990dddbbd1ec99bfe16de3f",
+        guard digest == "50b0d16d10f38c688ce33189df55ad3da6588b4c7006b710777f30340dc55ed7",
               !guardSource.isEmpty else { throw WebAdapterError.programUnavailable }
+        let sections = original.functionSource.components(separatedBy: "\n  // RIFTLET_CLICK_PIN_END\n")
+        guard sections.count == 2, original.pinSource == sections[0] + "\n  return 'refused';\n}" else {
+            throw WebAdapterError.programUnavailable
+        }
         var source = original.functionSource
         func replace(_ anchor: String, _ replacement: String) throws {
             guard source.components(separatedBy: anchor).count == 2 else { throw WebAdapterError.programUnavailable }
@@ -54,9 +58,8 @@ enum GuardedDraftProgram {
         let entry = "  const KEY = '__riftletIndependentFileInput20261104';"
         let gate = "const nearpaneDraft = " + binding + "; const nearpaneCheck = (...args) => (" + guardSource + ")(nearpaneDraft,command,native,...args);"
         if product {
-            // A newly pressed thumbnail gets its own lease even in the very same composer.
-            try replace("registry.current.editor !== parts.editor)", "registry.current.editor !== parts.editor || registry.current.target.clickBindingID !== nearpaneDraft.nonce.toUpperCase())")
-            try replace("draftGeneration: crypto.randomUUID()", "draftGeneration: crypto.randomUUID(), clickBindingID: nearpaneDraft.nonce.toUpperCase()")
+            try replace("if (command.clickWitnessID != null) {",
+                        "if (command.clickWitnessID !== nearpaneDraft.nonce.toUpperCase()) fail('CLICK_PIN_REFUSED');\n    if (command.clickWitnessID != null) {")
         }
         let chosen = "    const parts = composer();"
         try replace(chosen, chosen + "\n    nearpaneCheck(false, parts);")
@@ -88,7 +91,7 @@ enum GuardedDraftProgram {
                     "if (!event.defaultPrevented) { if (!capture(node, 'event')) receiver.refuse(); event.preventDefault(); }")
         let ended = "const ended = Date.now() >= deadline;"
         try replace(ended, "if (receiver.denied) " + refused + "\n        " + ended)
-        let confirm = "op.binding.input = input;"
+        let confirm = "op.oldErrorMembers = failureShellBeforeInput(op.name);"
         try replace(confirm, "if (!receiver.choose(input, invoked)) " + refused + "\n    " + confirm)
         let count = "op.inputCount = 1; op.inputSequence = tick(); op.inputTime = performance.now();"
         // Only internal bookkeeping separates this last proof from the native setter. If it fails,
@@ -104,7 +107,7 @@ enum GuardedDraftProgram {
             "if (!['observe','discard'].includes(command.action)) nearpaneCheck(false);"
         try replace(entry, gate + "\n" + checkEntry + "\n" + entry)
         return WebPageProgram(sourceID: original.sourceID, functionSource: source,
-                              maximumChunkBytes: original.maximumChunkBytes, inputDiscoveryTimeout: original.inputDiscoveryTimeout)
+                              maximumChunkBytes: original.maximumChunkBytes, inputDiscoveryTimeout: original.inputDiscoveryTimeout, pinSource: original.pinSource)
     }
 }
 

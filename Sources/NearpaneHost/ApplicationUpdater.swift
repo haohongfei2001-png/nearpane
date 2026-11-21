@@ -274,7 +274,7 @@ struct ApplicationUpdateSettings: View {
     var body: some View {
         Section("应用更新") {
             Toggle("每天自动检查更新", isOn: Binding(get: { updater.automaticChecks },
-                set: updater.setAutomaticChecks))
+                set: { updater.setAutomaticChecks($0) }))
                 .disabled(!updater.mayChangePreference)
                 .accessibilityIdentifier("np.update.daily")
             Text("发现更新后提醒，安装由你确认。检查不会上传文字或截图。")

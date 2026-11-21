@@ -2,20 +2,32 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from acceptance import Receipt, catalog_match, host_current_permissions
-from roster import evaluate, pixel_verdict, same_scale
+from acceptance import Receipt, catalog_match, host_current_permissions, recover_sidebar
+from roster import evaluate, pixel_verdict, fits_window
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_restore_uses_the_visibility_decision_and_confirms_the_product_menu_result(self):
+        before = dict(surfaceHidden=0, visibleDisplays=1, visibilityRevision=70)
+        hidden = dict(surfaceHidden=1, visibleDisplays=0, visibilityRevision=71)
+        show = Mock(return_value={"issued": True, "axError": -25204})
+        self.assertTrue(recover_sidebar(before, hidden, True, show, lambda: before, wait=0)["restored"])
+        show.assert_called_once()
+        show.reset_mock()
+        for same, revision in ((False, 71), (True, 73)):
+            self.assertFalse(recover_sidebar(before, dict(hidden, visibilityRevision=revision), same,
+                                             show, lambda: before, wait=0)["restored"])
+        show.assert_not_called()
+
     @staticmethod
     def fixture_roster():
         sizes = [[540, 213], [240, 383]]
-        return sizes, [dict(observed=True, cardY=y, cardHeight=43, spaceRows=0, window=i,
+        return sizes, [dict(observed=True, cardY=y, cardHeight=66, cardWidth=100, spaceRows=4, window=i,
                             value=desc, axSize=size, cgSize=size, fit=dict(cardCount=2, measured=2, allOnscreen=True,
-                                insideOnePanel=True, ordered=True, scrollAreas=0))
-                       for i, (size, desc, y) in enumerate(zip(sizes, ["窗口轮廓，预览 54 × 21 pt", "窗口轮廓，预览 24 × 38 pt"], [42, 85]))]
+                                insidePanelColumns=True, ordered=True, scrollAreas=1))
+                       for i, (size, desc, y) in enumerate(zip(sizes, ["窗口轮廓，预览 100 × 39 pt", "窗口轮廓，预览 31 × 50 pt"], [42, 119]))]
 
     def test_signature_bound_green_and_purple_cards_require_independent_pixels(self):
         windows = [23, 42]
@@ -47,23 +59,23 @@ class EvidenceTests(unittest.TestCase):
         cards[0]["observed"] = False
         self.assertEqual("BLOCKED", evaluate(sizes, cards)["status"])
 
-    def test_correct_sizes_overlapping_or_with_desktop_rows_still_fail(self):
+    def test_correct_sizes_keep_order_with_other_desktops_after_the_list(self):
         sizes, cards = self.fixture_roster()
-        cards[0]["spaceRows"] = 1
-        self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
-        cards[0].update(spaceRows=0, cardY=cards[1]["cardY"])
+        self.assertEqual("PASS", evaluate(sizes, cards)["status"])
+        cards[0]["cardY"] = cards[1]["cardY"]
         self.assertEqual("FAIL", evaluate(sizes, cards)["status"])
 
-    def test_same_scale_requires_relative_size_and_shape(self):
-        source = [[540, 208], [240, 378]]
-        self.assertTrue(same_scale(source, [[54, 21], [24, 38]]))
-        self.assertFalse(same_scale(source, [[54, 21], [54, 21]]))
-        self.assertFalse(same_scale(source, [[54, 21], [48, 76]]))
-        self.assertFalse(same_scale(source, [[54, 21], [24, 30]]))
+    def test_each_exact_window_fits_width_and_height_cap(self):
+        self.assertTrue(fits_window([540, 208], [100, 39], 100))
+        self.assertTrue(fits_window([240, 378], [32, 50], 100))
+        self.assertFalse(fits_window([240, 378], [100, 50], 100))
+        self.assertFalse(fits_window([240, 378], [16, 25], 100))
 
-    def test_an_offscreen_or_scrollable_list_fails_even_with_two_exact_fixture_frames(self):
-        for change in (dict(allOnscreen=False), dict(insideOnePanel=False), dict(measured=1),
-                       dict(scrollAreas=1), dict(ordered=False)):
+    def test_offscreen_cards_stay_in_one_ordered_scroll_column(self):
+        sizes, cards = self.fixture_roster()
+        cards[0]["fit"].update(allOnscreen=False)
+        self.assertEqual("PASS", evaluate(sizes, cards)["status"])
+        for change in (dict(insidePanelColumns=False), dict(measured=1), dict(scrollAreas=0), dict(ordered=False)):
             sizes, cards = self.fixture_roster()
             cards[0]["fit"].update(change)
             self.assertEqual("FAIL", evaluate(sizes, cards)["status"])

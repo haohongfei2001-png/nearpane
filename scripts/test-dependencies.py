@@ -83,11 +83,34 @@ class DependencyTests(unittest.TestCase):
         lock = json.loads(resolver.LOCK.read_text())
         for pin in lock["domains"].values():
             resolver.validate(pin)
+            self.assertIn("upstreamBuild", pin)
+            self.assertEqual(resolver.source_receipt(pin)["upstreamBuild"], pin["upstreamBuild"])
+            with self.assertRaisesRegex(resolver.DependencyError, "upstream product build"):
+                resolver.validate(dict(pin, upstreamBuild=dict(pin["upstreamBuild"], build=0)))
             bad = dict(pin, treeSHA256="f"*64)
             with self.assertRaisesRegex(resolver.DependencyError, "inventory SHA"):
                 resolver.validate(bad)
         self.assertIn("Sources/SaytileVoiceUI", lock["domains"]["saytile"]["sources"])
         self.assertNotIn("saytileUpdates", lock)
+
+    def test_packaged_resources_must_match_the_entire_locked_inventory(self):
+        root = self.cache.resolve()
+        folder = root / "Riftlet_RiftletAdapters.bundle/Contents/Resources"
+        folder.mkdir(parents=True)
+        asset = folder / "page.js"
+        asset.write_bytes(b"reviewed")
+        pin = {"files": {"Sources/RiftletAdapters/Resources/page.js": hashlib.sha256(b"reviewed").hexdigest()}}
+        resolver.verify_resources(root, "riftlet", pin)
+        asset.write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "Incorrect bundled"):
+            resolver.verify_resources(root, "riftlet", pin)
+        asset.unlink()
+        with self.assertRaisesRegex(ValueError, "inventory differs"):
+            resolver.verify_resources(root, "riftlet", pin)
+        asset.write_bytes(b"reviewed")
+        (folder / "unlocked.js").write_bytes(b"extra")
+        with self.assertRaisesRegex(ValueError, "inventory differs"):
+            resolver.verify_resources(root, "riftlet", pin)
 
     def test_voice_update_only_replaces_the_named_locked_sources(self):
         lock = json.loads(resolver.LOCK.read_text())
@@ -117,7 +140,7 @@ class DependencyTests(unittest.TestCase):
         replacement = bound / "one.swift"
         replacement.unlink()
         replacement.symlink_to(self.cache / resolver.key(updates) / "Sources/two.swift")
-        with self.assertRaisesRegex(resolver.DependencyError, "Invalid SaytileKit bridge"):
+        with self.assertRaisesRegex(resolver.DependencyError, "Invalid binding for one.swift"):
             resolver.voice_bindings(self.cache, self.pin, updates)
 
     def test_voice_bridge_refuses_redirected_upstream_inputs(self):
@@ -128,7 +151,7 @@ class DependencyTests(unittest.TestCase):
         self.assertEqual(link.resolve(strict=True), domain)
         link.unlink()
         link.symlink_to(self.cache)
-        with self.assertRaisesRegex(resolver.DependencyError, "Invalid SaytileKit bridge"):
+        with self.assertRaisesRegex(resolver.DependencyError, "Invalid binding for Upstream"):
             resolver.voice_bindings(self.cache, self.pin)
 
 

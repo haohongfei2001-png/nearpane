@@ -1,0 +1,8 @@
+{
+  "hostPID": 67028,
+  "oldHostPID": 66783,
+  "phase": "wordbookAfterRelaunch",
+  "reason": "No pre-restart row identity for comparison",
+  "rowsAfterRelaunch": 0,
+  "status": "BLOCKED"
+}

@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--product", action="store_true", help="Exercise the ordinary Swift adapter and durable queue with an isolated Chromium transport")
+    parser.add_argument("--browser", choices=["chrome", "edge"], default="chrome", help="Use a fresh headless browser profile")
     parser.add_argument("--candidate", type=Path, help="Check both exercised browser resources against this signed, installed product")
     parser.add_argument("--scenario", choices=["composer-replaced"], help="Measure the live product feedback after editor replacement, without refresh, retry or restart")
     parser.add_argument("--session")
@@ -25,6 +26,9 @@ def main():
     parser.add_argument("--sha256")
     args = parser.parse_args()
     fixture = {"productDriver": True} if args.product else {}
+    if args.browser != "chrome" and not args.product:
+        parser.error("Edge requires the ordinary product adapter")
+    fixture["browser"] = args.browser
     if args.scenario:
         if not args.product:
             parser.error("--scenario requires --product")

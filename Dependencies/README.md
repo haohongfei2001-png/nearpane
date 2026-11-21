@@ -1,27 +1,27 @@
-# 构建依赖
+# Nearpane 内嵌工具
 
-全量构建从 Nearpane 的单个检出目录开始。运行 `scripts/build-app.sh debug`、`scripts/build-app.sh release` 或 `scripts/test.sh` 时，解析器按 [domains.lock.json](domains.lock.json) 访问 GitHub 的 HTTPS 提交归档。目前两份归档可匿名读取。首次构建需要能访问 `codeload.github.com`。缓存完整后可设置 `NEARPANE_OFFLINE=1`。独立 Host 设置 `NEARPANE_FOUNDATION_ONLY=1`，可以直接在空缓存下离线构建。
+截图托盘和语音模块随 Nearpane 一起构建。在设置的版本信息中可以看到两个内嵌引擎的上游版本、构建号、渠道和源码提交。构建、设置和验收共用 [domains.lock.json](domains.lock.json)。安装独立应用不会改变 Nearpane 已打包的引擎。
 
-| 领域和固定提交 | 文件数 | 选定内容 SHA-256 |
-| --- | ---: | --- |
-| [Saytile v0.18-beta.492](https://github.com/haohongfei2001-png/saytile/tree/012999c2018f591f3cf9a529e4c0ae81e7b81f21) | 121 | `5214893b076c8428c169289e80fbe1504bcb9c8a640a2de66b038eb6420d775f` |
-| [Riftlet v1.0.3-zip](https://github.com/haohongfei2001-png/Riftlet/tree/189782dd943f5215da43539b30db27e482a78b3c) | 89 | `b45581cae27047a0e203222b2719ce9f37dc28c7476baa6205d6bd1a7e182f9a` |
+| 工具 | 本次接入 | 在 Nearpane 中的行为 |
+| --- | --- | --- |
+| Riftlet | [1.0.7（53）开发源码](https://github.com/haohongfei2001-png/Riftlet/tree/b20cefbf94e78ed89643cc27fa95af91bd140960) · [上游 PR #122](https://github.com/haohongfei2001-png/Riftlet/pull/122) | Chrome 和 Edge 的 ChatGPT 草稿使用按下瞬间的窗口、标签页、文档和编辑框。原附件的失败可独立回读。新增九个站点配置只识别草稿附件入口，截图继续保留在托盘。 |
+| Saytile | [0.20（533）内测源码](https://github.com/haohongfei2001-png/saytile/tree/7c0df4728b113c17297a0cded20472de4ffc3337) · [上游 PR #49](https://github.com/haohongfei2001-png/saytile/pull/49) | 收音、识别、文字修订和手动插入使用同一提交。重开资料时先核对本地音频日志，恢复已落盘的录音帧。Nearpane 默认使用 Apple 本机识别，麦克风由用户启动，资料和凭据各归当前 Nearpane 配置。 |
 
-SaytileKit、SaytileVoiceUI 和音频底层来自同一语音发布版。Nearpane 使用自己的资料目录、凭据作用域和编辑保护。七份本机识别模型清单随包校验，模型权重由独立的使用与许可条件约束。Riftlet 的导入、队列、JPEG/PNG 截图资源处理、上传回执与托盘视觉来自同一发布版。Nearpane 对网页程序摘要和所有外部输入位置独立加守卫。
+独立 Saytile 的 iCloud、iPhone 与记住待命涉及独立账户、权限或启动策略。Nearpane 的上游版本号说明编译进包的组件；端到端验收范围见[工具验证收据](../engineering/verification/embedded-tools/5.22-90/verification.json)。
 
-**校验与缓存。** 锁文件记录来源仓库、40 位提交、选取范围、文件清单、逐文件 SHA-256 和汇总 SHA-256。将路径排序，每行写为 `<sha256><两个空格><相对路径><换行>`，对 UTF-8 字节计算汇总值。GitHub gzip 压缩方式改变不影响结果。下载器校验 tar 的 Git commit 标记、归档根目录、文件类型和文件内容，只将清单中的普通文件写入临时目录。文件全部通过校验后原子换入缓存。下载有超时和大小限制。每次使用已存在的缓存都重验文件、检查多余文件和符号链接。并发准备使用同一把锁。
+## 构建与核对
 
-默认缓存位于 `.build/domain-cache-v1/<commit>-<treeSHA256>/`。七个上游内部 Swift 文件与当前检出的 NearpaneTray 适配器通过忽略目录内的编译目标链接在一起。SwiftPM 从同一个锁文件读取版本。网络失败、校验不符或离线缺少缓存会以非零状态退出，错误包含固定来源或对应文件。若本地缓存损坏，先把报错所指的那一个缓存目录移到忽略目录中留证，再联网运行构建即可重新取回。此前 P3 使用过的缓存与历史收据可以保留。
+`bash scripts/test.sh` 和 `bash scripts/build-app.sh debug` 从固定 GitHub 提交取用领域文件。首次取源需要网络，缓存完整后可使用 `NEARPANE_OFFLINE=1`。基础 Host 可用 `NEARPANE_FOUNDATION_ONLY=1` 在空的领域缓存中构建。
 
-**许可证与来源。** 开发包的 `Contents/Resources/Upstream/{saytile,riftlet}/` 含当前提交的来源清单、内容指纹和原始声明。Saytile 包含项目第三方声明、WebRTC BSD 与 wrapper MIT 文本。Riftlet 保留 Screenshoss、Sukurini 和 Tendedero 随附的四份文本。原文件内的版权头也随校验过的源码保留。两个固定提交的根目录均未提供项目级 LICENSE，本仓库未赋予额外许可。未进入二进制的独立研究或静态原型依赖不计入选取的编译文件。
+锁文件记录来源仓库、完整提交、逐文件 SHA-256、资源范围、原始声明和上游构建信息。解析器核对提交归档和文件类型，重新验证命中的缓存，并原子写入新缓存。打包逐个核对上游资源的相对路径和实际字节。成品的 `Contents/Resources/Upstream/{saytile,riftlet}/source.json` 保存同一来源收据和适配补丁的指纹。
 
-**受控升级。** 在 GitHub 确定完整目标提交后运行下列命令。生成器从该提交的 Git tree 枚举选取范围，核对归档内容与 Git blob ID，再生成新的 SHA-256 清单。候选文件要求新路径，当前锁文件不会被覆盖。
+Nearpane 保留两处经过摘要校验的宿主适配。[语音收音补丁](saytile-capture-readiness.patch) 在首个真实 PCM 缓冲后进入待命，关闭时排空已接收音频。[截图适配补丁](riftlet-draft-witness.patch) 让原生点击和 Nearpane 共用一个凭据，并将新增站点的只读检查绑定到原窗口和标签。SwiftPM 编译派生副本，缓存中的上游原件可单独复核。
 
-```sh
-python3 scripts/prepare-domains.py --propose saytile <40位提交> build/saytile-candidate.lock.json
-git diff --no-index Dependencies/domains.lock.json build/saytile-candidate.lock.json
-```
+## 更新流程
 
-审查新增或移除的源文件、接口、许可证和桥接文件，明确采纳后替换锁文件并运行 `scripts/verify-standalone.sh`。升级 Riftlet 使用域名参数 `riftlet`。项目本身的 SwiftPM 定义、未公开组件的接口或许可范围发生变化时也要审查相应目标。不存在轮询分支或自动更新版本的任务。
+1. 核对上游发布、最新产品 PR 和实际产品源码。分别记录产品版本、构建号、渠道以及经过验证的完整提交。如果 PR 尾部只更新证据，比较所选产品提交与 PR HEAD 的源码和资源。
+2. 对每个变更的领域运行 `python3 scripts/prepare-domains.py --propose <riftlet或saytile> <40位提交> <新的候选锁文件>`。对照 Git blob 审查源文件、资源、许可证、资料格式和宿主适配。更新锁文件的 `upstreamBuild` 和适配摘要。
+3. 运行 `python3 -B scripts/test-dependencies.py`、`bash scripts/test.sh` 和 `bash scripts/build-app.sh debug`。核对旧资料重开、语音与截图主入口及包内来源，在同一 PR 保存验证收据。
+4. 截图使用 `python3 -B scripts/acceptance/run-local-adapter.py --product --browser chrome` 或 `--browser edge` 做隔离页面验收。登录服务、系统 Apple Events 和物理麦克风分别记录实测结果。回退时一并还原源码、锁和桥接补丁，对新格式资料使用先前保存的独立配置或副本。
 
-Saytile 的两个 Swift 文件在上游通过符号链接与 `SaytileVoiceUI` 共享。锁文件的 `sharedSources` 逐个声明映射，升级提案验证 Git 树中的链接目标。构建只读取对应的已校验常规文件。原先的 RC2 加三份替换源码已整体升级为同一发布提交。成品的 `Upstream/{saytile,riftlet}/source.json` 记录 releaseTag、提交、来源和指纹。
+Saytile 和 Riftlet 的原始第三方声明随包保留。可选识别模型仅包含清单，模型权重仍由其单独的分发与许可条件约束。

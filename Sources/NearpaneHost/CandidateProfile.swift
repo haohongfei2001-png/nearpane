@@ -3,6 +3,7 @@ import AppKit
 import SQLite3
 import ImageIO
 import NearpaneCore
+import NearpaneTray
 import NearpaneUI
 import RiftletCapture
 import RiftletCore
@@ -56,7 +57,7 @@ enum CandidateProfile {
     static func inspectStores(in root: URL, counts: Bool = false) throws -> [String: Int] {
         var result: [String: Int] = [:]
         for (path, supported, table) in [("Nearpane/Voice/Saytile.sqlite", [5, 6], "recordings"),
-                                         ("Riftlet/queue.sqlite", [4], "assets")] {
+                                         ("Riftlet/queue.sqlite", RiftletLibraryFormat.supported, "assets")] {
             let url = root.appendingPathComponent(path)
             for suffix in ["", "-wal", "-shm", "-journal"] {
                 try ProfileLease.checkPath(URL(fileURLWithPath: url.path + suffix))

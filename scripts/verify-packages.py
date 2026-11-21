@@ -11,19 +11,60 @@ import subprocess
 import sys
 import tempfile
 
+from domain_resources import source_receipt, verify_resources
+
 ROOT = Path(__file__).resolve().parents[1]
 _icon_spec = importlib.util.spec_from_file_location("app_icon", ROOT / "scripts/prepare-app-icon.py")
 app_icon = importlib.util.module_from_spec(_icon_spec)
 _icon_spec.loader.exec_module(app_icon)
-RESOURCE_PATHS = {
-    "saytile": {"Sources/SaytileKit/Resources/ConnectionSample.pcm": "Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm"},
-    "riftlet": {"Sources/RiftletAdapters/Resources/" + file: "Riftlet_RiftletAdapters.bundle/Contents/Resources/" + file
-                for file in ("chatgpt-web-20261027.js","legacy-web-observe.js")}
-}
 
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
+    private_names = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces",
+                     b"SLSMainConnectionID", b"_AXUIElementGetWindow")
+    abi = plist.get("NearpaneStageEngineABI")
+    if abi is None:
+        if any(symbol in host_image for symbol in private_names):
+            raise ValueError("Private desktop entry point in legacy Host")
+        return
+    if abi != 1:
+        raise ValueError("Unrecognized StageGroup engine ABI")
+    bundled = contents / "Resources/Upstream/window-engine"
+    source = ROOT / "Engine/nearpane-window-engine"
+    provenance = json.loads((bundled/"source.json").read_bytes())
+    if (digest(bundled/"source.json") != digest(source/"upstream.json") or provenance["abi"] != abi
+            or digest(bundled/"LICENSE") != provenance["licenseSHA256"]):
+        raise ValueError("Unexpected StageGroup source or license")
+    origin_files = {p.name: digest(p) for p in (source/"origins").glob("*.json")}
+    if {p.name: digest(p) for p in (bundled/"origins").glob("*.json")} != origin_files:
+        raise ValueError("Incomplete StageGroup upstream file origins")
+    guardian = contents / "Helpers/NearpaneCornerGuardian"
+    if guardian.resolve() != guardian or digest(guardian) != plist.get("NearpaneCornerGuardianSHA256"):
+        raise ValueError("Unexpected Corner recovery helper")
+    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", '-R=identifier "com.holdsnow.nearpane.alpha.corner-guardian"',
+                    str(guardian)], check=True)
+    if b"com.holdsnow.nearpane.engine-guardian.fixture" in guardian.read_bytes():
+        raise ValueError("Packaged recovery helper includes a fixture identity")
+    imports = subprocess.check_output(["/usr/bin/nm", "-u", str(binary)], text=True).splitlines()
+    if any(line.split() and re.match(r"^(_(?:SLS|CGS)[A-Z]|__AXUIElementGetWindow$)", line.split()[-1]) for line in imports):
+        raise ValueError("Host imports private WindowServer symbols directly")
+    if any(marker in host_image for marker in (b"SLSOrderWindow", b"np_is_enrolled_fixture",
+                                               b'identifier "com.holdsnow.nearpane.engine-fixture')):
+        raise ValueError("Host contains an unqualified ordering route or experimental fixture code")
+    for module in ("NearpaneCore", "NearpaneHost", "NearpaneUI", "NearpaneWindowEngine"):
+        for path in (ROOT/"Sources"/module).rglob("*.swift"):
+            if any(symbol in path.read_bytes() for symbol in private_names):
+                raise ValueError("Private window calls outside the engine shim: " + path.name)
+    reply = json.loads(subprocess.check_output(sandbox + [str(binary), "--verify-stage-window-engine"], timeout=12))
+    gates = reply.get("engines", [])
+    if (reply.get("abi") != abi or reply.get("closed") is not True or len(gates) != 2
+            or {r["backend"] for r in gates} != {"corner", "spaces"}
+            or any(r.get("unqualifiedWriteRefused") is not True for r in gates)):
+        raise ValueError("Unqualified production engine accepted window writes")
 
 
 def verify_ordinary_window_actions(writer, imports):
@@ -42,11 +83,18 @@ def verify_ordinary_window_actions(writer, imports):
             label = line[:-1].removeprefix("_")
         elif "symbol stub for: _AXUIElementPerformAction" in line:
             sites.append(label)
-    if len(sites) != 1 or not sites[0]:
+    if not sites or not all(sites):
         raise ValueError("Unexpected AX action call sites")
-    function = subprocess.check_output(["/usr/bin/xcrun", "swift-demangle", "--compact", sites[0]], text=True)
-    if not function.strip().startswith("NearpaneOrdinaryWindowController.focusCurrentWindow("):
-        raise ValueError("AX action outside the verified window focus path")
+    # Release Swift may specialize the same function for the Host's transaction permit.
+    # Check every machine-code site, including historical controller-only packages.
+    functions = subprocess.check_output(["/usr/bin/xcrun", "swift-demangle", "--compact", *sites], text=True).splitlines()
+    if len(functions) != len(sites):
+        raise ValueError("Unresolved AX action call sites")
+    for function in functions:
+        exact = re.sub(r"^function signature specialization <.*> of ", "", function)
+        if not exact.startswith(("NearpaneOrdinaryWindowRuntime.focusCurrentWindow(",
+                                 "NearpaneOrdinaryWindowController.focusCurrentWindow(")):
+            raise ValueError("AX action outside the verified window focus path")
     calls = [line.strip() for path in (ROOT / "Sources/NearpaneOrdinaryWindowController").rglob("*.swift")
              for line in path.read_text().splitlines() if "AXUIElementPerformAction" in line]
     if len(calls) != 1 or "AXUIElementPerformAction(element, kAXRaiseAction as CFString)" not in calls[0]:
@@ -74,6 +122,8 @@ def verify(app, lock, sandbox):
     host_image = binary.read_bytes()
     if plist["CFBundleIdentifier"] in ("com.holdsnow.nearpane.candidate", "com.holdsnow.nearpane.candidate.p45", "com.holdsnow.nearpane.candidate.p46", "com.holdsnow.nearpane.candidate.p47", "com.holdsnow.nearpane.candidate.p48", "com.holdsnow.nearpane.candidate.p481", "com.holdsnow.nearpane.candidate.p49", "com.holdsnow.nearpane.candidate.p50", "com.holdsnow.nearpane.candidate.p51", "com.holdsnow.nearpane.candidate.p52", "com.holdsnow.nearpane.alpha"):
         subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    elif (contents/"_CodeSignature/CodeResources").is_file():
+        subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], check=True)
     else:
         with tempfile.TemporaryDirectory(prefix="verify-macho-", dir=ROOT/"build") as tmp:
             standalone = Path(tmp)/binary.name
@@ -98,9 +148,7 @@ def verify(app, lock, sandbox):
     for exe in (binary, helper, writer):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
-    private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID", b"_AXUIElementGetWindow")
-    if any(symbol in host_image for symbol in private_symbols):
-        raise ValueError("Private desktop entry point in Host")
+    verify_engine_boundary(contents, plist, binary, host_image, sandbox)
     # The admission observer can read attributes and test their writability. It must
     # not acquire the setter or AX action entry points of the separate frame controller.
     imports = subprocess.check_output(["/usr/bin/nm", "-u", str(helper)], text=True).splitlines()
@@ -122,9 +170,7 @@ def verify(app, lock, sandbox):
                 raise ValueError("Unexpected profile migration resource: " + name)
     for name,pin in lock["domains"].items():
         provenance = json.loads((root/"Upstream"/name/"source.json").read_text())
-        expected = {k:pin[k] for k in ("repository","commit","treeSHA256","notices")}
-        if pin.get("releaseTag"):
-            expected["releaseTag"] = pin["releaseTag"]
+        expected = source_receipt(pin)
         if name == "saytile" and lock.get("saytileUpdates"):
             updates = lock["saytileUpdates"]
             expected["updates"] = updates
@@ -133,11 +179,8 @@ def verify(app, lock, sandbox):
                     raise ValueError("Incorrect packaged Saytile update notice: "+notice)
         if provenance != expected:
             raise ValueError("Incorrect packaged provenance: "+name)
-        checks = {**RESOURCE_PATHS[name], **{n: "Upstream/"+name+"/"+n for n in pin["notices"]}}
-        if name == "saytile":
-            for path in pin["files"]:
-                if path.startswith("Sources/SaytileKit/Resources/LocalASR/"):
-                    checks[path] = "Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/" + Path(path).name
+        verify_resources(root, name, pin)
+        checks = {n: "Upstream/"+name+"/"+n for n in pin["notices"]}
         for src,out in checks.items():
             if digest(root/out) != pin["files"][src]:
                 raise ValueError("Packaged checksum mismatch: "+out)

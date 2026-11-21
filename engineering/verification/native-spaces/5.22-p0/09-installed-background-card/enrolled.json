@@ -1,0 +1,97 @@
+{
+  "topology": {
+    "current": 4998,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "records": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+      },
+      {
+        "id": 4983,
+        "type": 4,
+        "uuid": "9199A966-CB66-4069-B473-BFE8582B9713"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+      },
+      {
+        "id": 4997,
+        "type": 0,
+        "uuid": "FE61AF50-692F-416C-D2BA-965ACE5D986F"
+      },
+      {
+        "id": 4998,
+        "type": 0,
+        "uuid": "FD19E9B7-E6B2-EBCB-EB81-091B6FED5193"
+      }
+    ]
+  },
+  "windows": {
+    "4997": {
+      "birth": 1795172232113177,
+      "executable": "/private/tmp/nearpane-d01.UE4Hh410/Field Notes.app/Contents/MacOS/FieldNotes",
+      "hash": "59b33e1e982cca3a38ade768814da87bb2ef9b1b",
+      "identifier": "net.example.spaces-document",
+      "number": 49048,
+      "ownerFile": "/private/tmp/nearpane-p0-owned-wi4y0nt6/0c7fba46-1023-449e-93eb-0133dd9927a9/p0-generations.json",
+      "pid": 96390
+    },
+    "4998": {
+      "birth": 1795172236339510,
+      "executable": "/private/tmp/nearpane-d01.UE4Hh410/Route Notes.app/Contents/MacOS/FieldNotes",
+      "hash": "b28104cf9ad4864ae41efbbb528c3d9eb5c2be64",
+      "identifier": "net.example.spaces-route-witness",
+      "number": 49064,
+      "ownerFile": "/private/tmp/nearpane-p0-owned-wi4y0nt6/296c3349-b149-4dcb-9fbb-57cceaa5348d/p0-generations.json",
+      "pid": 96545
+    }
+  },
+  "witnesses": [
+    {
+      "axFullscreen": null,
+      "axListRead": true,
+      "axMatches": 0,
+      "axMinimized": null,
+      "axRole": null,
+      "axStandardNow": false,
+      "axSubrole": null,
+      "axWindowListStatus": 0,
+      "birth": 1795172232113177,
+      "focused": 49048,
+      "forward": true,
+      "number": 49048,
+      "ownedWindowGeneration": "0B39341E-61A4-44BC-AC7B-701DBACF40DD",
+      "pid": 96390,
+      "reverse": [
+        4997
+      ],
+      "roleEvidence": "foreground AX enrollment + same live owner generation",
+      "standard": true
+    },
+    {
+      "axFullscreen": false,
+      "axListRead": true,
+      "axMatches": 1,
+      "axMinimized": false,
+      "axRole": "AXWindow",
+      "axStandardNow": true,
+      "axSubrole": "AXStandardWindow",
+      "axWindowListStatus": 0,
+      "birth": 1795172236339510,
+      "focused": 49064,
+      "forward": true,
+      "number": 49064,
+      "ownedWindowGeneration": "D344157F-CB46-4405-BD36-980C1455EC14",
+      "pid": 96545,
+      "reverse": [
+        4998
+      ],
+      "roleEvidence": "current AX list",
+      "standard": true
+    }
+  ]
+}

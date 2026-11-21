@@ -65,8 +65,9 @@ def publish(candidate, target, receipt):
         raise ValueError("Refusing a symlinked application or installation directory")
     stage = candidate.parent.resolve(strict=True)
     delivery = target.parent.resolve(strict=True)
-    if stage.parent != delivery or not stage.name.startswith(".nearpane-stage.") or candidate.name != target.name:
-        raise ValueError("Candidate must be staged in the installation directory")
+    if (stage.parent != delivery or not stage.name.startswith(".nearpane-stage.")
+            or candidate.name != "Nearpane.app" or target.name != candidate.name):
+        raise ValueError("Stage Nearpane.app in the destination directory")
     candidate, target = stage / candidate.name, delivery / target.name
     release = (stage / "package.json").read_bytes()
     report = json.loads(release)
@@ -75,8 +76,7 @@ def publish(candidate, target, receipt):
             != hashlib.sha256((candidate / "Contents/MacOS/NearpaneHost").read_bytes()).hexdigest()):
         raise ValueError("Staged package does not match its verification receipt")
     incoming = verify_alpha(candidate)
-    if delivery in (Path("/Applications"), (Path.home() / "Applications").resolve()):
-        signing.verify_install_identity(candidate)
+    signing.gate.verify_install_identity(candidate)
     receipt.parent.mkdir(parents=True, exist_ok=True)
     directory = os.open(delivery, os.O_RDONLY | os.O_DIRECTORY)
     try:

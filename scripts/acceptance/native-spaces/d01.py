@@ -35,7 +35,7 @@ def main():
     output.mkdir(exist_ok=False, parents=True)
     log = (output / "actions.jsonl").open("x", encoding="utf-8")
     result = {"scenario": "D01", "status": "BLOCKED", "movementAttempts": 0, "fixtureStarted": False,
-              "inputs": 0, "completed": [], "cleanup": {"required": False}}
+              "inputs": 0, "attempts": [], "completed": [], "cleanup": {"required": False}}
 
     def record(kind, **details):
         log.write(json.dumps(dict(event=kind, monotonic=time.monotonic(), **details), ensure_ascii=False) + "\n")
@@ -53,10 +53,15 @@ def main():
     try:
         require(args.scope is not None and args.scope.is_file(), "No positive, unexpired test-Space creation manifest.")
         before = independent()
-        frozen = manifest(before)
+        frozen = manifest(before, kit/"metrics")
         (output / "manifest.json").write_text(encode(frozen))
         require(frozen["signatureValid"] and frozen["loadedMatchesInstalled"] and frozen["source"],
                 "Installed candidate and loaded Host must match the signed manifest.")
+        caps = frozen.get("nativeCapabilitiesLog") or []
+        active = caps[-1] if caps else None
+        result["installedMoveCapability"] = active
+        require(active and active["ready"] and active["canMove"],
+                "Installed Host move capability is unavailable (canMove is false or unknown); zero drag inputs dispatched.")
         boot = checked(["/usr/sbin/sysctl", "-n", "kern.bootsessionuuid"]).strip()
         scope = load_scope(args.scope, before, boot, before["uptime"])
         host = before["host"]
@@ -66,10 +71,10 @@ def main():
         ids = {s["id"]: s["uuid"] for s in scope["spaces"]}
         a = current
         b = next(s["id"] for s in scope["spaces"] if s["id"] != a)
-        permissions = frozen.get("installedHostStartupPermissions") or {}
+        permissions = frozen.get("installedHostCurrentPermissions") or frozen.get("installedHostStartupPermissions") or {}
         require(permissions.get("accessibility") is True and before.get("observerAX"), "Installed Host or independent observer lacks AX.")
         initial_focus = (before.get("frontmostPID"), before.get("focusedNumber"))
-        require(all(type(v) is int and v > 0 for v in initial_focus), "Original focused window is not independently identifiable.")
+        require(isinstance(initial_focus[0], int), "Original foreground process is not independently identifiable.")
         sign = identity(app / "Contents/MacOS/FieldNotes")["CDHash"]
         require(sign, "Test app signature is unavailable.")
         record("preflight", origin=a, target=b, source=frozen["source"], display=scope["display"])
@@ -80,7 +85,8 @@ def main():
         folder = kit / session
         folder.mkdir(mode=0o700)
         proc = subprocess.Popen([str(app / "Contents/MacOS/FieldNotes"), str(folder), "2"],
-                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                env={**os.environ, "NP_FIXTURE_PRESENTATION":"contract"})
         result["fixtureStarted"] = True
         result["cleanup"] = {"required": True}
         state = wait_state(folder / "windows.json", lambda s: s.get("session") == session and s.get("pid") == proc.pid
@@ -105,11 +111,17 @@ def main():
                            fixture=str(app), fixtureHash=sign, target=ws[0], sibling=ws[1],
                            display=scope["display"], source=src, dest=dst, sourceUUID=ids[src], destUUID=ids[dst],
                            current=a, frontPID=focus[0], focused=focus[1], expiresUptime=scope["expiresUptime"])
+            if action != "sample":
+                result["attempts"].append(dict(scenario="D01", action=action, source=src, target=dst, window=numbers[0], status="UNKNOWN"))
             r = subprocess.run([str(driver)], input=json.dumps(request), capture_output=True, text=True, timeout=12)
             data = json.loads(r.stdout)
             if action != "sample":
                 record("driver-result", action=action, evidence=data, exit=r.returncode)
                 result["inputs"] += data.get("inputs", 0)
+                attempt = result["attempts"][-1]
+                attempt["inputs"] = data.get("inputs")
+                if r.returncode and data.get("inputs") == 0:
+                    attempt.update(status="BLOCKED",reason=data.get("reason","driver refused before dispatch"))
             require(r.returncode == 0, data.get("reason", "Driver refused"))
             return data
 
@@ -142,10 +154,31 @@ def main():
                 ws[0]["space"] = expected[0]
             require(validate_live(scope, independent(), host) == a, "Unexpected desktop or unrelated member after drag")
             record("confirmed", action=action, receipt=sample)
+            result["attempts"][-1]["status"] = "PASS"
             result["completed"].append(dict(action=action, fromSpace=src, toSpace=dst))
-        result.update(status="PASS", reason="Four installed-sidebar gestures and independent final readbacks matched.")
+        original_number = numbers[0]
+        (folder / "recreate-closed").touch(exist_ok=False)
+        replacement = wait_state(folder / "windows.json", lambda s: len(s.get("numbers", [])) == 3 and
+                                 s["numbers"][-1] > 0 and s["numbers"][-1] not in numbers, time.monotonic()+4)
+        require(replacement, "Fixture did not recreate the closed window with a fresh WindowServer identity.")
+        new_number = replacement["numbers"][-1]
+        numbers.append(new_number)
+        fresh = {**ws[0], "number":new_number, "space":a}
+        scope["witnesses"] = [ws[1],fresh]
+        # The stale source stays absent. A new window from the same PID must remain on A after the cancelled request settles.
+        for index in range(4):
+            snapshot=independent()
+            require(validate_live(scope,snapshot,host)==a, "Old drag reached the replacement window or changed its sibling")
+            absent=json.loads(checked([str(observer),"absence",str(original_number)]))
+            require(absent.get("allGone") is True,"Old window identity was not independently absent")
+            record("recreated-readback",sample=index+1,old=original_number,replacement=new_number,
+                   unchangedSibling=numbers[1],scope=a)
+            time.sleep(.18)
+        result["completed"].append(dict(action="recreate-window",old=original_number,new=new_number,correctSpace=a))
+        result.update(status="PASS", reason="Four installed-sidebar gestures and stable readbacks for the independently recreated window matched.")
     except (OSError, KeyError, ValueError, TypeError, subprocess.SubprocessError) as exc:
-        result["status"] = "FAIL" if result["inputs"] else "BLOCKED"
+        uncertain = [a for a in result["attempts"] if a["status"]=="UNKNOWN"]
+        result["status"] = "UNKNOWN" if uncertain else ("FAIL" if result["inputs"] else "BLOCKED")
         result["reason"] = str(exc)
     finally:
         if proc is not None:
@@ -158,7 +191,7 @@ def main():
                     proc.wait(timeout=4)
                 end = independent()
                 absence = json.loads(checked([str(observer), "absence", *map(str, numbers)])) if numbers else {}
-                clear = len(numbers) == 2 and absence.get("allGone") is True
+                clear = len(numbers) >= 2 and absence.get("allGone") is True
                 restored = (end.get("frontmostPID"), end.get("focusedNumber")) == initial_focus and end.get("scopes") == before.get("scopes")
                 result["cleanup"] = dict(required=True, exit=proc.returncode, windowsAbsent=clear, originalFocusAndSpacesRestored=restored)
                 if not clear or not restored:

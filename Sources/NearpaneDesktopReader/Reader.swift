@@ -33,11 +33,13 @@ struct Reader {
     struct List: Equatable {
         var windows: [CGWindowMetadata] = []
         var limited = false
+        var backgroundCollectionComplete = false
+        var audit = [UInt32: [String: Bool]]()
         var orderedAcrossSpaces = Set<UInt32>()
         var unhiddenOwners = Set<Int32>()
     }
 
-    func windowList(overview: Bool = false) throws -> List {
+    func windowList(overview: Bool = false, backgroundInventory: SpaceInventory? = nil) throws -> List {
         let fixture = request.fixtureWindows.map(Set.init), anchors = Set(request.anchors.map(\.number))
         let requested = fixture.map { $0.union(anchors) }
         let descriptions: CFArray?
@@ -49,7 +51,15 @@ struct Reader {
         }
         guard var list = descriptions as? [[String: Any]] else { throw DesktopActionError.unsupported }
         var result = List()
+        let requestedAudit = Array((request.sidebarAuditWindows ?? []).prefix(2))
+        func auditRows(_ name: String, in rows: [[String: Any]]) {
+            for w in requestedAudit {
+                let matching = rows.first { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value == w.number }
+                result.audit[w.number, default: [:]][name] = matching?[kCGWindowOwnerPID as String] as? Int32 == w.pid
+            }
+        }
         if overview {
+            auditRows("publicCG", in: list)
             // The WindowServer enumeration and AppKit's ordered window numbers are
             // independent during a stage transition. Resolve a missing number against
             // its own CG record; never infer its owner or Space from another window.
@@ -61,6 +71,29 @@ struct Reader {
                    exact.count == 1, exact[0][kCGWindowNumber as String] as? UInt32 == id {
                     list.append(exact[0])
                 }
+            }
+            if let backgroundInventory {
+                let publicRows=Set(list.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
+                let background=Self.backgroundRows(in:backgroundInventory,known:publicRows)
+                auditRows("addedBySpaceLookup", in: background.rows)
+                list.append(contentsOf:background.rows)
+                result.backgroundCollectionComplete=background.complete
+            }
+        }
+        if overview {
+            for w in requestedAudit {
+                var flags = result.audit[w.number] ?? [:]
+                let row = list.first { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value == w.number &&
+                    $0[kCGWindowOwnerPID as String] as? Int32 == w.pid }
+                flags["sameProcessBirth"] = incarnation(w.pid).launchEpochMicroseconds == w.birth
+                flags["appKitAllSpaces"] = result.orderedAcrossSpaces.contains(w.number)
+                flags["rowFound"] = row != nil
+                if let row {
+                    flags["rowLayerZero"] = row[kCGWindowLayer as String] as? Int == 0
+                    flags["rowDrawn"] = (row[kCGWindowAlpha as String] as? Double ?? 0) > 0
+                    flags["rowHasBounds"] = row[kCGWindowBounds as String] is NSDictionary
+                }
+                result.audit[w.number] = flags
             }
         }
         var seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
@@ -282,6 +315,13 @@ struct Reader {
             let request = try JSONDecoder().decode(DesktopReadRequest.self, from: bytes)
             guard request.version == 1, request.revision > 0, request.parentPID == getppid(),
                   request.anchors.count <= 16, (request.fixtureWindows?.count ?? 0) <= 32 else { exit(2) }
+            if let targets = request.sidebarAuditWindows {
+                var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+                guard arguments.first == "--window-overview", (1...2).contains(targets.count),
+                      Set(targets).count == targets.count, proc_pidpath(getppid(), &path, UInt32(path.count)) > 0,
+                      URL(fileURLWithPath: String(decoding: path.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self))
+                        .resolvingSymlinksInPath().path == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" else { exit(2) }
+            }
             NSApplication.shared.setActivationPolicy(.prohibited)
             #if NEARPANE_ISOLATED_GUI_LAB
             var ordinary: [String: [String]]?

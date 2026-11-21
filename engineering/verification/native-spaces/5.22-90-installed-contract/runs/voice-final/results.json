@@ -1,0 +1,555 @@
+{
+  "app": "/Applications/Nearpane.app",
+  "build": "90",
+  "calibrationState": "COMPLETE",
+  "generation": "a2d679b5-36dd-41bc-820d-53b35ea352a2",
+  "mode": "three independent cold starts",
+  "physicalStatus": "UNKNOWN",
+  "rounds": [
+    {
+      "baselineRecordings": 0,
+      "calibration": {
+        "alignment": {
+          "bestDistantLagScore": 0.21935514119668315,
+          "captureSeconds": 2.59,
+          "fitFromOneThirdToTail": 0.5778945126928131,
+          "lagSeconds": 0.25,
+          "referenceSeconds": 1.66,
+          "thirdsAtSameLag": [
+            0.4801209076189755,
+            0.6379434438688107,
+            0.4823678185797087
+          ]
+        },
+        "captured": {
+          "edits": [
+            {
+              "expected": "今天测试语音",
+              "expectedRange": [
+                0,
+                6
+              ],
+              "heard": "今天测试语音",
+              "heardRange": [
+                0,
+                6
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "今天测试语音",
+          "leadingCharactersMatched": 6,
+          "rawTextSHA256": "ca5023b406a39df8f14c8d69a5f8bac49632d944aa50a804ee91c27e9d249a84"
+        },
+        "clean": {
+          "edits": [
+            {
+              "expected": "今天测试语音",
+              "expectedRange": [
+                0,
+                6
+              ],
+              "heard": "今天测试语音",
+              "heardRange": [
+                0,
+                6
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "今天测试语音",
+          "leadingCharactersMatched": 6,
+          "rawTextSHA256": "ca5023b406a39df8f14c8d69a5f8bac49632d944aa50a804ee91c27e9d249a84"
+        },
+        "status": "COMPLETE",
+        "wavSHA256": "5ed9a9737da038e54b145efca58a1b0337bf590861dbe560a4b9d549d5ae4716"
+      },
+      "phrase": "今天测试语音",
+      "pid": 62323,
+      "previousPID": 62152,
+      "readback": {
+        "baselineIntact": true,
+        "chunks": [
+          {
+            "frames": 41600,
+            "pcm16Mono16kMatchesIndex": true,
+            "sha256": "5ed9a9737da038e54b145efca58a1b0337bf590861dbe560a4b9d549d5ae4716"
+          }
+        ],
+        "cloudGrants": 0,
+        "deleted": false,
+        "isRecording": false,
+        "newIDs": [
+          "A1546C08-DD2A-425A-B40D-A0F0071596B6"
+        ],
+        "recognitionState": "completed",
+        "revisions": [
+          {
+            "comparison": {
+              "edits": [
+                {
+                  "expected": "今天测试语音",
+                  "expectedRange": [
+                    0,
+                    6
+                  ],
+                  "heard": "今天测试语音",
+                  "heardRange": [
+                    0,
+                    6
+                  ],
+                  "kind": "equal"
+                }
+              ],
+              "exact": true,
+              "heardNormalized": "今天测试语音",
+              "leadingCharactersMatched": 6,
+              "rawTextSHA256": "ca5023b406a39df8f14c8d69a5f8bac49632d944aa50a804ee91c27e9d249a84"
+            },
+            "id": "7A2F29C2-1EBD-4F10-BC48-A59189BA6661",
+            "origin": "partial",
+            "preferred": false
+          },
+          {
+            "comparison": {
+              "edits": [
+                {
+                  "expected": "今天测试语音",
+                  "expectedRange": [
+                    0,
+                    6
+                  ],
+                  "heard": "今天测试语音",
+                  "heardRange": [
+                    0,
+                    6
+                  ],
+                  "kind": "equal"
+                }
+              ],
+              "exact": true,
+              "heardNormalized": "今天测试语音",
+              "leadingCharactersMatched": 6,
+              "rawTextSHA256": "ca5023b406a39df8f14c8d69a5f8bac49632d944aa50a804ee91c27e9d249a84"
+            },
+            "id": "29C1E92A-455A-4CAA-B8DE-432938ADC31F",
+            "origin": "final",
+            "preferred": true
+          }
+        ],
+        "totalFrames": 41600
+      },
+      "reason": "Physical playback, exact final and independent WAV readback confirmed",
+      "status": "PASS",
+      "stimulus": {
+        "firstSignalSeconds": 0.0046875,
+        "sha256": "9a95f0fa7cc9ea059fbb411fe26eb6a3feccfd6f29cd76cf0de2dbad886b95c9",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [
+          {
+            "kind": "startPressed",
+            "offsetSeconds": 0.5630372083396651
+          },
+          {
+            "kind": "captureReady",
+            "offsetSeconds": 1.1441310000082012
+          },
+          {
+            "kind": "stimulusStarted",
+            "offsetSeconds": 1.186995541676879
+          },
+          {
+            "kind": "stimulusFinished",
+            "offsetSeconds": 2.977628458320396
+          },
+          {
+            "kind": "pausePressed",
+            "offsetSeconds": 3.6692931249854155
+          },
+          {
+            "kind": "pauseObserved",
+            "offsetSeconds": 3.851806291670073
+          }
+        ],
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 62323,
+        "playbackVolume": 0.6499999761581421,
+        "spaceAfterPause": {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        "spaceBeforeStart": {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        "stimulusSeconds": 1.677
+      }
+    },
+    {
+      "baselineRecordings": 1,
+      "calibration": {
+        "alignment": {
+          "bestDistantLagScore": 0.19385528179381417,
+          "captureSeconds": 2.59,
+          "fitFromOneThirdToTail": 0.7248631718126207,
+          "lagSeconds": 0.24,
+          "referenceSeconds": 1.63,
+          "thirdsAtSameLag": [
+            0.7915025648047407,
+            0.7931647659448459,
+            0.7105897158121253
+          ]
+        },
+        "captured": {
+          "edits": [
+            {
+              "expected": "窗外正在下雨",
+              "expectedRange": [
+                0,
+                6
+              ],
+              "heard": "窗外正在下雨",
+              "heardRange": [
+                0,
+                6
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "窗外正在下雨",
+          "leadingCharactersMatched": 6,
+          "rawTextSHA256": "a02db29d6d7d44cfe7429aa9e930e603e41379e1d3600ded510ba82714c556fe"
+        },
+        "clean": {
+          "edits": [
+            {
+              "expected": "窗外正在下雨",
+              "expectedRange": [
+                0,
+                6
+              ],
+              "heard": "窗外正在下雨",
+              "heardRange": [
+                0,
+                6
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "窗外正在下雨",
+          "leadingCharactersMatched": 6,
+          "rawTextSHA256": "a02db29d6d7d44cfe7429aa9e930e603e41379e1d3600ded510ba82714c556fe"
+        },
+        "status": "COMPLETE",
+        "wavSHA256": "a1908a5e5b6805f597d7ff70122dc00b9e78062729b2d5488f88ae1e21e9a058"
+      },
+      "phrase": "窗外正在下雨",
+      "pid": 62435,
+      "previousPID": null,
+      "readback": {
+        "baselineIntact": true,
+        "chunks": [
+          {
+            "frames": 41600,
+            "pcm16Mono16kMatchesIndex": true,
+            "sha256": "a1908a5e5b6805f597d7ff70122dc00b9e78062729b2d5488f88ae1e21e9a058"
+          }
+        ],
+        "cloudGrants": 0,
+        "deleted": false,
+        "isRecording": false,
+        "newIDs": [
+          "716AC3AE-E0D0-4517-B729-FABBF5499E0E"
+        ],
+        "recognitionState": "completed",
+        "revisions": [
+          {
+            "comparison": {
+              "edits": [
+                {
+                  "expected": "窗外正在下雨",
+                  "expectedRange": [
+                    0,
+                    6
+                  ],
+                  "heard": "窗外正在下雨",
+                  "heardRange": [
+                    0,
+                    6
+                  ],
+                  "kind": "equal"
+                }
+              ],
+              "exact": true,
+              "heardNormalized": "窗外正在下雨",
+              "leadingCharactersMatched": 6,
+              "rawTextSHA256": "a02db29d6d7d44cfe7429aa9e930e603e41379e1d3600ded510ba82714c556fe"
+            },
+            "id": "E236042C-925C-4B21-B56F-D276B3C31095",
+            "origin": "partial",
+            "preferred": false
+          },
+          {
+            "comparison": {
+              "edits": [
+                {
+                  "expected": "窗外正在下雨",
+                  "expectedRange": [
+                    0,
+                    6
+                  ],
+                  "heard": "窗外正在下雨",
+                  "heardRange": [
+                    0,
+                    6
+                  ],
+                  "kind": "equal"
+                }
+              ],
+              "exact": true,
+              "heardNormalized": "窗外正在下雨",
+              "leadingCharactersMatched": 6,
+              "rawTextSHA256": "a02db29d6d7d44cfe7429aa9e930e603e41379e1d3600ded510ba82714c556fe"
+            },
+            "id": "80B1AABB-FD6B-4D00-A076-E982B0EA59F7",
+            "origin": "final",
+            "preferred": true
+          }
+        ],
+        "totalFrames": 41600
+      },
+      "reason": "Physical playback, exact final and independent WAV readback confirmed",
+      "status": "PASS",
+      "stimulus": {
+        "firstSignalSeconds": 0.0001875,
+        "sha256": "e47f33e18472a8637411ed9c5e05555b3171921fab573973f1d78970116ca3de",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [
+          {
+            "kind": "startPressed",
+            "offsetSeconds": 0.5523446666775271
+          },
+          {
+            "kind": "captureReady",
+            "offsetSeconds": 1.1309908750117756
+          },
+          {
+            "kind": "stimulusStarted",
+            "offsetSeconds": 1.1605350416793954
+          },
+          {
+            "kind": "stimulusFinished",
+            "offsetSeconds": 2.931139541673474
+          },
+          {
+            "kind": "pausePressed",
+            "offsetSeconds": 3.622157541656634
+          },
+          {
+            "kind": "pauseObserved",
+            "offsetSeconds": 3.8718064166605473
+          }
+        ],
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 62435,
+        "playbackVolume": 0.6499999761581421,
+        "spaceAfterPause": {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        "spaceBeforeStart": {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        "stimulusSeconds": 1.6450625
+      }
+    },
+    {
+      "baselineRecordings": 2,
+      "calibration": {
+        "alignment": {
+          "bestDistantLagScore": 0.2587005711245334,
+          "captureSeconds": 3.99,
+          "fitFromOneThirdToTail": 0.7139912419925822,
+          "lagSeconds": 0.25,
+          "referenceSeconds": 2.07,
+          "thirdsAtSameLag": [
+            0.7304214774991545,
+            0.7747532979471835,
+            0.6568864749450747
+          ]
+        },
+        "captured": {
+          "edits": [
+            {
+              "expected": "蓝色雨伞放在门口",
+              "expectedRange": [
+                0,
+                8
+              ],
+              "heard": "蓝色雨伞放在门口",
+              "heardRange": [
+                0,
+                8
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "蓝色雨伞放在门口",
+          "leadingCharactersMatched": 8,
+          "rawTextSHA256": "a6f7db3e6b68d0729648e95c701500efd1955b80088df98e76e5c0d81e428f14"
+        },
+        "clean": {
+          "edits": [
+            {
+              "expected": "蓝色雨伞放在门口",
+              "expectedRange": [
+                0,
+                8
+              ],
+              "heard": "蓝色雨伞放在门口",
+              "heardRange": [
+                0,
+                8
+              ],
+              "kind": "equal"
+            }
+          ],
+          "exact": true,
+          "heardNormalized": "蓝色雨伞放在门口",
+          "leadingCharactersMatched": 8,
+          "rawTextSHA256": "a6f7db3e6b68d0729648e95c701500efd1955b80088df98e76e5c0d81e428f14"
+        },
+        "status": "COMPLETE",
+        "wavSHA256": "8e86482e63361ea6a62bbf7267b4ab9f7f523c4cedc604cd3374afbf770ef370"
+      },
+      "phrase": "蓝色雨伞放在门口",
+      "pid": 62577,
+      "previousPID": null,
+      "readback": {
+        "baselineIntact": true,
+        "chunks": [
+          {
+            "frames": 64000,
+            "pcm16Mono16kMatchesIndex": true,
+            "sha256": "8e86482e63361ea6a62bbf7267b4ab9f7f523c4cedc604cd3374afbf770ef370"
+          }
+        ],
+        "cloudGrants": 0,
+        "deleted": false,
+        "isRecording": false,
+        "newIDs": [
+          "889C3767-2EA1-46AE-A630-77F0F176110B"
+        ],
+        "recognitionState": "failed",
+        "revisions": [
+          {
+            "comparison": {
+              "edits": [
+                {
+                  "expected": "蓝色雨伞放在门口",
+                  "expectedRange": [
+                    0,
+                    8
+                  ],
+                  "heard": "蓝色雨伞放在门口",
+                  "heardRange": [
+                    0,
+                    8
+                  ],
+                  "kind": "equal"
+                }
+              ],
+              "exact": true,
+              "heardNormalized": "蓝色雨伞放在门口",
+              "leadingCharactersMatched": 8,
+              "rawTextSHA256": "a6f7db3e6b68d0729648e95c701500efd1955b80088df98e76e5c0d81e428f14"
+            },
+            "id": "6731CE8D-8AE5-4C8A-A90C-60B098AEA663",
+            "origin": "partial",
+            "preferred": true
+          }
+        ],
+        "totalFrames": 64000
+      },
+      "reason": "UI start, playback, or pause did not finish",
+      "status": "UNKNOWN",
+      "stimulus": {
+        "firstSignalSeconds": 6.25e-05,
+        "sha256": "433ac55b7a30a5b9602cedc70479a1363d54a691415beb9281a558ded6a89af2",
+        "thresholdPCM16": 32
+      },
+      "ui": {
+        "events": [
+          {
+            "kind": "startPressed",
+            "offsetSeconds": 0.6550759999954607
+          },
+          {
+            "kind": "captureReady",
+            "offsetSeconds": 1.1721551666851155
+          },
+          {
+            "kind": "stimulusStarted",
+            "offsetSeconds": 1.2051716666901484
+          },
+          {
+            "kind": "stimulusFinished",
+            "offsetSeconds": 3.433905791665893
+          }
+        ],
+        "issue": "No unique production sidebar voice button",
+        "lastSidebarInventory": {
+          "axListedWindows": 0,
+          "desktopRegions": 0,
+          "hitTestedAXWindows": 0,
+          "knownControls": {},
+          "ownedOnScreenWindows": 0,
+          "ownedWindowGeometry": [],
+          "primarySpace": {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          "roles": {
+            "AXApplication": 1,
+            "AXMenuBar": 1
+          },
+          "staticIDs": {},
+          "staticLabels": [],
+          "visitedElements": 2
+        },
+        "physicalInputTransport": "bltn",
+        "physicalOutputTransport": "bltn",
+        "pid": 62577,
+        "playbackVolume": 0.6499999761581421,
+        "spaceBeforeStart": {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        "stimulusSeconds": 2.0804375
+      }
+    }
+  ],
+  "source": "0777130ffd7bdaade0b634ede26fb70d811e06b5",
+  "speech": "local Tingting, rate 165, physical speaker to microphone",
+  "status": "UNKNOWN",
+  "textComparison": "NFKC, omit spaces and punctuation only; unrelated characters masked in published readback",
+  "version": "5.22"
+}

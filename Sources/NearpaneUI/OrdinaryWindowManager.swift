@@ -1,6 +1,7 @@
 import Foundation
 import NearpaneCore
 import Observation
+import OSLog
 
 enum CreatedWindowResult {
     case none, skipped(String), window(any OrdinaryWindowObserving)
@@ -16,6 +17,7 @@ enum CreatedWindowResult {
     func prepare() async throws -> AdmissionPair
     func verify(expected: SurfaceRect) async throws -> AdmissionPair
     func write(from: SurfaceRect, to: SurfaceRect) async throws -> AdmissionPair
+    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement) async throws -> AdmissionPair
     func observeBoundary(expected: SurfaceRect) async throws -> OrdinaryBoundaryObservation
     func acknowledgeBoundary(_ observation: OrdinaryBoundaryObservation) async throws -> AdmissionPair
     func onBoundaryChange(_ wake: (@MainActor () -> Void)?)
@@ -24,6 +26,10 @@ enum CreatedWindowResult {
 }
 extension OrdinaryWindowObserving {
     var desktopBinding: OrdinaryDesktopIdentity? { nil }
+    func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement) async throws -> AdmissionPair {
+        try await write(from: from, to: to)
+    }
+
     func setCreationWatch(_ token: UUID, enabled: Bool) async throws { throw OrdinaryRefusal.scope }
     func nextCreatedWindow(_ token: UUID) async throws -> CreatedWindowResult { throw OrdinaryRefusal.scope }
     func onBoundaryChange(_ wake: (@MainActor () -> Void)?) {}
@@ -37,12 +43,21 @@ extension OrdinaryWindowObserving {
 }
 extension OrdinaryWindowAX: OrdinaryWindowObserving {}
 
+extension DesktopWindowKey {
+    func matches(_ id: ManagedWindowID) -> Bool { pid == id.pid && birth == id.launch && number == id.number }
+}
+
+struct IncompletePairWrite: LocalizedError {
+    let reason: String, steps: [OrdinaryWindowStep]
+    var errorDescription: String? { reason }
+}
+
 struct OrdinaryWindowReview {
     let token: UUID, display: String, validUntil: TimeInterval
     let current, proposed: [ManagedWindowID: SurfaceRect]
 }
 
-enum OrdinaryRefusal: LocalizedError {
+enum OrdinaryRefusal: String, LocalizedError {
     case busy, scope, stale, lost, noGrant, ownership, ambiguous, minimum, storage
     var errorDescription: String? {
         switch self {
@@ -68,6 +83,7 @@ enum OrdinaryRefusal: LocalizedError {
         let layout: ManagedWindowTiler
     }
 
+    @ObservationIgnored var stageEngineOwnsWindows: @MainActor () -> Bool = { false }
     private let session = UUID()
     private let journal: OrdinaryJournal
     private var journalLease: OrdinaryFileLease?
@@ -88,8 +104,11 @@ enum OrdinaryRefusal: LocalizedError {
     @ObservationIgnored private weak var creationWriter: (any OrdinaryWindowObserving)?
     private var checkingCreated = false
     private var previewRevision = 0
+    private var dispatchEpoch = UUID()
+    @ObservationIgnored private weak var activeWriter: (any OrdinaryWindowObserving)?
     private var monitoring: Task<Void, Never>?
-    @ObservationIgnored private var boundaryWake: Task<Void, Never>?
+    @ObservationIgnored private(set) var boundaryWake: Task<Void, Never>?
+    @ObservationIgnored var monitorDelay: @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     private var closing = false
     private var passiveRead = false
     private var userActionReserved = false
@@ -137,7 +156,16 @@ enum OrdinaryRefusal: LocalizedError {
         let label = ambiguous && name != entry.bundle ? "\(name)（\(entry.bundle)）" : name
         return "\(label) · \(number)"
     }
+    func retainedWindow(_ key: DesktopWindowKey) -> (any OrdinaryWindowObserving)? {
+        activeIDs.first(where: key.matches).flatMap { handles[$0] }
+    }
     func cancelPreview() { previewRevision += 1; pending = nil }
+
+    func withdrawWindowDispatch() {
+        dispatchEpoch = UUID()
+        cancelPreview()
+        activeWriter?.invalidate()
+    }
 
     /// Accept at most one explicit request during a passive read. A changed selection, lost
     /// observation, cancelled caller or closing Host invalidates it before dispatch.
@@ -155,7 +183,7 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func enter(allowBlocked: Bool = false) throws {
-        guard !busy else { throw OrdinaryRefusal.busy }
+        guard !busy, !stageEngineOwnsWindows() else { throw OrdinaryRefusal.busy }
         guard allowBlocked || (!blocked && !closing) else { throw OrdinaryRefusal.lost }
         busy = true
     }
@@ -165,19 +193,23 @@ enum OrdinaryRefusal: LocalizedError {
                             primary: context.primary, settings: context.settings, fallbackEdge: context.edge).ordinary.integralInterior
     }
 
-    private func checkedScope(_ ctx: AdmissionContext, grant: (any OrdinaryWindowObserving)? = nil) throws {
+    private func checkedScope(_ ctx: AdmissionContext, grant: (any OrdinaryWindowObserving)? = nil,
+                              explicitDesktop: OrdinaryDesktopIdentity? = nil) throws {
         if let desktopScope {
             guard ctx.display == desktopScope.display, desktopIsCurrent?() == true,
                   grant == nil || grant?.desktopBinding == desktopScope else { throw OrdinaryRefusal.scope }
         }
-        guard ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
+        guard !stageEngineOwnsWindows(), ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
               let live = liveContext?(ctx.display), live.recoveryClear, live.exclusive != false, !live.hypothetical,
               ctx.display == live.display, ctx.screen == live.screen, ctx.usable == live.usable, ctx.primary == live.primary,
               ctx.displayGeometry == live.displayGeometry,
               activeDisplay == nil || grantedGeometry == live.displayGeometry,
               try area(ctx) == area(live) else { throw OrdinaryRefusal.scope }
         if let grant {
-            guard grant.desktopBinding == desktopScope else { throw OrdinaryRefusal.scope }
+            if let bound = grant.desktopBinding {
+                guard bound.display == ctx.display,
+                      bound == desktopScope || bound == explicitDesktop || handles[grant.id] === grant else { throw OrdinaryRefusal.scope }
+            }
             guard unsavedRevocation != grant.id, try !live.preferences.excluded(grant.id, bundle: grant.bundle),
                   try !ctx.preferences.excluded(grant.id, bundle: grant.bundle) else { throw WorkspaceFailure.excluded }
         }
@@ -320,8 +352,10 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func move(_ id: ManagedWindowID, to target: SurfaceRect, context: AdmissionContext, kind: String,
-                      creationToken: UUID? = nil) async throws {
-        guard let h = handles[id], leases[id] != nil, var e = entries[id],
+                      creationToken: UUID? = nil, placement: OrdinaryWindowPairPlacement? = nil,
+                      current: @escaping @MainActor () -> Bool = { true }) async throws {
+        let epoch = dispatchEpoch
+        guard current(), let h = handles[id], leases[id] != nil, var e = entries[id],
               e.refusal == nil, e.intended == nil else { throw OrdinaryRefusal.lost }
         try checkedScope(context, grant: h)
         guard target.geometry.isValid,
@@ -335,7 +369,7 @@ enum OrdinaryRefusal: LocalizedError {
         else { throw OrdinaryRefusal.lost }
         try checkCreationGrant(creationToken)
         if target == e.confirmed { return }
-        guard kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
+        guard epoch == dispatchEpoch, current(), kind == "restore" || !closing else { throw OrdinaryRefusal.stale }
         try checkedScope(context, grant: h)
         let op = UUID()
         let before = e.confirmed
@@ -349,15 +383,24 @@ enum OrdinaryRefusal: LocalizedError {
                 do { try await Task.sleep(for: .milliseconds(20)) } catch { return }
                 guard let self else { h.invalidate(); return }
                 do {
-                    guard !self.closing || kind == "restore" else { throw OrdinaryRefusal.stale }
+                    guard epoch == self.dispatchEpoch, current(), !self.closing || kind == "restore" else { throw OrdinaryRefusal.stale }
                     try self.checkCreationGrant(creationToken)
                     try self.checkedScope(context, grant: h)
                 } catch { h.invalidate(); return }
             }
         }
+        activeWriter = h
         if creationToken != nil { creationWriter = h }
-        defer { creationWriter = nil; guardTask.cancel() }
-        let pair = try await h.write(from: before, to: target)
+        defer { activeWriter = nil; creationWriter = nil; guardTask.cancel() }
+        let pair: AdmissionPair
+        if let placement {
+            do { pair = try await h.write(from: before, to: target, placement: placement) }
+            catch let failure as IncompletePairWrite {
+                try journal.record(.init(operation: op, session: session, id: id, previous: before, requested: target,
+                                         confirmedSteps: failure.steps, reason: failure.reason))
+                throw failure
+            }
+        } else { pair = try await h.write(from: before, to: target) }
         guard try sample(pair, for: h, in: context) == target else { throw OrdinaryRefusal.lost }
         // A receipt follows independent readback and never confers fresh authority after a crash.
         try journal.record(.init(operation: op, session: session, id: id, kind: kind, previous: before,
@@ -369,8 +412,9 @@ enum OrdinaryRefusal: LocalizedError {
     }
 
     private func apply(_ targets: [ManagedWindowID: SurfaceRect], in context: AdmissionContext, creationToken: UUID? = nil) async throws {
+        let epoch = dispatchEpoch
         for id in activeIDs {
-            guard !closing, let frame = targets[id] else { throw OrdinaryRefusal.stale }
+            guard epoch == dispatchEpoch, !closing, let frame = targets[id] else { throw OrdinaryRefusal.stale }
             try checkCreationGrant(creationToken)
             do { try await move(id, to: frame, context: context, kind: "layout", creationToken: creationToken) }
             catch { entries[id]?.refusal = error.localizedDescription; throw error }
@@ -399,6 +443,130 @@ enum OrdinaryRefusal: LocalizedError {
         guard !paused, !activeIDs.isEmpty, context.display == activeDisplay else { throw OrdinaryRefusal.noGrant }
         cancelPreview()
         try await reflow(context)
+    }
+
+    /// Apply only the two explicitly dropped windows. Existing grants stay with their original owners.
+    /// Temporary handles leave the journal after both windows are independently witnessed at the chosen slots.
+    @discardableResult func placeSidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
+                          desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
+                          current: @escaping @MainActor () -> Bool) async throws -> OrdinaryWindowPairPlacement {
+        var stage = "admission"
+        do {
+            return try await applySidebarPair(left: left, right: right, desktop: desktop, context: context, current: current,
+                                       stage: { stage = $0 })
+        } catch {
+            let reason: String
+            switch error {
+            case let e as OrdinaryRefusal: reason = e.rawValue
+            case let e as WorkspaceFailure: reason = e.rawValue
+            case is IncompletePairWrite: reason = "workerWriteUnconfirmed"
+            case is OrdinaryWindowFailure: reason = "workerRefused"
+            case is CancellationError: reason = "cancelled"
+            default: reason = "other"
+            }
+            DesktopAutomaticTiling.pairLog.info("phase=pairTransactionRefused stage=\(stage, privacy: .public) reason=\(reason, privacy: .public)")
+            throw error
+        }
+    }
+
+    private func applySidebarPair(left: any OrdinaryWindowObserving, right: any OrdinaryWindowObserving,
+                                  desktop: OrdinaryDesktopIdentity, context: AdmissionContext,
+                                  current: @escaping @MainActor () -> Bool, stage: (String) -> Void) async throws -> OrdinaryWindowPairPlacement {
+        try enter()
+        defer { busy = false }
+        guard !paused, current(), left.id.number != right.id.number, desktop.display == context.display,
+              activeDisplay == nil || activeDisplay == context.display,
+              desktopScope == nil || desktopScope == desktop else { throw OrdinaryRefusal.scope }
+        cancelPreview()
+        let work = try area(context)
+        let cohort = Set(activeIDs)
+        let samePair = cohort == [left.id, right.id]
+        var originals = [ManagedWindowID: SurfaceRect]()
+        func member(_ h: any OrdinaryWindowObserving) async throws -> ManagedMember {
+            guard current(), h.desktopBinding == nil || h.desktopBinding == desktop,
+                  cohort.contains(h.id) ? handles[h.id] === h : h.desktopBinding == desktop else { throw OrdinaryRefusal.stale }
+            try checkedScope(context, grant: h, explicitDesktop: desktop)
+            let pair: AdmissionPair
+            if let entry = entries[h.id] {
+                guard entry.intended == nil && entry.refusal == nil else { throw OrdinaryRefusal.lost }
+                pair = try await h.verify(expected: entry.confirmed)
+            } else { pair = try await h.prepare() }
+            let frame = try sample(pair, for: h, in: context)
+            guard pair.second.stageManager != true, pair.first.usesWitnessedSize == pair.second.usesWitnessedSize,
+                  let minimum = pair.second.minimum, minimum.geometry.isValid else { throw OrdinaryRefusal.ambiguous }
+            originals[h.id] = frame
+            // The explicit worker may attempt the requested size when AX publishes no minimum.
+            // Only this gesture's two exact slots are eligible. Its actual AX/CG frame decides success.
+            let unreported = pair.second.usesWitnessedSize == true
+            return .init(h.id, minimumWidth: unreported ? 1 : minimum.width,
+                         minimumHeight: unreported ? 1 : minimum.height, canResize: true)
+        }
+        stage("prepareLeft")
+        let lhs = try await member(left)
+        stage("prepareRight")
+        let rhs = try await member(right)
+        stage("layout")
+        let ratio = samePair ? Double(pairSlots?.percent ?? 50) / 100 : 0.5
+        let base = samePair ? tiler : ManagedWindowTiler(workspace: nil)
+        let layout = try base.placingPair(left: lhs, right: rhs, ratio: ratio, in: work)
+        let frames = try layout.frames(in: work, wholePoints: true)
+        guard let l = frames[left.id], let r = frames[right.id] else { throw OrdinaryRefusal.minimum }
+        let placement = OrdinaryWindowPairPlacement(desktop: desktop, left: left.id, right: right.id, leftFrame: l, rightFrame: r)
+        stage("lock")
+        let disk = try journalLease ?? journal.lock()
+        guard journalLease != nil || !journal.exists else { throw OrdinaryRefusal.ownership }
+        var extra = [ManagedWindowID: OrdinaryFileLease]()
+        for h in [left, right] {
+            stage(h === left ? "verifyLeftBeforeWrite" : "verifyRightBeforeWrite")
+            if leases[h.id] == nil { extra[h.id] = try OrdinaryFileLease.forWindow(h.id) }
+            guard current(), let frame = originals[h.id],
+                  try sample(await h.verify(expected: frame), for: h, in: context) == frame else { throw OrdinaryRefusal.stale }
+            try checkedScope(context, grant: h, explicitDesktop: desktop)
+        }
+        stage("acquire")
+        guard current(), !closing else { throw OrdinaryRefusal.stale }
+        journalLease = disk
+        leases.merge(extra) { existing, _ in existing }
+        for h in [left, right] where !cohort.contains(h.id) {
+            guard let frame = originals[h.id] else { throw OrdinaryRefusal.stale }
+            entries[h.id] = .init(id: h.id, bundle: h.bundle, original: frame, confirmed: frame)
+            handles[h.id] = h
+            activeIDs.append(h.id)
+        }
+        activeDisplay = context.display
+        grantedGeometry = context.displayGeometry
+        do {
+            try save()
+            for (h, frame) in [(left, l), (right, r)] {
+                stage(h === left ? "placeLeft" : "placeRight")
+                try await move(h.id, to: frame, context: context, kind: "sidebar-pair", placement: placement, current: current)
+            }
+            var verified = [ManagedMember]()
+            for (h, frame) in [(left, l), (right, r)] {
+                stage(h === left ? "verifyLeftAfterWrite" : "verifyRightAfterWrite")
+                guard current() else { throw OrdinaryRefusal.stale }
+                let readback = try await h.verify(expected: frame)
+                guard try sample(readback, for: h, in: context) == frame else { throw OrdinaryRefusal.lost }
+                let minimum = readback.second.usesWitnessedSize == true ? frame : readback.second.minimum ?? frame
+                verified.append(.init(h.id, minimumWidth: minimum.width, minimumHeight: minimum.height, canResize: true))
+            }
+            stage("record")
+            if cohort.isEmpty {
+                try finishRecord("sidebar-pair-placed")
+            } else {
+                for h in [left, right] {
+                    if cohort.contains(h.id) {
+                        verifiedIDs.insert(h.id)
+                        entries[h.id]?.retainsExternalLayout = true
+                        entries[h.id]?.externalLayout = frames[h.id]
+                    } else { detach(h.id) }
+                }
+                if samePair { tiler = try layout.refreshingRequirements(verified, in: work) }
+                try save()
+            }
+            message = "两扇窗口已在本屏左右分屏。"
+            return placement
+        } catch { fail(error); throw error }
     }
 
     func editPair(leftPercent: Int, swap: Bool, context: AdmissionContext) async throws {
@@ -875,9 +1043,9 @@ enum OrdinaryRefusal: LocalizedError {
 
     private func startMonitoring() {
         guard monitoring == nil else { return }
-        monitoring = Task { [weak self] in
+        monitoring = Task { [weak self, monitorDelay] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                do { try await monitorDelay(.seconds(1)) } catch { return }
                 guard !Task.isCancelled, let self else { return }
                 await self.poll()
                 await self.checkNewWindows()
@@ -890,8 +1058,8 @@ enum OrdinaryRefusal: LocalizedError {
     /// The private pipe is only a scheduling hint and confers no authority to write.
     private func scheduleBoundaryCheck() {
         guard boundaryWake == nil, !activeIDs.isEmpty, !blocked, !closing, !paused else { return }
-        boundaryWake = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(260)) } catch { return }
+        boundaryWake = Task { [weak self, monitorDelay] in
+            do { try await monitorDelay(.milliseconds(260)) } catch { return }
             guard let self, !Task.isCancelled else { return }
             self.boundaryWake = nil
             await self.poll()

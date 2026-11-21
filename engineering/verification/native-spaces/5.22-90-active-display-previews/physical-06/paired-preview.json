@@ -1,0 +1,422 @@
+{
+  "status": "BLOCKED",
+  "reason": "Source1OccludedByHost",
+  "metrics": {
+    "latencyMs": {
+      "firstConfirmedPresentationDifference": null,
+      "intervalWidth": null,
+      "lower": null,
+      "n": 0,
+      "upper": null
+    },
+    "method": "Nearest-rank bounds on independent calibrated presentation transitions. PTS-only matches remain visible per event and are excluded from latency quantiles.",
+    "nativeStageManagerComparison": {
+      "latencyMs": null,
+      "status": "NOT_MEASURED"
+    },
+    "sampling": {
+      "reason": "noIndependentClockBracket"
+    },
+    "simultaneous": [
+      {
+        "epoch": 0,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 1,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 2,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 3,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 4,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 5,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      },
+      {
+        "epoch": 6,
+        "matchingFrames": 0,
+        "twoConsecutive": false
+      }
+    ],
+    "status": "INCONCLUSIVE",
+    "windows": [
+      {
+        "blankSamples": 0,
+        "document": 0,
+        "events": [
+          {
+            "epoch": 1,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 2,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 3,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 4,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 5,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 6,
+            "outcome": "UNKNOWN"
+          }
+        ],
+        "latencyMs": {
+          "firstConfirmedPresentationDifference": null,
+          "intervalWidth": null,
+          "lower": null,
+          "n": 0,
+          "upper": null
+        },
+        "outcomes": {
+          "UNKNOWN": 6
+        },
+        "pictureSampleCounts": {},
+        "sourceSampleCounts": {},
+        "unknownSamples": 0,
+        "wrongWindowSamples": 0
+      },
+      {
+        "blankSamples": 0,
+        "document": 1,
+        "events": [
+          {
+            "epoch": 1,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 2,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 3,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 4,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 5,
+            "outcome": "UNKNOWN"
+          },
+          {
+            "epoch": 6,
+            "outcome": "UNKNOWN"
+          }
+        ],
+        "latencyMs": {
+          "firstConfirmedPresentationDifference": null,
+          "intervalWidth": null,
+          "lower": null,
+          "n": 0,
+          "upper": null
+        },
+        "outcomes": {
+          "UNKNOWN": 6
+        },
+        "pictureSampleCounts": {},
+        "sourceSampleCounts": {},
+        "unknownSamples": 0,
+        "wrongWindowSamples": 0
+      }
+    ]
+  },
+  "fixture": {
+    "birth": 1795191556364678,
+    "kernelGenerationMatches": true,
+    "key": 0,
+    "launcher": "Apple Launch Services new instance",
+    "main": 0,
+    "numbers": [
+      52603,
+      52604
+    ],
+    "pid": 68584,
+    "presentation": "paired-preview"
+  },
+  "sourceReference": {
+    "reason": "Source1OccludedByHost",
+    "status": "BLOCKED"
+  },
+  "overview": {
+    "beforeAfterScopeEqual": true,
+    "bindingAfter": 264952.8096629167,
+    "bindingBefore": 264951.97075858334,
+    "captureIncludesChildWindows": false,
+    "captureSource": "desktopIndependentWindow",
+    "cardEpochs": [
+      0,
+      0
+    ],
+    "cardGapBacking": "solidWhite",
+    "crop": [
+      1246,
+      185,
+      208,
+      255
+    ],
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "epoch": 0,
+    "file": "paired-overview.png",
+    "filterStyle": "window",
+    "fixedCaptions": [
+      "Field Notes · 1",
+      "Field Notes · 2"
+    ],
+    "fixtureBirth": 1795191556364678,
+    "fixtureHash": "c32cdf781dd74beaf14d57a0f84c943b547ce084",
+    "fixturePID": 68584,
+    "height": 510,
+    "hostBirth": 1795191548730708,
+    "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "hostPID": 68441,
+    "includedWindowNumbers": [
+      52600
+    ],
+    "isolatedProfile": true,
+    "nativeTransparencyBacking": "solidWhite",
+    "numbers": [
+      52603,
+      52604
+    ],
+    "otherControlsInCrop": 0,
+    "panel": 52600,
+    "panelFrame": [
+      1230,
+      33,
+      240,
+      923
+    ],
+    "panelSample": [
+      264951.973204625,
+      264952.3072800417
+    ],
+    "retainedCardFrames": [
+      [
+        1246,
+        185,
+        208,
+        122
+      ],
+      [
+        1246,
+        318,
+        208,
+        122
+      ]
+    ],
+    "retainedCardIDs": [
+      "current-desktop-window:68584:52603",
+      "current-desktop-window:68584:52604"
+    ],
+    "scale": 2,
+    "sha256": "9b31ce387c25995b2f502a66ebe84b776d573098057444319c24ebd72f484f82",
+    "singleIncludedHostWindow": true,
+    "sourceDocumentsEmpty": true,
+    "sourceEpochs": [
+      0,
+      0
+    ],
+    "sourceSamples": [
+      [
+        264951.9732044167,
+        264952.1591581667
+      ],
+      [
+        264951.97320450004,
+        264952.44770995836
+      ]
+    ],
+    "space": 5095,
+    "status": "CAPTURED",
+    "width": 416
+  },
+  "cleanup": {
+    "fixtureProcessAbsent": true,
+    "forced": false,
+    "forcedFixtureTermination": false,
+    "launcherExitCode": 0,
+    "status": "PASS",
+    "windowNumbersGone": true
+  },
+  "twoCardSurface": {
+    "expectedCardCount": 2,
+    "observations": [
+      {
+        "metrics": {
+          "activeStreams": 2,
+          "cacheEntries": 2,
+          "captureRequests": 2,
+          "capturesInFlight": 0,
+          "chargedPixelBytes": 981504,
+          "deliveredFrames": 149,
+          "gallerySessions": 1,
+          "pid": 68441,
+          "stageManagerOwnsDispatch": 0,
+          "surfaceHidden": 0,
+          "visibilityRevision": 264940181898375,
+          "visibleDisplays": 1,
+          "windowManagementBusy": 0
+        },
+        "surface": {
+          "available": true,
+          "bareSpaceRows": 0,
+          "controls": {
+            "desktop-reserved-region": 1,
+            "tray-camera-entry": 1,
+            "tray-content": 1,
+            "tray-file-drop": 1,
+            "voice-capture-toggle": 1
+          },
+          "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "duplicatedCards": 0,
+          "fixedLabels": [
+            "展开截图方式",
+            "开始或恢复收音",
+            "截图与文件托盘",
+            "文件拖放区",
+            "本屏窗口总览"
+          ],
+          "hostBirth": 1795191548730708,
+          "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+          "hostPID": 68441,
+          "legacyCards": 0,
+          "panels": [
+            52600
+          ],
+          "placeholderLabels": [],
+          "space": 5095,
+          "stageManager": false,
+          "uptime": 264950.34847875003,
+          "windowCards": 2
+        }
+      },
+      {
+        "metrics": {
+          "activeStreams": 1,
+          "cacheEntries": 1,
+          "captureRequests": 2,
+          "capturesInFlight": 0,
+          "chargedPixelBytes": 490752,
+          "deliveredFrames": 184,
+          "gallerySessions": 1,
+          "pid": 68441,
+          "stageManagerOwnsDispatch": 0,
+          "surfaceHidden": 0,
+          "visibilityRevision": 264940181898375,
+          "visibleDisplays": 1,
+          "windowManagementBusy": 0
+        },
+        "surface": {
+          "available": true,
+          "bareSpaceRows": 0,
+          "controls": {
+            "desktop-reserved-region": 1,
+            "tray-camera-entry": 1,
+            "tray-content": 1,
+            "tray-file-drop": 1,
+            "voice-capture-toggle": 1
+          },
+          "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "duplicatedCards": 0,
+          "fixedLabels": [
+            "展开截图方式",
+            "开始或恢复收音",
+            "截图与文件托盘",
+            "文件拖放区",
+            "本屏窗口总览"
+          ],
+          "hostBirth": 1795191548730708,
+          "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+          "hostPID": 68441,
+          "legacyCards": 0,
+          "panels": [
+            52600
+          ],
+          "placeholderLabels": [],
+          "space": 5095,
+          "stageManager": false,
+          "uptime": 264950.7125565,
+          "windowCards": 2
+        }
+      }
+    ],
+    "stage": false,
+    "status": "PASS"
+  },
+  "presentation": {
+    "compactBatches": 0,
+    "count": 0,
+    "frames": "presentation-frames.jsonl",
+    "maximumSourceToPanelJoinSeconds": 0.016666666666666666,
+    "session": {
+      "clocks": [
+        {
+          "denominator": 3,
+          "hostOffset": -1.416308805346489e-06,
+          "machOffset": 5.125009920448065e-06,
+          "numerator": 125,
+          "uncertainty": 5.125009920448065e-06,
+          "uptime": 264950.04904116667
+        }
+      ],
+      "crops": 3,
+      "guards": [
+        {
+          "cardKinds": [],
+          "fullBinding": true,
+          "issue": "Source1OccludedByHost",
+          "time": 264950.05854758335,
+          "valid": false
+        }
+      ],
+      "markerHoldSeconds": 3.6,
+      "mode": "three-resident-SCStreams",
+      "packedBytes": 0,
+      "packedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "phaseChannelDeviation": 5,
+      "rates": [
+        60,
+        60,
+        60
+      ],
+      "reason": "Source1OccludedByHost",
+      "requestedColorSpace": "kCGColorSpaceSRGB",
+      "stopped": [
+        false,
+        false,
+        false
+      ]
+    },
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "nativeStageManagerComparison": {
+    "latencyMs": null,
+    "status": "NOT_MEASURED"
+  }
+}

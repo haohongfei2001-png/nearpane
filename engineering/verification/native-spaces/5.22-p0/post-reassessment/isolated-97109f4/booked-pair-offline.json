@@ -1,0 +1,12 @@
+{
+  "qualified": true,
+  "run": 65,
+  "skipped": 6,
+  "passed": 59,
+  "failed": 0,
+  "errors": 0,
+  "kitToolHash": "18d347240027708690777226268e0b787da27c1768fb6584b41b97268c9cf161",
+  "offline": true,
+  "issued": 0,
+  "productGates": "NOT_RUN"
+}

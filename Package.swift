@@ -8,6 +8,9 @@ struct DomainPin: Decodable {
     let commit: String
     let treeSHA256: String
     let sources: [String]
+    struct Adaptation: Decodable { let compiledSHA256: String }
+    let captureReadiness: Adaptation?
+    let draftWitness: Adaptation?
     var key: String { commit + "-" + treeSHA256 }
 }
 struct DomainLock: Decodable {
@@ -15,20 +18,45 @@ struct DomainLock: Decodable {
 }
 let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
+let manifestRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+#if arch(arm64)
+let engineTriple = "aarch64-apple-darwin"
+#else
+let engineTriple = "x86_64-apple-darwin"
+#endif
+let engineArchive = Context.environment["NEARPANE_ENGINE_ARCHIVE"]
+    ?? manifestRoot.appendingPathComponent(".build/window-engine/cargo-target/" + engineTriple + "/release/libnearpane_window_engine.a").path
+let engineLink: [LinkerSetting] = [.unsafeFlags([engineArchive]), .linkedLibrary("objc"),
+    .linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("ApplicationServices"),
+    .linkedFramework("CoreGraphics"), .linkedFramework("CoreFoundation"), .linkedFramework("Carbon"), .linkedFramework("Security")]
+// The CLI keeps its own process, TCC identity and signed parent checks. StageGroup links the
+// same checked AX primitives into the Host and uses its sealed in-process binding.
+let ordinarySources = "Sources/NearpaneOrdinaryWindowController"
+let ordinaryRuntimeSources = [
+    "BoundaryChangeTracker.swift", "CreatedWindowWatch.swift", "CurrentFocusScope.swift", "FocusCurrentWindow.swift",
+    "OrdinaryDesktopMembership.swift", "OwnerIdentity.swift", "PairPlacement.swift", "StageHostWindow.swift",
+    "StageWindowPhysicalReader.swift", "SystemEvidence.swift", "WindowMonitor.swift"
+]
 var targets: [Target] = [
+    .systemLibrary(name: "CNearpaneWindowEngine", path: "Engine/nearpane-window-engine/include"),
+    .target(name: "NearpaneWindowEngine", dependencies: ["NearpaneCore", "CNearpaneWindowEngine"], linkerSettings: engineLink),
+    .testTarget(name: "NearpaneWindowEngineTests", dependencies: ["NearpaneWindowEngine", "NearpaneCore", "CNearpaneWindowEngine"]),
     .target(name: "WindowGeometryCore"),
     .target(name: "CReadOnlySpaces"),
     .target(name: "CNativeSpaceActions"),
-    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces", "CNativeSpaceActions"]),
-    .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore"]),
+    .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
+    .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore", "CNativeSpaceActions"]),
     .target(name: "NearpaneCore", dependencies: ["WindowGeometryCore"]),
-    .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
+    .target(name: "NearpaneOrdinaryWindowRuntime", dependencies: ["NearpaneCore", "CReadOnlySpaces"],
+            path: ordinarySources, exclude: ["main.swift"], sources: ordinaryRuntimeSources),
+    .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "NearpaneOrdinaryWindowRuntime"],
+                      path: ordinarySources, exclude: ordinaryRuntimeSources, sources: ["main.swift"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
-    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
+    .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine", "NearpaneOrdinaryWindowRuntime"] + domains),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine", "CNearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
         linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
-    .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),
+    .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController", "NearpaneOrdinaryWindowRuntime"]),
     .testTarget(name: "NearpaneDesktopReaderTests", dependencies: ["NearpaneDesktopReader", "NearpaneCore"]),
     .testTarget(name: "NearpaneHostTests", dependencies: ["NearpaneHost"]),
     .testTarget(name: "NearpaneCoreTests", dependencies: ["NearpaneCore"]),
@@ -43,13 +71,16 @@ if full {
     let cache = (run.isEmpty ? ".build" : "build/standalone." + run + "/cache") + "/domain-cache-v1/"
     let saytile = cache + speech.key + "/Sources/"
     let riftlet = cache + tray.key + "/Sources/"
+    guard let witness = tray.draftWitness else { fatalError("Missing Riftlet click witness bridge") }
+    let voiceSuffix = speech.captureReadiness.map { "-" + $0.compiledSHA256 } ?? ""
     targets += [
         .binaryTarget(name: "Sparkle", path: updateCache),
         .systemLibrary(name: "CSQLite", path: saytile + "CSQLite"),
         .target(name: "CAudio", path: saytile + "CAudio",
                 exclude: ["WEBRTC-LICENSE.txt", "webrtc/common_audio/signal_processing/dot_product_with_scale.cc"],
                 cSettings: [.headerSearchPath("."), .define("WEBRTC_POSIX")]),
-        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key,
+        .target(name: "SaytileKit", dependencies: ["CSQLite", "CAudio"], path: cache + "voice-" + speech.key + voiceSuffix,
+                exclude: speech.captureReadiness == nil ? [] : ["Upstream/AudioCapture.swift"],
                 resources: [.copy("Upstream/Resources/ConnectionSample.pcm"), .copy("Upstream/Resources/LocalASR")]),
         .target(name: "SaytileVoiceUI", path: saytile + "SaytileVoiceUI"),
         .target(name: "RiftletCore", dependencies: ["CSQLite"], path: riftlet + "RiftletCore",
@@ -58,7 +89,7 @@ if full {
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletCapture", dependencies: ["RiftletCore"], path: riftlet + "RiftletCapture",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
-        .target(name: "RiftletAdapters", dependencies: ["RiftletCore"], path: riftlet + "RiftletAdapters",
+        .target(name: "RiftletAdapters", dependencies: ["RiftletCore"], path: cache + "adapters-" + tray.key + "-" + witness.compiledSHA256,
                 resources: [.process("Resources")], swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "RiftletUI", dependencies: ["RiftletCore", "RiftletCapture"], path: riftlet + "RiftletUI",
                 exclude: ["ThumbnailCache.swift"], swiftSettings: [.swiftLanguageMode(.v5)]),

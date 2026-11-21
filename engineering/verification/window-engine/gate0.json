@@ -1,0 +1,47 @@
+{
+  "gate": 0,
+  "scope": "Static archive and cross-language transport; ordinary Host writes closed.",
+  "status": "PASS",
+  "baseGit": "0dd9cb2ead957aa71b0b4b149b2752629f1e522d",
+  "upstreamCommit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
+  "system": {
+    "release": "27.0",
+    "build": "26A428",
+    "sip": "enabled",
+    "arch": "arm64"
+  },
+  "rustVersion": "1.88.0",
+  "abiVersion": 1,
+  "archives": {
+    "aarch64": {
+      "objectArchitecture": "arm64",
+      "status": "PASS"
+    },
+    "x86_64": {
+      "objectArchitecture": "x86_64",
+      "status": "PASS"
+    }
+  },
+  "swiftTests": 2,
+  "rustTests": 6,
+  "layout": {
+    "config": 48,
+    "request": 232,
+    "receipt": 96
+  },
+  "thirdPartyCargoPackages": 0,
+  "tests": [
+    "test tests::versioned_layout ... ok",
+    "test runtime::tests::restoring_a_sibling_does_not_release_an_ambiguous_lease ... ok",
+    "test tests::rejects_invalid_buffers_and_caps_fixture_authority ... ok",
+    "test runtime::tests::bounded_queue_and_terminal_timeout_do_not_depend_on_a_stalled_worker ... ok",
+    "test tests::panic_is_terminal_without_unwinding ... ok",
+    "test tests::serial_ticket_retains_result_and_never_reuses_closed_handle ... ok"
+  ],
+  "swiftEvidence": [
+    "✔ Test cLayoutAndSwiftRuntimeAgree() passed after 0.001 seconds.",
+    "✔ Test ordinaryHandleCannotDispatchFixtureWritesAndRevocationIsThreadSafe() passed after 0.001 seconds.",
+    "✔ Test run with 2 tests in 1 suite passed after 0.001 seconds."
+  ],
+  "physicalSwitch": "NOT_RUN"
+}

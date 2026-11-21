@@ -1,0 +1,19 @@
+{
+  "attempts": [],
+  "cleanup": {
+    "reason": "no enrolled generation to close",
+    "status": "NOT_RUN",
+    "terminated": null
+  },
+  "issued": 0,
+  "operationStage": "launch",
+  "operationStatus": "BLOCKED",
+  "passes": 0,
+  "pressCounts": {
+    "ISSUED": 0,
+    "REFUSED": 0,
+    "UNKNOWN": 0
+  },
+  "reason": "could not verify Apple TextEdit at its system path",
+  "status": "BLOCKED"
+}

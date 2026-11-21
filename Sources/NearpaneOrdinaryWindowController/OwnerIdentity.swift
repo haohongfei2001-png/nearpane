@@ -1,5 +1,5 @@
 import NearpaneCore
 
-typealias OrdinaryApplicationReference = NearpaneCore.OrdinaryApplicationReference
-typealias OrdinaryProcessImage = NearpaneCore.OrdinaryProcessImage
-typealias OrdinaryOwnerIdentity = NearpaneCore.OrdinaryOwnerIdentity
+package typealias OrdinaryApplicationReference = NearpaneCore.OrdinaryApplicationReference
+package typealias OrdinaryProcessImage = NearpaneCore.OrdinaryProcessImage
+package typealias OrdinaryOwnerIdentity = NearpaneCore.OrdinaryOwnerIdentity

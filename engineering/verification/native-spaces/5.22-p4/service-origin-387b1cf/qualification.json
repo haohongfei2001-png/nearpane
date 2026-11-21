@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "productSource": "387b1cfbff3d55237272b862be5626a4b136dca6",
+  "base": "02422473f8cb897baa60db82604a7400c9e9ea00",
+  "osBuild": "26A428",
+  "scope": "Headless product tests, synthetic panel trials and replay of the archived one-request installed run.",
+  "archivedInstalled": {
+    "source": "946afb9b32215de35481034d182255109528a8f9",
+    "classification": "../installed-946afb9/classification.json",
+    "sha256": "da35430d15a23c89b1e0d85e730b4230d2c9e8a3db42dbb705614c98963c8743",
+    "sourceFocusRetention": "FAIL_OBSERVED_LOSS",
+    "hostForegroundBeforeCallbackMsApprox": 11.005
+  },
+  "hostQualification": {
+    "command": "NEARPANE_OFFLINE=1 bash scripts/test.sh --jobs 5 --filter 'TranslationSelectionOriginTests|ServiceOpenIntentTests|TranslationHandoffTests'",
+    "tests": [
+      "fallbackRequiresAPointerInTheBoundWindowAndFiniteCoordinates",
+      "genericPointerFeedbackRequiresTheSameLiveContextAndNeverAuthenticatesACaller",
+      "onlyTheDirectSameUserPeerOfThisProviderQualifies",
+      "sameAppWithAnotherFieldWindowProcessGenerationOrRangeCannotReuseAnOrigin",
+      "hostAtRecordedCallbackIsNeverItsOwnSource",
+      "privateFoundationDispatchIdentifiesItsActualExportAndRejectsTheSameProcess",
+      "finderReopenStillOpensSettingsAfterABackgroundLaunch",
+      "serviceAndLoginOpensSkipSettingsIncludingReopenWhenMarked",
+      "durableHandoffSurvivesRestartAndStaysInItsGeneration",
+      "wordCommitIsIdempotentVersionedAndReadsLegacy",
+      "coldHostConsumesRecoveredRequestWithActualInstalledFrameworkAndNoPanel"
+    ],
+    "passed": 11,
+    "failed": 0,
+    "framework": {
+      "framework": "Apple.Translation",
+      "installedServicesEntryAndPanel": "NOT_RUN",
+      "languagePair": [
+        "en",
+        "zh-Hans"
+      ],
+      "model": "supported, not installed",
+      "privateTextLogged": false,
+      "resultSHA256": null,
+      "sourceSHA256": "92b6dfdd5fdd2e93b3f95e792c54652cc733e612d0f8e96dbbbc32b9ea5bc84a",
+      "wordReopened": false
+    }
+  },
+  "observerQualification": {
+    "passed": 66,
+    "output": "66 single-sample identity, chronology, contents, source and occlusion checks passed",
+    "input": "../installed-946afb9/service-delivery.json",
+    "inputSHA256": "8a9cb1a1ea8d34f950933a654b0d64ed91567a8bb3fa0be1ab644e93b66a47f1",
+    "toolSelectionSHA256": "55fd559cc76e52b40c1a31f2dfda95bb85e6dc3887995506b9c06d34e850eb9c",
+    "fixtureMachOSHA256": "a25ffd299dc03a1e86e1810631d38a9a7d29c979c24e1098cfe8dc743986b212",
+    "codesignStrict": [
+      "tool-selection",
+      "Nearpane Tool Fixture.app"
+    ],
+    "scope": "Synthetic request and display facts plus six archived physical samples. The replay did not request an image or change the archived verdict."
+  },
+  "normalService": {
+    "callback": "Durable request and framework processing proceed when caller attribution is unknown.",
+    "authenticatedAnchor": "A direct peer invoking the exact exported object on the same user account is optional. A selection additionally requires the original process generation, focused AX field and window, identical selection bytes and UTF-16 range on repeated reads.",
+    "feedback": "A separate request-time pointer fallback uses the same nonactivating panel. Its screen, foreground generation and activity counters must remain unchanged. It reads no external AX text. Actual fallback images can be retained only under the existing owned-window and content restrictions.",
+    "frontmost": "Workspace activation invalidates old contexts. It does not identify the service caller.",
+    "delegate": "A marked service or login open/reopen skips settings; ordinary unmarked Finder reopen remains eligible. The observer records only delegate markers occurring within the fixture's timed call in the enrolled Host."
+  },
+  "admission": {
+    "newInstalledCalls": 0,
+    "genericFeedbackWindow": "NOT_RUN",
+    "genericFeedbackContent": "NOT_RUN",
+    "installedSourceFocusRetention": "NOT_RUN",
+    "preciseSelectionPlacement": "NOT_RUN",
+    "directFoundationPeerForOrdinaryAppKitServices": "UNKNOWN",
+    "systemForegroundPrevention": "BLOCKED_NO_OBSERVED_SERVICE_ORIGIN_OR_ACTIVATION_CONTROL",
+    "newSignedCandidateInstalled": false
+  },
+  "platformReview": {
+    "menuProperties": "NSMenuItem and NSServiceDescription supply text. The published NSServices keys provide no provider-side switch that suppresses incoming foreground activation.",
+    "serviceProperties": "https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/SysServices/Articles/properties.html",
+    "callback": "https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/SysServices/Articles/providing.html",
+    "peer": "https://developer.apple.com/documentation/foundation/nsxpcconnection/current()",
+    "launchMarker": "macOS SDK AERegistry.h keyAELaunchedAsServiceItem. The documented open-event marker is checked on reopen if present; the 946afb9 trace does not establish that a marked reopen occurred."
+  },
+  "rollback": "Revert the product commit in productSource. The installed daily bundle and its profile were not touched by this qualification."
+}

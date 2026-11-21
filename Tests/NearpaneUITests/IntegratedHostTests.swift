@@ -5,7 +5,7 @@ import ImageIO
 import UniformTypeIdentifiers
 import Testing
 import NearpaneCore
-import SaytileKit
+@testable import SaytileKit
 import RiftletCore
 import RiftletCapture
 @testable import NearpaneVoice
@@ -37,6 +37,11 @@ struct IntegratedHostTests {
         var ids = [UUID]()
         for (index, text) in [firstLine, secondLine].enumerated() {
             let row = try await store.createRecording(createdAt: Date(timeIntervalSince1970: Double(index + 1)))
+            let journal = try PCMJournal(directory: store.audioDirectory, recordingID: row.id)
+            try journal.openChunk()
+            try journal.append(Data(repeating: 0, count: 3200))
+            try journal.closeChunk()
+            try await store.registerAudioChunk(recordingID: row.id, relativePath: journal.relativePath, frames: journal.frames)
             let ticket = try await store.beginRecognition(recordingID: row.id)
             _ = try await store.applyRecognition(ticket: ticket, text: text, isFinal: true)
             try await store.finishRecording(id: row.id)
@@ -71,6 +76,51 @@ struct IntegratedHostTests {
             ids.insert(try await importer.importBuiltInScreenshot(original: url, outputDirectory: output).id)
         }
         return ids
+    }
+
+    @Test func profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia() async throws {
+        let root = fixtureRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        _ = try await seedVoice(root.appendingPathComponent("Nearpane"))
+        let ids = try await seedQueue(root)
+        let library = root.appendingPathComponent("Riftlet")
+        let id = try #require(ids.first)
+        do {
+            let opened = try ExistingLibrary.open(library)
+            try await opened.store.removeFromQueue(id)
+            let asset = try #require(try await opened.store.asset(id:id))
+            try await opened.store.retireMedia(id, revision:asset.visibilityRevision, batch:UUID())
+            // Model a completed cleanup without touching the system Trash.
+            try FileManager.default.moveItem(at:library.appendingPathComponent("media/" + asset.image.fileName),
+                                             to:root.appendingPathComponent("retired-fixture.png"))
+            opened.lock.close()
+        }
+        let script = """
+        import pathlib,sys
+        sys.path.insert(0,str(pathlib.Path.cwd()/'scripts'))
+        import profile_domains as p
+        root=pathlib.Path(sys.argv[1])
+        dest=root/'projection'
+        dest.mkdir()
+        with p.snapshot(root,p.VOICE) as voice:
+            assert p.voice_stats(voice)['voiceSchema']==6
+            p.text_projection(voice,dest)
+        with p.snapshot(root,p.TRAY) as tray:
+            assert p.tray_contents(tray,root,dest)['traySchema']==5
+        with p.snapshot(dest,p.TRAY) as copy:
+            assert copy.execute('select count(*) from retired_media').fetchone()==(1,)
+            assert p.tray_contents(copy,dest)['trayAssets']==3
+        """
+        let check = Process()
+        check.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        check.arguments = ["-I", "-B", "-c", script, root.path]
+        let status: Int32 = try await withCheckedThrowingContinuation { completion in
+            check.terminationHandler = { completion.resume(returning: $0.terminationStatus) }
+            do { try check.run() } catch { completion.resume(throwing: error) }
+        }
+        try #require(status == 0)
+        let reopened = try ExistingLibrary.open(root.appendingPathComponent("projection/Riftlet"))
+        #expect(try await reopened.store.isRetiredMedia(id))
     }
 
     @Test func sharedHostKeepsDomainDataSeparateAndRestoresOnlyDurableState() async throws {
@@ -297,7 +347,7 @@ struct IntegratedHostTests {
             && ProcessInfo.processInfo.environment["NEARPANE_RENDER_DARK"] == "1"
         content.appearance = NSAppearance(named: darkExport ? .darkAqua : .aqua)
         content.layoutSubtreeIfNeeded()
-        #expect(window.frame.width == 240 && window.frame.height == 960 && !window.isVisible)
+        #expect(window.frame.width == 307 && window.frame.height == 960 && !window.isVisible)
         let hosting = try #require(content.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
         for state in ["collapsed", "expanded"] {
             if state == "expanded" { domains.tray.toggleMenu() }
@@ -321,20 +371,27 @@ struct IntegratedHostTests {
                 let pixels = CGRect(x: 0, y: 0, width: source.width, height: source.height)
                 flat.setFillColor(CGColor(gray: darkExport ? 0.13 : 0.95, alpha: 1)); flat.fill(pixels)
                 flat.draw(source, in: pixels)
-                // No other content is expected near the center of the bottom 5/8.
-                // The empty-state label starts immediately below the tools, inside the workspace card.
-                let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
-                var ink = 0
-                let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0, expanded: false)
-                let top = layout.windowArea.y + PanelSizeMetrics.cardInset(width: rect.width) + 4
-                let scale = Double(source.height) / rect.height
-                for y in Int(top * scale)..<Int((top + 19) * scale) {
-                    for x in (source.width / 8)..<(source.width * 7 / 8) {
-                        let pixel = bytes.advanced(by: y * flat.bytesPerRow + x * 4)
-                        if max(pixel[0], max(pixel[1], pixel[2])) < 200 { ink += 1 }
+                if state == "collapsed" {
+                    // This host has no window observations. A label or placeholder below the tools
+                    // would introduce strokes against the otherwise uniform empty roster.
+                    let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
+                    let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0,
+                                                        expanded: false, voiceCompact: true, trayRows: 2)
+                    let scale = Double(source.height) / rect.height
+                    let top = layout.windowArea.y + 4
+                    var contrastingPixels = 0
+                    for y in Int(top * scale)..<Int((top + 19) * scale) {
+                        let row = bytes.advanced(by: y * flat.bytesPerRow)
+                        let backdrop = row.advanced(by: source.width / 8 * 4)
+                        for x in (source.width / 8)..<(source.width * 7 / 8) {
+                            let pixel = row.advanced(by: x * 4)
+                            if (0..<3).contains(where: { abs(Int(pixel[$0]) - Int(backdrop[$0])) > 24 }) {
+                                contrastingPixels += 1
+                            }
+                        }
                     }
+                    #expect(contrastingPixels == 0)
                 }
-                #expect(ink > 60)
                 guard export else { continue }
                 let bitmap = NSBitmapImageRep(cgImage: try #require(flat.makeImage()))
                 let data = try #require(bitmap.representation(using: .png, properties: [:]))

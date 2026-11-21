@@ -1,0 +1,71 @@
+{
+  "admittedHID": [
+    5404,
+    68,
+    0,
+    2952,
+    126817,
+    17747,
+    35,
+    0
+  ],
+  "hidEvents": [
+    "leftDown",
+    "rightDown",
+    "otherDown",
+    "keyDown",
+    "scroll",
+    "leftDrag",
+    "rightDrag",
+    "otherDrag"
+  ],
+  "observed": {
+    "focusedNumber": null,
+    "frontPID": 56354,
+    "hid": [
+      5404,
+      68,
+      0,
+      2952,
+      126817,
+      17747,
+      35,
+      0
+    ],
+    "observerAX": true,
+    "topology": {
+      "current": 4,
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "records": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        {
+          "id": 4983,
+          "type": 4,
+          "uuid": "9199A966-CB66-4069-B473-BFE8582B9713"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+        },
+        {
+          "id": 4995,
+          "type": 0,
+          "uuid": "9F6E20BB-3281-ACBC-37F5-EBF5F19DC21C"
+        },
+        {
+          "id": 4996,
+          "type": 0,
+          "uuid": "2575F468-0696-B576-5F65-8972CDC52D0E"
+        }
+      ]
+    },
+    "uptime": 245111.31213791668
+  },
+  "source": 4,
+  "target": 4995
+}

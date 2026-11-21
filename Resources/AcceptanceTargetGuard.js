@@ -72,7 +72,8 @@ function nearpaneBoundDraft(b, command, native, handoff, parts, deadline, confli
     if (product) {
       const {editor,form} = productEditor();
       if (Date.now()/1000 > b.expiresAt || performance.timeOrigin !== b.timeOrigin ||
-          native.applicationID !== 'com.google.Chrome' || native.sessionID !== b.process ||
+          !['com.google.Chrome','com.microsoft.edgemac'].includes(native.applicationID) ||
+          native.applicationID !== (b.applicationID ?? 'com.google.Chrome') || native.sessionID !== b.process ||
           native.windowID !== b.window || native.tabID !== b.tab ||
           (command.target && command.target.clickBindingID !== b.nonce.toUpperCase()) ||
           (command.identity && (command.identity.assetID.toLowerCase() !== b.assetID ||

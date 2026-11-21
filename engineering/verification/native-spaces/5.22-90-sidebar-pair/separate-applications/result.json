@@ -1,0 +1,1435 @@
+{
+  "scope": "one explicit right drop on two Developer ID AppKit fixture cards",
+  "status": "PASS",
+  "operationStatus": "PASS",
+  "issued": true,
+  "attempts": 1,
+  "initial": [
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [],
+        "cg": [],
+        "clock": 289242.5251110417,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [],
+        "owners": [],
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    },
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            357,
+            263,
+            370,
+            140
+          ]
+        ],
+        "cg": [
+          [
+            357,
+            263,
+            370,
+            140
+          ]
+        ],
+        "clock": 289243.85257670836,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          }
+        ],
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    }
+  ],
+  "preflights": [
+    {
+      "at": 289242.325918541,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 0,
+      "visibleCards": 0
+    },
+    {
+      "at": 289242.526212416,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 0,
+      "visibleCards": 0
+    },
+    {
+      "at": 289243.853905041,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 1,
+      "visibleCards": 0
+    },
+    {
+      "at": 289244.947972125,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 2,
+      "visibleCards": 0
+    },
+    {
+      "at": 289245.373622875,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 2,
+      "visibleCards": 2
+    },
+    {
+      "at": 289245.812011666,
+      "status": "READ",
+      "reason": null,
+      "enrolled": 2,
+      "visibleCards": 2
+    }
+  ],
+  "post": [
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            743,
+            263,
+            370,
+            140
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            96.5
+          ],
+          [
+            1246,
+            292.5,
+            208,
+            97
+          ]
+        ],
+        "cg": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            743,
+            263,
+            370,
+            140
+          ]
+        ],
+        "clock": 289247.097571,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332,
+          54338
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          },
+          {
+            "birth": 1795215852738922,
+            "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+            "identifier": "net.example.nearpane-five-preview.2",
+            "number": 54338,
+            "pid": 78049,
+            "slot": 1
+          }
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54329,
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    },
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            743,
+            263,
+            370,
+            140
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            96.5
+          ],
+          [
+            1246,
+            292.5,
+            208,
+            97
+          ]
+        ],
+        "cg": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            743,
+            263,
+            370,
+            140
+          ]
+        ],
+        "clock": 289247.519483375,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332,
+          54338
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          },
+          {
+            "birth": 1795215852738922,
+            "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+            "identifier": "net.example.nearpane-five-preview.2",
+            "number": 54338,
+            "pid": 78049,
+            "slot": 1
+          }
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54329,
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    },
+    {
+      "events": [],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "reason": "enrolledWindowCensusUnconfirmed",
+      "status": "BLOCKED"
+    },
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            96.5
+          ],
+          [
+            1246,
+            292.5,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            357,
+            263,
+            370,
+            140
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "clock": 289248.28358312504,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332,
+          54338
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          },
+          {
+            "birth": 1795215852738922,
+            "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+            "identifier": "net.example.nearpane-five-preview.2",
+            "number": 54338,
+            "pid": 78049,
+            "slot": 1
+          }
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54329,
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    },
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            18
+          ],
+          [
+            1246,
+            214,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "clock": 289248.6954104584,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332,
+          54338
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          },
+          {
+            "birth": 1795215852738922,
+            "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+            "identifier": "net.example.nearpane-five-preview.2",
+            "number": 54338,
+            "pid": 78049,
+            "slot": 1
+          }
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54329,
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    },
+    {
+      "events": [],
+      "foregroundPID": 77479,
+      "geometry": {
+        "ax": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            122
+          ],
+          [
+            1246,
+            318,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "clock": 289249.09852291667,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "leaseState": "BOUND",
+        "members": [
+          54332,
+          54338
+        ],
+        "owners": [
+          {
+            "birth": 1795215851396756,
+            "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+            "identifier": "net.example.nearpane-five-preview.1",
+            "number": 54332,
+            "pid": 77998,
+            "slot": 0
+          },
+          {
+            "birth": 1795215852738922,
+            "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+            "identifier": "net.example.nearpane-five-preview.2",
+            "number": 54338,
+            "pid": 78049,
+            "slot": 1
+          }
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54329,
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "hardware": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "issued": false,
+      "operation": "read",
+      "pixels": 0,
+      "status": "READ"
+    }
+  ],
+  "savedPixels": 0,
+  "hostProfileFiles": [
+    {
+      "document": "profileIndex",
+      "permissions": "0644",
+      "uid": 501,
+      "bytes": 89,
+      "links": 1,
+      "rootPermissions": "0700",
+      "limit": 16384,
+      "sha256": "c4eb39b9d734850d933ba54f209356f4a9328b82a0ab30f46479a60d00168a99"
+    },
+    {
+      "document": "profileIndex",
+      "permissions": "0644",
+      "uid": 501,
+      "bytes": 89,
+      "links": 1,
+      "rootPermissions": "0700",
+      "limit": 16384,
+      "sha256": "c4eb39b9d734850d933ba54f209356f4a9328b82a0ab30f46479a60d00168a99"
+    },
+    {
+      "document": "configuration",
+      "permissions": "0644",
+      "uid": 501,
+      "bytes": 560,
+      "links": 1,
+      "rootPermissions": "0700",
+      "limit": 131072,
+      "sha256": "8d2d086411fe2b2f7b4f7f4216a9c2e64e3feca839e67c46f078e2a570bd48ef"
+    }
+  ],
+  "cleanup": {
+    "status": "PASS",
+    "fixtures": [
+      {
+        "slot": 0,
+        "pid": 77998,
+        "birth": 1795215851396756,
+        "generationGone": true,
+        "launcherExited": true,
+        "launcherExit": 0
+      },
+      {
+        "slot": 1,
+        "pid": 78049,
+        "birth": 1795215852738922,
+        "generationGone": true,
+        "launcherExited": true,
+        "launcherExit": 0
+      }
+    ]
+  },
+  "source": "d277a1c4f7df2af9e73fc48e10c3e2fc0e949726",
+  "signatures": {
+    "cross-pointer": "11dc455db1f47a43cf1a501dd79348916259dd69",
+    "process-generation": "c34524ee4efcf509abba0d5a7c2fb4e0adba6558",
+    "Five Notes 1.app": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+    "Five Notes 2.app": "f41e36d70264965544b0f4e8b37b416880b226c1"
+  },
+  "run": {
+    "hostPID": 77479,
+    "hostBirth": 1795215840787515,
+    "hostHash": "b15861c87c61b38f02339d121a60437995d6aecb",
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "owners": [
+      {
+        "pid": 77998,
+        "birth": 1795215851396756,
+        "number": 54332,
+        "slot": 0,
+        "identifier": "net.example.nearpane-five-preview.1",
+        "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa"
+      },
+      {
+        "pid": 78049,
+        "birth": 1795215852738922,
+        "number": 54338,
+        "slot": 1,
+        "identifier": "net.example.nearpane-five-preview.2",
+        "hash": "f41e36d70264965544b0f4e8b37b416880b226c1"
+      }
+    ]
+  },
+  "initialGeometry": [
+    {
+      "ax": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "cards": [
+        [
+          1246,
+          185,
+          208,
+          96.5
+        ],
+        [
+          1246,
+          292.5,
+          208,
+          97
+        ]
+      ],
+      "cg": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "clock": 289245.37139858335,
+      "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "leaseState": "BOUND",
+      "members": [
+        54332,
+        54338
+      ],
+      "owners": [
+        {
+          "birth": 1795215851396756,
+          "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+          "identifier": "net.example.nearpane-five-preview.1",
+          "number": 54332,
+          "pid": 77998,
+          "slot": 0
+        },
+        {
+          "birth": 1795215852738922,
+          "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+          "identifier": "net.example.nearpane-five-preview.2",
+          "number": 54338,
+          "pid": 78049,
+          "slot": 1
+        }
+      ],
+      "panel": [
+        1230,
+        33,
+        240,
+        923
+      ],
+      "panelID": 54329,
+      "visible": [
+        0,
+        33,
+        1470,
+        923
+      ]
+    },
+    {
+      "ax": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "cards": [
+        [
+          1246,
+          185,
+          208,
+          96.5
+        ],
+        [
+          1246,
+          292.5,
+          208,
+          97
+        ]
+      ],
+      "cg": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "clock": 289245.8107815,
+      "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "leaseState": "BOUND",
+      "members": [
+        54332,
+        54338
+      ],
+      "owners": [
+        {
+          "birth": 1795215851396756,
+          "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+          "identifier": "net.example.nearpane-five-preview.1",
+          "number": 54332,
+          "pid": 77998,
+          "slot": 0
+        },
+        {
+          "birth": 1795215852738922,
+          "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+          "identifier": "net.example.nearpane-five-preview.2",
+          "number": 54338,
+          "pid": 78049,
+          "slot": 1
+        }
+      ],
+      "panel": [
+        1230,
+        33,
+        240,
+        923
+      ],
+      "panelID": 54329,
+      "visible": [
+        0,
+        33,
+        1470,
+        923
+      ]
+    }
+  ],
+  "workRect": [
+    0,
+    33,
+    1230,
+    923
+  ],
+  "expected": [
+    [
+      615,
+      33,
+      615,
+      923
+    ],
+    [
+      0,
+      33,
+      615,
+      923
+    ]
+  ],
+  "dispatch": {
+    "events": [
+      {
+        "afterPost": 289246.16260083334,
+        "beforePost": 289246.15479995834,
+        "eventTimestampNS": 289246154800166,
+        "point": [
+          1350,
+          233
+        ],
+        "quartzDelta": [
+          0,
+          0
+        ],
+        "type": 1
+      },
+      {
+        "afterPost": 289246.2838735,
+        "beforePost": 289246.2838655,
+        "eventTimestampNS": 289246283865666,
+        "point": [
+          1356,
+          245
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.3474825,
+        "beforePost": 289246.34747395833,
+        "eventTimestampNS": 289246347474083,
+        "point": [
+          1362,
+          257
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.3942515834,
+        "beforePost": 289246.39424158336,
+        "eventTimestampNS": 289246394241750,
+        "point": [
+          1367,
+          269
+        ],
+        "quartzDelta": [
+          5,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.4459219167,
+        "beforePost": 289246.445913125,
+        "eventTimestampNS": 289246445913125,
+        "point": [
+          1373,
+          281
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.51308529166,
+        "beforePost": 289246.513037875,
+        "eventTimestampNS": 289246513038083,
+        "point": [
+          1379,
+          293
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.555150375,
+        "beforePost": 289246.55513650004,
+        "eventTimestampNS": 289246555136541,
+        "point": [
+          1385,
+          305
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.59859395836,
+        "beforePost": 289246.5985838334,
+        "eventTimestampNS": 289246598583916,
+        "point": [
+          1390,
+          317
+        ],
+        "quartzDelta": [
+          5,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.64072483336,
+        "beforePost": 289246.64071708336,
+        "eventTimestampNS": 289246640717333,
+        "point": [
+          1396,
+          329
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.69052533334,
+        "beforePost": 289246.6905076667,
+        "eventTimestampNS": 289246690508208,
+        "point": [
+          1402,
+          341
+        ],
+        "quartzDelta": [
+          6,
+          12
+        ],
+        "type": 6
+      },
+      {
+        "afterPost": 289246.79644495837,
+        "beforePost": 289246.79643750004,
+        "eventTimestampNS": 289246796437708,
+        "point": [
+          1402,
+          341
+        ],
+        "quartzDelta": [
+          0,
+          0
+        ],
+        "type": 2
+      }
+    ],
+    "foregroundPID": 77479,
+    "geometry": {
+      "ax": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "cards": [
+        [
+          1246,
+          185,
+          208,
+          96.5
+        ],
+        [
+          1246,
+          292.5,
+          208,
+          97
+        ]
+      ],
+      "cg": [
+        [
+          357,
+          263,
+          370,
+          140
+        ],
+        [
+          743,
+          263,
+          370,
+          140
+        ]
+      ],
+      "clock": 289246.1043729167,
+      "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "leaseState": "BOUND",
+      "members": [
+        54332,
+        54338
+      ],
+      "owners": [
+        {
+          "birth": 1795215851396756,
+          "hash": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+          "identifier": "net.example.nearpane-five-preview.1",
+          "number": 54332,
+          "pid": 77998,
+          "slot": 0
+        },
+        {
+          "birth": 1795215852738922,
+          "hash": "f41e36d70264965544b0f4e8b37b416880b226c1",
+          "identifier": "net.example.nearpane-five-preview.2",
+          "number": 54338,
+          "pid": 78049,
+          "slot": 1
+        }
+      ],
+      "panel": [
+        1230,
+        33,
+        240,
+        923
+      ],
+      "panelID": 54329,
+      "visible": [
+        0,
+        33,
+        1470,
+        923
+      ]
+    },
+    "hardware": [
+      5759,
+      70,
+      0,
+      3049,
+      136752,
+      3049,
+      109,
+      5759,
+      70,
+      0,
+      19137,
+      35,
+      0
+    ],
+    "hostRouting": {
+      "AppKitCallback": "NOT_OBSERVED",
+      "events": [
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.17228108336,
+          "point": [
+            1350,
+            233
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "source": "bound",
+          "timestampNS": 289246154800166,
+          "type": 1,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.28419050004,
+          "point": [
+            1356,
+            245
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246283865666,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.3477179583,
+          "point": [
+            1362,
+            257
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246347474083,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.39453754167,
+          "point": [
+            1367,
+            269
+          ],
+          "quartzDelta": [
+            5,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246394241750,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.4461775,
+          "point": [
+            1373,
+            281
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246445913125,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.5133705417,
+          "point": [
+            1379,
+            293
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246513038083,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.5554366667,
+          "point": [
+            1385,
+            305
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246555136541,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.598840625,
+          "point": [
+            1390,
+            317
+          ],
+          "quartzDelta": [
+            5,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246598583916,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.6417135,
+          "point": [
+            1396,
+            329
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246640717333,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.691580875,
+          "point": [
+            1402,
+            341
+          ],
+          "quartzDelta": [
+            6,
+            12
+          ],
+          "source": "bound",
+          "timestampNS": 289246690508208,
+          "type": 6,
+          "underPointer": "boundPanel"
+        },
+        {
+          "acceptingPointer": "boundPanel",
+          "destination": "bound",
+          "observedAt": 289246.79676675,
+          "point": [
+            1402,
+            341
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "source": "bound",
+          "timestampNS": 289246796437708,
+          "type": 2,
+          "underPointer": "boundPanel"
+        }
+      ],
+      "hostPID": 77479,
+      "scope": "WindowServer routed to enrolled Host PID",
+      "senderPID": 78139,
+      "status": "OBSERVED",
+      "tag": 147694846192621042
+    },
+    "issued": true,
+    "operation": "right",
+    "pixels": 0,
+    "status": "DISPATCHED"
+  },
+  "routing": {
+    "receiver": "OBSERVED",
+    "status": "HOST_PANEL",
+    "AppKitCallback": "NOT_OBSERVED",
+    "reportedWindow": [
+      "boundPanel",
+      "boundPanel"
+    ],
+    "timestampPreserved": [
+      true,
+      true
+    ],
+    "taggedDragSamples": 9,
+    "dragMotion": "MATCHED"
+  },
+  "reason": "oneHostRoutedDropTwoIndependentOwnerFrames"
+}

@@ -11,10 +11,11 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const build = path.join(root, 'build');
 const run = fs.mkdtempSync(path.join(build, 'local-browser-'));
-const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const [compose, source] = process.argv.slice(2);
 assert.equal(fs.realpathSync(compose).startsWith(build + '/'), true);
 const fixture = JSON.parse(fs.readFileSync(0,'utf8') || '{}');
+const browser = fixture.browser === 'edge' ? 'Microsoft Edge' : 'Google Chrome';
+const executable = '/Applications/' + browser + '.app/Contents/MacOS/' + browser;
 const png = Buffer.from(fixture.png ||
   'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNQ91/l1DGH4cwql/K0UAAk9wVzjPxe1gAAAABJRU5ErkJggg==','base64');
 const sha = createHash('sha256').update(png).digest('hex');
@@ -26,7 +27,7 @@ const rejectProxy = net.createServer(socket => socket.destroy());
 rejectProxy.listen(0,'127.0.0.1');
 await once(rejectProxy,'listening');
 const stderr = fs.openSync(path.join(run, 'chrome.log'), 'wx', 0o600);
-const child = spawn(chrome, ['--headless=new', '--remote-debugging-pipe',
+const child = spawn(executable, ['--headless=new', '--remote-debugging-pipe',
   '--proxy-server=http://127.0.0.1:'+rejectProxy.address().port, '--proxy-bypass-list=<-loopback>',
   '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1','--disable-quic','--disable-breakpad',
   '--user-data-dir=' + profile, '--use-mock-keychain', '--disable-background-networking', '--disable-sync',
@@ -98,7 +99,7 @@ try {
     };
     const evidence = await runProductCases({run, root, compose, source, png, sha, fixture, call, send, evalPage, navigate,
       primary:pages[0].targetId, chromePID:child.pid});
-    Object.assign(evidence, {chrome:version.product, fixtureDocumentResponses:fulfilled, otherRequestsDenied:denied});
+    Object.assign(evidence, {browser, engine:version.product, fixtureDocumentResponses:fulfilled, otherRequestsDenied:denied});
     fs.writeFileSync(path.join(run,'receipt.json'), JSON.stringify(evidence,null,2), {flag:'wx'});
     console.log(JSON.stringify({directory:run,...evidence}));
   } else {

@@ -1,0 +1,22 @@
+{
+  "assetStatus": "installed",
+  "generation": "34ecf63a-9e75-44e6-9331-18e8bdca5509",
+  "hostPID": 57133,
+  "notebookMatchingRows": 0,
+  "phase": "translation",
+  "reason": "No new installed-Host bubble next to the selected fixture text",
+  "selection": "{{535, 478}, {161.35810279846191, 27}}",
+  "serviceDispatched": true,
+  "serviceRegistration": {
+    "hasMenuContext": true,
+    "installedProviders": 1,
+    "phase": "serviceRegistration",
+    "portMatchesBundleName": true,
+    "reason": "Unique installed provider",
+    "registeredProviders": 1,
+    "status": "READY"
+  },
+  "source": "The blue bicycle",
+  "sourceLanguage": "en",
+  "status": "FAIL"
+}

@@ -1,0 +1,257 @@
+{
+  "ended": 250363.58817791668,
+  "evaluatorSHA256": "bc66d0f17964a37723e95cf523dbb0f13a12026954dd9bbf447474f938255e9b",
+  "hostReceipt": "15e49044-67b3-43de-a2a7-ab60235d13ff",
+  "inputSHA256": {
+    "15E49044-67B3-43DE-A2A7-AB60235D13FF.json": "0a77d23a9d4e1ea9dc0df8587624f5e2b4f55acace96f8b2e4b9bcf2e4c7a571",
+    "ax-dispatch.json": "49766c65781d8c05cd045948ccdce1c24de5b37e4e7170063b3fc3d7b009d654",
+    "card-before.json": "f5a21fc6af249037c082a07d57f5f0cc6a795cd5476fa0476ba9b403e4097ce9",
+    "identity.json": "6ede4c80d2373931d7eae9eef4335f3cbbff1382e327ff4d4128ae22fe0fbd92",
+    "result.json": "a90806fc7a77ba96ba206b1633a438f6ab606a0a10f5fbed3103bfea2ff1c640",
+    "visual-start.json": "b814280b4fd4d2060d5fc9ba6414ef4b87593470b0286f244b1a3cf8bc627962",
+    "visual/admission.json": "10df57d734b9f8d4ddd33f540c841b4b7549502d3c5dfb1387dfdab4b72ff05f",
+    "visual/after.json": "5a3b4aabdeddcf0f012e876c1a31fbdd459a4ddda8c5362c17fac066cc4d533b",
+    "visual/before.json": "ae84d2b1f4df1ebbf8a4d1d60890121cbb86b6f9d25f45a7c2109168f1e05d97",
+    "visual/binding.json": "5c396541f3c66b372aa0de19628aaceeb99e8aa6f852c506b48aea5345efa4b7",
+    "visual/end.json": "07f64fc8730efca6fdc770d20cdfc6e59a1cd5ff72a0f741c5326817996912e1",
+    "visual/frames.json": "87b54f89f1bdd77dd2fa7528ff00230e70261b4a2749c195ab7c4f279d07dbb5",
+    "visual/ready.json": "05b4b96ea02b653bab4ed6ec24989440161eb945d04db8de4f04380c3f09b386",
+    "visual/receipt.json": "a0948fcacdfe5dda8dafd379723d29cd3bcf895e00fb614552dece3062aa28c0",
+    "windowserver.jsonl": "d5a6b8d9b0846bc9ed71871095e2d643fa33cf2ef6d84dcc56db2a924fcab670"
+  },
+  "method": "offline review of preserved native presentation metadata",
+  "nonce": "5178A664-056F-46A8-98AE-4D34CBCF93E2",
+  "originalNavigation": "PASS",
+  "originalVisual": {
+    "reason": "terminal census found a different ordinary window",
+    "status": "UNKNOWN"
+  },
+  "pressed": 250360.3657095417,
+  "review": {
+    "allowlistedFrameCounts": {
+      "complete": 196
+    },
+    "captureFilter": "ScreenCaptureKit physical display, including only two exact fixture windows",
+    "coverage": {
+      "earlyEventsWithFollowingProof": 196,
+      "from": 250360.350778,
+      "maxGapMS": 16.666791666666665,
+      "maximumFollowingProofMS": 21.694375027436763,
+      "maximumLeadMS": 14.758208330022171,
+      "permittedGapMS": 50.0,
+      "pixelFailures": {},
+      "samples": 196,
+      "statusCounts": {
+        "0": 193,
+        "1": 3
+      },
+      "timingFailureCount": 0,
+      "timingFailureReasons": {},
+      "timingFailures": [],
+      "to": 250363.60077958336,
+      "uncoveredIntervals": []
+    },
+    "displayProbe": {
+      "admission": {
+        "crop": [
+          723,
+          482,
+          24,
+          24
+        ],
+        "displayFilterMode": true,
+        "endpointCalibration": {
+          "commonCrop": true,
+          "displayAndSpaceIDs": true,
+          "distinctMarkerColors": true,
+          "sourceEnrolled": true,
+          "sourceWallpaperMatches": true,
+          "targetEnrolled": true
+        },
+        "failed": [],
+        "filterOwnership": {
+          "excludedOtherApplicationCount": 36,
+          "filterModeDisplay": true,
+          "source": {
+            "cataloguedAppCount": 1,
+            "excluded": false,
+            "includedApplicationEcho": false,
+            "includedWindowEcho": false
+          },
+          "target": {
+            "cataloguedAppCount": 1,
+            "excluded": false,
+            "includedApplicationEcho": false,
+            "includedWindowEcho": false
+          }
+        },
+        "foremostSurface": "sourceFixture",
+        "initial": {
+          "fixtureGenerationsAndInput": true,
+          "guardianGeneration": true,
+          "nativeInventory": true,
+          "screenPermission": true,
+          "sourceCurrent": true
+        },
+        "matchingEnrolledWindows": [
+          1,
+          1
+        ],
+        "matchingPhysicalDisplays": 1,
+        "membership": {
+          "source": {
+            "available": true,
+            "exactFixtureCount": 1,
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          },
+          "target": {
+            "available": true,
+            "exactFixtureCount": 1,
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          }
+        },
+        "nonce": "5178A664-056F-46A8-98AE-4D34CBCF93E2",
+        "physicalStreamArmed": true,
+        "sourceFrameReadyBeforePress": true,
+        "sourceSpace": 5014,
+        "targetSpace": 5013,
+        "wallpaper": {
+          "fileURL": true,
+          "qualified": true,
+          "readOnlyVolume": true,
+          "recognizedImage": true,
+          "regularFile": true,
+          "rootOwned": true,
+          "sameSystemVolume": true,
+          "source": "systemWallpapers"
+        }
+      },
+      "armed": true,
+      "auxiliaryRequestCount": 0,
+      "auxiliaryRequests": [],
+      "blockedReadbacks": {},
+      "censusAfter": true,
+      "cropPoints": [
+        723,
+        482,
+        24,
+        24
+      ],
+      "currentCropReads": 0,
+      "privatePixelOutput": false,
+      "sourceFrameReadyBeforePress": true,
+      "targetCompleteColorCounts": {
+        "allNativeTargetComplete": 190,
+        "allTargetSurfaceCompleteIncludingTransition": 190,
+        "matchingNeither": 0,
+        "matchingSource": 1,
+        "matchingTarget": 189,
+        "sourceDeltaBands": {
+          "0–10": 1,
+          "129–255": 189
+        },
+        "targetDeltaBands": {
+          "0–10": 96,
+          "11–20": 93,
+          "129–255": 1
+        },
+        "targetSurfaceMatchingColor": 189
+      },
+      "terminalTarget": {
+        "eligible": false,
+        "endRequest": {
+          "callerConfirmed": true,
+          "independentEndAfterPress": true,
+          "positivePress": true
+        },
+        "independentTargetAndDisplayAgree": false,
+        "linkedToNativeTarget": false,
+        "observations": [
+          {
+            "censusQualified": false,
+            "checks": {
+              "foremostExactTarget": true,
+              "sameHumanInput": true,
+              "sameSealedWallpaper": true,
+              "sameTargetSpace": true,
+              "sourceGeneration": true,
+              "targetGeneration": true
+            },
+            "failed": [],
+            "from": 250363.66604204167,
+            "membership": {
+              "source": {
+                "available": true,
+                "exactFixtureCount": 1,
+                "ordinaryCount": 1,
+                "otherMembers": 0,
+                "qualified": true,
+                "systemMenus": 1,
+                "unclassifiedMembers": 0,
+                "verifiedHostPanels": 1,
+                "verifiedNegativeSystemBackdrops": 0,
+                "verifiedSharedOverlays": 0
+              },
+              "target": {
+                "available": true,
+                "exactFixtureCount": 1,
+                "ordinaryCount": 2,
+                "otherMembers": 0,
+                "qualified": false,
+                "systemMenus": 1,
+                "unclassifiedMembers": 0,
+                "verifiedHostPanels": 1,
+                "verifiedNegativeSystemBackdrops": 0,
+                "verifiedSharedOverlays": 0
+              }
+            },
+            "space": "target",
+            "stage": "terminal-admission-1",
+            "surface": "targetFixture",
+            "to": 250363.66789483334
+          }
+        ],
+        "reason": "terminal census found a different ordinary window",
+        "sameStream": true
+      },
+      "totalNativeEvents": 212
+    },
+    "filteredDarkFrames": 0,
+    "filteredEmptyFrames": 0,
+    "movieSource": "real fixture pixels; excluded transparent areas matted gray",
+    "physicallyQualified": false,
+    "ready": false,
+    "reason": "terminal census found a different ordinary window",
+    "scope": "Observed absence of a user-visible whole-display blackout during this interval; changes below measured sampling resolution are outside the evidence.",
+    "screenshotTaken": false,
+    "sources": [
+      "https://developer.apple.com/documentation/screencapturekit/sccontentfilter/init(display:including:)",
+      "https://developer.apple.com/documentation/screencapturekit/scstreamframeinfo/displaytime"
+    ],
+    "status": "UNKNOWN",
+    "subchecks": {
+      "continuousVisibleLight": "PASS",
+      "independentTerminalTargetMatched": false,
+      "nativePresentationCoverage": "PASS",
+      "rawNativeBlankEventsDuringPress": 0,
+      "scopedNativeBlankEventsDuringPress": 0,
+      "streamingTargetMatched": true
+    },
+    "wallpaperIncludedInMovie": false
+  },
+  "selfContainedReviewVersion": 2
+}

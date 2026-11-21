@@ -1,0 +1,16 @@
+[
+  {
+    "backupSHA256": "7944e45a80b81ba44f275704b838cebd7b1b32365b31828da36e9e5b6df6b500",
+    "bundle": "com.holdsnow.nearpane.host",
+    "lsUnregisterStatus": 0,
+    "removed": true,
+    "role": "development-base"
+  },
+  {
+    "backupSHA256": "0652c2b137f34bf885dfe9de48882e4901538e09f98ce292949e9758be02ed89",
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "lsUnregisterStatus": 0,
+    "removed": true,
+    "role": "earlier-toolchain-export"
+  }
+]

@@ -1,4 +1,14 @@
+import CoreGraphics
 import Foundation
+
+/// Compare physical input without reading event contents. Used by the Host intent
+/// check and by the worker across the final in-process check immediately before AX.
+package enum WindowSelectionInput {
+    package static func counters() -> [UInt32] {
+        let kinds: [CGEventType] = [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]
+        return kinds.map { CGEventSource.counterForEventType(.hidSystemState, eventType: $0) }
+    }
+}
 
 /// The record number alone can be reused. The display and ordinary Space UUID
 /// must still agree with the live inventory at each window write.
@@ -11,11 +21,59 @@ public struct OrdinaryDesktopIdentity: Codable, Equatable, Sendable {
     }
 }
 
+/// Identity carried by an already published, visible card on one ordinary display.
+/// The worker independently re-reads every field. This value grants no AX operation.
+public struct OrdinaryFocusScope: Codable, Equatable, Sendable {
+    public let desktop: OrdinaryDesktopIdentity
+    public let topology: String
+    public let order: [SpaceRecord]
+    public let physicalDisplay: DisplayObservation?, separateSpaces: Bool?
+
+    public init?(display: String, topology: String, order: [SpaceRecord], physicalDisplay: DisplayObservation? = nil,
+                 separateSpaces: Bool? = nil) {
+        guard UUID(uuidString: display) != nil, topology.utf8.count == 64,
+              topology.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
+              !order.isEmpty, order.count <= 256, Set(order.map(\.id)).count == order.count,
+              order.allSatisfy({ (UInt64($0.id) ?? 0) > 0 && ($0.ordinaryUUID != nil) != ($0.fullscreenUUID != nil) }),
+              Set(order.compactMap { $0.ordinaryUUID ?? $0.fullscreenUUID }).count == order.count,
+              order.filter(\.isCurrent).count == 1, let current = order.first(where: \.isCurrent),
+              let uuid = current.ordinaryUUID else { return nil }
+        guard physicalDisplay == nil || (physicalDisplay?.id == display && separateSpaces != nil) else { return nil }
+        self.physicalDisplay = physicalDisplay
+        self.separateSpaces = separateSpaces
+        desktop = .init(display: display, record: current.id, uuid: uuid)
+        self.topology = topology
+        // Previously witnessed is Host history, not part of the live WindowServer order.
+        self.order = order.map { .init(id: $0.id, isCurrent: $0.isCurrent, ordinaryUUID: $0.ordinaryUUID, fullscreenUUID: $0.fullscreenUUID) }
+    }
+}
+
+public enum OrdinaryFocusScopeEvidence: String, Codable, Sendable {
+    case confirmed, fullRosterRequired, changed
+}
+
+/// The two retained windows and the final side-by-side slots chosen in one explicit drop.
+public struct OrdinaryWindowPairPlacement: Codable, Equatable, Sendable {
+    public let desktop: OrdinaryDesktopIdentity
+    public let left, right: ManagedWindowID
+    public let leftFrame, rightFrame: SurfaceRect
+    public init(desktop: OrdinaryDesktopIdentity, left: ManagedWindowID, right: ManagedWindowID,
+                leftFrame: SurfaceRect, rightFrame: SurfaceRect) {
+        self.desktop = desktop
+        self.left = left
+        self.right = right
+        self.leftFrame = leftFrame
+        self.rightFrame = rightFrame
+    }
+}
+
 /// Anonymous pipes connect the signed Host to one short-lived worker scoped to one process incarnation.
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
-        case watchCreated, takeCreated, endCreated, focusCurrent, checkFocusPermission, requestFocusPermission
+        case watchCreated, takeCreated, endCreated, focusCurrent, inspectFocusScope, checkFocusPermission, requestFocusPermission, stageRead, stagePlace
+
+        public var allowedForFocusScopeProbe: Bool { self == .list || self == .inspectFocusScope || self == .release }
 
         public var allowedForStillPreview: Bool {
             switch self {
@@ -31,12 +89,19 @@ public struct OrdinaryWindowRequest: Codable, Sendable {
     public let creationGrant: UUID?
     public let boundaryRevision: UUID?
     public let desktop: OrdinaryDesktopIdentity?
+    public let pairPlacement: OrdinaryWindowPairPlacement?
+    public let focusScope: OrdinaryFocusScope?
+    public let focusTimingID: UUID?
 
     public init(_ action: Action, pid: Int32, launch: UInt64, bundle: String,
                 id: ManagedWindowID? = nil, expected: SurfaceRect? = nil, destination: SurfaceRect? = nil,
                 boundaryRevision: UUID? = nil, creationGrant: UUID? = nil, focusDisplay: String? = nil,
-                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil, desktop: OrdinaryDesktopIdentity? = nil) {
+                focusDeadline: TimeInterval? = nil, focusSpace: String? = nil, desktop: OrdinaryDesktopIdentity? = nil,
+                pairPlacement: OrdinaryWindowPairPlacement? = nil, focusTimingID: UUID? = nil, focusScope: OrdinaryFocusScope? = nil) {
+        self.focusScope = focusScope
         self.desktop = desktop
+        self.pairPlacement = pairPlacement
+        self.focusTimingID = focusTimingID
         self.focusSpace = focusSpace
         self.focusDisplay = focusDisplay; self.focusDeadline = focusDeadline
         self.nonce = UUID()
@@ -102,6 +167,9 @@ public struct OrdinaryWindowReply: Codable, Sendable {
     public let nonce: UUID
     /// Set only for a read-only listing refused by the process that performs AX operations.
     public var listAccessDenied: Bool?
+    public var focusScopeEvidence: OrdinaryFocusScopeEvidence?
+    public var focusScopeFindings: [OrdinaryFocusScopeFinding]?
+    public var stageObservation: StageWindowPhysicalObservation?
     public var focusPermission: Bool?
     public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?

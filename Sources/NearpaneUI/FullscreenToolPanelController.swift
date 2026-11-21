@@ -140,7 +140,7 @@ private struct ToolPresentation: Equatable {
         panel.hidesOnDeactivate = false; panel.isReleasedWhenClosed = false
         panel.isMovable = false; panel.level = .floating
         panel.sharingType = .none
-        panel.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces, .stationary, .ignoresCycle]
+        panel.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces, .transient, .ignoresCycle]
         return panel
     }
 

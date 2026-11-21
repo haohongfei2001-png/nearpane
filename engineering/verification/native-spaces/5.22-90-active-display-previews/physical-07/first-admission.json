@@ -1,0 +1,4453 @@
+{
+  "cleanup": {
+    "exit": 0,
+    "fixtureProcessExited": true,
+    "forced": false,
+    "onlyOriginalRecords": true,
+    "ordinaryLeaseIsCurrent": true,
+    "protectedTypesRestored": true,
+    "sameDisplay": true,
+    "status": "PASS",
+    "windowsGone": true
+  },
+  "fixture": {
+    "birth": 1795192235839644,
+    "cdHash": "1b711148db76ad2e8f8cf3e598c30b8e1a7f47f9",
+    "numbers": [
+      52655,
+      52656
+    ],
+    "pid": 72529
+  },
+  "fixtureLaunched": true,
+  "fullscreen": {
+    "status": "NOT_RUN"
+  },
+  "install": {
+    "birth": 1795192234297481,
+    "build": "90",
+    "cdHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "pid": 72480,
+    "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc"
+  },
+  "installedLayout": "NOT_RUN",
+  "lease": {
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "id": 5095,
+    "uuid": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "mode": "fullscreen-roundtrip",
+  "observations": [
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265628.41726795834,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265628.59094695834,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265628.89650183334,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265629.1881445,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265629.478871,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265629.76560425,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265630.0499565417,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265630.32743025,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265630.613935125,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265630.8847619583,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265631.1709426667,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265631.4420104583,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265631.72748033336,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265632.04765329167,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265632.3364656667,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265632.6080282084,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265632.9340033333,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265633.21854383335,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265633.507077125,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265633.78965758334,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265634.0647342917,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    },
+    {
+      "axFrames": [
+        [
+          465,
+          328,
+          540,
+          333
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "axStandard": [
+        true,
+        true
+      ],
+      "cgFrames": [
+        [
+          1352,
+          446,
+          103,
+          97
+        ],
+        [
+          465,
+          328,
+          540,
+          333
+        ]
+      ],
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "displayFrame": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "drawn": [
+        true,
+        true
+      ],
+      "enrolledOrdinaryCount": 2,
+      "focusedFixtureNumber": null,
+      "foreignVisibleMembers": 1,
+      "forward": [
+        true,
+        true
+      ],
+      "frontIsFixture": false,
+      "issued": false,
+      "kernelCodeIdentitiesVerified": true,
+      "leaseOrdinaryCount": 4,
+      "leaseWindowCensus": {
+        "admitted": true,
+        "expected": [
+          52655,
+          52656
+        ],
+        "expectedEvidence": [
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52655,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          },
+          {
+            "accepted": true,
+            "axListCount": 2,
+            "axStandard": true,
+            "bounds": [
+              465,
+              328,
+              540,
+              333
+            ],
+            "cgOnscreen": true,
+            "drawn": true,
+            "forward": true,
+            "number": 52656,
+            "publicAll": true,
+            "publicCurrent": true,
+            "reverse": [
+              5095
+            ]
+          }
+        ],
+        "expectedProven": true,
+        "extraClasses": {
+          "appleWindowManager/signedCompositor": 2
+        },
+        "extraEvidence": [
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          },
+          {
+            "category": "signedCompositor",
+            "drawn": true,
+            "fixtureAXStandard": null,
+            "fixtureAXSubroleReported": null,
+            "fixtureAXWindowRole": null,
+            "inPublicAll": true,
+            "inPublicCurrent": true,
+            "onscreen": true,
+            "owner": "appleWindowManager",
+            "singleSpace": true,
+            "thin": false
+          }
+        ],
+        "fixtureAppKitActive": false,
+        "fixtureIsFrontmost": false,
+        "otherLayerEvidence": [
+          {
+            "exclusive": true,
+            "layer": -1,
+            "onscreen": true,
+            "owner": "appleDock",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 0,
+            "onscreen": true,
+            "owner": "installedHost",
+            "visibleQuery": true
+          },
+          {
+            "exclusive": true,
+            "layer": 24,
+            "onscreen": false,
+            "owner": "appleWindowServer",
+            "visibleQuery": false
+          }
+        ],
+        "otherLayers": 3,
+        "otherLayersAdmitted": true,
+        "rawOrdinary": 4,
+        "unknown": 0,
+        "unresolved": 0
+      },
+      "memberships": [
+        [
+          5095
+        ],
+        [
+          5095
+        ]
+      ],
+      "newFullscreenIDs": [],
+      "onlyTwoInLease": true,
+      "otherLeaseMembers": 3,
+      "ready": true,
+      "space": 5095,
+      "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+      "type": 0,
+      "unknownVisibleMembers": 0,
+      "unresolvedLeaseMembership": 0,
+      "uptime": 265634.34801608336,
+      "verb": "fullscreen-read",
+      "visibleExtraClasses": {
+        "appleWindowManager/signedCompositor": 2,
+        "otherOwner/unverifiedOrdinary": 1
+      },
+      "windowManagement": {
+        "animating": false,
+        "dockBirth": 1794786957587871,
+        "exposedRoots": 0,
+        "managerBirth": 1794786957077193,
+        "rootListsRead": 2,
+        "sameCurrent": true,
+        "signedDock": true,
+        "signedWindowManager": true
+      }
+    }
+  ],
+  "pair": {
+    "issued": false
+  },
+  "physicalSource": "two synthetic documents only",
+  "pixelsRead": 0,
+  "reason": "twoStableIndependentFullscreenReadsUnavailable",
+  "status": "BLOCKED",
+  "systemPair": "NOT_RUN",
+  "tile": {
+    "issued": false
+  }
+}

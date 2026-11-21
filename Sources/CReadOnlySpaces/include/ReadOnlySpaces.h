@@ -10,6 +10,9 @@ int NPProbeReadOnlyCatalog(void);
 CFArrayRef _Nullable NPReadInventory(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
 
+// Exact-build, read-only WindowServer member numbers for one already witnessed Space.
+CFArrayRef _Nullable NPReadCatalogSpaceWindowNumbers(uint64_t space) CF_RETURNS_RETAINED;
+
 // Pre-compositor logical rectangle for the read-only roster. No content or action authority.
 // Returns zero on unverified builds or when the window disappears.
 int NPReadCatalogLogicalBounds(uint32_t window, CGRect * _Nonnull bounds);

@@ -37,6 +37,9 @@ public final class HostSession {
     public let permissions: MockPermissionBroker
     public let router: InteractionRouter
     public private(set) var configuration = HostConfiguration()
+    // A new session starts with its own revision. The status menu and Settings
+    // share this counter so an acceptance cleanup can recognize its own hide.
+    @ObservationIgnored public private(set) var surfaceVisibilityRevision = DispatchTime.now().uptimeNanoseconds
     /// Presenter output for display-local Settings previews. This does not change saved settings.
     public private(set) var panelContents: [String: PanelContent] = [:]
     public private(set) var isRunning = false
@@ -69,7 +72,7 @@ public final class HostSession {
             // Static catalog registration failures are programmer errors caught by the catalog tests.
             do {
                 try registry.register(manifest) {
-                    if manifest.kind == .core, let factory = coreFactories[manifest.id] { return factory() }
+                    if let factory = coreFactories[manifest.id] { return factory() }
                     if manifest.id == BuiltinCatalog.clock { return LocalClockModule() }
                     return SampleModule(message: manifest.kind == .core ? "Domain adapter not connected." : "Synthetic module content. No account or data source is connected.")
                 }
@@ -236,6 +239,7 @@ public final class HostSession {
         guard isRunning, configuration.surfaceHidden != hidden else { return }
         cancelWorkspaceGesture()
         configuration.surfaceHidden = hidden
+        surfaceVisibilityRevision += 1
         if hidden { (provider as? any LiveDesktopObservationProvider)?.discardVisitedSpaces() }
         if provider is any LiveDesktopObservationProvider { invalidateDesktop() }
         save()

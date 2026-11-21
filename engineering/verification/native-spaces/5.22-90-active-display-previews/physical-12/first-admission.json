@@ -1,0 +1,12 @@
+{
+  "status": "BLOCKED",
+  "reason": "unexpected archive path",
+  "productActions": 0,
+  "newDesktops": 0,
+  "setup": null,
+  "preview": "NOT_RUN",
+  "stageRestore": "NOT_NEEDED",
+  "dailyRestored": true,
+  "configurationRestored": true,
+  "resolution": "Use the bundle-only repack of the already signed diagnostic archive; 248 signed entries were verified identical."
+}

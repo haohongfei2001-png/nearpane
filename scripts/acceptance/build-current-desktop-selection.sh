@@ -6,6 +6,7 @@ reader="$(dirname "$worker")/NearpaneDesktopReader"
 root="${2:?fresh private test directory}"
 mkdir -m 700 "$root"
 debug=.build/native-foundation/debug
+engine_archive="${NEARPANE_ENGINE_ARCHIVE:-$(bash scripts/build-window-engine.sh)}"
 for kind in owner host; do
     if [[ "$kind" == owner ]]; then
         dest="$root/Design Notes.app"; exe=Notes; id=net.example.nearpane-window-selection
@@ -36,7 +37,7 @@ for kind in owner host; do
         cp "$reader" "$dest/Contents/Helpers/NearpaneDesktopReader"
         plutil -insert NearpaneDesktopReaderSHA256 -string "$(shasum -a 256 "$reader" | cut -d ' ' -f1)" "$plist"
     fi
-    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" "$debug"/{NearpaneCore,NearpaneUI,WindowGeometryCore}.build/*.swift.o         scripts/acceptance/current-desktop-selection.swift scripts/acceptance/current-desktop-gallery.swift scripts/acceptance/current-space-roster.swift -o "$dest/Contents/MacOS/$exe"
+    xcrun swiftc -parse-as-library -target arm64-apple-macos14.0 -I "$debug/Modules" -module-cache-path .build/clang-cache         "${flags[@]}" -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" -I Engine/nearpane-window-engine/include "$debug"/{NearpaneCore,NearpaneUI,NearpaneWindowEngine,NearpaneOrdinaryWindowRuntime,WindowGeometryCore}.build/*.swift.o "$engine_archive" -lobjc -framework Carbon -framework Security -framework ApplicationServices         scripts/acceptance/current-desktop-selection.swift scripts/acceptance/current-desktop-gallery.swift scripts/acceptance/current-space-roster.swift -o "$dest/Contents/MacOS/$exe"
     codesign --force --sign - "$dest"
     codesign --verify --strict --deep "$dest"
 done

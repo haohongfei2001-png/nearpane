@@ -11,8 +11,8 @@ import RiftletAdapters
         let input = URL(fileURLWithPath: CommandLine.arguments[1])
         let source = try String(contentsOf: input, encoding: .utf8)
         let guardSource = try String(contentsOf: base.appendingPathComponent("Resources/AcceptanceTargetGuard.js"), encoding: .utf8)
-        let locked = WebPageProgram(sourceID: ChatGPTWebPageProgram.sourceID, functionSource: source,
-                                    maximumChunkBytes: 256 * 1024, inputDiscoveryTimeout: 3)
+        let locked = try ChatGPTWebPageProgram.load()
+        guard locked.functionSource == source else { throw WebAdapterError.programUnavailable }
         let guarded = try binding.program(locked, guardSource: guardSource)
         FileHandle.standardOutput.write(Data(guarded.functionSource.utf8))
     }

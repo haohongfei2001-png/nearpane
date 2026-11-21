@@ -1,108 +1,138 @@
 #import "NativeSpaceActions.h"
-#import "event_serialize.h"
-#import <Foundation/Foundation.h>
+#import "PreparedWindowMove.h"
 #import <ApplicationServices/ApplicationServices.h>
 #import <dlfcn.h>
-#import <objc/message.h>
 #import <objc/runtime.h>
-#import <unistd.h>
-#import <mach/mach_time.h>
 
-// See Resources/Upstream/NativeSpaceActions for pins and licenses.
-static CGEventRef swipeEvent(int phase, double progress, double velocity, CGPoint point) {
-    CGEventRef e = CGEventCreate(NULL);
-    if (!e) return NULL;
-    CGEventSetLocation(e, point);
-    // The Dock gesture ABI carries its Mach timestamp in field 169.
-    CGEventSetDoubleValueField(e, (CGEventField)169, (double)mach_absolute_time());
-    CGEventSetIntegerValueField(e, (CGEventField)55, 30); // Dock control
-    CGEventSetIntegerValueField(e, (CGEventField)110, 23); // Dock swipe
-    CGEventSetIntegerValueField(e, (CGEventField)123, 1); // horizontal
-    CGEventSetDoubleValueField(e, (CGEventField)124, progress);
-    CGEventSetDoubleValueField(e, (CGEventField)125, 0.1);
-    CGEventSetDoubleValueField(e, (CGEventField)129, velocity);
-    CGEventSetIntegerValueField(e, (CGEventField)132, phase);
-    CGEventSetIntegerValueField(e, (CGEventField)134, phase);
-    CGEventSetDoubleValueField(e, (CGEventField)138, 3.0);
-    CGEventRef result = iss_augment_dock_swipe_event(e);
-    CFRelease(e);
-    return result;
+@protocol NPBridgedMoveInitializer
+- (instancetype)initWithWindows:(NSArray<NSNumber *> *)windows spaceID:(uint64_t)space;
+@end
+
+static Method validatedMethod(Class cls, SEL selector, const char *encoding) {
+    Method method = cls ? class_getInstanceMethod(cls, selector) : NULL;
+    const char *actual = method ? method_getTypeEncoding(method) : NULL;
+    return actual && strcmp(actual, encoding) == 0 ? method : NULL;
 }
 
-bool NPSendAdjacentSwipe(bool right, bool reducedMotion, CGDirectDisplayID intendedDisplay) {
-    if (!CGPreflightPostEventAccess()) return false;
-    CGEventRef source = CGEventCreate(NULL);
-    if (!source) return false;
-    CGPoint point = CGEventGetLocation(source);
-    CFRelease(source);
-    uint32_t count = 0;
-    CGDirectDisplayID display = 0;
-    if (CGGetDisplaysWithPoint(point, 1, &display, &count) != kCGErrorSuccess ||
-        count != 1 || display != intendedDisplay || CGDisplayIsInMirrorSet(display)) return false;
-
-    Boolean valid = false;
-    Boolean natural = CFPreferencesGetAppBooleanValue(CFSTR("com.apple.swipescrolldirection"),
-                                                     kCFPreferencesAnyApplication, &valid);
-    double sign = right ? -1.0 : 1.0;
-    if (valid && !natural) sign = -sign;
-    // The compositor owns the transition. Reduced motion uses ISS's short fling.
-    const double smooth[] = {0.000016, 0.12, 0.31, 0.56, 0.74, 0.82};
-    int length = reducedMotion ? 3 : 6;
-    CGEventRef gestures[6] = {0}, companions[6] = {0};
-    bool posted = false;
-    for (int i = 0; i < length; i++) {
-        int phase = i == 0 ? 1 : (i == length - 1 ? 4 : 2);
-        double progress = reducedMotion ? 0.000016 : smooth[i];
-        double velocity = phase == 4 ? (reducedMotion ? 9999.0 : 2.0) : 0;
-        gestures[i] = swipeEvent(phase, sign * progress, sign * velocity, point);
-        companions[i] = CGEventCreate(NULL);
-        if (!gestures[i] || !companions[i]) goto cleanup;
-        CGEventSetLocation(companions[i], point);
-        CGEventSetIntegerValueField(companions[i], (CGEventField)55, 29);
-    }
-    for (int i = 0; i < length; i++) {
-        if (i > 0 && !reducedMotion) usleep(16000);
-        CGEventSetTimestamp(gestures[i], mach_absolute_time());
-        CGEventSetTimestamp(companions[i], mach_absolute_time());
-        CGEventPost(kCGSessionEventTap, gestures[i]);
-        CGEventPost(kCGSessionEventTap, companions[i]);
-    }
-    posted = true;
-cleanup:
-    for (int i = 0; i < length; i++) {
-        if (gestures[i]) CFRelease(gestures[i]);
-        if (companions[i]) CFRelease(companions[i]);
-    }
-    return posted;
+NPBridgedMoveABI NPInspectMoveClass(Class cls) {
+    return (NPBridgedMoveABI){
+        .hasClass = cls != Nil,
+        .initializerMatches = validatedMethod(cls, @selector(initWithWindows:spaceID:), "@32@0:8@16Q24") != NULL,
+        .submissionMatches = validatedMethod(cls, NSSelectorFromString(@"performWithWMBridgeDelegate"), "v16@0:8") != NULL,
+    };
 }
 
-// macOS 27 branch of yabai's space_manager_move_window_to_space. The
-// asynchronous submission has no completion result; the caller must read
-// window membership back from WindowServer. Other branches are not linked.
-typedef int64_t (*PerformMove)(void *);
-static PerformMove performMove;
-static Class moveClass;
-bool NPMoveAvailable(void) {
+static Class installedMoveClass(void) {
+    static Class operationClass;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        void *image = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
-                             RTLD_LOCAL | RTLD_LAZY);
-        if (!image) return;
-        performMove = (PerformMove)dlsym(image, "SLSPerformAsynchronousBridgedWindowManagementOperation");
-        moveClass = objc_getClass("SLSBridgedMoveWindowsToManagedSpaceOperation");
+        if (dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LOCAL | RTLD_LAZY)) {
+            operationClass = objc_lookUpClass("SLSBridgedMoveWindowsToManagedSpaceOperation");
+        }
     });
-    return performMove && moveClass && [moveClass instancesRespondToSelector:@selector(initWithWindows:spaceID:)];
+    return operationClass;
 }
 
-bool NPRequestMove(uint32_t window, uint64_t space) {
-    if (!window || !space || !NPMoveAvailable() || !AXIsProcessTrusted()) return false;
-    SEL initializer = @selector(initWithWindows:spaceID:);
-    id operation = ((id (*)(id, SEL, id, uint64_t))objc_msgSend)([moveClass alloc], initializer,
-                                                                @[@(window)], space);
-    if (!operation) return false;
-    (void)performMove((__bridge void *)operation);
-#if !__has_feature(objc_arc)
-    [operation release];
+NPBridgedMoveABI NPInstalledMoveABI(void) {
+    return NPInspectMoveClass(installedMoveClass());
+}
+
+bool NPMoveAvailable(void) {
+    // No build has qualified both the P0 switch and P1 single-window round trips.
+    return false;
+}
+
+static BOOL contextAllowed(Class cls) {
+#if defined(NP_MOVE_ABI_FIXTURE)
+    // The offline executable owns the mock class and both implementations. Reject an
+    // installed system class (including a subclass) even in the fixture build.
+    if (!cls) return NO;
+    Class systemClass = installedMoveClass();
+    for (Class parent = cls; parent; parent = class_getSuperclass(parent)) {
+        if (parent == systemClass) return NO;
+    }
+    Dl_info owner, fixture, initializer, submission;
+    Method init = validatedMethod(cls, @selector(initWithWindows:spaceID:), "@32@0:8@16Q24");
+    Method perform = validatedMethod(cls, NSSelectorFromString(@"performWithWMBridgeDelegate"), "v16@0:8");
+    return init && perform && dladdr((__bridge const void *)cls, &owner) &&
+           dladdr((const void *)&NPInspectMoveClass, &fixture) && owner.dli_fbase == fixture.dli_fbase &&
+           dladdr((const void *)method_getImplementation(init), &initializer) && initializer.dli_fbase == fixture.dli_fbase &&
+           dladdr((const void *)method_getImplementation(perform), &submission) && submission.dli_fbase == fixture.dli_fbase;
+#else
+    return NPMoveAvailable() && cls && cls == installedMoveClass();
 #endif
-    return true;
+}
+
+#if defined(NP_MOVE_ABI_FIXTURE)
+static NPMoveFixtureCounts calls;
+NPMoveFixtureCounts NPMoveObservedCalls(void) { return calls; }
+#endif
+
+@implementation NPPreparedWindowMove {
+    id _operation;
+    NSArray<NSNumber *> *_windows;
+    BOOL _submitted;
+}
+
+- (instancetype)initWithClass:(Class)cls window:(uint32_t)window space:(uint64_t)space {
+    self = [super init];
+    if (!self) return nil;
+    NPBridgedMoveABI abi = NPInspectMoveClass(cls);
+    if (window && space && contextAllowed(cls) && abi.initializerMatches && abi.submissionMatches) {
+        _windows = [[NSArray alloc] initWithObjects:@(window), nil];
+#if defined(NP_MOVE_ABI_FIXTURE)
+        if (cls == installedMoveClass()) calls.systemAllocations++;
+#endif
+        _operation = [(id<NPBridgedMoveInitializer>)[cls alloc] initWithWindows:_windows spaceID:space];
+        if (_operation && object_getClass(_operation) == cls) return self;
+    }
+#if !__has_feature(objc_arc)
+    [self release];
+#endif
+    return nil;
+}
+
+- (NPWindowMoveSubmission)submitOnce {
+    @synchronized (self) {
+        SEL selector = NSSelectorFromString(@"performWithWMBridgeDelegate");
+        Method method = validatedMethod(object_getClass(_operation), selector, "v16@0:8");
+        if (_submitted || !method || !contextAllowed(object_getClass(_operation))) return NPMoveNotIssued;
+        _submitted = YES;
+#if defined(NP_MOVE_ABI_FIXTURE)
+        if (object_getClass(_operation) == installedMoveClass()) calls.systemSubmissions++;
+#endif
+        @try {
+            ((void (*)(id, SEL))method_getImplementation(method))(_operation, selector);
+            return NPMoveSubmitted;
+        } @catch (NSException *exception) {
+            // The invocation began. Its void result or exception supplies no membership evidence.
+            return NPMoveSubmissionUncertain;
+        }
+    }
+}
+
+#if !__has_feature(objc_arc)
+- (void)dealloc {
+    [_operation release];
+    [_windows release];
+    [super dealloc];
+}
+#endif
+@end
+
+CFTypeRef NPCreateWindowMove(uint32_t window, uint64_t space) {
+    if (!NPMoveAvailable() || !window || !space || !AXIsProcessTrusted()) return NULL;
+    NPPreparedWindowMove *context = [[NPPreparedWindowMove alloc] initWithClass:installedMoveClass()
+                                                                         window:window space:space];
+#if __has_feature(objc_arc)
+    return (__bridge_retained CFTypeRef)context;
+#else
+    return (CFTypeRef)context;
+#endif
+}
+
+NPWindowMoveSubmission NPSubmitWindowMove(CFTypeRef context) {
+    if (!NPMoveAvailable() || !context || !AXIsProcessTrusted()) return NPMoveNotIssued;
+    id operation = (__bridge id)context;
+    return object_getClass(operation) == NPPreparedWindowMove.class ? [operation submitOnce] : NPMoveNotIssued;
 }

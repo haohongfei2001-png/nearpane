@@ -1,0 +1,1883 @@
+{
+  "status": "BLOCKED",
+  "reason": "WindowServer could not establish an empty desktop: {\"5094\":{\"desktopElements\":2,\"ordinary\":[],\"otherDetails\":[{\"code\":{\"apple\":true,\"identifier\":\"com.apple.WindowServer\"},\"forward\":[5094],\"installedHost\":0,\"layer\":24,\"number\":52466,\"onscreen\":false,\"ordinarySp",
+  "preflightOnly": false,
+  "ordinaryDesktopsRequested": 2,
+  "leasedSpace": 5094,
+  "preview": {
+    "status": "INCONCLUSIVE",
+    "exit": 2,
+    "receipt": "preview/result.json",
+    "reason": null
+  },
+  "splitView": {
+    "status": "BLOCKED",
+    "exit": 2,
+    "space": 5095,
+    "receipt": "split/result.json",
+    "reason": "uniqueOwnedSystemPickerUnavailable"
+  },
+  "media": {
+    "status": "NOT_CAPTURED",
+    "exit": 2,
+    "receipt": "preview/media/receipt.json"
+  },
+  "stageSetup": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-off-runtime.json"
+  },
+  "stageRestore": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-restore-runtime.json"
+  },
+  "workspaceCleanup": {
+    "status": "BLOCKED",
+    "topologyRestored": false,
+    "focusRestored": false,
+    "originalCurrent": 6,
+    "cleanupCurrent": 6,
+    "originalOrderRestored": false,
+    "preservedLatestOrder": false,
+    "retainedUserSelectedSpace": false,
+    "created": 2,
+    "removed": 0,
+    "outstanding": [
+      5094,
+      5095
+    ],
+    "errors": [
+      "first-list: signed single-display system desktop list count 0"
+    ]
+  },
+  "initialEmptyScope": {
+    "space": 5094,
+    "spaceUUID": "ADDB79D9-E850-D8A6-8BF2-3D05595DAB68",
+    "uptimes": [
+      263398.4594294167,
+      263398.774755125
+    ]
+  },
+  "stageBaseline": [
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 263393.7351785
+    },
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 263393.98932287504
+    }
+  ],
+  "emptyAfterPreview": {
+    "space": 5094,
+    "spaceUUID": "ADDB79D9-E850-D8A6-8BF2-3D05595DAB68",
+    "uptimes": [
+      263504.53001720837,
+      263504.82389266667
+    ]
+  },
+  "originalStageSurface": {
+    "status": "PASS",
+    "stage": true,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      }
+    ]
+  },
+  "restoredSurface": {
+    "status": "BLOCKED",
+    "stage": true,
+    "expectedCardCount": 0,
+    "reason": "requiredVisibleToolsHeaderCountsOrStageGuardUnconfirmed",
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 3232
+      }
+    ]
+  },
+  "offZeroBefore": {
+    "status": "PASS",
+    "stage": false,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 0
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 0
+      }
+    ]
+  },
+  "offTwo": {
+    "status": "PASS",
+    "stage": false,
+    "expectedCardCount": 2,
+    "reads": [
+      {
+        "cards": 2,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 2,
+        "frames": 1981
+      },
+      {
+        "cards": 2,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 2,
+        "frames": 2020
+      }
+    ]
+  },
+  "offZeroAfter": {
+    "status": "PASS",
+    "stage": false,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 3008
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 3008
+      }
+    ]
+  },
+  "systemDesktopSwitch": {
+    "a": 5094,
+    "afterA": {
+      "exact": true,
+      "reads": [
+        {
+          "cardIdentityProven": true,
+          "exactCardIDs": true,
+          "fixtureBirth": 1795190016587875,
+          "hostBirth": 1795190001523972,
+          "hostCardCount": 2,
+          "kinds": [
+            "窗口画面",
+            "窗口画面"
+          ],
+          "numbers": [
+            52483,
+            52484
+          ],
+          "panel": 52459,
+          "present": [
+            true,
+            true
+          ],
+          "ready": true,
+          "sourceProven": true,
+          "space": 5094
+        },
+        {
+          "cardIdentityProven": true,
+          "exactCardIDs": true,
+          "fixtureBirth": 1795190016587875,
+          "hostBirth": 1795190001523972,
+          "hostCardCount": 2,
+          "kinds": [
+            "窗口画面",
+            "窗口画面"
+          ],
+          "numbers": [
+            52483,
+            52484
+          ],
+          "panel": 52459,
+          "present": [
+            true,
+            true
+          ],
+          "ready": true,
+          "sourceProven": true,
+          "space": 5094
+        }
+      ]
+    },
+    "b": 5095,
+    "beforeA": {
+      "exact": true,
+      "reads": [
+        {
+          "cardIdentityProven": true,
+          "exactCardIDs": true,
+          "fixtureBirth": 1795190016587875,
+          "hostBirth": 1795190001523972,
+          "hostCardCount": 2,
+          "kinds": [
+            "窗口画面",
+            "窗口画面"
+          ],
+          "numbers": [
+            52483,
+            52484
+          ],
+          "panel": 52459,
+          "present": [
+            true,
+            true
+          ],
+          "ready": true,
+          "sourceProven": true,
+          "space": 5094
+        },
+        {
+          "cardIdentityProven": true,
+          "exactCardIDs": true,
+          "fixtureBirth": 1795190016587875,
+          "hostBirth": 1795190001523972,
+          "hostCardCount": 2,
+          "kinds": [
+            "窗口画面",
+            "窗口画面"
+          ],
+          "numbers": [
+            52483,
+            52484
+          ],
+          "panel": 52459,
+          "present": [
+            true,
+            true
+          ],
+          "ready": true,
+          "sourceProven": true,
+          "space": 5094
+        }
+      ]
+    },
+    "emptyBProduct": {
+      "expectedCardCount": 0,
+      "observations": [
+        {
+          "metrics": {
+            "activeStreams": 0,
+            "cacheEntries": 0,
+            "captureRequests": 12,
+            "capturesInFlight": 0,
+            "chargedPixelBytes": 0,
+            "deliveredFrames": 2820,
+            "gallerySessions": 1,
+            "pid": 59059,
+            "stageManagerOwnsDispatch": 0,
+            "surfaceHidden": 0,
+            "visibilityRevision": 263392978758627,
+            "visibleDisplays": 1,
+            "windowManagementBusy": 0
+          },
+          "surface": {
+            "available": true,
+            "bareSpaceRows": 0,
+            "controls": {
+              "desktop-reserved-region": 1,
+              "tray-camera-entry": 1,
+              "tray-content": 1,
+              "tray-file-drop": 1,
+              "voice-capture-toggle": 1
+            },
+            "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "duplicatedCards": 0,
+            "fixedLabels": [
+              "展开截图方式",
+              "开始或恢复收音",
+              "截图与文件托盘",
+              "文件拖放区",
+              "本屏窗口总览"
+            ],
+            "hostBirth": 1795190001523972,
+            "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+            "hostPID": 59059,
+            "legacyCards": 0,
+            "panels": [
+              52459
+            ],
+            "placeholderLabels": [],
+            "space": 5095,
+            "stageManager": false,
+            "uptime": 263501.01520825,
+            "windowCards": 0
+          }
+        },
+        {
+          "metrics": {
+            "activeStreams": 0,
+            "cacheEntries": 0,
+            "captureRequests": 12,
+            "capturesInFlight": 0,
+            "chargedPixelBytes": 0,
+            "deliveredFrames": 2820,
+            "gallerySessions": 1,
+            "pid": 59059,
+            "stageManagerOwnsDispatch": 0,
+            "surfaceHidden": 0,
+            "visibilityRevision": 263392978758627,
+            "visibleDisplays": 1,
+            "windowManagementBusy": 0
+          },
+          "surface": {
+            "available": true,
+            "bareSpaceRows": 0,
+            "controls": {
+              "desktop-reserved-region": 1,
+              "tray-camera-entry": 1,
+              "tray-content": 1,
+              "tray-file-drop": 1,
+              "voice-capture-toggle": 1
+            },
+            "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "duplicatedCards": 0,
+            "fixedLabels": [
+              "展开截图方式",
+              "开始或恢复收音",
+              "截图与文件托盘",
+              "文件拖放区",
+              "本屏窗口总览"
+            ],
+            "hostBirth": 1795190001523972,
+            "hostHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+            "hostPID": 59059,
+            "legacyCards": 0,
+            "panels": [
+              52459
+            ],
+            "placeholderLabels": [],
+            "space": 5095,
+            "stageManager": false,
+            "uptime": 263501.3584082917,
+            "windowCards": 0
+          }
+        }
+      ],
+      "stage": false,
+      "status": "PASS"
+    },
+    "oldCardObservationsOnVerifiedEmptyB": 0,
+    "operation": "system Mission Control Space selection",
+    "physicalThreeFingerGesture": "NOT_RUN",
+    "productActions": 0,
+    "readbacks": [
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 4,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263494.96272583335
+        },
+        "uptime": 263495.03628425003
+      },
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 3,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 3,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 1
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 3,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263495.49367533333
+        },
+        "uptime": 263495.57331087504
+      },
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 4,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263498.2367167917
+        },
+        "uptime": 263498.30590566667
+      },
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 4,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263498.66875775
+        },
+        "uptime": 263498.7453172917
+      },
+      {
+        "current": 5095,
+        "expectedCurrent": 5095,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 2,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5095,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 0,
+                "axStandard": false,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": false,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": false,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 0,
+                "axStandard": false,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": false,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": false,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263500.3270175
+        },
+        "uptime": 263500.39633658336
+      },
+      {
+        "current": 5095,
+        "expectedCurrent": 5095,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 2,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5095,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 0,
+                "axStandard": false,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": false,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": false,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 0,
+                "axStandard": false,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": false,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": false,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 2,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263500.76537879166
+        },
+        "uptime": 263500.8299704167
+      },
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 4,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263503.08404525
+        },
+        "uptime": 263503.15199670836
+      },
+      {
+        "current": 5094,
+        "expectedCurrent": 5094,
+        "forward": {
+          "5094": {
+            "complete": true,
+            "count": 4,
+            "enrolled": [
+              52483,
+              52484
+            ],
+            "otherLayers": 0
+          },
+          "5095": {
+            "complete": true,
+            "count": 0,
+            "enrolled": [],
+            "otherLayers": 0
+          }
+        },
+        "reverse": {
+          "available": true,
+          "current": 5094,
+          "fixtureBirth": 1795190016587875,
+          "fixturePID": 59525,
+          "fixtureRegularRegistered": true,
+          "hardware": [
+            5759,
+            70,
+            0,
+            3049,
+            136752
+          ],
+          "hostBirth": 1795190001523972,
+          "numbers": [
+            52483,
+            52484
+          ],
+          "reverse": [
+            [
+              5094
+            ],
+            [
+              5094
+            ]
+          ],
+          "sourceCensus": {
+            "admitted": true,
+            "expected": [
+              52483,
+              52484
+            ],
+            "expectedEvidence": [
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  453,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52483,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              },
+              {
+                "accepted": true,
+                "axListCount": 4,
+                "axStandard": true,
+                "bounds": [
+                  747,
+                  372,
+                  270,
+                  213
+                ],
+                "cgOnscreen": true,
+                "drawn": true,
+                "forward": true,
+                "number": 52484,
+                "publicAll": true,
+                "publicCurrent": true,
+                "reverse": [
+                  5094
+                ]
+              }
+            ],
+            "expectedProven": true,
+            "extraClasses": {
+              "fixtureAuxiliary/enrolledNonDocument": 2
+            },
+            "extraEvidence": [
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              },
+              {
+                "category": "enrolledNonDocument",
+                "drawn": true,
+                "fixtureAXStandard": false,
+                "fixtureAXSubroleReported": true,
+                "fixtureAXWindowRole": true,
+                "inPublicAll": true,
+                "inPublicCurrent": true,
+                "onscreen": true,
+                "owner": "fixtureAuxiliary",
+                "singleSpace": true,
+                "thin": false
+              }
+            ],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 4,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "targetCensus": {
+            "admitted": true,
+            "expected": [],
+            "expectedEvidence": [],
+            "expectedProven": true,
+            "extraClasses": {},
+            "extraEvidence": [],
+            "fixtureAppKitActive": false,
+            "fixtureIsFrontmost": false,
+            "otherLayerEvidence": [],
+            "otherLayers": 0,
+            "otherLayersAdmitted": true,
+            "rawOrdinary": 0,
+            "unknown": 0,
+            "unresolved": 0
+          },
+          "uptime": 263503.5345312917
+        },
+        "uptime": 263503.6085997917
+      }
+    ],
+    "returnedA": true,
+    "status": "PASS"
+  },
+  "hiddenBudget": {
+    "after": [
+      {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "deliveredFrames": 2272,
+        "gallerySessions": 0,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263493.572482041,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 1,
+        "captureRequests": 7,
+        "capturesInFlight": 1,
+        "chargedPixelBytes": 490752,
+        "deliveredFrames": 2275,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263493.826999375,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 7,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2305,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263494.08070825,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      }
+    ],
+    "before": [
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2186,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263430.317652583,
+        "visibilityRevision": 263392978758625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2214,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263430.565544291,
+        "visibilityRevision": 263392978758625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      }
+    ],
+    "contract": "installed status menu, seven readbacks over 60s, restored delivery",
+    "hiddenBudget": {
+      "observedSeconds": 60,
+      "priorScreenPermission": null,
+      "zeroNewRequests": true
+    },
+    "newStreamsDuringHidden": "NOT_MEASURED",
+    "noNewDeliveredFramesAcrossMinute": true,
+    "originalCardKinds": [
+      "窗口画面",
+      "窗口画面"
+    ],
+    "originalContract": "Hidden interval completed; remaining N01 visual, native timing and memory batches require separate samples.",
+    "restoredBoundCards": true,
+    "sidebarVisibilityRestored": true,
+    "status": "PASS",
+    "zeroActiveStreamsAtEverySample": true
+  }
+}

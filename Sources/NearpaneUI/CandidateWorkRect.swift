@@ -8,6 +8,11 @@ import SwiftUI
     let ordinary: OrdinaryWindowManager
     let desktopTiling: DesktopAutomaticTiling
     private var enrolledDesktopFeed: CurrentDesktopWindows?
+    weak var stageEngine: StageWindowEngineHost?
+    func permitsStageEngine(on display: String) -> Bool {
+        !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && !ordinary.blocksUpdateRelaunch &&
+            desktopTiling.scope == nil && !desktopTiling.starting && context(for:display) != nil
+    }
     public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {
         guard scopedDisplay == display, enrolledDesktopFeed == nil, desktopTiling.scope == nil,
               owners.count == 2, Set(owners.map(\.pid)).count == 2, let read = NativeDesktopProvider.packagedReader(overview: true)
@@ -43,8 +48,10 @@ import SwiftUI
     private var desktopWitnesses = [String: DesktopWitness]()
     private var holds = Set<String>()
     public func setOrdinaryHold(_ reason: String, active: Bool) {
+        let previous = suspended
         if active { holds.insert(reason) } else { holds.remove(reason) }
         suspended = !holds.isEmpty
+        if suspended != previous { desktopTiling.dispatchAvailabilityChanged(!suspended) }
     }
     public func ordinaryPresentation(_ state: String, display: String, deadline: Double?) {
         let now = ProcessInfo.processInfo.systemUptime
@@ -82,7 +89,9 @@ import SwiftUI
     }
     func connect(to host: HostSession) {
         self.host = host
-        desktopTiling.nativeModeAvailable = { [weak host] in host?.workspaceMode.mode == .native }
+        desktopTiling.nativeModeAvailable = { [weak self, weak host] in
+            self?.suspended == false && host?.workspaceMode.mode == .native
+        }
         ordinary.liveContext = { [weak self] display in self?.context(for: display) }
         ordinary.saveExclusion = { [weak host] id in
             guard let host else { throw OrdinaryRefusal.storage }
@@ -132,8 +141,10 @@ import SwiftUI
         self.support = support
         ordinary = OrdinaryWindowManager(support: support)
         desktopTiling = DesktopAutomaticTiling(manager: ordinary)
+        ordinary.stageEngineOwnsWindows = { [weak self] in self?.stageEngine?.holdsDispatch == true }
         ordinary.presentationHeld = { [weak self] display in
-            self?.permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime) != true
+            guard let self else { return true }
+            return suspended || !permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime)
         }
     }
     public func restoreCleanDesktopPermission() {
@@ -173,6 +184,7 @@ import SwiftUI
         }
     }
     public func send(_ command: String) {
+        guard command == "quit" || stageEngine?.holdsDispatch != true else { return }
         if process == nil { start() }
         guard let input else { return }
         do { try input.write(contentsOf: Data((command + "\n").utf8)) }

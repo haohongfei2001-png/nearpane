@@ -82,8 +82,27 @@ struct InstalledBuild {
 }
 
 struct BundledDomainSource: Decodable {
-    let releaseTag: String
+    struct UpstreamBuild: Decodable {
+        let version, channel: String
+        let build: Int
+    }
+    let releaseTag: String?
+    let upstreamBuild: UpstreamBuild?
     let commit: String
+
+    var label: String {
+        if let upstreamBuild {
+            let channel = switch upstreamBuild.channel {
+            case "internal": "内测"
+            case "development": "开发"
+            case "beta": "测试"
+            case "release": "正式"
+            default: upstreamBuild.channel
+            }
+            return "\(upstreamBuild.version)（\(upstreamBuild.build)，\(channel)） · \(commit.prefix(8))"
+        }
+        return (releaseTag ?? "源码") + " · " + commit.prefix(8)
+    }
 }
 
 /// Display the releases actually present in this signed bundle, including when running offline.
@@ -94,7 +113,7 @@ public struct BundledDomainVersions: View {
         guard let file = Bundle.main.url(forResource: "source", withExtension: "json", subdirectory: "Upstream/" + name),
               let bytes = try? Data(contentsOf: file),
               let source = try? JSONDecoder().decode(BundledDomainSource.self, from: bytes) else { return "版本信息不可用" }
-        return source.releaseTag + " · " + source.commit.prefix(8)
+        return source.label
     }
 
     public var body: some View {
@@ -290,7 +309,13 @@ public struct SettingsView: View {
                         if !tray.localOnly {
                             if tray.mayAttach {
                                 LabeledContent("草稿附加", value: "已启用")
-                            } else {
+                            }
+                            if tray.productAttachments {
+                                Menu(tray.mayAttach ? "检查浏览器权限" : "允许附加到浏览器草稿…") {
+                                    Button("Google Chrome") { Task { await tray.authorizeAttachments(in: .chrome) } }
+                                    Button("Microsoft Edge") { Task { await tray.authorizeAttachments(in: .edge) } }
+                                }
+                            } else if !tray.mayAttach {
                                 Button(tray.savedAttachmentConsent ? "重新核对草稿附加" : "允许附加到当前浏览器草稿…") {
                                     Task { await tray.authorizeAttachments() }
                                 }
@@ -300,7 +325,7 @@ public struct SettingsView: View {
                             }
                             if let notice = tray.attachmentAccessNotice { Text(notice).foregroundStyle(.secondary) }
                             if let feedback = tray.attachmentFeedback { Text(feedback).font(.callout) }
-                            Text("保持 Chrome 中要使用的 ChatGPT 草稿在前台，再点击缩略图。不会发送消息；结果未知时不会自动重传。")
+                            Text("在 Chrome 或 Microsoft Edge 中打开目标 ChatGPT 草稿后点击缩略图。Nearpane 只附加截图，结果待核对时会保留原操作。")
                         } else { Text("当前仅收录截图。附加到草稿须使用已绑定的专用测试会话。") }
                     } else {
                         Button(tray.connecting ? "正在连接…" : (domains?.candidate == true ? "重新连接截图托盘" : "连接已有 Riftlet 资料库")) {
@@ -421,21 +446,30 @@ public struct SettingsView: View {
                 if let profileImport { profileImport; Divider() }
                 Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
                     .font(.callout).foregroundStyle(.secondary)
+                if let notebook = domains?.notebook {
+                    DisclosureGroup("单词本") {
+                        if notebook.contents.words.isEmpty { Text("尚无查询记录").font(.caption) }
+                        ForEach(notebook.contents.words) { word in
+                            LabeledContent(word.source, value: word.translation).textSelection(.enabled)
+                        }
+                    }
+                }
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
                         VStack(alignment: .leading, spacing: 5) {
                             HStack {
                                 Toggle(manifest.name, isOn: Binding(get: { pref.enabled }, set: { host.handle(.setEnabled(pref.id, $0)) }))
+                                    .accessibilityIdentifier("module-enabled-" + pref.id)
                                 Spacer()
-                                if manifest.kind == .builtin {
+                                if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(pref.id) {
                                     Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
                                         .fixedSize()
-                                    if host.registry.manifests.filter({ $0.kind == .builtin }).count > 1 {
+                                }
+                                if manifest.kind == .builtin || BuiltinCatalog.sidebarTools.contains(pref.id) {
                                         Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
-                                            .accessibilityLabel("Move \(manifest.name) up")
+                                            .accessibilityLabel("Move \(manifest.name) up").accessibilityIdentifier("module-up-" + pref.id)
                                         Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
-                                            .accessibilityLabel("Move \(manifest.name) down")
-                                    }
+                                            .accessibilityLabel("Move \(manifest.name) down").accessibilityIdentifier("module-down-" + pref.id)
                                 }
                             }
                             HStack {
@@ -448,7 +482,7 @@ public struct SettingsView: View {
                         Divider()
                     }
                 }
-                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "语音、托盘和空间的顺序固定。箭头仅调整可选模块。")
+                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "使用箭头调整工具顺序。窗口和桌面显示在工具下方。")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(8)
         }

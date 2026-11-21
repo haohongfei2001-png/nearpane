@@ -1,0 +1,34 @@
+{
+  "clockUncertaintySeconds": 6.249989382922649e-06,
+  "completeDeliveries": 1,
+  "cropPoints": [
+    726,
+    513,
+    8,
+    8
+  ],
+  "fixtureWindows": [
+    54172,
+    54174
+  ],
+  "frames": [],
+  "idleDeliveries": 0,
+  "maxStackQueryMS": 3.9614582783542573,
+  "method": "twoEnrolledWindowDisplayCropWithIndependentVisibleWindowServerStack",
+  "physicalStackCoverageTotals": {
+    "behindOpaqueEnrolledWindow": 20,
+    "frontCoverageUnknown": 0,
+    "frontDisjoint": 50,
+    "frontIntersecting": 0,
+    "frontTransparent": 0,
+    "verifiedEnrolledRows": 20
+  },
+  "reason": "missingOpaqueMarker",
+  "retainedPixelBytes": 0,
+  "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+  "stackQueryAttempts": 10,
+  "stackQueryCount": 10,
+  "status": "UNKNOWN",
+  "targetFrameObserved": false,
+  "unbracketedBeforeEnrollment": 0
+}

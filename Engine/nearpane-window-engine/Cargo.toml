@@ -1,0 +1,19 @@
+[package]
+name = "nearpane-window-engine"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[lib]
+name = "nearpane_window_engine"
+crate-type = ["staticlib", "rlib"]
+
+[features]
+default = []
+corner = []
+spaces = []
+isolated-fixtures = []
+
+[profile.release]
+panic = "unwind"

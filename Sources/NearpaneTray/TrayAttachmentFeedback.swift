@@ -9,9 +9,16 @@ extension TrayOwner {
               let active = asset.activeOperationID, let op = try await store.operation(id: active),
               op.assetID == asset.id else { return nil }
         let prefix = "截图 " + String(asset.sequence) + " · "
+        let receipt = try await store.receipt(for: op.id)
+        let start = try await store.uploadStartReceipt(for: op.id)
+        let state = HistoryAttachmentState(record: asset, operation: op, receipt: receipt, startReceipt: start)
+        if state == .originalCardFailed {
+            return prefix + "原草稿中的附件显示失败，请核对原图。"
+        }
+        if state == .checkDraft { return prefix + "结果未知，请核对原草稿。" }
         switch op.phase {
         case .succeeded:
-            guard let receipt = try await store.receipt(for: op.id), asset.status == .used,
+            guard let receipt, asset.status == .used,
                   receipt.outcome == .verifiedReady, receipt.operationID == op.id, receipt.assetID == asset.id,
                   receipt.attempt == op.attempt, receipt.target == op.target, receipt.assetSHA256 == asset.image.sha256,
                   receiptPolicy.allowsConsumption(receipt: receipt, asset: asset.image, mode: await store.mode)
@@ -22,7 +29,7 @@ extension TrayOwner {
         case .compensated, .unknown:
             return prefix + "结果未知，请核对原草稿。"
         case .prepared, .dispatchIntent, .inputTriggered, .attachmentPresent:
-            if try await store.uploadStartReceipt(for: op.id) != nil {
+            if start != nil {
                 return prefix + "已开始上传，尚无完成回执。"
             }
             return prefix + (live ? "正在处理附件…" : "上次附加没有完成回执，请核对原草稿。")

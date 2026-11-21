@@ -27,6 +27,9 @@ extension Reader {
             guard let largest = slices.map(\.fractionOfWindow).max() else {
                 return memberDisplays.count == 1 ? memberDisplays.first : nil
             }
+            if memberDisplays.count == 1, let owner = memberDisplays.first {
+                return slices.contains(where: { $0.displayID == owner }) ? owner : nil
+            }
             let ties = slices.filter { $0.fractionOfWindow == largest }.map(\.displayID)
             if ties.count == 1 { return ties[0] }
             let matching = ties.filter(memberDisplays.contains)
@@ -51,13 +54,13 @@ extension Reader {
     }
 
     nonisolated static func roleTargets(_ list: List, active: Set<UInt32>, currentIDs: Set<String>?,
-                                        memberships: [UInt32: WindowMembership]) -> [OverviewWindowRole.Target] {
+                                        memberships: [UInt32: WindowMembership], background: Bool = false) -> [OverviewWindowRole.Target] {
         var order: [Int32] = [], numbers: [Int32: Set<UInt32>] = [:]
         for w in list.windows {
-            guard list.unhiddenOwners.contains(w.process.pid), w.process.hasLifecycleEvidence else { continue }
+            guard (background || list.unhiddenOwners.contains(w.process.pid)), w.process.hasLifecycleEvidence else { continue }
             if let currentIDs {
                 guard case let .known(ids) = memberships[w.windowID], !currentIDs.isDisjoint(with: ids),
-                      w.isOnscreen == true || active.contains(w.windowID) || list.orderedAcrossSpaces.contains(w.windowID) else { continue }
+                      background || w.isOnscreen == true || active.contains(w.windowID) || list.orderedAcrossSpaces.contains(w.windowID) else { continue }
             } else {
                 guard w.isOnscreen == true, active.contains(w.windowID) else { continue }
             }
@@ -75,21 +78,35 @@ extension Reader {
         let start = clock.systemUptime, from = Date(), topology = try Topology()
         let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
         let stageBefore = StageManagerPreference.read()
-        let first = try windowList(overview: true)
+        let trusted = AXIsProcessTrusted()
+        let backgroundInventory = canRead && trusted ? NPReadInventory().flatMap { SpaceInventory($0 as [AnyObject], displays:topology.displays) } : nil
+        let first = try windowList(overview: true, backgroundInventory:backgroundInventory)
         let activeBefore = activeNumbers()
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
-        let trusted = AXIsProcessTrusted()
+        if let backgroundInventory, backgroundInventory != firstBoundary?.inventory { throw DesktopActionError.unsupported }
         let currentIDs = firstBoundary?.inventory.map { inventory in
-            Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.ordinaryUUID != nil }.map(\.id))
+            Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.nativeKind != nil }.map(\.id))
         }
+        let firstFullMembers = firstBoundary?.inventory?.fullscreenMembers() ?? [:]
+        let fullscreenNumbers = Set(firstFullMembers.values.flatMap { $0 })
         let targets = Self.roleTargets(first, active: activeBefore, currentIDs: currentIDs,
                                        memberships: firstBoundary?.membership ?? [:])
-        let requestedNumbers = Set(targets.flatMap(\.numbers))
-        let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8) : [:]
+        let otherIDs = Set(firstBoundary?.inventory?.scopes.flatMap(\.records).map(\.id) ?? []).subtracting(currentIDs ?? [])
+        let others = Self.roleTargets(first, active: activeBefore, currentIDs: otherIDs,
+                                      memberships: firstBoundary?.membership ?? [:], background: true)
+        let currentNumbers = Set(targets.flatMap(\.numbers))
+        let sharedSpaces = topology.displays.count > 1 && !topology.separateSpaces
+        let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
+        let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8,
+                                                     frameNumbers: sharedSpaces ? currentNumbers : fullscreenNumbers) : [:]
+        // Preserve the entire current-desktop budget. Spend a separate bounded slice
+        // on known background members for the other Space cards.
+        let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
+                                                           deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
-        let second = try windowList(overview: true)
+        let second = try windowList(overview: true, backgroundInventory:backgroundInventory)
         let active = activeBefore.intersection(activeNumbers())
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
         guard topology == (try Topology()), WindowServerSession.available, !first.limited, !second.limited else {
@@ -97,6 +114,7 @@ extension Reader {
         }
         let inventory = firstBoundary?.inventory == lastBoundary?.inventory ? lastBoundary?.inventory : nil
         if firstBoundary?.inventory != lastBoundary?.inventory { throw DesktopActionError.unsupported }
+        let lastFullMembers = inventory?.fullscreenMembers() ?? [:]
         let previous = Dictionary(uniqueKeysWithValues: first.windows.map { ($0.windowID, $0) })
         let currentByDisplay = Dictionary(uniqueKeysWithValues: (inventory?.scopes ?? []).map { scope in
             (scope.displayID, scope.records.first(where: \.isCurrent))
@@ -105,7 +123,10 @@ extension Reader {
         let stageManager = stageBefore == stageAfter ? stageAfter : nil
         var windows = [WindowObservation]()
         // Absence only proves emptiness when every eligible CG surface was accounted for.
-        var complete = Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
+        let hasBackground = inventory?.scopes.flatMap(\.records).contains { !$0.isCurrent && $0.ordinaryUUID != nil } == true
+        var complete = (!hasBackground || (first.backgroundCollectionComplete && second.backgroundCollectionComplete &&
+                                           backgroundInventory == inventory)) &&
+                       Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
         let admitted = inventory?.scopes.flatMap(\.records).filter { $0.ordinaryUUID != nil || $0.fullscreenUUID != nil } ?? []
         let supported = Set(admitted.map(\.id))
         for entry in second.windows {
@@ -146,9 +167,28 @@ extension Reader {
             // for selection without inventing a frame in the Space miniature.
             let global = SurfaceRect(entry.frame)
             let local = SurfaceRect(x: global.x - display.frame.x, y: global.y - display.frame.y, width: global.width, height: global.height)
-            let ownerRoles = requestedNumbers.contains(entry.windowID) ? roles[entry.process.pid] : nil
+            let ownerRoles = currentNumbers.contains(entry.windowID) ? roles[entry.process.pid] :
+                (otherNumbers.contains(entry.windowID) ? otherRoles[entry.process.pid] : nil)
             let role = ownerRoles?.windows[entry.windowID]
-            let presented = Self.presentedInOverview(publiclyVisible: visible,
+            let fullID = record.flatMap { current -> String? in
+                guard current.nativeKind == .fullscreen, membership == .known(recordIDs: [current.id]),
+                      firstFullMembers[current.id]?.contains(entry.windowID) == true,
+                      lastFullMembers[current.id]?.contains(entry.windowID) == true else { return nil }
+                return current.id
+            }
+            let fullPresented = fullID != nil && role?.ordinary == true && role?.minimized == false &&
+                first.unhiddenOwners.contains(entry.process.pid) && second.unhiddenOwners.contains(entry.process.pid) &&
+                before.isOnscreen == true && entry.isOnscreen == true &&
+                display.frame.geometry.intersection(entry.frame) == entry.frame &&
+                display.frame.geometry.intersection(before.frame) == before.frame
+            let tile = fullID.flatMap { inventory?.activeTiles[$0] }.map { tiles in
+                tiles.count == 2 && tiles.contains { $0.pid == entry.process.pid && $0.number == entry.windowID &&
+                    ($0.frame.componentError(from: local.geometry) <= 2 || $0.frame.componentError(from: entry.frame) <= 2) }
+            }
+            let axConfirmsFrame = role?.frame.map { $0.componentError(from: entry.frame) <= 2 } == true
+            let fullGeometry = fullPresented && before.frame == entry.frame && (geometry.usualPresentation || tile == true || axConfirmsFrame)
+            let publicGeometry = sharedSpaces && visible && before.frame == entry.frame && axConfirmsFrame
+            let presented = fullPresented || Self.presentedInOverview(publiclyVisible: visible,
                 orderedAcrossSpaces: first.orderedAcrossSpaces.contains(entry.windowID) && second.orderedAcrossSpaces.contains(entry.windowID),
                 currentMember: proof != nil, onDisplay: afterSlices.contains { $0.displayID == display.id } &&
                     beforeSlices.contains { $0.displayID == display.id },
@@ -159,19 +199,44 @@ extension Reader {
                 launchMicroseconds: entry.process.launchEpochMicroseconds, element: nil, globalFrame: global,
                 frontToBack: windows.count, minimized: role?.minimized, fullScreen: role?.fullscreen, isOnscreen: entry.isOnscreen,
                 onActiveDesktop: visible, overviewSpaceID: proof,
-                hasCatalogGeometry: geometry.usualPresentation && afterSlices.contains(where: { $0.displayID == display.id }),
+                hasCatalogGeometry: fullID != nil ? fullGeometry :
+                    (geometry.usualPresentation || publicGeometry) && afterSlices.contains(where: { $0.displayID == display.id }),
                 catalogLogicalFrame: geometry.logical.map(SurfaceRect.init), overviewIsPresented: presented,
-                overviewOrdinaryRole: role?.ordinary ?? (role == nil && ownerRoles?.everyNumberKnown == true ? false : nil))
+                overviewOrdinaryRole: OverviewWindowRole.classification(of: entry.windowID, owner: ownerRoles, current: proof != nil || fullID != nil),
+                activeFullscreenSpaceID: fullID, matchesNativeTile: tile)
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
-        return .observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
+        var result = DesktopSnapshot.observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
             evidence: .init(population: .workWindows, accessibility: trusted ? (targets.allSatisfy { roles[$0.pid]?.everyNumberKnown == true && roles[$0.pid]?.allRolesRead == true } ? .available : .partial) : .denied,
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
+        if let targets = request.sidebarAuditWindows {
+            result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
+                var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,
+                             "firstAccepted": first.windows.contains { $0.windowID == key.number && $0.process.pid == key.pid &&
+                                 $0.process.launchEpochMicroseconds == key.birth },
+                             "secondAccepted": second.windows.contains { $0.windowID == key.number && $0.process.pid == key.pid &&
+                                 $0.process.launchEpochMicroseconds == key.birth },
+                             "currentRoleRequested": currentNumbers.contains(key.number), "backgroundRoleRequested": otherNumbers.contains(key.number),
+                             "scopedMetadataEmitted": windows.contains { $0.metadata?.number == key.number && $0.metadata?.pid == key.pid &&
+                                 $0.metadata?.launchMicroseconds == key.birth }]
+                for (k,v) in first.audit[key.number] ?? [:] { flags["first." + k] = v }
+                for (k,v) in second.audit[key.number] ?? [:] { flags["second." + k] = v }
+                let prior = firstBoundary?.membership[key.number], latest = lastBoundary?.membership[key.number]
+                flags["membershipStable"] = prior != nil && prior == latest
+                if case let .known(ids) = latest { flags["membershipExclusive"] = ids.count == 1 }
+                let owner = currentNumbers.contains(key.number) ? roles[key.pid] : otherRoles[key.pid]
+                flags["ownerAXListRead"] = owner != nil
+                flags["ownerAllNumbersRead"] = owner?.everyNumberKnown
+                flags["listedAXWindow"] = owner?.windows[key.number] != nil
+                return .init(key, flags: flags)
+            }
+        }
+        return result
     }
 }
 

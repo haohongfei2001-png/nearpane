@@ -1,0 +1,12 @@
+{
+  "run": 44815812932,
+  "head": "92f91d2",
+  "candidate": "02422473f8cb897baa60db82604a7400c9e9ea00",
+  "assetID": 773282549,
+  "hostedIntake": "NOT_RUN",
+  "systemPolicy": "NOT_RUN",
+  "protocolTests": "FAIL",
+  "reason": "OpenSSL 3 was unavailable on the initial hosted PATH during the diagnostic issuer tests. The independent asset step was skipped.",
+  "binaryReceived": false,
+  "publicRelease": false
+}

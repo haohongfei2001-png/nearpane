@@ -1,0 +1,244 @@
+{
+  "status": "BLOCKED",
+  "preflightOnly": false,
+  "ordinaryDesktopsRequested": 2,
+  "leasedSpace": 5091,
+  "preview": {
+    "status": "BLOCKED",
+    "exit": 2,
+    "receipt": "preview/result.json",
+    "reason": "activeSpaceContainsUnexpectedMembers"
+  },
+  "splitView": {
+    "status": "BLOCKED",
+    "exit": 2,
+    "space": 5091,
+    "receipt": "split/result.json",
+    "reason": "twoOrdinaryDocumentsAndNegativeControlRequired"
+  },
+  "media": {
+    "status": "NOT_CAPTURED",
+    "exit": 2,
+    "receipt": "preview/media/receipt.json"
+  },
+  "stageSetup": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-off-runtime.json"
+  },
+  "stageRestore": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-restore-runtime.json"
+  },
+  "workspaceCleanup": {
+    "status": "PASS",
+    "topologyRestored": true,
+    "focusRestored": true,
+    "originalCurrent": 6,
+    "cleanupCurrent": 6,
+    "originalOrderRestored": true,
+    "preservedLatestOrder": true,
+    "retainedUserSelectedSpace": false,
+    "created": 1,
+    "removed": 1,
+    "outstanding": [],
+    "errors": []
+  },
+  "initialEmptyScope": {
+    "space": 5091,
+    "spaceUUID": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705",
+    "uptimes": [
+      261301.30416225002,
+      261301.60100491668
+    ]
+  },
+  "stageBaseline": [
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 261296.98392820836
+    },
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 261297.20693783334
+    }
+  ],
+  "emptyAfterPreview": {
+    "space": 5091,
+    "spaceUUID": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705",
+    "uptimes": [
+      261319.99771154168,
+      261320.292656375
+    ]
+  },
+  "emptyAfterSplit": {
+    "space": 5091,
+    "spaceUUID": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705",
+    "uptimes": [
+      261324.35174508335,
+      261324.656166875
+    ]
+  },
+  "originalStageSurface": {
+    "status": "PASS",
+    "stage": true,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 0
+      }
+    ]
+  },
+  "restoredSurface": {
+    "status": "PASS",
+    "stage": true,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 711
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 0,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 1,
+        "activeStreams": 0,
+        "frames": 711
+      }
+    ]
+  },
+  "offZeroBefore": {
+    "status": "PASS",
+    "stage": false,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 0
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 0
+      }
+    ]
+  },
+  "offTwo": {
+    "status": "NOT_RUN",
+    "reads": []
+  },
+  "offZeroAfter": {
+    "status": "PASS",
+    "stage": false,
+    "expectedCardCount": 0,
+    "reads": [
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 702
+      },
+      {
+        "cards": 0,
+        "bareSpaceRows": 0,
+        "controls": {
+          "desktop-reserved-region": 1,
+          "tray-camera-entry": 1,
+          "tray-content": 1,
+          "tray-file-drop": 1,
+          "voice-capture-toggle": 1
+        },
+        "stageManagerOwnsDispatch": 0,
+        "activeStreams": 0,
+        "frames": 702
+      }
+    ]
+  },
+  "systemDesktopSwitch": {
+    "status": "NOT_RUN"
+  },
+  "hiddenBudget": {
+    "status": "NOT_RUN"
+  }
+}

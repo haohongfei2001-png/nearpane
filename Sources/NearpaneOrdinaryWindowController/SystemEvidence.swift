@@ -4,22 +4,22 @@ import CReadOnlySpaces
 import Darwin
 import NearpaneCore
 
-typealias Refusal = WindowIdentityFailure
-func require(_ test: Bool, _ reason: String) throws { if !test { throw Refusal(reason) } }
+package typealias Refusal = WindowIdentityFailure
+package func require(_ test: Bool, _ reason: String) throws { if !test { throw Refusal(reason) } }
 
 func attribute(_ e: AXUIElement, _ key: String) -> CFTypeRef? {
     var value: CFTypeRef?
     return AXUIElementCopyAttributeValue(e, key as CFString, &value) == .success ? value : nil
 }
 
-func number(_ e: AXUIElement) -> UInt32? {
+package func number(_ e: AXUIElement) -> UInt32? {
     if let result = attribute(e, "AXWindowNumber") as? NSNumber,
        let n = UInt32(exactly: result.int64Value), n > 0 { return n }
     let n = NPReadAXWindowNumber(e)
     return n > 0 ? n : nil
 }
 
-func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt64, bundle: String) throws {
+package func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt64, bundle: String) throws {
     try require(AXIsProcessTrusted(), "窗口助手没有现有辅助功能权限。")
     let console = CGSessionCopyCurrentDictionary() as? [String: Any]
     try require(console?[kCGSessionOnConsoleKey as String] as? Bool == true &&
@@ -30,12 +30,10 @@ func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt64, bund
     try owner.verify(pid, launch: launch, bundle: bundle)
 }
 
-func windows(_ pid: Int32) throws -> [AXUIElement] {
+package func windows(_ pid: Int32) throws -> [AXUIElement] {
     let application = AXUIElementCreateApplication(pid)
     try require(AXUIElementSetMessagingTimeout(application, 0.18) == .success, "无法限制辅助功能读取时限。")
-    var list: CFArray?
-    guard AXUIElementCopyAttributeValues(application, kAXWindowsAttribute as CFString, 0, 65, &list) == .success,
-          let result = list as? [AXUIElement], result.count <= 64 else { throw Refusal("无法核对完整窗口清单。") }
+    guard let result = AXWindowList.read(application, limit: 64).windows else { throw Refusal("无法核对完整窗口清单。") }
     for item in result {
         var owner: pid_t = 0
         try require(AXUIElementGetPid(item, &owner) == .success && owner == pid &&
@@ -121,7 +119,7 @@ func boundaryDisplayID(_ frame: SurfaceRect, witness: BoundaryDisplayWitness) th
     return witness.id
 }
 
-private func ordinaryRole(_ element: AXUIElement) throws {
+func ordinaryRole(_ element: AXUIElement) throws {
     guard attribute(element,kAXRoleAttribute) as? String == kAXWindowRole,
           attribute(element,kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
           attribute(element,kAXModalAttribute) as? Bool == false,

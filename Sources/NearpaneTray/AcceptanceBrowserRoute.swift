@@ -9,15 +9,15 @@ struct AcceptanceBrowserRoute {
     let windowID, tabID: String
 
     /// Resolve the current front window and its selected tab without reading other tabs.
-    static func front(pid: Int32) throws -> Self {
+    static func front(pid: Int32, applicationID: String = "com.google.Chrome") throws -> Self {
         // The seed is used only to authorize the PID and form a front-window index specifier.
-        let pidRoute = try Self(pid: pid, window: "1", tab: "1")
+        let pidRoute = try Self(pid: pid, window: "1", tab: "1", applicationID: applicationID)
         let front = try pidRoute.object("cwin","indx",.init(int32: 1))
         guard let window = try pidRoute.property("ID  ",front).stringValue,
               let tab = try pidRoute.property("ID  ",pidRoute.property("acTa",front)).stringValue else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        let fixed = try Self(pid: pid, window:window, tab:tab)
+        let fixed = try Self(pid: pid, window:window, tab:tab, applicationID: applicationID)
         guard try fixed.selected() else { throw CocoaError(.fileReadNoPermission) }
         return fixed
     }
@@ -30,9 +30,10 @@ struct AcceptanceBrowserRoute {
         return url
     }
 
-    init(pid: Int32, window: String, tab: String) throws {
+    init(pid: Int32, window: String, tab: String, applicationID: String = "com.google.Chrome") throws {
         guard let w = Int64(window), let t = Int64(tab), w > 0, t > 0,
-              let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier == "com.google.Chrome", !app.isTerminated
+              ["com.google.Chrome", "com.microsoft.edgemac"].contains(applicationID),
+              let app = NSRunningApplication(processIdentifier: pid), app.bundleIdentifier == applicationID, !app.isTerminated
         else { throw CocoaError(.fileReadNoPermission) }
         self.app = app
         address = NSAppleEventDescriptor(processIdentifier: pid)

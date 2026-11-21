@@ -1,0 +1,18 @@
+{
+  "name": "Nearpane-5.22-window-engine-development.zip",
+  "bytes": 24120126,
+  "sha256": "da978ffcd24b50bfce685977c14ea0b542ebbfa6bf9f67292f6abfd3cbcf731f",
+  "hostSHA256": "835ca3bd874b2fb6950dca39d06cc7691b48980f9ad97984c3a1dbc707eba134",
+  "codeSignature": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "d6b20d593055a70d84b59499ca98fb96096af103",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "appVersion": "0.2.0",
+  "appBuild": "1",
+  "sourceHead": "ddac854ef070e6eb6ac8988cd844d74a3b443349",
+  "strictDeepVerificationAfterExtraction": "PASS",
+  "distribution": "local development archive",
+  "notarization": "NOT_RUN",
+  "role": "Development Host; probe and unqualified write refusal only"
+}

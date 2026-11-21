@@ -1,0 +1,400 @@
+{
+  "cleanup": {
+    "dockRestored": true,
+    "fixtureCount": 2,
+    "fixtureLaunchersExit": [
+      0,
+      0
+    ],
+    "temporaryDirectoryRemoved": true
+  },
+  "dockDuring": true,
+  "dockOriginal": null,
+  "image": "20261104.0337.1",
+  "methods": {
+    "A.sameAppSecond": {
+      "reason": "single gate",
+      "status": "NOT_RUN"
+    },
+    "A.single": {
+      "reason": "enrolled target is not exposed at the test point",
+      "status": "BLOCKED"
+    },
+    "A.userDock": {
+      "dockClickPosted": true,
+      "focusedWindowAfter": {
+        "actualID": 40,
+        "axPID": 12951,
+        "frontPID": 12951,
+        "label": "A1"
+      },
+      "managerWritesAfterUserClick": 0,
+      "otherWindowReconciliation": "NOT_RUN in production",
+      "restored": [
+        "A1"
+      ],
+      "status": "OBSERVED",
+      "tilesAfter": 0,
+      "tilesBefore": 0,
+      "tilesSeeded": 0
+    },
+    "B.app-main": {
+      "sameAppSecond": {
+        "reason": "single gate",
+        "status": "NOT_RUN"
+      },
+      "single": {
+        "checks": {
+          "early.axAvailable": true,
+          "early.axMini": true,
+          "early.dock": true,
+          "early.focus": true,
+          "early.notOnScreen": false,
+          "early.ownerVisibility": false,
+          "early.siblings": true,
+          "early.space": true,
+          "early.wsOrderedOut": false,
+          "hiddenKeyboard": true,
+          "hiddenMouse": false,
+          "settled.axAvailable": true,
+          "settled.axMini": true,
+          "settled.dock": true,
+          "settled.focus": true,
+          "settled.notOnScreen": false,
+          "settled.ownerVisibility": false,
+          "settled.siblings": true,
+          "settled.space": true,
+          "settled.wsOrderedOut": false
+        },
+        "hideCall": {
+          "cid": 343027,
+          "mode": 0,
+          "result": 1000
+        },
+        "restorationDispatched": false,
+        "status": "FAIL"
+      }
+    },
+    "B.appkit-load": {
+      "sameAppSecond": {
+        "reason": "single gate",
+        "status": "NOT_RUN"
+      },
+      "single": {
+        "checks": {
+          "early.axAvailable": true,
+          "early.axMini": true,
+          "early.dock": true,
+          "early.focus": true,
+          "early.notOnScreen": false,
+          "early.ownerVisibility": false,
+          "early.siblings": true,
+          "early.space": true,
+          "early.wsOrderedOut": false,
+          "hiddenKeyboard": true,
+          "hiddenMouse": false,
+          "settled.axAvailable": true,
+          "settled.axMini": true,
+          "settled.dock": true,
+          "settled.focus": true,
+          "settled.notOnScreen": false,
+          "settled.ownerVisibility": false,
+          "settled.siblings": true,
+          "settled.space": true,
+          "settled.wsOrderedOut": false
+        },
+        "hideCall": {
+          "cid": 345323,
+          "mode": 0,
+          "result": 1000
+        },
+        "restorationDispatched": false,
+        "status": "FAIL"
+      }
+    },
+    "B.cold-main": {
+      "sameAppSecond": {
+        "reason": "single gate",
+        "status": "NOT_RUN"
+      },
+      "single": {
+        "checks": {
+          "early.axAvailable": true,
+          "early.axMini": true,
+          "early.dock": true,
+          "early.focus": true,
+          "early.notOnScreen": false,
+          "early.ownerVisibility": false,
+          "early.siblings": true,
+          "early.space": true,
+          "early.wsOrderedOut": false,
+          "hiddenKeyboard": true,
+          "hiddenMouse": false,
+          "settled.axAvailable": true,
+          "settled.axMini": true,
+          "settled.dock": true,
+          "settled.focus": true,
+          "settled.notOnScreen": false,
+          "settled.ownerVisibility": false,
+          "settled.siblings": true,
+          "settled.space": true,
+          "settled.wsOrderedOut": false
+        },
+        "hideCall": {
+          "cid": 346563,
+          "mode": 0,
+          "result": 1000
+        },
+        "restorationDispatched": false,
+        "status": "FAIL"
+      }
+    },
+    "B.independent": {
+      "sameAppSecond": {
+        "reason": "single gate",
+        "status": "NOT_RUN"
+      },
+      "single": {
+        "checks": {
+          "early.axAvailable": true,
+          "early.axMini": true,
+          "early.dock": true,
+          "early.focus": true,
+          "early.notOnScreen": false,
+          "early.ownerVisibility": false,
+          "early.siblings": true,
+          "early.space": true,
+          "early.wsOrderedOut": false,
+          "hiddenKeyboard": true,
+          "hiddenMouse": false,
+          "settled.axAvailable": true,
+          "settled.axMini": true,
+          "settled.dock": true,
+          "settled.focus": true,
+          "settled.notOnScreen": false,
+          "settled.ownerVisibility": false,
+          "settled.siblings": true,
+          "settled.space": true,
+          "settled.wsOrderedOut": false
+        },
+        "hideCall": {
+          "cid": 269611,
+          "mode": 0,
+          "result": 1000
+        },
+        "restorationDispatched": false,
+        "status": "FAIL"
+      }
+    },
+    "B.ownerControl": {
+      "checks": {
+        "early.axAvailable": false,
+        "early.axMini": null,
+        "early.dock": true,
+        "early.focus": true,
+        "early.notOnScreen": true,
+        "early.ownerVisibility": false,
+        "early.siblings": true,
+        "early.space": true,
+        "early.wsOrderedOut": true,
+        "firstRestoreFocus": true,
+        "hiddenKeyboard": true,
+        "hiddenMouse": true,
+        "restoredCG": true,
+        "restoredContent": true,
+        "restoredDock": true,
+        "restoredFocus": true,
+        "restoredFrame": true,
+        "restoredKeyboard": true,
+        "restoredMouse": false,
+        "restoredNotMini": true,
+        "restoredOrdered": true,
+        "restoredOwnerFrame": true,
+        "restoredSiblings": true,
+        "restoredSpace": true,
+        "restoredVisible": true,
+        "settled.axAvailable": false,
+        "settled.axMini": null,
+        "settled.dock": true,
+        "settled.focus": true,
+        "settled.notOnScreen": true,
+        "settled.ownerVisibility": false,
+        "settled.siblings": true,
+        "settled.space": true,
+        "settled.wsOrderedOut": true
+      },
+      "hideCall": {
+        "cid": 263171,
+        "mode": 0,
+        "result": 0
+      },
+      "restorationDispatched": true,
+      "status": "FAIL"
+    },
+    "B.transaction": {
+      "sameAppSecond": {
+        "reason": "single gate",
+        "status": "NOT_RUN"
+      },
+      "single": {
+        "checks": {
+          "early.axAvailable": true,
+          "early.axMini": true,
+          "early.dock": true,
+          "early.focus": true,
+          "early.notOnScreen": false,
+          "early.ownerVisibility": false,
+          "early.siblings": true,
+          "early.space": true,
+          "early.wsOrderedOut": false,
+          "hiddenKeyboard": true,
+          "hiddenMouse": false,
+          "settled.axAvailable": true,
+          "settled.axMini": true,
+          "settled.dock": true,
+          "settled.focus": true,
+          "settled.notOnScreen": false,
+          "settled.ownerVisibility": false,
+          "settled.siblings": true,
+          "settled.space": true,
+          "settled.wsOrderedOut": false
+        },
+        "hideCall": {
+          "commitResult": 1527851976,
+          "mode": 0,
+          "orderResult": 1522605616
+        },
+        "restorationDispatched": false,
+        "status": "FAIL"
+      }
+    },
+    "C.virtual": {
+      "absolutePointerEnteredVirtual": true,
+      "baselineMissionControl": {
+        "activeDisplays": [
+          {
+            "activeSpace": 1,
+            "bounds": [
+              0,
+              0,
+              1024,
+              768
+            ],
+            "id": 1,
+            "uuid": "2109FE05-700B-4D86-963C-08B091DE5E60"
+          }
+        ],
+        "after": [
+          {
+            "activeSpace": 1,
+            "bounds": [
+              0,
+              0,
+              1024,
+              768
+            ],
+            "id": 1,
+            "uuid": "2109FE05-700B-4D86-963C-08B091DE5E60"
+          }
+        ],
+        "status": "PASS"
+      },
+      "checks": {
+        "focusAfterTopology": true,
+        "focusWhileParked": true,
+        "geometryRestored": true,
+        "keyboardWhileParked": true,
+        "nativeSpaceUnchanged": false,
+        "onlyTargetMoved": true,
+        "parkOnVirtual": true,
+        "parkedInputIsolated": false,
+        "physicalMultiDisplay": null,
+        "physicalOldPoint": true,
+        "physicalPointerIsolation": null,
+        "spaceRestored": true,
+        "topologyRestored": true,
+        "unchangedDockTiles": true,
+        "windowState": true
+      },
+      "configuredMissionControl": {
+        "activeDisplays": [
+          {
+            "activeSpace": 1,
+            "bounds": [
+              0,
+              0,
+              1920,
+              1080
+            ],
+            "id": 1,
+            "uuid": "2109FE05-700B-4D86-963C-08B091DE5E60"
+          },
+          {
+            "activeSpace": 19,
+            "bounds": [
+              1920,
+              1080,
+              800,
+              600
+            ],
+            "id": 2,
+            "uuid": "50D1233F-5137-4318-97A9-030B89D56D7D"
+          }
+        ],
+        "after": [
+          {
+            "activeSpace": 1,
+            "bounds": [
+              0,
+              0,
+              1920,
+              1080
+            ],
+            "id": 1,
+            "uuid": "2109FE05-700B-4D86-963C-08B091DE5E60"
+          },
+          {
+            "activeSpace": 19,
+            "bounds": [
+              1920,
+              1080,
+              800,
+              600
+            ],
+            "id": 2,
+            "uuid": "50D1233F-5137-4318-97A9-030B89D56D7D"
+          }
+        ],
+        "status": "PASS"
+      },
+      "geometryRestored": true,
+      "physicalAccidentalPointer": "UNKNOWN: no human or physical relative HID on hosted runner",
+      "physicalMultipleDisplays": "NOT_RUN",
+      "realClickReachedParkedWindow": true,
+      "sharedEdgesPixels": [
+        0
+      ],
+      "spaceRestored": true,
+      "status": "FAIL",
+      "topologyRestored": true,
+      "virtual": {
+        "actual": [
+          1920,
+          1080,
+          800,
+          600
+        ],
+        "commit": 0,
+        "create": 0,
+        "id": 2,
+        "origin": 0,
+        "status": "READY"
+      }
+    }
+  },
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "revision": "76d9ca80e1a10f57d0916c8555fa5199d376d4ba",
+  "scope": "disposable registered fixture owners and separate inspector",
+  "sip": "System Integrity Protection status: disabled.",
+  "stageManagerPreference": "absent"
+}

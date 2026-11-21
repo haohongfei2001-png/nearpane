@@ -1,29 +1,17 @@
 import NearpaneCore
 import SwiftUI
 
-/// The same number of desktop points maps to the same number of sidebar points for every
-/// member of a display. A straddling or oversized window can widen the shared reference.
+/// Each independent window fits the same available box using its own verified proportions.
 struct DesktopWindowThumbnailLayout {
-    private let displayID: String?
-    private let scale: CGFloat
-    private let capturedSizes: [UInt32: CGSize]
+    let display: DisplayObservation?
+    var capturedSizes: [UInt32: CGSize] = [:]
 
-    init(windows: [WindowObservation], display: DisplayObservation?, availableWidth: CGFloat,
-         capturedSizes: [UInt32: CGSize] = [:]) {
-        displayID = display?.id
-        self.capturedSizes = capturedSizes
-        guard let display, display.frame.geometry.isValid, availableWidth.isFinite, availableWidth > 0 else {
-            scale = 0
-            return
-        }
-        let widest = windows.lazy.filter { $0.displayID == display.id }
-            .compactMap { Self.sizeInPoints($0, capturedSizes: capturedSizes) }.map(\.width).max() ?? 0
-        scale = availableWidth / max(display.frame.width, widest)
-    }
-
-    func size(for window: WindowObservation) -> CGSize? {
-        guard window.displayID == displayID, scale > 0, let size = Self.sizeInPoints(window, capturedSizes: capturedSizes) else { return nil }
-        return CGSize(width: size.width * scale, height: size.height * scale)
+    func fittedSize(for window: WindowObservation, width: CGFloat, heightLimit: CGFloat) -> CGSize? {
+        guard let display, display.frame.geometry.isValid, window.displayID == display.id,
+              width.isFinite, heightLimit.isFinite, width > 0, heightLimit > 0,
+              let source = Self.sizeInPoints(window, capturedSizes: capturedSizes) else { return nil }
+        let scale = min(width / source.width, heightLimit / source.height)
+        return CGSize(width: source.width * scale, height: source.height * scale)
     }
 
     private static func sizeInPoints(_ window: WindowObservation, capturedSizes: [UInt32: CGSize]) -> CGSize? {
@@ -42,57 +30,6 @@ struct DesktopWindowThumbnailLayout {
     }
 }
 
-/// Fit every card in a single top-aligned column. The same extra scale applies to
-/// all pictures, including portrait and unusually small windows.
-struct DesktopRosterFit {
-    struct Row {
-        let picture: CGSize?
-        let height: CGFloat
-        let inlineCaption: Bool
-        let showsCaption: Bool
-    }
-
-    let rows: [Row]
-    let spacing: CGFloat
-
-    init(pictures: [CGSize?], availableHeight: CGFloat, spacing requestedGap: CGFloat, labelSize: CGFloat) {
-        guard !pictures.isEmpty else { rows = []; spacing = 0; return }
-        let count = CGFloat(pictures.count)
-        let height = max(0, availableHeight)
-        let line = max(14, ceil(max(10, labelSize) * 1.3))
-        spacing = min(max(0, requestedGap), height / (10 * count))
-        let budget = height - spacing * (count - 1)
-        let inline = budget / count < 2 * (line + 3)
-        let minimum = min(line, budget / count)
-
-        func rowHeight(_ picture: CGSize?, scale: CGFloat) -> CGFloat {
-            guard let picture else { return minimum }
-            return inline ? max(minimum, picture.height * scale) : line + 3 + picture.height * scale
-        }
-        func total(_ scale: CGFloat) -> CGFloat {
-            pictures.reduce(0) { $0 + rowHeight($1, scale: scale) }
-        }
-        var scale: CGFloat = 1
-        if inline && minimum == budget / count, let tallest = pictures.compactMap({ $0?.height }).max(), tallest > 0 {
-            scale = min(1, minimum / tallest)
-        } else if total(1) > budget {
-            // In dense mode caption and picture share vertical space. As pictures
-            // shrink, shorter rows reach their caption height before taller ones.
-            var lower: CGFloat = 0, upper: CGFloat = 1
-            for _ in 0..<28 {
-                let middle = (lower + upper) / 2
-                if total(middle) <= budget { lower = middle } else { upper = middle }
-            }
-            scale = lower
-        }
-        rows = pictures.map { picture in
-            let rowHeight = rowHeight(picture, scale: scale)
-            return Row(picture: picture.map { CGSize(width: $0.width * scale, height: $0.height * scale) },
-                       height: rowHeight, inlineCaption: inline, showsCaption: picture == nil || rowHeight >= line)
-        }
-    }
-}
-
 struct DesktopWindowCard: View {
     @Environment(\.colorScheme) private var scheme
     static func windowBacking(for scheme: ColorScheme) -> Color {
@@ -104,26 +41,16 @@ struct DesktopWindowCard: View {
     let pictureSize: CGSize?
     var borderWidth: CGFloat = 0.8
     var labelSize: CGFloat = 10
-    var row: DesktopRosterFit.Row?
+    var unavailable: String? = nil
     var currentImage: (@MainActor () -> CGImage?)?
 
     var body: some View {
-        Group {
-            if row?.inlineCaption == true {
-                HStack(alignment: .top, spacing: 4) {
-                    preview
-                    if row?.showsCaption == true { caption }
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 3) {
-                    preview
-                    caption
-                }
-            }
+        VStack(alignment: .center, spacing: 0) {
+            preview
+            caption.frame(height: 18)
         }
-        .foregroundStyle(scheme == .dark ? Color.white : Color.black)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: row?.height, alignment: .topLeading)
+        .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
+        .frame(maxWidth: .infinity, alignment: .center)
         .clipped()
         .contentShape(Rectangle())
     }
@@ -150,6 +77,12 @@ struct DesktopWindowCard: View {
                 }
             }
             .frame(width: size.width, height: size.height)
+            .overlay {
+                if image == nil, let unavailable {
+                    Text(unavailable).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 

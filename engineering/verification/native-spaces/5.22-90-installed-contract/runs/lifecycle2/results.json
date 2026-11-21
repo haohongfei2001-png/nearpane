@@ -1,0 +1,459 @@
+{
+  "F01": "PARTIAL",
+  "M01": "BLOCKED",
+  "M01Reason": "This run has one physical display. Independent/shared, rotation and reconnect require an additional physical display.",
+  "R02": "PARTIAL",
+  "R02SessionTransitions": "Lock/unlock and sleep/wake not exercised on the occupied interactive login session",
+  "checkpoints": {
+    "documentRelaunch": {
+      "fixture": {
+        "frames": [
+          [
+            465,
+            295,
+            540,
+            333
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 0,
+        "lastCommand": "",
+        "numbers": [
+          45582,
+          45583
+        ],
+        "pid": 59413,
+        "session": "be27c8c5-c77c-46bf-9447-4e99d60efbb8",
+        "zoomed": [
+          false,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 16,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 59147,
+        "surfaceHidden": 0,
+        "visibilityRevision": 234541676627333,
+        "visibleDisplays": 0,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": false,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4867,
+            "type": 0,
+            "uuid": "5B90B6CD-C16C-583B-5BA3-80CA310234A4"
+          }
+        ]
+      }
+    },
+    "nativeFullscreen": {
+      "fixture": {
+        "frames": [
+          [
+            0,
+            0,
+            1470,
+            923
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          true,
+          false
+        ],
+        "key": 45547,
+        "lastCommand": "84a14323-1d8d-4661-8a28-9dc5ebde1005",
+        "numbers": [
+          45547,
+          45548
+        ],
+        "pid": 59333,
+        "session": "ba59fb42-4eef-44fa-9808-34bb8b9da3f4",
+        "zoomed": [
+          true,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 16,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 59147,
+        "surfaceHidden": 0,
+        "visibilityRevision": 234541676627333,
+        "visibleDisplays": 0,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4876,
+        "frontmostFixture": true,
+        "memberships": [
+          [
+            4876
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 4876,
+            "type": 4,
+            "uuid": "8EC02EE1-FBFC-47AD-99D6-77525A93D827"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4867,
+            "type": 0,
+            "uuid": "5B90B6CD-C16C-583B-5BA3-80CA310234A4"
+          }
+        ]
+      }
+    },
+    "ordinary": {
+      "fixture": {
+        "frames": [
+          [
+            465,
+            295,
+            540,
+            333
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 45547,
+        "lastCommand": "459740f1-c8b9-47d9-85e6-d4f44693b328",
+        "numbers": [
+          45547,
+          45548
+        ],
+        "pid": 59333,
+        "session": "ba59fb42-4eef-44fa-9808-34bb8b9da3f4",
+        "zoomed": [
+          false,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 1,
+        "captureRequests": 16,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 494080,
+        "gallerySessions": 1,
+        "pid": 59147,
+        "surfaceHidden": 0,
+        "visibilityRevision": 234541676627333,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": true,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4867,
+            "type": 0,
+            "uuid": "5B90B6CD-C16C-583B-5BA3-80CA310234A4"
+          }
+        ]
+      }
+    },
+    "returned": {
+      "fixture": {
+        "frames": [
+          [
+            465,
+            295,
+            540,
+            333
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 45548,
+        "lastCommand": "e4addbd1-c736-420a-ae7e-78930a3780b9",
+        "numbers": [
+          45547,
+          45548
+        ],
+        "pid": 59333,
+        "session": "ba59fb42-4eef-44fa-9808-34bb8b9da3f4",
+        "zoomed": [
+          false,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 16,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 59147,
+        "surfaceHidden": 0,
+        "visibilityRevision": 234541676627333,
+        "visibleDisplays": 0,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": true,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4867,
+            "type": 0,
+            "uuid": "5B90B6CD-C16C-583B-5BA3-80CA310234A4"
+          }
+        ]
+      }
+    },
+    "standardZoom": {
+      "fixture": {
+        "frames": [
+          [
+            0,
+            0,
+            1470,
+            923
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 45547,
+        "lastCommand": "f7e95842-eb6a-42e8-84a2-4306d30c28b2",
+        "numbers": [
+          45547,
+          45548
+        ],
+        "pid": 59333,
+        "session": "ba59fb42-4eef-44fa-9808-34bb8b9da3f4",
+        "zoomed": [
+          true,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 1,
+        "captureRequests": 16,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 494080,
+        "gallerySessions": 1,
+        "pid": 59147,
+        "surfaceHidden": 0,
+        "visibilityRevision": 234541676627333,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": true,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4867,
+            "type": 0,
+            "uuid": "5B90B6CD-C16C-583B-5BA3-80CA310234A4"
+          }
+        ]
+      }
+    }
+  },
+  "documentRelaunch": {
+    "differentProcess": true,
+    "independentMembership": true,
+    "staleWindowNumbersGoneFromFixture": true
+  },
+  "installedRelaunch": {
+    "configurationPreserved": true,
+    "newPID": true,
+    "sameGeneration": true
+  },
+  "movieError": "Assertion failed: (did_initialize), function CGS_REQUIRE_INIT, file CGInitialization.c, line 44.",
+  "ownedWindowAppExited": true,
+  "splitReason": "System picker did not expose a unique owned second document",
+  "splitView": "BLOCKED",
+  "zoomInOrdinarySpace": true
+}

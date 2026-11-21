@@ -16,9 +16,9 @@ extension PanelGlassSettings {
     func resolvedTransparency(dark: Bool) -> Self {
         var result = self
         if usesRecommendedTransparency {
-            result.overallTransparency = dark ? 8 : 12
-            result.outerTransparency = dark ? 56 : 45
-            result.innerTransparency = dark ? 92 : 83
+            result.overallTransparency = dark ? 22 : 32
+            result.outerTransparency = dark ? 68 : 65
+            result.innerTransparency = dark ? 7 : 8
         } else {
             result.overallTransparency = overallTransparency ?? 0
             result.outerTransparency = outerTransparency ?? (dark ? 60 : 48)
@@ -66,19 +66,17 @@ struct SurfaceGlassPalette {
         let levels = SurfaceGlassLevels(settings, dark: dark, reduceTransparency: reduceTransparency)
         outerOpacity = levels.outerTint
         innerOpacity = levels.innerTint
-        let solid = Color(nsColor: .windowBackgroundColor)
+        let shellColor = dark ? Color(red: 36/255, green: 39/255, blue: 43/255) : .white
+        let cardColor = dark ? Color(red: 32/255, green: 34/255, blue: 38/255) : .white
+        let solid = dark ? shellColor : Color(red: 239/255, green: 241/255, blue: 243/255)
         func wash(_ top: Color, _ bottom: Color, opacity: Double) -> LinearGradient {
-            let colors = reduceTransparency ? [solid, solid] : [top.opacity(opacity), bottom.opacity(opacity)]
+            let colors = reduceTransparency ? [top, top] : [top.opacity(opacity), bottom.opacity(opacity)]
             return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         }
 
-        let outerTop = dark ? Color(white: 0.24) : Color(white: 0.94)
-        let outerBottom = dark ? Color(white: 0.18) : Color(white: 0.90)
-        outer = wash(outerTop, outerBottom, opacity: levels.outerTint)
-        inner = wash(dark ? Color(white: 0.48) : .white,
-                     dark ? Color(white: 0.36) : Color(white: 0.99),
-                     opacity: levels.innerTint)
-        folded = reduceTransparency ? solid : outerTop.opacity(levels.foldedTint)
+        outer = wash(reduceTransparency ? solid : shellColor, shellColor, opacity: levels.outerTint)
+        inner = wash(cardColor, cardColor, opacity: levels.innerTint)
+        folded = reduceTransparency ? solid : shellColor.opacity(levels.foldedTint)
 
         func edge(strength: Double, highlight: Double, shade: Double) -> LinearGradient {
             let colors = increasedContrast ? Array(repeating: Color.primary.opacity(0.65), count: 2)
@@ -94,13 +92,13 @@ struct SurfaceCardGeometry {
     static func frame(in section: SurfaceRect, width: Double, settings: DisplaySettings = .init()) -> CGRect {
         let inset = settings.glass.inset(width: width)
         return CGRect(x: section.x + min(inset, section.width / 2),
-                      y: section.y + min(inset, section.height / 2),
+                      y: section.y,
                       width: max(0, section.width - 2 * inset),
-                      height: max(0, section.height - 2 * inset))
+                      height: section.height)
     }
 
     static func radius(settings: DisplaySettings, width: Double) -> Double {
-        settings.measures[.cornerRadius]?.points(in: width) ?? 18
+        settings.measures[.cornerRadius]?.points(in: width) ?? 16
     }
 
     static func shellRadius(settings: DisplaySettings, size: CGSize) -> CGFloat {
@@ -111,7 +109,7 @@ struct SurfaceCardGeometry {
 
     static func cardPaths(layout: SurfaceLayout, width: Double, settings: DisplaySettings) -> Path {
         Path { path in
-            for section in [layout.voice, layout.screenshots, layout.windowArea] where section.height > 0 {
+            for section in [layout.voice, layout.screenshots] + Array(layout.additionalTools.values) where section.height > 0 {
                 let frame = frame(in: section, width: width, settings: settings)
                 guard !frame.isEmpty else { continue }
                 let radius = min(radius(settings: settings, width: width), min(frame.width, frame.height) / 2)
@@ -157,7 +155,7 @@ struct SurfaceShell: View {
 
 /// Decoration only: no synthetic wallpaper or sampled user-window pixels.
 struct SurfaceGlass: View {
-    var radius: Double = 18
+    var radius: Double = 16
     var settings = PanelGlassSettings()
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -180,6 +178,6 @@ struct SurfaceGlass: View {
 extension View {
     func surfaceCard(width: Double, settings: DisplaySettings) -> some View {
         self.background { SurfaceGlass(radius: SurfaceCardGeometry.radius(settings: settings, width: width), settings: settings.glass) }
-            .padding(settings.glass.inset(width: width))
+            .padding(.horizontal, settings.glass.inset(width: width))
     }
 }

@@ -1,0 +1,5 @@
+{
+  "phase": "wordbook",
+  "reason": "Readback requires the original translated row and a freshly relaunched Host using the same isolated generation",
+  "status": "BLOCKED"
+}

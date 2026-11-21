@@ -43,9 +43,9 @@ struct VoiceTests {
         func size(_ width: Double) -> CGSize {
             VoiceSurface.captureButtonSize(in: .init(width: width, height: 100), settings: settings)
         }
-        #expect(size(180) == SaytileVoiceUI.VoicePanelFootprint.controlSize)
-        #expect(size(90) == CGSize(width: 32, height: 26))
-        #expect(size(101.5) == CGSize(width: 43.5, height: 26))
+        #expect(size(180) == CGSize(width: 48, height: 27))
+        #expect(size(90) == CGSize(width: 48, height: 27))
+        #expect(size(101.5) == CGSize(width: 48, height: 27))
         settings.measures[.voiceButtonWidth] = .init(39)
         settings.measures[.voiceButtonHeight] = .init(31)
         #expect(size(180) == CGSize(width: 39, height: 31))
@@ -78,6 +78,35 @@ struct VoiceTests {
         #expect(module.capture == .paused && !device.closed)
         await module.toggle()
         #expect(devices.count == 1 && device.permissionRequests == [false, true])
+        module.stop()
+        await module.waitForTransition()
+    }
+
+    @Test func residentHostBoundariesPauseOnceAndRequireAnExplicitRestart() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var input: ScriptedInput?
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) },
+            makeInput: { _, changed in
+                let device = ScriptedInput(changed)
+                input = device
+                return device
+            })
+        try module.start()
+        await module.waitForTransition()
+        #expect(module.interruptForHost(.session) == nil)
+        for boundary in [VoiceHostInterruption.fullscreen, .session] {
+            await module.toggle(requestPermission: false)
+            let device = try #require(input)
+            device.update(.speaking, 0.5, nil)
+            let interrupted = try #require(module.interruptForHost(boundary))
+            #expect(module.interruptForHost(boundary) == nil)
+            await interrupted.value
+            #expect(module.capture == .interrupted(boundary.message))
+            #expect(module.control.state == .paused)
+            #expect(!device.closed)
+        }
+        #expect(input?.permissionRequests == [false, false])
         module.stop()
         await module.waitForTransition()
     }

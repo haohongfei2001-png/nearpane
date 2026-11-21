@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "checkout": "666e26fe8a758fc0ba5539c09cfcd6d631cbf464",
+  "scope": "hostedEnvironmentOnly",
+  "qualificationGranted": false,
+  "productTrials": "NOT_RUN",
+  "physicalInstalledHost": "NOT_RUN",
+  "status": "BLOCKED",
+  "reason": "ordinaryUUIDFieldsPresentButUnusableTwice",
+  "buildExit": 0,
+  "readerExit": 0,
+  "observations": "reads.json"
+}

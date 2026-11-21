@@ -1,0 +1,63 @@
+{
+  "scope": "offline transport qualification; no events posted in this qualification",
+  "trialName": "W01",
+  "sourceBase": "968b926fa1241fb39203a5471bdf456d419e195d",
+  "previousInstalled": {
+    "evidence": "p2-registered-03/native/controlled-window",
+    "status": "FAIL",
+    "passes": 1,
+    "issued": 2,
+    "cause": "UNKNOWN",
+    "firstAckAfterSenderReturnedFromPostMs": 11.389,
+    "firstAttestedAppKitSteps": [
+      "arm",
+      "appKeyDown",
+      "windowKeyDown",
+      "editorKeyDown",
+      "insertText",
+      "afterInsert",
+      "appKeyUp",
+      "windowKeyUp",
+      "editorKeyUp",
+      "end"
+    ],
+    "secondAttestedAppKitSteps": [
+      "arm",
+      "end"
+    ],
+    "secondReceiptDistinguishesZeroAppKitFromUnattributed": false
+  },
+  "nextInstalledTrial": "NOT_RUN",
+  "nextInstalledSourceCapture": "NOT_RUN",
+  "signedKit": [
+    {
+      "part": "observe",
+      "Identifier": "net.example.nearpane.p2-observer",
+      "CDHash": "1ef1a618c5303c2d8e6390c4190e8f78c8a517ff",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "7dbc3a71cb8919908184627037366b522b62a9f8fd3e4f460b821825384e930d"
+    },
+    {
+      "part": "Field Notes.app",
+      "Identifier": "net.example.spaces-document",
+      "CDHash": "b9689943a7e01ef9376bac5a5932e8b32b4523ef",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "sha256": "8e380d8139f20b7045d07c2aea8e1a5f411f3b59b282755cb75720a39d95a0b4"
+    }
+  ],
+  "marker": {
+    "ordinaryKeys": 12,
+    "uniquePerTrial": true,
+    "fullyPIDTargeted": true,
+    "usesUnicodePayload": false,
+    "waitsForLiveReceiverAdmission": true,
+    "pairsAcknowledgedBeforeNext": true,
+    "noReplay": true,
+    "acceptance": "exact target file and unchanged sibling independently confirmed twice"
+  },
+  "tests": {
+    "registeredDocumentUnitCases": 15,
+    "markerWitnessCases": 5,
+    "adjacentRegressionCases": 35
+  }
+}

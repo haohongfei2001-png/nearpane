@@ -24,6 +24,17 @@ def cmd(*args):
     return subprocess.run(args, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
 
+def entitlements(component):
+    data = subprocess.run(["/usr/bin/codesign", "-d", "--entitlements", "-", "--xml", str(component)],
+                          check=True, capture_output=True).stdout
+    if not data:
+        return {}
+    result = plistlib.loads(data)
+    if not isinstance(result, dict):
+        raise ValueError("Signed entitlements must be a property-list dictionary")
+    return result
+
+
 def version(value):
     return tuple((list(map(int, value.split("."))) + [0, 0, 0])[:3])
 
@@ -34,6 +45,51 @@ def requirement(output):
     if len(values) != 1:
         raise ValueError("The executable has no unambiguous designated requirement")
     return values[0]
+
+
+# These executables can participate in a macOS permission decision.
+def designated_requirement(path):
+    output = cmd("/usr/bin/codesign", "-d", "-r-", str(path))
+    return requirement(output)
+
+
+# Stable shipping identifiers include the historical standalone helper identifiers.
+PRODUCT_SIGNING_TEAM = "ZB9D4T66QB"
+PRODUCT_IDENTIFIERS = {
+    ".": "com.holdsnow.nearpane.alpha",
+    "Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
+    "Contents/Helpers/NearpaneOrdinaryWindowController": "NearpaneOrdinaryWindowController",
+    "Contents/Helpers/NearpaneSpaceAction": "NearpaneSpaceAction",
+    "Contents/Helpers/NearpaneAutomation": "com.holdsnow.nearpane.automation",
+    "Contents/Helpers/NearpaneFrameController.app": "org.nearpane.lab.NearpaneFrameController",
+    "Contents/Helpers/NearpaneFixtureWindows.app": "org.nearpane.lab.NearpaneFixtureWindows",
+    "Contents/Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader": "NearpaneDesktopReader",
+}
+
+
+def normalized_requirement(text):
+    return " ".join(text.replace("/* exists */", "").replace('"', "").split())
+
+def product_identifiers(candidate):
+    info = plistlib.loads((candidate/"Contents/Info.plist").read_bytes())
+    if "NearpaneStageEngineABI" in info:
+        return {**PRODUCT_IDENTIFIERS, "Contents/Helpers/NearpaneCornerGuardian": "com.holdsnow.nearpane.alpha.corner-guardian"}
+    return PRODUCT_IDENTIFIERS
+
+
+def verify_install_identity(candidate):
+    for relative, identifier in product_identifiers(candidate).items():
+        subject = candidate / relative
+        rule = (f'identifier "{identifier}" and anchor apple generic and '
+                'certificate 1[field.1.2.840.113635.100.6.2.6] and '
+                'certificate leaf[field.1.2.840.113635.100.6.1.13] and '
+                f'certificate leaf[subject.OU] = "{PRODUCT_SIGNING_TEAM}"')
+        cmd("/usr/bin/codesign", "--verify", "--strict", "-R=" + rule, str(subject))
+        # The operating system records the designated requirement itself. A custom
+        # requirement pinned to this binary or certificate would break the next update.
+        actual = designated_requirement(subject)
+        if normalized_requirement(actual) != normalized_requirement(rule):
+            raise ValueError("Unstable permission identity: " + relative)
 
 
 def inspect(app):
@@ -126,7 +182,10 @@ def inspect(app):
         for name in ("source.json", "build.json", "PYTHON-LICENSE.txt", "PYTHON-THIRD-PARTY-NOTICES.rst"):
             if not (contents / "Resources/Automation" / name).is_file():
                 raise ValueError("Missing runtime provenance: " + name)
+    signed_host = entitlements(app)
+    required = ("com.apple.security.automation.apple-events", "com.apple.security.device.audio-input")
     return dict(bundle=info["CFBundleIdentifier"], version=info["CFBundleShortVersionString"],
+                hostResourceEntitlements={key: signed_host.get(key) is True for key in required},
                 minimumOS=deployment, binaries=inventory, appIcons=icons, missingDistributionSignatures=issues,
                 notarization="NOT_TESTED", cleanMacInstall="NOT_TESTED", publicRelease="NOT_ADMITTED")
 
@@ -134,11 +193,16 @@ def inspect(app):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("app", type=Path)
+    parser.add_argument("--require-install-identity", action="store_true",
+                        help="Require the stable Nearpane Developer ID identity for the Host and its permission helpers")
     parser.add_argument("--require-distribution-signatures", action="store_true",
                         help="Fail when even the preliminary Developer ID/timestamp/runtime checks are unmet")
     args = parser.parse_args()
     try:
         report = inspect(args.app)
+        if args.require_install_identity or (args.require_distribution_signatures and not report["missingDistributionSignatures"]):
+            verify_install_identity(args.app)
+            report["permissionIdentity"] = dict(team=PRODUCT_SIGNING_TEAM, subjects=len(product_identifiers(args.app)))
     except subprocess.CalledProcessError as exc:
         parser.exit(1, f"{exc}\n{(exc.stdout or '').strip()}\n")
     except (OSError, ValueError, KeyError) as exc:

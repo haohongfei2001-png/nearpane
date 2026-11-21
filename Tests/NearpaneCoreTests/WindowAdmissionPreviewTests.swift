@@ -7,7 +7,9 @@ struct WindowAdmissionPreviewTests {
     func context() -> AdmissionContext {
         var prefs = WorkspacePreferences()
         prefs.newWindow = .joinExisting
-        return .init(display: "side", screen: display, usable: display, primary: false, settings: .init(), edge: .left,
+        var saved = DisplaySettings()
+        saved.measures[.panelWidth] = .init(100)
+        return .init(display: "side", screen: display, usable: display, primary: false, settings: saved, edge: .left,
                      preferences: prefs, recoveryClear: true, exclusive: true)
     }
 

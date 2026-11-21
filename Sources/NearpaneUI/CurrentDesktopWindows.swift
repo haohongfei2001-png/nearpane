@@ -6,6 +6,9 @@ import OSLog
 /// serves geometry and window management independently of the window switcher.
 @MainActor @Observable final class CurrentDesktopWindows {
     typealias Read = NativeDesktopProvider.Read
+    #if NEARPANE_P0_DIAGNOSTIC
+    private let diagnosticLease = P0DiagnosticLease.installed()
+    #endif
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
     private let fingerprint: @MainActor () -> Int
@@ -15,6 +18,114 @@ import OSLog
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var lifetimes = [DesktopWindowKey: UUID]()
+    @ObservationIgnored weak var boundSidebarPair: BoundSidebarPair?
+    @ObservationIgnored private var sidebarWindows = NativeSidebarWindowHistory()
+    private let readSidebarWindows: NativeSidebarWindowHistory.Read?
+    @ObservationIgnored let windowAudit = NativeSidebarWindowAudit()
+    @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
+    let groups: StageGroupStore
+    let stageEngine: StageWindowEngineHost
+    private(set) var groupIssue: String?
+    @ObservationIgnored var splitPresentationChanged: (() -> Void)?
+    private(set) var pairedDisplays = Set<String>()
+    @ObservationIgnored private var splitObservationAllowed = false
+    @ObservationIgnored private var fullscreenHint = false
+    @ObservationIgnored private var nativeFullscreenSeen = false
+    @ObservationIgnored private var sampleNextSpace = false
+
+    // A native fullscreen transition can withdraw every ordinary panel. Keep a
+    // metadata-only lease long enough to recognize a pair without starting a capture.
+    func configureSplitObservation(allowed: Bool, fullscreenHint: Bool) {
+        guard allowed != splitObservationAllowed || fullscreenHint != self.fullscreenHint else { return }
+        if allowed && !splitObservationAllowed { sampleNextSpace = true }
+        splitObservationAllowed = allowed
+        self.fullscreenHint = allowed && fullscreenHint
+        if !allowed {
+            sampleNextSpace = false
+            nativeFullscreenSeen = false
+            publishPairs([])
+        }
+        updateObservation()
+    }
+
+    private func publishPairs(_ displays: Set<String>) {
+        guard displays != pairedDisplays else { return }
+        pairedDisplays = displays
+        Task { [weak self] in self?.splitPresentationChanged?() }
+    }
+
+    private func sampleSplitPresentation(_ snapshot: DesktopSnapshot?) {
+        guard splitObservationAllowed else { return }
+        let uptime = ProcessInfo.processInfo.systemUptime
+        let fresh = snapshot.flatMap { $0.nativeIsFresh(now: .now, uptime: uptime) ? $0 : nil }
+        nativeFullscreenSeen = fresh?.scopes.contains { $0.records.contains { $0.isCurrent && $0.nativeKind == .fullscreen } } == true
+        let pairs = fresh.map { value in
+            Set(value.displays.compactMap { display in
+                value.currentSplitView(on: display.id, now: .now, uptime: uptime) == nil ? nil : display.id
+            })
+        } ?? []
+        publishPairs(pairs)
+        sampleNextSpace = false
+        if !observationRequested { updateObservation() }
+    }
+
+    func tracks(_ token: UUID, at location: NativeSidebarWindowLocation) -> Bool {
+        panelRequested && sidebarWindows.tracks(token, at: location)
+    }
+
+    /// A member must still be on this physical display and its current ordinary desktop.
+    private func groupWindow(_ window: WindowObservation, on screen: DisplayObservation,
+                             current: SpaceRecord) -> StageGroupWindow? {
+        guard let nativeSpace = current.ordinaryUUID, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
+              window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
+              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole != false, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
+              let key = DesktopWindowKey(window), let lifetime = lifetimes[key] else { return nil }
+        let layout = screen.usable.flatMap { area in
+            m.hasCatalogGeometry == true || m.presentation == .confirmed
+                ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
+        }
+        return .init(display: display, identity: .init(pid: key.pid, birth: key.birth, number: key.number),
+                     lifetime: lifetime, layout: layout, nativeSpace: nativeSpace)
+    }
+
+    private func stageWindows(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [StageGroupWindow] {
+        guard snapshot.native?.stageManagerEnabled == false, snapshot.native?.windowLimitReached == false,
+              let catalog = NativeSpaceCatalog(snapshot, displayID: screen.id, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+              let row = catalog.rows.first(where: { $0.record.isCurrent && $0.record.ordinaryUUID != nil }) else { return [] }
+        let observations = Dictionary(grouping: snapshot.windows.compactMap(DesktopWindowKey.init), by: { $0 })
+        return ordered(row.windows).filter { w in
+            guard let key = DesktopWindowKey(w), observations[key]?.count == 1 else { return false }
+            return snapshot.isCurrentDesktopWindow(w)
+        }.compactMap { groupWindow($0, on: screen, current: row.record) }
+    }
+
+    func groupWindow(_ member: NativeSidebarMember, in snapshot: DesktopSnapshot) -> StageGroupWindow? {
+        guard snapshot.native?.stageManagerEnabled == false, let catalog = member.source.resolve(snapshot),
+              catalog.current.id == member.source.space, let window = member.resolve(snapshot),
+              snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1,
+              DesktopWindowTarget(window, in: snapshot) != nil else { return nil }
+        return groupWindow(window, on: catalog.display, current: catalog.current)
+    }
+
+    func join(_ moving: NativeSidebarMember, _ target: NativeSidebarMember, in snapshot: DesktopSnapshot,
+              verifiedPair: BoundSidebarPair? = nil) throws {
+        guard moving.source == target.source, let first = groupWindow(moving, in: snapshot),
+              let second = groupWindow(target, in: snapshot) else { throw StageGroupError.staleBinding }
+        try groups.observe([first, second])
+        // The ordinary worker retained both original AX elements through a temporary reader outage.
+        if let verifiedPair, verifiedPair === boundSidebarPair, verifiedPair.loss == nil,
+           verifiedPair.pair.dragged == moving, verifiedPair.pair.target == target {
+            for window in [first, second] where groups.needsRebinding(window) { try groups.rebind(window) }
+        }
+        try groups.join(first, to: second)
+    }
+
+    func visibleGroups(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [NativeSpaceWindow: StageGroupDirectory.Group] {
+        guard let id = UUID(uuidString: screen.id) else { return [:] }
+        let composites = groups.projectedGroups(on: id, among: stageWindows(in: snapshot, on: screen)).filter { $0.members.count > 1 }
+        return Dictionary(uniqueKeysWithValues: composites.flatMap { group in group.members.map { ($0.windowHint, group) } })
+    }
+
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
     @ObservationIgnored private var epoch = UUID()
     @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
@@ -27,17 +138,39 @@ import OSLog
     private var managementRequested = false
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
-         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint) {
+         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
+         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
+        let store = StageGroupStore(profile: stageGroupProfile)
+        groups = store
+        stageEngine = StageWindowEngineHost(profile:stageGroupProfile,store:store)
+        self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
+        stageEngine.attach(to:self)
     }
 
     func changed() { events?.yield(()) }
 
-    func invalidate() {
+    func cardAppeared(_ member: NativeSidebarMember) {
+        guard let key = member.location?.window else { return }
+        pendingAudit?.event("background-card-appeared", window: key)
+    }
+
+    func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        stageEngine.freeze()
+        boundSidebarPair?.revoke(.feedInvalidated)
+        windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("invalidate",
+            ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
+        if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
         pending?.1.cancel()
         pending = nil
         snapshot = nil
+        nativeFullscreenSeen = false
+        publishPairs([])
+        if preservingOriginalWindows && splitObservationAllowed {
+            sampleNextSpace = true
+            updateObservation()
+        }
         lifetimes.removeAll()
         retry?.cancel(); retry = nil; failures = 0
         didSample?()
@@ -45,7 +178,9 @@ import OSLog
     }
 
     func observe(_ enable: Bool) {
+        windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("panel-observation", ["enabled": enable])
         panelRequested = enable
+        if !enable { sidebarWindows = .init() }
         updateObservation()
     }
 
@@ -54,9 +189,13 @@ import OSLog
         updateObservation()
     }
 
+    private var observationRequested: Bool {
+        panelRequested || managementRequested || (splitObservationAllowed && (fullscreenHint || sampleNextSpace || nativeFullscreenSeen))
+    }
+
     private func updateObservation() {
-        let enable = panelRequested || managementRequested
-        if !enable {
+        if !observationRequested {
+            guard loop != nil || events != nil || snapshot != nil else { return }
             events?.finish(); events = nil
             loop?.cancel(); loop = nil
             invalidate()
@@ -99,6 +238,14 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                if let next { stageEngine.observeEnvironment(next) }
+                if next?.native?.stageManagerEnabled == false {
+                    stageEngine.ordinaryContextObserved()
+                    stageEngine.refreshHeld(feed:self)
+                }
+                sampleSplitPresentation(next)
+                guard !Task.isCancelled, expected == epoch else { continue }
+                if let next, pendingAudit?.revision == next.revision { pendingAudit?.snapshot(next, stage: "publish") }
                 retry?.cancel()
                 retry = nil
                 if next != nil {
@@ -128,32 +275,116 @@ import OSLog
 
     /// Used on both sides of a background picture batch and before an explicit click.
     /// Concurrent consumers join the same in-flight read.
+    private var firstObserved = [DesktopWindowKey: UInt64]()
+    private var nextOrdinal: UInt64 = 0
+
+    func ordered(_ windows: [WindowObservation], on display: String? = nil) -> [WindowObservation] {
+        let ranks = display.flatMap(UUID.init(uuidString:)).map { id in
+            Dictionary(uniqueKeysWithValues: groups.groups(on: id).enumerated().flatMap { index, group in
+                group.members.map { ($0.windowHint, index) }
+            })
+        } ?? [:]
+        func groupRank(_ w: WindowObservation) -> Int {
+            guard let k = DesktopWindowKey(w) else { return .max }
+            return ranks[.init(pid: k.pid, birth: k.birth, number: k.number)] ?? .max
+        }
+        func ordinal(_ window: WindowObservation) -> UInt64 {
+            guard let m = window.metadata, let birth = m.launchMicroseconds else { return .max }
+            return firstObserved[.init(pid: m.pid, birth: birth, number: m.number)] ?? .max
+        }
+        return windows.sorted { (groupRank($0), ordinal($0), $0.id) < (groupRank($1), ordinal($1), $1.id) }
+    }
+
+    /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
+    func readAfterAction() async -> DesktopSnapshot? {
+        let boundary = revision, expected = epoch
+        if let prior = pending {
+            _ = await prior.1.value
+            if pending?.0 == prior.0 { pending = nil }
+        }
+        guard epoch == expected, let fresh = await readNow(), fresh.revision > boundary, epoch == expected else { return nil }
+        return fresh
+    }
+
     func readNow() async -> DesktopSnapshot? {
-        guard events != nil, sessionAvailable() else { lifetimes.removeAll(); return nil }
+        guard events != nil, sessionAvailable() else {
+            boundSidebarPair?.revoke(.feedInvalidated)
+            lifetimes.removeAll()
+            sidebarWindows = .init()
+            return nil
+        }
         let expected = epoch
         if let pending {
             let result = await pending.1.value
             return expected == epoch ? result : nil
         }
         revision &+= 1
+        let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
-            fixtureWindows: nil, anchors: [], experimentalSpaces: false)
+            fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
             let readback = try? await read(request)
-            guard let self, !Task.isCancelled, expected == self.epoch else { return nil }
-            guard let result = readback, self.sessionAvailable(),
+            guard let self, !Task.isCancelled, expected == self.epoch else { audit?.event("reader-cancelled"); return nil }
+            guard var result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+                audit?.event("reader-rejected", ["reply": readback != nil, "sessionAvailable": self.sessionAvailable(),
+                    "structurallyValid": readback?.isStructurallyValid == true])
                 self.lifetimes.removeAll()
+                if !self.sessionAvailable() {
+                    self.boundSidebarPair?.revoke(.feedInvalidated)
+                    self.sidebarWindows = .init()
+                }
                 return nil
             }
+            self.boundSidebarPair?.observe(result)
+            audit?.snapshot(result, stage: "reader")
+            self.pendingAudit = audit
+            let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
+            var diagnosticTargets: Set<NativeSidebarWindowLocation>?
+            #if NEARPANE_P0_DIAGNOSTIC
+            if self.panelRequested, !ordinaryObservation {
+                diagnosticTargets = self.diagnosticLease?.observationTargets(host:getpid())
+            }
+            #endif
+            if self.panelRequested && (ordinaryObservation || diagnosticTargets?.isEmpty == false) {
+                var history = self.sidebarWindows
+                let sampleWindows = self.readSidebarWindows ?? { await NativeSpaceActionClient.shared.observe($0, audit: audit) }
+                await history.update(&result, audit: audit, eligible: diagnosticTargets, read: sampleWindows)
+                guard !Task.isCancelled, expected == self.epoch, self.sessionAvailable(), self.panelRequested,
+                      result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
+                self.sidebarWindows = history
+            } else { audit?.event("panel-observation-disabled") }
             var next = [DesktopWindowKey: UUID]()
             for window in result.windows {
                 guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }
                 let key = DesktopWindowKey(pid: meta.pid, birth: birth, number: meta.number)
                 next[key] = self.lifetimes[key] ?? UUID()
             }
+            self.firstObserved = self.firstObserved.filter { next[$0.key] != nil }
+            // IDs order the initial batch only. A later window cannot overtake an older one.
+            for key in next.keys.sorted(by: { $0.number < $1.number }) where self.firstObserved[key] == nil {
+                self.nextOrdinal += 1
+                self.firstObserved[key] = self.nextOrdinal
+            }
             self.lifetimes = next
+            if self.panelRequested, self.groups.loadIssue == nil {
+                self.stageEngine.updateGroupProjection(result)
+                let stage = self.stageEngine.snapshotForGroups(result)
+                let candidates = stage.displays.flatMap { self.stageWindows(in: stage, on: $0) }
+                do {
+                    if !self.stageEngine.holdsDispatch { try self.groups.observe(candidates) }
+                    self.groupIssue = nil
+                } catch { self.groupIssue = error.localizedDescription }
+            }
+            if let audit, audit.focusRequest != nil {
+                let snapshot = result
+                Task { @MainActor [weak self] in
+                    await audit.inspectEnrolledFocus(snapshot) {
+                        self?.epoch == expected && self?.panelRequested == true && self?.sessionAvailable() == true
+                    }
+                }
+            }
             return result
         }
         let token = UUID()

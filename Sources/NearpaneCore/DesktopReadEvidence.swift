@@ -9,10 +9,31 @@ public extension SurfaceRect {
 
 /// The preference describes this login's configuration, not the presentation of a particular window.
 public enum StageManagerPreference {
+    private static var value: CFPropertyList? {
+        CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString)
+    }
+
+    /// An unset preference is the factory-off state. An unreadable stored type
+    /// cannot safely give a second switcher ownership of the display.
+    public static var ownsWindowDispatch: Bool {
+        read() != false
+    }
+
+    static func configuration(_ value: CFPropertyList?, domainReadable: Bool) -> Bool? {
+        guard let value else { return domainReadable ? false : nil }
+        return CFGetTypeID(value) == CFBooleanGetTypeID() ? value as? Bool : nil
+    }
+
     public static func read() -> Bool? {
-        guard let value = CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString),
-              CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
-        return value as? Bool
+        let stored = value
+        if let stored { return configuration(stored, domainReadable: true) }
+        // A clean login has no explicit GloballyEnabled value. Prove that the preference domains
+        // can be read before treating absence as the system's default-off configuration.
+        let domain = "com.apple.WindowManager" as CFString
+        let readable = [kCFPreferencesCurrentHost, kCFPreferencesAnyHost].allSatisfy {
+            CFPreferencesCopyMultiple(nil, domain, kCFPreferencesCurrentUser, $0) != nil
+        }
+        return configuration(nil, domainReadable: readable)
     }
 }
 
@@ -35,6 +56,10 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     /// The overview reader twice matched this window's membership to this display's
     /// current ordinary Space. WindowServer may present it outside the active stage.
     public let overviewSpaceID: String?
+    /// Display-only evidence. Both forward and reverse WindowServer membership reads agreed on this active fullscreen Space.
+    public let activeFullscreenSpaceID: String?
+    /// True only for this exact owner and window in the current system tile manager. Nil when its data was unavailable.
+    public let matchesNativeTile: Bool?
     /// Repeated CG frame and usable display intersection in the fast inventory. A
     /// stage-strip presentation or changing frame has membership but no map geometry.
     public let hasCatalogGeometry: Bool?
@@ -43,18 +68,21 @@ public struct ObservedWindowMetadata: Codable, Equatable, Sendable {
     public let catalogLogicalFrame: SurfaceRect?
     /// Public ordering, owner visibility and (when available) exact AX window classification.
     /// Membership alone also includes minimized, hidden and ordered-out surfaces.
-    public let overviewIsPresented: Bool?
+    public package(set) var overviewIsPresented: Bool?
     /// Exact-number AX role classification for the overview reader. Nil means no role evidence.
-    public let overviewOrdinaryRole: Bool?
+    public package(set) var overviewOrdinaryRole: Bool?
     public var presentation: WindowPresentationGeometry {
         .init(cg: globalFrame.geometry, ax: axFrame?.geometry, onScreen: isOnscreen)
     }
     public let frontToBack: Int
-    public let minimized, fullScreen: Bool?
+    public package(set) var minimized, fullScreen: Bool?
     public init(number: UInt32, pid: Int32, launchMicroseconds: UInt64?, element: UUID?, globalFrame: SurfaceRect,
                 frontToBack: Int, minimized: Bool?, fullScreen: Bool?, axFrame: SurfaceRect? = nil, isOnscreen: Bool? = nil,
                 axStandardWindowNumber: UInt32? = nil, onActiveDesktop: Bool? = nil, overviewSpaceID: String? = nil, hasCatalogGeometry: Bool? = nil,
-                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil, overviewOrdinaryRole: Bool? = nil) {
+                catalogLogicalFrame: SurfaceRect? = nil, overviewIsPresented: Bool? = nil, overviewOrdinaryRole: Bool? = nil,
+                activeFullscreenSpaceID: String? = nil, matchesNativeTile: Bool? = nil) {
+        self.activeFullscreenSpaceID = activeFullscreenSpaceID
+        self.matchesNativeTile = matchesNativeTile
         self.overviewOrdinaryRole = overviewOrdinaryRole
         self.overviewIsPresented = overviewIsPresented
         self.hasCatalogGeometry = hasCatalogGeometry
@@ -71,7 +99,7 @@ public extension WindowObservation {
     /// Read-only admission to look up this exact number on demand. A successful lookup is not an action.
     /// A busy application may have missed the reader's shared AX time budget.
     var canRequestCurrentDesktopFocus: Bool {
-        guard let m = metadata, m.onActiveDesktop == true, m.isOnscreen == true, m.pid > 0,
+        guard let m = metadata, m.activeFullscreenSpaceID == nil, m.onActiveDesktop == true, m.isOnscreen == true, m.pid > 0,
               (m.launchMicroseconds ?? 0) > 0, m.number > 0, m.minimized != true, m.fullScreen != true,
               confidence != .ambiguous, confidence != .synthetic else { return false }
         if canWitnessCurrentSpace { return true }
@@ -81,7 +109,7 @@ public extension WindowObservation {
     /// Membership and active-Space visibility are checked separately by the reader.
     var canWitnessCurrentSpace: Bool {
         guard confidence == .geometryOnly || confidence == .corroboratedMetadata,
-              let m = metadata, m.number > 0, m.axStandardWindowNumber == m.number,
+              let m = metadata, m.activeFullscreenSpaceID == nil, m.number > 0, m.axStandardWindowNumber == m.number,
               m.pid > 0, (m.launchMicroseconds ?? 0) > 0, m.element != nil else { return false }
         return m.presentation == .confirmed && m.fullScreen == false && m.minimized == false
     }
@@ -117,16 +145,25 @@ public struct DesktopReadRequest: Codable, Sendable {
     public let fixtureWindows: [UInt32]?
     public let anchors: [ActiveSpaceAnchor]
     public let experimentalSpaces: Bool
+    public let sidebarAuditWindows: [NativeSpaceWindow]?
     public init(session: UUID, revision: UInt64, parentPID: Int32, fixtureWindows: [UInt32]?,
-                anchors: [ActiveSpaceAnchor], experimentalSpaces: Bool) {
+                anchors: [ActiveSpaceAnchor], experimentalSpaces: Bool, sidebarAuditWindows: [NativeSpaceWindow]? = nil) {
+        self.sidebarAuditWindows = sidebarAuditWindows
         version = 1; self.session = session; self.revision = revision; self.parentPID = parentPID
         self.fixtureWindows = fixtureWindows; self.anchors = anchors; self.experimentalSpaces = experimentalSpaces
     }
 }
 
+public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
+    public let window: NativeSpaceWindow
+    public var flags: [String: Bool]
+    public init(_ window: NativeSpaceWindow, flags: [String: Bool]) { self.window = window; self.flags = flags }
+}
+
 public struct DesktopReadEvidence: Equatable, Codable, Sendable {
+    public var sidebarWindowAudit: [SidebarWindowReaderProof]? = nil
     public let population: DesktopReadPopulation
-    public let accessibility: AXReadStatus
+    public package(set) var accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
     public var rows: [ObservedSpaceRow]
     /// Read-only system preference, independent of any individual window's presentation.
@@ -188,6 +225,13 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
                                           width: m.globalFrame.width, height: m.globalFrame.height) else { return false }
             if let ax = m.axFrame, !ax.geometry.isValid { return false }
             if let logical = m.catalogLogicalFrame, catalogComplete == nil || !logical.geometry.isValid { return false }
+            if let id = m.activeFullscreenSpaceID {
+                guard m.overviewSpaceID == nil, catalogComplete != nil, spaces == .observed,
+                      (m.launchMicroseconds ?? 0) > 0, w.membership == .known(recordIDs: [id]),
+                      snapshot.scopes.contains(where: { $0.displayID == w.displayID &&
+                          $0.records.contains(where: { $0.isCurrent && $0.id == id && $0.nativeKind == .fullscreen }) })
+                else { return false }
+            } else if m.matchesNativeTile != nil { return false }
             if let id = m.overviewSpaceID {
                 guard (m.launchMicroseconds ?? 0) > 0, case .known(let ids) = w.membership, ids.contains(id),
                       snapshot.scopes.contains(where: { $0.displayID == w.displayID &&

@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "transaction": "d7521aff-e2c4-4750-80b7-9de8e154b1ef",
+  "original": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "version": "5.22",
+    "build": "90",
+    "tree": "8255226250460e19451c356fcd021f3c7d38b9a45db2fc253f29adfe3bd10a89",
+    "root": [
+      16777233,
+      301433254
+    ],
+    "host": [
+      16777233,
+      301433259
+    ]
+  },
+  "candidate": {
+    "source": "d81c458f58b8b2efcb393acc0d8fff8db07345a6",
+    "cdhash": "fe99ab1a36581d97eb053d66536afd934cbc7168",
+    "version": "5.22",
+    "build": "90",
+    "tree": "dd4604abe5afe991d945a330897db2e6e18efcbd55e8ef1d7ad05f47099edbdb",
+    "root": [
+      16777233,
+      301864048
+    ],
+    "host": [
+      16777233,
+      301864053
+    ]
+  },
+  "dailyConfiguration": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+  },
+  "initialDailyHost": [
+    4264,
+    1795208557,
+    518315
+  ],
+  "restoredDailyHost": [
+    13155,
+    1795209355,
+    734177
+  ],
+  "restoration": "PASS",
+  "cleanup": "PASS",
+  "trials": {
+    "P2": {
+      "status": "PASS",
+      "exit": 0,
+      "receipt": "p2/result.json",
+      "sha256": "4861f1e6539443d3cdd7cb8b5a460198131ef7803a9c436b51d6212acef167d3"
+    },
+    "P4": {
+      "status": "FAIL",
+      "exit": 2,
+      "receipt": "p4/result.json",
+      "sha256": "b57fb0814ac4aac4defc5c32dd162a6eedaf1ef5b32b2eaf77e53337e376087e"
+    }
+  },
+  "stage": "restored",
+  "terminationSignal": null,
+  "rawJournalSHA256": "3c59d1a85dc90f25b91cc40ebb20248078b162ee9ba8eb6dd6a4fa7b260c25ea",
+  "steps": [
+    "enrolled",
+    "quitting-original",
+    "swapping-to-candidate",
+    "launching-isolated",
+    "isolated-running",
+    "sampling-installed-host-permissions",
+    "sampled-installed-host-permissions",
+    "running-P2",
+    "finished-P2",
+    "running-P4",
+    "finished-P4",
+    "quitting-isolated",
+    "restoring-original-bundle",
+    "launching-original",
+    "restored",
+    "restored"
+  ]
+}

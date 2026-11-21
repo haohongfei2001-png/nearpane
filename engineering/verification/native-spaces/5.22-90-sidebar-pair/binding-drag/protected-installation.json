@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "original": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "version": "5.22",
+    "build": "90",
+    "tree": "8255226250460e19451c356fcd021f3c7d38b9a45db2fc253f29adfe3bd10a89",
+    "root": [
+      16777233,
+      301433254
+    ],
+    "host": [
+      16777233,
+      301433259
+    ]
+  },
+  "candidate": {
+    "source": "203e34ea6543b148f2e66722015d6f06ff3a0374",
+    "cdhash": "216ace79abc7183b48ebe6d26d0d098eb8030dcb",
+    "version": "5.22",
+    "build": "90",
+    "tree": "cfeaca9a64fdfff440cd1fbdd0a57af3c8884503d2e6c79b1942d3d2bee75334",
+    "root": [
+      16777233,
+      302014392
+    ],
+    "host": [
+      16777233,
+      302014397
+    ]
+  },
+  "dailyConfiguration": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "b1b64d9fe1740024a25e82e53176f84ee725155a47eaa6496321f36d862eb9b2"
+  },
+  "isolatedHostGeneration": "/Users/hhf/Library/Caches/nearpane-native-acceptance.yosp_zib/home/Library/Application Support/Nearpane Alpha Profiles/generations/73d2348f-c091-4cea-aba5-e7524f0a16a3",
+  "restoredDailyHost": [
+    56722,
+    1795214119,
+    744415
+  ],
+  "focusScenario": "pair-drag",
+  "restoration": "PASS",
+  "cleanup": "PASS",
+  "trials": {
+    "P2": {
+      "status": "PASS",
+      "exit": 0,
+      "receipt": "p2/result.json",
+      "sha256": "a37b84170d0519bf06d88525186447a98894a76a54665d555e1f0ad76df298fa"
+    }
+  },
+  "originalReceiptSHA256": "3acf2db1f9349597efc451d18b6157b7cdaf9350ac685e60b6581fde0b7b8706",
+  "hostCapture": "RECORDED",
+  "hostLog": [
+    {
+      "timestamp": "2026-11-21 06:35:02.324307+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:04.879372+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:05.374362+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDrop"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:05.638123+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairResolving"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:05.698815+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairListed"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:05.889187+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairPlacing"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:07.850976+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairVerified"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:08.470472+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDown"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:08.907624+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=cardDrop"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:09.013318+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairResolving"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:09.089386+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairListed"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:09.228160+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairPlacing"
+    },
+    {
+      "timestamp": "2026-11-21 06:35:10.984750+0800",
+      "processID": 55601,
+      "category": "SidebarPointer",
+      "eventMessage": "phase=pairVerified"
+    }
+  ]
+}
