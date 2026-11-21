@@ -529,6 +529,12 @@ class Transaction:
         if self.rec.get("visitFocusLeaseKit"):
             import lease_visit
             self.daily_visit_reader, self.rec["visitDailyOriginal"] = lease_visit.daily_reference(self.rec["visitFocusLeaseKit"],stamp[0])
+            if self.rec["visitDailyOriginal"].get("ready") is not True:
+                for name in self.rec["trials"]:
+                    self.rec["trials"][name] = dict(status="BLOCKED", reason=self.rec["visitDailyOriginal"]["reason"],
+                                                    entry="NOT_RUN", candidateStarted=False, productInputsBySetup=0)
+                self.save("daily-focus-unavailable")
+                return
         self.save("quitting-original")
         self.mac.quit(stamp)
         with self.guarded_daily():

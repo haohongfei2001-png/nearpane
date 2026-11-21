@@ -171,8 +171,11 @@ private func restoreDaily(_ original: Held, app: NSRunningApplication?, geometry
         guard daily || CommandLine.arguments.count == 1 else { emit(["ready":false,"reason":"invalidMode"]); return }
         do {
             let initial = try topology(), hid = inputs(), startBoot = try bootID()
-            guard initial.records.first(where:{$0.id == initial.current})?.type == 0, AXIsProcessTrusted(),
-                  let f = actualFocus(), let element = f.element else { throw Refusal("originalOrdinaryFocusUnavailable") }
+            guard let current = initial.records.first(where: { $0.id == initial.current }) else { throw Refusal("originalSpaceUnknown") }
+            try need(current.type == 0, "originalSpaceIsNotOrdinary")
+            try need(AXIsProcessTrusted(), "focusObserverAccessibilityUnavailable")
+            guard let f = actualFocus() else { throw Refusal("originalSystemFocusUnavailable") }
+            guard let element = f.element else { throw Refusal("originalAXWindowUnavailable") }
             let original = try Held(element)
             try original.verify(initial.current,isAnchor:false)
             try need(original.matches(f),"initialFocusUnstable")

@@ -16,6 +16,7 @@ on:
       - 'Tests/NearpaneCoreTests/OrdinaryFocusAttributesTests.swift'
       - 'Tests/NearpaneUITests/WindowFocusLatencyTests.swift'
       - 'Tests/NearpaneUITests/WindowSwitchTransitionTests.swift'
+      - 'Tests/NearpaneUITests/HostedWindowSwitchTests.swift'
       - 'Tests/NearpaneUITests/CurrentCardFocusPreparationTests.swift'
       - 'Tests/NearpaneUITests/TargetedCurrentCardTests.swift'
       - 'Tests/NearpaneUITests/OrdinaryWindowManagerTests.swift'
@@ -96,6 +97,17 @@ jobs:
           for suite in "${suites[@]}"; do
             grep -F "Suite $suite passed" "$RUNNER_TEMP/native-ui-tests.log"
           done
+      - name: Check the production switch cover in an isolated WindowServer session
+        env:
+          NEARPANE_HOSTED_SWITCH: '1'
+        run: |
+          set -euo pipefail
+          export NEARPANE_HOSTED_SWITCH_RECEIPT="$RUNNER_TEMP/window-switch-windowserver.json"
+          result=0
+          swift test --skip-build --disable-xctest --enable-swift-testing --filter HostedWindowSwitchTests || result=$?
+          cat "$NEARPANE_HOSTED_SWITCH_RECEIPT"
+          cat "$NEARPANE_HOSTED_SWITCH_RECEIPT" >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
       - name: Assess the enrolled private archive on this clean hosted Mac
         if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
         env:

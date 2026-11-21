@@ -189,6 +189,12 @@ def scope_probe_gate(proof, binding):
 
 
 class PairPointerRun(RegisteredRun):
+    @staticmethod
+    def after_verified_input(attempt):
+        motion = attempt.get("presentation", {}).get("windowSwitch")
+        if motion and motion.get("status") != "PASS":
+            raise TrialStop("windowSwitchPixelsUnconfirmed", "FAIL" if motion.get("status") == "FAIL" else "UNKNOWN")
+
     def __init__(self, *args):
         super().__init__(*args)
         self.phase_monitor = None
@@ -522,11 +528,7 @@ class PairPointerRun(RegisteredRun):
         else:
             self.out["selection"]["status"] = "UNKNOWN"
             try:
-                def check_motion(attempt):
-                    motion = attempt.get("presentation", {}).get("windowSwitch")
-                    if motion and motion.get("status") != "PASS":
-                        raise TrialStop("windowSwitchPixelsUnconfirmed", "FAIL" if motion.get("status") == "FAIL" else "UNKNOWN")
-                self.selection_trials(reader, texts, hashes, initial_focus, check_motion)
+                self.selection_trials(reader, texts, hashes, initial_focus)
                 self.out["selection"]["status"] = "PASS"
             except Superseded:
                 raise

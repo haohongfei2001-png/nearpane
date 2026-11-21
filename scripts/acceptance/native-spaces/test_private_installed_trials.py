@@ -273,6 +273,18 @@ class TestTemporaryInstall(unittest.TestCase):
                 "expectedSpace": False}).encode()), self.assertRaisesRegex(ValueError, "Invalid enrolled"):
             tool.spaces_trials.focus_lease(self.base/"missing.json")
 
+    def test_missing_original_focus_keeps_the_running_daily_host_and_skips_the_trial(self):
+        tx = self.prepare()
+        tx.rec.update(visitFocusLeaseKit=str(self.base), trials={"P2": {"status":"NOT_RUN"}})
+        with patch("lease_visit.daily_reference", return_value=(None, {"ready":False, "reason":"originalSpaceIsNotOrdinary"})):
+            tx.forward(lambda: 0)
+        tx.restore()
+        self.assertEqual(self.mac.actions, [])
+        self.assertEqual(tx.rec["trials"]["P2"], dict(status="BLOCKED", reason="originalSpaceIsNotOrdinary",
+                         entry="NOT_RUN", candidateStarted=False, productInputsBySetup=0))
+        self.assertEqual(tx.rec["initialDailyHost"], tx.rec["restoredDailyHost"])
+        self.assertEqual((tx.rec["restoration"], tx.rec["cleanup"]), ("PASS", "PASS"))
+
     def test_recover_after_atomic_swap_before_observation(self):
         tx = self.prepare()
         tx.save("swapping-to-candidate")

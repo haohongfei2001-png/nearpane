@@ -115,6 +115,8 @@ def classify_read(q, state, disk, target, hashes, expect_focus):
 
 
 class RegisteredRun:
+    after_verified_input = None
+
     def __init__(self, observer, initial, rec, lease_hid, lease_workspace=None, lease_admission=None):
         override = os.environ.get("NP_P2_DOCUMENT_KIT") or os.environ.get("NP_W01_MARKER_KIT")
         self.kit = Path(override) if override else observer.parent
@@ -344,7 +346,7 @@ class RegisteredRun:
         initial_focus=self.prepare_front(hashes)
         return self.selection_trials(reader, texts, hashes, initial_focus)
 
-    def selection_trials(self, reader, texts, hashes, initial_focus, after_verified_input=None):
+    def selection_trials(self, reader, texts, hashes, initial_focus):
         numbers=self.binding["numbers"]
         first_slot=1 if initial_focus==numbers[0] else 0
         unique_tokens=secrets.SystemRandom().sample(range(10**12),10)
@@ -386,8 +388,8 @@ class RegisteredRun:
             attempt.update(status="PASS",siblingUnchanged=True)
             self.out["passes"]+=1
             if self.trial==1:self.capture_first(n,hashes)
-            if after_verified_input is not None:
-                after_verified_input(attempt)
+            if self.after_verified_input is not None:
+                self.after_verified_input(attempt)
         self.out.update(status="PASS",reason="tenExactAlternatingWindowsAndInputs")
         return hashes
 
