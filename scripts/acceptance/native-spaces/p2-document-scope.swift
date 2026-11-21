@@ -205,6 +205,11 @@ func p2DocumentReport(_ request:P2Request) -> Object {
     result["frontIsFixture"]=currentFront==pid
     result["frontMatchesOriginal"]=request.allowedFront.map{$0==currentFront} ?? false
     #if P2_PAIR_POINTER
+    if ["apple-focus-reference","focus-reference-environment"].contains(request.mode) {
+        guard request.digests == hashes, p2Signed(request.hostPID,id:bundleID,team:team), !changed()
+        else {return stop("enrolledNativeReferenceScopeUnavailable")}
+        return appleFocusSurface(request,windows:ordered,numbers:numbers)
+    }
     if request.mode == "pair-pointer" {
         guard request.hid == hardware, request.digests == hashes, let target = request.target,
               numbers.contains(target), let uuid = request.spaceUUID, let kind = request.pointerKind,
