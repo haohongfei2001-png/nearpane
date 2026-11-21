@@ -121,9 +121,14 @@ public final class EmbeddedModules {
         #endif
     }
 
+    @discardableResult public func prepareStageWindowShutdown() async -> Bool {
+        guard let engine = windowPreviews.currentDesktop?.stageEngine else { return true }
+        return await engine.prepareForShutdown()
+    }
+
     public func finishStopping() async {
         translation?.detach()
-        await windowPreviews.currentDesktop?.stageEngine.release()
+        await prepareStageWindowShutdown()
         await workRect?.finish()
         stopWindowContentPreview()
         #if canImport(NearpaneVoice)

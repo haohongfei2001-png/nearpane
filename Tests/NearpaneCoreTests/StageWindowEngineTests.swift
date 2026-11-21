@@ -7,8 +7,10 @@ import Testing
     let displayArea = SurfaceRect(width:1200,height:950)
     var sequence: UInt64 = 0, windows = [NativeSpaceWindow:StageWindowState](), focus: NativeSpaceWindow?
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
-    var health = true, recovery = true, zeroLeases = true, unknownHide: UInt32?, badReadback: UInt32?
+    var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
     var beforeCloseRead: (() -> Void)?
+    var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
+    var visibleAfterMutation = [Int]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
@@ -44,7 +46,19 @@ import Testing
             return .init(status:0,flags:flags,intent:c.intent,nativeID:hidden && owner.backend == .spaces ? 60 : 22,frame:windows[id]?.frame)
         default: throw StageSwitchError.unavailable
         }
+        visibleAfterMutation.append(windows.values.filter { $0.visibility == .visible }.count)
         return .init(status:0,flags:0,intent:c.intent,nativeID:22)
+    }
+    func start(_ owner: StageEngineOwner,nativeID: UInt64) async throws { guard canStart && nativeID == 22 else { throw StageSwitchError.incomplete } }
+    func prepareHide(_ c: StageWindowCommand, owner: StageEngineOwner) async throws {
+        guard owner.backend == .corner, !writeIntents.contains(c.intent), prepared.insert(c.intent).inserted else { throw StageSwitchError.ownership }
+    }
+    func verified(_ c: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws {
+        guard writeIntents.contains(c.intent), (c.action != .hide || prepared.contains(c.intent)),
+              confirmed.insert(c.intent).inserted, after.window.number != confirmationFailure else { throw StageSwitchError.recoveryRequired }
+    }
+    func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
+        .init(status:health ? 0 : 2,flags:health ? 64 | 16 : 0,intent:intent,nativeID:0)
     }
     func revoke() { revokes += 1 }
     func close() async -> Bool {
@@ -60,13 +74,14 @@ import Testing
         hostCDHash:String(repeating:"1",count:40),hardware:"fixture",topology:"physical-fixture",windowClass:"ordinary",sipEnabled:true)
     private func qualification(_ backend: StageWindowBackend, _ comparison: StageEngineComparison? = nil) -> StageEngineQualification {
         .init(backend:backend,environment:environment,evidence:UUID(),
-              checks:Dictionary(uniqueKeysWithValues:StageEngineCheck.required(for:backend).map { ($0,.pass) }),comparison:comparison)
+              checks:Dictionary(uniqueKeysWithValues:StageEngineCheck.required(for:backend).map { ($0,.pass) }),comparison:comparison ?? metrics(6))
     }
     private func metrics(_ n: Double, memory: Double = 2, sample: Int = 100, inputTail: Double? = nil) -> StageEngineComparison {
         .init(protocolDigest:"same-workload",samplesPerDirection:sample,
               firstFrame:.init(p50:n,p95:n+1,p99:n+2),interactive:.init(p50:n+1,p95:n+2,p99:inputTail ?? n+3),
               settled:.init(p50:n+2,p95:n+3,p99:n+4),longestSettling:n+5,frameGapP99:n+1,droppedFramePercent:0,
-              idleCPU:1,burstCPU:2,windowServerCPU:2,replaydCPU:1,memoryMB:memory)
+              idleCPU:1,burstCPU:2,windowServerCPU:2,replaydCPU:1,memoryMB:memory,
+              reference:.init(appleFirstFrameP95:55,appleInteractiveP95:75,nominalInterval:16.7,frameGapP95:5,longestGap:18,recoverySeconds:1))
     }
     @Test func selectionUsesCompletePhysicalEvidenceAndNoBackendOrder() {
         let a=qualification(.corner,metrics(8)), b=qualification(.spaces,metrics(5))
@@ -78,7 +93,9 @@ import Testing
         let mixed=qualification(.corner,metrics(3,memory:15))
         #expect(StageEngineQualification.choose([mixed,b],in:environment)==nil)
         #expect(StageEngineQualification.choose([mixed,b],in:environment,retaining:.spaces)==b)
-        #expect(StageEngineQualification.choose([qualification(.spaces,metrics(3,sample:99)),a],in:environment)==nil)
+        #expect(StageEngineQualification.choose([qualification(.spaces,metrics(3,sample:99)),a],in:environment)==a)
+        #expect(StageEngineQualification.choose([.init(backend:.spaces,environment:environment,evidence:b.evidence,checks:b.checks)],in:environment)==nil)
+        #expect(StageEngineQualification.choose([qualification(.corner,metrics(275))],in:environment)==nil)
         for missing in [StageEngineFinding.unknown,.fail,.notRun,.blocked] {
             var checks=b.checks;checks[.sameAppSiblings]=missing
             let unsafe=StageEngineQualification(backend:.spaces,environment:environment,evidence:UUID(),checks:checks,comparison:metrics(1))
@@ -88,6 +105,20 @@ import Testing
             hardware:environment.hardware,topology:"next",windowClass:"ordinary",sipEnabled:true)
         #expect(StageEngineQualification.choose([a,b],in:changed)==nil)
         #expect(StageEngineQualification.choose([],in:environment)==nil)
+    }
+
+    @Test func otherSupportedBuildNeedsItsOwnEvidenceAndSameEngineSIPBaseline() {
+        let base = qualification(.spaces), e = base.environment
+        let live = StageEngineEnvironment(osBuild:"26B501",engineRevision:e.engineRevision,hostCDHash:e.hostCDHash,
+            hardware:e.hardware,topology:e.topology,windowClass:e.windowClass,sipEnabled:true)
+        let separate = StageEngineQualification(backend:.spaces,environment:live,evidence:UUID(),checks:base.checks,comparison:base.comparison,spacesBaseline:base.evidence)
+        #expect(StageEngineQualification.choose([separate],in:live) == nil)
+        #expect(StageEngineQualification.choose([base],in:live) == nil)
+        #expect(StageEngineQualification.choose([separate,base],in:live) == separate)
+        var unknownChecks = base.checks
+        unknownChecks[.exactSIPBuild] = .unknown
+        let failed = StageEngineQualification(backend:.spaces,environment:e,evidence:base.evidence,checks:unknownChecks,comparison:base.comparison)
+        #expect(StageEngineQualification.choose([separate,failed],in:live) == nil)
     }
 
     private func setup(_ count: Int = 3) throws -> (URL, StageGroupStore, StageWindowEngineController, EngineFixture, [StageGroupDirectory.Group]) {
@@ -205,6 +236,50 @@ import Testing
         }
         #expect(!replacement && engine.session == nil && !engine.holdsWindowDispatch)
         #expect(f.effects.filter { $0.0 == 5 }.count == 2 && f.closes == 1)
+    }
+
+    @Test func guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide() async throws {
+        let (p,store,engine,f,groups) = try setup()
+        defer { try? FileManager.default.removeItem(at:p) }
+        try await bind(engine,f,qualification(.corner))
+        f.confirmationFailure = 2
+        await #expect(throws:StageSwitchError.recoveryRequired) { try await activate(groups[0],engine,f) }
+        #expect(f.effects.filter { $0.0 == 3 }.count == 1 && f.prepared.count == 1)
+        let retained = try StageGroupCoordinator(store:store,profile:p)
+        #expect(retained.hasWindowAuthority && retained.requiresRecovery && store.activeGroup(in:f.scope) == nil)
+        var other = false
+        await #expect(throws:StageSwitchError.recoveryRequired) {
+            _ = try await engine.configure(for:environment,records:[qualification(.spaces)],exclusive:{true}) { _ in other = true; return nil }
+        }
+        #expect(!other && f.effects.filter { $0.0 == 3 }.count == 1)
+    }
+
+    @Test func uncertainStartupOwnsOnlyItsCanaryAndCannotHandOffBeforeItsWorkerCloses() async throws {
+        let (p,store,engine,f,groups) = try setup()
+        defer { try? FileManager.default.removeItem(at:p) }
+        f.canStart = false; f.zeroLeases = false
+        try await bind(engine,f,qualification(.spaces))
+        await #expect(throws:StageSwitchError.incomplete) { try await activate(groups[0],engine,f) }
+        let old = try StageGroupCoordinator(store:store,profile:p)
+        #expect(old.retainedOwner == engine.session?.owner && old.hasWindowAuthority && !old.requiresRecovery)
+        var attempted = false
+        await #expect(throws:StageSwitchError.recoveryRequired) {
+            _ = try await engine.configure(for:environment,records:[qualification(.corner)],exclusive:{true}) { _ in attempted = true; return nil }
+        }
+        #expect(!attempted && f.effects.isEmpty && f.prepared.isEmpty)
+        f.zeroLeases = true
+        try await engine.release()
+        #expect(!engine.holdsWindowDispatch && f.closes == 1 && f.effects.isEmpty)
+    }
+
+    @Test func nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup() async throws {
+        let (p,_,engine,f,groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at:p) }
+        f.windows = f.windows.filter { $0.key.number <= 2 }
+        try await bind(engine,f,qualification(.spaces))
+        for i in [0,1,0] { try await activate(groups[i],engine,f) }
+        #expect(f.effects.map { $0.0 } == [3,4,3,4,3])
+        #expect(f.visibleAfterMutation == [1,2,1,2,1])
     }
 
 }

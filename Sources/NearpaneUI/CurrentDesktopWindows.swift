@@ -145,6 +145,7 @@ import OSLog
         stageEngine = StageWindowEngineHost(profile:stageGroupProfile,store:store)
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
+        stageEngine.attach(to:self)
     }
 
     func changed() { events?.yield(()) }
@@ -237,7 +238,11 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
-                if next?.native?.stageManagerEnabled == false { stageEngine.ordinaryContextObserved() }
+                if let next { stageEngine.observeEnvironment(next) }
+                if next?.native?.stageManagerEnabled == false {
+                    stageEngine.ordinaryContextObserved()
+                    if panelRequested { stageEngine.refreshHeld(feed:self) }
+                }
                 sampleSplitPresentation(next)
                 guard !Task.isCancelled, expected == epoch else { continue }
                 if let next, pendingAudit?.revision == next.revision { pendingAudit?.snapshot(next, stage: "publish") }
@@ -366,7 +371,7 @@ import OSLog
             if self.panelRequested, self.groups.loadIssue == nil {
                 let candidates = result.displays.flatMap { self.stageWindows(in: result, on: $0) }
                 do {
-                    try self.groups.observe(candidates)
+                    if !self.stageEngine.holdsDispatch { try self.groups.observe(candidates) }
                     self.groupIssue = nil
                 } catch { self.groupIssue = error.localizedDescription }
             }

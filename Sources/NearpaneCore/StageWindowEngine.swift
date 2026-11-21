@@ -6,6 +6,24 @@ import Foundation
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample
     func ordinary(_ command: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool
+    func beginRelease()
+    func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?)
+}
+
+public extension StageEngineWindowWitness {
+    func beginRelease() {}
+    func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?) {}
+}
+
+/// Independent metadata from the signed ordinary controller's retained AX element and WindowServer.
+/// No pixel, title or document content is requested or transferred.
+public struct StageWindowPhysicalObservation: Codable, Equatable, Sendable {
+    public let id: ManagedWindowID, frame: SurfaceRect, membership: UInt64
+    public let onscreen, minimized: Bool
+    public let focus: NativeSpaceWindow?
+    public init(id: ManagedWindowID, frame: SurfaceRect, membership: UInt64, onscreen: Bool, minimized: Bool, focus: NativeSpaceWindow?) {
+        self.id = id; self.frame = frame; self.membership = membership; self.onscreen = onscreen; self.minimized = minimized; self.focus = focus
+    }
 }
 
 package struct StageEngineReply {
@@ -21,7 +39,11 @@ package struct StageEngineReply {
 
 @MainActor package protocol StageEngineTransport: AnyObject {
     func submit(_ operation: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) async throws -> StageEngineReply
+    func start(_ owner: StageEngineOwner, nativeID: UInt64) async throws
+    func prepareHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws
+    func verified(_ command: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws
     func revoke()
+    func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply
     func close() async -> Bool
 }
 
@@ -29,7 +51,7 @@ package struct StageEngineReply {
     public let owner: StageEngineOwner
     public var engineOwner: StageEngineOwner? { owner }
     private let witness: any StageEngineWindowWitness, transport: any StageEngineTransport
-    private var frozen = false, closed = false
+    private var frozen = false, closed = false, recovering = false
     var intentIsCurrent: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
     public var qualifiedHiddenState: StageWindowState.Visibility? {
@@ -54,6 +76,24 @@ package struct StageEngineReply {
         return sample
     }
 
+    public func prepareBackend(_ sample: StageWindowSample) async throws {
+        guard let native = sample.nativeID, native > 0, qualifiedHiddenState != nil, intentIsCurrent() else { throw StageSwitchError.interrupted }
+        do {
+            try await transport.start(owner,nativeID:native)
+            try await checkHealth()
+            guard intentIsCurrent() else { throw StageSwitchError.interrupted }
+        } catch { freeze(); throw error }
+    }
+
+    public func checkHealth() async throws {
+        let intent = UUID()
+        guard qualifiedHiddenState != nil else { throw StageSwitchError.unavailable }
+        let health = try await transport.health(owner,intent:intent)
+        guard qualifiedHiddenState != nil, health.verifies(intent,64 | (owner.backend == .corner ? 16 : 0)) else {
+            freeze(); throw StageSwitchError.unavailable
+        }
+    }
+
     public func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws {
         // A Rust-backed write always needs the coordinator's durable intent and group/member.
         throw StageSwitchError.ownership
@@ -61,7 +101,7 @@ package struct StageEngineReply {
 
     public func dispatch(_ c: StageWindowCommand) async throws {
         func eligible() -> Bool {
-            !closed && (c.restoring ? c.action == .show : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
+            !closed && (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
         }
         guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
         if c.restoring {
@@ -76,6 +116,12 @@ package struct StageEngineReply {
         if !c.restoring {
             let health = try await transport.submit(6,owner:owner,c)
             guard eligible(), health.verifies(c.intent,64 | (owner.backend == .corner ? 16 : 0)) else { freeze(); throw StageSwitchError.unavailable }
+            // A newly qualified Spaces handle may just have completed its own canary. Confirm that its
+            // cleanup really returned the user roster, current Space and focus before the first real write.
+            let checked = try await read(c.scope)
+            guard eligible(), checked.sequence > pre.sequence, checked.generation == pre.generation,
+                  checked.nativeID == pre.nativeID, checked.windows == pre.windows, checked.focus == pre.focus,
+                  checked.workArea == pre.workArea else { throw StageSwitchError.interrupted }
         }
         switch c.action {
         case .place, .focus:
@@ -92,6 +138,15 @@ package struct StageEngineReply {
                     throw StageSwitchError.ownership
                 }
             }
+            if hiding, owner.backend == .corner {
+                try await transport.prepareHide(c,owner:owner)
+                let afterPrepare = try await read(c.scope)
+                guard eligible(), afterPrepare.scope == pre.scope, afterPrepare.nativeID == pre.nativeID,
+                      afterPrepare.generation == pre.generation, afterPrepare.sequence > pre.sequence,
+                      afterPrepare.windows == pre.windows, afterPrepare.focus == pre.focus, afterPrepare.workArea == pre.workArea else {
+                    throw StageSwitchError.interrupted
+                }
+            }
             let sent = try await transport.submit(c.restoring ? 5 : hiding ? 3 : 4,owner:owner,c)
             guard eligible(), sent.verifies(c.intent,0) else { freeze(); throw StageSwitchError.incomplete }
             let readback = try await transport.submit(2,owner:owner,c)
@@ -99,6 +154,7 @@ package struct StageEngineReply {
             guard eligible(), readback.verifies(c.intent,mask), readback.flags & (hiding ? 1 : 2) == 0,
                   owner.backend != .spaces || (hiding ? readback.nativeID != 0 && readback.nativeID != pre.nativeID : readback.nativeID == pre.nativeID)
             else { freeze(); throw StageSwitchError.incomplete }
+            witness.expectVisibility(c,nativeID:readback.nativeID,frame:readback.frame)
             let independentlyRead = try await read(c.scope)
             guard eligible(), independentlyRead.generation == pre.generation, independentlyRead.nativeID == pre.nativeID,
                   independentlyRead.sequence > pre.sequence, let result = independentlyRead.windows[c.before.window],
@@ -111,6 +167,12 @@ package struct StageEngineReply {
             }
         }
     }
+    public func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {
+        guard owner.backend == .corner, command.generation == owner.generation, command.before.window == after.window,
+              command.before.lifetime == after.lifetime else { throw StageSwitchError.ownership }
+        try await transport.verified(command,after:after,owner:owner)
+    }
+    func beginRelease() { recovering = true; witness.beginRelease() }
     func freeze() {
         guard !frozen, !closed else { return }
         frozen = true; transport.revoke()
@@ -130,9 +192,10 @@ package struct StageEngineReply {
     public let coordinator: StageGroupCoordinator
     public private(set) var session: StageEngineSession?
     public private(set) var lastFailure: StageSwitchError?
-    private var busy = false, revision = UUID()
+    private var busy = false, releaseRequested = false, revision = UUID()
+    public var canObserve: Bool { !busy && !releaseRequested && session?.qualifiedHiddenState != nil }
     public var canAttemptOwnedRelease: Bool { !busy && session?.canAttemptRelease == true }
-    public var holdsWindowDispatch: Bool { busy || session != nil || coordinator.hasWindowAuthority }
+    public var holdsWindowDispatch: Bool { busy || releaseRequested || session != nil || coordinator.hasWindowAuthority }
     public init(coordinator: StageGroupCoordinator) { self.coordinator = coordinator }
 
     public func invalidate() {
@@ -144,8 +207,17 @@ package struct StageEngineReply {
     /// Only the old driver may perform recovery, never the newly preferred driver. When there is no
     /// executable authority after restart the durable records block every replacement until reconciliation.
     public func release() async throws {
+        guard !releaseRequested else { throw StageSwitchError.busy }
+        releaseRequested = true
+        defer { releaseRequested = false }
         invalidate()
-        guard !busy else { throw StageSwitchError.busy }
+        // A native takeover or normal quit can occur while the accepted worker command is awaiting its
+        // terminal receipt. Give its write-ahead record time to settle. Never replay a timed-out command.
+        let deadline = ContinuousClock.now.advanced(by:.seconds(12))
+        while busy {
+            guard ContinuousClock.now < deadline else { throw StageSwitchError.recoveryRequired }
+            try await Task.sleep(for:.milliseconds(12))
+        }
         busy = true
         defer { busy = false }
         try await releaseCurrent()
@@ -158,6 +230,7 @@ package struct StageEngineReply {
         }
         let token = revision
         do {
+            previous.beginRelease()
             if coordinator.hasWindowAuthority { try await coordinator.releaseOwned(previous) }
             try await previous.close()
             try coordinator.confirmReleased(previous.owner)
@@ -171,7 +244,7 @@ package struct StageEngineReply {
 
     @discardableResult public func configure(for environment: StageEngineEnvironment, records: [StageEngineQualification],
         exclusive: () -> Bool, make: (StageEngineQualification) -> StageEngineSession?) async throws -> Bool {
-        guard !busy else { throw StageSwitchError.busy }
+        guard !busy, !releaseRequested else { throw StageSwitchError.busy }
         busy = true
         defer { busy = false }
         let next = StageEngineQualification.choose(records,in:environment,retaining:session?.owner.backend)
@@ -198,7 +271,7 @@ package struct StageEngineReply {
 
     public func activate(_ group: UUID, member: UUID, in scope: StageGroupScope, consent: Bool,
                          current: @escaping @MainActor () -> Bool) async throws {
-        guard !busy else { throw StageSwitchError.busy }
+        guard !busy, !releaseRequested else { throw StageSwitchError.busy }
         guard let session, session.qualifiedHiddenState != nil, current() else { throw StageSwitchError.unavailable }
         let token = revision; busy = true; session.intentIsCurrent = current
         defer { busy = false; session.intentIsCurrent = { false } }

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "scope": "offline Foundation-only production Swift integration and deterministic state-machine tests",
+  "baseline": "0dd9cb2ead957aa71b0b4b149b2752629f1e522d",
+  "configuration": "5.22 (90) unchanged",
+  "swiftTests": {
+    "status": "PASS",
+    "passed": 42,
+    "suites": 6,
+    "logSha256": "70e2e9170b78885ef3cd6b640c642ee5cec65d5977fc6a6b6aa03d57803d41d0"
+  },
+  "linkedRustArchive": {
+    "target": "aarch64-apple-darwin",
+    "features": [
+      "corner",
+      "spaces"
+    ],
+    "sha256": "069bd6bcfbac685354f2df87decb1da6a70ce3582d56ad264fc9dc817ae71a01"
+  },
+  "signedPhysicalHostGroups": "NOT_RUN",
+  "pairedAppleReference": "NOT_RUN",
+  "keyboardReceiverMarker": "NOT_RUN",
+  "tenFiftyThousandSoak": "NOT_RUN",
+  "foundPhysicalQualification": false,
+  "productionGroupVisibilityWritesEnabled": false,
+  "patches": [
+    {
+      "name": "nearpane-stage-gate3-5-ownership.patch",
+      "sha256": "a6d0adca96c256e08ac8af07008e717c25cc39706c5a52609876531da4960a32"
+    },
+    {
+      "name": "nearpane-stage-physical-witness-increment.patch",
+      "sha256": "751fb19dd9ae5e0b960efe050c6c231e5b34471873f8e010da7275d939f7291d"
+    },
+    {
+      "name": "nearpane-stage-guardian-spaces-handoff.patch",
+      "sha256": "3a2f6cda1a81c0fc2821bf7bf58d318130baeeac1704877b4c017721e6d60ab1"
+    },
+    {
+      "name": "nearpane-stage-shutdown-order.patch",
+      "sha256": "7afc78cf098d145714f910642836c22840c7899dc8c38e10cd5b7cd82439aead"
+    },
+    {
+      "name": "nearpane-stage-shutdown-result.patch",
+      "sha256": "31cfeffef6d7ad536a132567675b511645aa3ebccfdccef4da30e97bc7b30f84"
+    },
+    {
+      "name": "nearpane-stage-topology-recovery-tests.patch",
+      "sha256": "d1fea605498e4a19492c8b7024fa0d8b7a821b21e9c65da0c79816998a4410c7"
+    },
+    {
+      "name": "nearpane-stage-show-owned-target-first.patch",
+      "sha256": "3c684ec69dcf5f98b53894e8eece69796f16ed06b18a969de66154cc7bb59653"
+    }
+  ]
+}

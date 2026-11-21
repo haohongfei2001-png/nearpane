@@ -242,7 +242,7 @@ final class WindowMonitor {
     }
 
     func write(from: SurfaceRect, to: SurfaceRect, placement: OrdinaryWindowPairPlacement?, retainedPeer: AXUIElement?,
-               confirmedStep: (OrdinaryWindowStep) -> Void) throws -> AdmissionPair {
+               stagePermit: (() throws -> Void)? = nil, confirmedStep: (OrdinaryWindowStep) -> Void) throws -> AdmissionPair {
         let before = try verify(from)
         try checkDesktop(before.second.display)
         guard let floor = before.second.minimum, let display = before.second.display, to.geometry.isValid,
@@ -285,7 +285,7 @@ final class WindowMonitor {
         do {
             for next in route where next != prior {
                 try focus.check()
-                confirmedStep(try step(from: prior, to: next, focus: focus, fence: fence, final: to))
+                confirmedStep(try step(from: prior, to: next, focus: focus, fence: fence, final: to, stagePermit: stagePermit))
                 prior = next
             }
             let confirmed = try pair(expected:to)
@@ -320,7 +320,7 @@ final class WindowMonitor {
     }
 
     private func step(from: SurfaceRect, to: SurfaceRect, focus: FrontFocus, fence: PairPlacementFence?,
-                      final: SurfaceRect) throws -> OrdinaryWindowStep {
+                      final: SurfaceRect, stagePermit: (() throws -> Void)?) throws -> OrdinaryWindowStep {
         drainWindowEvents(0.006)
         let pre = try read()
         let targetDisplay = try acknowledgedMotion ? displayWitness.map { try boundaryDisplayID(to, witness: $0) } : displayID(to)
@@ -340,6 +340,14 @@ final class WindowMonitor {
         // A held button can precede the target's completed drag notification.
         try require(!buttonDown, "鼠标操作尚未结束，暂不调整窗口。")
         try fence?.checkCurrentSpace()
+        if let stagePermit {
+            let physicalInput = WindowSelectionInput.counters()
+            try stagePermit()
+            try checkDesktop(pre.display)
+            try focus.check()
+            try require(physicalInput == WindowSelectionInput.counters() && !StageManagerPreference.ownsWindowDispatch && !buttonDown,
+                        "写入前的原窗口、输入或系统控制状态已改变。")
+        }
         waitingFor = event; notificationCount = 0
         defer { waitingFor = nil }
         let rc = AXUIElementSetAttributeValue(element,key as CFString,value)

@@ -1,41 +1,127 @@
+import AppKit
 import Foundation
+import Observation
 import NearpaneCore
 import NearpaneWindowEngine
 
 /// Operations are enabled by reviewed physical qualification in the signed build. Neither package preferences,
 /// old group/visibility ledgers nor an available Rust symbol can enroll an operating environment.
-@MainActor final class StageWindowEngineHost {
-    struct Admission {
-        let qualification: StageEngineQualification
-        /// Fresh OS/build/signature, security posture, full physical topology and window class comparison.
-        let environment: (DesktopSnapshot) -> StageEngineEnvironment?
-        /// The registered adapter supplies complete independent observation, user consent, and a retained
-        /// worker generation. Product input is never used as a substitute for first-use authorization.
-        let isAuthorized: (StageGroupScope) -> Bool
-        let witness: (CurrentDesktopWindows, StageGroupScope, @escaping @MainActor () -> Bool) -> (UUID, any StageEngineWindowWitness)?
+@MainActor @Observable final class StageWindowEngineHost {
+    struct Consent: Equatable {
+        let scope: StageGroupScope, evidence: UUID
+        let groups: [UUID:[UUID]], lifetimes: [NativeSpaceWindow:UUID]
     }
-    // Neither gate currently has a completed physical receipt for the installed Host.
-    static let shipped: [Admission] = []
-
-    private let admissions: [Admission], engine: StageWindowEngineController?
+    // The exact signed physical record is produced after final signing. Only its reviewed ID and
+    // independent verification key are pinned here. Neither gate has a completed physical receipt.
+    static let shipped: [StageWindowEngineAttestation.Pin] = []
+    private let engine: StageWindowEngineController?, profile: URL?
+    private var admissions: [StageEngineQualification]
+    private(set) var observedCapability: StageWindowBackend?
+    private var needsReassessment = true
+    private var lastEnvironmentalRead: TimeInterval = 0
+    private weak var feed: CurrentDesktopWindows?
+    struct HeldGroup: Equatable, Identifiable {
+        let id, member: UUID, scope: StageGroupScope, state: StageWindowState, owner: StageEngineOwner, count: Int
+    }
+    private(set) var heldGroups = [HeldGroup]()
+    @ObservationIgnored private var heldRefresh: Task<Void,Never>?
+    private var lastVerifiedAt: TimeInterval = 0
+    @ObservationIgnored private var watchers = [(NotificationCenter,NSObjectProtocol)]()
+    private(set) var consentRequest: Consent?
+    private var granted: Consent?
+    private weak var witness: StageWindowEngineWitness?
+    private var releaseInput: [UInt32]?
     private let unreadableLedger: Bool
     weak var management: CandidateWorkRect?
-    private var releasing = false, recoveryRequested = false, revision: UInt64 = 0
+    @ObservationIgnored private var shutdownTask: Task<Bool,Never>?
+    private var terminationOwnsLane = false
+    private var releaseTask: Task<Void,Never>?
+    private var releasing: Bool { releaseTask != nil }
+    private var recoveryRequested = false
+    private var revision: UInt64 = 0
 
-    init(profile: URL?, store: StageGroupStore, admissions: [Admission] = StageWindowEngineHost.shipped) {
-        self.admissions = admissions
+    init(profile: URL?, store: StageGroupStore) {
+        self.profile = profile
+        admissions = profile.map { folder in Self.shipped.compactMap { StageWindowEngineAttestation.read($0,profile:folder) } } ?? []
         if let profile {
             do {
-                engine = try StageWindowEngineController(coordinator: StageGroupCoordinator(store:store,profile:profile))
+                let journal = try StageGroupCoordinator(store:store,profile:profile)
+                try journal.withdrawVerifiedActivity()
+                engine = StageWindowEngineController(coordinator:journal)
                 unreadableLedger = false
             } catch { engine = nil; unreadableLedger = true }
         } else { engine = nil; unreadableLedger = false }
     }
 
-    var holdsDispatch: Bool { unreadableLedger || releasing || engine?.holdsWindowDispatch == true }
+    func attach(to feed: CurrentDesktopWindows) {
+        self.feed = feed
+        if !Self.shipped.isEmpty || holdsDispatch { watchSystem() }
+    }
+
+    /// Initial sample, wake/unlock and display notifications re-evaluate the installed environment.
+    /// They never enroll a new writer or infer that a pre-restart AX reference survived.
+    func observeEnvironment(_ snapshot: DesktopSnapshot) {
+        guard !Self.shipped.isEmpty, let profile else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard needsReassessment || now-lastEnvironmentalRead >= 2 else { return }
+        needsReassessment = false
+        lastEnvironmentalRead = now
+        let records = Self.shipped.compactMap { StageWindowEngineAttestation.read($0,profile:profile) }
+        if admissions != records { admissions = records; granted = nil; consentRequest = nil }
+        let selected = StageWindowEngineAttestation.installedEnvironment(snapshot).flatMap {
+            StageEngineQualification.choose(records,in:$0,retaining:engine?.session?.owner.backend)
+        }
+        observedCapability = selected?.backend
+        guard let engine, let session = engine.session, session.qualifiedHiddenState != nil else { return }
+        if selected?.evidence != session.owner.evidence { freeze() }
+    }
+
+    private func watchSystem() {
+        guard watchers.isEmpty else { return }
+        let workspace = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification,NSWorkspace.sessionDidResignActiveNotification,
+                     NSWorkspace.activeSpaceDidChangeNotification] {
+            watchers.append((workspace,workspace.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.freeze() }
+            }))
+        }
+        watchers.append((workspace,workspace.addObserver(forName:NSWorkspace.didTerminateApplicationNotification,object:nil,queue:.main) { [weak self] n in
+            let pid = (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier
+            MainActor.assumeIsolated { if let pid, self?.witness?.contains(pid:pid) == true { self?.freeze() } }
+        }))
+        for name in [NSWorkspace.didWakeNotification,NSWorkspace.sessionDidBecomeActiveNotification] {
+            watchers.append((workspace,workspace.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.needsReassessment = true
+                    self?.feed?.changed()
+                }
+            }))
+        }
+        let app = NotificationCenter.default
+        let observer = app.addObserver(forName:NSApplication.didChangeScreenParametersNotification,object:nil,queue:.main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.freeze(); self?.needsReassessment = true; self?.feed?.changed() }
+        }
+        watchers.append((app,observer))
+    }
+
+    private func stopWatching() {
+        for (center,observer) in watchers { center.removeObserver(observer) }
+        watchers.removeAll()
+    }
+
+    var holdsDispatch: Bool { terminationOwnsLane || unreadableLedger || releasing || engine?.holdsWindowDispatch == true }
     var routesGroupChoice: Bool { !admissions.isEmpty || holdsDispatch }
 
+    func answerConsent(allow: Bool) {
+        if allow { granted = consentRequest }
+        consentRequest = nil
+    }
+
     func freeze() {
+        consentRequest = nil
+        granted = nil
+        heldGroups = []
+        heldRefresh?.cancel()
         guard let engine, engine.holdsWindowDispatch else { return }
         revision &+= 1
         recoveryRequested = true
@@ -47,54 +133,97 @@ import NearpaneWindowEngine
     func ordinaryContextObserved() {
         guard recoveryRequested, !releasing, engine?.canAttemptOwnedRelease == true else { return }
         recoveryRequested = false
-        Task { [weak self] in await self?.release() }
+        _ = beginRelease()
     }
 
-    func release() async {
-        guard let engine, engine.holdsWindowDispatch, !releasing else { return }
-        releasing = true; defer { releasing = false }
-        do { try await engine.release() } catch { /* The old owner and its WAL remain authoritative. */ }
+    private func beginRelease() -> Task<Void,Never>? {
+        if let releaseTask { return releaseTask }
+        guard let engine, engine.holdsWindowDispatch else { return nil }
+        releaseInput = NativeSelectionPermit.inputCounters()
+        let pending = Task { [weak self] in
+            defer {
+                self?.releaseTask = nil; self?.releaseInput = nil
+                if engine.session == nil {
+                    if Self.shipped.isEmpty { self?.stopWatching() }
+                    self?.heldGroups = []
+                }
+            }
+            do { try await engine.release() } catch { /* Retain the prior worker and unresolved WAL. */ }
+        }
+        releaseTask = pending
+        return pending
+    }
+
+    func release() async { await beginRelease()?.value }
+
+    func prepareForShutdown() async -> Bool {
+        if let shutdownTask { return await shutdownTask.value }
+        guard !unreadableLedger else { return false }
+        guard holdsDispatch else { return true }
+        terminationOwnsLane = true
+        let drain = Task { [weak self] in
+            guard let self else { return false }
+            await self.release()
+            return !unreadableLedger && engine?.holdsWindowDispatch != true
+        }
+        shutdownTask = drain
+        return await drain.value
     }
 
     func groupChoice(_ group: UUID, member: NativeSidebarMember, in feed: CurrentDesktopWindows,
                      snapshot: DesktopSnapshot, current: @escaping @MainActor () -> Bool) async throws -> Bool {
         guard routesGroupChoice else { return false }
-        guard !unreadableLedger, !releasing, let engine, let window = feed.groupWindow(member,in:snapshot),
+        await heldRefresh?.value
+        guard !unreadableLedger, !releasing, !terminationOwnsLane, let engine, let window = feed.groupWindow(member,in:snapshot),
               let space = window.nativeSpace, let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
                 .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity })
         else { throw StageSwitchError.recoveryRequired }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
-        let entries = admissions.compactMap { entry -> (Admission,StageEngineEnvironment)? in
-            guard let env = entry.environment(snapshot), entry.qualification.admits(env) else { return nil }
-            return (entry,env)
-        }
-        guard let env = entries.first?.1, entries.allSatisfy({ $0.1 == env }) else {
+        guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot),
+              let selected = StageEngineQualification.choose(admissions,in:env,retaining:engine.session?.owner.backend) else {
             if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }
             return false
         }
+        if let witness, !witness.matches(scope) { await release(); throw StageSwitchError.interrupted }
         let token = revision
         let environmentCurrent: @MainActor () -> Bool = { [weak self] in
-            guard let self, self.revision == token else { return false }
-            return self.management?.permitsStageEngine(on:member.source.display) == true
+            self?.revision == token && self?.management?.permitsStageEngine(on:member.source.display) == true
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
             self != nil && feed?.lifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
         guard permitted() else { throw StageSwitchError.busy }
-        let records = entries.map { $0.0.qualification }
-        guard let selected = StageEngineQualification.choose(records,in:env,retaining:engine.session?.owner.backend),
-              let admission = entries.first(where: { $0.0.qualification == selected })?.0,
-              admission.isAuthorized(scope) else {
-            if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }
-            return false
+        let directory = feed.groups.groups(in:scope)
+        var lifetimes = [NativeSpaceWindow:UUID]()
+        for m in directory.flatMap(\.members) {
+            let k = DesktopWindowKey(pid:m.windowHint.pid,birth:m.windowHint.birth,number:m.windowHint.number)
+            guard let life = witness?.lifetime(of:m.windowHint) ?? feed.lifetime(of:k) else { throw StageSwitchError.incomplete }
+            lifetimes[m.windowHint] = life
         }
-        let available = try await engine.configure(for:env,records:records,exclusive:permitted) { q in
-            guard q == selected, let (generation,witness) = admission.witness(feed,scope,environmentCurrent) else { return nil }
-            return StageEngineSession(owner:.init(qualification:q,generation:generation),witness:witness)
+        let approval = Consent(scope:scope,evidence:selected.evidence,groups:
+            Dictionary(uniqueKeysWithValues:directory.map { ($0.id,$0.members.map(\.id)) }),lifetimes:lifetimes)
+        if granted != approval {
+            guard !engine.holdsWindowDispatch else { await release(); throw StageSwitchError.recoveryRequired }
+            consentRequest = approval
+            return true
+        }
+        let available = try await engine.configure(for:env,records:admissions,exclusive:permitted) { q in
+            guard q == selected else { return nil }
+            let restore: @MainActor () -> Bool = { [weak self] in
+                guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
+                return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
+            }
+            guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,
+                available:environmentCurrent,restoreAvailable:restore) else { return nil }
+            self.witness = witness
+            watchSystem()
+            guard let profile else { return nil }
+            return StageEngineSession(owner:.init(qualification:q,generation:witness.generation),witness:witness,profile:profile)
         }
         guard available, permitted() else { throw StageSwitchError.unavailable }
         do {
             try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted)
+            projectHeld(feed.groups,in:scope)
             return true
         } catch {
             if engine.coordinator.requiresRecovery || engine.session?.qualifiedHiddenState == nil {
@@ -104,4 +233,61 @@ import NearpaneWindowEngine
             throw error
         }
     }
+    private func projectHeld(_ store: StageGroupStore, in scope: StageGroupScope) {
+        guard let engine, let session = engine.session, session.qualifiedHiddenState != nil, let witness,
+              witness.matches(scope) else { heldGroups = []; return }
+        let next = store.groups(in:scope).compactMap { g -> HeldGroup? in
+            guard g.verifiedActive != true, g.needsReorganization != true,
+                  g.members.allSatisfy({ m in
+                      guard let s = witness.state(of:m.windowHint) else { return false }
+                      return engine.coordinator.confirmsHidden(group:g.id,member:m.id,state:s,scope:scope,owner:session.owner)
+                  }), let target = g.members.first(where:{ $0.id == g.selectedMember }) ?? g.members.first,
+                  let state = witness.state(of:target.windowHint) else { return nil }
+            return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:g.members.count)
+        }
+        lastVerifiedAt = ProcessInfo.processInfo.systemUptime
+        if heldGroups != next { heldGroups = next }
+    }
+
+    func refreshHeld(feed: CurrentDesktopWindows) {
+        guard let scope = witness?.scope, heldRefresh == nil, engine?.canObserve == true, let session = engine?.session,
+              ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }
+        let token = revision
+        heldRefresh = Task { [weak self,weak feed] in
+            guard let self, let feed else { return }
+            defer { heldRefresh = nil }
+            do {
+                try await session.checkHealth()
+                _ = try await session.read(scope)
+                guard !Task.isCancelled, token == revision, self.engine?.session === session else { return }
+                projectHeld(feed.groups,in:scope)
+            } catch {
+                guard !Task.isCancelled, token == revision else { return }
+                freeze()
+                ordinaryContextObserved()
+            }
+        }
+    }
+
+    /// The row represents an explicitly owned, independently read group. Its pixel stream and drag source
+    /// remain absent while hidden. Recheck the whole roster before the existing coordinator can dispatch.
+    func chooseHeld(_ held: HeldGroup, in feed: CurrentDesktopWindows, current: @escaping @MainActor () -> Bool) async throws {
+        await heldRefresh?.value
+        guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
+              heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
+              current(), witness?.matches(held.scope) == true else { throw StageSwitchError.interrupted }
+        let observed = try await session.read(held.scope)
+        guard current(), observed.windows[held.state.window] == held.state,
+              engine.coordinator.confirmsHidden(group:held.id,member:held.member,state:held.state,scope:held.scope,owner:held.owner) else {
+            freeze(); throw StageSwitchError.ownership
+        }
+        do {
+            try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current)
+            projectHeld(feed.groups,in:held.scope)
+        } catch {
+            freeze(); ordinaryContextObserved()
+            throw error
+        }
+    }
+
 }

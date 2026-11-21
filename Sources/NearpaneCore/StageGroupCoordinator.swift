@@ -39,6 +39,8 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     var qualifiedHiddenState: StageWindowState.Visibility? { get }
     var engineOwner: StageEngineOwner? { get }
     func dispatch(_ command: StageWindowCommand) async throws
+    func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
+    func prepareBackend(_ sample: StageWindowSample) async throws
     func read(_ scope: StageGroupScope) async throws -> StageWindowSample
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws
 }
@@ -50,6 +52,8 @@ public struct StageWindowCommand: Sendable {
 }
 
 public extension StageWindowSession {
+    func prepareBackend(_ sample: StageWindowSample) async throws {}
+    func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
     var engineOwner: StageEngineOwner? { nil }
     func dispatch(_ c: StageWindowCommand) async throws {
         try await apply(c.action, to: c.before, in: c.scope, generation: c.generation)
@@ -72,6 +76,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         var after: StageWindowState?
         var intent: UUID? = nil
         var undoIntent: UUID? = nil
+        var guardianPending: Bool? = nil
     }
     struct Transaction: Codable {
         let scope: StageGroupScope, generation: UUID, target: UUID, preferred: NativeSpaceWindow
@@ -84,6 +89,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
     }
     struct Release: Codable {
         let intent: UUID, owned: Ownership
+        var restored: Bool? = nil
     }
     struct Ledger: Codable {
         var version = 1
@@ -123,7 +129,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                       ($0.owner == nil || $0.member != nil && $0.group != nil && ($0.nativeID ?? 0) > 0 &&
                         ($0.owner?.backend == .corner ? $0.hidden.visibility == .parked : $0.hidden.visibility == .stageSpace)) &&
                       $0.owner == ledger.owner }),
-                  (ledger.releases ?? []).allSatisfy({ release in ledger.owner != nil && ledger.owned.contains(release.owned) }),
+                  (ledger.releases ?? []).allSatisfy({ release in ledger.owner != nil && release.owned.owner == ledger.owner && ledger.owned.contains(release.owned) == (release.restored != true) }),
                   Set((ledger.releases ?? []).map(\.intent)).count == (ledger.releases ?? []).count,
                   Set((ledger.releases ?? []).map { $0.owned.hidden.window }).count == (ledger.releases ?? []).count else {
                 throw StageSwitchError.recoveryRequired
@@ -133,6 +139,10 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
 
     public var requiresRecovery: Bool { ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
+    public func confirmsHidden(group: UUID, member: UUID, state: StageWindowState, scope: StageGroupScope, owner: StageEngineOwner) -> Bool {
+        !busy && !requiresRecovery && ledger.owner == owner &&
+            ledger.owned.contains { $0.scope == scope && $0.group == group && $0.member == member && $0.hidden == state && $0.owner == owner }
+    }
     public var hasWindowAuthority: Bool { busy || !ledger.owned.isEmpty || requiresRecovery || ledger.owner != nil }
     public func invalidate() { epoch = UUID() }
     public func withdrawVerifiedActivity() throws {
@@ -184,7 +194,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         guard let target = groups.first(where: { $0.id == group }), !groups.contains(where: { $0.needsReorganization == true }),
               let preferred = target.members.first(where: { $0.id == (member ?? target.selectedMember ?? target.members.first?.id) })
         else { throw StageSwitchError.incomplete }
-        let first = try await session.read(scope)
+        var first = try await session.read(scope)
         let members = groups.flatMap(\.members), ids = Set(members.map(\.windowHint)), targets = Set(target.members.map(\.windowHint))
         guard epoch == token, first.scope == scope, first.workArea.width > 0, first.workArea.height > 0,
               ids.count == members.count, ids.isSubset(of: Set(first.windows.keys)),
@@ -199,9 +209,22 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         let otherIDs = first.windows.keys.filter { !ids.contains($0) }
         let intent = UUID(), owner = session.engineOwner
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
+        if let owner {
+            // A launch probe can own its own temporary window/Space before any business-window action exists.
+            // Persist the worker authority first; a failed probe is not a may-have-issued hide of a user window.
+            try update {
+                $0.owner = owner
+                if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
+            }
+            try await session.prepareBackend(first)
+            let postLaunch = try await session.read(scope)
+            guard epoch == token, session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
+                  postLaunch.scope == scope, postLaunch.generation == first.generation, postLaunch.sequence > first.sequence,
+                  postLaunch.nativeID == first.nativeID, postLaunch.workArea == first.workArea,
+                  postLaunch.windows == first.windows, postLaunch.focus == first.focus else { throw StageSwitchError.interrupted }
+            first = postLaunch
+        }
         try update {
-            $0.owner = owner
-            if owner != nil, !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
             $0.pending = .init(scope: scope, generation: first.generation, target: group, preferred: preferred.windowHint,
                 originalFocus: first.focus, before: Array(first.windows.values), ownedBefore: originalHeld,
                 owner: owner, intent: intent, nativeID: first.nativeID)
@@ -227,8 +250,9 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             guard epoch == token else { throw StageSwitchError.interrupted }
             guard let member = members.first(where: { $0.windowHint == id }),
                   let owningGroup = groups.first(where: { $0.members.contains(where: { $0.id == member.id }) }) else { throw StageSwitchError.interrupted }
-            try await session.dispatch(.init(intent: primitive, group: owningGroup.id, member: member.id, generation: first.generation,
-                scope: scope, nativeID: first.nativeID, action: action, before: before, restoring: false, restoreFrame: held[id]?.original.frame))
+            let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
+                scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
+            try await session.dispatch(command)
             for _ in 0..<2 {
                 let post = try await read()
                 guard let value = post.windows[id], check(value, post),
@@ -241,21 +265,32 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             try update {
                 let i = $0.pending!.entries.count-1
                 $0.pending!.entries[i].after = confirmed
+                if owner?.backend == .corner, action == .hide || action == .show { $0.pending!.entries[i].guardianPending = true }
                 if action == .hide { $0.owned.append(.init(scope: scope, original: before, hidden: confirmed, owner: owner,
                     group: owningGroup.id, member: member.id, nativeID: first.nativeID)) }
                 if action == .show { $0.owned.removeAll { $0.scope == scope && $0.hidden.window == id } }
             }
+            if owner?.backend == .corner, action == .hide || action == .show {
+                try await session.didVerify(command,after:confirmed)
+                try update { $0.pending!.entries[$0.pending!.entries.count-1].guardianPending = nil }
+            }
         }
         do {
+            // A desktop with only the outgoing group must keep a real work window visible. Reveal
+            // verified incoming members first, while the outgoing group can still receive the keyboard.
+            for member in target.members {
+                if let previous = held[member.windowHint] {
+                    try await perform(.show, id:member.windowHint) { value, _ in
+                        value.visibility == .visible && self.matches(value.frame,previous.original.frame)
+                    }
+                }
+            }
             for m in members where !targets.contains(m.windowHint) && held[m.windowHint] == nil {
                 try await perform(.hide, id: m.windowHint) { value, _ in value.visibility == mechanism &&
                     (mechanism != .stageSpace || (value.hiddenSpaceID ?? 0) > 0 && value.hiddenSpaceID != first.nativeID) }
             }
             for m in target.members {
                 let id = m.windowHint
-                if let previous = held[id] {
-                    try await perform(.show, id: id) { value, _ in value.visibility == .visible && self.matches(value.frame, previous.original.frame) }
-                }
                 if let relative = m.layout {
                     let frame = absolute(relative, work: first.workArea)
                     if let f = last.windows[id]?.frame, !matches(f, frame) {
@@ -305,7 +340,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
     private func compensate(_ session: StageWindowSession, token: UUID) async throws {
         guard let t = ledger.pending else { return }
         guard t.owner == session.engineOwner, ledger.owner == session.engineOwner, (ledger.releases ?? []).isEmpty,
-              let hidden = session.qualifiedHiddenState, t.entries.allSatisfy({ $0.after != nil })
+              let hidden = session.qualifiedHiddenState, t.entries.allSatisfy({ $0.after != nil && $0.guardianPending != true })
         else { throw StageSwitchError.recoveryRequired }
         let initial = Dictionary(uniqueKeysWithValues: t.before.map { ($0.window,$0) })
         var expected = initial
@@ -338,6 +373,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             case .place: inverse = .place(e.before.frame)
             case .focus: inverse = nil
             }
+            var undoCommand: StageWindowCommand?
             if let inverse {
                 // Mark the ambiguous interval of the inverse as well. A crash never replays it.
                 let inverseIntent = UUID()
@@ -346,10 +382,21 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                     $0.pending!.entries[last].after = nil
                     $0.pending!.entries[last].undoIntent = inverseIntent
                 }
-                try await undo(inverse, intent: inverseIntent, before: after, original: e.before, t: t, session: session)
+                undoCommand = try await undo(inverse, intent: inverseIntent, before: after, original: e.before, t: t, session: session)
             }
             expected[e.before.window] = e.before
             _ = try await verified(expected); _ = try await verified(expected)
+            if let command = undoCommand, t.owner?.backend == .corner, command.action == .hide || command.action == .show {
+                try update { s in
+                    s.owned.removeAll { $0.scope == t.scope && $0.hidden.window == command.before.window }
+                    if command.action == .hide {
+                        s.owned.append(.init(scope:t.scope,original:command.before,hidden:e.before,owner:t.owner,
+                            group:command.group,member:command.member,nativeID:t.nativeID))
+                    }
+                    s.pending!.entries[s.pending!.entries.count-1].guardianPending = true
+                }
+                try await session.didVerify(command,after:e.before)
+            }
             try update { _ = $0.pending?.entries.popLast() }
         }
         let restored = try await verified(initial)
@@ -359,7 +406,7 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
             else { throw StageSwitchError.recoveryRequired }
             let focusIntent = UUID()
             try update { $0.pending?.entries.append(.init(action: .focus, before: window, intent: focusIntent)) }
-            try await undo(.focus, intent: focusIntent, before: window, original: window, t: t, session: session)
+            _ = try await undo(.focus, intent: focusIntent, before: window, original: window, t: t, session: session)
             for _ in 0..<2 { guard try await verified(initial).focus == old else { throw StageSwitchError.recoveryRequired } }
         }
         try update { state in
@@ -367,14 +414,17 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
         }
     }
     private func undo(_ action: StageWindowAction, intent: UUID, before: StageWindowState, original: StageWindowState,
-                      t: Transaction, session: StageWindowSession) async throws {
+                      t: Transaction, session: StageWindowSession) async throws -> StageWindowCommand? {
         if t.intent != nil, let group = store.groups(in: t.scope).first(where: { $0.members.contains { $0.windowHint == before.window } }),
            let member = group.members.first(where: { $0.windowHint == before.window }) {
-            try await session.dispatch(.init(intent: intent, group: group.id, member: member.id, generation: t.generation,
-                scope: t.scope, nativeID: t.nativeID, action: action, before: before, restoring: action == .show, restoreFrame: original.frame))
+            let command = StageWindowCommand(intent:intent,group:group.id,member:member.id,generation:t.generation,
+                scope:t.scope,nativeID:t.nativeID,action:action,before:before,restoring:action == .show,restoreFrame:original.frame)
+            try await session.dispatch(command)
+            return command
         } else {
             guard t.owner == nil else { throw StageSwitchError.recoveryRequired }
             try await session.apply(action, to: before, in: t.scope, generation: t.generation)
+            return nil
         }
     }
 
@@ -398,8 +448,9 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                       one.sequence < two.sequence, two.windows[entry.hidden.window] == entry.hidden else { continue }
                 let intent = UUID()
                 try update { $0.releases = ($0.releases ?? []) + [.init(intent: intent, owned: entry)] }
-                try await session.dispatch(.init(intent: intent, group: group, member: member, generation: two.generation,
-                    scope: entry.scope, nativeID: native, action: .show, before: entry.hidden, restoring: true, restoreFrame: entry.original.frame))
+                let command = StageWindowCommand(intent:intent,group:group,member:member,generation:two.generation,
+                    scope:entry.scope,nativeID:native,action:.show,before:entry.hidden,restoring:true,restoreFrame:entry.original.frame)
+                try await session.dispatch(command)
                 var expected = two.windows; expected[entry.hidden.window] = entry.original
                 var sequence = two.sequence
                 for _ in 0..<2 {
@@ -410,9 +461,11 @@ public enum StageSwitchError: Error, Equatable { case busy, unavailable, interru
                     sequence = after.sequence
                 }
                 try update { s in
-                    s.releases?.removeAll { $0.intent == intent }
                     s.owned.removeAll { $0 == entry }
+                    if let i = s.releases?.firstIndex(where:{ $0.intent == intent }) { s.releases?[i].restored = true }
                 }
+                if owner.backend == .corner { try await session.didVerify(command,after:entry.original) }
+                try update { $0.releases?.removeAll { $0.intent == intent } }
             } catch {
                 guard token == epoch else { throw StageSwitchError.interrupted }
                 // Proceed only after independent re-admission of the other window and its bystanders.

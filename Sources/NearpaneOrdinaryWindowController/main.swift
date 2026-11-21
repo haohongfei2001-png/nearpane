@@ -109,6 +109,30 @@ final class Worker {
                 guard let app, app == (r.pid,r.launch,r.bundle), let id = r.id,
                       let m = windowsByID[id] else { throw Refusal("窗口未在本次选择中登记。") }
                 switch r.action {
+                case .stageRead:
+                    guard let home = r.desktop, r.destination == nil, r.expected == nil, r.pairPlacement == nil,
+                          r.focusScope == nil, m.canListAgain else { throw Refusal("窗口组的系统读回凭据不完整。") }
+                    try checkOwner(owner,pid:id.pid,launch:id.launch,bundle:r.bundle)
+                    reply.stageObservation = try StageWindowPhysicalReader.read(id,original:m.element,home:home)
+                    try checkOwner(owner,pid:id.pid,launch:id.launch,bundle:r.bundle)
+                case .stagePlace:
+                    guard let home = r.desktop, let from = r.expected, let to = r.destination, r.pairPlacement == nil,
+                          r.focusDeadline != nil else { throw StageSwitchError.incomplete }
+                    try m.bindDesktop(home)
+                    let input = WindowSelectionInput.counters()
+                    var step = 0
+                    var completed = [OrdinaryWindowStep]()
+                    defer { reply.steps = completed }
+                    reply.pair = try m.write(from:from,to:to,placement:nil,retainedPeer:nil,stagePermit:{
+                        var challenge = OrdinaryWindowReply(r.nonce)
+                        challenge.focusStep = step
+                        let decision: NativeSpaceStepPermission
+                        do { decision = try SelectionStepHandshake.exchange(challenge,input:.standardInput,output:.standardOutput) }
+                        catch { exit(75) }
+                        guard getppid() == self.parent, AXIsProcessTrusted(), input == WindowSelectionInput.counters(),
+                              decision.permitsFocus(r,after:step,now:ProcessInfo.processInfo.systemUptime) else { throw StageSwitchError.interrupted }
+                        step += 1
+                    },confirmedStep:{ completed.append($0) })
                 case .inspectFocusScope:
                     guard let scope = r.focusScope, let frame = r.expected else { throw Refusal("缺少定向选窗读回凭据。") }
                     try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: r.bundle)

@@ -21,6 +21,8 @@ public struct StageEngineEnvironment: Equatable, Codable, Sendable {
 public enum StageEngineCheck: String, Codable, CaseIterable, Hashable, Sendable {
     case independentlyObserved, twoAppsThreeWindows, sameAppSiblings, unmanagedBystanders, preminimizedAndDockUnchanged
     case exactKeyboardReceiver, nativeTakeovers, topologyChanges, normalQuitRecovery, crashRecovery, tenTransitions, fiftyTransitions
+    case signedHostThreeGroups, signedHostExactKeyboard, pairedApplePerformance, hundredPerDirection, thousandTransitions
+    case sixtyAndHighRefresh, physicalDisplayConfigurations, boundedResourceUseAndRecovery
     case cornerGeometryAndClamp, sliverAndBorders, completeMouseSequences, systemSurfacesClickable, freshZOrderAndMarker
     case eventTapRevocation, inputPermissionsAndSecureInput
     case exactSIPBuild, validatedRoute, memberMembershipEachWay, applicationReactivation, modalPanels
@@ -28,7 +30,9 @@ public enum StageEngineCheck: String, Codable, CaseIterable, Hashable, Sendable 
     public static func required(for backend: StageWindowBackend) -> Set<Self> {
         let common: Set<Self> = [.independentlyObserved,.twoAppsThreeWindows,.sameAppSiblings,.unmanagedBystanders,
             .preminimizedAndDockUnchanged,.exactKeyboardReceiver,.nativeTakeovers,.topologyChanges,
-            .normalQuitRecovery,.crashRecovery,.tenTransitions,.fiftyTransitions]
+            .normalQuitRecovery,.crashRecovery,.tenTransitions,.fiftyTransitions,.signedHostThreeGroups,
+            .signedHostExactKeyboard,.pairedApplePerformance,.hundredPerDirection,.thousandTransitions,
+            .sixtyAndHighRefresh,.physicalDisplayConfigurations,.boundedResourceUseAndRecovery]
         switch backend {
         case .corner: return common.union([.cornerGeometryAndClamp,.sliverAndBorders,.completeMouseSequences,
             .systemSurfacesClickable,.freshZOrderAndMarker,.eventTapRevocation,.inputPermissionsAndSecureInput])
@@ -49,11 +53,22 @@ public struct StageEngineComparison: Codable, Equatable, Sendable {
     }
     public let protocolDigest: String, samplesPerDirection: Int
     public let firstFrame, interactive, settled: Latency
+    public struct Reference: Codable, Equatable, Sendable {
+        public let appleFirstFrameP95, appleInteractiveP95, nominalInterval, frameGapP95, longestGap, recoverySeconds: Double
+        public init(appleFirstFrameP95: Double, appleInteractiveP95: Double, nominalInterval: Double, frameGapP95: Double,
+                    longestGap: Double, recoverySeconds: Double) {
+            self.appleFirstFrameP95 = appleFirstFrameP95; self.appleInteractiveP95 = appleInteractiveP95
+            self.nominalInterval = nominalInterval; self.frameGapP95 = frameGapP95; self.longestGap = longestGap
+            self.recoverySeconds = recoverySeconds
+        }
+    }
+    public let reference: Reference?
     public let longestSettling, frameGapP99, droppedFramePercent, idleCPU, burstCPU, windowServerCPU, replaydCPU, memoryMB: Double
 
     public init(protocolDigest: String, samplesPerDirection: Int, firstFrame: Latency, interactive: Latency, settled: Latency,
                 longestSettling: Double, frameGapP99: Double, droppedFramePercent: Double,
-                idleCPU: Double, burstCPU: Double, windowServerCPU: Double, replaydCPU: Double, memoryMB: Double) {
+                idleCPU: Double, burstCPU: Double, windowServerCPU: Double, replaydCPU: Double, memoryMB: Double, reference: Reference? = nil) {
+        self.reference = reference
         self.protocolDigest = protocolDigest; self.samplesPerDirection = samplesPerDirection
         self.firstFrame = firstFrame; self.interactive = interactive; self.settled = settled; self.longestSettling = longestSettling
         self.frameGapP99 = frameGapP99; self.droppedFramePercent = droppedFramePercent; self.idleCPU = idleCPU
@@ -67,9 +82,22 @@ public struct StageEngineComparison: Codable, Equatable, Sendable {
         samplesPerDirection >= 100 && !protocolDigest.isEmpty && [firstFrame,interactive,settled].allSatisfy(\.valid) &&
             longestSettling >= settled.p99 && values.allSatisfy { $0.isFinite && $0 >= 0 }
     }
+    var passesAbsoluteLimits: Bool {
+        guard let r = reference, [r.appleFirstFrameP95,r.appleInteractiveP95,r.nominalInterval].allSatisfy({ $0.isFinite && $0 > 0 }),
+              [r.frameGapP95,r.longestGap,r.recoverySeconds].allSatisfy({ $0.isFinite && $0 >= 0 }),
+              r.frameGapP95 <= r.nominalInterval*1.25, r.longestGap <= 50, frameGapP99 <= r.longestGap,
+              r.recoverySeconds <= 2, firstFrame.p95 <= 1.2*r.appleFirstFrameP95+20,
+              interactive.p95 <= 1.2*r.appleInteractiveP95+30 else { return false }
+        return comparable && firstFrame.p50 <= 100 && firstFrame.p95 <= 150 && firstFrame.p99 <= 250 &&
+            interactive.p50 <= 150 && interactive.p95 <= 220 && interactive.p99 <= 350 &&
+            settled.p95 <= 250 && longestSettling <= 500 && frameGapP99 <= 50 && droppedFramePercent <= 1 &&
+            idleCPU <= 1 && burstCPU <= 20 && memoryMB <= 100
+    }
     func dominates(_ peer: Self) -> Bool {
-        guard comparable, peer.comparable, protocolDigest == peer.protocolDigest else { return false }
-        let pairs = zip(values,peer.values)
+        guard let a = reference, let b = peer.reference, comparable, peer.comparable, protocolDigest == peer.protocolDigest,
+              a.nominalInterval == b.nominalInterval, a.appleInteractiveP95 == b.appleInteractiveP95,
+              a.appleFirstFrameP95 == b.appleFirstFrameP95 else { return false }
+        let pairs = zip(values + [a.frameGapP95,a.longestGap,a.recoverySeconds],peer.values + [b.frameGapP95,b.longestGap,b.recoverySeconds])
         return pairs.allSatisfy { $0 <= $1 } && pairs.contains { $0 < $1 }
     }
 }
@@ -77,22 +105,30 @@ public struct StageEngineComparison: Codable, Equatable, Sendable {
 /// Supplied only by a trusted capability source (never decoded from a profile preference or a UI argument).
 public struct StageEngineQualification: Codable, Equatable, Sendable {
     public let backend: StageWindowBackend, environment: StageEngineEnvironment, evidence: UUID
-    public let checks: [StageEngineCheck:StageEngineFinding], comparison: StageEngineComparison?
+    public let checks: [StageEngineCheck:StageEngineFinding], comparison: StageEngineComparison?, spacesBaseline: UUID?
     public init(backend: StageWindowBackend, environment: StageEngineEnvironment, evidence: UUID,
-                checks: [StageEngineCheck:StageEngineFinding], comparison: StageEngineComparison? = nil) {
+                checks: [StageEngineCheck:StageEngineFinding], comparison: StageEngineComparison? = nil, spacesBaseline: UUID? = nil) {
         self.backend = backend; self.environment = environment; self.evidence = evidence
-        self.checks = checks; self.comparison = comparison
+        self.checks = checks; self.comparison = comparison; self.spacesBaseline = spacesBaseline
     }
-    public func admits(_ live: StageEngineEnvironment) -> Bool {
-        live.complete && environment == live && (backend != .spaces || live.osBuild == "26A428") &&
-        StageEngineCheck.required(for: backend).allSatisfy { checks[$0] == .pass } &&
-        !checks.values.contains { $0 != .pass }
+    private var completePhysical: Bool {
+        environment.complete && comparison?.passesAbsoluteLimits == true && StageEngineCheck.required(for:backend).allSatisfy { checks[$0] == .pass } &&
+            !checks.values.contains { $0 != .pass }
+    }
+    public func admits(_ live: StageEngineEnvironment, reviewed: [Self] = []) -> Bool {
+        guard completePhysical, environment == live else { return false }
+        if backend != .spaces || live.osBuild == "26A428" { return true }
+        guard let spacesBaseline else { return false }
+        let match = reviewed.filter { $0.evidence == spacesBaseline }
+        return match.count == 1 && match[0].backend == .spaces && match[0].environment.osBuild == "26A428" &&
+            match[0].environment.engineRevision == live.engineRevision && match[0].environment.windowClass == live.windowClass &&
+            match[0].completePhysical
     }
     public static func choose(_ records: [Self], in live: StageEngineEnvironment,
                               retaining owner: StageWindowBackend? = nil) -> Self? {
         let matching = records.filter { $0.environment == live }
         let byBackend = Dictionary(grouping: matching, by: \.backend)
-        let eligible = matching.filter { byBackend[$0.backend]?.count == 1 && $0.admits(live) }
+        let eligible = matching.filter { byBackend[$0.backend]?.count == 1 && $0.admits(live,reviewed:records) }
         if eligible.count == 1 { return eligible[0] }
         guard eligible.count == 2 else { return nil }
         let a = eligible[0], b = eligible[1]

@@ -133,6 +133,22 @@ import Testing
         #expect(member.resolve(snapshot([window(8, ["1"], front: 0)])) == nil)
     }
 
+    @Test func groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() async {
+        let router = NativeSidebarNavigation()
+        var owner = false, effects = [String]()
+        var resume: CheckedContinuation<Void,Never>?
+        router.stageOwnsWindowDispatch = { owner }
+        router.submit(selection:false) { _ in await withCheckedContinuation { resume = $0 } }
+        while resume == nil { await Task.yield() }
+        router.submit(selection:false) { _ in effects.append("queued drag") }
+        owner = true
+        router.submit(prepare:{ effects.append("ordinary focus preparation") }) { _ in effects.append("ordinary focus") }
+        router.submit(stage:true) { _ in effects.append("group") }
+        resume?.resume()
+        for _ in 0..<100 where effects.isEmpty { await Task.yield() }
+        #expect(effects == ["group"])
+    }
+
     @Test func newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent() async {
         let router = NativeSidebarNavigation()
         var resume: CheckedContinuation<Void, Never>?, effects = [String]()

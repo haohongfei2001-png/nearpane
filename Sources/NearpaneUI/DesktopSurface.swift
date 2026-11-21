@@ -68,6 +68,15 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+        .alert("允许窗口组调度？", isPresented: Binding(get: {
+            display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.scope.display.uuidString.caseInsensitiveCompare(displayID ?? "") == .orderedSame
+        }, set: { _ in })) {
+            Button("允许") { display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.answerConsent(allow:true) }
+            Button("取消",role:.cancel) { display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.answerConsent(allow:false) }
+        } message: {
+            let n = display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.lifetimes.count ?? 0
+            Text("允许在此屏当前桌面暂时移出、恢复和排列所选组的 \(n) 扇已登记窗口。授权后请再次选择窗口组。")
+        }
         .onChange(of: canNavigate) { _, available in
             if !available { navigation.windowSwitch.cancel(on: displayID) }
         }
@@ -101,8 +110,26 @@ struct DesktopSurface: View {
                                     DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,
                                         gallery: feed == nil ? nil : display?.pointer?.windowPreviews?.gallery,
                                         permitted: picturesAllowed, badges: appBadges)
-                                } else if !windows.isEmpty {
-                                    windowList(windows, snapshot: snapshot, screen: screen, width: innerWidth, source: current)
+                                } else {
+                                    if !windows.isEmpty { windowList(windows,snapshot:snapshot,screen:screen,width:innerWidth,source:current) }
+                                    if let feed, let current {
+                                        ForEach(feed.stageEngine.heldGroups.filter { $0.scope.display.uuidString.caseInsensitiveCompare(screen.id) == .orderedSame &&
+                                            $0.scope.nativeSpace == current.uuid }) { held in
+                                            let id = held.state.window
+                                            let key = DesktopWindowKey(pid:id.pid,birth:id.birth,number:id.number)
+                                            CurrentWindowCard(label:held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count),
+                                                badge:nil,size:nil,target:nil,key:key,gallery:nil,permitted:false,border:1,fontSize:10,
+                                                selected:{ nil },describe:{ _ in "已核对的非活动窗口组" },select:{
+                                                    let input = NativeSelectionPermit.inputCounters()
+                                                    navigation.submit(stage:true) { token in
+                                                        try await feed.stageEngine.chooseHeld(held,in:feed,current:{
+                                                            canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
+                                                        })
+                                                    }
+                                                },selectable:canNavigate)
+                                                .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
+                                        }
+                                    }
                                 }
                             }
                             .task(id: GalleryRun(display: screen.id, visible: display?.interactionVisible == true,

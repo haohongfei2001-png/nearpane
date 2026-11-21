@@ -38,7 +38,7 @@ public struct NativeSpaceStepPermission: Codable, Sendable {
     }
 
     public func permitsFocus(_ request: OrdinaryWindowRequest, after steps: Int, now: TimeInterval) -> Bool {
-        guard request.action == .focusCurrent, let deadline = request.focusDeadline else { return false }
+        guard request.action == .focusCurrent || request.action == .stagePlace, let deadline = request.focusDeadline else { return false }
         return id == request.nonce && submittedSteps == steps && (0..<8).contains(steps) && proceed &&
             deadline > now && deadline - now <= 12
     }

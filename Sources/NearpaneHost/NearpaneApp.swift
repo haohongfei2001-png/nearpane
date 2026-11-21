@@ -806,6 +806,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             #endif
             startupTask?.cancel()
+            await modules?.prepareStageWindowShutdown()
             panels?.stop()
             host?.stop()
             await modules?.finishStopping()
@@ -1161,6 +1162,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         try JSONEncoder().encode(titles).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
         window.close()
+        await embedded.prepareStageWindowShutdown()
         host.stop()
         await embedded.finishStopping()
     }
@@ -1203,6 +1205,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
         let operation = Task { @MainActor () throws -> ProfileReply in
             // Retire every action surface before releasing the global writer lease.
+            guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
             settingsPreview.withdraw()
             panels?.stop()
             surface?.window?.orderOut(nil)

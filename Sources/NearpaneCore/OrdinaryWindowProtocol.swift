@@ -71,7 +71,7 @@ public struct OrdinaryWindowPairPlacement: Codable, Equatable, Sendable {
 public struct OrdinaryWindowRequest: Codable, Sendable {
     public enum Action: String, Codable, Sendable {
         case list, refresh, prepare, verify, write, release, observeBoundary, acknowledgeBoundary
-        case watchCreated, takeCreated, endCreated, focusCurrent, inspectFocusScope, checkFocusPermission, requestFocusPermission
+        case watchCreated, takeCreated, endCreated, focusCurrent, inspectFocusScope, checkFocusPermission, requestFocusPermission, stageRead, stagePlace
 
         public var allowedForFocusScopeProbe: Bool { self == .list || self == .inspectFocusScope || self == .release }
 
@@ -169,6 +169,7 @@ public struct OrdinaryWindowReply: Codable, Sendable {
     public var listAccessDenied: Bool?
     public var focusScopeEvidence: OrdinaryFocusScopeEvidence?
     public var focusScopeFindings: [OrdinaryFocusScopeFinding]?
+    public var stageObservation: StageWindowPhysicalObservation?
     public var focusPermission: Bool?
     public var focusStep: Int?
     public var steps: [OrdinaryWindowStep]?
