@@ -124,6 +124,11 @@ void np_corner_inputs(uint32_t counters[13]) {
         counters[n] = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, e[n]);
 }
 int np_corner_secure_input(void) { return IsSecureEventInputEnabled() != 0; }
+uint32_t np_corner_input_access(void) {
+    if (!AXIsProcessTrusted() || !CGPreflightPostEventAccess())
+        return NO_AX;
+    return np_corner_secure_input() ? SECURE : OK;
+}
 uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count) {
     @autoreleasepool {
         uint32_t n = 0;

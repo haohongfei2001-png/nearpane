@@ -108,8 +108,12 @@ impl State {
     fn record_write(&mut self, request: &Request, result: &Outcome) {
         let lease = Lease::from(request);
         let canary = matches!(request.operation, LAUNCH | CLEAN_LAUNCH);
-        if canary && result.status == PASS && result.owned == 0 &&
-            result.flags & (PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID | OWNED | HIDDEN) == PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID {
+        if canary
+            && result.status == PASS
+            && result.owned == 0
+            && result.flags & (PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID | OWNED | HIDDEN)
+                == PROBE_CLEAN_FLAGS | MEMBERSHIP_VALID
+        {
             self.unresolved.remove(&lease);
             // Canary cleanup never releases another window's owner or its unknown leases.
             if request.operation == CLEAN_LAUNCH && self.unresolved.is_empty() {
@@ -121,7 +125,8 @@ impl State {
         if result.owned > 0 || result.flags & OWNED != 0 || result.status == UNKNOWN {
             self.owner = Some(request.backend);
         }
-        if result.status == UNKNOWN || (canary && (result.owned != 0 || result.flags & OWNED != 0)) {
+        if result.status == UNKNOWN || (canary && (result.owned != 0 || result.flags & OWNED != 0))
+        {
             self.unresolved.insert(lease);
             return;
         }
@@ -333,16 +338,23 @@ fn process(
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
         write: r.writes()
-            && (config.allows(&r) || (qualified.is_some_and(|g| g.backend == r.backend) && r.operation != TRIAL)),
+            && (config.allows(&r)
+                || (qualified.is_some_and(|g| g.backend == r.backend) && r.operation != TRIAL)),
         spaces_route: qualified.and_then(|g| g.spaces_route),
+        corner_input_check: r.operation == HEALTH
+            && r.backend == CORNER
+            && (qualified.is_some_and(|g| g.backend == CORNER)
+                || (config.mode == 1 && config.valid() && (r.pid == 0 || config.allows(&r)))),
     };
     let may_enter = {
         let mut s = lock(shared);
         let allowed = r.writes()
             && control.may_write()
             && s.owner.is_none_or(|b| b == r.backend)
-            && ((s.unresolved.is_empty() && !s.health_lost) || matches!(r.operation, RESTORE | CLEAN_LAUNCH))
-            && (!matches!(r.operation, LAUNCH | CLEAN_LAUNCH) || (r.operation == LAUNCH && s.owner.is_none())
+            && ((s.unresolved.is_empty() && !s.health_lost)
+                || matches!(r.operation, RESTORE | CLEAN_LAUNCH))
+            && (!matches!(r.operation, LAUNCH | CLEAN_LAUNCH)
+                || (r.operation == LAUNCH && s.owner.is_none())
                 || (r.operation == CLEAN_LAUNCH && s.unresolved.contains(&Lease::from(&r))));
         let Some(ticket) = s.tickets.get_mut(&job.id) else {
             return;

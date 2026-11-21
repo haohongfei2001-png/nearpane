@@ -110,6 +110,33 @@ fn origin_safe(old: Rect, displays: &[Display], id: [u8; 16], corner: park::Corn
             .all(|d| old.intersect(&d.frame).is_none())
 }
 
+/// Startup/monitoring has no nominated member. A partially populated lease is never an idle check.
+fn health_member(r: &Request) -> Result<Option<Member>, u32> {
+    let identifiers = [
+        r.group,
+        r.display,
+        r.native_space,
+        r.member,
+        r.lifetime,
+        r.generation,
+    ];
+    if identifiers.iter().all(|id| *id == [0; 16])
+        && r.pid == 0
+        && r.birth == 0
+        && r.window == 0
+        && r.native_id == 0
+        && r.frame == c::Rect::default()
+        && r.target == c::Rect::default()
+    {
+        return Ok(None);
+    }
+    let bound = Request {
+        operation: c::READBACK,
+        ..*r
+    };
+    bound.valid().then(|| Some(Member::from(r))).ok_or(IDENTITY)
+}
+
 impl Corner {
     fn result(&self, status: u32, detail: u32, sample: Option<Sample>, owned: bool) -> Outcome {
         let mut v = Outcome::new(status);
@@ -193,33 +220,69 @@ impl Corner {
         self.last_refresh = Some(Instant::now());
         Ok(())
     }
-    /// Preflight for an admitted command with no parked members. This real, short-lived port has
-    /// an empty recipient set and no hit zones, so every gesture reaches its ordinary recipient.
-    fn idle_health(&self, r: &Request, control: &Control) -> Outcome {
+    /// Startup checks an empty-recipient real tap. A per-command check additionally binds the
+    /// nominated window across both reads. Neither check grants authority to set an AX attribute.
+    fn health(&self, r: &Request, control: &Control) -> Outcome {
         let probe = || -> Result<(), u32> {
-            if !control.may_write() {
+            if !control.may_check_corner_input() {
                 return Err(NEED_INDEPENDENT_READ);
             }
-            let id = Member::from(r);
-            let layout = native::displays()?;
-            scoped(&layout, id.display)?;
-            let first = native::sample(&id)?;
+            let id = health_member(r)?;
+            native::input_access()?;
             let input = native::inputs();
-            let port = Tap::start(self.publication(false)?)?;
-            let second = native::sample(&id)?;
-            if !same(first.cg, second.cg) || layout != native::displays()? || input != native::inputs() {
+            let layout = native::displays()?;
+            let retained = id
+                .map(|id| -> Result<_, u32> {
+                    scoped(&layout, id.display)?;
+                    let first = native::sample(&id)?;
+                    if let Some(o) = self.owned.get(&id.window) {
+                        if o.id != id
+                            || o.key != Key::from(r)
+                            || !o.reference.matches(&id)
+                            || !o.parked.is_some_and(|p| same(p, first.cg))
+                        {
+                            return Err(IDENTITY);
+                        }
+                    } else if !same(first.cg, rect(r.frame)) {
+                        return Err(USER_CHANGED);
+                    }
+                    Ok((Reference::acquire(&id)?, first.cg))
+                })
+                .transpose()?;
+            let first = self.publication(false)?;
+            let initial_dock = first.shield.dock.clone();
+            let temporary;
+            let port = match &self.tap {
+                Some(port) => {
+                    port.publish(first)?;
+                    port
+                }
+                None if self.owned.is_empty() => {
+                    temporary = Tap::start(first)?;
+                    &temporary
+                }
+                None => return Err(tap::UNAVAILABLE),
+            };
+            let second = self.publication(false)?;
+            if let (Some(id), Some((reference, before))) = (id, retained) {
+                if !reference.matches(&id) || !same(native::sample(&id)?.cg, before) {
+                    return Err(USER_CHANGED);
+                }
+            }
+            if initial_dock != second.shield.dock || layout != native::displays()? {
                 return Err(USER_CHANGED);
             }
-            port.publish(self.publication(false)?)?;
-            if control.guard().is_err() {
+            native::input_access()?;
+            if input != native::inputs() || !control.may_check_corner_input() {
                 return Err(USER_CHANGED);
             }
-            port.health()
+            port.publish(second)
         };
+        let owned = !self.owned.is_empty();
         match probe() {
-            Err(e) => self.result(control.guard().err().unwrap_or(c::UNKNOWN), e, None, false),
+            Err(e) => self.result(control.guard().err().unwrap_or(c::UNKNOWN), e, None, owned),
             Ok(()) => {
-                let mut receipt = self.result(c::PASS, 0, None, false);
+                let mut receipt = self.result(c::PASS, 0, None, owned);
                 receipt.flags |= c::HEALTHY | c::INPUT_SAFE;
                 receipt
             }
@@ -466,15 +529,7 @@ impl WindowEngine for Corner {
                 Ok(_) => self.result(c::PASS, NEED_INDEPENDENT_READ, None, false),
                 Err(e) => self.result(c::UNKNOWN, e, None, false),
             },
-            c::HEALTH if self.owned.is_empty() => self.idle_health(r, control),
-            c::HEALTH => match self.refresh(false) {
-                Ok(()) => {
-                    let mut o = self.result(c::PASS, 0, None, true);
-                    o.flags |= c::HEALTHY | c::INPUT_SAFE;
-                    o
-                }
-                Err(e) => self.result(c::UNKNOWN, e, None, true),
-            },
+            c::HEALTH => self.health(r, control),
             c::READBACK => self.read(r),
             c::HIDE if control.may_write() => self.hide(r, control),
             c::SHOW | c::RESTORE if control.may_write() => self.restore(r, control),
@@ -551,9 +606,65 @@ mod tests {
             deadline: Instant::now() + Duration::from_secs(2),
             write: false,
             spaces_route: None,
+            corner_input_check: false,
         };
-        let receipt = Corner::default().idle_health(&Request::default(), &c);
+        let receipt = Corner::default().health(&Request::default(), &c);
         assert_eq!((receipt.status, receipt.flags), (c::UNKNOWN, 0));
+    }
+    #[test]
+    fn a_full_window_lease_and_a_truly_empty_engine_health_have_distinct_shapes() {
+        let empty = Request {
+            backend: c::CORNER,
+            operation: c::HEALTH,
+            epoch: 1,
+            timeout_ms: 200,
+            intent: [1; 16],
+            ..Default::default()
+        };
+        let full = Request {
+            group: [2; 16],
+            display: [3; 16],
+            native_space: [4; 16],
+            member: [5; 16],
+            lifetime: [6; 16],
+            generation: [7; 16],
+            pid: 40,
+            birth: 90,
+            window: 71,
+            native_id: 12,
+            frame: c::Rect {
+                x: 1.,
+                y: 2.,
+                width: 30.,
+                height: 20.,
+            },
+            ..empty
+        };
+        assert_eq!(health_member(&empty), Ok(None));
+        assert_eq!(health_member(&full), Ok(Some(Member::from(&full))));
+        for bad in [
+            Request { window: 71, ..empty },
+            Request {
+                generation: [7; 16],
+                ..empty
+            },
+            Request {
+                target: full.frame,
+                ..empty
+            },
+            Request { pid: 0, ..full },
+            Request { native_id: 0, ..full },
+            Request {
+                native_space: [0; 16],
+                ..full
+            },
+            Request {
+                frame: c::Rect::default(),
+                ..full
+            },
+        ] {
+            assert_eq!(health_member(&bad), Err(IDENTITY));
+        }
     }
     #[test]
     fn cold_engine_cannot_adopt_a_parked_window_from_numeric_and_journal_ids() {
@@ -565,6 +676,7 @@ mod tests {
             deadline: Instant::now() + Duration::from_secs(2),
             write: true,
             spaces_route: None,
+            corner_input_check: false,
         };
         let r = Request {
             pid: 9,

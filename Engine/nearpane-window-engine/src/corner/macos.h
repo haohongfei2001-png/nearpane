@@ -36,6 +36,7 @@ uint32_t np_corner_sample(const NCMember *, NCSample *);
 uint32_t np_corner_position(const NCMember *, void *retained, NCFrame before, NCFrame desired, NCGuard allow,
                             void *context, uint32_t *issued);
 int np_corner_secure_input(void);
+uint32_t np_corner_input_access(void);
 void np_corner_inputs(uint32_t counters[13]);
 // Callback receives in-process event metadata only. No event pointer escapes into Rust.
 // Control returns bit 0 wanted, bit 1 a swallowed gesture still held, bit 2 stop.

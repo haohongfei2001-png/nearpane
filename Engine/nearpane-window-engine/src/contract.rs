@@ -102,7 +102,10 @@ pub struct Request {
 }
 impl Request {
     pub fn writes(&self) -> bool {
-        matches!(self.operation, HIDE | SHOW | RESTORE | TRIAL | LAUNCH | CLEAN_LAUNCH)
+        matches!(
+            self.operation,
+            HIDE | SHOW | RESTORE | TRIAL | LAUNCH | CLEAN_LAUNCH
+        )
     }
     pub fn valid(&self) -> bool {
         if !matches!(self.backend, CORNER | SPACES)
@@ -122,10 +125,24 @@ impl Request {
             return true;
         }
         if matches!(self.operation, LAUNCH | CLEAN_LAUNCH) {
-            return self.backend == SPACES && self.flags == 0 && self.pid == 0 && self.window == 0
-                && self.birth == 0 && self.native_id == 0 && self.frame == Rect::default()
-                && self.target == Rect::default() && [self.group,self.display,self.native_space,
-                    self.member,self.lifetime,self.generation].iter().all(|id| *id == [0;16]);
+            return self.backend == SPACES
+                && self.flags == 0
+                && self.pid == 0
+                && self.window == 0
+                && self.birth == 0
+                && self.native_id == 0
+                && self.frame == Rect::default()
+                && self.target == Rect::default()
+                && [
+                    self.group,
+                    self.display,
+                    self.native_space,
+                    self.member,
+                    self.lifetime,
+                    self.generation,
+                ]
+                .iter()
+                .all(|id| *id == [0; 16]);
         }
         self.pid > 0
             && self.birth > 0
@@ -152,6 +169,7 @@ pub struct Control {
     pub(crate) deadline: Instant,
     pub(crate) write: bool,
     pub(crate) spaces_route: Option<u32>,
+    pub(crate) corner_input_check: bool,
 }
 impl Control {
     pub fn guard(&self) -> Result<(), u32> {
@@ -170,6 +188,9 @@ impl Control {
     }
     pub fn approved_spaces_route(&self) -> Option<u32> {
         self.spaces_route.filter(|_| self.may_write())
+    }
+    pub fn may_check_corner_input(&self) -> bool {
+        self.corner_input_check && self.guard().is_ok()
     }
 }
 #[derive(Clone, Copy, Default, Debug)]

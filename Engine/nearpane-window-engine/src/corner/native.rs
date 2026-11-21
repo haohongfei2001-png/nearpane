@@ -64,6 +64,7 @@ unsafe extern "C" {
     fn np_corner_retain_window(id: *const Member) -> *mut c_void;
     fn np_corner_same_window(id: *const Member, retained: *mut c_void) -> i32;
     fn np_corner_inputs(output: *mut u32);
+    fn np_corner_input_access() -> u32;
     fn np_corner_signed_fingerprint(pid: i32, birth: u64, digest: *mut u8) -> i32;
     #[cfg(feature = "isolated-fixtures")]
     fn np_is_enrolled_fixture(pid: i32, birth: u64) -> bool;
@@ -83,6 +84,10 @@ pub(super) fn inputs() -> Inputs {
     let mut state = [0; 13];
     unsafe { np_corner_inputs(state.as_mut_ptr()) };
     state
+}
+pub(super) fn input_access() -> Result<(), u32> {
+    let code = unsafe { np_corner_input_access() };
+    if code == 0 { Ok(()) } else { Err(code) }
 }
 fn fingerprint(member: &Member) -> Option<[u8; 32]> {
     let mut bytes = [0; 32];

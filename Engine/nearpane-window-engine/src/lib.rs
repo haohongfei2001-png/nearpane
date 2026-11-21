@@ -109,12 +109,19 @@ struct Grant {
 }
 const REVIEWED: &[Grant] = &[];
 fn reviewed(backend: u32, evidence: [u8; 16]) -> Option<Grant> {
-    REVIEWED.iter().copied().find(|g| g.backend == backend && g.evidence == evidence &&
-        matches!((g.backend, g.spaces_route), (CORNER, None) | (SPACES, Some(1 | 2))))
+    REVIEWED.iter().copied().find(|g| {
+        g.backend == backend
+            && g.evidence == evidence
+            && matches!(
+                (g.backend, g.spaces_route),
+                (CORNER, None) | (SPACES, Some(1 | 2))
+            )
+    })
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_evidence_is_reviewed(backend: u32, evidence: *const u8) -> bool {
-    !evidence.is_null() && reviewed(backend, unsafe { evidence.cast::<[u8;16]>().read() }).is_some()
+    !evidence.is_null()
+        && reviewed(backend, unsafe { evidence.cast::<[u8; 16]>().read() }).is_some()
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_create_qualified(
