@@ -17,6 +17,24 @@ func isBundledChild() -> Bool {
     return executable(getppid()) == contents.appendingPathComponent("MacOS/NearpaneHost")
 }
 
+/// The prepared bridge object is submitted at most once. A revoked, interrupted or
+/// expired permit cannot authorize it, even if the exact-window check finishes later.
+func submitPreparedMove<T>(_ request: NativeSpaceCommand, now: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+                           authorize: () throws -> NativeSpaceStepPermission,
+                           verify: () throws -> Void, submit: (TimeInterval) -> T) throws -> T {
+    guard request.action == .move, request.isFresh(at: now()) else { throw ActionFailure("迁移动作已过期。") }
+    let permission = request.confirmMoveBeforeSubmission == true ? try authorize() : nil
+    if let permission, !permission.permits(request, after: 0, now: now()) {
+        throw ActionFailure("窗口调度已交还系统，请重新选择。")
+    }
+    try verify()
+    let submitted = now()
+    guard request.isFresh(at: submitted), permission?.permits(request, after: 0, now: submitted) != false else {
+        throw ActionFailure("迁移动作已过期。")
+    }
+    return submit(submitted)
+}
+
 @MainActor
 func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindowWitnesses,
          authorize: (NativeSpaceReply) throws -> NativeSpaceStepPermission) -> NativeSpaceReply {
@@ -97,13 +115,14 @@ func run(_ request: NativeSpaceCommand, available: Bool, witnesses: SidebarWindo
                 throw ActionFailure("窗口迁移操作未获准创建。")
             }
             preparedMove = context
-            let final = try WindowWitness.read(window, display: display)
-            guard checked.agreesBeforeDispatch(with: final),
-                  try checked.verifiedMoveMembership(request, rebound: final, inventory: start) == oldMembership,
-                  try ActionInventory.read() == start else { throw ActionFailure("提交前窗口身份或桌面已改变。") }
-            let submitted = ProcessInfo.processInfo.systemUptime
-            guard request.isFresh(at: submitted) else { throw ActionFailure("迁移动作已过期。") }
-            let delivery = NPSubmitWindowMove(context)
+            let (delivery, submitted) = try submitPreparedMove(request, authorize: {
+                try authorize(reply(.awaitingStep, "等待确认当前窗口迁移。"))
+            }, verify: {
+                let final = try WindowWitness.read(window, display: display)
+                guard checked.agreesBeforeDispatch(with: final),
+                      try checked.verifiedMoveMembership(request, rebound: final, inventory: start) == oldMembership,
+                      try ActionInventory.read() == start else { throw ActionFailure("提交前窗口身份或桌面已改变。") }
+            }, submit: { (NPSubmitWindowMove(context), $0) })
             issued = delivery != NPMoveNotIssued
             moveSubmissionUncertain = delivery == NPMoveSubmissionUncertain
             if issued { issuedAt = submitted; steps = 1 }

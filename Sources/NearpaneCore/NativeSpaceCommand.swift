@@ -44,7 +44,8 @@ public struct NativeSpaceStepPermission: Codable, Sendable {
     }
 
     public func permits(_ request: NativeSpaceCommand, after steps: Int, now: TimeInterval) -> Bool {
-        request.action == .select && id == request.id && submittedSteps == steps && proceed && request.isFresh(at: now)
+        let requested = request.action == .select || (request.action == .move && request.confirmMoveBeforeSubmission == true && steps == 0)
+        return requested && id == request.id && submittedSteps == steps && proceed && request.isFresh(at: now)
     }
 }
 
@@ -87,6 +88,9 @@ public struct NativeSpaceCommand: Codable, Sendable {
     public let window: NativeSpaceWindow?
     public let originalWindow: UUID?
     public let observations: [NativeSidebarWindowProbe]?
+    /// Production Host moves request one final permit after the helper has prepared the exact window.
+    /// Absent in the older direct fixture protocol.
+    public let confirmMoveBeforeSubmission: Bool?
     public var deadlineUptime: TimeInterval { createdAtUptime + 5 }
     public func isFresh(at now: TimeInterval) -> Bool {
         createdAtUptime.isFinite && now >= createdAtUptime && now < deadlineUptime
@@ -96,7 +100,7 @@ public struct NativeSpaceCommand: Codable, Sendable {
                 sourceUUID: UUID? = nil, targetUUID: UUID? = nil, window: NativeSpaceWindow? = nil,
                 sourceKind: NativeSpaceKind = .ordinary, targetKind: NativeSpaceKind = .ordinary,
                 originalWindow: UUID? = nil, observations: [NativeSidebarWindowProbe]? = nil,
-                createdAtUptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+                confirmMoveBeforeSubmission: Bool? = nil, createdAtUptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         self.id = id
         self.action = action
         self.display = display
@@ -110,6 +114,7 @@ public struct NativeSpaceCommand: Codable, Sendable {
         self.window = window
         self.originalWindow = originalWindow
         self.observations = observations
+        self.confirmMoveBeforeSubmission = confirmMoveBeforeSubmission
     }
 }
 

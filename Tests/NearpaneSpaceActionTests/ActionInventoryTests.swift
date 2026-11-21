@@ -73,6 +73,43 @@ struct ActionInventoryTests {
                                                                                     targetUUID: last, targetKind: .ordinary)) }
     }
 
+    @Test func finalMoveRequiresTheExactUnusedPermitAndUnchangedWindowWithinItsDeadline() throws {
+        let command = NativeSpaceCommand(id: UUID(), action: .move, display: "display", source: "A", target: "B",
+                                         confirmMoveBeforeSubmission: true, createdAtUptime: 10)
+        let yes = NativeSpaceStepPermission(id: command.id, submittedSteps: 0, proceed: true)
+        let wrong = NativeSpaceStepPermission(id: UUID(), submittedSteps: 0, proceed: true)
+        let repeated = NativeSpaceStepPermission(id: command.id, submittedSteps: 1, proceed: true)
+        let denied = NativeSpaceStepPermission(id: command.id, submittedSteps: 0, proceed: false)
+        var instant = 12.0, writes = 0
+        func deliver(_ permit: NativeSpaceStepPermission, verify: () throws -> Void = {}) throws {
+            try submitPreparedMove(command, now: { instant }, authorize: { permit }, verify: verify,
+                                   submit: { _ in writes += 1 })
+        }
+        for permit in [wrong, repeated, denied] {
+            #expect(throws: ActionFailure.self) { try deliver(permit) }
+        }
+        #expect(throws: ActionFailure.self) { try deliver(yes) { throw ActionFailure("window changed") } }
+        #expect(throws: ActionFailure.self) { try deliver(yes) { instant = 15 } }
+        #expect(writes == 0)
+        instant = 12
+        try deliver(yes)
+        #expect(writes == 1)
+    }
+
+    @Test func oldMoveWireFormRetainsItsIndependentWindowVerification() throws {
+        let old = NativeSpaceCommand(id: UUID(), action: .move, display: "display", source: "A", target: "B", createdAtUptime: 10)
+        let data = try JSONEncoder().encode(old)
+        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["confirmMoveBeforeSubmission"] == nil)
+        let decoded = try JSONDecoder().decode(NativeSpaceCommand.self, from: data)
+        var phases = [String]()
+        let permission = NativeSpaceStepPermission(id: old.id, submittedSteps: 0, proceed: true)
+        #expect(!permission.permits(decoded, after: 0, now: 11))
+        try submitPreparedMove(decoded, now: { 11 }, authorize: { phases.append("unexpected permit"); return permission },
+                               verify: { phases.append("window verified") }, submit: { _ in phases.append("issued") })
+        #expect(phases == ["window verified", "issued"])
+    }
+
     @Test func stepAuthorizationIsBoundToRequestStepAndDeadline() {
         let command = NativeSpaceCommand(id: UUID(), action: .select, display: "", source: "", target: "", createdAtUptime: 10)
         let consent = NativeSpaceStepPermission(id: command.id, submittedSteps: 2, proceed: true)

@@ -18,16 +18,19 @@ final class NativeSelectionPermit: @unchecked Sendable {
 
     private let current: @MainActor @Sendable () -> Bool
     private let requiredOriginal: UUID?
+    private let confirmDispatch: @MainActor @Sendable () async -> Bool
     private let checkOriginalWindow: @MainActor @Sendable () async -> Bool
     init(current: @escaping @MainActor @Sendable () -> Bool = { true }, requiredOriginal: UUID? = nil,
+         confirmDispatch: @escaping @MainActor @Sendable () async -> Bool = { true },
          checkOriginalWindow: @escaping @MainActor @Sendable () async -> Bool = { true }) {
         self.current = current
+        self.confirmDispatch = confirmDispatch
         self.requiredOriginal = requiredOriginal
         self.checkOriginalWindow = checkOriginalWindow
     }
 
     func gesturePermission(for id: UUID, after steps: Int, original: UUID? = nil) async -> NativeSpaceStepPermission {
-        guard original == requiredOriginal, lock.withLock({ active }), await checkOriginalWindow() else {
+        guard original == requiredOriginal, lock.withLock({ active }), await checkOriginalWindow(), await confirmDispatch() else {
             return .init(id: id, submittedSteps: steps, proceed: false)
         }
         return permission(for: id, after: steps)
@@ -173,17 +176,23 @@ private actor SpaceActionChannel {
                 journaled = true
             }
             try channel.input.write(contentsOf: request)
-            mayHaveIssued = command.action == .move
+            let confirmedMove = command.action == .move && command.confirmMoveBeforeSubmission == true
+            mayHaveIssued = command.action == .move && !confirmedMove
             let deadline = command.deadlineUptime + 0.8
             var granted = 0
             while true {
                 let reply = try readReply(channel, deadline: deadline)
                 guard reply.id == command.id else { throw CocoaError(.coderReadCorrupt) }
                 if reply.state != .awaitingStep {
+                    if confirmedMove && !mayHaveIssued && (reply.issuedAtUptime != nil || reply.submittedSteps != 0) {
+                        // An incompatible response is never evidence that an ungranted move succeeded.
+                        mayHaveIssued = true
+                        throw CocoaError(.coderReadCorrupt)
+                    }
                     if journaled { try switchJournal.finish(command, result: reply) }
                     return reply
                 }
-                guard command.action == .select, granted == 0, reply.submittedSteps == granted
+                guard command.action == .select || confirmedMove, granted == 0, reply.submittedSteps == granted
                 else { throw CocoaError(.coderReadCorrupt) }
                 let decision = await permit?.gesturePermission(for: command.id, after: granted, original: reply.originalWindow)
                     ?? .init(id: command.id, submittedSteps: granted, proceed: false)

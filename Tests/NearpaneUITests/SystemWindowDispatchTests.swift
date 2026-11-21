@@ -58,6 +58,20 @@ import Testing
         #expect(writes == ["fresh"])
     }
 
+    @Test func preparedHelperStepRereadsSystemOwnershipAndRechecksIntentAfterThatRead() async {
+        let id = UUID()
+        let refused = NativeSelectionPermit(confirmDispatch: { false })
+        #expect(await !refused.gesturePermission(for: id, after: 0).proceed)
+        var stillCurrent = true
+        let superseded = NativeSelectionPermit(current: { stillCurrent }, confirmDispatch: {
+            stillCurrent = false
+            return true
+        })
+        #expect(await !superseded.gesturePermission(for: id, after: 0).proceed)
+        let healthy = NativeSelectionPermit(confirmDispatch: { true })
+        #expect(await healthy.gesturePermission(for: id, after: 0).proceed)
+    }
+
     @Test func aHandoffCancelsAWaitingSwitchMoveAndOldFocusEvenAfterReentry() async {
         let lane = NativeSidebarNavigation()
         var continuation: CheckedContinuation<Void, Never>?

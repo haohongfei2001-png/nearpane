@@ -320,8 +320,13 @@ struct CrossSpaceFocusContinuity {
                 }
                 let request = NativeSpaceCommand(id: UUID(), action: .move, display: dest.display,
                     source: member.source.space, target: dest.space, sourceUUID: member.source.uuid, targetUUID: dest.uuid,
-                    window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number))
-                let permit = NativeSelectionPermit(current: currentIntent)
+                    window: .init(pid: member.key.pid, birth: member.key.birth, number: member.key.number),
+                    confirmMoveBeforeSubmission: true)
+                let permit = NativeSelectionPermit(current: currentIntent, confirmDispatch: { [weak self] in
+                    guard currentIntent() else { return false }
+                    if let check = self?.confirmDispatch { return await check() }
+                    return true
+                })
                 let reply = await NativeSpaceActionClient.shared.run(request, permit: permit)
                 feed.changed()
                 guard reply.id == request.id, reply.state != .outcomeUnknown else {
