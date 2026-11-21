@@ -14,6 +14,8 @@ import NearpaneCore
     private var missionControl: MissionControlVisibility
     private let missionControlReader: MissionControlVisibilityReader?
     private var stageMonitor: Timer?
+    private var wallpaperMonitor: WallpaperRevealMonitor?
+    private var wallpaperHeld = false
     private var occlusionMonitor: NSObjectProtocol?
     private var sampleGeneration = UUID()
     private var sampleBegan: ContinuousClock.Instant?
@@ -21,7 +23,7 @@ import NearpaneCore
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
     public var windowDispatchEligible: Bool {
-        !stopped && !suspended && !systemManagesWindows && missionControl == .ordinary
+        !stopped && !suspended && !systemManagesWindows && !wallpaperHeld && missionControl == .ordinary
     }
     public var missionControlDispatchState: String { missionControl.rawValue }
     /// Fixed reason only, including incomplete reads on other macOS builds.
@@ -47,6 +49,18 @@ import NearpaneCore
     var secondaryIDs: Set<String> { Set(secondary.keys) }
     public convenience init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil) {
         self.init(host: host, primary: primary, domains: domains, navigation: .shared, missionControlReader: .init(), present: { $0.presentIfNeeded() })
+        wallpaperMonitor = WallpaperRevealMonitor { [weak self] held in
+            guard let self, !stopped else { return }
+            let previous = windowDispatchEligible
+            wallpaperHeld = held
+            sampleGeneration = UUID()
+            if !held {
+                missionControl = .unknown
+                missionControlDispatchEvidence = "wallpaperRestoredAwaitingOrdinaryRead"
+                pointer.windowPreviews?.currentDesktop?.changed()
+            }
+            publishOwnership(previous: previous)
+        }
         pollSystemOwnership()
         occlusionMonitor = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification,
             object: nil, queue: .main) { [weak self] note in
@@ -150,6 +164,7 @@ import NearpaneCore
         guard !stopped, let missionControlReader else { return }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
         guard !suspended else { return }
+        wallpaperMonitor?.poll()
         if let sampleBegan {
             if .now - sampleBegan > .milliseconds(750) { setMissionControl(.unknown, evidence: "sampleExpired") }
             return
@@ -363,6 +378,7 @@ import NearpaneCore
         publishOwnership(previous: previous)
         if let occlusionMonitor { NotificationCenter.default.removeObserver(occlusionMonitor); self.occlusionMonitor = nil }
         stageMonitor?.invalidate(); stageMonitor = nil
+        wallpaperMonitor?.stop(); wallpaperMonitor = nil
         pointer.windowPreviews?.currentDesktop?.configureSplitObservation(allowed: false, fullscreenHint: false)
         pendingSpaceOpenings.removeAll()
         stopObservingClicks()
