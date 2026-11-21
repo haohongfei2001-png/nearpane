@@ -234,6 +234,19 @@ public struct StageGroupWindow: Sendable {
         try commit(next)
     }
 
+    func withdrawActivity(in scopes: Set<StageGroupScope>) throws {
+        var next = directory
+        for index in next.displays.indices {
+            let display = next.displays[index].id
+            for group in next.displays[index].groups.indices {
+                guard let space = next.displays[index].groups[group].nativeSpace,
+                      scopes.contains(.init(display: display, nativeSpace: space)) else { continue }
+                next.displays[index].groups[group].verifiedActive = nil
+            }
+        }
+        if next != directory { try commit(next) }
+    }
+
     func isBound(_ member: StageGroupDirectory.Member, to lifetime: UUID) -> Bool { bindings[member.windowHint] == lifetime }
 
     /// Partial, stale and other-display groups have no actionable composite card.

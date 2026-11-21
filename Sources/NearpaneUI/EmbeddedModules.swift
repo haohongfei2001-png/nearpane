@@ -61,6 +61,9 @@ public final class EmbeddedModules {
         if await tray.updateRequiresTrayToFinish() { return "请等待截图或草稿附加操作结束，再继续安装。" }
         if voice.updateRequiresVoiceToFinish { return "请先暂停收音，并等待语音处理或播放结束，再继续安装。" }
         #endif
+        if windowPreviews.currentDesktop?.stageEngine.holdsDispatch == true {
+            return "窗口可见性仍由当前会话持有，恢复读回后才可继续安装。"
+        }
         if workRect?.updateRequiresManagementToFinish == true {
             return "请在窗口管理中停止管理并完成恢复，再继续安装。"
         }
@@ -99,7 +102,11 @@ public final class EmbeddedModules {
     public func makeHost(store: any ConfigurationStore, provider: any DesktopObservationProvider = UnavailableDesktopProvider()) -> HostSession {
         let host = HostSession(store: store, provider: provider, includeSampleModules: !candidate, coreFactories: factories)
         workRect?.connect(to: host)
-        if let feed = windowPreviews.currentDesktop { workRect?.desktopTiling.connect(feed) }
+        if let feed = windowPreviews.currentDesktop {
+            workRect?.desktopTiling.connect(feed)
+            feed.stageEngine.management = workRect
+            workRect?.stageEngine = feed.stageEngine
+        }
         #if canImport(NearpaneVoice)
         voice.openingFailed = { [weak host, weak voice] in
             if let voice { host?.registry.reportFailure(BuiltinCatalog.voice, from: voice) }
@@ -116,6 +123,7 @@ public final class EmbeddedModules {
 
     public func finishStopping() async {
         translation?.detach()
+        await windowPreviews.currentDesktop?.stageEngine.release()
         await workRect?.finish()
         stopWindowContentPreview()
         #if canImport(NearpaneVoice)

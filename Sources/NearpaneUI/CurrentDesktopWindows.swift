@@ -24,6 +24,7 @@ import OSLog
     @ObservationIgnored let windowAudit = NativeSidebarWindowAudit()
     @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
     let groups: StageGroupStore
+    let stageEngine: StageWindowEngineHost
     private(set) var groupIssue: String?
     @ObservationIgnored var splitPresentationChanged: (() -> Void)?
     private(set) var pairedDisplays = Set<String>()
@@ -139,7 +140,9 @@ import OSLog
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
          readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
-        groups = StageGroupStore(profile: stageGroupProfile)
+        let store = StageGroupStore(profile: stageGroupProfile)
+        groups = store
+        stageEngine = StageWindowEngineHost(profile:stageGroupProfile,store:store)
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
     }
@@ -152,6 +155,7 @@ import OSLog
     }
 
     func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        stageEngine.freeze()
         boundSidebarPair?.revoke(.feedInvalidated)
         windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("invalidate",
             ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
@@ -233,6 +237,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                if next?.native?.stageManagerEnabled == false { stageEngine.ordinaryContextObserved() }
                 sampleSplitPresentation(next)
                 guard !Task.isCancelled, expected == epoch else { continue }
                 if let next, pendingAudit?.revision == next.revision { pendingAudit?.snapshot(next, stage: "publish") }

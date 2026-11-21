@@ -42,6 +42,8 @@ typedef struct {
  * before the next OS side effect. Destroy refuses pending tickets/owned windows. */
 uint32_t np_engine_version(void);
 uint32_t np_engine_create(const NPConfig *, uint64_t *handle);
+/* acquisition for exactly one reviewed backend; evidence points to 16 UUID bytes. */
+uint32_t np_engine_create_qualified(uint32_t backend, const uint8_t *evidence, uint64_t *handle);
 uint32_t np_engine_epoch(uint64_t handle, uint64_t *epoch);
 uint32_t np_engine_submit(uint64_t handle, const NPRequest *, uint64_t *ticket);
 uint32_t np_engine_poll(uint64_t handle, uint64_t ticket, NPReceipt *receipt);

@@ -8,6 +8,11 @@ import SwiftUI
     let ordinary: OrdinaryWindowManager
     let desktopTiling: DesktopAutomaticTiling
     private var enrolledDesktopFeed: CurrentDesktopWindows?
+    weak var stageEngine: StageWindowEngineHost?
+    func permitsStageEngine(on display: String) -> Bool {
+        !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && !ordinary.blocksUpdateRelaunch &&
+            desktopTiling.scope == nil && !desktopTiling.starting && context(for:display) != nil
+    }
     public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {
         guard scopedDisplay == display, enrolledDesktopFeed == nil, desktopTiling.scope == nil,
               owners.count == 2, Set(owners.map(\.pid)).count == 2, let read = NativeDesktopProvider.packagedReader(overview: true)
@@ -136,6 +141,7 @@ import SwiftUI
         self.support = support
         ordinary = OrdinaryWindowManager(support: support)
         desktopTiling = DesktopAutomaticTiling(manager: ordinary)
+        ordinary.stageEngineOwnsWindows = { [weak self] in self?.stageEngine?.holdsDispatch == true }
         ordinary.presentationHeld = { [weak self] display in
             guard let self else { return true }
             return suspended || !permitsOrdinaryPresentation(on: display, uptime: ProcessInfo.processInfo.systemUptime)
@@ -178,6 +184,7 @@ import SwiftUI
         }
     }
     public func send(_ command: String) {
+        guard command == "quit" || stageEngine?.holdsDispatch != true else { return }
         if process == nil { start() }
         guard let input else { return }
         do { try input.write(contentsOf: Data((command + "\n").utf8)) }

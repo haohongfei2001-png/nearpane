@@ -76,19 +76,57 @@ pub unsafe extern "C" fn np_engine_create(config: *const Config, out: *mut u64) 
         if !config.valid() {
             return Err(INVALID);
         }
-        let mut map = lock(registry());
-        if map.len() >= 32 || (config.mode != 0 && map.values().any(|h| h.writable)) {
-            return Err(BUSY);
-        }
-        let id = next(&NEXT)?;
-        map.insert(
-            id,
-            Handle {
-                worker: Arc::new(Session::create(config)?),
-                writable: config.mode != 0,
-            },
-        );
+        let id = create_session(config, None)?;
         unsafe { out.write(id) };
+        Ok(())
+    })
+}
+fn create_session(config: Config, qualified: Option<u32>) -> Result<u64, u32> {
+    let mut map = lock(registry());
+    let writable = config.mode != 0 || qualified.is_some();
+    if map.len() >= 32 || (writable && map.values().any(|h| h.writable)) {
+        return Err(BUSY);
+    }
+    let id = next(&NEXT)?;
+    map.insert(
+        id,
+        Handle {
+            worker: Arc::new(Session::create(config, qualified)?),
+            writable,
+        },
+    );
+    Ok(id)
+}
+
+// Only reviewed physical evidence IDs belong here. The signed Swift Host authenticates the
+// detached measurement and matches its final CDHash, system, display and consent before calling.
+// A Host digest never needs to be embedded into the very binary it identifies.
+const REVIEWED: &[(u32, [u8; 16])] = &[];
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_create_qualified(
+    backend: u32,
+    evidence: *const u8,
+    out: *mut u64,
+) -> u32 {
+    boundary(|| {
+        output(out)?;
+        unsafe { out.write(0) };
+        if evidence.is_null() || !matches!(backend, CORNER | SPACES) {
+            return Err(INVALID);
+        }
+        let id = unsafe { evidence.cast::<[u8; 16]>().read() };
+        if !REVIEWED.contains(&(backend, id)) {
+            return Err(INCOMPATIBLE);
+        }
+        let config = Config {
+            size: size_of::<Config>() as u32,
+            version: ABI,
+            mode: 0,
+            process_count: 0,
+            processes: [Process::default(); 2],
+        };
+        let handle = create_session(config, Some(backend))?;
+        unsafe { out.write(handle) };
         Ok(())
     })
 }

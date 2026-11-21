@@ -83,6 +83,7 @@ enum OrdinaryRefusal: String, LocalizedError {
         let layout: ManagedWindowTiler
     }
 
+    @ObservationIgnored var stageEngineOwnsWindows: @MainActor () -> Bool = { false }
     private let session = UUID()
     private let journal: OrdinaryJournal
     private var journalLease: OrdinaryFileLease?
@@ -182,7 +183,7 @@ enum OrdinaryRefusal: String, LocalizedError {
     }
 
     private func enter(allowBlocked: Bool = false) throws {
-        guard !busy else { throw OrdinaryRefusal.busy }
+        guard !busy, !stageEngineOwnsWindows() else { throw OrdinaryRefusal.busy }
         guard allowBlocked || (!blocked && !closing) else { throw OrdinaryRefusal.lost }
         busy = true
     }
@@ -198,7 +199,7 @@ enum OrdinaryRefusal: String, LocalizedError {
             guard ctx.display == desktopScope.display, desktopIsCurrent?() == true,
                   grant == nil || grant?.desktopBinding == desktopScope else { throw OrdinaryRefusal.scope }
         }
-        guard ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
+        guard !stageEngineOwnsWindows(), ctx.recoveryClear, ctx.exclusive != false, !ctx.hypothetical, !ctx.display.isEmpty,
               let live = liveContext?(ctx.display), live.recoveryClear, live.exclusive != false, !live.hypothetical,
               ctx.display == live.display, ctx.screen == live.screen, ctx.usable == live.usable, ctx.primary == live.primary,
               ctx.displayGeometry == live.displayGeometry,

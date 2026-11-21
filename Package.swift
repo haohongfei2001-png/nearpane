@@ -42,7 +42,7 @@ var targets: [Target] = [
     .executableTarget(name: "NearpaneOrdinaryWindowController", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine", "CNearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
         linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController"]),

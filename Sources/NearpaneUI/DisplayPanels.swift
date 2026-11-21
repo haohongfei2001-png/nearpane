@@ -90,6 +90,9 @@ import NearpaneCore
         self.primary = primary
         pointer.navigation = navigation
         pointer.windowPreviews = domains?.windowPreviews
+        navigation.stageOwnsWindowDispatch = { [weak feed = domains?.windowPreviews.currentDesktop] in
+            feed?.stageEngine.holdsDispatch == true
+        }
         pointer.windowPreviews?.currentDesktop?.splitPresentationChanged = { [weak self] in self?.refresh?() }
         primary.usePointer(pointer)
         if missionControlReader != nil {
@@ -188,6 +191,7 @@ import NearpaneCore
             navigation.setDispatchAvailable(eligible)
             workRect?.setOrdinaryHold("systemWindowDispatch", active: !eligible)
             if !eligible {
+                pointer.windowPreviews?.currentDesktop?.stageEngine.freeze()
                 for id in pendingSpaceOpenings.union(host.panelContents.keys) { coordinator.finishRequest(id) }
                 pendingSpaceOpenings.removeAll()
                 primary.cancelWindowDispatchGesture()
@@ -197,6 +201,8 @@ import NearpaneCore
                     for id in previews.visibleDisplays { previews.setVisible(false, on: id) }
                 }
                 stopObservingClicks()
+            } else {
+                pointer.windowPreviews?.currentDesktop?.stageEngine.ordinaryContextObserved()
             }
         }
         if !stopped { refresh?() }

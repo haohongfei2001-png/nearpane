@@ -63,6 +63,8 @@ jobs:
           sw_vers
           uname -m
           swift --version
+          engine_archive="$(bash scripts/build-window-engine.sh)"
+          echo "NEARPANE_ENGINE_ARCHIVE=$engine_archive" >> "$GITHUB_ENV"
           openssl_bin="$(brew --prefix openssl@3)/bin"
           if ! test -x "$openssl_bin/openssl"; then
             HOMEBREW_NO_AUTO_UPDATE=1 brew install openssl@3

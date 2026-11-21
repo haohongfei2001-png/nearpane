@@ -16,6 +16,8 @@ struct EngineABITests {
         cfg.size = UInt32(MemoryLayout<NPConfig>.size); cfg.version = 2
         #expect(np_engine_create(&cfg, &h) == NP_INCOMPATIBLE)
         #expect(h == 0)
+        #expect(NativeStageWindowEngine(qualifiedBackend: UInt32(NP_CORNER), evidence: UUID()) == nil)
+        #expect(NativeStageWindowEngine(qualifiedBackend: UInt32(NP_SPACES), evidence: UUID()) == nil)
     }
 
     @Test func ordinaryHandleCannotDispatchFixtureWritesAndRevocationIsThreadSafe() async throws {

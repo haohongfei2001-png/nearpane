@@ -154,10 +154,11 @@ struct CrossSpaceFocusContinuity {
         canMove = false
         recordedCapability = nil
     }
+    @ObservationIgnored var stageOwnsWindowDispatch: @MainActor () -> Bool = { false }
     @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
     private var recordedCapability: String?
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
-    private struct Job { let token: UUID, epoch: UUID, selection: Bool, run: Work }
+    private struct Job { let token: UUID, epoch: UUID, selection: Bool, stage: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
     private(set) var issue: String?
@@ -180,23 +181,23 @@ struct CrossSpaceFocusContinuity {
         return canSwitch
     }
 
-    func submit(selection: Bool = true, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
-        guard dispatchAvailable else { return }
+    func submit(selection: Bool = true, stage: Bool = false, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
+        guard dispatchAvailable, stage || !stageOwnsWindowDispatch() else { return }
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
         activeSelection?.revoke()
         generation = UUID(); issue = nil
         if let prepare { prepare() } else { windowSwitch.cancel() }
-        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, run: work))
+        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage, run: work))
         guard !running else { return }
         running = true
         Task {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
-                guard dispatchAvailable, job.epoch == ownershipEpoch else { continue }
+                guard dispatchAvailable, job.epoch == ownershipEpoch, job.stage || !stageOwnsWindowDispatch() else { continue }
                 if let confirmDispatch {
                     guard await confirmDispatch(), dispatchAvailable, job.epoch == ownershipEpoch,
-                          !job.selection || isCurrent(job.token) else { continue }
+                          !job.selection || isCurrent(job.token), job.stage || !stageOwnsWindowDispatch() else { continue }
                 }
                 do { try await job.run(job.token) }
                 catch where job.epoch == ownershipEpoch && (!job.selection || job.token == generation) { issue = error.localizedDescription }

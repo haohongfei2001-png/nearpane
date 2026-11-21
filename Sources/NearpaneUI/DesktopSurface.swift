@@ -143,6 +143,25 @@ struct DesktopSurface: View {
             primary: display?.secondary != true, settings: settings, fallbackEdge: host.configuration.edge).ordinary
     }
 
+    private func choose(_ member: NativeSidebarMember, group: UUID, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows) {
+        guard let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
+              let lifetime = feed.lifetime(of:member.key) else { return }
+        guard feed.stageEngine.routesGroupChoice else {
+            selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member)
+            return
+        }
+        let input = NativeSelectionPermit.inputCounters()
+        navigation.submit(stage:true) { token in
+            let valid: @MainActor () -> Bool = {
+                canNavigate && navigation.isCurrent(token) && feed.lifetime(of:member.key) == lifetime &&
+                    NativeSelectionPermit.inputCounters() == input
+            }
+            guard valid(), let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
+            let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid)
+            if !handled && valid() { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member) }
+        }
+    }
+
     private func editGroup(_ members: [NativeSidebarMember], change: @escaping @MainActor (DesktopSnapshot) throws -> Void) {
         guard canNavigate, let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
         selectionIssue = nil
@@ -206,6 +225,14 @@ struct DesktopSurface: View {
                 let pictureSize = thumbnailLayout.fittedSize(for: window, width: width,
                     heightLimit: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5)
                 let member = target.flatMap { _ in source.flatMap { NativeSidebarMember(window, source: $0) } }
+                let chooseCurrent: @MainActor () -> Void = {
+                    if let feed, feed.stageEngine.routesGroupChoice, let member, let w = feed.groupWindow(member, in:snapshot),
+                       let group = feed.groups.projectedGroups(on:w.display,among:[w]).first(where: { $0.members.count == 1 }) {
+                        choose(member, group:group.id, snapshot:snapshot, feed:feed)
+                    } else if let target {
+                        selectWindow(target, snapshot:snapshot, lifetime:lifetime)
+                    }
+                }
                 if let member, let identity = member.location?.window, let group = visibleGroups[identity], let feed {
                     let keys = Set(group.members.map(\.windowHint))
                     if members.first(where: { $0.location.map { keys.contains($0.window) } == true })?.key == member.key {
@@ -215,11 +242,7 @@ struct DesktopSurface: View {
                                 DesktopWindowKey(w).flatMap { appBadges[$0] }.map { (w.id, $0) }
                             }), gallery: gallery,
                             permitted: permitted, workArea: workArea(for: screen),
-                            select: { chosen in
-                                if let observed = chosen.resolve(snapshot), let target = DesktopWindowTarget(observed, in: snapshot) {
-                                    selectWindow(target, snapshot: snapshot, lifetime: feed.lifetime(of: chosen.key), member: chosen)
-                                }
-                            },
+                            select: { choose($0, group: group.id, snapshot: snapshot, feed: feed) },
                             id: group.id, windows: grouped, snapshot: snapshot,
                             place: { place($0, feed: feed) }, remove: { chosen in
                                 editGroup([chosen]) { fresh in
@@ -240,11 +263,11 @@ struct DesktopSurface: View {
                         gallery: gallery, permitted: permitted, border: settings.points(.borderWidth, in: width),
                         fontSize: labelSize, selected: { pictures && target?.present(in: overview) == true ? selectedPicture(for: target) : nil },
                         describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
-                        select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
+                        select: { chooseCurrent() },
                         selectable: target != nil)
                     .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
                         width: width, feed: feed,
-                        select: { if let target { selectWindow(target, snapshot: snapshot, lifetime: lifetime) } },
+                        select: { chooseCurrent() },
                         place: { pair in if let feed { place(pair, feed: feed) } },
                         prepare: { if let target { prepareSwitch(target, in: snapshot) } }))
                     .contextMenu {

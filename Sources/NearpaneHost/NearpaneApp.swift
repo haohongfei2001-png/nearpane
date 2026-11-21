@@ -14,6 +14,12 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        if args == ["--verify-stage-window-engine"] || args == ["--probe-stage-window-engine"] {
+            let observe = args == ["--probe-stage-window-engine"]
+            Task { exit(await StageEnginePackageProbe.run(observeSystem: observe)) }
+            RunLoop.main.run()
+            return
+        }
         if args == ["--check-helper-runtime"] {
             do {
                 let child = Process()

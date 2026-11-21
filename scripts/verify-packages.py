@@ -23,6 +23,43 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
+    private_names = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces",
+                     b"SLSMainConnectionID", b"_AXUIElementGetWindow")
+    abi = plist.get("NearpaneStageEngineABI")
+    if abi is None:
+        if any(symbol in host_image for symbol in private_names):
+            raise ValueError("Private desktop entry point in legacy Host")
+        return
+    if abi != 1:
+        raise ValueError("Unrecognized StageGroup engine ABI")
+    bundled = contents / "Resources/Upstream/window-engine"
+    source = ROOT / "Engine/nearpane-window-engine"
+    provenance = json.loads((bundled/"source.json").read_bytes())
+    if (digest(bundled/"source.json") != digest(source/"upstream.json") or provenance["abi"] != abi
+            or digest(bundled/"LICENSE") != provenance["licenseSHA256"]):
+        raise ValueError("Unexpected StageGroup source or license")
+    origin_files = {p.name: digest(p) for p in (source/"origins").glob("*.json")}
+    if {p.name: digest(p) for p in (bundled/"origins").glob("*.json")} != origin_files:
+        raise ValueError("Incomplete StageGroup upstream file origins")
+    imports = subprocess.check_output(["/usr/bin/nm", "-u", str(binary)], text=True).splitlines()
+    if any(line.split() and line.split()[-1].startswith(("_SLS", "_CGS", "__AXUIElementGetWindow")) for line in imports):
+        raise ValueError("Host imports private WindowServer symbols directly")
+    if any(marker in host_image for marker in (b"SLSOrderWindow", b"np_is_enrolled_fixture",
+                                               b'identifier "com.holdsnow.nearpane.engine-fixture')):
+        raise ValueError("Host contains an unqualified ordering route or experimental fixture code")
+    for module in ("NearpaneCore", "NearpaneHost", "NearpaneUI", "NearpaneWindowEngine"):
+        for path in (ROOT/"Sources"/module).rglob("*.swift"):
+            if any(symbol in path.read_bytes() for symbol in private_names):
+                raise ValueError("Private window calls outside the engine shim: " + path.name)
+    reply = json.loads(subprocess.check_output(sandbox + [str(binary), "--verify-stage-window-engine"], timeout=12))
+    gates = reply.get("engines", [])
+    if (reply.get("abi") != abi or reply.get("closed") is not True or len(gates) != 2
+            or {r["backend"] for r in gates} != {"corner", "spaces"}
+            or any(r.get("unqualifiedWriteRefused") is not True for r in gates)):
+        raise ValueError("Unqualified production engine accepted window writes")
+
+
 def verify_ordinary_window_actions(writer, imports):
     if "_AXUIElementSetAttributeValue" not in imports or imports & {"_CGEventPost", "_CGEventPostToPid"}:
         raise ValueError("Unexpected ordinary window controller capabilities")
@@ -95,9 +132,7 @@ def verify(app, lock, sandbox):
     for exe in (binary, helper, writer):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
-    private_symbols = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces", b"SLSMainConnectionID", b"_AXUIElementGetWindow")
-    if any(symbol in host_image for symbol in private_symbols):
-        raise ValueError("Private desktop entry point in Host")
+    verify_engine_boundary(contents, plist, binary, host_image, sandbox)
     # The admission observer can read attributes and test their writability. It must
     # not acquire the setter or AX action entry points of the separate frame controller.
     imports = subprocess.check_output(["/usr/bin/nm", "-u", str(helper)], text=True).splitlines()

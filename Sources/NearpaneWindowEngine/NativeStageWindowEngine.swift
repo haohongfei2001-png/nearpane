@@ -37,6 +37,15 @@ public actor NativeStageWindowEngine {
         guard np_engine_create(&config, &created) == NP_OK else { return nil }
         handle = created
     }
+    public init?(qualifiedBackend: UInt32, evidence: UUID) {
+        var bytes = evidence.uuid
+        var created: UInt64 = 0
+        let status = withUnsafeBytes(of: &bytes) {
+            np_engine_create_qualified(qualifiedBackend, $0.bindMemory(to: UInt8.self).baseAddress, &created)
+        }
+        guard status == NP_OK else { return nil }
+        handle = created
+    }
     deinit { _ = np_engine_destroy(handle) }
     public nonisolated func revoke() { _ = np_engine_revoke(handle) }
     @discardableResult public func close() -> Bool { np_engine_destroy(handle) == NP_OK }

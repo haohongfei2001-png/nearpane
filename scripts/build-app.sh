@@ -46,12 +46,15 @@ cp "$binary_dir/NearpaneHost" "$stage/Contents/MacOS/NearpaneHost"
 cp Resources/Info.plist "$stage/Contents/Info.plist"
 mkdir -p "$stage/Contents/Resources/Upstream/window-engine"
 cp Engine/nearpane-window-engine/LICENSE.upstream "$stage/Contents/Resources/Upstream/window-engine/LICENSE"
+cp Engine/nearpane-window-engine/upstream.json "$stage/Contents/Resources/Upstream/window-engine/source.json"
+cp -R Engine/nearpane-window-engine/origins "$stage/Contents/Resources/Upstream/window-engine/"
+/usr/bin/plutil -insert NearpaneStageEngineABI -integer 1 "$stage/Contents/Info.plist"
 if [[ -n "$candidate_dir" ]]; then
   # The packaging intermediate is a different bundle identifier. Only the signed candidate advertises this Service.
   /usr/bin/plutil -remove NSServices "$stage/Contents/Info.plist"
 fi
 python3 scripts/prepare-app-icon.py --embed "$stage"
-# The optional private getter symbols live only in this disposable, separately verified executable.
+# The ordinary catalog remains a separately verified, read-only executable.
 reader="$binary_dir/NearpaneDesktopReader"
 /usr/bin/codesign --verify --strict "$reader"
 mkdir -p "$stage/Contents/Helpers"

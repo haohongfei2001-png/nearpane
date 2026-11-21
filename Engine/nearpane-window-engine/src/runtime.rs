@@ -178,7 +178,7 @@ fn pump_run_loop() {
 #[cfg(not(target_os = "macos"))]
 fn pump_run_loop() {}
 impl Session {
-    pub fn create(config: Config) -> Result<Self, u32> {
+    pub fn create(config: Config, qualified: Option<u32>) -> Result<Self, u32> {
         let state = Arc::new(Mutex::new(State::default()));
         let epoch = Arc::new(AtomicU64::new(1));
         let (tx, rx) = mpsc::sync_channel(LIMIT);
@@ -208,7 +208,7 @@ impl Session {
                             Err(_) => break,
                         }
                     };
-                    process(&config, &shared, &live_epoch, &mut backends, job);
+                    process(&config, qualified, &shared, &live_epoch, &mut backends, job);
                 }
             })
             .map_err(|_| INTERNAL)?;
@@ -309,6 +309,7 @@ impl Session {
 }
 fn process(
     config: &Config,
+    qualified: Option<u32>,
     shared: &Mutex<State>,
     epoch: &Arc<AtomicU64>,
     backends: &mut Backends,
@@ -320,7 +321,8 @@ fn process(
         expected: r.epoch,
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
-        write: r.writes() && config.allows(&r),
+        write: r.writes()
+            && (config.allows(&r) || (qualified == Some(r.backend) && r.operation != TRIAL)),
     };
     let may_enter = {
         let mut s = lock(shared);
