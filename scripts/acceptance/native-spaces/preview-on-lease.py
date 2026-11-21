@@ -141,6 +141,15 @@ def run(args):
             result["preview"] = dict(status=proof["status"], reason=proof.get("reason"), exit=child.returncode)
         result["offZeroAfter"] = driver.surface_checkpoint(kit, workspace.host, args.expected_space, False, 0)
         result["status"] = proof["status"] if result["offZeroAfter"]["status"] == "PASS" else "BLOCKED"
+        if args.scenario == "pair-pointer" and os.environ.get("NP_MISSION_HANDOFF_KIT"):
+            from mission_handoff import run as mission_handoff
+            save()
+            check = mission_handoff(Path(os.environ["NP_MISSION_HANDOFF_KIT"]), output / "mission-handoff", workspace,
+                                    args.expected_space, space_uuid, result["stageSurfaceEnrollment"], pair, result["offZeroAfter"])
+            result["missionHandoff"] = {k: check.get(k) for k in ("status", "reason", "launched", "cleanup", "restoreReason")}
+            if result["status"] == "PASS" and check["status"] != "PASS":
+                result["status"] = check["status"]
+            save()
     except (ValueError, KeyError, OSError, RuntimeError, subprocess.SubprocessError, KeyboardInterrupt) as error:
         result["reason"] = str(error)[:260] or "interrupted"
     finally:
