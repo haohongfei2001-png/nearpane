@@ -9,13 +9,14 @@ import tempfile
 import time
 
 
-def run_comparison(binary, destination):
+def run_comparison(binary, destination, desktop_items_only=False):
     destination.mkdir(exist_ok=False)
     suite = {"source": os.environ["GITHUB_SHA"], "installedHost": "NOT_RUN", "trials": {},
              "osBuild": subprocess.check_output(["sw_vers", "-buildVersion"], text=True).strip(),
              "tenRoundTrips": "NOT_RUN", "fiftyRoundTrips": "NOT_RUN"}
     # Never enter the second mechanism with a window left over from the first.
-    for method in ("minimize", "corner", "wallpaper", "desktop-items"):
+    methods = ("desktop-items",) if desktop_items_only else ("minimize", "corner", "wallpaper", "desktop-items")
+    for method in methods:
         with tempfile.TemporaryDirectory(prefix="nearpane-isolation-") as directory:
             root = Path(directory).resolve()
             (root / "comparison").touch()

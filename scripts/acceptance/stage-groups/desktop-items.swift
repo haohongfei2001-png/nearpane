@@ -127,6 +127,24 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
         func number(_ point: CGPoint) -> Int {
             NSWindow.windowNumber(at: CGPoint(x: point.x, y: bounds.maxY-point.y), belowWindowWithWindowNumber: 0)
         }
+        func dockHitForFixture() -> CGPoint? {
+            guard let app = NSRunningApplication(processIdentifier: win.owner.pid), let bundle = app.bundleURL,
+                  let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first,
+                  let roots = ax(AXUIElementCreateApplication(dock.processIdentifier), kAXChildrenAttribute) as? [AXUIElement] else { return nil }
+            let icons = roots.filter { ax($0, kAXRoleAttribute) as? String == kAXListRole }.flatMap {
+                (ax($0, kAXChildrenAttribute) as? [AXUIElement]) ?? []
+            }
+            let ours = icons.filter {
+                ax($0, kAXSubroleAttribute) as? String == "AXApplicationDockItem" &&
+                    (ax($0, kAXURLAttribute) as? URL)?.standardizedFileURL == bundle.standardizedFileURL
+            }
+            guard ours.count == 1, let icon = ours.first, let frame = axFrame(icon) else { return nil }
+            let p = CGPoint(x: frame.midX, y: frame.midY)
+            var hit: AXUIElement?
+            guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(p.x), Float(p.y), &hit) == .success,
+                  let hit, CFEqual(icon, hit), !WallpaperRevealMonitor.isBlankDesktop(at: p, windowNumber: number(p)) else { return nil }
+            return p
+        }
         func expectMarker(_ visible: Bool, _ label: String) async throws -> CGPoint? {
             var streak = 0, center: CGPoint?
             for _ in 0..<20 {
@@ -148,12 +166,22 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             // Only this fresh, dedicated Settings instance may be hidden by the fixture.
             let settings = NSRunningApplication.runningApplications(withBundleIdentifier: settingsID)
             if settings.count == 1 { _ = settings[0].hide() }
-            guard try await takeFocus(win), let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, win.id) as? [[String: Any]],
-                  let raw = rows.first?[kCGWindowBounds as String] as? NSDictionary,
-                  let rect = CGRect(dictionaryRepresentation: raw) else { throw DesktopTrialStop("BLOCKED", "fixtureFocus") }
-            let p = CGPoint(x: rect.midX, y: rect.midY)
-            guard number(p) == Int(win.id) else { throw DesktopTrialStop("BLOCKED", "fixtureObscured") }
-            return p
+            guard try await takeFocus(win) else { throw DesktopTrialStop("BLOCKED", "fixtureFocus") }
+            // An AX key window can precede the end of Show Desktop's WindowServer animation.
+            let end = ContinuousClock.now + .seconds(3)
+            var last: CGPoint?
+            repeat {
+                if let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, win.id) as? [[String: Any]],
+                   let raw = rows.first?[kCGWindowBounds as String] as? NSDictionary, let rect = CGRect(dictionaryRepresentation: raw) {
+                    let p = CGPoint(x: rect.midX, y: rect.midY)
+                    if bounds.contains(p), number(p) == Int(win.id) {
+                        if last == p { return p }
+                        last = p
+                    } else { last = nil }
+                }
+                try await Task.sleep(for: .milliseconds(90))
+            } while ContinuousClock.now < end
+            throw DesktopTrialStop("BLOCKED", "fixtureObscured")
         }
         let read = await DesktopItemsSetting.shared.choose(nil)
         guard case let .confirmed(initial) = read else {
@@ -221,6 +249,23 @@ private func desktopMarkerPixels(_ display: SCDisplay) async throws -> (count: I
             throw DesktopTrialStop("FAIL", "visibleIconClassifiedAsBlank")
         }
         receipt["visibleIconRejectedAsBlank"] = true
+        if let dockPoint = dockHitForFixture() {
+            receipt["returnVia"] = "physicalClickOnEnrolledDockIcon"
+            receipt["dockHit"] = desktopHitSample(dockPoint, number: number(dockPoint))
+            try click(dockPoint) { dockHitForFixture() == dockPoint }
+        } else {
+            guard let appURL = NSRunningApplication(processIdentifier: win.owner.pid)?.bundleURL else {
+                throw DesktopTrialStop("BLOCKED", "missingFixtureBundle")
+            }
+            let config = NSWorkspace.OpenConfiguration()
+            config.createsNewApplicationInstance = false
+            config.promptsUserIfNeeded = false
+            let reopened = try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
+            guard reopened.processIdentifier == win.owner.pid, (try? birth(win.owner.pid)) == win.owner.birth else {
+                throw DesktopTrialStop("UNKNOWN", "fixtureReopenIdentity")
+            }
+            receipt["returnVia"] = "launchServicesReopenOfEnrolledInstance"
+        }
         let back = try await workingWindow()
         try click(back) { number(back) == Int(win.id) }
         _ = try await expectMarker(false, "returnedToApplicationHidden")

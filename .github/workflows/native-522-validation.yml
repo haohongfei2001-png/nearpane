@@ -50,6 +50,38 @@ concurrency:
   group: native-522-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  desktop-items-27:
+    name: Desktop files on macOS 27
+    if: contains(github.event.head_commit.message, '[desktop-items-27]')
+    runs-on: xcode-27
+    timeout-minutes: 10
+    env:
+      NEARPANE_FOUNDATION_ONLY: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Measure the real desktop file on a fresh login
+        run: |
+          swift build --target NearpaneSpaceAction
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-desktop-items "$RUNNER_TEMP/desktop-items-27"
+          cat "$RUNNER_TEMP/desktop-items-27/summary.json" >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          r = json.loads((Path(os.environ["RUNNER_TEMP"]) / "desktop-items-27/desktop-items.json").read_bytes())
+          if r["status"] == "BLOCKED":
+              print("::warning::Desktop files could not be qualified on this hosted login.")
+          elif r["status"] != "PASS":
+              raise SystemExit(r.get("reason", r["status"]))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: desktop-items-27
+          path: ${{ runner.temp }}/desktop-items-27
+          if-no-files-found: warn
+          retention-days: 14
   protocol:
     runs-on: macos-26
     timeout-minutes: 18

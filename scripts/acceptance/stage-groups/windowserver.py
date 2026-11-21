@@ -38,7 +38,7 @@ def lifecycle(binary, root, old_owner, launch_owner):
             inspector.wait(timeout=3)
 
 
-def run(build, receipt, comparison=None, lifecycle_only=False):
+def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_only=False):
     with tempfile.TemporaryDirectory(prefix="nearpane-group-fixture.") as tmp:
         root = Path(tmp).resolve()
         targets = {"NearpaneCore.build", "WindowGeometryCore.build", "CReadOnlySpaces.build"}
@@ -60,7 +60,7 @@ def run(build, receipt, comparison=None, lifecycle_only=False):
                         *inputs, "-o", binary], check=True)
         if comparison:
             from comparison import run_comparison
-            run_comparison(binary, comparison)
+            run_comparison(binary, comparison, desktop_items_only=desktop_items_only)
             return
         if receipt is None:
             return
@@ -147,11 +147,13 @@ if __name__ == "__main__":
     mode.add_argument("--hosted-receipt", type=Path)
     mode.add_argument("--hosted-lifecycle", type=Path)
     mode.add_argument("--hosted-comparison", type=Path)
+    mode.add_argument("--hosted-desktop-items", type=Path)
     args = cli.parse_args()
-    destination = args.hosted_receipt or args.hosted_lifecycle or args.hosted_comparison
+    comparison = args.hosted_comparison or args.hosted_desktop_items
+    destination = args.hosted_receipt or args.hosted_lifecycle or comparison
     if destination:
         keys = ("GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS")
         if [os.getenv(k) for k in keys] != ["true", "github-hosted", "macOS"] or destination.exists():
             cli.error("Live tests require a disposable hosted Mac and a new receipt")
-    run(args.build.resolve(strict=True), args.hosted_receipt or args.hosted_lifecycle, args.hosted_comparison,
-        lifecycle_only=args.hosted_lifecycle is not None)
+    run(args.build.resolve(strict=True), args.hosted_receipt or args.hosted_lifecycle, comparison,
+        lifecycle_only=args.hosted_lifecycle is not None, desktop_items_only=args.hosted_desktop_items is not None)
