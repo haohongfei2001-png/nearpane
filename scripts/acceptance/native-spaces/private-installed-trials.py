@@ -646,7 +646,16 @@ class Transaction:
                     "Restored daily Host or lock generation changed")
             if self.rec.get("visitFocusLeaseKit"):
                 import lease_visit
-                daily_focus = lease_visit.after_daily(self.daily_visit_reader)
+                # Only the transaction's own reopen can account for a signed daily Host taking foreground.
+                expected = self.rec["original"]
+                host = None
+                if self.rec.get("dailyLaunchIntended") is True and restored != self.rec["initialDailyHost"]:
+                    host = dict(pid=restored[0],birth=restored[1]*1_000_000+restored[2],cdhash=expected["cdhash"])
+                def bound_daily():
+                    return (self.orientation() == "original" and self.mac.config() == self.rec["dailyConfiguration"] and
+                            identity(self.app)["CDHash"] == expected["cdhash"] and
+                            self.mac.bound(restored[0],self.mac.daily,expected) == restored)
+                daily_focus = lease_visit.after_daily(self.daily_visit_reader,host,bound_daily)
                 self.daily_visit_reader = None
                 self.rec["visitDailyForeground"] = daily_focus
                 if daily_focus["status"] != "PASS":

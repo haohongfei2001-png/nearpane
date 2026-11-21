@@ -142,8 +142,8 @@ class VisitWorkspace(PREVIEW.PreviewWorkspace):
 
 
 class FocusReader:
-    def __init__(self, tool):
-        self.process = subprocess.Popen([tool],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+    def __init__(self, tool, *, daily=False):
+        self.process = subprocess.Popen([tool,*(["--hold-daily"] if daily else [])],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
     def read(self, request=None):
         if request is not None:
             self.process.stdin.write(json.dumps(request)+"\n"); self.process.stdin.flush()
@@ -210,7 +210,8 @@ class NativeVisit:
                 self.ws.cleanup_current == self.origin and self.origin not in self.ids, "visitRequiresProtectedOrdinaryOrigin")
         self.reader = FocusReader(Path(self.rec["visitFocusLeaseKit"])/"lease-visit-focus")
         self.initial = self.reader.read()
-        require(all(self.initial[k] == daily[k] for k in ("pid","birth","number","topology","hid")),
+        require(all(self.initial[k] == daily[k] for k in ("pid","birth","number","topology","hid")) and
+                all(self.initial.get(k) == daily[k] for k in ("boot","signingCDHash") if k in daily),
                 "dailyForegroundOrInputChangedDuringHostExchange")
         expect = dict(display=t["scope"],current=self.origin,records=t["records"])
         require(self.initial["topology"] == expect and self.initial["pid"] != self.ws.host["pid"],
@@ -456,24 +457,62 @@ def run(record, context, chain, dest, product):
 def daily_reference(kit, daily_pid):
     reader = None
     try:
-        reader = FocusReader(Path(kit)/"lease-visit-focus")
+        reader = FocusReader(Path(kit)/"lease-visit-focus",daily=True)
         held = reader.read()
+        reader.daily = held.get("liveDailyRestore") is True
         require(held["pid"] != daily_pid, "dailyHostWindowWillChangeProcessGeneration")
         require(reader.read({"command":"sample"})["originExact"] is True, "dailyFocusNotCoherent")
-        return reader,{k:held[k] for k in ("ready","pid","birth","number","topology","hid")}
+        return reader,{k:held[k] for k in ("ready","pid","birth","number","topology","hid","boot","signingCDHash","liveDailyRestore") if k in held}
     except READ_ERRORS as err:
         if reader: reader.close()
         return None,dict(ready=False,reason=safe_reason(err))
 
 
-def after_daily(reader):
-    if reader is None: return dict(status="UNKNOWN",reason="initialDailyReferenceUnavailable")
+def after_daily(reader, host=None, bound=None):
+    report = dict(status="UNKNOWN",originalReferenceRetained=reader is not None,issued=False)
+    if reader is None:
+        return {**report,"reason":"initialDailyReferenceUnavailable"}
+    def sample():
+        return reader.read({"command":"sample"})
+    def separated(a,b):
+        return a["current"] == b["current"] and b["uptime"]-a["uptime"] >= .08
+    def at_host(s):
+        f = s["systemFocus"]
+        return host and (f["pid"],f["birth"]) == (host["pid"],host["birth"])
+    def confirmed(a,b):
+        report.update(status="PASS",originalReferenceMatchedTwice=True,source=a["current"],uptimes=[a["uptime"],b["uptime"]])
+        return report
     try:
-        a = reader.read({"command":"sample"}); time.sleep(.12); b = reader.read({"command":"sample"})
-        require(a["originExact"] and b["originExact"] and a["current"] == b["current"] and b["uptime"] > a["uptime"],
-                "originalWindowNotFocusedAfterDailyHostReturn")
-        return dict(status="PASS",originalReferenceMatchedTwice=True,source=a["current"],uptimes=[a["uptime"],b["uptime"]])
+        a=sample(); time.sleep(.12); b=sample()
+        require(separated(a,b),"postLaunchPhysicalSampleDidNotSettle")
+        if a["originExact"] and b["originExact"]: return confirmed(a,b)
+        require(host and bound and getattr(reader,"daily",False),"noLiveRecoveryPermitForReopenedHost")
+        require(not a["originExact"] and not b["originExact"] and a["originBound"] and b["originBound"] and
+                at_host(a) and at_host(b) and a["systemFocus"] == b["systemFocus"],"unattributedPostLaunchForeground")
+        require(bound(),"dailyBundleGenerationOrLockChanged")
+        # If the reply is lost after writing, the activation is unknown and must never be resent.
+        report["issued"]=None
+        action=reader.read({"command":"restoreDaily","host":host})
+        report["issued"]=action["issued"]
+        if action.get("accepted") is not None:report["accepted"]=action["accepted"]
+        require(action["issued"] is True and action.get("accepted") is True,action.get("reason","normalApplicationActivationDeclined"))
+        previous=None;deadline=time.monotonic()+2
+        while time.monotonic()<deadline:
+            now=sample()
+            if now["originExact"]:
+                if previous is not None and separated(previous,now):
+                    require(bound(),"dailyBundleGenerationOrLockChanged")
+                    return confirmed(previous,now)
+                previous=now
+            elif at_host(now):
+                previous=None
+            else:
+                raise ScopeError("newForegroundPreservedAfterActivation")
+            time.sleep(.12)
+        raise ScopeError("retainedOriginalNotConfirmedTwiceAfterActivation")
     except READ_ERRORS as err:
-        return dict(status="UNKNOWN",reason=safe_reason(err))
+        report["reason"]=safe_reason(err)
+        if report["issued"] is False and report["reason"]=="newHumanInput":report["status"]="BLOCKED"
+        return report
     finally:
         reader.close()
