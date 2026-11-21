@@ -29,6 +29,16 @@ struct StageInstalledProbeTests {
         #expect(!check(before, makeReport(registered:true, reverse:false)))
     }
 
+    @Test func ownPanelChecksThePhysicalScopeWithoutEnrollingAnExternalWindow() {
+        let before = makeReport()
+        let check = StageEnginePackageProbe.admitsPhysicalScope
+        #expect(check(before, makeReport()))
+        #expect(!check(before, makeReport(scope: 43)))
+        #expect(!check(before, makeReport(login: 92)))
+        #expect(!check(before, makeReport(displayCount: 2)))
+        #expect(!StageEnginePackageProbe.admitsInstalledCycle(preflight: before, registered: makeReport()))
+    }
+
     @Test @MainActor func nonceRendezvousDoesNotReadLinksAndStopsBeforeFixtureOnAbort() async throws {
         let nonce = UUID()
         let directory = URL(fileURLWithPath:"/private/tmp/nearpane-host-scope." + nonce.uuidString.lowercased())

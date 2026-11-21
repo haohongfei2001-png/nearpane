@@ -26,6 +26,7 @@ typedef struct {
 @public
   NPInstalledSubject subject;
   int channel, owner;
+  BOOL panelOnly;
   NSString *executable;
   pid_t front;
   uint64_t frontBirth;
@@ -288,8 +289,8 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
       if (s->ledger >= 0 && !currentLedger(s))
         return 19;
       if (NSProcessInfo.processInfo.systemUptime >= s->expires ||
-          !fileAbsent(s->channel, "abort") || !fileAbsent(s->owner, "stop") ||
-          !fileAbsent(s->owner, "owner-closed.json"))
+          !fileAbsent(s->channel, "abort") || (!s->panelOnly &&
+          (!fileAbsent(s->owner, "stop") || !fileAbsent(s->owner, "owner-closed.json"))))
         return 13;
       if (!AXIsProcessTrusted())
         return 3;
@@ -309,10 +310,10 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
       if (!readFocus(&pid, &started, &window) || pid != s->front ||
           started != s->frontBirth || window != s->frontWindow)
         return 9;
-      if (birth(s->subject.pid) != s->subject.birth || !fixtureImagePath(s) ||
-          (committing && !signedFixture(s)))
+      if (!s->panelOnly && (birth(s->subject.pid) != s->subject.birth || !fixtureImagePath(s) ||
+          (committing && !signedFixture(s))))
         return 7;
-      if (committing && !singleRegisteredDocument(s, YES))
+      if (!s->panelOnly && committing && !singleRegisteredDocument(s, YES))
         return 8;
       // The stronger Security/AX checks took time. Re-read the physical
       // counters immediately at the boundary.
@@ -345,11 +346,60 @@ int32_t np_stage_fixture_same(void *token, void *candidate,
     }
   }
 }
-void *np_stage_fixture_enroll(const uint8_t nonce[16], NPInstalledSubject *out,
+static BOOL registerFixtureWindow(NPInstalledFixture *s, NSString *idString, uint32_t *bits, uint32_t *reason) {
+  NSString *owner = [@"/private/tmp/nearpane-membership."
+      stringByAppendingString:idString];
+  s->owner = privateFixtureDirectory(owner);
+  if (s->owner < 0)
+    return NO;
+  NSDictionary *reg = fixtureDocument(s->channel, "fixture.json"),
+               *start = fixtureDocument(s->owner, "owner-start.json");
+  s->executable =
+      [owner stringByAppendingString:
+                 @"/Membership Window.app/Contents/MacOS/MembershipWindow"];
+  uint64_t pid = 0, w = 0, started = 0, rpid = 0, rw = 0, rstarted = 0;
+  if (![s->executable isEqual:reg[@"executable"]] ||
+      ![enrolledFixtureCDHash isEqual:reg[@"cdhash"]] ||
+      !exactNumber(reg[@"pid"], &pid, NO) || pid <= 1 || pid > INT_MAX ||
+      pid == getpid() || !exactNumber(reg[@"birth"], &started, NO) ||
+      !exactNumber(reg[@"window"], &w, NO) || w > UINT32_MAX ||
+      !exactNumber(start[@"pid"], &rpid, NO) ||
+      !exactNumber(start[@"birth"], &rstarted, NO) ||
+      !exactNumber(start[@"window"], &rw, NO) || pid != rpid || w != rw ||
+      started != rstarted || !fixtureBoolFields(start))
+    return NO;
+  double began = 0, now = NSProcessInfo.processInfo.systemUptime;
+  *reason = 13;
+  if (!fixtureUptime(start[@"startedUptime"], &began) ||
+      !fixtureUptime(start[@"deadlineUptime"], &s->expires) ||
+      began > now || s->expires <= now + 20 ||
+      fabs((s->expires - began) - 75) > .0001)
+    return NO;
+  *bits |= 16;
+  *reason = 7;
+  s->subject = (NPInstalledSubject){(pid_t)pid, (uint32_t)w, started};
+  if (!signedFixture(s))
+    return NO;
+  *bits |= 32;
+  *reason = 8;
+  s->document = boundWindow((uint32_t)w, (pid_t)pid, started, NULL);
+  NPStageWindow row = {0};
+  if (!s->document || !singleRegisteredDocument(s, NO) ||
+      !documentGeometry(s->document, &s->geometry) ||
+      np_stage_window((uint32_t)w, &row) != 1 || row.pid != (pid_t)pid ||
+      row.birth != started || !row.layer_zero ||
+      !np_stage_fixture_same((__bridge void *)s, (void *)s->document,
+                             row.rect))
+    return NO;
+  *bits |= 64;
+  return YES;
+}
+
+void *np_stage_fixture_enroll(const uint8_t nonce[16], uint32_t panelOnly, NPInstalledSubject *out,
                               uint32_t *bits, uint32_t *reason) {
   @autoreleasepool {
     @try {
-      if (!nonce || !out || !bits || !reason)
+      if (!nonce || !out || !bits || !reason || panelOnly > 1)
         return NULL;
       *reason = 1;
       if (getuid() == 0 || geteuid() != getuid() || !signedInstalledHost())
@@ -375,68 +425,28 @@ void *np_stage_fixture_enroll(const uint8_t nonce[16], NPInstalledSubject *out,
       NSString *idString =
           [[NSUUID alloc] initWithUUIDBytes:nonce].UUIDString.lowercaseString;
       s->challenge = idString;
+      s->panelOnly = panelOnly == 1;
       NSArray<NSString *> *args = NSProcessInfo.processInfo.arguments;
       NSRunningApplication *me = NSRunningApplication.currentApplication;
       if (!me || me.active ||
           me.activationPolicy != NSApplicationActivationPolicyProhibited)
         return NULL;
-      if (args.count != 6 || ![args[1] isEqual:@"--read-stage-engine-scope"] ||
-          ![[[NSUUID alloc] initWithUUIDString:args[2]]
-              isEqual:[[NSUUID alloc] initWithUUIDBytes:nonce]] ||
-          ![[NSSet setWithArray:[args subarrayWithRange:NSMakeRange(3, 3)]]
-              isEqual:[NSSet setWithArray:@[
-                @"--private-receipt", @"--await-registered-window",
-                @"--enrolled-spaces-cycle"
-              ]]])
-        return NULL;
+      NSArray *options = s->panelOnly ? @[@"--private-receipt", @"--installed-spaces-canary"]
+          : @[@"--private-receipt", @"--await-registered-window", @"--enrolled-spaces-cycle"];
+      if (args.count != options.count + 3 || ![args[1] isEqual:@"--read-stage-engine-scope"] ||
+          ![[[NSUUID alloc] initWithUUIDString:args[2]] isEqual:[[NSUUID alloc] initWithUUIDBytes:nonce]] ||
+          ![[NSSet setWithArray:[args subarrayWithRange:NSMakeRange(3, options.count)]]
+              isEqual:[NSSet setWithArray:options]]) return NULL;
       NSString *channel = [@"/private/tmp/nearpane-host-scope."
           stringByAppendingString:idString];
-      NSString *owner = [@"/private/tmp/nearpane-membership."
-          stringByAppendingString:idString];
       s->channel = privateFixtureDirectory(channel);
-      s->owner = privateFixtureDirectory(owner);
-      if (s->channel < 0 || s->owner < 0)
+      if (s->channel < 0) return NULL;
+      if (s->panelOnly) {
+        if (!fileAbsent(s->channel, "fixture.json")) return NULL;
+        s->expires = NSProcessInfo.processInfo.systemUptime + 12;
+      } else if (!registerFixtureWindow(s, idString, bits, reason)) {
         return NULL;
-      NSDictionary *reg = fixtureDocument(s->channel, "fixture.json"),
-                   *start = fixtureDocument(s->owner, "owner-start.json");
-      s->executable =
-          [owner stringByAppendingString:
-                     @"/Membership Window.app/Contents/MacOS/MembershipWindow"];
-      uint64_t pid = 0, w = 0, started = 0, rpid = 0, rw = 0, rstarted = 0;
-      if (![s->executable isEqual:reg[@"executable"]] ||
-          ![enrolledFixtureCDHash isEqual:reg[@"cdhash"]] ||
-          !exactNumber(reg[@"pid"], &pid, NO) || pid <= 1 || pid > INT_MAX ||
-          pid == getpid() || !exactNumber(reg[@"birth"], &started, NO) ||
-          !exactNumber(reg[@"window"], &w, NO) || w > UINT32_MAX ||
-          !exactNumber(start[@"pid"], &rpid, NO) ||
-          !exactNumber(start[@"birth"], &rstarted, NO) ||
-          !exactNumber(start[@"window"], &rw, NO) || pid != rpid || w != rw ||
-          started != rstarted || !fixtureBoolFields(start))
-        return NULL;
-      double began = 0, now = NSProcessInfo.processInfo.systemUptime;
-      *reason = 13;
-      if (!fixtureUptime(start[@"startedUptime"], &began) ||
-          !fixtureUptime(start[@"deadlineUptime"], &s->expires) ||
-          began > now || s->expires <= now + 20 ||
-          fabs((s->expires - began) - 75) > .0001)
-        return NULL;
-      *bits |= 16;
-      *reason = 7;
-      s->subject = (NPInstalledSubject){(pid_t)pid, (uint32_t)w, started};
-      if (!signedFixture(s))
-        return NULL;
-      *bits |= 32;
-      *reason = 8;
-      s->document = boundWindow((uint32_t)w, (pid_t)pid, started, NULL);
-      NPStageWindow row = {0};
-      if (!s->document || !singleRegisteredDocument(s, NO) ||
-          !documentGeometry(s->document, &s->geometry) ||
-          np_stage_window((uint32_t)w, &row) != 1 || row.pid != (pid_t)pid ||
-          row.birth != started || !row.layer_zero ||
-          !np_stage_fixture_same((__bridge void *)s, (void *)s->document,
-                                 row.rect))
-        return NULL;
-      *bits |= 64;
+      }
       *reason = 9;
       if (!readFocus(&s->front, &s->frontBirth, &s->frontWindow) ||
           s->front == getpid() || s->front == s->subject.pid)

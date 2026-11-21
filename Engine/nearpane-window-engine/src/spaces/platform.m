@@ -1,6 +1,7 @@
 // Derived from stage-manager 69a7366 src/platform/spaces/ffi.rs (MIT, Eugene Tiutiunnyk).
 // Nearpane validates the actual method ABI and never dispatches an object-returning call as void or vice versa.
 #import "platform.h"
+#import "../corner/scope_binding.h"
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ApplicationServices/ApplicationServices.h>
@@ -103,12 +104,6 @@ static BOOL exactNumber(id value, uint64_t *out, BOOL zero) {
     if (!CFNumberGetValue((__bridge CFNumberRef)value,kCFNumberSInt64Type,&n) || n<0 || (!zero && !n)) return NO;
     *out=(uint64_t)n;return YES;
 }
-static BOOL getUUID(id src,uint8_t *dst) {
-    if (![src isKindOfClass:NSString.class]) return NO;
-    NSUUID *uuid=[[NSUUID alloc] initWithUUIDString:src];
-    if (!uuid) return NO;
-    [uuid getUUIDBytes:dst];return YES;
-}
 static int copyNumbers(NSArray *values,uint64_t *out,uint32_t cap) {
     if (!values || !out || !cap || values.count>cap) return -1;
     for (NSUInteger i=0; i<values.count; i++) if (!exactNumber(values[i],out+i,NO)) return -1;
@@ -122,20 +117,29 @@ int32_t np_stage_desktops(int32_t c,NPStageDesktop *out,uint32_t cap) {
         unsigned index=0;
         for (id obj in list) {
             if (![obj isKindOfClass:NSDictionary.class]) return -1;
-            NSDictionary *d=obj; uint8_t display[16]; uint64_t current=0;
+            NSDictionary *d=obj;
+            NSString *token=d[@"Display Identifier"];
+            NSUUID *display=[token isEqual:@"Main"] ? nc_single_main_uuid(list.count) : nc_uuid(token);
             NSDictionary *front=d[@"Current Space"]; NSArray *spaces=d[@"Spaces"];
-            if (![front isKindOfClass:NSDictionary.class] || ![spaces isKindOfClass:NSArray.class] || !spaces.count ||
-                !getUUID(d[@"Display Identifier"],display) || !exactNumber(front[@"id64"],&current,NO)) return -1;
+            if (!display || ![front isKindOfClass:NSDictionary.class] || ![spaces isKindOfClass:NSArray.class] || !spaces.count) return -1;
+            uint64_t current=nc_space_number(front).unsignedLongLongValue;
+            NSNumber *currentKind=nc_integer(front[@"type"]);
+            NSUUID *currentUUID=nc_uuid(front[@"uuid"]);
+            if (!current || !currentUUID || !currentKind || nc_direct_home(c,token)!=current) return -1;
             unsigned found=0;
             for (id record in spaces) {
                 if (index>=cap || ![record isKindOfClass:NSDictionary.class]) return -1;
                 NSDictionary *row=record; uint64_t kind=0; NPStageDesktop *s=&out[index++];
-                if (!exactNumber(row[@"id64"],&s->id,NO) || !exactNumber(row[@"type"],&kind,YES) ||
-                    kind>INT32_MAX || !getUUID(row[@"uuid"],s->uuid)) return -1;
-                memcpy(s->display,display,16); s->kind=(int32_t)kind; s->current=(s->id==current);
+                s->id=nc_space_number(row).unsignedLongLongValue;
+                NSUUID *uuid=nc_uuid(row[@"uuid"]);
+                if (!s->id || !uuid || !exactNumber(row[@"type"],&kind,YES) || kind>INT32_MAX) return -1;
+                [uuid getUUIDBytes:s->uuid]; [display getUUIDBytes:s->display];
+                s->kind=(int32_t)kind; s->current=(s->id==current);
+                if (s->current && (![uuid isEqual:currentUUID] || kind!=currentKind.unsignedLongLongValue)) return -1;
                 found+=s->current;
             }
-            if (found!=1) return -1;
+            if (found!=1 || nc_direct_home(c,token)!=current ||
+                ([token isEqual:@"Main"] && ![display isEqual:nc_single_main_uuid(list.count)])) return -1;
         }
         return same(c) ? (int)index : -1;
     } @catch (NSException *e) { return -1; } }
@@ -143,6 +147,36 @@ int32_t np_stage_desktops(int32_t c,NPStageDesktop *out,uint32_t cap) {
 int32_t np_stage_all_spaces(int32_t c,uint64_t *out,uint32_t cap) {
     @autoreleasepool { @try { return same(c)&&api.spaces ? copyNumbers(copied(api.spaces(c,15)),out,cap) : -1; }
         @catch(NSException *e) { return -1; } }
+}
+static int compareIDs(const void *a, const void *b) {
+    uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;
+    return (x > y) - (x < y);
+}
+// On 26A428 SLSCopySpaces(mask=15) can list a managed full-screen Space twice.
+// Preserve both occurrences in the baseline, comparisons, and durable journal.
+static BOOL validateInventory(uint64_t *ids, size_t n, const NPStageDesktop *managed, size_t count) {
+    if (!ids || !managed || !n || !count) return NO;
+    qsort(ids, n, sizeof(*ids), compareIDs);
+    if (!ids[0]) return NO;
+    for (size_t i = 0; i < count; i++) {
+        if (!bsearch(&managed[i].id, ids, n, sizeof(*ids), compareIDs)) return NO;
+        for (size_t j = 0; j < i; j++) if (managed[j].id == managed[i].id) return NO;
+    }
+    for (size_t i = 1; i < n; i++) {
+        if (ids[i] != ids[i-1]) continue;
+        if (i + 1 < n && ids[i+1] == ids[i]) return NO;
+        BOOL fullScreen = NO;
+        for (size_t j = 0; j < count; j++)
+            if (managed[j].id == ids[i] && managed[j].kind == 4) fullScreen = YES;
+        if (!fullScreen) return NO;
+    }
+    return YES;
+}
+int32_t np_stage_checked_inventory(int32_t c, uint64_t *out, uint32_t cap) {
+    NPStageDesktop managed[512];
+    int n = np_stage_all_spaces(c, out, cap);
+    int count = np_stage_desktops(c, managed, 512);
+    return n > 0 && count > 0 && validateInventory(out, (size_t)n, managed, (size_t)count) && same(c) ? n : -1;
 }
 int32_t np_stage_membership(int32_t c,uint32_t num,uint64_t *out,uint32_t cap) {
     @autoreleasepool { @try { return same(c)&&api.membership&&num ? copyNumbers(copied(api.membership(c,15,(__bridge CFArrayRef)@[@(num)])),out,cap) : -1; }

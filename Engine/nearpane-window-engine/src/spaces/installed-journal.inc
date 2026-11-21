@@ -129,9 +129,10 @@ uint32_t np_stage_fixture_first_journal(void *token, const NPStageDesktop *top,
   @autoreleasepool {
     @try {
       if (!token || !top || nt < 1 || nt > 512 || !all || na < 1 || na > 1024 ||
-          !home || !frame)
+          !home)
         return 19;
       NPInstalledFixture *s = (__bridge NPInstalledFixture *)token;
+      if (s->panelOnly != (frame == NULL)) return 19;
       if (s->ledger >= 0 || s->ledgerDir >= 0)
         return 18;
       s->ledgerDir = receiptRoot(YES);
@@ -180,13 +181,14 @@ uint32_t np_stage_fixture_first_journal(void *token, const NPStageDesktop *top,
         @"fixturePID" : @(s->subject.pid),
         @"fixtureBirth" : @(s->subject.birth),
         @"fixtureWindow" : @(s->subject.window),
-        @"fixtureCDHash" : enrolledFixtureCDHash,
+        @"scopeOfTrial" : s->panelOnly ? @"ownPanelOnly" : @"ownPanelAndEnrolledWindow",
+        @"fixtureCDHash" : s->panelOnly ? (id)NSNull.null : enrolledFixtureCDHash,
         @"route" : @"bridge",
         @"home" : @(home),
         @"ordinaryMemberCount" : @(homeMembers),
         @"scope" : topology,
         @"spaceInventory" : spaces,
-        @"frame" : @[ @(frame[0]), @(frame[1]), @(frame[2]), @(frame[3]) ],
+        @"frame" : frame ? @[ @(frame[0]), @(frame[1]), @(frame[2]), @(frame[3]) ] : (id)NSNull.null,
         @"externalFocusAndHIDBound" : @YES
       };
       return appendLedger(s, row) && fsync(s->ledgerDir) == 0 ? 0 : 19;

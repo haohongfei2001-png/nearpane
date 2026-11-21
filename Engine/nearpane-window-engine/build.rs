@@ -13,6 +13,7 @@ fn run(command: &mut Command) {
 }
 fn main() {
     println!("cargo:rerun-if-changed=include");
+    println!("cargo:rerun-if-changed=src/corner/scope_binding.h");
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }

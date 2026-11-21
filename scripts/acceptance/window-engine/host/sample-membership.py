@@ -13,6 +13,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 
@@ -64,13 +65,55 @@ def legacy_matches(receipt, image):
 
 
 def installed_matches(app, image, revision, digest):
-    return (app == scope_reader.DAILY and image.get("Identifier") == "com.holdsnow.nearpane.alpha"
+    return app == scope_reader.DAILY and product_matches(image, revision, digest)
+
+
+def product_matches(image, revision, digest):
+    return (image.get("Identifier") == "com.holdsnow.nearpane.alpha"
             and image.get("TeamIdentifier") == "ZB9D4T66QB" and image.get("multipleInstancesProhibited") is True
             and image.get("version") == "5.22" and image.get("build") == "90"
             and image.get("sourceState") == "clean" and image.get("engineABI") == 1
             and re.fullmatch(r"[0-9a-f]{40}", revision or "") is not None
             and re.fullmatch(r"[0-9a-f]{40}", digest or "") is not None
             and revision == image.get("source") and digest == image.get("CDHash"))
+
+
+def launch_readiness(candidate, installed, revision, digest, roster, target):
+    """A staged image may be inspected. Only the pinned canonical image can be launched."""
+    blockers = []
+    if target != dict(os="27.0", build="26A428", architecture="arm64", sip="System Integrity Protection status: enabled."):
+        blockers.append("targetBuildArchitectureOrSIP")
+    if not product_matches(candidate, revision, digest):
+        blockers.append("candidateIdentityOrEngineABI")
+    if not installed_matches(scope_reader.DAILY, installed, revision, digest):
+        blockers.append("installedHostIsNotPinnedEngineCandidate")
+    if roster.get("pids"):
+        blockers.append("sameProductInstanceRunning")
+    session = roster.get("session", {})
+    if session.get("qualified") is not True:
+        blockers.append("noUnlockedConsoleForCaller")
+    pids = roster.get("pids")
+    complete = (roster.get("complete") is True and isinstance(pids, list)
+                and all(type(pid) is int and pid > 1 for pid in pids) and len(set(pids)) == len(pids)
+                and type(session.get("qualified")) is bool and type(session.get("securitySessionID")) is int
+                and (session.get("qualified") is False or session["securitySessionID"] > 0))
+    if not complete:
+        blockers.append("incompleteProcessOrSessionCensus")
+    return dict(status="UNKNOWN" if not complete else "BLOCKED" if blockers else "PASS",
+                blockers=blockers, target=target, candidate=candidate, installed=installed, roster=roster,
+                scope="readOnlyLaunchReadiness", hostLaunches=0, windowWrites=0, spaceWrites=0,
+                hostPermissions="NOT_RUN", singleWindowHideRestore="NOT_RUN", productionQualified=False)
+
+
+def inspect_launch(candidate, revision, digest):
+    installed = scope_reader.identity(scope_reader.DAILY)
+    target = dict(os=scope_reader.command("sw_vers", "-productVersion").strip(),
+                  build=scope_reader.command("sw_vers", "-buildVersion").strip(),
+                  architecture=os.uname().machine, sip=scope_reader.command("csrutil", "status").strip())
+    with tempfile.TemporaryDirectory(dir="/private/tmp", prefix="nearpane-engine-roster.") as scratch:
+        launcher = scope_reader.build_launcher(Path(scratch))
+        roster = json.loads(scope_reader.command(launcher, scope_reader.DAILY, "--roster"))
+    return launch_readiness(candidate, installed, revision, digest, roster, target)
 
 
 def preflight_allows(pre):
@@ -192,16 +235,53 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report):
                 report["ownerClosed"] = bool(last and same and last["closed"] and last["stopSeen"] and exit_code == 0 and gone)
 
 
+def panel_verdict(observed, challenge):
+    if observed.get("status") != "PASS":
+        return observed.get("status", "UNKNOWN")
+    row = observed.get("installedSpacesCanary", {})
+    if row.get("status") in {"BLOCKED", "FAIL", "TIMEOUT", "CANCELLED"}:
+        return row["status"]
+    panel, fixture = row.get("canary", {}), row.get("fixture", {})
+    operations = ("create", "hide", "return", "destroy")
+    def counts(document, count):
+        actual = document.get("dispatchAttempts")
+        return (isinstance(actual, dict) and set(actual) == set(operations)
+                and all(type(n) is int and n == count for n in actual.values()))
+    native = observed.get("spaceScope", {}).get("scope", {})
+    checks = row.get("admission", {})
+    ids = [panel.get(key) for key in ("window", "originalSpace", "parkingID")]
+    clean = (row.get("status") == "PASS" and row.get("trial") == "ownPanelOnly" and row.get("phase") == "completed"
+             and row.get("challenge") == challenge and observed.get("hostExit", {}).get("status") == "PASS"
+             and panel.get("owner") == "installedHostPrivateNonactivatingPanel"
+             and panel.get("pid") == observed.get("subject", {}).get("pid") and type(panel.get("pid")) is int
+             and all(type(n) is int and n > 0 for n in ids)
+             and native.get("status") == "PASS" and panel.get("originalSpace") == native.get("nativeID")
+             and panel["parkingID"] != panel["originalSpace"]
+             and all(checks.get(key) is True for key in ("installedHostSignatureAndPath", "exact26A428AndSIP",
+                     "existingHostAccessibility", "sameConsoleAndDisplay", "externalFocusAndHIDRecorded", "durableOneUseClaim"))
+             and all(panel.get(k) is True for k in ("observedRegistration", "restored", "closed", "parkingGone"))
+             and counts(panel, 1) and fixture.get("status") == "NOT_RUN" and counts(fixture, 0)
+             and row.get("endInventoryAndFocusReads") == 2 and row.get("canaryUnresolved") is False
+             and row.get("heldWindows") == row.get("heldSpaces") == 0 and row.get("safeToRollback") is True)
+    return "PASS" if clean else "UNKNOWN"
+
+
 def run(a, report):
     app = a.host.resolve(strict=True)
     image = scope_reader.identity(app)
-    if (report["osBuild"] != "26A428" or scope_reader.command("/usr/bin/csrutil", "status").strip()
-            != "System Integrity Protection status: enabled."):
-        report.update(status="BLOCKED", reason="targetMacUnavailable")
-        return
     if a.installed:
+        readiness = inspect_launch(image, a.expected_source, a.expected_cdhash)
+        report["launchReadiness"] = readiness
+        if a.preflight_only or readiness["status"] != "PASS":
+            report.update(status=readiness["status"], reason="formalHostLaunchReadiness",
+                          scope="readOnlyFormalHostLaunchReadiness", membershipStatus="NOT_RUN")
+            return
         admitted = installed_matches(app, image, a.expected_source, a.expected_cdhash)
     else:
+        if (report["osBuild"] != "26A428" or scope_reader.command("/usr/bin/csrutil", "status").strip()
+                != "System Integrity Protection status: enabled."):
+            report.update(status="BLOCKED", reason="targetMacUnavailable")
+            return
         admitted = legacy_matches(json.loads(a.preflight.read_bytes()), image)
     if not admitted:
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
@@ -211,10 +291,20 @@ def run(a, report):
         pass
     challenge = str(uuid.uuid4())
     report.update(host=image, challenge=challenge, hostReadback=raw_output.name)
-    work = Path("/private/tmp") / ("nearpane-membership." + challenge)
     channel = Path("/private/tmp") / ("nearpane-host-scope." + challenge)
-    work.mkdir(mode=0o700)
     channel.mkdir(mode=0o700)
+    if a.own_spaces_canary:
+        report.update(scope="physicalInstalledHostOwnPanelOnly", hostObservationStarted=True)
+        observed = scope_reader.observe(app, challenge, channel, raw_output, expected_image=image, own_canary=True)
+        report.update(hostLaunchRequested=observed.get("launchRequested"), hostExit=observed.get("hostExit"),
+                      preexistingSameID=observed.get("launchServices", {}).get("prelaunch", {}).get("pids", []),
+                      subject=observed.get("subject"), permissions=observed.get("permissions"),
+                      canary=observed.get("installedSpacesCanary"), rawHostSHA256=observed.get("rawSHA256"),
+                      membershipStatus="NOT_RUN", status=panel_verdict(observed, challenge))
+        report["reason"] = observed.get("reason") if observed.get("status") != "PASS" else "ownPanelPhysicalReadback"
+        return
+    work = Path("/private/tmp") / ("nearpane-membership." + challenge)
+    work.mkdir(mode=0o700)
     fixture, exe, digest = prepare_fixture(work, report)
     def enroll(pre):
         return registered_window(pre, challenge, work, fixture, exe, digest, report)
@@ -266,7 +356,9 @@ def resources(report):
     if report.get("fixtureLaunchRequested"):
         fixture = "PASS" if report.get("ownerClosed") and report.get("ownedProcessExited") else "UNKNOWN"
     backend = "NOT_RUN"
-    if report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
+    if report.get("requestedOwnCanary") and report.get("hostObservationStarted") and report.get("hostLaunchRequested") is not False:
+        backend = "PASS" if (report.get("canary") or {}).get("safeToRollback") is True else "UNKNOWN"
+    elif report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
     return dict(candidateExit=host, registeredWindowExit=fixture, backendCleanup=backend,
                 clear=all(state in {"PASS", "NOT_RUN"} for state in (host, fixture, backend)))
@@ -282,12 +374,15 @@ def main():
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
-    p.add_argument("--enrolled-spaces-cycle", action="store_true", help="also request the separately scoped installed fixture operation")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--preflight-only", action="store_true", help="inspect the signed candidate, standard installation and process roster without launching either app")
+    mode.add_argument("--own-spaces-canary", action="store_true", help="cycle only the installed Host's own panel, without preparing a fixture")
+    mode.add_argument("--enrolled-spaces-cycle", action="store_true", help="also request the separately scoped installed fixture operation")
     a = p.parse_args()
     if a.installed == bool(a.preflight) or (a.installed and not (a.expected_source and a.expected_cdhash)):
         p.error("provide either a prior Host receipt or --installed with expected source and CDHash")
-    if a.enrolled_spaces_cycle and not a.installed:
-        p.error("the enrolled Spaces cycle requires the standard signed installation")
+    if (a.enrolled_spaces_cycle or a.own_spaces_canary or a.preflight_only) and not a.installed:
+        p.error("formal Host qualification requires --installed")
     with a.out.open("x"):
         pass
     report = dict(
@@ -301,6 +396,7 @@ def main():
         scopeSpaceWrites=0,
         scopePostedInput=0,
         requestedSpacesCycle=a.enrolled_spaces_cycle,
+        requestedOwnCanary=a.own_spaces_canary,
         permissionPrompts=0,
         singleWindowHideRestore="NOT_RUN",
         productionQualified=False,

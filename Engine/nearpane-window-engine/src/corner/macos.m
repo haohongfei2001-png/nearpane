@@ -206,17 +206,7 @@ static BOOL memberSpace(const NCMember *member) {
                 continue;
             BOOL onlyMain = NO;
             if (alias) {
-                CGDirectDisplayID ids[2];
-                uint32_t n = 0;
-                if (displays.count != 1 || CGGetActiveDisplayList(2, ids, &n) != kCGErrorSuccess || n != 1 ||
-                    ids[0] != CGMainDisplayID() || CGDisplayIsInMirrorSet(ids[0]))
-                    return NO;
-                CFUUIDRef physicalUUID = CGDisplayCreateUUIDFromDisplayID(ids[0]);
-                if (!physicalUUID)
-                    return NO;
-                CFUUIDBytes bytes = CFUUIDGetUUIDBytes(physicalUUID);
-                CFRelease(physicalUUID);
-                onlyMain = !memcmp(&bytes, member->display, 16);
+                onlyMain = [nc_single_main_uuid(displays.count).UUIDString isEqual:physical];
                 reads = 2;
             }
             NSDictionary *bound = nc_bound_scope(obj, physical, onlyMain, nc_direct_home(c, token),

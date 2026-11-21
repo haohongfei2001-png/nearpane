@@ -34,7 +34,7 @@ mod mac {
         fn np_is_enrolled_fixture(pid: i32, birth: u64) -> bool;
         fn np_stage_connection() -> i32;
         fn np_stage_desktops(c: i32, out: *mut Desktop, n: u32) -> i32;
-        fn np_stage_all_spaces(c: i32, out: *mut u64, n: u32) -> i32;
+        fn np_stage_checked_inventory(c: i32, out: *mut u64, n: u32) -> i32;
         fn np_stage_membership(c: i32, w: u32, out: *mut u64, n: u32) -> i32;
         fn np_stage_occupants(c: i32, s: u64, out: *mut u64, n: u32) -> i32;
         fn np_stage_window(w: u32, out: *mut WindowRow) -> i32;
@@ -149,8 +149,11 @@ mod mac {
             }
             Ok(rows[..n as usize].to_vec())
         }
-        fn all(&self, c: i32) -> Check<Rows> {
-            numbers::<1024>(|p, n| unsafe { np_stage_all_spaces(c, p, n) })
+        fn all(&self, c: i32) -> Check<Vec<u64>> {
+            let mut ids = [0; 1024];
+            let n = unsafe { np_stage_checked_inventory(c, ids.as_mut_ptr(), ids.len() as u32) };
+            let n = usize::try_from(n).map_err(|_| unknown(Why::Topology))?;
+            Ok(ids.get(..n).ok_or(unknown(Why::Topology))?.to_vec())
         }
         fn members(&self, c: i32, space: u64) -> Check<Rows> {
             numbers::<8192>(|p, n| unsafe { np_stage_occupants(c, space, p, n) })
@@ -347,7 +350,7 @@ impl Platform for System {
     fn desktops(&self, _: i32) -> Check<Vec<Desktop>> {
         Err(Fault(UNSUPPORTED, Why::Build))
     }
-    fn all(&self, _: i32) -> Check<Rows> {
+    fn all(&self, _: i32) -> Check<Vec<u64>> {
         Err(Fault(UNSUPPORTED, Why::Build))
     }
     fn members(&self, _: i32, _: u64) -> Check<Rows> {

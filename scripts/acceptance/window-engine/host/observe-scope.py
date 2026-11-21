@@ -22,6 +22,13 @@ def command(*args):
     return subprocess.check_output(list(map(str, args)), text=True, stderr=subprocess.STDOUT, timeout=45)
 
 
+def build_launcher(directory):
+    launcher = directory / "launch-scope"
+    command("xcrun", "clang", "-fobjc-arc", Path(__file__).with_name("launch-scope.m"),
+            "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics", "-o", launcher)
+    return launcher
+
+
 def identity(app):
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     command("/usr/bin/codesign", "--verify", "--strict", "--deep", app)
@@ -50,7 +57,7 @@ def public_scope(raw):
 def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
     return public_scope({key: observation[key] for key in ("spaceScope", "guardianFixture", "guardianIndependent",
-                                                          "installedSpacesFixtureCycle") if key in observation})
+                                                          "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
 
 
 CHECKS = {"accessibility", "listenEvent", "postEvent", "screenCapture"}
@@ -171,17 +178,18 @@ def await_exit(launcher, app, launch):
 
 
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
-            spaces_cycle=False, inspect_final=None):
+            spaces_cycle=False, inspect_final=None, own_canary=False):
     image = identity(app)
     before = identity(DAILY)
-    result = dict(schema=2, scope="oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
+    result = dict(schema=2, scope="ownPanelOnly" if own_canary else "oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
                   recordedUTC=datetime.now(timezone.utc).isoformat(),
                   os=command("/usr/bin/sw_vers", "-productVersion").strip(), osBuild=command("/usr/bin/sw_vers", "-buildVersion").strip(),
                   sip=command("/usr/bin/csrutil", "status").strip(), independentSystemSource="sw_vers + csrutil",
                   image=image, dailyBefore=before, scopeWindowWrites=0, scopeSpaceWrites=0, scopeInputEvents=0,
                   productionQualified=False, launchRequested=False, status="BLOCKED")
     try:
-        if (expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll)):
+        if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
+                or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))):
             result["reason"] = "pinnedImageOrRegisteredSessionUnavailable"
             return result
         if image["engineABI"] != 1 or image["sourceState"] != "clean":
@@ -192,12 +200,12 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                 or image["multipleInstancesProhibited"] is not True))):
             result["reason"] = "expectedProductSignatureUnavailable"
             return result
-        launcher = directory / "launch-scope"
-        command("xcrun", "clang", "-fobjc-arc", Path(__file__).with_name("launch-scope.m"),
-                "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics", "-o", launcher)
+        launcher = build_launcher(directory)
         with exclusive(image["Identifier"]):
             args = [launcher, app, challenge]
-            if registration:
+            if own_canary:
+                args.append("--installed-spaces-canary")
+            elif registration:
                 publish(directory, "fixture.json", read_private(registration, 4096))
                 args.append("--registered-window")
             elif enroll:
@@ -232,7 +240,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                             result["reason"] = "signedFixtureNotAdmitted"
                             return result
                         publish(directory, "fixture.json", registration_data)
-                    timeout = min(78, deadline - time.monotonic() - 8) if spaces_cycle else 18
+                    timeout = min(78, deadline - time.monotonic() - 8) if spaces_cycle or own_canary else 18
                     raw, digest = response(directory, "response.json", timeout)
                     result["responseRawSHA256"] = digest
                     validate(raw, challenge, image, launch, app, result["osBuild"], result["os"], result["sip"])
@@ -240,7 +248,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                         inspect_final(raw)
                     if pre:
                         confirm_continuity(pre, raw)
-                    if (enroll or registration) and "guardianFixture" not in raw:
+                    if (enroll or registration) and not spaces_cycle and "guardianFixture" not in raw:
                         raise ValueError("registered observation lacks the ownership readback")
                     result.update(status="PASS", reason="correlatedReadOnlyObservation", subject=raw["subject"],
                                   permissions=raw["permissions"], system=raw["system"], launch="background Launch Services",

@@ -23,13 +23,14 @@ enum InstalledSpacesFixtureCycle {
         "launchPassed", "probeClosed", "probeFocus",
     ]
 
-    private static func observe(_ challenge: UUID) -> Data {
+    private static func observe(_ challenge: UUID, ownPanelOnly: Bool) -> Data {
         var proof = NPInstalledSpacesReceipt()
         proof.size = UInt32(MemoryLayout<NPInstalledSpacesReceipt>.size)
         proof.version = 1
         var bytes = challenge.uuid
         let transport = withUnsafeBytes(of: &bytes) {
-            np_spaces_installed_fixture_cycle($0.bindMemory(to: UInt8.self).baseAddress, &proof)
+            let nonce = $0.bindMemory(to: UInt8.self).baseAddress
+            return ownPanelOnly ? np_spaces_installed_canary(nonce, &proof) : np_spaces_installed_fixture_cycle(nonce, &proof)
         }
         let phases = ["unused", "admission", "initialMembership", "hostCanary", "ordinaryWindowHide",
                       "ordinaryWindowReturnAndCleanup", "completed"]
@@ -54,6 +55,7 @@ enum InstalledSpacesFixtureCycle {
         ]
         let canary: [String: Any] = [
             "owner": "installedHostPrivateNonactivatingPanel", "pid": r.host_pid, "window": r.canary_window,
+            "originalSpace": r.home_id,
             "observedRegistration": r.canary_created == 1, "parkingID": r.canary_space,
             "restored": r.canary_restored == 1, "closed": r.canary_closed == 1, "parkingGone": r.canary_space_gone == 1,
             "dispatchAttempts": dispatches(r.canary_creates, r.canary_hides, r.canary_shows, r.canary_destroys),
@@ -73,7 +75,9 @@ enum InstalledSpacesFixtureCycle {
             "status": transport == 0 ? name(states, r.status) : "UNKNOWN",
             "phase": name(phases, r.phase), "refusal": refusals[r.refusal] ?? "unrecognizedAdmissionCode",
             "reason": r.detail >= 200 ? name(reasons, r.detail - 200) : "noEngineResult",
-            "engineDetail": r.detail, "admission": checks, "canary": canary, "fixture": document,
+            "engineDetail": r.detail, "admission": checks, "canary": canary,
+            "trial": ownPanelOnly ? "ownPanelOnly" : "ownPanelAndEnrolledWindow",
+            "fixture": ownPanelOnly ? ["status": "NOT_RUN", "dispatchAttempts": dispatches(r.fixture_creates, r.fixture_hides, r.fixture_shows, r.fixture_destroys)] : document,
             "endInventoryAndFocusReads": r.final_proofs, "heldWindows": r.held_windows, "heldSpaces": r.held_spaces,
             "canaryUnresolved": r.outstanding_canary != 0, "safeToRollback": transport == 0 && r.safe_to_rollback == 1,
             "durableJournalDirectory": "login-account/Library/Application Support/Nearpane-Spaces-Verification",
@@ -82,9 +86,9 @@ enum InstalledSpacesFixtureCycle {
         return (try? JSONSerialization.data(withJSONObject: row, options: [.sortedKeys])) ?? Data()
     }
 
-    @MainActor static func read(challenge: UUID) async -> [String: Any] {
+    @MainActor static func read(challenge: UUID, ownPanelOnly: Bool) async -> [String: Any] {
         // Release the main actor so its existing AppKit canary can perform bounded callbacks.
-        let data = await Task.detached { observe(challenge) }.value
+        let data = await Task.detached { observe(challenge, ownPanelOnly: ownPanelOnly) }.value
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ??
             ["schema": 1, "status": "UNKNOWN", "reason": "invalidNativeReceipt", "safeToRollback": false]
     }

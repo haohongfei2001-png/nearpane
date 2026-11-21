@@ -164,7 +164,8 @@ trait Platform {
     fn target(&self) -> bool;
     fn connection(&self) -> Check<i32>;
     fn desktops(&self, c: i32) -> Check<Vec<Desktop>>;
-    fn all(&self, c: i32) -> Check<Rows>;
+    /// The sorted full inventory retains the multiplicity of managed full-screen Spaces.
+    fn all(&self, c: i32) -> Check<Vec<u64>>;
     fn members(&self, c: i32, space: u64) -> Check<Rows>;
     fn spaces(&self, c: i32, number: u32) -> Check<Rows>;
     fn bind(&self, window: Window) -> Check<Self::Witness>;
@@ -194,9 +195,9 @@ trait Authority {
     fn fixture_journal_start(
         &self,
         _top: &[Desktop],
-        _inventory: &Rows,
+        _inventory: &[u64],
         _home: u64,
-        _frame: &[f64; 4],
+        _frame: Option<&[f64; 4]>,
         _members: usize,
     ) -> Check<()> {
         Ok(())
@@ -353,7 +354,9 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Scope));
         }
-        list.sort();
+        // Display enumeration can vary. The order of Spaces within each physical
+        // display is user-visible in Mission Control and must survive a transaction.
+        list.sort_by_key(|desktop| desktop.display);
         Ok(list)
     }
     fn scope(&self, c: i32, home: Home, top: &[Desktop], a: &impl Authority) -> Check<()> {
@@ -415,7 +418,8 @@ impl<P: Platform> State<P> {
             },
         );
         let mut expected = before;
-        expected.insert(sid);
+        expected.push(sid);
+        expected.sort_unstable();
         if self.sys.all(c)? != expected || !self.sys.members(c, sid)?.is_empty() {
             return Err(unknown(Why::Conflict));
         }
@@ -459,7 +463,7 @@ impl<P: Platform> State<P> {
             return Err(fail(Why::NoDelivery));
         }
         let mut expected = before;
-        expected.remove(&sid);
+        expected.retain(|id| *id != sid);
         let until = Instant::now() + DEADLINE;
         loop {
             self.scope(c, slot.home, top, a)?;
@@ -625,8 +629,14 @@ impl<P: Platform> State<P> {
         );
         self.moved(c, lease, sid, true, route, &top, a)
     }
-    fn show(&mut self, c: i32, lease: Lease, route: Route, a: &impl Authority) -> Check<()> {
-        let top = self.topology(c, lease.slot.home)?;
+    fn restore_member(
+        &mut self,
+        c: i32,
+        lease: Lease,
+        route: Route,
+        top: &[Desktop],
+        a: &impl Authority,
+    ) -> Check<()> {
         let sid = self.slots.get(&lease.slot).ok_or(fail(Why::Unowned))?.id;
         let Some(saved) = self.owned.get(&lease.window) else {
             if self
@@ -638,7 +648,7 @@ impl<P: Platform> State<P> {
                     .values()
                     .all(|other| other.lease.slot != lease.slot)
             {
-                return self.cleanup(c, lease.slot, &top, a);
+                return Ok(());
             }
             return Err(fail(Why::Unowned));
         };
@@ -650,18 +660,23 @@ impl<P: Platform> State<P> {
             .view(c, lease, &saved.witness, sid, false)
             .is_ok_and(|x| x.rect == saved.original)
         {
-            self.scope(c, lease.slot.home, &top, a)?;
+            self.scope(c, lease.slot.home, top, a)?;
             let again = self.view(c, lease, &saved.witness, sid, false)?;
             if again.rect != saved.original {
                 return Err(unknown(Why::Identity));
             }
         } else {
-            self.moved(c, lease, sid, false, route, &top, a)?;
+            self.moved(c, lease, sid, false, route, top, a)?;
         }
         self.owned.remove(&lease.window);
         if let Some(s) = self.slots.get_mut(&lease.slot) {
             s.owner = lease;
         }
+        Ok(())
+    }
+    fn show(&mut self, c: i32, lease: Lease, route: Route, a: &impl Authority) -> Check<()> {
+        let top = self.topology(c, lease.slot.home)?;
+        self.restore_member(c, lease, route, &top, a)?;
         self.cleanup(c, lease.slot, &top, a)
     }
     fn read(&self, c: i32, lease: Lease, a: &impl Authority) -> Check<(Seen, bool)> {

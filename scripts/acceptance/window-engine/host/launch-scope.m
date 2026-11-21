@@ -83,9 +83,10 @@ int main(int argc, const char **argv) {
         NSDictionary *before = census(bundle);
         if (argc == 3 && !strcmp(argv[2], "--roster")) return emit(before);
         NSUUID *nonce = [[NSUUID alloc] initWithUUIDString:@(argv[2])];
-        BOOL cycle = argc == 5 && !strcmp(argv[3], "--await-registered-window") && !strcmp(argv[4], "--enrolled-spaces-cycle") &&
-            [physical(url.path) isEqual:@"/Applications/Nearpane.app"] && [bundle.bundleIdentifier isEqual:@"com.holdsnow.nearpane.alpha"];
-        if (!nonce || (argc == 5 && !cycle) || (argc >= 4 && ![@[@"--registered-window",@"--await-registered-window"] containsObject:@(argv[3])])) return 2;
+        BOOL installed = [physical(url.path) isEqual:@"/Applications/Nearpane.app"] && [bundle.bundleIdentifier isEqual:@"com.holdsnow.nearpane.alpha"];
+        BOOL cycle = argc == 5 && installed && !strcmp(argv[3], "--await-registered-window") && !strcmp(argv[4], "--enrolled-spaces-cycle");
+        BOOL panelOnly = argc == 4 && installed && !strcmp(argv[3], "--installed-spaces-canary");
+        if (!nonce || (argc == 5 && !cycle) || (argc >= 4 && !panelOnly && ![@[@"--registered-window",@"--await-registered-window"] containsObject:@(argv[3])])) return 2;
         if (![before[@"complete"] boolValue] || [before[@"pids"] count] || ![before[@"session"][@"qualified"] boolValue])
             return emit(@{@"prelaunch":before, @"launched":@NO, @"exactLaunchPath":@NO, @"pid":@0, @"reason":@"singleInstanceOrLoginUnavailable"});
         NSWorkspaceOpenConfiguration *config = NSWorkspaceOpenConfiguration.configuration;

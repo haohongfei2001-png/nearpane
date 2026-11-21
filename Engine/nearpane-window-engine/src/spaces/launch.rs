@@ -35,7 +35,7 @@ impl Panel {
 }
 pub(super) struct CanaryRun {
     route: Route,
-    initial: Rows,
+    initial: Vec<u64>,
     topology: Vec<Desktop>,
     pub home: Option<Home>,
     pub(super) lease: Option<Lease>,
@@ -43,13 +43,14 @@ pub(super) struct CanaryRun {
     pub(super) parking: Option<u64>,
     pub(super) restored: bool,
     close_sent: bool,
+    pub(super) closed: bool,
     pub cleaned: bool,
 }
 fn fixed(top: &[Desktop], current: &[Desktop]) -> bool {
     let mut before = top.to_vec();
     let mut after = current.to_vec();
-    before.sort();
-    after.sort();
+    before.sort_by_key(|desktop| desktop.display);
+    after.sort_by_key(|desktop| desktop.display);
     before == after
 }
 impl<P: Platform> State<P> {
@@ -91,6 +92,7 @@ impl<P: Platform> State<P> {
             parking: None,
             restored: false,
             close_sent: false,
+            closed: false,
             cleaned: false,
         });
         let action = (|| -> Check<()> {
@@ -190,6 +192,7 @@ impl<P: Platform> State<P> {
                 parking: None,
                 restored: true,
                 close_sent: false,
+                closed: false,
                 cleaned: true,
             });
             return Ok(());
@@ -210,11 +213,9 @@ impl<P: Platform> State<P> {
                 if p.window() != Some(lease.window) || p.registered != 1 {
                     return Err(unknown(Why::Identity));
                 }
-                if self.owned.contains_key(&lease.window) {
-                    self.show(c, lease, route, a)?;
-                } else if self.slots.contains_key(&lease.slot) {
+                if self.owned.contains_key(&lease.window) || self.slots.contains_key(&lease.slot) {
                     let top = self.topology(c, lease.slot.home)?;
-                    self.cleanup(c, lease.slot, &top, a)?;
+                    self.restore_member(c, lease, route, &top, a)?;
                 }
                 let w = self.sys.bind(lease.window)?;
                 if !self.sys.transparent_canary(&w) {
@@ -248,23 +249,33 @@ impl<P: Platform> State<P> {
             a.observation()?;
             let run = self.launch.as_ref().unwrap();
             let p = self.sys.canary(PanelOp::Read, a)?;
-            let absent = p.number == 0 || self.sys.absent(p.number)?;
-            let top = self.sys.desktops(c)?;
-            if p.focus_same == 1
-                && p.registered == 0
-                && p.absent == 1
-                && absent
-                && {
-                    let current = self.sys.all(c)?;
-                    current == run.initial && run.parking.is_none_or(|id| !current.contains(&id))
+            let number = lease.map_or(p.number, |l| l.window.number);
+            if p.focus_same != 1 {
+                return Err(unknown(Why::ProbeFocus));
+            }
+            if p.number != 0 && p.number != number {
+                return Err(unknown(Why::Identity));
+            }
+            if !fixed(&run.topology, &self.sys.desktops(c)?) {
+                return Err(unknown(Why::Topology));
+            }
+            if p.registered == 0 && p.absent == 1 && (number == 0 || self.sys.absent(number)?) {
+                self.launch.as_mut().unwrap().closed = true;
+                // Only reclaim the private Space after both AppKit and WindowServer
+                // acknowledge the close. A pending close retains the slot for recovery.
+                if let Some(l) = lease.filter(|l| self.slots.contains_key(&l.slot)) {
+                    let top = self.topology(c, l.slot.home)?;
+                    self.cleanup(c, l.slot, &top, a)?;
                 }
-                && fixed(&run.topology, &top)
-                && self.slots.is_empty()
-                && self.owned.is_empty()
-            {
-                streak += 1;
-                if streak == 2 {
-                    break;
+                let run = self.launch.as_ref().unwrap();
+                if self.sys.all(c)? == run.initial && self.slots.is_empty() && self.owned.is_empty()
+                {
+                    streak += 1;
+                    if streak == 2 {
+                        break;
+                    }
+                } else {
+                    streak = 0;
                 }
             } else {
                 streak = 0;

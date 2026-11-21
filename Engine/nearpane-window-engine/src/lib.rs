@@ -16,6 +16,14 @@ pub extern "C" fn np_spaces_installed_fixture_cycle(
 ) -> i32 {
     -1
 }
+#[cfg(not(all(feature = "spaces", target_os = "macos")))]
+#[unsafe(no_mangle)]
+pub extern "C" fn np_spaces_installed_canary(
+    _nonce: *const u8,
+    _receipt: *mut std::ffi::c_void,
+) -> i32 {
+    -1
+}
 
 use contract::*;
 use runtime::*;

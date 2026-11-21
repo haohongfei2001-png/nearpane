@@ -65,11 +65,17 @@ enum StageEnginePackageProbe {
     }
 
     static func admitsInstalledCycle(preflight: [String: Any]?, registered: [String: Any]) -> Bool {
+        guard let scope = registered["spaceScope"] as? [String: Any], let member = scope["fixtureMembership"] as? [String: Any],
+              member["status"] as? String == "PASS",
+              ["spaceToWindow","windowToSpaces"].allSatisfy({ (member[$0] as? [String:Any])?["status"] as? String == "PASS" })
+        else { return false }
+        return admitsPhysicalScope(preflight: preflight, current: registered)
+    }
+
+    static func admitsPhysicalScope(preflight: [String: Any]?, current registered: [String: Any]) -> Bool {
         guard let preflight, let before = preflight["spaceScope"] as? [String: Any], let final = registered["spaceScope"] as? [String: Any],
               let old = before["scope"] as? NSDictionary, let active = final["scope"] as? NSDictionary, active.isEqual(old),
-              active["status"] as? String == "PASS", let member = final["fixtureMembership"] as? [String: Any],
-              member["status"] as? String == "PASS",
-              ["spaceToWindow","windowToSpaces"].allSatisfy({ (member[$0] as? [String:Any])?["status"] as? String == "PASS" }),
+              active["status"] as? String == "PASS",
               let a = before["samples"] as? [[String: Any]], a.count == 2, let b = final["samples"] as? [[String: Any]], b.count == 2,
               let sid = (a[0]["session"] as? NSDictionary)?["securitySessionID"] as? UInt32, sid > 0,
               let topology = a[0]["display"] as? NSDictionary, topology["topologyConfirmed"] as? Bool == true,
@@ -86,7 +92,8 @@ enum StageEnginePackageProbe {
     }
 
     @MainActor static func readScope(challenge: UUID, fixture initialFixture: StageEngineHostScope.Fixture?, channel: StageScopeReply?,
-                                    awaitRegistration: Bool = false, enrolledSpacesCycle: Bool = false) async -> Int32 {
+                                    awaitRegistration: Bool = false, enrolledSpacesCycle: Bool = false,
+                                    ownSpacesCanary: Bool = false) async -> Int32 {
         let bundle = Bundle.main
         let pid = getpid()
         do {
@@ -119,6 +126,10 @@ enum StageEnginePackageProbe {
             }
             var fixture = initialFixture
             var preflight: [String: Any]?
+            if ownSpacesCanary {
+                guard channel != nil, !awaitRegistration, !enrolledSpacesCycle, fixture == nil else { return 2 }
+                preflight = try await observation(nil)
+            }
             if awaitRegistration {
                 guard initialFixture == nil, let channel else { return 2 }
                 let first = try await observation(nil)
@@ -128,7 +139,17 @@ enum StageEnginePackageProbe {
                 fixture = try enrolledFixture(channel)
             }
             var report = try await observation(fixture)
-            if let fixture {
+            if ownSpacesCanary || enrolledSpacesCycle {
+                guard let channel else { return 2 }
+                let key = ownSpacesCanary ? "installedSpacesCanary" : "installedSpacesFixtureCycle"
+                let admitted = ownSpacesCanary ? admitsPhysicalScope(preflight: preflight, current: report)
+                    : admitsInstalledCycle(preflight: preflight, registered: report)
+                if try !channel.exists(.abort), admitted {
+                    report[key] = await InstalledSpacesFixtureCycle.read(challenge: challenge, ownPanelOnly: ownSpacesCanary)
+                } else {
+                    report[key] = ["status": "BLOCKED", "reason": "hostScopeOrRegistrationChanged", "safeToRollback": true] as [String: Any]
+                }
+            } else if let fixture {
                 guard let scope = report["spaceScope"] as? [String: Any] else { return 3 }
                 let summary = scope["scope"] as? [String: Any]
                 var ordinary: StageGroupScope?
@@ -145,18 +166,6 @@ enum StageEnginePackageProbe {
                 report["guardianFixture"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(guardian))
                 let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable)
                 report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
-                if enrolledSpacesCycle {
-                    guard let channel else { return 2 }
-                    let aborted = try channel.exists(.abort)
-                    let admitted = !aborted && independent.status != "UNKNOWN"
-                        && admitsInstalledCycle(preflight: preflight, registered: report)
-                    if admitted {
-                        report["installedSpacesFixtureCycle"] = await InstalledSpacesFixtureCycle.read(challenge: challenge)
-                    } else {
-                        let reason = independent.status == "UNKNOWN" ? "priorGuardianObservationUnknown" : "hostScopeOrRegistrationChanged"
-                        report["installedSpacesFixtureCycle"] = ["status": "BLOCKED", "reason": reason, "safeToRollback": true] as [String: Any]
-                    }
-                }
             }
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             if let channel {

@@ -65,6 +65,7 @@ pub(super) struct Receipt {
 unsafe extern "C" {
     fn np_stage_fixture_enroll(
         nonce: *const u8,
+        panel_only: u32,
         subject: *mut Subject,
         bits: *mut u32,
         reason: *mut u32,
@@ -121,11 +122,12 @@ pub(super) enum Write {
     Destroy = 3,
 }
 impl Guard {
-    fn enroll(nonce: &Id, receipt: &mut Receipt) -> Check<Self> {
+    fn enroll(nonce: &Id, panel_only: bool, receipt: &mut Receipt) -> Check<Self> {
         let mut subject = Subject::default();
         let ptr = unsafe {
             np_stage_fixture_enroll(
                 nonce.as_ptr(),
+                u32::from(panel_only),
                 &mut subject,
                 &mut receipt.admission,
                 &mut receipt.refusal,
@@ -272,22 +274,21 @@ impl Authority for Guard {
     fn fixture_journal_start(
         &self,
         top: &[Desktop],
-        inventory: &Rows,
+        inventory: &[u64],
         home: u64,
-        frame: &[f64; 4],
+        frame: Option<&[f64; 4]>,
         members: usize,
     ) -> Check<()> {
         self.active()?;
-        let ids: Vec<u64> = inventory.iter().copied().collect();
         self.ledger_status(unsafe {
             np_stage_fixture_first_journal(
                 self.0.native.as_ptr(),
                 top.as_ptr(),
                 top.len(),
-                ids.as_ptr(),
-                ids.len(),
+                inventory.as_ptr(),
+                inventory.len(),
                 home,
-                frame.as_ptr(),
+                frame.map_or(std::ptr::null(), |r| r.as_ptr()),
                 members,
             )
         })
@@ -330,6 +331,83 @@ fn proof<P: Platform>(
         *onscreen = u32::from(seen.visible);
         *count += 1;
     }
+    Ok(())
+}
+
+fn run_panel<P: Platform>(
+    state: &mut State<P>,
+    c: i32,
+    nonce: Id,
+    a: &impl Authority,
+    r: &mut Receipt,
+) -> Check<()> {
+    r.phase = 3;
+    r.safe_to_rollback = 0;
+    let canary = state.start_canary(c, Route::Bridge, nonce, a);
+    if let Some(probe) = &state.launch {
+        r.canary_window = probe.lease.map_or(0, |l| l.window.number);
+        r.canary_created = u32::from(r.canary_window != 0);
+        r.canary_restored = u32::from(probe.restored && probe.lease.is_some());
+        r.canary_closed = u32::from(probe.closed && r.canary_created == 1);
+        r.canary_space = probe.parking.unwrap_or(0);
+        r.canary_space_gone = u32::from(probe.cleaned && r.canary_space != 0);
+    }
+    canary
+}
+
+// This arm has no external Window or callback that could enable external writes.
+fn panel_only<P: Platform>(
+    state: &mut State<P>,
+    nonce: Id,
+    a: &impl Authority,
+    r: &mut Receipt,
+) -> Check<()> {
+    let c = state.connect()?;
+    let desktops = state.sys.desktops(c)?;
+    let mut active = desktops.iter().filter(|d| d.current == 1);
+    let d = active.next().ok_or(unknown(Why::Scope))?;
+    if d.kind != 0 || active.next().is_some() {
+        return Err(unknown(Why::Scope));
+    }
+    let home = Home {
+        display: d.display,
+        uuid: d.uuid,
+        id: d.id,
+    };
+    let top = state.topology(c, home)?;
+    let inventory = state.sys.all(c)?;
+    let members = state.sys.members(c, home.id)?;
+    if !inventory.contains(&home.id) {
+        return Err(unknown(Why::Topology));
+    }
+    r.home_id = home.id;
+    for _ in 0..2 {
+        state.scope(c, home, &top, a)?;
+        if state.sys.all(c)? != inventory || state.sys.members(c, home.id)? != members {
+            return Err(unknown(Why::Topology));
+        }
+    }
+    a.fixture_journal_start(&top, &inventory, home.id, None, members.len())?;
+    let result = run_panel(state, c, nonce, a, r);
+    if state.launch.as_ref().is_some_and(|probe| probe.cleaned)
+        && state.owned.is_empty()
+        && state.slots.is_empty()
+    {
+        for _ in 0..2 {
+            state.scope(c, home, &top, a)?;
+            if state.sys.all(c)? != inventory || state.sys.members(c, home.id)? != members {
+                return Err(unknown(Why::Cleanup));
+            }
+            r.final_proofs += 1;
+        }
+        r.safe_to_rollback = 1;
+    }
+    result?;
+    if r.safe_to_rollback != 1 || r.canary_closed != 1 || r.canary_space_gone != 1 {
+        return Err(unknown(Why::Cleanup));
+    }
+    a.fixture_recovered(false, r.canary_window, r.canary_space)?;
+    r.phase = 6;
     Ok(())
 }
 
@@ -408,20 +486,10 @@ fn cycle<P: Platform>(
         &top,
         &inventory,
         home_id,
-        &before.rect,
+        Some(&before.rect),
         original_members.len(),
     )?;
-    r.phase = 3;
-    r.safe_to_rollback = 0;
-    let canary = state.start_canary(c, Route::Bridge, nonce, a);
-    if let Some(probe) = &state.launch {
-        r.canary_window = probe.lease.map_or(0, |l| l.window.number);
-        r.canary_created = u32::from(r.canary_window != 0);
-        r.canary_restored = u32::from(probe.restored && probe.lease.is_some());
-        r.canary_closed = u32::from(probe.cleaned && r.canary_created == 1);
-        r.canary_space = probe.parking.unwrap_or(0);
-        r.canary_space_gone = u32::from(probe.cleaned && r.canary_space != 0);
-    }
+    let canary = run_panel(state, c, nonce, a, r);
     if let Err(fault) = canary {
         if state.launch.as_ref().is_some_and(|p| p.cleaned)
             && state.owned.is_empty()
@@ -539,7 +607,7 @@ fn cycle<P: Platform>(
 // cannot prove a safe end. No equal/alternate nonce or backend can take over.
 static RESIDUE: Mutex<Option<State<system::System>>> = Mutex::new(None);
 static BUSY: Mutex<()> = Mutex::new(());
-fn run_once(nonce: Id, r: &mut Receipt) -> Check<()> {
+fn run_once(nonce: Id, own_panel_only: bool, r: &mut Receipt) -> Check<()> {
     let _serial = BUSY.try_lock().map_err(|_| {
         r.safe_to_rollback = 0;
         r.refusal = 12;
@@ -555,18 +623,22 @@ fn run_once(nonce: Id, r: &mut Receipt) -> Check<()> {
         r.refusal = 12;
         return Err(unknown(Why::RestoreFirst));
     }
-    let guard = Guard::enroll(&nonce, r)?;
+    let guard = Guard::enroll(&nonce, own_panel_only, r)?;
     let mut system = system::System::default();
     system.fixture = Some(guard.clone());
     let mut state = State::new(system);
-    let result = cycle(
-        &mut state,
-        nonce,
-        guard.window(),
-        &guard,
-        || guard.0.external.store(true, Ordering::SeqCst),
-        r,
-    );
+    let result = if own_panel_only {
+        panel_only(&mut state, nonce, &guard, r)
+    } else {
+        cycle(
+            &mut state,
+            nonce,
+            guard.window(),
+            &guard,
+            || guard.0.external.store(true, Ordering::SeqCst),
+            r,
+        )
+    };
     guard.counts(r);
     r.held_windows = state.owned.len() as u32;
     r.held_spaces = state.slots.len() as u32;
@@ -601,6 +673,16 @@ pub(super) unsafe extern "C" fn np_spaces_installed_fixture_cycle(
     nonce: *const u8,
     out: *mut Receipt,
 ) -> i32 {
+    unsafe { installed_cycle(nonce, out, false) }
+}
+#[unsafe(no_mangle)]
+pub(super) unsafe extern "C" fn np_spaces_installed_canary(
+    nonce: *const u8,
+    out: *mut Receipt,
+) -> i32 {
+    unsafe { installed_cycle(nonce, out, true) }
+}
+unsafe fn installed_cycle(nonce: *const u8, out: *mut Receipt, own_panel_only: bool) -> i32 {
     if nonce.is_null() || out.is_null() {
         return -1;
     }
@@ -628,7 +710,9 @@ pub(super) unsafe extern "C" fn np_spaces_installed_fixture_cycle(
         r.refusal = 5;
         return 0;
     }
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_once(id, r))) {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        run_once(id, own_panel_only, r)
+    })) {
         Ok(Ok(())) => {
             r.status = PASS;
             r.detail = Why::TrialPassed as u32;
@@ -643,6 +727,20 @@ pub(super) unsafe extern "C" fn np_spaces_installed_fixture_cycle(
         }
     }
     0
+}
+
+#[cfg(test)]
+pub(super) fn replay_panel<P: Platform>(
+    state: &mut State<P>,
+    guard: &impl Authority,
+) -> (u32, u32, u32) {
+    let mut r = Receipt::default();
+    let result = panel_only(state, [42; 16], guard, &mut r);
+    (
+        result.map_or_else(|fault| fault.0, |_| PASS),
+        r.final_proofs,
+        r.safe_to_rollback,
+    )
 }
 
 #[cfg(test)]
@@ -680,22 +778,24 @@ mod admission_tests {
                 version: 1,
                 ..Default::default()
             };
-            assert_eq!(
-                unsafe { np_spaces_installed_fixture_cycle(nonce.as_ptr(), &mut row) },
-                0
-            );
-            assert_ne!(row.status, PASS);
-            assert_eq!(row.refusal, reason);
-            assert_eq!(
-                (
-                    row.canary_creates,
-                    row.fixture_creates,
-                    row.fixture_hides,
-                    row.fixture_shows
-                ),
-                (0, 0, 0, 0)
-            );
-            assert_eq!(row.safe_to_rollback, 1);
+            for probe in [
+                np_spaces_installed_fixture_cycle,
+                np_spaces_installed_canary,
+            ] {
+                assert_eq!(unsafe { probe(nonce.as_ptr(), &mut row) }, 0);
+                assert_ne!(row.status, PASS);
+                assert_eq!(row.refusal, reason);
+                assert_eq!(
+                    (
+                        row.canary_creates,
+                        row.fixture_creates,
+                        row.fixture_hides,
+                        row.fixture_shows
+                    ),
+                    (0, 0, 0, 0)
+                );
+                assert_eq!(row.safe_to_rollback, 1);
+            }
         }
     }
     #[test]

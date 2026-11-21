@@ -19,10 +19,13 @@ struct NearpaneApp {
             let options = Set(args.dropFirst(2))
             let deferred = options.contains("--await-registered-window")
             let spacesCycle = options.contains("--enrolled-spaces-cycle")
+            let ownCanary = options.contains("--installed-spaces-canary")
             guard options.count == args.count-2,
-                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle"]),
+                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle","--installed-spaces-canary"]),
                   !deferred || (options.contains("--private-receipt") && !options.contains("--registered-window")),
-                  !spacesCycle || (deferred && Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
+                  !ownCanary || options == ["--private-receipt","--installed-spaces-canary"],
+                  !spacesCycle || deferred,
+                  !(spacesCycle || ownCanary) || (Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
                       Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha") else { exit(2) }
             let channel: StageScopeReply?
             let fixture: StageEngineHostScope.Fixture?
@@ -34,7 +37,8 @@ struct NearpaneApp {
             if application.activationPolicy() != .prohibited { _ = application.setActivationPolicy(.prohibited) }
             guard application.activationPolicy() == .prohibited else { exit(3) }
             Task { exit(await StageEnginePackageProbe.readScope(challenge: challenge, fixture: fixture, channel: channel,
-                                                                awaitRegistration: deferred, enrolledSpacesCycle: spacesCycle)) }
+                                                                awaitRegistration: deferred, enrolledSpacesCycle: spacesCycle,
+                                                                ownSpacesCanary: ownCanary)) }
             RunLoop.main.run()
             return
         }

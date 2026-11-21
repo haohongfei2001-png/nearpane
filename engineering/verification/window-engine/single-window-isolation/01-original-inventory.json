@@ -1,0 +1,146 @@
+{
+  "formalHostCanary" : "NOT_RUN",
+  "missionControlUI" : "NOT_RUN",
+  "productionQualified" : false,
+  "samples" : [
+    {
+      "all" : [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5573,
+        5573
+      ],
+      "allSpacesReturn" : 22,
+      "endedUptime" : 351155.50409179169,
+      "managed" : [
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 4,
+          "kind" : 0,
+          "spaceAlias" : 2
+        },
+        {
+          "current" : 1,
+          "displayAlias" : 1,
+          "id" : 5568,
+          "kind" : 4,
+          "spaceAlias" : 3
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 5573,
+          "kind" : 4,
+          "spaceAlias" : 4
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 5184,
+          "kind" : 4,
+          "spaceAlias" : 5
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 6,
+          "kind" : 0,
+          "spaceAlias" : 6
+        }
+      ],
+      "managedReturn" : 5,
+      "startedUptime" : 351155.48952283338
+    },
+    {
+      "all" : [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5573,
+        5573
+      ],
+      "allSpacesReturn" : 22,
+      "endedUptime" : 351155.62968975003,
+      "managed" : [
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 4,
+          "kind" : 0,
+          "spaceAlias" : 2
+        },
+        {
+          "current" : 1,
+          "displayAlias" : 1,
+          "id" : 5568,
+          "kind" : 4,
+          "spaceAlias" : 3
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 5573,
+          "kind" : 4,
+          "spaceAlias" : 4
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 5184,
+          "kind" : 4,
+          "spaceAlias" : 5
+        },
+        {
+          "current" : 0,
+          "displayAlias" : 1,
+          "id" : 6,
+          "kind" : 0,
+          "spaceAlias" : 6
+        }
+      ],
+      "managedReturn" : 5,
+      "startedUptime" : 351155.62911004171
+    }
+  ],
+  "scope" : "linkedEngineInventoryOutsideHost",
+  "spaceWrites" : 0,
+  "status" : "UNKNOWN",
+  "targetBuildAndSIP" : 1,
+  "windowWrites" : 0
+}

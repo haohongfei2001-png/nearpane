@@ -21,6 +21,8 @@ typedef struct {
 } NPInstalledSpacesReceipt;
 int32_t np_spaces_installed_fixture_cycle(const uint8_t challenge[16],
                                           NPInstalledSpacesReceipt *receipt);
+/* Uses only the Host-owned nonactivating panel. No external window is enrolled. */
+int32_t np_spaces_installed_canary(const uint8_t challenge[16], NPInstalledSpacesReceipt *receipt);
 #ifdef __cplusplus
 }
 #endif

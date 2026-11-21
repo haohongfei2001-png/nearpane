@@ -46,6 +46,17 @@ class InstalledJournalTests(unittest.TestCase):
         self.assertEqual((first["challenge"], first["home"], first["spaceInventory"]), (self.nonce, 6, [6]))
         self.assertEqual((intent["event"], intent["space"]), ("willCreateSpace", 0))
 
+    def test_own_panel_archive_does_not_claim_an_external_window_or_frame(self):
+        self.assertEqual(self.issue("panel"), 0)
+        first = self.records(self.nonce + ".jsonl")[0]
+        self.assertEqual(first["scopeOfTrial"], "ownPanelOnly")
+        self.assertEqual([first[k] for k in ("fixturePID", "fixtureBirth", "fixtureWindow")], [0, 0, 0])
+        self.assertIsNone(first["fixtureCDHash"])
+        self.assertIsNone(first["frame"])
+
+    def test_fullscreen_inventory_corroborates_each_repeated_id_and_preserves_both_entries(self):
+        self.assertEqual(self.issue("inventory"), 0)
+
     def test_unresolved_record_is_retained_and_never_permits_a_second_nonce(self):
         self.assertEqual(self.issue("retain"), 0)
         self.assertEqual(self.issue("refuse", str(uuid.uuid4())), 0)

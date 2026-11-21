@@ -2,6 +2,7 @@
 #pragma once
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <ColorSync/ColorSync.h>
 #import <dlfcn.h>
 static inline NSNumber *nc_integer(id n) {
     if (![n isKindOfClass:NSNumber.class] || CFGetTypeID((__bridge CFTypeRef)n) == CFBooleanGetTypeID() ||
@@ -21,6 +22,21 @@ static inline NSUUID *nc_uuid(id value) {
         return nil;
     NSUUID *u = [[NSUUID alloc] initWithUUIDString:value];
     return [u.UUIDString isEqual:@"00000000-0000-0000-0000-000000000000"] ? nil : u;
+}
+// SkyLight can return the literal "Main". It identifies a physical screen only
+// when both catalogues have exactly one unmirrored, active, online primary.
+static inline NSUUID *nc_single_main_uuid(NSUInteger managedDisplays) {
+    CGDirectDisplayID ids[2];
+    uint32_t n = 0;
+    if (managedDisplays != 1 || CGGetActiveDisplayList(2, ids, &n) != kCGErrorSuccess || n != 1 ||
+        ids[0] != CGMainDisplayID() || !CGDisplayIsActive(ids[0]) || !CGDisplayIsOnline(ids[0]) ||
+        CGDisplayIsInMirrorSet(ids[0]))
+        return nil;
+    CFUUIDRef uuid = CGDisplayCreateUUIDFromDisplayID(ids[0]);
+    if (!uuid) return nil;
+    CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuid);
+    CFRelease(uuid);
+    return [[NSUUID alloc] initWithUUIDBytes:(const unsigned char *)&bytes];
 }
 static inline uint64_t nc_direct_home(int connection, NSString *token) {
     typedef uint64_t (*Read)(int, CFStringRef);

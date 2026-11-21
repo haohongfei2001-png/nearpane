@@ -46,6 +46,44 @@ def correlated(value, opened=launch):
 
 
 class InstalledScopeTests(unittest.TestCase):
+    def test_own_canary_receipt_requires_exact_operations_original_scope_and_no_external_write(self):
+        ops = ("create", "hide", "return", "destroy")
+        panel = dict(owner="installedHostPrivateNonactivatingPanel", pid=412, window=8, originalSpace=6, parkingID=7,
+                     observedRegistration=True, restored=True, closed=True, parkingGone=True, dispatchAttempts=dict.fromkeys(ops, 1))
+        checks = dict.fromkeys(("installedHostSignatureAndPath", "exact26A428AndSIP", "existingHostAccessibility",
+                               "sameConsoleAndDisplay", "externalFocusAndHIDRecorded", "durableOneUseClaim"), True)
+        row = dict(status="PASS", trial="ownPanelOnly", phase="completed", challenge=nonce, admission=checks, canary=panel,
+                   fixture=dict(status="NOT_RUN", dispatchAttempts=dict.fromkeys(ops, 0)), heldSpaces=0, heldWindows=0,
+                   endInventoryAndFocusReads=2, canaryUnresolved=False, safeToRollback=True)
+        sample = dict(status="PASS", subject=dict(pid=412), hostExit=dict(status="PASS"),
+                      spaceScope=raw()["spaceScope"], installedSpacesCanary=row)
+        self.assertEqual(membership.panel_verdict(sample, nonce), "PASS")
+        for path, value in [(("fixture", "dispatchAttempts", "hide"), 1), (("canary", "dispatchAttempts", "create"), True),
+                            (("canary", "closed"), False), (("canary", "originalSpace"), 9),
+                            (("canary", "parkingID"), None), (("canary", "parkingID"), 6),
+                            (("admission", "durableOneUseClaim"), False), (("heldSpaces",), 1)]:
+            changed = copy.deepcopy(sample)
+            item = changed["installedSpacesCanary"]
+            for field in path[:-1]: item = item[field]
+            item[path[-1]] = value
+            self.assertEqual(membership.panel_verdict(changed, nonce), "UNKNOWN", path)
+        self.assertEqual(membership.panel_verdict(dict(sample, status="BLOCKED"), nonce), "BLOCKED")
+
+    def test_launch_readiness_records_both_conflicts_without_looking_at_daily_windows(self):
+        target = dict(os="27.0", build="26A428", architecture="arm64", sip=sip)
+        census = dict(complete=True, pids=[], session=session)
+        def check(install=image, roster=census, platform=target):
+            return membership.launch_readiness(image, install, revision, digest, roster, platform)
+        self.assertEqual(check()["status"], "PASS")
+        blocked = check(dict(image, engineABI=None, source="d"*40), dict(census, pids=[1234]))
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked["blockers"], ["installedHostIsNotPinnedEngineCandidate", "sameProductInstanceRunning"])
+        self.assertEqual((blocked["hostLaunches"], blocked["spaceWrites"], blocked["hostPermissions"]), (0, 0, "NOT_RUN"))
+        self.assertEqual(check(platform=dict(target, build="26A434"))["status"], "BLOCKED")
+        for invalid in [dict(complete=False), dict(pids=None), dict(pids=[True]), dict(session={}),
+                        dict(session=dict(session, securitySessionID=0))]:
+            self.assertEqual(check(roster=dict(census, **invalid))["status"], "UNKNOWN")
+
     def test_installed_binding_and_development_controls(self):
         self.assertTrue(membership.installed_matches(reader.DAILY, image, revision, digest))
         for key, value in (("CDHash","c"*40), ("sourceState","dirty"), ("Identifier","com.holdsnow.nearpane.host"),

@@ -34,6 +34,11 @@ struct Fake {
     bystander: bool,
     opened_probe: bool,
     defer_probe_close: bool,
+    cg_keeps_closed_probe: bool,
+    managed_roster: Vec<Desktop>,
+    reverse_managed_after_hide: bool,
+    repeated_fullscreen: Option<u64>,
+    lose_repeat_after_create: bool,
     probe_closes: u32,
     lose_focus_on_hide: bool,
     focus_changed: bool,
@@ -76,6 +81,13 @@ impl Platform for Fake {
         Ok(self.connection)
     }
     fn desktops(&self, _: i32) -> Check<Vec<Desktop>> {
+        if !self.managed_roster.is_empty() {
+            let mut roster = self.managed_roster.clone();
+            if self.reverse_managed_after_hide && !self.moved.is_empty() {
+                roster.reverse();
+            }
+            return Ok(roster);
+        }
         Ok(vec![Desktop {
             display: [5; 16],
             uuid: [6; 16],
@@ -84,8 +96,16 @@ impl Platform for Fake {
             current: 1,
         }])
     }
-    fn all(&self, _: i32) -> Check<Rows> {
-        Ok(self.spaces.clone())
+    fn all(&self, _: i32) -> Check<Vec<u64>> {
+        let mut ids: Vec<_> = self.spaces.iter().copied().collect();
+        if let Some(id) = self
+            .repeated_fullscreen
+            .filter(|_| !self.lose_repeat_after_create || self.next == 100)
+        {
+            ids.push(id);
+            ids.sort_unstable();
+        }
+        Ok(ids)
     }
     fn members(&self, _: i32, s: u64) -> Check<Rows> {
         let mut set: Rows = self
@@ -143,7 +163,7 @@ impl Platform for Fake {
         })
     }
     fn absent(&self, n: u32) -> Check<bool> {
-        Ok(!self.windows.contains_key(&n))
+        Ok(!self.windows.contains_key(&n) && !(n == 77 && self.cg_keeps_closed_probe))
     }
     fn transparent_canary(&self, w: &u64) -> bool {
         *w == 77
@@ -165,6 +185,10 @@ impl Platform for Fake {
         Ok(self.next)
     }
     fn destroy(&mut self, _: i32, s: u64) -> Delivery {
+        assert!(
+            !self.windows.contains_key(&77) && !self.cg_keeps_closed_probe,
+            "the owned probe must disappear in AppKit and CG before destroying its Space"
+        );
         self.destroyed.push(s);
         self.spaces.remove(&s);
         Delivery::Accepted
@@ -191,6 +215,57 @@ fn installed_fixture() -> (State<Fake>, Guard, Window) {
     s.sys.add(&enrolled);
     let w = s.sys.windows[&5].0;
     (s, g, w)
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn standalone_panel_never_moves_an_external_window_or_releases_a_pending_close() {
+    for deferred in [false, true] {
+        let (mut state, guard, ordinary) = installed_fixture();
+        state.sys.defer_probe_close = deferred;
+        let verdict = installed::replay_panel(&mut state, &guard);
+        assert_eq!(
+            state.sys.moved.iter().map(|m| m.1).collect::<Vec<_>>(),
+            vec![77, 77]
+        );
+        assert_eq!(state.sys.windows[&ordinary.number].1, 10);
+        assert_eq!(state.sys.probe_closes, 1);
+        if deferred {
+            assert_eq!(verdict, (UNKNOWN, 0, 0));
+            assert!(state.sys.destroyed.is_empty() && state.route.is_none());
+        } else {
+            assert_eq!(verdict, (PASS, 2, 1));
+            assert_eq!(state.sys.destroyed, vec![101]);
+        }
+    }
+}
+#[cfg(target_os = "macos")]
+#[test]
+fn full_inventory_multiplicity_must_survive_create_and_cleanup_before_external_admission() {
+    for lose in [false, true] {
+        let (mut s, guard, _) = installed_fixture();
+        let home = s.sys.desktops(1).unwrap()[0];
+        s.sys.managed_roster = vec![
+            home,
+            Desktop {
+                id: 11,
+                uuid: [8; 16],
+                kind: 4,
+                current: 0,
+                ..home
+            },
+        ];
+        s.sys.spaces.insert(11);
+        s.sys.repeated_fullscreen = Some(11);
+        s.sys.lose_repeat_after_create = lose;
+        let result = installed::replay_panel(&mut s, &guard);
+        if lose {
+            assert_ne!(result.0, PASS);
+            assert!(s.sys.moved.is_empty() && s.route.is_none());
+        } else {
+            assert_eq!(result, (PASS, 2, 1));
+            assert_eq!(s.sys.all(1).unwrap(), vec![10, 11, 11]);
+        }
+    }
 }
 #[cfg(target_os = "macos")]
 #[test]
@@ -502,6 +577,7 @@ fn cleanup_waits_for_delayed_probe_close_without_reissuing_or_arming_backend() {
     assert!(waiting.owned > 0 && s.route.is_none());
     assert_ne!(s.run(&request(1, HIDE, 4), &guard).status, PASS);
     assert_eq!(s.sys.probe_closes, 1);
+    assert!(s.sys.destroyed.is_empty() && s.sys.spaces.contains(&101));
     s.sys.windows.remove(&77);
     let closed = s.run(&launch_request(CLEAN_LAUNCH), &guard);
     assert_eq!((closed.status, closed.owned), (PASS, 0));
@@ -509,7 +585,48 @@ fn cleanup_waits_for_delayed_probe_close_without_reissuing_or_arming_backend() {
     assert_eq!(closed.flags & HEALTHY, 0);
     assert_eq!(s.sys.probe_closes, 1);
     assert_eq!(s.sys.moved.len(), 2);
+    assert_eq!(s.sys.destroyed, vec![101]);
     assert!(s.route.is_none());
+}
+#[test]
+fn windowserver_close_lag_keeps_owned_space_and_only_cleanup_can_release_it() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.cg_keeps_closed_probe = true;
+    let result = s.run(&launch_request(LAUNCH), &guard);
+    assert_eq!(result.status, UNKNOWN);
+    assert_eq!(s.sys.probe_closes, 1);
+    assert!(!s.sys.windows.contains_key(&77));
+    assert!(s.sys.spaces.contains(&101) && s.sys.destroyed.is_empty() && s.route.is_none());
+    s.sys.cg_keeps_closed_probe = false;
+    assert_eq!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.destroyed, vec![101]);
+    assert!(s.route.is_none());
+}
+#[test]
+fn reordering_managed_spaces_retains_ownership_until_original_order_returns() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    let home = s.sys.desktops(1).unwrap()[0];
+    s.sys.managed_roster = vec![
+        home,
+        Desktop {
+            id: 11,
+            uuid: [8; 16],
+            current: 0,
+            ..home
+        },
+    ];
+    s.sys.spaces.insert(11);
+    s.sys.reverse_managed_after_hide = true;
+    assert_eq!(s.run(&launch_request(LAUNCH), &guard).status, UNKNOWN);
+    assert_eq!(s.sys.moved.len(), 1);
+    assert!(s.sys.destroyed.is_empty() && s.route.is_none());
+    s.sys.reverse_managed_after_hide = false;
+    assert_eq!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
+    assert!(s.route.is_none());
+    assert_eq!(s.sys.spaces, Rows::from([10, 11]));
 }
 #[test]
 fn launch_never_accepts_a_caller_window_or_acquires_a_different_evidence_route() {

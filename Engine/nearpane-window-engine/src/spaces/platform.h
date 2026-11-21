@@ -11,6 +11,7 @@ int32_t np_stage_target_build(void);
 int32_t np_stage_connection(void);
 int32_t np_stage_desktops(int32_t connection, NPStageDesktop *out, uint32_t capacity);
 int32_t np_stage_all_spaces(int32_t connection, uint64_t *out, uint32_t capacity);
+int32_t np_stage_checked_inventory(int32_t connection, uint64_t *out, uint32_t capacity);
 int32_t np_stage_membership(int32_t connection, uint32_t number, uint64_t *out, uint32_t capacity);
 int32_t np_stage_occupants(int32_t connection, uint64_t space, uint64_t *out, uint32_t capacity);
 int32_t np_stage_window(uint32_t number, NPStageWindow *out);
