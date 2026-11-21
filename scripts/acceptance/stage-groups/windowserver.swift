@@ -169,7 +169,7 @@ func birth(_ pid: Int32) throws -> UInt64 {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "movie"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "visibility", "minimize", "corner", "movie", "film"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         if args[0] == "movie" {
             Task {
@@ -183,6 +183,14 @@ func birth(_ pid: Int32) throws -> UInt64 {
             return
         }
         let root = URL(fileURLWithPath: args[1], isDirectory: true)
+        if args[0] == "film" {
+            Task { @MainActor in
+                do { try await recordComparison(root); exit(0) }
+                catch { fputs("Fixture recording: \(error)\n", stderr); exit(1) }
+            }
+            RunLoop.main.run()
+            return
+        }
         if ["minimize", "corner"].contains(args[0]) {
             let app = NSApplication.shared
             app.setActivationPolicy(.accessory)

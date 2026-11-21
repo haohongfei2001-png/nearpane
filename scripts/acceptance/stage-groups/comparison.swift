@@ -7,17 +7,10 @@ import NearpaneCore
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    static func prepare(screen: NSScreen, bounds: CGRect, root: URL) -> CornerMask? {
-        guard CGPreflightScreenCaptureAccess() else { return nil }
-        let size = CGSize(width: 48, height: 80)
+    static let size = CGSize(width: 48, height: 150)
+    static func prepare(screen: NSScreen) async -> CornerMask? {
         let frame = CGRect(x: screen.frame.maxX - size.width, y: screen.frame.minY, width: size.width, height: size.height)
-        let crop = root.appendingPathComponent("unoccupied-corner.png")
-        let capture = Process()
-        capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        capture.arguments = ["-x", "-R\(Int(bounds.maxX-size.width)),\(Int(bounds.maxY-size.height)),48,80", crop.path]
-        guard (try? capture.run()) != nil else { return nil }
-        capture.waitUntilExit()
-        guard capture.terminationStatus == 0, let image = NSImage(contentsOf: crop) else { return nil }
+        guard let image = try? await cornerPixels(width: Int(size.width), height: Int(size.height)) else { return nil }
         let panel = CornerMask(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
@@ -106,15 +99,15 @@ private func unchanged(_ ids: [UInt32], _ previous: Samples, _ current: Samples)
     }
 }
 
-private func hidden(_ target: Target, _ s: Samples, method: String, bounds: CGRect) -> Bool {
+@MainActor private func hidden(_ target: Target, _ s: Samples, method: String, bounds: CGRect) -> Bool {
     let id = target.id
     guard let owner = s.owned[id] else { return false }
     if method == "minimize" { return owner.miniature && s.axMiniature[id] == true && s.cg[id] == nil }
     guard owner.activeSpace, !owner.miniature, s.axMiniature[id] == false, let f = s.cg[id], f == s.axFrames[id] else { return false }
     let strip = bounds.intersection(f)
     // AppKit may clamp the title bar vertically. Only a one-point horizontal strip may remain.
-    return f.minX >= bounds.maxX - 1 && !strip.isNull && strip.width <= 1 && strip.height <= 48 &&
-        f.minY >= bounds.maxY - 48
+    return f.minX >= bounds.maxX - 1 && !strip.isNull && strip.width <= 1 && strip.height <= CornerMask.size.height &&
+        f.minY >= bounds.maxY - CornerMask.size.height
 }
 
 private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
@@ -167,7 +160,10 @@ private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
     let dockBase = dockMiniatures()
     receipt["dockBeforeUserMinimized"] = dockUnseeded ?? -1
     receipt["dockBaseline"] = dockBase ?? -1
-    let mask = method == "corner" ? CornerMask.prepare(screen: screen, bounds: bounds, root: root) : nil
+    let mask = method == "corner" ? await CornerMask.prepare(screen: screen) : nil
+    receipt["displayBounds"] = rectJSON(bounds)
+    receipt["requestedCorner"] = [corner.x, corner.y]
+    receipt["maskPrepared"] = mask != nil
     defer { mask?.orderOut(nil) }
     var held = [UInt32: Samples]()
     var state = "PASS", reason = "singleABCARoundTrip", dockPeak = dockBase ?? -1
@@ -272,12 +268,24 @@ private func restored(_ t: Target, _ s: Samples, before: Samples) -> Bool {
     if state == "PASS" && !dockVerified { state = dockBase == nil ? "UNKNOWN" : "FAIL"; reason = "dockWindowTiles" }
     if method == "corner" && state == "PASS" {
         // A click-through panel must also leave no parked AX target at the remaining strip.
-        var hit: AXUIElement?, pid: pid_t = 0
-        let hitRead = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(bounds.maxX-0.5), Float(bounds.maxY-2), &hit)
-        let identified = hitRead == .success && hit.map { AXUIElementGetPid($0, &pid) == .success } == true
-        receipt["cornerHitOwnedPID"] = identified && managed.contains { $0.owner.pid == pid }
-        if mask?.isVisible != true || !identified { state = "UNKNOWN"; reason = "maskOrHitTestUnconfirmed" }
-        else if managed.contains(where: { $0.owner.pid == pid }) { state = "FAIL"; reason = "parkedWindowStillAcceptsPointer" }
+        let origins = held.compactMap { id, value in value.cg[id]?.minY }
+        var hits = [String](), covered = false
+        if let top = origins.min(), let mask {
+            let maskRect = CGRect(x: bounds.maxX-mask.frame.width, y: bounds.maxY-mask.frame.height,
+                                  width: mask.frame.width, height: mask.frame.height)
+            covered = held.allSatisfy { id, value in value.cg[id].map { maskRect.contains($0.intersection(bounds)) } == true }
+            for y in [top+2, (top+bounds.maxY)/2, bounds.maxY-2] {
+                var hit: AXUIElement?, pid: pid_t = 0
+                let result = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(bounds.maxX-0.5), Float(y), &hit)
+                let identified = result == .success && hit.map { AXUIElementGetPid($0, &pid) == .success } == true
+                hits.append(!identified ? "unknown" : (managed.contains { $0.owner.pid == pid } ? "parkedOwner" : "other"))
+            }
+        }
+        receipt["cornerHits"] = hits; receipt["maskCoversRealStrip"] = covered
+        if hits.contains("parkedOwner") { state = "FAIL"; reason = "parkedWindowStillAcceptsPointer" }
+        else if mask?.isVisible != true || !covered || hits.isEmpty || hits.contains("unknown") {
+            state = "UNKNOWN"; reason = "maskOrHitTestUnconfirmed"
+        }
     }
     mask?.orderOut(nil)
     var clean = true

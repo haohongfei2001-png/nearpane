@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import plistlib
 import shutil
-import signal
 import subprocess
 import tempfile
 import time
@@ -22,7 +21,7 @@ def run_comparison(binary, destination):
             (root / "comparison").touch()
             apps = []
             trial = {"status": "UNKNOWN", "reason": "missingTrialReceipt"}
-            movie = destination / (method + ".mov")
+            movie = destination / (method + ".mp4")
             capture = None
             try:
                 for label in ("a", "b"):
@@ -45,8 +44,10 @@ def run_comparison(binary, destination):
                     time.sleep(.1)
                 if all((root / (label + ".json")).exists() for label in ("a", "b")):
                     # The host check in the entry point restricts capture and input to GitHub's disposable desktop.
-                    capture = subprocess.Popen(["/usr/sbin/screencapture", "-v", "-k", "-V", "75", movie],
-                                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    capture = subprocess.Popen([binary, "film", root], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                    ready = time.monotonic() + 8
+                    while capture.poll() is None and not (root / "film-ready").exists() and time.monotonic() < ready:
+                        time.sleep(.05)
                     proc = subprocess.run([binary, method, root], timeout=110, capture_output=True, text=True)
                     if (root / "trial.json").exists():
                         trial = json.loads((root / "trial.json").read_bytes())
@@ -56,13 +57,18 @@ def run_comparison(binary, destination):
                     trial = {"status": "BLOCKED", "reason": "signedOwnerLaunchOrEnrollment",
                              "ownerErrors": [json.loads(p.read_bytes()) for p in root.glob("*-failure.json")]}
             finally:
-                if capture and capture.poll() is None:
-                    capture.send_signal(signal.SIGINT)
+                (root / "film-stop").touch()
+                if capture:
                     try:
-                        capture.wait(7)
+                        _, film_error = capture.communicate(timeout=9)
                     except subprocess.TimeoutExpired:
                         capture.terminate()
-                        capture.wait(3)
+                        _, film_error = capture.communicate(timeout=3)
+                    trial["captureExit"] = capture.returncode
+                    if film_error:
+                        trial["captureDetail"] = film_error.decode(errors="replace")[-350:]
+                if (root / "trial.mp4").exists():
+                    shutil.copy2(root / "trial.mp4", movie)
                 (root / "stop").touch()
                 trial["fixtureOwnersExited"] = all([p.wait(timeout=15) == 0 for p in apps])
                 if not trial["fixtureOwnersExited"]:

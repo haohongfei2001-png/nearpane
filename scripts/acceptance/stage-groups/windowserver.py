@@ -25,7 +25,7 @@ def run(build, receipt, comparison=None):
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos26.0",
                         "-I", build / "Modules", "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
                         Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"),
-                        Path(__file__).with_name("comparison.swift"), *inputs, "-o", binary], check=True)
+                        Path(__file__).with_name("comparison.swift"), Path(__file__).with_name("recording.swift"), *inputs, "-o", binary], check=True)
         if comparison:
             from comparison import run_comparison
             run_comparison(binary, comparison)
