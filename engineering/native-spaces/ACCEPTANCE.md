@@ -4,10 +4,14 @@
 
 每个 Host 遥测阶段留存实际请求和响应的单调时间、进程出生代、读取来源、退出状态及每次尝试。只有同一正式 Host 的四个实际阶段依次为 0、1、0、0，且收起时原 AX 对象和 CGWindowID 连续两读相同，才允许监督器退出日常 Host。系统通知表示通知送达，发起方须由同次系统请求记录单独证明。[夜间分项证据](../verification/window-engine/overnight-20261122/STATUS.md)
 
-1. **P0 在任何测试窗口或临时 Space 创建前执行。** 使用未锁定的 26A428 实体登录会话、SIP 开启和唯一标准安装 Host。先双读普通桌面、实际前台应用、进程出生代、保留的 AXFocusedWindow 和可见零层 CGWindowID。由 Apple 展示和收起一次 Mission Control。比较所有 HID 计数，新增输入即停止新操作。
+1. **完整 P0 在本轮 Spaces 写入试验的任何夹具或临时 Space 创建前执行。** 使用未锁定的 26A428 实体登录会话、SIP 开启和唯一标准安装 Host。先双读普通桌面、实际前台应用、进程出生代、保留的 AXFocusedWindow 和可见零层 CGWindowID。由 Apple 展示和收起一次 Mission Control。比较所有 HID 计数，新增输入即停止新操作。
 2. 同一次展示内，用签名 Dock 应用根和 SystemWide 根读取两轮有界全局坐标。在系统根确认签名 Apple WindowManager 的桌面条对象，保留角色、标识、父子关系、原始几何和每点错误码。验证每个可见按钮都有独立的顶层命中，并在同一扫描线上得到一致的横向顺序。单独核对原生桌面清单。截图和录屏只辅助定位时序。
 3. 收起后连续两次核对同一个原 AX 对象、原进程代际与 CGWindowID。收到终态 Host 遥测回复后，再核对 Dock 总览已收起、原 AX 焦点、原生清单和 HID。收据中的单调时钟须证明终次焦点和输入读回覆盖了该回复。缺少、倒序或过期的读数使 P1 保持 BLOCKED。原生全屏的补充读数只适用于该环境。
-4. **P1 只接受当前常规 Host 新鲜、完整的普通桌面 P0 凭据。** 由原 `run-installed-stage.py spaces` 核验签名、权限、配置和恢复责任，正常退出并确认旧进程结束，再用原安装包启动一次性诊断角色。复用自有面板前置检查及 nonce 签名窗口登记。迁回后需要独立 AX/CG 几何、精确前台焦点、Dock、两方向 membership、有序桌面清单、持久化归档和清理收据。普通 Host 回归后比对配置。完成整套 P1 才能开始 P2 的整组、10/50、Corner 或性能测试。
+4. **P1 只接受当前常规 Host 新鲜、完整的普通桌面 P0 凭据。** 由原 `run-installed-stage.py spaces` 核验签名、权限、配置和恢复责任，正常退出并确认旧进程结束，再用原安装包启动一次性诊断角色。复用自有面板前置检查及 nonce 签名窗口登记。迁回后需要独立 AX/CG 几何、精确前台焦点、Dock、两方向 membership、有序桌面清单、持久化归档和清理收据。普通 Host 回归后比对配置。一个后端的单窗口资格通过后，才可使用该后端进行整组、10/50 次或性能测试。Corner 的独立只读诊断另走下述入口。
+
+**按操作区分准入。** 日常 Host 的被动读回不要求展示 Mission Control。`--observe-only` 保留原 AX 对象，在同一普通桌面上两次确认实际焦点、进程代际、物理显示器、Space、输入和签名 Host。独立的 `corner-readback` 只使用该新鲜收据登记受控夹具、验证归属，不能取得停放或生产资格。Spaces 入口要求完整 P0，并核对各阶段带时间戳的实际 Dock 读数。过期缓存不可作为该阶段的新读数。
+
+**分开登记归属往返与输入隔离。** 外部独立观察器在登记前先绑定夹具的签名、窗口、进程出生代和原始桌面，用 Rust 写前日志的单调时间划分原位、停放和还原区间。每个区间均需两次正反向归属一致。过快而未采到停放属于 UNKNOWN。透明且忽略鼠标的窗口只可取得 `thirdPartyMembershipRoundTrip`；`singleWindowHideRestore` 需要普通交互窗口、真实下压/拖动/释放与键盘接收者、同应用旁窗、焦点、Dock、原始几何和清理的独立实测。[本轮准入与源代码收据](../verification/window-engine/product-integration-20261123/STATUS.md)
 
 以下历史合同与回执保留。早期从自有面板开始的顺序适用于当次记录。当前准入使用上述顺序。[当前实机回执](../verification/window-engine/p0-p1-admission-26A428/RESULTS.md)
 

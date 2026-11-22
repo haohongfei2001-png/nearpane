@@ -1,0 +1,68 @@
+{
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "stage": "passiveReadOnly",
+  "startedUTC": "2026-11-22T17:23:43Z",
+  "endedUTC": "2026-11-22T17:23:44Z",
+  "build": "26A428",
+  "scope": {
+    "reason": "fullscreenType4",
+    "status": "BLOCKED"
+  },
+  "terminalScope": {
+    "reason": "fullscreenType4",
+    "status": "BLOCKED"
+  },
+  "admission": {
+    "reason": "regularForegroundApplicationRequired",
+    "uptime": 427903.61242995836
+  },
+  "terminalAdmission": {
+    "reason": "originalFocusUnavailable",
+    "uptime": 427904.34771558334
+  },
+  "buttonsBefore": 0,
+  "buttonsAfter": 0,
+  "sameHostAtEnd": true,
+  "observerAXTrusted": true,
+  "hostTelemetry": [
+    {
+      "attempts": [
+        {
+          "endUptime": 427904.12813558336,
+          "exit": 0,
+          "missionControlObservation": "signedDockAXListWithoutMC",
+          "missionControlPresented": 0,
+          "missionControlSample": "cached",
+          "pid": 32364,
+          "source": "installedHostPreviewMetrics",
+          "status": "observed",
+          "targetBirth": 1795343882268848,
+          "targetPID": 32364,
+          "uptime": 427903.7044617084
+        }
+      ],
+      "endUptime": 427904.128262375,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "passive",
+      "pid": 32364,
+      "startUptime": 427903.70445587503,
+      "withinPhase": false
+    }
+  ],
+  "windowWrites": 0,
+  "spaceWrites": 0,
+  "launchedHosts": 0,
+  "observerSHA256": "fdede8e03c66f7f9239e169ef8ba2765a5d24fb37cc77b6737bb57c0377662a3",
+  "status": "NOT_RUN",
+  "hidUnchanged": true,
+  "rawSHA256": "626f14475a508e63c0ec3d20e9b2851369fd5213c8b82d14703511c08ea02dec"
+}

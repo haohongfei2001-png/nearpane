@@ -3,7 +3,8 @@ import Foundation
 import Security
 
 let permissionSubject = CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--permission-subject"
-let check = CommandLine.arguments.count == 3 ? ["--diagnostic-space-probe":"p0-space-probe-read-only-v1","--permissions":"permissions","--permission-subject":"permissions","--draft-qualification":"draft-qualification-read-only-v1"][CommandLine.arguments[2]] : nil
+let overviewSubject = CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--overview-read"
+let check = CommandLine.arguments.count == 3 ? ["--overview-read":"mission-control-read-v1","--diagnostic-space-probe":"p0-space-probe-read-only-v1","--permissions":"permissions","--permission-subject":"permissions","--draft-qualification":"draft-qualification-read-only-v1"][CommandLine.arguments[2]] : nil
 let checkPermissions = check != nil
 guard CommandLine.arguments.count == 2 || checkPermissions, let pid = Int32(CommandLine.arguments[1]) else { exit(2) }
 func kernelHost(_ pid: pid_t) -> UInt64? {
@@ -28,9 +29,10 @@ func signedHostHash(_ pid: pid_t) -> String? {
 }
 let diagnosticProbe = check == "p0-space-probe-read-only-v1"
 let app = NSRunningApplication(processIdentifier:pid)
-let birth = diagnosticProbe || permissionSubject ? kernelHost(pid) : nil
-let image = permissionSubject ? signedHostHash(pid) : nil
-if permissionSubject && (image == nil || birth == nil) { exit(2) }
+let bindImage = permissionSubject || overviewSubject
+let birth = diagnosticProbe || bindImage ? kernelHost(pid) : nil
+let image = bindImage ? signedHostHash(pid) : nil
+if bindImage && (image == nil || birth == nil) { exit(2) }
 if diagnosticProbe {
     guard birth != nil else { exit(2) }
 } else {
@@ -43,7 +45,7 @@ var received: [String: Any]?
 let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-metrics.reply"),
                                object: nonce, queue: .main) { notice in
     guard let fields = notice.userInfo, fields["pid"] as? Int32 == pid else { return }
-    if checkPermissions {
+    if checkPermissions && !overviewSubject {
         guard fields["checked"] as? String == check else { return }
         received = ["pid": Int(pid)]
         return
@@ -51,7 +53,12 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
     let names = ["captureRequests", "capturesInFlight", "cacheEntries", "chargedPixelBytes", "activeStreams",
                  "visibleDisplays", "gallerySessions"]
     var output: [String: Any] = ["pid": Int(pid)]
-    for name in names {
+    if overviewSubject {
+        // Older installed images reply with ordinary preview metrics. Keep this visible as cached evidence.
+        guard fields["checked"] as? String == check || (fields["checked"] == nil && fields["captureRequests"] != nil) else { return }
+        output["missionControlSample"] = fields["checked"] == nil ? "cached" : "requested"
+    }
+    for name in overviewSubject ? [] : names {
         guard let number = fields[name] as? NSNumber, number.intValue >= 0 else { return }
         output[name] = number.intValue
     }
@@ -78,7 +85,10 @@ let until = ProcessInfo.processInfo.systemUptime + ((check == "draft-qualificati
 while received == nil, ProcessInfo.processInfo.systemUptime < until { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.03)) }
 center.removeObserver(token)
 guard let received, diagnosticProbe ? (kernelHost(pid) == birth) : (app?.isTerminated == false) else { exit(3) }
-if permissionSubject {
+if overviewSubject {
+    guard let image, let birth, kernelHost(pid) == birth, signedHostHash(pid) == image else { exit(3) }
+    print(String(decoding:try JSONSerialization.data(withJSONObject:received,options:.sortedKeys),as:UTF8.self))
+} else if permissionSubject {
     guard let image, let birth, kernelHost(pid) == birth, signedHostHash(pid) == image else { exit(3) }
     let result: [String:Any] = ["pid": Int(pid), "birth": birth, "cdhash": image, "nonce": nonce]
     print(String(decoding:try JSONSerialization.data(withJSONObject:result,options:.sortedKeys),as:UTF8.self))

@@ -50,6 +50,12 @@ def observed_host_phases(phases, pid, birth):
         if (last["status"] != "observed" or last["exit"] != 0 or last["pid"] != pid or
                 last["missionControlPresented"] != mode or last["missionControlObservation"] != source):
             return False
+        kind = last.get("missionControlSample")
+        lo, hi = last.get("missionControlReadStartUptime"), last.get("missionControlReadEndUptime")
+        if (kind not in {"requested", "cached"} or type(lo) not in (float, int) or type(hi) not in (float, int)
+                or not (math.isfinite(lo) and math.isfinite(hi)
+                        and (last["uptime"] if kind == "requested" else start) <= lo <= hi <= last["endUptime"])):
+            return False
         previous = end
     return True
 
@@ -73,6 +79,40 @@ def load_receipt(path):
         if len(raw) != info.st_size or os.fstat(fd).st_mtime_ns != info.st_mtime_ns:
             raise ValueError("p0ReceiptChangedDuringRead")
     return json.loads(raw), hashlib.sha256(raw).hexdigest()
+
+
+def qualifies_read_only(report, image, pid, birth, now=None):
+    """Handoff for signed-fixture membership reads only. This never admits an engine write."""
+    try:
+        host, scope = report["host"], report["scope"]
+        before, after = report["admission"], report["terminalAdmission"]
+        phase, = report["hostTelemetry"]
+        attempt = phase["attempts"][-1]
+        hid = report["hidBeforePassiveRead"]
+        stamp = report["terminalReadbackUptime"]
+        age = (time.monotonic() if now is None else now) - stamp
+        return (report["stage"] == "passiveReadOnly" and report["status"] == "NOT_RUN"
+                and report["systemVersion"] == "27.0" and report["build"] == "26A428"
+                and report["sip"] == "System Integrity Protection status: enabled."
+                and report["sameHostAtEnd"] is True and report["observerAXTrusted"] is True
+                and host["pid"] == pid and host["birth"] == birth and host["source"] == image["source"]
+                and host["cdhash"] == image["cdhash"] and host["path"] == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost"
+                and scope["status"] == "PASS" and scope == report["terminalScope"] and scope["nativeID"] > 0
+                and all(scope.get(k) for k in ("displayUUID", "spaceUUID"))
+                and not before.get("reason") and not after.get("reason") and after["sameOriginalAX"] is True
+                and all(type(before[k]) is int and before[k] > 0 and before[k] == after[k] for k in ("workspacePID","birth","cgWindowID"))
+                and phase["phase"] == "passive" and phase["pid"] == pid and attempt["status"] == "observed"
+                and attempt["exit"] == 0 and attempt["pid"] == pid and attempt["targetBirth"] == birth and attempt["targetPID"] == pid
+                and attempt["missionControlPresented"] == 0 and attempt["missionControlObservation"] == "signedDockAXListWithoutMC"
+                and attempt["missionControlSample"] in ("requested","cached")
+                and before["uptime"] <= phase["startUptime"] <= attempt["uptime"] <= attempt["endUptime"] <= after["uptime"] <= stamp
+                and (attempt["missionControlSample"] == "cached" or attempt["uptime"] <= attempt["missionControlReadStartUptime"]
+                     <= attempt["missionControlReadEndUptime"] <= attempt["endUptime"])
+                and 0 <= age <= 30 and len(hid) == 14 and hid == report["hidAfterPassiveRead"]
+                and all(type(n) is int and n >= 0 for n in hid)
+                and all(report[k] == 0 for k in ("buttonsBefore","buttonsAfter","windowWrites","spaceWrites","launchedHosts")))
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError):
+        return False
 
 
 def qualifies(report, image, pid, birth, now=None):

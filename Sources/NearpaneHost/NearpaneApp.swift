@@ -418,9 +418,27 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var lastPermissionDiagnostic: TimeInterval = -.infinity
     private var draftQualificationPending = false
+    private var overviewObservationPending = false
+    private var lastOverviewObservation: TimeInterval = -.infinity
 
     @objc private func readPreviewMetrics(_ notification: Notification) {
         guard let value = notification.userInfo?["nonce"] as? String, let nonce = UUID(uuidString: value) else { return }
+        if notification.userInfo?["check"] as? String == "mission-control-read-v1" {
+            let now = ProcessInfo.processInfo.systemUptime
+            guard !overviewObservationPending, now - lastOverviewObservation >= 0.08, let panels else { return }
+            overviewObservationPending = true
+            lastOverviewObservation = now
+            Task {
+                defer { overviewObservationPending = false }
+                guard let sample = await panels.observeMissionControl() else { return }
+                DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),
+                    object: nonce.uuidString, userInfo: ["pid": getpid(), "checked": "mission-control-read-v1",
+                        "missionControlPresented": sample.mode, "missionControlObservation": sample.evidence,
+                        "missionControlReadStartUptime": sample.start, "missionControlReadEndUptime": sample.end],
+                    deliverImmediately: true)
+            }
+            return
+        }
         #if canImport(RiftletAdapters) && canImport(SaytileKit)
         if notification.userInfo?["check"] as? String == "draft-qualification-read-only-v1" {
             guard !draftQualificationPending, let privateHome = ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"],

@@ -39,6 +39,8 @@ def receipt():
         end = phase["endUptime"]
         phase["startUptime"] = end - 0.4
         phase["attempts"] = [dict(pid=9, targetPID=9, targetBirth=20, uptime=end-0.3, endUptime=end-0.1,
+                                  missionControlSample="requested", missionControlReadStartUptime=end-0.24,
+                                  missionControlReadEndUptime=end-0.18,
                                   status="observed", exit=0, source="installedHostPreviewMetrics",
                                   missionControlPresented=phase["missionControlPresented"],
                                   missionControlObservation=phase["missionControlObservation"])]
@@ -49,6 +51,38 @@ def receipt():
 
 
 class AdmissionTests(unittest.TestCase):
+    def test_passive_read_admits_fixture_readback_only_without_prior_spaces_trial(self):
+        r = receipt()
+        focus = dict(uptime=100., workspacePID=8, birth=25, cgWindowID=41)
+        scope = dict(status="PASS", nativeID=4, displayUUID="screen", spaceUUID="ordinary")
+        phase = r["hostTelemetry"][0]
+        phase["phase"] = "passive"
+        focus["uptime"] = phase["startUptime"] - 0.2
+        r.update(status="NOT_RUN", stage="passiveReadOnly", hostTelemetry=[phase], scope=scope, terminalScope=scope.copy(),
+                 admission=focus, terminalAdmission=dict(focus, sameOriginalAX=True, uptime=100.05),
+                 buttonsBefore=0, buttonsAfter=0, hidBeforePassiveRead=[4]*14, hidAfterPassiveRead=[4]*14, terminalReadbackUptime=100.1)
+        self.assertTrue(gate.qualifies_read_only(r,IMAGE,9,20,101))
+        self.assertFalse(gate.qualifies(r,IMAGE,9,20,101))
+        self.assertFalse(gate.qualifies_read_only(r,IMAGE,9,20,131))
+        for edit in (lambda t:t["terminalScope"].update(nativeID=5), lambda t:t["terminalAdmission"].update(sameOriginalAX=False),
+                     lambda t:t.update(windowWrites=1), lambda t:t.update(hidAfterPassiveRead=[5]*14)):
+            changed = deepcopy(r)
+            edit(changed)
+            self.assertFalse(gate.qualifies_read_only(changed,IMAGE,9,20,101))
+
+    def test_signed_host_read_must_be_inside_its_actual_overview_phase(self):
+        phases = receipt()["hostTelemetry"]
+        sample = phases[1]["attempts"][-1]
+        self.assertTrue(gate.observed_host_phases(phases, 9, 20))
+        sample["missionControlReadStartUptime"] = phases[1]["startUptime"] + 0.01
+        self.assertFalse(gate.observed_host_phases(phases, 9, 20))
+        sample["missionControlSample"] = "cached"
+        self.assertTrue(gate.observed_host_phases(phases, 9, 20))
+        sample["missionControlReadStartUptime"] = phases[1]["startUptime"] - 0.01
+        self.assertFalse(gate.observed_host_phases(phases, 9, 20))
+        del sample["missionControlReadEndUptime"]
+        self.assertFalse(gate.observed_host_phases(phases, 9, 20))
+
     def test_intervening_hardware_input_stops_before_quit_or_returns_the_sole_regular_host(self):
         quiet = dict(counts=[0]*14, pressed=False)
         changed = dict(counts=[1]+[0]*13, pressed=False)

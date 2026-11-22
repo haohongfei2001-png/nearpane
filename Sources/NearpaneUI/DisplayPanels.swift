@@ -30,6 +30,16 @@ import NearpaneCore
     public private(set) var missionControlDispatchEvidence = "waitingForDock"
     public private(set) var missionControlReadInterval: (start: TimeInterval, end: TimeInterval)?
 
+    /// Read the same Dock witness used for dispatch, without publishing state or resuming any windows.
+    public func observeMissionControl() async -> (mode: Int, evidence: String, start: TimeInterval, end: TimeInterval)? {
+        guard !stopped, !suspended, let missionControlReader else { return nil }
+        let generation = sampleGeneration
+        let sample = await missionControlReader.read()
+        guard !stopped, !suspended, generation == sampleGeneration else { return nil }
+        let mode = sample.visibility == .ordinary ? 0 : sample.visibility == .exposed ? 1 : -1
+        return (mode, sample.evidence, sample.startUptime, sample.endUptime)
+    }
+
     private var localMouse: Any?, externalMouse: Any?
     private var clickLease: UUID?
     private var pendingSpaceOpenings = Set<String>()

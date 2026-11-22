@@ -92,7 +92,7 @@ import Security
                 repeat {
                     let begin = ProcessInfo.processInfo.systemUptime
                     let path = base.appendingPathComponent("metrics"), targetPID = original.pid
-                    let reply = await Task.detached { command(path,[String(targetPID)]) }.value
+                    let reply = await Task.detached { command(path,[String(targetPID),"--overview-read"]) }.value
                     var sample: [String:Any] = ["uptime":begin, "endUptime":ProcessInfo.processInfo.systemUptime,
                         "targetPID":targetPID,"targetBirth":original.launch,"exit":reply.status,
                         "source":"installedHostPreviewMetrics","status":"unavailable"]
@@ -101,11 +101,17 @@ import Security
                        let value = metrics["missionControlPresented"] as? Int, [-1,0,1].contains(value) {
                         sample["status"] = value == -1 ? "unknown" : "observed"
                         for key in ["pid","missionControlPresented","missionControlObservation"] { sample[key] = metrics[key] }
-                        for key in ["missionControlReadStartUptime","missionControlReadEndUptime"] { sample[key] = metrics[key] }
+                        for key in ["missionControlSample","missionControlReadStartUptime","missionControlReadEndUptime"] { sample[key] = metrics[key] }
+                        if let start = metrics["missionControlReadStartUptime"] as? Double,
+                           let end = metrics["missionControlReadEndUptime"] as? Double, let received = sample["endUptime"] as? Double {
+                            let lower = metrics["missionControlSample"] as? String == "requested" ? begin : t
+                            sample["withinPhase"] = lower <= start && start <= end && end <= received
+                        }
                     }
                     attempts.append(sample)
                     for key in ["pid","missionControlPresented","missionControlObservation"] { r[key] = sample[key] }
-                    if sample["missionControlPresented"] as? Int == expected || passive { break }
+                    r["withinPhase"] = sample["withinPhase"] as? Bool ?? false
+                    if (sample["missionControlPresented"] as? Int == expected && r["withinPhase"] as? Bool == true) || passive { break }
                     if attempts.count < 5 && ContinuousClock.now < deadline { try? await Task.sleep(for:.milliseconds(80)) }
                 } while attempts.count < 5 && ContinuousClock.now < deadline
                 r["attempts"] = attempts
@@ -115,12 +121,16 @@ import Security
             let media = OverviewMedia(dir)
             if passive {
                 result["hidBeforePassiveRead"] = StageCanaryOverview.hid()
+                result["buttonsBefore"] = NSEvent.pressedMouseButtons
                 result["scope"] = await StageEngineHostScope.sample()["scope"]
-                result["admission"] = StageCanaryOverview.admission()
+                let focus = StageCanaryOverview.beginFocusObservation()
+                result["admission"] = focus.first
                 trace.sample("passive")
                 await readHost("passive")
                 result["sameHostAtEnd"] = try host().0 == original
-                result["terminalAdmission"] = StageCanaryOverview.admission()
+                result["terminalScope"] = await StageEngineHostScope.sample()["scope"]
+                result["terminalAdmission"] = focus.finish()
+                result["buttonsAfter"] = NSEvent.pressedMouseButtons
                 result["hidAfterPassiveRead"] = StageCanaryOverview.hid()
                 result["terminalReadbackUptime"] = ProcessInfo.processInfo.systemUptime
                 result["reason"] = "passiveObservationWithoutPresentation"
@@ -187,7 +197,8 @@ import Security
                     let expected = [("before",0,"signedDockAXListWithoutMC"),("presented",1,"signedDockMCIdentifier"),("dismissed",0,"signedDockAXListWithoutMC"),("terminal",0,"signedDockAXListWithoutMC")]
                     let sequence = expected.allSatisfy { phase, value, source in
                         telemetry.filter{ $0["phase"] as? String == phase && $0["pid"] as? Int32 == original.pid &&
-                            $0["missionControlPresented"] as? Int == value && $0["missionControlObservation"] as? String == source }.count == 1
+                            $0["missionControlPresented"] as? Int == value && $0["missionControlObservation"] as? String == source &&
+                            $0["withinPhase"] as? Bool == true }.count == 1
                     }
                     let same = try host().0 == original
                     result["hostSequenceConfirmed"] = sequence

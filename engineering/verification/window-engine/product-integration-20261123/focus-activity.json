@@ -1,0 +1,103 @@
+{
+  "scope": "historicalOSActivityCorrelation",
+  "queriedRows": 742,
+  "boundedMilliseconds": [
+    -800,
+    250
+  ],
+  "metadataEvents": [
+    {
+      "offsetMS": -795.036,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "front",
+      "activity": 197723887,
+      "parent": 0,
+      "thread": 16604587,
+      "formatSHA256": "0f738bbddf6b26d407b12d80eb4bc6e3562c9a764083f83974a2c314d6375210"
+    },
+    {
+      "offsetMS": -550.184,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 16615568,
+      "formatSHA256": "0f738bbddf6b26d407b12d80eb4bc6e3562c9a764083f83974a2c314d6375210"
+    },
+    {
+      "offsetMS": -432.503,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 16615568,
+      "formatSHA256": "0f738bbddf6b26d407b12d80eb4bc6e3562c9a764083f83974a2c314d6375210"
+    },
+    {
+      "offsetMS": -2.213,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "front",
+      "activity": 197727167,
+      "parent": 0,
+      "thread": 16615568,
+      "formatSHA256": "0f738bbddf6b26d407b12d80eb4bc6e3562c9a764083f83974a2c314d6375210"
+    },
+    {
+      "offsetMS": 0.0,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "verifiedSetFront",
+      "activity": 0,
+      "parent": 0,
+      "thread": 16604590,
+      "formatSHA256": "f20ae9f807a105da440eaeabaa32bb26b918b1709aafd4ff1d75827df8c0ad94"
+    },
+    {
+      "offsetMS": 14.219,
+      "emitter": "WindowManager",
+      "pid": 647,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 6209,
+      "formatSHA256": "f468149aa07aae80927c19fe3764f921bdf13068f7bc6f547dafc14a6b15765b"
+    },
+    {
+      "offsetMS": 15.117,
+      "emitter": "WindowManager",
+      "pid": 647,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 6209,
+      "formatSHA256": "f468149aa07aae80927c19fe3764f921bdf13068f7bc6f547dafc14a6b15765b"
+    },
+    {
+      "offsetMS": 15.86,
+      "emitter": "WindowManager",
+      "pid": 647,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 6209,
+      "formatSHA256": "14d3f651cb59242973e8ebea53982d56c75c81992a814b049725f7c6e59b9200"
+    },
+    {
+      "offsetMS": 123.632,
+      "emitter": "launchservicesd",
+      "pid": 392,
+      "kind": "front",
+      "activity": 0,
+      "parent": 0,
+      "thread": 16617108,
+      "formatSHA256": "0f738bbddf6b26d407b12d80eb4bc6e3562c9a764083f83974a2c314d6375210"
+    }
+  ],
+  "verifiedTransitions": 1,
+  "crossProcessActivityLinks": [],
+  "requestingProcess": "UNKNOWN"
+}

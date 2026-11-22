@@ -1,0 +1,73 @@
+{
+  "regularHost": {
+    "utc": "2026-11-22T17:02:01.898824+00:00",
+    "system": "27.0",
+    "build": "26A428",
+    "arch": "arm64",
+    "sip": "System Integrity Protection status: enabled.",
+    "host": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "version": "5.22",
+      "build": "90",
+      "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "engineABI": 1,
+      "hostSHA256": "488c61c412064a9894801ba6b888fb116f18aa9b005ff4b274f00bae442ef2b8"
+    },
+    "executable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "birth": 1795343882268848,
+    "pids": [
+      32364
+    ],
+    "sessionQualified": true,
+    "permissions": {
+      "screenCapture": true,
+      "accessibility": true,
+      "postEvent": true,
+      "listenEvent": true
+    },
+    "permissionEvidence": "PASS",
+    "configSHA256": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af",
+    "profileIndexSHA256": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "activeLeaseCount": 0,
+    "recoveryPermitsExit": true,
+    "blockingRecords": 0,
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "status": "PASS"
+  },
+  "passive": {
+    "startedUTC": "2026-11-22T17:01:58Z",
+    "endedUTC": "2026-11-22T17:01:59Z",
+    "stage": "passiveReadOnly",
+    "scope": {
+      "reason": "fullscreenType4",
+      "status": "BLOCKED"
+    },
+    "status": "NOT_RUN",
+    "admission": {
+      "reason": "regularForegroundApplicationRequired",
+      "uptime": 426598.5752339167
+    },
+    "terminalAdmission": {
+      "reason": "regularForegroundApplicationRequired",
+      "uptime": 426598.989248125
+    },
+    "sameHostAtEnd": true,
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "launchedHosts": 0,
+    "observerSHA256": "1d5f22d5bc70042b4310169d0dab775dfd236699f35d571174312a22a27e6ffd"
+  },
+  "hidSamples": 14,
+  "hidUnchanged": true,
+  "overviewPresentations": 0,
+  "observationSHA256": "415628185daf47854353b90ab8d110c3844b180cefd10e8154ecb88983de2e4f",
+  "qualifications": {
+    "spaces": "BLOCKED",
+    "corner": "BLOCKED",
+    "productionBackendsQualified": 0
+  }
+}

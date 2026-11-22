@@ -19,23 +19,23 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     previous = json.loads((work / "08-upgrade.json").read_bytes())
     require(previous["status"] == "PASS" and previous["stage"] == "running", "An admitted installed version is required")
     expected = previous["installed"]
-    if name == "spaces":
-        try:
-            observation, digest = overview_admission.load_receipt(p0_receipt)
-        except (OSError, ValueError) as error:
-            update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason=str(error), quitRequests=0)
-            return
-        if observation.get("status") != "PASS":
-            update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Status=observation.get("status"),
-                   p0Reason=observation.get("reason"), p0SHA256=digest, quitRequests=0)
-            return
+    try:
+        observation, digest = overview_admission.load_receipt(p0_receipt)
+    except (OSError, ValueError) as error:
+        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason=str(error), quitRequests=0)
+        return
+    if name == "spaces" and observation.get("status") != "PASS":
+        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Status=observation.get("status"),
+               p0Reason=observation.get("reason"), p0SHA256=digest, quitRequests=0)
+        return
     current = mac.inspect(mac.canonical, expected)
     require(current == expected, "Installed image changed after admission")
     pid = mac.pid()
     require(pid is not None, "No running canonical Host")
     generation = install.process_stamp(pid)
     birth = generation[1] * 1_000_000 + generation[2]
-    if name == "spaces" and not overview_admission.qualifies(observation, current, pid, birth):
+    qualifies = overview_admission.qualifies if name == "spaces" else overview_admission.qualifies_read_only
+    if not qualifies(observation, current, pid, birth):
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalEvidenceOrHostBindingIncomplete",
                p0SHA256=digest, quitRequests=0)
         return
@@ -49,18 +49,14 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     before = upgrade.recoveries(work)
     require(cycle.admit_daily(dict(roster=roster, leases=before), mac.pid()), "A process or recovery responsibility changed")
     stamp = mac.bound(mac.pid(), mac.daily, current)
-    if name == "corner-readback":
-        preceding = json.loads((result_dir / "spaces-session.json").read_bytes())
-        require(preceding.get("status") == "PASS" and preceding.get("qualification") == "PASS"
-                and preceding.get("cleanup", {}).get("clear") is True, "P1 installed round trip and regular Host return required")
     out = result_dir / (name + ".json")
     require(not out.exists(), "Do not replay a real qualification")
-    if name == "spaces":
-        hid = overview_admission.current_hid()
-        if hid["pressed"] or hid["counts"] != observation["measurement"]["hidAfter"] or not overview_admission.qualifies(observation, current, stamp[0], birth):
-            update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
-                   p0SHA256=digest, preQuitInput=hid, quitRequests=0)
-            return
+    expected_hid = observation["measurement"]["hidAfter"] if name == "spaces" else observation["hidAfterPassiveRead"]
+    hid = overview_admission.current_hid()
+    if hid["pressed"] or hid["counts"] != expected_hid or not qualifies(observation, current, stamp[0], birth):
+        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
+               p0SHA256=digest, preQuitInput=hid, quitRequests=0)
+        return
     update("requestNormalQuit", previous=stamp, configurationBefore=mac.config(), beforeQuitRecovery=before)
     mac.quit(stamp)
     diagnostic_started = False
@@ -69,11 +65,10 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
         empty = upgrade.census(work, mac.canonical)
         require(empty["pids"] == [] and cycle.stamp_is_gone(stamp), "Previous Host still running")
         update("soleInstalledImageReady", emptyRoster=empty)
-        if name == "spaces":
-            now = overview_admission.current_hid()
-            if now["pressed"] or now["counts"] != observation["measurement"]["hidAfter"]:
-                update("inputChangedBeforeDiagnosticLaunch", qualification="BLOCKED", preLaunchInput=now)
-                return  # finally returns the ordinary Host; no fixture or Space has been created.
+        now = overview_admission.current_hid()
+        if now["pressed"] or now["counts"] != expected_hid:
+            update("inputChangedBeforeDiagnosticLaunch", qualification="BLOCKED", preLaunchInput=now)
+            return  # finally returns the ordinary Host; no fixture or Space has been created.
         args = [sys.executable, "-B", HERE / "sample-membership.py", mac.canonical, out, "--installed",
                 "--expected-source", current["source"], "--expected-cdhash", current["cdhash"]]
         if name == "spaces":
@@ -83,10 +78,17 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
             exit_code = child.wait()
         trial = json.loads(out.read_bytes())
         qualification = trial["status"]
-        if name == "spaces" and qualification == "PASS" and trial.get("singleWindowHideRestore") != "PASS":
-            qualification = "UNKNOWN"
+        outcome = {}
+        if name == "corner-readback":
+            outcome = dict(membershipReadback=qualification, singleWindowHideRestore="NOT_RUN", productionQualified=False)
+        if name == "spaces":
+            membership = trial.get("thirdPartyMembershipRoundTrip", "UNKNOWN")
+            isolation = trial.get("singleWindowHideRestore", "UNKNOWN")
+            outcome = dict(thirdPartyMembershipRoundTrip=membership, singleWindowHideRestore=isolation)
+            if qualification == "PASS" and (membership != "PASS" or isolation != "PASS"):
+                qualification = "BLOCKED" if membership == "PASS" and isolation == "NOT_RUN" else "UNKNOWN"
         update("qualificationReturned", trialExit=exit_code, qualification=qualification,
-               cleanup=trial["probeResources"], reason=trial.get("reason"))
+               cleanup=trial["probeResources"], reason=trial.get("reason"), **outcome)
     finally:
         remaining = upgrade.census(work, mac.canonical)
         leases = upgrade.recoveries(work)

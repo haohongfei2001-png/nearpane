@@ -17,6 +17,7 @@ import sys
 import tempfile
 import time
 import uuid
+import membership_trace
 import overview_admission
 
 HERE = Path(__file__).resolve().parent
@@ -211,6 +212,8 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
                 yield None
             else:
                 report["fixtureAdmission"] = "registeredSignedBackgroundWindow"
+                registration = json.dumps(dict(pid=first["pid"], birth=first["birth"], window=first["window"],
+                                               executable=str(exe), cdhash=digest)).encode()
                 if report["requestedSpacesCycle"]:
                     baseline = read_fixture(reader, challenge, first, digest)
                     report["independentBefore"] = baseline
@@ -218,9 +221,16 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
                         report["fixtureAdmission"] = "independentFocusDockOrMembershipUnavailable"
                         yield None
                         return
-                    report.update(backendSafeToRollback=False, retainedForRecovery=True)
-                yield json.dumps(dict(pid=first["pid"], birth=first["birth"], window=first["window"],
-                                      executable=str(exe), cdhash=digest)).encode()
+                    home = baseline["scope"]["nativeID"]
+                    with membership_trace.observe(reader, work, challenge, first, digest, home, report) as ready:
+                        if not ready:
+                            report["fixtureAdmission"] = "independentTraceCouldNotBind"
+                            yield None
+                            return
+                        report.update(backendSafeToRollback=False, retainedForRecovery=True)
+                        yield registration
+                else:
+                    yield registration
         finally:
             if report.get("retainedForRecovery"):
                 report["ownerClosed"] = False
@@ -488,6 +498,22 @@ def independent_pair(before, after):
         return False
 
 
+def finish_membership_cycle(work, report):
+    """The pinned fixture is transparent, ignores the mouse and never takes key focus."""
+    trace = membership_trace.evaluate(work, report)
+    report["independentMigration"] = trace
+    verified = (trace["status"] == "PASS" and independent_pair(report.get("independentBefore"), report.get("independentAfter"))
+                and report.get("fixtureJournal", {}).get("status") == "PASS")
+    report["thirdPartyMembershipRoundTrip"] = "PASS" if verified else "UNKNOWN"
+    if trace["status"] == "FAIL":
+        report["thirdPartyMembershipRoundTrip"] = "FAIL"
+    report["singleWindowHideRestore"] = "NOT_RUN"
+    if not verified:
+        report.update(status=report["thirdPartyMembershipRoundTrip"], reason="independentWindowDockFocusInventoryOrJournalUnconfirmed")
+    else:
+        report["reason"] = "transparentRegisteredMembershipRestored"
+
+
 def read_fixture(reader, challenge, owner, digest):
     try:
         data = subprocess.check_output([reader,"--registered",challenge,str(owner["pid"]),str(owner["birth"]),
@@ -652,11 +678,7 @@ def run(a, report):
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
 
     if a.enrolled_spaces_cycle and report["status"] == "PASS":
-        independent = independent_pair(report.get("independentBefore"), report.get("independentAfter"))
-        verified = independent and report.get("fixtureJournal", {}).get("status") == "PASS"
-        report["singleWindowHideRestore"] = "PASS" if verified else "UNKNOWN"
-        if not verified:
-            report.update(status="UNKNOWN", reason="independentWindowDockFocusInventoryOrJournalUnconfirmed")
+        finish_membership_cycle(work, report)
 
 
 def resources(report):
@@ -726,6 +748,7 @@ def main():
         requestedSpacesCycle=a.enrolled_spaces_cycle,
         requestedOwnCanary=a.own_spaces_canary,
         permissionPrompts=0,
+        thirdPartyMembershipRoundTrip="NOT_RUN",
         singleWindowHideRestore="NOT_RUN",
         productionQualified=False,
     )

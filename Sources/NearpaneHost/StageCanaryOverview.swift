@@ -120,13 +120,30 @@ import Security
     }
 
     static func admission() -> [String:Any] {
+        beginFocusObservation().first
+    }
+
+    /// Retain the original AX object across unrelated read-only samples; a recycled CG number is insufficient.
+    static func beginFocusObservation() -> (first: [String:Any], finish: () -> [String:Any]) {
         var evidence: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
         do {
             guard AXIsProcessTrusted() else { throw Refusal("observerAccessibilityUnavailable") }
             guard try root(signedDock()) == nil else { throw Refusal("overviewAlreadyPresented") }
-            _ = try focus(&evidence)
+            let original = try focus(&evidence)
+            return (evidence, {
+                var row: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
+                do {
+                    let current = try focus(&row)
+                    guard try root(signedDock()) == nil, current == original else { throw Refusal("originalWindowChanged") }
+                    row["sameOriginalAX"] = true
+                } catch { row["reason"] = (error as? Refusal)?.reason ?? "systemIdentityUnavailable" }
+                return row
+            })
         } catch { evidence["reason"] = (error as? Refusal)?.reason ?? "systemIdentityUnavailable" }
-        return evidence
+        return (evidence, { admissionFailure() })
+    }
+    private static func admissionFailure() -> [String:Any] {
+        ["uptime":ProcessInfo.processInfo.systemUptime, "reason":"originalFocusUnavailable"]
     }
     static func matchesForeground(_ rows: [[String:Any]], pid: pid_t, number: CGWindowID) -> Bool {
         guard pid > 1, number != 0, rows.count == 1, let row = rows.first else { return false }
