@@ -20,6 +20,20 @@ pub const PENDING: u32 = 5;
 pub const NO_TICKET: u32 = 6;
 pub const INTERNAL: u32 = 7;
 const LIMIT: usize = 32;
+const ACQUISITION_EPOCH: u64 = 1;
+
+fn qualified_write(grant: Option<crate::Grant>, r: &Request) -> bool {
+    if !grant.is_some_and(|g| g.backend == r.backend) {
+        return false;
+    }
+    match r.operation {
+        HIDE | SHOW => r.epoch == ACQUISITION_EPOCH,
+        LAUNCH => r.backend == SPACES && r.epoch == ACQUISITION_EPOCH,
+        RESTORE => true,
+        CLEAN_LAUNCH => r.backend == SPACES,
+        _ => false,
+    }
+}
 pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -74,10 +88,14 @@ struct Ticket {
 }
 #[derive(Hash, Eq, PartialEq)]
 struct Lease {
+    backend: u32,
+    group: [u8; 16],
+    generation: [u8; 16],
     member: [u8; 16],
     lifetime: [u8; 16],
     display: [u8; 16],
     native_space: [u8; 16],
+    native_id: u64,
     pid: i32,
     birth: u64,
     window: u32,
@@ -85,10 +103,14 @@ struct Lease {
 impl From<&Request> for Lease {
     fn from(r: &Request) -> Self {
         Self {
+            backend: r.backend,
+            group: r.group,
+            generation: r.generation,
             member: r.member,
             lifetime: r.lifetime,
             display: r.display,
             native_space: r.native_space,
+            native_id: r.native_id,
             pid: r.pid,
             birth: r.birth,
             window: r.window,
@@ -108,13 +130,24 @@ impl State {
     fn can_run_probe(&self, r: &Request) -> bool {
         match r.operation {
             LAUNCH => self.owner.is_none(),
+            RESTORE if r.epoch != ACQUISITION_EPOCH => self.owner == Some(r.backend),
             // The backend also proves the no-panel/no-space case following a pre-dispatch denial.
             CLEAN_LAUNCH => self.owner.is_none() || self.unresolved.contains(&Lease::from(r)),
             _ => true,
         }
     }
-    fn record_write(&mut self, request: &Request, result: &Outcome) {
+    fn record_write(&mut self, request: &Request, mut result: Outcome) -> Outcome {
         let lease = Lease::from(request);
+        let restoring = matches!(request.operation, RESTORE | SHOW);
+        let visible = VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID;
+        if restoring
+            && result.status == PASS
+            && (request.native_id == 0
+                || result.native_id != request.native_id
+                || result.flags & (visible | HIDDEN | OWNED) != visible)
+        {
+            result.status = UNKNOWN;
+        }
         let canary = matches!(request.operation, LAUNCH | CLEAN_LAUNCH);
         if canary
             && result.status == PASS
@@ -128,7 +161,7 @@ impl State {
                 self.owner = None;
                 self.health_lost = false;
             }
-            return;
+            return result;
         }
         if result.owned > 0 || result.flags & OWNED != 0 || result.status == UNKNOWN {
             self.owner = Some(request.backend);
@@ -136,18 +169,37 @@ impl State {
         if result.status == UNKNOWN || (canary && (result.owned != 0 || result.flags & OWNED != 0))
         {
             self.unresolved.insert(lease);
-            return;
+            return result;
         }
-        if matches!(request.operation, RESTORE | SHOW)
-            && result.status == PASS
-            && result.flags & VISIBLE != 0
-            && result.flags & OWNED == 0
-        {
+        if restoring && result.status == PASS {
             self.unresolved.remove(&lease);
             if result.owned == 0 && self.unresolved.is_empty() {
                 self.owner = None;
                 self.health_lost = false;
             }
+        }
+        result
+    }
+    fn finish_job(
+        &mut self,
+        id: u64,
+        r: Request,
+        control: &Control,
+        may_enter: bool,
+        mut result: Outcome,
+        elapsed: Duration,
+    ) {
+        self.running = None;
+        // Poll can already have consumed a timeout or a revoked ticket. Serialize the final
+        // epoch/deadline check with that terminal publication and the ownership update.
+        if let Err(e) = control.guard() {
+            result.status = if may_enter { UNKNOWN } else { e };
+        }
+        if may_enter {
+            result = self.record_write(&r, result);
+        }
+        if let Some(t) = self.tickets.get_mut(&id) {
+            t.result = Some(terminal(r, result, elapsed));
         }
     }
 }
@@ -204,7 +256,7 @@ fn pump_run_loop() {}
 impl Session {
     pub(super) fn create(config: Config, qualified: Option<crate::Grant>) -> Result<Self, u32> {
         let state = Arc::new(Mutex::new(State::default()));
-        let epoch = Arc::new(AtomicU64::new(1));
+        let epoch = Arc::new(AtomicU64::new(ACQUISITION_EPOCH));
         let (tx, rx) = mpsc::sync_channel(LIMIT);
         let shared = state.clone();
         let live_epoch = epoch.clone();
@@ -304,7 +356,7 @@ impl Session {
             };
             let outcome = Outcome::new(status);
             if t.may_have_dispatched {
-                s.record_write(&request, &outcome);
+                s.record_write(&request, outcome);
             }
             terminal(request, outcome, elapsed)
         };
@@ -345,13 +397,11 @@ fn process(
         expected: r.epoch,
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
-        write: r.writes()
-            && (config.allows(&r)
-                || (qualified.is_some_and(|g| g.backend == r.backend) && r.operation != TRIAL)),
+        write: r.writes() && (config.allows(&r) || qualified_write(qualified, &r)),
         spaces_route: qualified.and_then(|g| g.spaces_route),
         corner_input_check: r.operation == HEALTH
             && r.backend == CORNER
-            && (qualified.is_some_and(|g| g.backend == CORNER)
+            && ((r.epoch == ACQUISITION_EPOCH && qualified.is_some_and(|g| g.backend == CORNER))
                 || (config.mode == 1 && config.valid() && (r.pid == 0 || config.allows(&r)))),
     };
     let may_enter = {
@@ -369,7 +419,7 @@ fn process(
         s.running = Some(job.id);
         allowed
     };
-    let mut result = if let Err(e) = control.guard() {
+    let result = if let Err(e) = control.guard() {
         Outcome::new(e)
     } else if r.writes() && !may_enter {
         Outcome::new(UNSUPPORTED)
@@ -378,17 +428,7 @@ fn process(
     } else {
         Outcome::new(UNSUPPORTED)
     };
-    if let Err(e) = control.guard() {
-        result.status = if may_enter { UNKNOWN } else { e };
-    }
-    let mut s = lock(shared);
-    s.running = None;
-    if may_enter {
-        s.record_write(&r, &result);
-    }
-    if let Some(t) = s.tickets.get_mut(&job.id) {
-        t.result = Some(terminal(r, result, job.began.elapsed()));
-    }
+    lock(shared).finish_job(job.id, r, &control, may_enter, result, job.began.elapsed());
 }
 fn terminal(r: Request, result: Outcome, elapsed: Duration) -> Receipt {
     Receipt {
@@ -424,7 +464,7 @@ mod tests {
             member: [3; 16],
             ..Default::default()
         };
-        s.record_write(&unrelated, &Outcome::new(UNKNOWN));
+        s.record_write(&unrelated, Outcome::new(UNKNOWN));
         assert!(!s.can_run_probe(&cleanup));
         assert!(s.owner.is_some() && !s.unresolved.is_empty());
     }
@@ -463,29 +503,225 @@ mod tests {
         assert_eq!(session.close(), Err(BUSY));
     }
     #[test]
-    fn restoring_a_sibling_does_not_release_an_ambiguous_lease() {
+    fn returning_a_different_member_or_group_generation_cannot_release_the_original_lease() {
         let mut s = State::default();
-        let mut r = Request {
+        let original = Request {
             backend: CORNER,
             operation: HIDE,
             member: [1; 16],
             lifetime: [2; 16],
+            group: [3; 16],
+            generation: [4; 16],
+            display: [5; 16],
+            native_space: [6; 16],
+            native_id: 7,
+            pid: 40,
+            birth: 90,
+            window: 71,
             ..Default::default()
         };
-        s.record_write(&r, &Outcome::new(UNKNOWN));
+        s.record_write(&original, Outcome::new(UNKNOWN));
+        let r = Request {
+            operation: RESTORE,
+            intent: [24; 16],
+            epoch: 2,
+            ..original
+        };
         let visible = Outcome {
             status: PASS,
-            flags: VISIBLE,
+            flags: VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID,
+            native_id: original.native_id,
             ..Default::default()
         };
-        r.operation = RESTORE;
-        r.lifetime = [3; 16];
-        s.record_write(&r, &visible);
-        assert_eq!(s.owner, Some(CORNER));
-        assert_eq!(s.unresolved.len(), 1);
-        r.lifetime = [2; 16];
-        s.record_write(&r, &visible);
+        for other in [
+            Request {
+                member: [8; 16],
+                ..r
+            },
+            Request {
+                lifetime: [9; 16],
+                ..r
+            },
+            Request {
+                group: [8; 16],
+                ..r
+            },
+            Request {
+                generation: [9; 16],
+                ..r
+            },
+            Request {
+                display: [8; 16],
+                ..r
+            },
+            Request {
+                native_space: [9; 16],
+                ..r
+            },
+            Request { native_id: 10, ..r },
+            Request { pid: 81, ..r },
+            Request { birth: 91, ..r },
+            Request { window: 72, ..r },
+        ] {
+            s.record_write(
+                &other,
+                Outcome {
+                    native_id: other.native_id,
+                    ..visible
+                },
+            );
+            assert_eq!(s.owner, Some(CORNER));
+            assert_eq!(s.unresolved.len(), 1);
+        }
+        for bad in [
+            Outcome {
+                native_id: original.native_id + 1,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags | HIDDEN,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags | OWNED,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags & !AX_VALID,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags & !CG_VALID,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags & !MEMBERSHIP_VALID,
+                ..visible
+            },
+            Outcome {
+                flags: visible.flags & !VISIBLE,
+                ..visible
+            },
+        ] {
+            assert_eq!(s.record_write(&r, bad).status, UNKNOWN);
+            assert_eq!(s.owner, Some(CORNER));
+            assert_eq!(s.unresolved.len(), 1);
+        }
+        assert_eq!(s.record_write(&r, visible).status, PASS);
         assert_eq!(s.owner, None);
         assert!(s.unresolved.is_empty());
+    }
+
+    #[test]
+    fn a_revoked_product_owner_can_restore_but_cannot_rearm_itself_with_the_next_epoch() {
+        for backend in [CORNER, SPACES] {
+            let grant = Some(crate::Grant {
+                backend,
+                evidence: [1; 16],
+                spaces_route: (backend == SPACES).then_some(1),
+            });
+            for operation in [HIDE, SHOW, LAUNCH, RESTORE, CLEAN_LAUNCH, TRIAL] {
+                let r = Request {
+                    backend,
+                    operation,
+                    epoch: ACQUISITION_EPOCH,
+                    ..Default::default()
+                };
+                let spaces_only = matches!(operation, LAUNCH | CLEAN_LAUNCH);
+                assert_eq!(
+                    qualified_write(grant, &r),
+                    operation != TRIAL && (!spaces_only || backend == SPACES)
+                );
+                let next = Request {
+                    epoch: ACQUISITION_EPOCH + 1,
+                    ..r
+                };
+                assert_eq!(
+                    qualified_write(grant, &next),
+                    operation == RESTORE || operation == CLEAN_LAUNCH && backend == SPACES
+                );
+                assert!(!qualified_write(None, &next));
+                assert!(!qualified_write(
+                    grant,
+                    &Request {
+                        backend: if backend == CORNER { SPACES } else { CORNER },
+                        ..r
+                    }
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn a_late_visible_callback_cannot_retire_ownership_after_poll_returned_unknown() {
+        let (tx, _rx) = mpsc::sync_channel(LIMIT);
+        let session = Session {
+            tx,
+            state: Default::default(),
+            epoch: Arc::new(ACQUISITION_EPOCH.into()),
+            sequence: AtomicU64::new(1),
+        };
+        let r = Request {
+            operation: RESTORE,
+            backend: CORNER,
+            intent: [1; 16],
+            group: [2; 16],
+            member: [3; 16],
+            generation: [4; 16],
+            lifetime: [5; 16],
+            display: [6; 16],
+            native_space: [7; 16],
+            pid: 40,
+            birth: 90,
+            window: 71,
+            native_id: 7,
+            epoch: ACQUISITION_EPOCH,
+            timeout_ms: 1000,
+            frame: Rect {
+                x: 5.,
+                y: 5.,
+                width: 100.,
+                height: 100.,
+            },
+            ..Default::default()
+        };
+        let id = session.submit(r).unwrap();
+        let cancelled = {
+            let mut s = lock(&session.state);
+            s.running = Some(id);
+            let t = s.tickets.get_mut(&id).unwrap();
+            t.may_have_dispatched = true;
+            t.cancelled.clone()
+        };
+        session.cancel(id).unwrap();
+        assert_eq!(session.poll(id).unwrap().status, UNKNOWN);
+        let control = Control {
+            epoch: session.epoch.clone(),
+            expected: r.epoch,
+            cancelled,
+            deadline: Instant::now() + Duration::from_secs(5),
+            write: true,
+            spaces_route: None,
+            corner_input_check: false,
+        };
+        let visible = Outcome {
+            status: PASS,
+            flags: VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID,
+            native_id: r.native_id,
+            ..Default::default()
+        };
+        lock(&session.state).finish_job(id, r, &control, true, visible, Duration::ZERO);
+        assert!(matches!(session.poll(id), Err(NO_TICKET)));
+        assert_eq!(session.close(), Err(BUSY));
+        // A separate, fresh restore of this exact lease carries new independent evidence.
+        let newer = Request {
+            intent: [8; 16],
+            ..r
+        };
+        assert_eq!(
+            lock(&session.state).record_write(&newer, visible).status,
+            PASS
+        );
+        assert_eq!(session.close(), Ok(()));
     }
 }

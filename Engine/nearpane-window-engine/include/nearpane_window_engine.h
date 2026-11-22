@@ -45,7 +45,9 @@ typedef struct {
 } NPReceipt;
 /* Nonzero opaque handles and tickets never alias a previous instance. Poll once
  * for a terminal receipt, including cancellation. Revoke invalidates the epoch
- * before the next OS side effect. Destroy refuses pending tickets/owned windows. */
+ * before the next OS side effect. A revoked qualified handle may restore its prior
+ * ownership or clean up its launch canary. New hide/show/launch work requires
+ * release and a fresh qualified handle. Destroy refuses pending tickets/owned windows. */
 uint32_t np_engine_version(void);
 uint32_t np_engine_create(const NPConfig *, uint64_t *handle);
 /* acquisition for exactly one reviewed backend; evidence points to 16 UUID bytes. */

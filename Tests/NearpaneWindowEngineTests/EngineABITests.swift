@@ -37,4 +37,36 @@ struct EngineABITests {
         engine.revoke()
         #expect(await engine.close())
     }
+
+    @Test func delayedSubmissionCannotAdoptTheEpochThatReplacedItsAuthorization() async throws {
+        let engine = try #require(NativeStageWindowEngine())
+        let approved = try engine.currentEpoch()
+        let request = NativeStageEngineRequest(
+            backend: UInt32(NP_CORNER), operation: UInt32(NP_HIDE), intent: UUID(),
+            group: UUID(), scope: .init(display: UUID(), nativeSpace: UUID()), member: UUID(),
+            lifetime: UUID(), generation: UUID(), window: .init(pid: Int32.max, birth: 1, number: UInt32.max),
+            nativeID: 1, frame: .init(width: 100, height: 100)
+        )
+        // Same ordering as a queued MainActor request after focus or permission invalidation.
+        engine.revoke()
+        let after = try engine.currentEpoch()
+        #expect(after != approved)
+        let pending: [() async throws -> NativeStageEngineReceipt] = [
+            { try await engine.submit(request, expectedEpoch: approved) },
+            { try await engine.launchSpaces(expectedEpoch: approved) },
+            { try await engine.cleanSpacesLaunch(expectedEpoch: approved) }
+        ]
+        for delayed in pending {
+            do {
+                _ = try await delayed()
+                Issue.record("A stale request received a ticket")
+            } catch NativeStageEngineError.transport(let code) {
+                #expect(code == NP_INVALID)
+            }
+        }
+        // A fresh cleanup can reach the read-only handle, which still has zero write authority.
+        let fresh = try await engine.cleanSpacesLaunch(expectedEpoch: after)
+        #expect(fresh.epoch == after && fresh.status == NP_UNSUPPORTED && fresh.owned == 0)
+        #expect(await engine.close())
+    }
 }

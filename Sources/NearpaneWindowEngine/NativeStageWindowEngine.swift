@@ -31,11 +31,13 @@ public enum NativeStageEngineError: Error { case transport(UInt32), correlation 
 /// when another actor is waiting on an Accessibility call. Rust retains no Swift objects.
 public actor NativeStageWindowEngine {
     private nonisolated let handle: UInt64
+    nonisolated let qualifiedEpoch: UInt64?
     public init?() {
         var config = NPConfig(), created: UInt64 = 0
         config.version = UInt32(NP_ENGINE_ABI); config.size = UInt32(MemoryLayout<NPConfig>.size)
         guard np_engine_create(&config, &created) == NP_OK else { return nil }
         handle = created
+        qualifiedEpoch = nil
     }
     public init?(qualifiedBackend: UInt32, evidence: UUID) {
         var bytes = evidence.uuid
@@ -44,7 +46,13 @@ public actor NativeStageWindowEngine {
             np_engine_create_qualified(qualifiedBackend, $0.bindMemory(to: UInt8.self).baseAddress, &created)
         }
         guard status == NP_OK else { return nil }
+        var epoch: UInt64 = 0
+        guard np_engine_epoch(created, &epoch) == NP_OK, epoch > 0 else {
+            _ = np_engine_destroy(created)
+            return nil
+        }
         handle = created
+        qualifiedEpoch = epoch
     }
     deinit { _ = np_engine_destroy(handle) }
     public nonisolated func revoke() { _ = np_engine_revoke(handle) }
@@ -55,13 +63,18 @@ public actor NativeStageWindowEngine {
         return epoch
     }
     @discardableResult public func close() -> Bool { np_engine_destroy(handle) == NP_OK }
-    public func launchSpaces() async throws -> NativeStageEngineReceipt {
-        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_LAUNCH), intent: UUID()), timeoutMilliseconds: 9_000)
+    public func launchSpaces(expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
+        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_LAUNCH), intent: UUID()),
+                         timeoutMilliseconds: 9_000, expectedEpoch: expectedEpoch)
     }
-    public func cleanSpacesLaunch() async throws -> NativeStageEngineReceipt {
-        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_CLEAN_LAUNCH), intent: UUID()), timeoutMilliseconds: 9_000)
+    public func cleanSpacesLaunch(expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
+        try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_CLEAN_LAUNCH), intent: UUID()),
+                         timeoutMilliseconds: 9_000, expectedEpoch: expectedEpoch)
     }
-    public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000) async throws -> NativeStageEngineReceipt {
+    /// The installed transport supplies the epoch it observed before its actor hop. Rust checks
+    /// that epoch again on admission and immediately before each authorized system write.
+    public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
+                       expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
         var request = NPRequest(), ticket: UInt64 = 0
         request.size = UInt32(MemoryLayout<NPRequest>.size); request.version = UInt32(NP_ENGINE_ABI)
         request.backend = input.backend; request.operation = input.operation; request.timeout_ms = timeoutMilliseconds
@@ -76,8 +89,7 @@ public actor NativeStageWindowEngine {
         if let f = input.frame { request.frame = NPRect(x: f.x, y: f.y, width: f.width, height: f.height) }
         if let f = input.target { request.target = NPRect(x: f.x, y: f.y, width: f.width, height: f.height) }
         try Task.checkCancellation()
-        let epochStatus = np_engine_epoch(handle, &request.epoch)
-        guard epochStatus == NP_OK else { throw NativeStageEngineError.transport(epochStatus) }
+        request.epoch = try expectedEpoch ?? qualifiedEpoch ?? currentEpoch()
         let submitStatus = np_engine_submit(handle, &request, &ticket)
         guard submitStatus == NP_OK else { throw NativeStageEngineError.transport(submitStatus) }
         let accepted = ticket, usedEpoch = request.epoch
