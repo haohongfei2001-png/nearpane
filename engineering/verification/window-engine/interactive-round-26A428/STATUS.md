@@ -8,3 +8,7 @@
 | 唯一安装 Host | PASS，限当前安装 | 标准路径中 `bec6cb2` 自读四项权限；无共享租约或阻塞记录。[进程、权限与配置摘要](02-canonical-host.json) |
 | 隔离环境 | 目标构建的独立会话未取得 | 仓库登记的自托管 runner 为零，此机常见虚拟机管理工具清单为空。创建账号、切换登录及修改安全设置的次数均为零。[环境观测](03-isolation-environment.json) |
 | 生产资格 | 0/2 | Spaces 与 Corner 各需在目标构建上独立验证真实交互窗口、输入落点及恢复。组切换、10/50 次和同机性能对照待资格通过后启动。 |
+
+### 两款应用的真实输入对照
+
+在托管 macOS 26.7.2（25G332）中，Launch Services 启动两款已签名的隔离应用。系统将五个事件依次送达目标窗 132，其内容视图写入的 UUID 与独立文件读回一致。同应用旁窗 133 及另一应用的窗口 131 均收到零个事件，未写入文档。三个原窗口的 AX 与 WindowServer 几何相符，终态焦点与进程代际符合预期，夹具全部退出。测试源码为 `919d271`。26A428 的正式 Host、Spaces 迁移和 Corner 停放仍各自待验。[原始收据](04-hosted-windowserver.json) · [CI 运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45074297309)
