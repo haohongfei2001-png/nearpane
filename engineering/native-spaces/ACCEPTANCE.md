@@ -13,6 +13,8 @@
 
 **分开登记归属往返与输入隔离。** 外部独立观察器在登记前先绑定夹具的签名、窗口、进程出生代和原始桌面，用 Rust 写前日志的单调时间划分原位、停放和还原区间。每个区间均需两次正反向归属一致。过快而未采到停放属于 UNKNOWN。透明且忽略鼠标的窗口只可取得 `thirdPartyMembershipRoundTrip`；`singleWindowHideRestore` 需要普通交互窗口、真实下压/拖动/释放与键盘接收者、同应用旁窗、焦点、Dock、原始几何和清理的独立实测。[本轮准入与源代码收据](../verification/window-engine/product-integration-20261123/STATUS.md)
 
+普通交互双窗的首轮观察使用标准路径的正式 Host、一次性 nonce 和同 Team 签名的空白测试应用。Host 开窗前须保存可交还的原焦点，两次确认两扇窗带标题栏的完整区域均为空；开窗后由 AX、WindowServer 和测试应用分别读回窗口身份、归属和几何。收据须注明输入投递路径。定向到测试 PID 的鼠标和键盘事件只证明应用队列及内容视图收到了对应标记。实际键盘焦点与屏幕坐标下的系统鼠标命中须在后端隔离往返中另行验证，且旁窗应保持可用。[Host 与夹具](../../scripts/acceptance/window-engine/host/interactive-pair.py) · [已执行的离线验证](../verification/window-engine/product-integration-20261123/interactive-host-offline.json)
+
 以下历史合同与回执保留。早期从自有面板开始的顺序适用于当次记录。当前准入使用上述顺序。[当前实机回执](../verification/window-engine/p0-p1-admission-26A428/RESULTS.md)
 
 

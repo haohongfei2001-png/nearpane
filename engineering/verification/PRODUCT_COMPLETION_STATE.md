@@ -2,7 +2,7 @@
 
 ## 2026-11-23 · 原生 StageGroup
 
-5.22（90）的唯一实机安装为 `bec6cb2`。本轮已复核四项 Host 权限、配置和零活动租约，并完成六项回滚资料的独立备份核对。Swift Host 持有产品事务，Rust 的 Corner、Spaces 各自等待正式单窗输入与恢复验收，生产合格后端为 0/2。窗口组逻辑、嵌入工具、签名候选与真实操作分别登记。[当前工程收据与恢复入口](window-engine/product-integration-20261123/STATUS.md) · [安装版备份](window-engine/product-integration-20261123/rollback-backup.json)
+5.22（90）的私有签名候选为 `4701693`，14 个可执行文件已独立核对加固签名和安全时间戳，Gatekeeper 判定未公证。唯一实机安装仍为 `bec6cb2`。本轮已复核四项 Host 权限、配置和零活动租约，并完成六项回滚资料的备份核对。Swift Host 持有产品事务，Rust 的 Corner、Spaces 各自等待正式单窗输入与恢复验收，生产合格后端为 0/2。[当前工程收据与恢复入口](window-engine/product-integration-20261123/STATUS.md) · [私有候选签名](window-engine/product-integration-20261123/signed-candidate.json) · [安装版备份](window-engine/product-integration-20261123/rollback-backup.json)
 
 ## 此前的安装记录
 
