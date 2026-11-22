@@ -286,8 +286,20 @@ import Security
             result["currentSpaceID"] = currentID
             result["hidBefore"] = start
             finish = {
-                result["hidAfter"] = hid()
-                result["inputUninterrupted"] = inputUnchanged()
+                if result["status"] as? String == "PASS" && inputUnchanged() {
+                    var row: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
+                    do {
+                        let closed = try root(dock) == nil
+                        row["overviewClosed"] = closed
+                        let current = try focus(&row)
+                        row.merge(focusData(current)) { _, value in value }
+                        guard closed, current == original else { throw Refusal("terminalOriginalFocusChanged") }
+                    } catch {
+                        result["status"] = "UNKNOWN"
+                        result["reason"] = (error as? Refusal)?.reason ?? "terminalFocusReadUnavailable"
+                    }
+                    result["terminalFocus"] = row
+                }
                 if let end = try? inventory(), let desktops = end.first?["Spaces"] as? [NSDictionary] {
                     result["managedIDsAfter"] = desktops.compactMap { $0["ManagedSpaceID"] as? UInt64 }
                     result["rawManagedDictionaryEqual"] = end == rows
@@ -296,6 +308,9 @@ import Security
                         result["nativeInventoryRestored"] = last == baseInventory
                     }
                 }
+                result["hidAfter"] = hid()
+                result["inputUninterrupted"] = inputUnchanged()
+                result["terminalReadbackUptime"] = ProcessInfo.processInfo.systemUptime
             }
             func stable() throws {
                 guard let session = CGSessionCopyCurrentDictionary() as? [String:Any],
@@ -452,12 +467,19 @@ import Security
             result["reason"] = (error as? Refusal)?.reason ?? "systemOrFocusReadUnavailable"
         }
         await restoreOwnedOverview?()
+        // The last Host reply is part of this observation. Keep the original input baseline
+        // and ownership checks live while the metrics request is in flight.
+        await notify("terminal")
         finish?()
         result["workspaceDidActivate"] = history.activations
         if result["status"] as? String == "PASS" &&
             (result["inputUninterrupted"] as? Bool != true || result["nativeInventoryRestored"] as? Bool != true) {
             result["status"] = "UNKNOWN"
             result["reason"] = "inputOrInventoryChangedBeforeReceipt"
+        }
+        if result["status"] as? String == "PASS" && result["terminalFocus"] == nil {
+            result["status"] = "UNKNOWN"
+            result["reason"] = "terminalFocusReadUnavailable"
         }
         return result
     }

@@ -2,7 +2,7 @@
 
 ## 2026-11-22 至 23 日 · 无人值守实机复核
 
-正式 Host 的签名、进程出生代、四项权限和本轮配置摘要已重新读取。初次六分钟物理预检结束于原生全屏。系统结构化日志证实上次 Mission Control 收起时发生了 Edge 到 GitHub Desktop 的前台变更。[分阶段状态和实机证据](../verification/window-engine/overnight-20261122/STATUS.md)
+**P0 BLOCKED，P1 BLOCKED，生产资格 0/2。** 夜间三段实机准入均未执行展示，最后连续 404 次读到原生全屏。正式 Host 的签名、进程出生代、配置及四项权限前后相同，活动租约为零。系统日志证实上次收起时发生了 Edge 到 GitHub Desktop 的前台变更，发起方仍为 UNKNOWN。两项原生 CI 已通过。[分阶段状态、清理与实机证据](../verification/window-engine/overnight-20261122/STATUS.md)
 
 ## 2026-11-22 · PR #15 普通桌面 P0 / P1 实机准入
 

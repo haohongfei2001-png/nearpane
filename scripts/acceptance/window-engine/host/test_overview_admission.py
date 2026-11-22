@@ -30,7 +30,8 @@ def receipt():
              stableHitLayout=True, inputUninterrupted=True, nativeInventoryRestored=True, presentations=1, dismissals=1,
              expectedCount=1, managedIDsBefore=[4], managedIDsAfter=[4], tileCounts=[1, 1], hidBefore=[0]*14, hidAfter=[0]*14,
              hitTestSamples=[deepcopy(grid), dict(deepcopy(grid),startUptime=12,endUptime=13)], originalFocus=dict(pid=8, birth=25, window=41),
-             originalFocusConfirmedReads=2, focusBefore=[f, f], focusAfter=[dict(f, overviewClosed=True)]*2)
+             originalFocusConfirmedReads=2, focusBefore=[f, f], focusAfter=[dict(f, overviewClosed=True)]*2,
+             terminalFocus=dict(f, overviewClosed=True, uptime=103.01), terminalReadbackUptime=103.02)
     names = ["before","presented","dismissed","terminal"]
     phases = [dict(pid=9, phase=name, endUptime=100+i, missionControlPresented=int(i == 1),
                    missionControlObservation="signedDockMCIdentifier" if i == 1 else "signedDockAXListWithoutMC") for i,name in enumerate(names)]
@@ -102,6 +103,15 @@ class AdmissionTests(unittest.TestCase):
             lambda r:r["hostTelemetry"][1]["attempts"][0].update(missionControlObservation="unknown"),
             lambda r:r["hostTelemetry"][3]["attempts"][0].update(uptime=900),
             lambda r:r["hostTelemetry"][3]["attempts"].clear(),
+            lambda r:r["measurement"].update(terminalReadbackUptime=102.9),
+            lambda r:r["measurement"].pop("terminalReadbackUptime"),
+            lambda r:r["measurement"].update(terminalReadbackUptime=400),
+            lambda r:r["measurement"].pop("terminalFocus"),
+            lambda r:r["measurement"]["terminalFocus"].update(cgWindowID=42),
+            lambda r:r["measurement"]["terminalFocus"].update(overviewClosed=False),
+            lambda r:r["measurement"]["terminalFocus"].update(sameOriginalAX=False),
+            lambda r:r["measurement"]["terminalFocus"].update(uptime=102.9),
+            lambda r:r["measurement"]["terminalFocus"].update(uptime=103.03),
         ):
             value = deepcopy(original)
             mutate(value)

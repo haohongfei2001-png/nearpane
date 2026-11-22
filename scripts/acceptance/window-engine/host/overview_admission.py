@@ -102,18 +102,22 @@ def qualifies(report, image, pid, birth, now=None):
             return False
         original = m["originalFocus"]
         before, after = m["focusBefore"], m["focusAfter"][-2:]
-        if len(before) != 2 or len(after) != 2 or not all(r["overviewClosed"] is True for r in after):
+        terminal = m["terminalFocus"]
+        if len(before) != 2 or len(after) != 2 or not all(r["overviewClosed"] is True for r in [*after, terminal]):
             return False
-        for row in before + after:
+        for row in [*before, *after, terminal]:
             if (row["sameOriginalAX"] is not True or [row["pid"], row["birth"], row["cgWindowID"]] !=
                     [original["pid"], original["birth"], original["window"]]):
                 return False
         phases = report["hostTelemetry"]
         if not observed_host_phases(phases, pid, birth):
             return False
-        last = phases[-1]["endUptime"]
+        last = m["terminalReadbackUptime"]
+        focus_time = terminal["uptime"]
+        if not (math.isfinite(focus_time) and math.isfinite(last) and phases[-1]["endUptime"] <= focus_time <= last):
+            return False
         # The witness and supervisor use Darwin monotonic uptime, across one signed Host process generation.
         uptime = time.monotonic() if now is None else now
-        return all(p["pid"] == pid for p in phases) and 0 <= uptime - last <= 300
+        return last <= uptime and uptime - phases[-1]["endUptime"] <= 300
     except (KeyError, TypeError, ValueError, IndexError, OverflowError):
         return False

@@ -120,7 +120,9 @@ import Security
                 trace.sample("passive")
                 await readHost("passive")
                 result["sameHostAtEnd"] = try host().0 == original
+                result["terminalAdmission"] = StageCanaryOverview.admission()
                 result["hidAfterPassiveRead"] = StageCanaryOverview.hid()
+                result["terminalReadbackUptime"] = ProcessInfo.processInfo.systemUptime
                 result["reason"] = "passiveObservationWithoutPresentation"
             } else {
                 var admissions = [[String:Any]]()
@@ -180,7 +182,6 @@ import Security
                     let observed = await StageCanaryOverview.measure(initial:initial,final:final,stage:stage,trace:trace,
                         cancelled:{ (try? OrdinaryProcessImage.read(original.pid)) != original || NSRunningApplication.runningApplications(withBundleIdentifier:id).map(\.processIdentifier) != [original.pid] },
                         notify:{ await readHost($0) })
-                    await readHost("terminal")
                     result["measurement"] = observed
                     result["media"] = await media.finish()
                     let expected = [("before",0,"signedDockAXListWithoutMC"),("presented",1,"signedDockMCIdentifier"),("dismissed",0,"signedDockAXListWithoutMC"),("terminal",0,"signedDockAXListWithoutMC")]
