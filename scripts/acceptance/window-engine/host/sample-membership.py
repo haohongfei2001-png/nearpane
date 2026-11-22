@@ -310,11 +310,65 @@ def confirmed_desktops(observed):
     return ids
 
 
+def released_before_dispatch(observed, archive, challenge):
+    """Recognize the terminal open/close-only path. This cannot qualify a backend."""
+    c, subject = observed.get("installedSpacesCanary", {}), observed.get("subject", {})
+    exit_proof = observed.get("hostExit", {})
+    if not (observed.get("status") == "PASS" and c.get("status") == "UNKNOWN"
+            and c.get("challenge") == challenge and c.get("trial") == archive.get("scopeOfTrial") == "ownPanelOnly"
+            and archive.get("challenge") == challenge and archive.get("status") == "ARCHIVED_CLEAN"
+            and c.get("engineInvoked") is True and c.get("safeToRollback") is True and c.get("canaryUnresolved") is False
+            and all(type(c.get(k)) is int and c[k] == v for k, v in (("heldSpaces", 0), ("heldWindows", 0), ("endInventoryAndFocusReads", 2)))
+            and exit_proof.get("status") == "PASS" and exit_proof.get("sameIdentifierRunning") == 0
+            and exit_proof.get("pid") == subject.get("pid") == archive.get("hostPID")
+            and exit_proof.get("birth") == subject.get("birth") == archive.get("hostBirth")
+            and c.get("fixture", {}).get("status") == "NOT_RUN"):
+        return False
+    for part in ("canary", "fixture"):
+        counts = c.get(part, {}).get("dispatchAttempts")
+        if not isinstance(counts, dict) or set(counts) != {"create", "hide", "return", "destroy"} or not all(
+                type(v) is int and v == 0 for v in counts.values()):
+            return False
+    desktops = confirmed_desktops(observed)
+    actions = archive.get("knownActions")
+    if not desktops or desktops != archive.get("managedDesktopIDs") or not isinstance(actions, list) or len(actions) != 5:
+        return False
+    if not all(isinstance(row, dict) for row in actions):
+        return False
+    window = actions[1].get("window")
+    if type(window) is not int or window <= 0:
+        return False
+    expected = [("willOpenCanary", 0, 0), ("openedCanaryResponse", window, 1), ("willCloseCanary", window, 0),
+                ("closedCanaryResponse", window, 1), ("terminalClean", 0, 1)]
+    previous = archive.get("startUptime")
+    for row, (event, target, response) in zip(actions, expected):
+        now = row.get("uptime")
+        if (row.get("event") != event or row.get("owner") != "installedHostCanary" or
+            any(type(row.get(k)) is not int or row[k] != v for k, v in (("window", target), ("space", 0), ("response", response))) or
+            type(now) not in (float, int) or type(previous) not in (float, int) or not math.isfinite(now) or
+            not math.isfinite(previous) or previous < 0 or now < previous):
+            return False
+        previous = now
+    return True
+
+
 def panel_archive(observed, challenge):
     """Read the specific Host's durable archive only after its correlated response."""
     verdict = panel_verdict(observed, challenge)
     if verdict != "PASS":
-        return dict(status=verdict, archiveRead=False, reason="hostCycleNotConfirmed")
+        canary = observed.get("installedSpacesCanary", {})
+        scope = observed.get("spaceScope", {}).get("scope", {})
+        reason = scope.get("reason") if canary.get("engineInvoked") is False else canary.get("reason")
+        result = dict(status=verdict, archiveRead=False, reason=reason or "hostCycleNotConfirmed")
+        if canary.get("status") == "UNKNOWN" and canary.get("safeToRollback") is True:
+            try:
+                archived = journal.inspect(uuid.UUID(challenge))
+                same_boot = uuid.UUID(archived.pop("boot")) == uuid.UUID(scope_reader.command("sysctl", "-n", "kern.bootsessionuuid").strip())
+                result.update(archiveRead=True, archive=archived, sameBoot=same_boot,
+                              releasedBeforeDispatch=same_boot and released_before_dispatch(observed, archived, challenge))
+            except (OSError, KeyError, ValueError, TypeError, subprocess.SubprocessError):
+                pass
+        return result
     try:
         archive = journal.inspect(uuid.UUID(challenge))
     except (OSError, KeyError, ValueError, IndexError, TypeError) as error:
@@ -531,7 +585,8 @@ def resources(report):
                 and canary.get("reason") == "hostScopeOrRegistrationChanged" and canary.get("safeToRollback") is True):
             backend = "NOT_RUN"
         else:
-            backend = "PASS" if report.get("panelJournal", {}).get("status") == "PASS" else "UNKNOWN"
+            ledger = report.get("panelJournal", {})
+            backend = "PASS" if ledger.get("status") == "PASS" or ledger.get("releasedBeforeDispatch") is True else "UNKNOWN"
     elif report["requestedSpacesCycle"] and report.get("fixtureAdmission") == "registeredSignedBackgroundWindow":
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
     overview = report.get("overviewObservation", {})

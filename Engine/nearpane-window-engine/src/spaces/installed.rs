@@ -5,8 +5,8 @@ use std::{
     ffi::c_void,
     ptr::NonNull,
     sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, AtomicU32, Ordering},
+        Arc, Mutex,
     },
 };
 
@@ -345,7 +345,7 @@ fn run_panel<P: Platform>(
     r.safe_to_rollback = 0;
     let canary = state.start_canary(c, Route::Bridge, nonce, a);
     if let Some(probe) = &state.launch {
-        r.canary_window = probe.lease.map_or(0, |l| l.window.number);
+        r.canary_window = probe.opened_window.map_or(0, |w| w.number);
         r.canary_created = u32::from(r.canary_window != 0);
         r.canary_restored = u32::from(probe.restored && probe.lease.is_some());
         r.canary_closed = u32::from(probe.closed && r.canary_created == 1);

@@ -160,6 +160,29 @@ class InstalledScopeTests(unittest.TestCase):
         refused["canary"]["engineInvoked"] = True
         self.assertFalse(membership.resources(refused)["clear"])
 
+    def test_release_of_open_close_only_panel_is_independent_of_qualification(self):
+        challenge = str(uuid.uuid4())
+        counts = dict(create=0, hide=0, destroy=0, **{"return": 0})
+        canary = dict(status="UNKNOWN", challenge=challenge, trial="ownPanelOnly", heldSpaces=0, heldWindows=0,
+                      endInventoryAndFocusReads=2, engineInvoked=True, safeToRollback=True, canaryUnresolved=False,
+                      canary=dict(dispatchAttempts=counts), fixture=dict(status="NOT_RUN", dispatchAttempts=counts))
+        subject = dict(pid=412, birth=59)
+        observation = dict(status="PASS", subject=subject, installedSpacesCanary=canary,
+                           hostExit=dict(status="PASS", sameIdentifierRunning=0, **subject))
+        actions = [("willOpenCanary", 0, 0), ("openedCanaryResponse", 71, 1), ("willCloseCanary", 71, 0),
+                   ("closedCanaryResponse", 71, 1), ("terminalClean", 0, 1)]
+        archive = dict(challenge=challenge, scopeOfTrial="ownPanelOnly", hostPID=412, hostBirth=59, status="ARCHIVED_CLEAN",
+                       managedDesktopIDs=[4,6], startUptime=9, knownActions=[
+                           dict(event=e, window=w, space=0, response=r, owner="installedHostCanary", uptime=10+i)
+                           for i, (e,w,r) in enumerate(actions)])
+        with patch.object(membership, "confirmed_desktops", return_value=[4,6]):
+            self.assertTrue(membership.released_before_dispatch(observation, archive, challenge))
+            self.assertEqual(membership.panel_verdict(observation, challenge), "UNKNOWN")
+            for changed in (dict(hostBirth=60), dict(managedDesktopIDs=[6,4]), dict(knownActions=archive["knownActions"][:-1])):
+                self.assertFalse(membership.released_before_dispatch(observation, archive | changed, challenge))
+            counts["create"] = 1
+            self.assertFalse(membership.released_before_dispatch(observation, archive, challenge))
+
     def test_external_trial_stops_at_predecessor_without_starting_an_owner(self):
         with tempfile.TemporaryDirectory() as td:
             canonical = Path(td).resolve() / "Applications" / "Nearpane.app"

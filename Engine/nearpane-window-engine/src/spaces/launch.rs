@@ -38,6 +38,7 @@ pub(super) struct CanaryRun {
     initial: Vec<u64>,
     topology: Vec<Desktop>,
     pub home: Option<Home>,
+    pub(super) opened_window: Option<Window>,
     pub(super) lease: Option<Lease>,
     frame: Option<[f64; 4]>,
     pub(super) parking: Option<u64>,
@@ -54,6 +55,56 @@ fn fixed(top: &[Desktop], current: &[Desktop]) -> bool {
     before == after
 }
 impl<P: Platform> State<P> {
+    fn panel_home(&mut self, c: i32, window: Window, a: &impl Authority) -> Check<Home> {
+        let deadline = Instant::now() + DEADLINE;
+        let mut previous = None;
+        loop {
+            a.active()?;
+            let panel = self.sys.canary(PanelOp::Read, a)?;
+            if panel.window() != Some(window) || panel.registered != 1 || panel.focus_same != 1 {
+                return Err(unknown(Why::ProbeFocus));
+            }
+            let baseline = self.launch.as_ref().ok_or(unknown(Why::Stale))?;
+            if self.sys.connection()? != c || !fixed(&baseline.topology, &self.sys.desktops(c)?) {
+                return Err(unknown(Why::Topology));
+            }
+            let ids = self.sys.spaces(c, window.number)?;
+            if ids.len() > 1 {
+                return Err(unknown(Why::Membership));
+            }
+            // On 26A428 orderFront can register a panel before its first WindowServer membership exists.
+            let mut confirmed = None;
+            if let Some(&id) = ids.first() {
+                let mut matches = baseline
+                    .topology
+                    .iter()
+                    .filter(|d| d.kind == 0 && d.current == 1 && d.id == id);
+                let desktop = matches.next().ok_or(unknown(Why::Scope))?;
+                if matches.next().is_some() || !baseline.initial.contains(&id) {
+                    return Err(unknown(Why::Scope));
+                }
+                if self.sys.members(c, id)?.contains(&u64::from(window.number)) {
+                    confirmed = Some(Home {
+                        display: desktop.display,
+                        uuid: desktop.uuid,
+                        id,
+                    });
+                }
+            }
+            if Instant::now() >= deadline {
+                return Err(unknown(Why::Membership));
+            }
+            if let (Some(first), Some(second)) = (previous, confirmed) {
+                if first != second {
+                    return Err(unknown(Why::Scope));
+                }
+                return Ok(second);
+            }
+            previous = confirmed;
+            std::thread::sleep(Duration::from_millis(4));
+        }
+    }
+
     pub(super) fn start_canary(
         &mut self,
         c: i32,
@@ -87,6 +138,7 @@ impl<P: Platform> State<P> {
             initial: all,
             topology: top,
             home: None,
+            opened_window: None,
             lease: None,
             frame: None,
             parking: None,
@@ -102,26 +154,8 @@ impl<P: Platform> State<P> {
             if p.registered != 1 || p.focus_same != 1 {
                 return Err(unknown(Why::ProbeFocus));
             }
-            let native = self.sys.spaces(c, window.number)?;
-            if native.len() != 1 {
-                return Err(unknown(Why::Membership));
-            }
-            let native_id = *native.first().unwrap();
-            let state = self.launch.as_ref().unwrap();
-            let matching: Vec<_> = state
-                .topology
-                .iter()
-                .filter(|d| d.kind == 0 && d.current == 1 && d.id == native_id)
-                .collect();
-            if matching.len() != 1 || !state.initial.contains(&native_id) {
-                return Err(unknown(Why::Scope));
-            }
-            let d = matching[0];
-            let home = Home {
-                display: d.display,
-                uuid: d.uuid,
-                id: d.id,
-            };
+            self.launch.as_mut().unwrap().opened_window = Some(window);
+            let home = self.panel_home(c, window, a)?;
             let lease = Lease {
                 window,
                 slot: Slot {
@@ -187,6 +221,7 @@ impl<P: Platform> State<P> {
                 initial: before,
                 topology: top,
                 home: None,
+                opened_window: None,
                 lease: None,
                 frame: None,
                 parking: None,

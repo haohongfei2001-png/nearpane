@@ -33,6 +33,8 @@ struct Fake {
     switch_topology: bool,
     bystander: bool,
     opened_probe: bool,
+    initial_empty_memberships: Cell<u32>,
+    ambiguous_panel_membership: bool,
     defer_probe_close: bool,
     cg_keeps_closed_probe: bool,
     managed_roster: Vec<Desktop>,
@@ -119,6 +121,16 @@ impl Platform for Fake {
         Ok(set)
     }
     fn spaces(&self, _: i32, w: u32) -> Check<Rows> {
+        if w == 77 && self.opened_probe {
+            if self.ambiguous_panel_membership {
+                return Ok(Rows::from([10, 11]));
+            }
+            if self.initial_empty_memberships.get() > 0 {
+                self.initial_empty_memberships
+                    .set(self.initial_empty_memberships.get() - 1);
+                return Ok(Rows::new());
+            }
+        }
         Ok(self
             .windows
             .get(&w)
@@ -238,6 +250,24 @@ fn standalone_panel_never_moves_an_external_window_or_releases_a_pending_close()
         }
     }
 }
+
+#[cfg(target_os = "macos")]
+#[test]
+fn panel_waits_for_registration_and_refuses_unresolved_membership_before_dispatch() {
+    for (empty, ambiguous, should_move) in
+        [(2, false, true), (0, true, false), (u32::MAX, false, false)]
+    {
+        let (mut state, guard, _) = installed_fixture();
+        state.sys.initial_empty_memberships.set(empty);
+        state.sys.ambiguous_panel_membership = ambiguous;
+        let (status, _, clean) = installed::replay_panel(&mut state, &guard);
+        assert_eq!(status, if should_move { PASS } else { UNKNOWN });
+        assert_eq!(state.sys.moved.len(), if should_move { 2 } else { 0 });
+        assert_eq!(state.sys.next, if should_move { 101 } else { 100 });
+        assert_eq!(state.sys.probe_closes, 1);
+        assert_eq!(clean, 1);
+    }
+}
 #[cfg(target_os = "macos")]
 #[test]
 fn full_inventory_multiplicity_must_survive_create_and_cleanup_before_external_admission() {
@@ -269,8 +299,8 @@ fn full_inventory_multiplicity_must_survive_create_and_cleanup_before_external_a
 }
 #[cfg(target_os = "macos")]
 #[test]
-fn installed_cycle_uses_two_distinct_owners_ordinary_fixture_returns_and_both_parking_ids_disappear()
- {
+fn installed_cycle_uses_two_distinct_owners_ordinary_fixture_returns_and_both_parking_ids_disappear(
+) {
     let (mut s, g, w) = installed_fixture();
     let (result, proof) = installed::replay(&mut s, w, &g, || ());
     assert_eq!(result, PASS);

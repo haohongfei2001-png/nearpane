@@ -39,7 +39,7 @@
     "local": "src/spaces/launch.rs",
     "upstream": "src/platform/spaces/probe.rs",
     "blob": "b2d9b48786de44e8df168fd0507963a3430cf433",
-    "modifications": "Adapt the own-window launch lifecycle to a previously reviewed route; one-use self-owned canary, exact before/after membership, separate readback-only reconciliation, and no transfer of authority before cleanup."
+    "modifications": "Adapt the own-window launch lifecycle to a previously reviewed route. Retain the opened canary identity before acquiring its lease. Two consecutive bidirectional reads on its original ordinary desktop admit a write. Empty initial membership is sampled for a bounded interval. Recovery precedes any transfer of authority."
   },
   {
     "local": "src/spaces/launch-panel.inc",
