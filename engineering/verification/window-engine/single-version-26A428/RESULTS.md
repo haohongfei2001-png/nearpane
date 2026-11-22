@@ -10,6 +10,8 @@
 
 已安装版本的第三方迁窗试验通过 `--enrolled-spaces-cycle` 在进程启动时进入。当前 PID 的启动参数没有这个选项。正式侧栏从随包的资格清单载入可用后端，当前源码的清单为空。原运行进程能回答总览状态，未提供接受这次外部窗口登记的运行时入口。第三方窗口、整组切换和稳定性测试仍为 **NOT_RUN**，Spaces 的引擎能力仍待实测。[启动入口](../../../../Sources/NearpaneHost/NearpaneApp.swift) · [常规 Host 的资格清单](../../../../Sources/NearpaneUI/StageWindowEngineHost.swift)
 
+19:14，正式验收器的只读预检核实安装包、签名、系统版本及控制台均符合要求。完整进程清单只有 PID 32364，准入结果为 `sameProductInstanceRunning`。此次预检的 Host 启动、测试窗启动、Space 写入和窗口写入均为零。现有透明测试窗只用于归属读回，键盘焦点及可见同应用旁窗仍需单独实测。[第三方窗口入口的实机预检](18-running-host-fixture-readiness.json)
+
 ## 安装与权限
 
 | 标准路径中的版本 | 常规 Host 首次 PID | Host CDHash |
