@@ -29,6 +29,13 @@ struct DesktopSurface: View {
             display?.interactionVisible == true && display?.id == displayID && WindowContentPreview.sessionAvailable()
     }
     @ViewState private var selectionIssue: String?
+    private struct NameEdit {
+        let group: StageGroupDirectory.Group
+        let member: NativeSidebarMember
+        let lifetimes: [UUID]
+    }
+    @ViewState private var nameEdit: NameEdit?
+    @ViewState private var groupName = ""
 
     private var rawOverview: DesktopSnapshot? {
         if let feed = display?.pointer?.windowPreviews?.currentDesktop {
@@ -50,6 +57,13 @@ struct DesktopSurface: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             roster
+                .alert("窗口组名称", isPresented: Binding(get: { nameEdit != nil }, set: {
+                    if !$0 { nameEdit = nil }
+                }), presenting: nameEdit) { edit in
+                    TextField("名称", text: $groupName)
+                    Button("保存") { saveName(edit, text: groupName) }
+                    Button("取消", role: .cancel) {}
+                }
             let feed = display?.pointer?.windowPreviews?.currentDesktop
             if let selectionIssue = navigation.issue ?? selectionIssue ?? feed?.groups.loadIssue ?? feed?.groupIssue {
                 Text(selectionIssue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2)
@@ -117,7 +131,8 @@ struct DesktopSurface: View {
                                             $0.scope.nativeSpace == current.uuid }) { held in
                                             let id = held.state.window
                                             let key = DesktopWindowKey(pid:id.pid,birth:id.birth,number:id.number)
-                                            CurrentWindowCard(label:held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count),
+                                            let caption = feed.groups.groups(in: held.scope).first { $0.id == held.id }?.name
+                                            CurrentWindowCard(label:caption ?? (held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count)),
                                                 badge:nil,size:nil,target:nil,key:key,gallery:nil,permitted:false,border:1,fontSize:10,
                                                 selected:{ nil },describe:{ _ in "已核对的非活动窗口组" },select:{
                                                     let input = NativeSelectionPermit.inputCounters()
@@ -195,6 +210,37 @@ struct DesktopSurface: View {
         }
     }
 
+    private func nameLifetimes(_ group: StageGroupDirectory.Group, feed: CurrentDesktopWindows) -> [UUID] {
+        group.members.compactMap { member in
+            let key = member.windowHint
+            return feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
+        }
+    }
+
+    private func openName(_ group: StageGroupDirectory.Group, member: NativeSidebarMember, feed: CurrentDesktopWindows) {
+        guard canNavigate, navigation.idleGeneration != nil else { return }
+        let lifetimes = nameLifetimes(group, feed: feed)
+        guard lifetimes.count == group.members.count else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
+        groupName = group.name ?? ""
+        nameEdit = .init(group: group, member: member, lifetimes: lifetimes)
+    }
+
+    private func saveName(_ edit: NameEdit, text: String) {
+        guard canNavigate, let generation = navigation.idleGeneration, let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
+        Task { @MainActor in
+            do {
+                guard let fresh = await feed.readNow(), canNavigate, navigation.idleGeneration == generation,
+                      let catalog = edit.member.source.resolve(fresh), catalog.current.id == edit.member.source.space,
+                      let w = feed.groupWindow(edit.member, in: fresh), let space = w.nativeSpace,
+                      feed.visibleGroups(in: fresh, on: catalog.display)[w.identity] == edit.group,
+                      nameLifetimes(edit.group, feed: feed) == edit.lifetimes else { throw StageGroupError.staleBinding }
+                // Naming updates only the directory. It must not release parked windows or request a dispatch grant.
+                try feed.groups.rename(edit.group, in: .init(display: w.display, nativeSpace: space), to: text)
+                selectionIssue = nil
+            } catch { selectionIssue = error.localizedDescription }
+        }
+    }
+
     private func editGroup(_ members: [NativeSidebarMember], change: @escaping @MainActor (DesktopSnapshot) throws -> Void) {
         guard canNavigate, let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
         selectionIssue = nil
@@ -265,15 +311,15 @@ struct DesktopSurface: View {
                 let pictureSize = thumbnailLayout.fittedSize(for: window, width: width,
                     heightLimit: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5)
                 let member = target.flatMap { _ in source.flatMap { NativeSidebarMember(window, source: $0) } }
+                let group = member?.location.flatMap { visibleGroups[$0.window] }
                 let chooseCurrent: @MainActor () -> Void = {
-                    if let feed, feed.stageEngine.routesGroupChoice, let member, let w = feed.groupWindow(member, in:snapshot),
-                       let group = feed.groups.projectedGroups(on:w.display,among:[w]).first(where: { $0.members.count == 1 }) {
+                    if let feed, feed.stageEngine.routesGroupChoice, let member, let group, group.members.count == 1 {
                         choose(member, group:group.id, snapshot:snapshot, feed:feed)
                     } else if let target {
                         selectWindow(target, snapshot:snapshot, lifetime:lifetime)
                     }
                 }
-                if let member, let identity = member.location?.window, let group = visibleGroups[identity], let feed {
+                if let member, let group, group.members.count > 1, let feed {
                     let keys = Set(group.members.map(\.windowHint))
                     if members.first(where: { $0.location.map { keys.contains($0.window) } == true })?.key == member.key {
                         let grouped = windows.filter { w in NativeSidebarMember(w, source: member.source)?.location.map { keys.contains($0.window) } == true }
@@ -289,23 +335,26 @@ struct DesktopSurface: View {
                                 else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
                                 choose(preferred, group: group.id, snapshot: snapshot, feed: feed, intent: .group)
                             },
-                            id: group.id, windows: grouped, snapshot: snapshot,
+                            id: group.id, name: group.name, windows: grouped, snapshot: snapshot,
                             place: { place($0, feed: feed) }, remove: { chosen in
                                 editGroup([chosen]) { fresh in
                                     guard let w = feed.groupWindow(chosen, in: fresh) else { throw StageGroupError.staleBinding }
-                                    try feed.groups.detach(w)
+                                    try feed.groups.detach(w, from: group.id)
                                 }
-                            }, dissolve: {
-                                editGroup([member]) { fresh in
+                            }, rename: { openName(group, member: member, feed: feed) }, dissolve: {
+                                let enrolled = members.filter { $0.location.map { keys.contains($0.window) } == true }
+                                guard enrolled.count == group.members.count else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
+                                editGroup(enrolled) { fresh in
                                     guard let w = feed.groupWindow(member, in: fresh),
-                                          feed.visibleGroups(in: fresh, on: screen)[w.identity]?.id == group.id else { throw StageGroupError.staleBinding }
+                                          let current = feed.visibleGroups(in: fresh, on: screen)[w.identity],
+                                          current.id == group.id, current.members.map(\.id) == group.members.map(\.id) else { throw StageGroupError.staleBinding }
                                     try feed.groups.dissolve(group.id, on: w.display)
                                 }
                             })
                             .id(group.id)
                     }
                 } else {
-                    CurrentWindowCard(label: label, badge: badge, size: pictureSize, target: liveTarget, key: row.id,
+                    CurrentWindowCard(label: group?.name ?? label, badge: badge, size: pictureSize, target: liveTarget, key: row.id,
                         gallery: gallery, permitted: permitted, border: settings.points(.borderWidth, in: width),
                         fontSize: labelSize, selected: { pictures && target?.present(in: overview) == true ? selectedPicture(for: target) : nil },
                         describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
@@ -318,6 +367,9 @@ struct DesktopSurface: View {
                         prepare: { if let target { prepareSwitch(target, in: snapshot) } }))
                     .contextMenu {
                         if let member, let feed, member.source.kind == .ordinary {
+                            if let group {
+                                Button("命名窗口组…") { openName(group, member: member, feed: feed) }
+                            }
                             if let w = feed.groupWindow(member, in: snapshot), feed.groups.needsRebinding(w) {
                                 Button("重新关联此窗口到已保存的调度组") {
                                     editGroup([member]) { fresh in

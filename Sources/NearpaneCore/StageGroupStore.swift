@@ -23,6 +23,7 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
         public var nativeSpace: UUID?
         public var needsReorganization: Bool?
         public var verifiedActive: Bool?
+        public var name: String?
 
         public func focusMember(requested: UUID? = nil) -> Member? {
             guard let id = requested ?? selectedMember else { return members.first }
@@ -42,6 +43,15 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
 
     public func groups(in scope: StageGroupScope) -> [Group] {
         displays.first { $0.id == scope.display }?.groups.filter { $0.nativeSpace == scope.nativeSpace } ?? []
+    }
+
+    /// A label edit does not change window identity, membership, layout or active state.
+    public func hasSameWindowGroups(as other: Self, in scope: StageGroupScope) -> Bool {
+        groups(in: scope).elementsEqual(other.groups(in: scope)) { now, previous in
+            var expected = previous
+            expected.name = now.name
+            return now == expected
+        }
     }
 
     fileprivate func validate() throws {
@@ -223,6 +233,17 @@ public struct StageGroupWindow: Sendable {
         directory.groups(in: scope)
     }
 
+    /// Rename the exact directory entry that the user opened. Empty text restores the usual caption.
+    public func rename(_ expected: StageGroupDirectory.Group, in scope: StageGroupScope, to text: String) throws {
+        guard let d = directory.displays.firstIndex(where: { $0.id == scope.display }),
+              let g = directory.displays[d].groups.firstIndex(where: { $0 == expected && $0.nativeSpace == scope.nativeSpace }),
+              expected.needsReorganization != true else { throw StageGroupError.staleBinding }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var next = directory
+        next.displays[d].groups[g].name = trimmed.isEmpty ? nil : trimmed
+        try commit(next)
+    }
+
     public func activeGroup(in scope: StageGroupScope) -> UUID? {
         groups(in: scope).first { $0.verifiedActive == true }?.id
     }
@@ -259,7 +280,7 @@ public struct StageGroupWindow: Sendable {
                                     first: StageWindowSample, second: StageWindowSample) throws {
         let before = baseline.sample, source = baseline.source
         let scope = before.scope
-        guard groups(in: scope) == baseline.directory.groups(in: scope), activeGroup(in: scope) == baseline.group,
+        guard directory.hasSameWindowGroups(as: baseline.directory, in: scope), activeGroup(in: scope) == baseline.group,
               source.pid == key.pid, source.birth == key.birth, key.number != source.number,
               !directory.displays.flatMap(\.groups).flatMap(\.members).contains(where: { $0.windowHint.number == key.number }),
               !before.windows.keys.contains(where: { $0.number == key.number }),
@@ -286,15 +307,22 @@ public struct StageGroupWindow: Sendable {
 
     /// Called only by the coordinator once a whole-transaction independent readback is complete.
     func commitActivity(_ group: UUID, preferred: UUID, in scope: StageGroupScope,
-                        expected: StageGroupDirectory) throws {
-        guard groups(in: scope) == expected.groups(in: scope) else { throw StageGroupError.changedFile }
+                        expected: StageGroupDirectory, verifiedLayouts: [UUID: SurfaceRect] = [:]) throws {
+        guard directory.hasSameWindowGroups(as: expected, in: scope) else { throw StageGroupError.changedFile }
         var next = directory
         guard let d = next.displays.firstIndex(where: { $0.id == scope.display }),
               let g = next.displays[d].groups.firstIndex(where: { $0.id == group && $0.nativeSpace == scope.nativeSpace }),
               next.displays[d].groups[g].needsReorganization != true,
               next.displays[d].groups[g].members.contains(where: { $0.id == preferred }) else { throw StageGroupError.staleBinding }
+        let local = groups(in: scope).flatMap(\.members)
+        guard Set(verifiedLayouts.keys).isSubset(of: Set(local.map(\.id))),
+              verifiedLayouts.values.allSatisfy(StageGroupWindow.validFrame) else { throw StageGroupError.staleBinding }
         for index in next.displays[d].groups.indices where next.displays[d].groups[index].nativeSpace == scope.nativeSpace {
             next.displays[d].groups[index].verifiedActive = index == g ? true : nil
+            for member in next.displays[d].groups[index].members.indices {
+                let id = next.displays[d].groups[index].members[member].id
+                if let layout = verifiedLayouts[id] { next.displays[d].groups[index].members[member].layout = layout }
+            }
         }
         next.displays[d].groups[g].selectedMember = preferred
         try commit(next)
@@ -438,15 +466,19 @@ public struct StageGroupWindow: Sendable {
         try commit(next)
     }
 
-    public func detach(_ window: StageGroupWindow) throws {
+    public func detach(_ window: StageGroupWindow, from expectedGroup: UUID? = nil) throws {
         guard bindings[window.identity] == window.lifetime else { throw StageGroupError.staleBinding }
         var next = directory
         guard let d = next.displays.firstIndex(where: { $0.id == window.display }),
               let g = next.displays[d].groups.firstIndex(where: { $0.members.contains { $0.windowHint == window.identity } }),
               let m = next.displays[d].groups[g].members.firstIndex(where: { $0.windowHint == window.identity })
         else { throw StageGroupError.wrongDisplay }
-        guard next.displays[d].groups[g].members.count > 1 else { return }
-        let member = next.displays[d].groups[g].members.remove(at: m)
+        let original = next.displays[d].groups[g]
+        guard original.nativeSpace == window.nativeSpace, original.needsReorganization != true,
+              expectedGroup == nil || original.id == expectedGroup else { throw StageGroupError.staleBinding }
+        guard original.members.count > 1 else { return }
+        var member = next.displays[d].groups[g].members.remove(at: m)
+        if let measured = window.layout { member.layout = measured }
         next.displays[d].groups[g].verifiedActive = nil
         if next.displays[d].groups[g].selectedMember == member.id { next.displays[d].groups[g].selectedMember = nil }
         if next.displays[d].activeGroup == next.displays[d].groups[g].id { next.displays[d].activeGroup = nil }

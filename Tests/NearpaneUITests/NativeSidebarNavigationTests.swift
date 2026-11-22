@@ -133,6 +133,21 @@ import Testing
         #expect(member.resolve(snapshot([window(8, ["1"], front: 0)])) == nil)
     }
 
+    @Test func groupNameReadCannotCommitAcrossASidebarIntentOrOwnershipLoss() async throws {
+        let router = NativeSidebarNavigation()
+        let editing = try #require(router.idleGeneration)
+        var completed = false
+        router.submit(stage: true) { _ in completed = true }
+        #expect(router.idleGeneration == nil)
+        while !completed { await Task.yield() }
+        #expect(router.idleGeneration != nil && router.idleGeneration != editing)
+        let idle = router.idleGeneration
+        router.setDispatchAvailable(false)
+        #expect(router.idleGeneration == nil)
+        router.setDispatchAvailable(true)
+        #expect(router.idleGeneration != nil && router.idleGeneration != idle)
+    }
+
     @Test func groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() async {
         let router = NativeSidebarNavigation()
         var owner = false, effects = [String]()

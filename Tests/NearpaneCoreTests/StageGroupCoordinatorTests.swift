@@ -67,6 +67,63 @@ import Testing
         #expect(!engine.requiresRecovery)
     }
 
+    @Test func switchAwayAndBackPreservesBothManuallyMovedFramesOfTheComposite() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0].members[0], b = groups[1].members[0], other = groups[2]
+        func live(_ m: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let w = try #require(runtime.windows[m.windowHint])
+            return .init(display: runtime.scope.display, identity: w.window, lifetime: w.lifetime,
+                         layout: m.layout, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(try live(b), to: try live(a))
+        let group = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try store.rename(group, in: runtime.scope, to: "两份文档")
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        let left = SurfaceRect(x: 21, y: 34, width: 420, height: 510)
+        let right = SurfaceRect(x: 461, y: 54, width: 376, height: 482)
+        runtime.windows[a.windowHint]?.frame = left
+        runtime.windows[b.windowHint]?.frame = right
+        let bystanders = runtime.windows.filter { $0.key.number > 3 }
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let saved = try #require(StageGroupStore(profile: p).groups(in: runtime.scope).first { $0.id == group.id })
+        #expect(saved.name == "两份文档" && saved.members.map(\.layout) ==
+                [StageGroupWindow.relativeFrame(left, in: runtime.work), StageGroupWindow.relativeFrame(right, in: runtime.work)])
+        runtime.writes.removeAll()
+        try await engine.activate(group.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.windows[a.windowHint]?.frame == left && runtime.windows[b.windowHint]?.frame == right)
+        #expect(!runtime.writes.contains { if case .place = $0.0 { true } else { false } })
+        #expect(runtime.windows.filter { $0.key.number > 3 } == bystanders && runtime.focus == b.windowHint)
+    }
+
+    @Test func anUnconfirmedHideNeverPublishesTheDepartingLayout() async throws {
+        let (p, _, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0].members[0]
+        runtime.windows[a.windowHint]?.frame.x += 150
+        runtime.afterWrite = { [unowned runtime] in
+            if case .hide? = runtime.writes.last?.0 { runtime.generation = UUID() }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(StageGroupStore(profile: p).groups(in: runtime.scope).first?.members.first?.layout == a.layout)
+        #expect(runtime.writes.filter { $0.0 == .hide }.count == 1)
+    }
+
+    @Test func selectingTheAlreadyVisibleSingletonKeepsItsCurrentFrameAndDoesNotDispatch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let group = groups[0], a = group.members[0]
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        let moved = SurfaceRect(x: 73, y: 59, width: 518, height: 408)
+        runtime.windows[a.windowHint]?.frame = moved
+        runtime.writes.removeAll()
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.writes.isEmpty && runtime.windows[a.windowHint]?.frame == moved)
+        #expect(store.groups(in: runtime.scope).first?.members.first?.layout == StageGroupWindow.relativeFrame(moved, in: runtime.work))
+    }
+
     @Test func firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() async throws {
         let (p, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: p) }

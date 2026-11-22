@@ -102,7 +102,8 @@ import OSLog
         }.compactMap { groupWindow($0, on: screen, current: row.record) }
     }
 
-    func groupWindow(_ member: NativeSidebarMember, in snapshot: DesktopSnapshot) -> StageGroupWindow? {
+    func groupWindow(_ member: NativeSidebarMember, in raw: DesktopSnapshot) -> StageGroupWindow? {
+        let snapshot = stageEngine.snapshotForGroups(raw)
         guard snapshot.native?.stageManagerEnabled == false, let catalog = member.source.resolve(snapshot),
               catalog.current.id == member.source.space, let window = member.resolve(snapshot),
               snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1,
@@ -123,10 +124,11 @@ import OSLog
         try groups.join(first, to: second)
     }
 
-    func visibleGroups(in snapshot: DesktopSnapshot, on screen: DisplayObservation) -> [NativeSpaceWindow: StageGroupDirectory.Group] {
+    func visibleGroups(in raw: DesktopSnapshot, on screen: DisplayObservation) -> [NativeSpaceWindow: StageGroupDirectory.Group] {
+        let snapshot = stageEngine.snapshotForGroups(raw)
         guard let id = UUID(uuidString: screen.id) else { return [:] }
-        let composites = groups.projectedGroups(on: id, among: stageWindows(in: snapshot, on: screen)).filter { $0.members.count > 1 }
-        return Dictionary(uniqueKeysWithValues: composites.flatMap { group in group.members.map { ($0.windowHint, group) } })
+        let visible = groups.projectedGroups(on: id, among: stageWindows(in: snapshot, on: screen))
+        return Dictionary(uniqueKeysWithValues: visible.flatMap { group in group.members.map { ($0.windowHint, group) } })
     }
 
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }

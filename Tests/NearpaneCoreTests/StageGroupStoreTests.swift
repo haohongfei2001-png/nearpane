@@ -9,6 +9,45 @@ import Testing
               layout: .init(x: 0.25, width: 0.5, height: 1))
     }
 
+    @Test func namesSurviveReopenAndGroupingWithoutChangingScopeLayoutOrMembership() throws {
+        let profile = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let store = StageGroupStore(profile: profile), scope = StageGroupScope(display: first, nativeSpace: UUID())
+        func local(_ n: UInt32) -> StageGroupWindow {
+            let w = window(n, display: first)
+            return .init(display: first, identity: w.identity, lifetime: w.lifetime, layout: w.layout, nativeSpace: scope.nativeSpace)
+        }
+        let a = local(1), b = local(2)
+        try store.observe([a, b])
+        let original = store.directory
+        let one = try #require(store.groups(in: scope).first)
+        #expect(one.name == nil && one.members.count == 1)
+        try store.rename(one, in: scope, to: "  调色 🎨  ")
+        let named = try #require(store.groups(in: scope).first)
+        #expect(named.id == one.id && named.name == "调色 🎨" && named.members == one.members)
+        #expect(original.hasSameWindowGroups(as: store.directory, in: scope))
+        #expect(StageGroupStore(profile: profile).groups(in: scope).first == named)
+        #expect(throws: StageGroupError.staleBinding) { try store.rename(one, in: scope, to: "过期") }
+        #expect(throws: StageGroupError.staleBinding) {
+            try store.rename(named, in: .init(display: second, nativeSpace: scope.nativeSpace), to: "另一屏")
+        }
+        try store.join(b, to: a)
+        let pair = try #require(store.groups(in: scope).first)
+        #expect(pair.id == named.id && pair.name == named.name && pair.members.map(\.windowHint) == [a.identity, b.identity])
+        #expect(!original.hasSameWindowGroups(as: store.directory, in: scope))
+        #expect(throws: StageGroupError.staleBinding) { try store.rename(named, in: scope, to: "旧成员") }
+        let elsewhere = StageGroupWindow(display: first, identity: b.identity, lifetime: b.lifetime, nativeSpace: UUID())
+        #expect(throws: StageGroupError.staleBinding) { try store.detach(elsewhere, from: pair.id) }
+        #expect(throws: StageGroupError.staleBinding) { try store.detach(b, from: UUID()) }
+        #expect(store.groups(in: scope) == [pair])
+        try store.detach(b, from: pair.id)
+        let split = store.groups(in: scope)
+        #expect(split.count == 2 && split[0].name == pair.name && split[1].name == nil)
+        #expect(split[1].members == [pair.members[1]])
+        try store.rename(split[0], in: scope, to: "  ")
+        #expect(StageGroupStore(profile: profile).groups(in: scope).first?.name == nil)
+    }
+
     @Test func oneSelectedMemberMovesAndTheOtherScreenKeepsItsGroup() throws {
         let store = StageGroupStore(profile: nil)
         let a = window(1, display: first), b = window(2, display: first), c = window(3, display: first)

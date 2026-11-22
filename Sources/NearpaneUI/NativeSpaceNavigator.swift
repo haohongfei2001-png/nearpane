@@ -69,10 +69,12 @@ struct NativeWindowGroupCard: View {
     let select: (NativeSidebarMember) -> Void
     let selectGroup: () -> Void
     let id: UUID
+    let name: String?
     let windows: [WindowObservation]
     let snapshot: DesktopSnapshot
     let place: (SidebarPairDrop) -> Void
     let remove: (NativeSidebarMember) -> Void
+    let rename: () -> Void
     let dissolve: () -> Void
     @Environment(\.colorScheme) private var scheme
 
@@ -86,7 +88,7 @@ struct NativeWindowGroupCard: View {
                     Color.clear.contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("切换到此窗口组合")
+                .accessibilityLabel(name.map { "切换到窗口组合 " + $0 } ?? "切换到此窗口组合")
                 .accessibilityIdentifier("stage-group-select:" + id.uuidString)
                 GeometryReader { proxy in
                     let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
@@ -131,14 +133,15 @@ struct NativeWindowGroupCard: View {
                     ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
                         Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
                     }
-                    Text("窗口组合").font(.caption2).lineLimit(1)
+                    Text(name ?? "窗口组合").font(.caption2).lineLimit(1)
                 }.frame(maxWidth: .infinity).frame(height: 18).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityHidden(true)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("窗口组合")
+        .accessibilityLabel(name ?? "窗口组合")
         .accessibilityIdentifier("native-window-group:\(id)")
         .contextMenu {
+            Button("命名窗口组…", action: rename)
             Button("解散窗口组合", action: dissolve)
             ForEach(ordered) { window in
                 if let member = NativeSidebarMember(window, source: destination) {

@@ -247,14 +247,14 @@ import NearpaneOrdinaryWindowRuntime
             cancelArrivals(); return
         }
         if let watch = arrivalWatch, watch.source == baseline.source, watch.group == baseline.group,
-           watch.directory.groups(in: scope) == baseline.directory.groups(in: scope) { return }
+           watch.directory.hasSameWindowGroups(as: baseline.directory, in: scope) { return }
         if arrivalWatch == nil, arrivalAttempt == baseline.source { return }
         cancelArrivals()
         let epoch = arrivalEpoch, token = UUID()
         arrivalAttempt = baseline.source
         do { try source.monitor.beginCreation(token) }
         catch { return }
-        guard current(), epoch == arrivalEpoch, store.groups(in: scope) == baseline.directory.groups(in: scope) else {
+        guard current(), epoch == arrivalEpoch, store.directory.hasSameWindowGroups(as: baseline.directory, in: scope) else {
             source.monitor.endCreation(token); return
         }
         arrivalWatch = .init(token: token, group: baseline.group, source: baseline.source,
@@ -265,7 +265,7 @@ import NearpaneOrdinaryWindowRuntime
     func consumeArrival(in store: StageGroupStore, owner: StageEngineOwner, current: @MainActor () -> Bool) async throws -> Bool {
         guard let watch = arrivalWatch, current(), let feed, let before = lastSample,
               let baseline = store.arrivalBaseline(before), baseline.group == watch.group,
-              baseline.source == watch.source, store.groups(in: scope) == watch.directory.groups(in: scope) else { return false }
+              baseline.source == watch.source, store.directory.hasSameWindowGroups(as: watch.directory, in: scope) else { return false }
         let epoch = arrivalEpoch
         guard let monitor = try watch.monitor.nextCreation(watch.token) else { return false }
         guard current(), epoch == arrivalEpoch,

@@ -161,6 +161,7 @@ struct CrossSpaceFocusContinuity {
     private struct Job { let token: UUID, epoch: UUID, selection: Bool, stage: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
+    var idleGeneration: UUID? { dispatchAvailable && !running && pending.isEmpty ? generation : nil }
     private(set) var issue: String?
     private(set) var canSwitch = false
     private(set) var canMove = false

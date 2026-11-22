@@ -251,6 +251,16 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
         guard originalHeld.allSatisfy({ ids.contains($0.hidden.window) && first.windows[$0.hidden.window] == $0.hidden }),
               ids.allSatisfy({ held[$0] != nil || first.windows[$0]?.visibility == .visible }) else { throw StageSwitchError.ownership }
+        let alreadyVisible = target.verifiedActive == true && first.focus.map(targets.contains) == true &&
+            Set(held.keys) == ids.subtracting(targets)
+        var targetLayouts = [UUID: SurfaceRect]()
+        for m in target.members {
+            if alreadyVisible {
+                guard let current = first.windows[m.windowHint],
+                      let layout = StageGroupWindow.relativeFrame(current.frame, in: first.workArea) else { throw StageSwitchError.incomplete }
+                targetLayouts[m.id] = layout
+            } else { targetLayouts[m.id] = m.layout }
+        }
         let otherIDs = first.windows.keys.filter { !ids.contains($0) }
         let intent = UUID(), owner = session.engineOwner
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
@@ -284,7 +294,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
         func read() async throws -> StageWindowSample {
             let next = try await session.read(scope)
-            guard epoch == token, directory.groups(in: scope) == store.groups(in: scope), session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
+            guard epoch == token, directory.hasSameWindowGroups(as: store.directory, in: scope), session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
                   next.nativeID == first.nativeID,
                   next.scope == scope, next.generation == first.generation, next.workArea == first.workArea,
                   next.sequence > last.sequence, next.windows.keys == first.windows.keys,
@@ -344,13 +354,17 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     state.visibility == .visible && sample.focus == preferred.windowHint
                 }
             }
+            var verifiedLayouts = alreadyVisible ? targetLayouts : [:]
             for m in members where !targets.contains(m.windowHint) && held[m.windowHint] == nil {
+                guard let observed = last.windows[m.windowHint], observed.visibility == .visible,
+                      let layout = StageGroupWindow.relativeFrame(observed.frame, in: first.workArea) else { throw StageSwitchError.incomplete }
                 try await perform(.hide, id: m.windowHint) { value, _ in value.visibility == mechanism &&
                     (mechanism != .stageSpace || (value.hiddenSpaceID ?? 0) > 0 && value.hiddenSpaceID != first.nativeID) }
+                verifiedLayouts[m.id] = layout
             }
             for m in target.members {
                 let id = m.windowHint
-                if let relative = m.layout {
+                if let relative = targetLayouts[m.id] {
                     let frame = absolute(relative, work: first.workArea)
                     if let f = last.windows[id]?.frame, !matches(f, frame) {
                         try await perform(.place(frame), id: id) { value, _ in value.visibility == .visible && self.matches(value.frame, frame) }
@@ -363,7 +377,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     parked.allSatisfy { s.windows[$0.hidden.window] == $0.hidden } &&
                     target.members.allSatisfy { m in
                         guard let value = s.windows[m.windowHint], value.visibility == .visible else { return false }
-                        return m.layout.map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
+                        return targetLayouts[m.id].map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
                     }
             }
             for _ in 0..<3 {
@@ -372,7 +386,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 guard complete(last) else { throw StageSwitchError.incomplete }
             }
             try update { $0.pending?.verifiedDirectoryCommit = true }
-            try store.commitActivity(group, preferred: preferred.id, in: scope, expected: directory)
+            try store.commitActivity(group, preferred: preferred.id, in: scope, expected: directory, verifiedLayouts: verifiedLayouts)
             try update { $0.pending = nil }
         } catch {
             if ledger.pending?.entries.isEmpty == true { try update { $0.pending = nil } }
