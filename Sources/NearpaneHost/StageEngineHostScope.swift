@@ -12,6 +12,7 @@ enum StageEngineHostScope {
         let number: UInt32
         let executable: URL
         let cdhash: String
+        var interactiveChallenge: UUID? = nil
     }
 
     struct Verdict: Equatable {
@@ -266,8 +267,17 @@ enum StageEngineHostScope {
             guard ["com.holdsnow.nearpane.host","com.holdsnow.nearpane.alpha"].contains(bundleIdentifier), let local,
                   local.windowNumber == Int(f.number), NSApp?.window(withWindowNumber: Int(f.number)) === local else { return false }
         } else {
-            guard local == nil, ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
-                                 "com.holdsnow.nearpane.spaces-launch-canary"].contains(bundleIdentifier) else { return false }
+            guard local == nil else { return false }
+            if let nonce = f.interactiveChallenge {
+                let fixed = "/private/tmp/nearpane-membership." + nonce.uuidString.lowercased() + "/Interactive Windows.app/Contents/MacOS/InteractiveWindows"
+                var kernelPath = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+                guard bundleIdentifier == "com.holdsnow.nearpane.stage-interactive-fixture", f.executable.path == fixed,
+                      proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+                      String(cString: kernelPath) == fixed else { return false }
+            } else {
+                guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+                       "com.holdsnow.nearpane.spaces-launch-canary"].contains(bundleIdentifier) else { return false }
+            }
         }
         let rule = "anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"ZB9D4T66QB\""
         let strict = SecCSFlags(rawValue: kSecCSStrictValidate)

@@ -20,12 +20,14 @@ struct NearpaneApp {
             let deferred = options.contains("--await-registered-window")
             let spacesCycle = options.contains("--enrolled-spaces-cycle")
             let ownCanary = options.contains("--installed-spaces-canary")
+            let interactive = options.contains("--interactive-window-pair")
             guard options.count == args.count-2,
-                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle","--installed-spaces-canary"]),
+                  options.isSubset(of: ["--registered-window","--private-receipt","--await-registered-window","--enrolled-spaces-cycle","--installed-spaces-canary","--interactive-window-pair"]),
                   !deferred || (options.contains("--private-receipt") && !options.contains("--registered-window")),
                   !ownCanary || options == ["--private-receipt","--installed-spaces-canary"],
+                  !interactive || options == ["--private-receipt","--interactive-window-pair"],
                   !spacesCycle || deferred,
-                  !(spacesCycle || ownCanary) || (Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
+                  !(spacesCycle || ownCanary || interactive) || (Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" &&
                       Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha") else { exit(2) }
             let channel: StageScopeReply?
             let fixture: StageEngineHostScope.Fixture?
@@ -38,7 +40,7 @@ struct NearpaneApp {
             guard application.activationPolicy() == .prohibited else { exit(3) }
             Task { exit(await StageEnginePackageProbe.readScope(challenge: challenge, fixture: fixture, channel: channel,
                                                                 awaitRegistration: deferred, enrolledSpacesCycle: spacesCycle,
-                                                                ownSpacesCanary: ownCanary)) }
+                                                                ownSpacesCanary: ownCanary, interactivePair: interactive)) }
             RunLoop.main.run()
             return
         }
