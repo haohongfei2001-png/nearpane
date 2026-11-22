@@ -39,6 +39,10 @@
 
 先前的观察器在等待最后一次 Host 回复之前就结束了 HID 及原生 Space 读数。修复后，收到回复才核对原 AX 对象、Dock、Space 清单和输入计数。监督器会拒绝缺失、倒序、过期或焦点对象不同的收据。00:45 的实机只读核对中，正式 Host 在约 320 毫秒后答复，随后才开始读焦点并结束 14 类输入计数。前后计数一致。当时处于原生全屏且没有合格的普通前台窗，焦点读数为 UNKNOWN。这次只读调用未展示 Mission Control。最后一轮准入所用的五个程序也已在两个独立目录重建，文件摘要逐一相同。[终次读回](17-terminal-readback.json) · [独立重建](16-reproducible-build.json)
 
+### 最终源码与 GitHub CI
+
+最终源码为 `9cbe165e81630abf9fc50ad5e5f1aa7b65228529`。从这次已提交的源码独立重建，五个程序与 00:45 只读采样使用的版本逐个一致。两项 GitHub Actions 均已完成。引擎工作流通过了 102 项 Rust、91 项 Swift、30 项 Host 验收脚本和 23 项已安装 Host 监督器测试，生产 C ABI 完成链接和执行。5.22 协议工作流中的两个托管收据均记录夹具已退出、临时配置已清理，同时将正式 Host 和整组可见性切换记为 NOT_RUN。实机准入和生产资格沿用上表结论。[CI 收据与独立重建](18-final-ci.json) · [Rust、Swift 和 C ABI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45045824760) · [原生 5.22 协议](https://github.com/haohongfei2001-png/nearpane/actions/runs/45045824688)
+
 ### 恢复执行入口
 
 下一次操作条件为同机自然停留在普通桌面，原窗口有可读 AX 焦点，物理输入静止。以本分支重新运行 `scripts/acceptance/window-engine/host/build-overview-witness.sh`，为一次观察分配新的 0700 目录，运行 `overview-witness`。若原窗、HID、两个四按钮实测布局和正式 Host 的 0→1→0→0 均通过，立即将该私有原件传给 `run-installed-stage.py <已验证的安装记录目录> spaces --p0-receipt <本次原件> --result-dir <新私有目录>`。监督器会在退出前复核实时权限和 14 类输入计数，在诊断 Host 启动前再次核对物理输入。若前台再度漂移，同一次记录可交给 `overview_system_events.py` 关联系统事件和目标窗口元数据。[正式监督器](../../../../scripts/acceptance/window-engine/host/run-installed-stage.py) · [系统事件采集](../../../../scripts/acceptance/window-engine/host/overview_system_events.py)

@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "scope": "finalSourceAndHostedProtocols",
+  "source": "9cbe165e81630abf9fc50ad5e5f1aa7b65228529",
+  "status": "PASS",
+  "workflows": [
+    {
+      "conclusion": "success",
+      "head": "9cbe165e81630abf9fc50ad5e5f1aa7b65228529",
+      "id": 45045824760,
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Rust, Swift and production C ABI"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Read-only hosted desktop preflight"
+        }
+      ],
+      "name": "StageGroup window engine",
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45045824760"
+    },
+    {
+      "conclusion": "success",
+      "head": "9cbe165e81630abf9fc50ad5e5f1aa7b65228529",
+      "id": 45045824688,
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "protocol"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Desktop files on macOS 27"
+        }
+      ],
+      "name": "Nearpane native 5.22 protocol",
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45045824688"
+    }
+  ],
+  "hostedSource": {
+    "build": "26A434",
+    "architecture": "arm64",
+    "sourceResultSHA256": "521228ea4a55e4c7b28cfc7aaf85923e9ab4b44478d0ed6c7ec1e6c53c255403",
+    "checks": {
+      "rust": {
+        "status": "PASS",
+        "passed": 102,
+        "exit": 0
+      },
+      "release": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "c-abi-link": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "c-abi": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "corner-witness-build": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "corner-witness": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "swift": {
+        "status": "PASS",
+        "passed": 91,
+        "exit": 0
+      },
+      "hosted-reader-build": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "overview-witness-build": {
+        "status": "PASS",
+        "exit": 0
+      },
+      "spaces-tests": {
+        "status": "PASS",
+        "passed": 11,
+        "exit": 0
+      },
+      "performance-tests": {
+        "status": "PASS",
+        "passed": 10,
+        "exit": 0
+      },
+      "corner-lease-tests": {
+        "status": "PASS",
+        "passed": 4,
+        "exit": 0
+      },
+      "installed-host-tests": {
+        "status": "PASS",
+        "passed": 30,
+        "exit": 0
+      },
+      "installed-supervisor-tests": {
+        "status": "PASS",
+        "passed": 23,
+        "exit": 0
+      },
+      "ci-tests": {
+        "status": "PASS",
+        "passed": 13,
+        "exit": 0
+      }
+    }
+  },
+  "hostedFixtureReceipts": [
+    {
+      "artifact": "stage-group-lifecycle.json",
+      "sha256": "bb33f057f11259c87bac077cbcd553473c0a39a411f056f41685e9f1a868a5c9",
+      "status": "PASS",
+      "scope": "two registered ordinary fixture apps and two independent directory readers",
+      "installedHost": "NOT_RUN",
+      "groupVisibilitySwitch": "NOT_RUN",
+      "physicalMultiDisplay": "NOT_RUN",
+      "nativeWrites": 0,
+      "fixtureProcessesExited": true,
+      "profileRemoved": true
+    },
+    {
+      "artifact": "stage-group-windowserver.json",
+      "sha256": "070a89dde79acf31002a15c214e096b1bddfebb4a171d6706e926b065a4afee0",
+      "status": "PASS",
+      "scope": "two registered ordinary fixture apps and two independent directory readers",
+      "installedHost": "NOT_RUN",
+      "groupVisibilitySwitch": "NOT_RUN",
+      "physicalMultiDisplay": "NOT_RUN",
+      "nativeWrites": 0,
+      "fixtureProcessesExited": true,
+      "profileRemoved": true
+    }
+  ],
+  "localRebuild": {
+    "source": "9cbe165e81630abf9fc50ad5e5f1aa7b65228529",
+    "independentRebuildMatches": {
+      "overview-witness": "1d5f22d5bc70042b4310169d0dab775dfd236699f35d571174312a22a27e6ffd",
+      "metrics": "0c1760512432f24fbceb8259ab6459ec704913d030af1c478f1bba086dbc5485",
+      "finish-presented": "52eeadb641639b5cb32aba4a838e3914d115d82061fb6cf826695a11824acdbc",
+      "fixture-readback": "f9f43a5c799163c7d1db2e6aa7059e939464eb726b40637f6ead29704678751b",
+      "strip-movie": "8b8a8d12bb50684bb1d2acc7e7e97c1a76d73a9ea4f6580b2a57ed183ee9f74c"
+    },
+    "exactPrivateWitnessSHA256": "1d5f22d5bc70042b4310169d0dab775dfd236699f35d571174312a22a27e6ffd"
+  },
+  "physicalP0": "BLOCKED",
+  "physicalP1": "BLOCKED",
+  "physicalGroupSwitch": "NOT_RUN",
+  "productionGrants": 0
+}
