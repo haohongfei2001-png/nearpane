@@ -1,0 +1,161 @@
+{
+  "availability": {
+    "observerAX": true,
+    "current": 5184,
+    "targets": {
+      "4": {
+        "ordinaryCount": 7,
+        "unresolved": 0,
+        "otherCount": 3,
+        "foreignAdditional": 1
+      },
+      "6": {
+        "ordinaryCount": 13,
+        "unresolved": 0,
+        "otherCount": 1,
+        "foreignAdditional": 0
+      }
+    }
+  },
+  "nativeOperations": [
+    {
+      "operation": "add",
+      "target": null,
+      "issued": true,
+      "acknowledged": true,
+      "overviewDismissed": true,
+      "windowServerConfirmedBeforeClose": true
+    },
+    {
+      "operation": "select",
+      "target": 5614,
+      "issued": false,
+      "acknowledged": false,
+      "reason": "no independently hit-tested system desktop tile point",
+      "overviewDismissed": true
+    },
+    {
+      "operation": "remove",
+      "target": 5614,
+      "issued": true,
+      "acknowledged": true,
+      "overviewDismissed": true,
+      "windowServerConfirmedBeforeClose": true
+    }
+  ],
+  "result": {
+    "schema": 1,
+    "scope": "appleControlledOrdinaryDesktopFixture",
+    "status": "UNKNOWN",
+    "initialSpace": 5184,
+    "originalFocus": [
+      1046,
+      65840
+    ],
+    "originalCount": 4,
+    "setupDesktop": 5614,
+    "cleanup": {
+      "topologyRestored": true,
+      "focusRestored": true,
+      "originalCurrent": 5184,
+      "cleanupCurrent": 5184,
+      "originalOrderRestored": true,
+      "preservedLatestOrder": true,
+      "retainedUserSelectedSpace": false,
+      "created": 1,
+      "removed": 1,
+      "outstanding": [],
+      "errors": []
+    },
+    "inventoryRestored": true,
+    "originalFocusRestored": false,
+    "remainingOwned": [],
+    "reason": "select: no independently hit-tested system desktop tile point"
+  },
+  "deferredForegroundReads": [
+    {
+      "front": 63480,
+      "window": 57074,
+      "sameFocus": false,
+      "desktop": 5184,
+      "sameInventory": true,
+      "hardware": "9386,92,0,5679,268732",
+      "overview": "closed"
+    },
+    {
+      "front": 63480,
+      "window": 57074,
+      "sameFocus": false,
+      "desktop": 5184,
+      "sameInventory": true,
+      "hardware": "9386,92,0,5679,268732",
+      "overview": "closed"
+    },
+    {
+      "front": 63480,
+      "window": 57074,
+      "sameFocus": false,
+      "desktop": 5184,
+      "sameInventory": true,
+      "hardware": "9386,92,0,5679,268732",
+      "overview": "closed"
+    }
+  ],
+  "handoff": {
+    "activationRequests": 0,
+    "before": {
+      "focusedWindow": 33546,
+      "pid": 49381
+    },
+    "postedEvents": 0,
+    "reason": "physicalInputSinceAdmission",
+    "requested": {
+      "focusedWindow": 65840,
+      "pid": 1046
+    },
+    "scope": "returnObservedFrontmostApplication",
+    "status": "UNKNOWN",
+    "windowActions": 0
+  },
+  "subsequentUserSelection": [
+    {
+      "current": 5568,
+      "type": 4,
+      "rosterCount": 4,
+      "foreground": [
+        49381,
+        33546
+      ],
+      "hid": "9398,92,0,5679,268918"
+    },
+    {
+      "current": 5568,
+      "type": 4,
+      "rosterCount": 4,
+      "foreground": [
+        49381,
+        33546
+      ],
+      "hid": "9398,92,0,5679,268937"
+    }
+  ],
+  "naturalOrdinaryOpportunity": {
+    "postedEvents": 0,
+    "qualification": false,
+    "samplesOnChange": [
+      {
+        "id": 5568,
+        "time": 1795325647.241413,
+        "type": 4
+      },
+      {
+        "id": 4,
+        "time": 1795325720.580782,
+        "type": 0
+      }
+    ],
+    "scope": "passiveOrdinaryOpportunity",
+    "spaceWrites": 0,
+    "status": "OBSERVED"
+  }
+}

@@ -28,6 +28,37 @@ def recoveries(work):
     return recovery.inspect(recovery.PROFILE, recovery.SUPPORT, recovery.SHARED, work / "recovery-window")
 
 
+def registered_paths():
+    query = ('import AppKit; let paths = NSWorkspace.shared.urlsForApplications(withBundleIdentifier:'
+             '"com.holdsnow.nearpane.alpha").map { $0.standardizedFileURL.path }; '
+             'FileHandle.standardOutput.write(try JSONEncoder().encode(paths.sorted()))')
+    return [Path(s) for s in json.loads(subprocess.check_output(["/usr/bin/swift", "-e", query], timeout=25))]
+
+
+def retire_backup_registrations(app):
+    paths = registered_paths()
+    require(app in paths, "The standard installation is not registered")
+    base = Path.home() / "Library/Application Support"
+    roots = {base / "Nearpane Acceptance Candidates", base / "Nearpane Install Backups"}
+    extras = [path for path in paths if path != app]
+    registry = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+    verified = []
+    for path in extras:
+        require(path.parent.parent in roots and path.name == app.name and path == path.resolve(strict=True),
+                "Unrecognized registration outside Nearpane's signed backup directories")
+        install.publisher.require_stopped(path)
+        install.publisher.verify_alpha(path)
+        install.gate.verify_install_identity(path)
+        verified.append((path, install.inode(path), install.public_tree(path)))
+    for path, inode, tree in verified:
+        install.publisher.require_stopped(path)
+        require(install.inode(path) == inode, "Verified backup was replaced")
+        subprocess.run([registry, "-u", path], check=True, capture_output=True, timeout=15)
+        require(install.inode(path) == inode and install.public_tree(path) == tree, "Backup bytes changed")
+    require(registered_paths() == [app], "Unique standard Launch Services registration not confirmed")
+    return dict(before=len(paths), retired=len(verified), registeredAfter=[str(app)])
+
+
 def archive_if_needed(work, leases, journal_digest):
     blocked = [r for r in leases["records"] if r["blocksExchange"]]
     if not blocked:
@@ -111,7 +142,10 @@ def upgrade(args, progress):
     stamp = mac.wait_owner(mac.daily, current)
     roster = census(work, app)
     require(roster["pids"] == [stamp[0]], "Canonical Host not unique after launch")
-    progress("running", currentProcess=stamp, runningRoster=roster, configAfter=mac.config(),
+    progress("regularHostLaunched", currentProcess=stamp, runningRoster=roster)
+    registration = retire_backup_registrations(app)
+    require(mac.bound(stamp[0], mac.daily, current) == stamp, "Host changed while verifying registrations")
+    progress("running", registration=registration, configAfter=mac.config(),
              configBefore=before["dailyConfigurationBefore"], status="PASS")
 
 

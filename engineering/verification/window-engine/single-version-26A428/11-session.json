@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "requestNormalQuit",
+      "utc": "2026-11-22T06:07:38.701455+00:00"
+    },
+    {
+      "stage": "soleInstalledImageReady",
+      "utc": "2026-11-22T06:07:39.473120+00:00"
+    },
+    {
+      "stage": "qualificationReturned",
+      "utc": "2026-11-22T06:07:42.559624+00:00"
+    },
+    {
+      "stage": "normalHostReturnCheck",
+      "utc": "2026-11-22T06:07:42.803700+00:00"
+    },
+    {
+      "stage": "regularHostRunning",
+      "utc": "2026-11-22T06:07:43.619108+00:00"
+    }
+  ],
+  "status": "PASS",
+  "scope": "spaces",
+  "previous": [
+    16060,
+    1795326890,
+    556649
+  ],
+  "configurationBefore": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+  },
+  "beforeQuitRecovery": {
+    "status": "PASS",
+    "reason": "clear",
+    "profileIndexSHA256": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "generations": 2,
+    "records": [
+      {
+        "kind": "previousInstall",
+        "journalSHA256": "36cdd997435cd28a57743efaee8d1eddbdf4092bc7dad0e442551aeac69a88d9",
+        "restoration": "PASS",
+        "cleanup": "PASS",
+        "currentInstall": false,
+        "blocksExchange": false
+      }
+    ],
+    "openSharedLeaseDescriptors": 0,
+    "quitPermitted": true
+  },
+  "stage": "regularHostRunning",
+  "emptyRoster": {
+    "complete": true,
+    "pids": [],
+    "session": {
+      "qualified": true,
+      "securitySessionID": 100022
+    }
+  },
+  "trialExit": 2,
+  "qualification": "BLOCKED",
+  "cleanup": {
+    "candidateExit": "NOT_RUN",
+    "registeredWindowExit": "NOT_RUN",
+    "backendCleanup": "NOT_RUN",
+    "clear": true
+  },
+  "reason": "standalonePanelOrVisibleSystemStripNotConfirmed",
+  "remainingRoster": {
+    "complete": true,
+    "pids": [],
+    "session": {
+      "qualified": true,
+      "securitySessionID": 100022
+    }
+  },
+  "afterTrialRecovery": {
+    "status": "PASS",
+    "reason": "clear",
+    "profileIndexSHA256": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "generations": 2,
+    "records": [
+      {
+        "kind": "previousInstall",
+        "journalSHA256": "36cdd997435cd28a57743efaee8d1eddbdf4092bc7dad0e442551aeac69a88d9",
+        "restoration": "PASS",
+        "cleanup": "PASS",
+        "currentInstall": false,
+        "blocksExchange": false
+      }
+    ],
+    "openSharedLeaseDescriptors": 0,
+    "quitPermitted": true
+  },
+  "currentProcess": [
+    22283,
+    1795327663,
+    114217
+  ],
+  "returnedRoster": {
+    "complete": true,
+    "pids": [
+      22283
+    ],
+    "session": {
+      "qualified": true,
+      "securitySessionID": 100022
+    }
+  },
+  "configurationAfter": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+  }
+}
