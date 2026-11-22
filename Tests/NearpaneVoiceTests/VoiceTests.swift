@@ -13,11 +13,13 @@ final class ScriptedInput: VoiceInput {
     var closed = false
     var onShutdown: (() -> Void)?
     var permissionDenied = false
+    var pendingStart: (() async -> Void)?
     private(set) var permissionRequests: [Bool] = []
     init(_ update: @escaping (CaptureState, Float, String?) -> Void) { self.update = update }
     func start(requestPermission: Bool) async throws {
         permissionRequests.append(requestPermission)
         if permissionDenied { throw CocoaError(.fileReadNoPermission) }
+        if let pendingStart { await pendingStart(); return }
         update(.listening, 0, nil)
     }
     func pause() async { update(.paused, 0, nil) }
@@ -241,6 +243,78 @@ extension VoiceTests {
         }
         #expect(calls == 2 && !view.isEditable && view.isSelectable)
         #expect(!window.isVisible && !window.isKeyWindow)
+    }
+
+    @Test func aRetiredStartCannotClearANewSessionWaitingForItsOwnFirstPCM() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let entered = AsyncStream<Void>.makeStream()
+        var pending = [CheckedContinuation<Void, Never>]()
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, update in
+            let device = ScriptedInput(update)
+            device.pendingStart = { await withCheckedContinuation { pending.append($0); entered.continuation.yield() } }
+            return device
+        })
+        var started = entered.stream.makeAsyncIterator()
+        try module.start()
+        await module.waitForTransition()
+        let old = Task { await module.toggle(requestPermission: false) }
+        _ = await started.next()
+        module.stop()
+        try module.start()
+        await module.waitForTransition()
+        let current = Task { await module.toggle(requestPermission: false) }
+        _ = await started.next()
+        pending[0].resume()
+        await old.value
+        let boundary = module.interruptForHost(.session)
+        pending[1].resume()
+        await current.value
+        await boundary?.value
+        #expect(boundary != nil)
+        #expect(module.capture == .interrupted(VoiceHostInterruption.session.message))
+        module.stop()
+        await module.waitForTransition()
+    }
+
+    @Test func draftSaveAndDiscardSurviveStoreRetirementInUserOrder() async throws {
+        let dir = directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try SaytileStore(directory: dir)
+        let module = VoiceModule(openStore: { store }, makeInput: { _, callback in ScriptedInput(callback) })
+        try module.start()
+        await module.waitForTransition()
+        let first = try await store.createRecording()
+        let second = try await store.createRecording()
+        await module.refresh()
+        var release: CheckedContinuation<Void, Never>?
+        let blocked = AsyncStream<Void>.makeStream()
+        let barrier = try #require(module.queueEdit(failure: "fixture edit failed") { _ in
+            await withCheckedContinuation { release = $0; blocked.continuation.yield() }
+        })
+        var ready = blocked.stream.makeAsyncIterator()
+        _ = await ready.next()
+        module.stageDraft(first.id, text: "draft one")
+        module.stageDraft(second.id, text: "discard only this draft")
+        // Each task enters its same-MainActor action before yielding at its queued write.
+        let admitted = AsyncStream<Void>.makeStream()
+        let saved = Task { admitted.continuation.yield(); return await module.saveEdit(first.id, text: "committed text") }
+        let discarded = Task { admitted.continuation.yield(); return await module.discardDraft(second.id) }
+        var signal = admitted.stream.makeAsyncIterator()
+        _ = await signal.next(); _ = await signal.next()
+        module.stop()
+        await Task.yield()
+        let resume = try #require(release)
+        resume.resume()
+        _ = await barrier.value
+        _ = await saved.value
+        _ = await discarded.value
+        await module.waitForTransition()
+        let reopened = try SaytileStore(directory: dir)
+        #expect(try await reopened.recording(id: first.id)?.text == "committed text")
+        #expect(try await reopened.loadDraft(recordingID: first.id) == nil)
+        #expect(try await reopened.loadDraft(recordingID: second.id) == nil)
+        try await reopened.close()
     }
 
     @Test func restartDrainsAnAdmittedPanelReadBeforeClosingTheFirstStore() async throws {

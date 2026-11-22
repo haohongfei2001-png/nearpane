@@ -30,7 +30,9 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var pressTask: Task<TargetLease, Error>?
     @ObservationIgnored private var resolvingPresses: [UUID: Task<TargetLease, Error>] = [:]
     @ObservationIgnored var pointer = PointerSelectionGate()
-    @ObservationIgnored private var fileStore: TrayFileStore?
+    @ObservationIgnored private var fileStore: (any TrayFileStorage)?
+    @ObservationIgnored private var fileGeneration: UInt64 = 0
+    @ObservationIgnored private var importWaiters: [CheckedContinuation<Void, Never>] = []
     @ObservationIgnored private var expiry: Task<Void, Never>?
     private(set) var files: [SavedTrayFile] = []
     private(set) var fileImports = 0
@@ -42,20 +44,29 @@ public final class TrayModule: HostModule {
 
     func importFiles(_ urls: [URL]) async {
         guard active, let fileStore else { return }
+        let generation = fileGeneration
         fileImports += 1
-        defer { fileImports -= 1 }
+        defer {
+            fileImports -= 1
+            if fileImports == 0 {
+                let waiters = importWaiters
+                importWaiters.removeAll()
+                for waiter in waiters { waiter.resume() }
+            }
+        }
         for url in urls where url.isFileURL {
             do { _ = try await fileStore.save(url) }
-            catch { issue = "文件未保存：" + error.localizedDescription }
+            catch { if active, generation == fileGeneration { issue = "文件未保存：" + error.localizedDescription } }
         }
-        await refreshFiles()
+        if active, generation == fileGeneration { await refreshFiles() }
     }
 
     private func refreshFiles() async {
         guard active, let fileStore else { return }
+        let generation = fileGeneration
         do {
-            let recent = try await fileStore.recent()
-            guard active else { return }
+            let recent = try await fileStore.recent(now: .now)
+            guard active, generation == fileGeneration else { return }
             files = recent.filter { $0.savedAt.addingTimeInterval(60) > .now }
             expiry?.cancel()
             if let oldest = files.last {
@@ -65,7 +76,7 @@ public final class TrayModule: HostModule {
                     await refreshFiles()
                 }
             }
-        } catch { issue = "无法读取暂存文件：" + error.localizedDescription }
+        } catch { if active, generation == fileGeneration { issue = "无法读取暂存文件：" + error.localizedDescription } }
     }
 
     private(set) var rows: [AssetRecord] = []
@@ -209,6 +220,11 @@ public final class TrayModule: HostModule {
         await connectionTask?.value
         await collectionDrain?.value
         await ownerDrain?.value
+        await waitForFileImports()
+    }
+
+    private func waitForFileImports() async {
+        if fileImports != 0 { await withCheckedContinuation { importWaiters.append($0) } }
     }
 
 
@@ -221,12 +237,21 @@ public final class TrayModule: HostModule {
         self.localOnly = localOnly
         fileStore = TrayFileStore(root: existingRoot.deletingLastPathComponent().appendingPathComponent("Nearpane/Tray Files", isDirectory: true))
     }
-    init(productAttachments: Bool = false, open: @escaping Open) {
+    init(productAttachments: Bool = false, fileStore: (any TrayFileStorage)? = nil, open: @escaping Open) {
         self.productAttachments = productAttachments
+        self.fileStore = fileStore
         self.open = open
     }
-    public func start() throws { active = true; Task { await refreshFiles() } }
-    public func stop() { active = false; expiry?.cancel(); files = []; disconnect() }
+    public func start() throws {
+        guard !active else { return }
+        active = true
+        let generation = fileGeneration
+        Task {
+            await waitForFileImports()
+            if active, generation == fileGeneration { await refreshFiles() }
+        }
+    }
+    public func stop() { active = false; fileGeneration &+= 1; expiry?.cancel(); files = []; disconnect() }
     public func suspend() { stop() }
     public func resume() throws { try start() }
     public func perform(_ action: ModuleAction) throws {}

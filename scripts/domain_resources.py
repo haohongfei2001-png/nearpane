@@ -3,7 +3,7 @@ import hashlib
 
 
 def source_receipt(pin):
-    fields = ("repository", "commit", "treeSHA256", "notices", "releaseTag", "upstreamBuild",
+    fields = ("repository", "commit", "treeSHA256", "notices", "releaseTag", "upstreamBuild", "latestStableRelease",
               "captureReadiness", "draftWitness")
     return {key: pin[key] for key in fields if key in pin}
 

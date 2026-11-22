@@ -164,7 +164,7 @@ public final class VoiceModule: HostModule {
     private(set) var changingRecognition = false
     @ObservationIgnored private var transition: Task<Void, Never>?
     @ObservationIgnored private var updates: Task<Void, Never>?
-    @ObservationIgnored private var draftWrite: Task<Void, Never>?
+    @ObservationIgnored private var draftWrite: Task<Bool, Never>?
     @ObservationIgnored private var revisionObserver: NSObjectProtocol?
     @ObservationIgnored private var notifiedRefresh: Task<Void, Never>?
     // Observed only in a dedicated acceptance session; text never leaves the domain.
@@ -321,7 +321,7 @@ public final class VoiceModule: HostModule {
             await endingPlayback?.value
             await endingPause?.value
             await oldInput?.shutdown()
-            await writes?.value
+            _ = await writes?.value
             // Cancelling a view refresh does not cancel an already admitted SQLite read.
             // Keep the old store open across all awaits until that reader has left.
             if panelReads != 0 { await withCheckedContinuation { waitingForPanelReads = $0 } }
@@ -408,7 +408,7 @@ public final class VoiceModule: HostModule {
                 LocalToolStage.voiceStarted.emit(id)
                 acceptanceEvent?("userStart")
                 try await device.start(requestPermission: requestPermission)
-                if !capture.isRunning { intent = nil; awaitingFirstPCM = false }
+                if active, generation == epoch, intent == id, !capture.isRunning { intent = nil; awaitingFirstPCM = false }
             }
             guard active, generation == epoch else { return }
             trackRevisions(); await refresh()
@@ -628,46 +628,53 @@ public final class VoiceModule: HostModule {
         try result.get()
     }
     func editText(_ id: UUID) async -> String? {
-        guard active, let store, let row = rows.first(where: { $0.id == id }) else { return nil }
-        let epoch = generation
-        await draftWrite?.value
+        guard active, let row = rows.first(where: { $0.id == id }) else { return nil }
+        let epoch = generation, previous = draftWrite
         do {
-            let text = try await store.loadDraft(recordingID: id) ?? row.text
+            let text = try await withPanelRead { store in
+                _ = await previous?.value
+                return try await store.loadDraft(recordingID: id) ?? row.text
+            }
             return generation == epoch ? text : nil
         } catch { if generation == epoch { issue = "暂时无法读取修改草稿。" }; return nil }
     }
 
     // Preserve typing in Saytile's own edit-draft table, in UI order. Never publish it as recognized text.
     func stageDraft(_ id: UUID, text: String) {
-        guard active, let store else { return }
+        guard active, store != nil else { return }
         acceptanceEvent?("userEdit")
-        let previous = draftWrite, epoch = generation
-        draftWrite = Task { [weak self] in
-            await previous?.value
-            do { try await store.saveDraft(recordingID: id, text: text) }
-            catch { if self?.generation == epoch { self?.issue = "修改草稿未能保存。" } }
-        }
+        _ = queueEdit(failure: "修改草稿未能保存。") { try await $0.saveDraft(recordingID: id, text: text) }
     }
 
     func discardDraft(_ id: UUID) async -> Bool {
-        guard active, let store else { return false }
         let epoch = generation
-        await draftWrite?.value
-        do { try await store.clearDraft(recordingID: id); return epoch == generation }
-        catch { if epoch == generation { issue = "无法取消修改草稿。" }; return false }
+        guard let change = queueEdit(failure: "无法取消修改草稿。", { try await $0.clearDraft(recordingID: id) }) else { return false }
+        let saved = await change.value
+        return saved && epoch == generation
     }
 
     @discardableResult func saveEdit(_ id: UUID, text: String) async -> Bool {
-        guard active, let store, rows.contains(where: { $0.id == id }) else { return false }
+        guard active, rows.contains(where: { $0.id == id }) else { return false }
         let epoch = generation
-        await draftWrite?.value
-        do {
-            _ = try await store.saveEdit(recordingID: id, text: text)
-            await refresh()
-            return epoch == generation
-        } catch {
-            if epoch == generation { issue = "修改尚未保存，请重试。" }
-            return false
+        guard let change = queueEdit(failure: "修改尚未保存，请重试。", { _ = try await $0.saveEdit(recordingID: id, text: text) }),
+              await change.value, epoch == generation else { return false }
+        await refresh()
+        return epoch == generation
+    }
+
+    /// Every admitted edit participates in both user ordering and the store-close barrier.
+    func queueEdit(failure: String, _ operation: @escaping @MainActor (SaytileStore) async throws -> Void) -> Task<Bool, Never>? {
+        guard active, let store else { return nil }
+        let previous = draftWrite, epoch = generation
+        let change = Task { [weak self] in
+            _ = await previous?.value
+            do { try await operation(store); return true }
+            catch {
+                if self?.generation == epoch { self?.issue = failure }
+                return false
+            }
         }
+        draftWrite = change
+        return change
     }
 }

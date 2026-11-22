@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "recordedUTC": "2026-11-22T17:16:25+00:00",
+  "baseCommit": "609469a667fd265482b774c07198f6338051877d",
+  "productVersion": "5.22",
+  "build": 90,
+  "scope": "Embedded module lifecycle, released-source provenance, headless isolated drafts and independent cold audio file journal. Controlled local data only.",
+  "components": {
+    "saytile": {
+      "selectedFileCount": 130,
+      "packagedSourceReceiptSHA256": "240737916616fcd65c412e5d8328705afb1c0b2325db707361eb108e47071fd3",
+      "compiledCommit": "7c0df4728b113c17297a0cded20472de4ffc3337",
+      "selectedTreeSHA256": "f7879d82fc743c40f87d50992b99e03a5e5215f0947f3935530d56c1eda50c71",
+      "compiledBuild": {
+        "version": "0.20",
+        "build": 533,
+        "channel": "internal",
+        "pullRequest": 49
+      },
+      "latestStableRelease": null,
+      "receiptMatchesLock": true,
+      "stableReleaseEvidence": {
+        "api": "https://api.github.com/repos/haohongfei2001-png/saytile/releases/latest",
+        "httpStatus": 404,
+        "releaseListURL": "https://github.com/haohongfei2001-png/saytile/releases",
+        "publicReleaseCount": 3,
+        "publicNonPrereleaseCount": 0,
+        "mostRecentlyPublishedPrerelease": {
+          "tag": "v0.18-beta.492",
+          "releaseID": 445504709,
+          "publishedAt": "2026-11-14T18:33:33Z",
+          "commit": "012999c2018f591f3cf9a529e4c0ae81e7b81f21",
+          "isAncestorOfCompiledPin": true,
+          "ancestorDistance": 41
+        }
+      },
+      "compiledCaptureAdaptation": {
+        "patchSHA256": "944c18f9b1e663b58d615823007b882e0be6095ff0e3d3f0d49554a314a26dbc",
+        "compiledSHA256": "60f98669a5b0cf32aa7f0b9712b0d99012a28f8a098f93cac61bf073b1aa09ff"
+      }
+    },
+    "riftlet": {
+      "selectedFileCount": 104,
+      "packagedSourceReceiptSHA256": "35ce7f17d8800eab1bfd41dda5689a2323e7f097602d1863a63d5fe18e1943d9",
+      "compiledCommit": "b20cefbf94e78ed89643cc27fa95af91bd140960",
+      "selectedTreeSHA256": "103ef03de45dceb3a55c19c3bb652964d6ef85ec1a5dc94f5d151a3bf3162714",
+      "compiledBuild": {
+        "version": "1.0.7",
+        "build": 53,
+        "channel": "development",
+        "pullRequest": 122
+      },
+      "latestStableRelease": {
+        "releaseID": 449460970,
+        "prerelease": false,
+        "tag": "v1.0.5",
+        "version": "1.0.5",
+        "build": 31,
+        "commit": "fe9c227a3b89a082b9da39dc5bb1f5c0b955c2ee"
+      },
+      "receiptMatchesLock": true,
+      "stableReleaseEvidence": {
+        "releaseURL": "https://github.com/haohongfei2001-png/Riftlet/releases/tag/v1.0.5",
+        "api": "https://api.github.com/repos/haohongfei2001-png/Riftlet/releases/latest",
+        "publishedAt": "2026-11-18T02:50:46Z",
+        "tagType": "commit",
+        "compare": "https://api.github.com/repos/haohongfei2001-png/Riftlet/compare/fe9c227a3b89a082b9da39dc5bb1f5c0b955c2ee...b20cefbf94e78ed89643cc27fa95af91bd140960",
+        "status": "ahead",
+        "aheadBy": 259,
+        "behindBy": 0,
+        "reviewedUnmergedHead": "a9a1c03c9bd0b0d834cc6f9a4f99492cbfa12db2",
+        "laterProductFileChanges": [
+          "Sources/RiftletAdapters/Issue120Providers/Issue120ProviderAdapter.swift"
+        ],
+        "laterDiffScope": "Additional loopback-only fixture path, not a stable release."
+      }
+    }
+  },
+  "sourceSHA256": {
+    "Dependencies/domains.lock.json": "74889afc0fa78a18ec6d10059526f737c9e5fa4941c4e95a16ee0793abcd5769",
+    "Dependencies/saytile-capture-readiness.patch": "944c18f9b1e663b58d615823007b882e0be6095ff0e3d3f0d49554a314a26dbc",
+    "scripts/prepare-domains.py": "387c8cfc9e00409a3705a936084692054bfe208a0d7a202f6e8a65a9a58e30c6",
+    "scripts/domain_resources.py": "17fd6521dbd83c5a4bf2388c2b518588c26fdf4b438d99b5e1723a142951c9e9",
+    "scripts/test-dependencies.py": "06a11dda57383ac8e363e9017c910c4da6270cd6bc2b5e82e3ec7b56e5266318",
+    "scripts/acceptance/run-local-adapter.py": "83bcf0693486dc0b74eb57ecb4a2fbdd2a478654d5c7368539f5eabc76bb4c54",
+    "Sources/NearpaneVoice/VoiceModule.swift": "86408ac0e66f3a6822b2c2377afc0abcd3509b5a36c9bea7e8e6bfa8579fd914",
+    "Sources/NearpaneTray/TrayFiles.swift": "d2d00e5a2ff2fea9cd3ac31c2e5d0f42309690e3c4656ee23b6793fb5fa45d09",
+    "Sources/NearpaneTray/TrayModule.swift": "fd48432be36a238e52a6f7d60ed37d376ce23c34a9e2f3c761c73307d7321549",
+    "Tests/NearpaneVoiceTests/VoiceTests.swift": "9280465b05701ffa0a33ad1cfd5d6b0df53f3f98bd60c99a9cd14affd4adf58b",
+    "Tests/NearpaneTrayTests/FileTrayTests.swift": "93bf1d5d1999fed78c3446aca18373a1271924e460bd2eb02286c5cb9728af7a"
+  },
+  "lifecycle": {
+    "status": "PASS",
+    "tests": {
+      "voiceAndFileTray": {
+        "registered": 45,
+        "passed": 43,
+        "skipped": [
+          "coldFileJournalAndIndependentReopen()",
+          "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()"
+        ],
+        "failed": [],
+        "xunitSHA256": "68cccce983d33f462af0f7c2e69c71b69ad64ca2adeb6458df338098b6c90205"
+      },
+      "fullTray": {
+        "registered": 42,
+        "passed": 42,
+        "skipped": [],
+        "failed": [],
+        "xunitSHA256": "481daca9fe0d38099640f9ebadac05ee579448decdde9668ccd2fce051ab3c3d"
+      },
+      "retiredVoiceStart": {
+        "registered": 1,
+        "passed": 1,
+        "skipped": [],
+        "failed": [],
+        "xunitSHA256": "a9d36132edba824f668edb4e263be9786c274794e327c9385d3b56f31f23c230"
+      }
+    },
+    "specificRegressions": [
+      "shutdownWaitsForWholeAdmittedFileDropAndReopenReadsItsOriginalContents",
+      "draftSaveAndDiscardSurviveStoreRetirementInUserOrder",
+      "aRetiredStartCannotClearANewSessionWaitingForItsOwnFirstPCM"
+    ],
+    "dependencyResolverTestsPassed": 11,
+    "packaging": "Two real debug SwiftPM resource directories were placed in the normal bundle layout and verified by scripts/prepare-domains.py --offline --package-resources under a temporary root. No installed application was used."
+  },
+  "draftFixture": {
+    "previousRunnerFailure": {
+      "status": "FAIL",
+      "stage": "linkBeforeBrowserLaunch",
+      "firstMissingSymbol": "_np_engine_cancel",
+      "reason": "Whole-Host objects included Rust window engine in the dedicated tray test program."
+    },
+    "current": {
+      "chrome": {
+        "status": "PASS",
+        "path": "chrome.json",
+        "sha256": "5dfab591a6b3917ab8dc6042a3c67f0452dd77ef5aea1ea02d80a29ae62e5b4e",
+        "browser": "Google Chrome",
+        "engine": "Chrome/157.0.8103.79",
+        "scenarios": 9,
+        "ownedDraftAttachmentCommit": 1,
+        "foreignInputOrChange": 0,
+        "sendOrSubmit": 0,
+        "interceptedFixtureDocuments": 11,
+        "realSignedInSite": "NOT_RUN"
+      },
+      "edge": {
+        "status": "PASS",
+        "path": "edge.json",
+        "sha256": "bd5bcc6d1046a30a49e27c6378042189d388d6d6721c79d6be77f2b18efcdefa",
+        "browser": "Microsoft Edge",
+        "engine": "Edg/158.0.4370.33",
+        "scenarios": 9,
+        "ownedDraftAttachmentCommit": 1,
+        "foreignInputOrChange": 0,
+        "sendOrSubmit": 0,
+        "interceptedFixtureDocuments": 11,
+        "realSignedInSite": "NOT_RUN"
+      }
+    },
+    "scope": "Compiled Nearpane tray, Riftlet queue and adapter, headless browser and private CDP pipe. No real account or external page."
+  },
+  "voice": {
+    "pcm": {
+      "journalReopen": "PASS",
+      "onsetPCM": "PASS",
+      "distinctColdProcesses": 12,
+      "wholePCMByteIdenticalCases": 6,
+      "actualASRScored": 0
+    },
+    "cases": 6,
+    "receipt": "voice-corpus.json",
+    "sha256": "9bf9723b886208cc60bd25065bd180a2414516f9ba4b66b04d2e58c24d512171",
+    "mandarinAccuracy": "BLOCKED_DEFAULT_MODEL_NOT_INSTALLED",
+    "physicalMicrophone": "NOT_RUN",
+    "cloudCalls": 0,
+    "modelDownloads": 0,
+    "deniedPermissionText": "Patched and SHA-verified compiled AudioCapture denial state/issue names Nearpane. This check did not change or prompt for TCC."
+  },
+  "commands": [
+    "NEARPANE_OFFLINE=1 python3 -B scripts/test-dependencies.py",
+    "NEARPANE_OFFLINE=1 bash scripts/test.sh --filter NearpaneVoiceTests",
+    "NEARPANE_OFFLINE=1 bash scripts/test.sh --filter NearpaneTrayTests",
+    "NEARPANE_OFFLINE=1 python3 -B scripts/acceptance/native-spaces/p4-file-corpus.py <fresh-output.json>",
+    "NEARPANE_OFFLINE=1 python3 -B scripts/acceptance/run-local-adapter.py --product --build-products .build/native/debug --browser <chrome|edge>"
+  ],
+  "installation": "NOT_RUN",
+  "globalPermissionOrConfigurationChanges": 0
+}

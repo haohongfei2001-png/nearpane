@@ -8,7 +8,13 @@ struct SavedTrayFile: Identifiable, Equatable {
 }
 
 /// A completed import is one uniquely named directory. Hiding a tile never removes its file.
-actor TrayFileStore {
+protocol TrayFileStorage: Sendable {
+    var root: URL { get }
+    func save(_ source: URL) async throws -> SavedTrayFile
+    func recent(now: Date) async throws -> [SavedTrayFile]
+}
+
+actor TrayFileStore: TrayFileStorage {
     let root: URL
     init(root: URL) { self.root = root }
 

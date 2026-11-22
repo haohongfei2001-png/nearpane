@@ -7,6 +7,8 @@
 | Riftlet | [1.0.7（53）开发源码](https://github.com/haohongfei2001-png/Riftlet/tree/b20cefbf94e78ed89643cc27fa95af91bd140960) · [上游 PR #122](https://github.com/haohongfei2001-png/Riftlet/pull/122) | Chrome 和 Edge 的 ChatGPT 草稿使用按下瞬间的窗口、标签页、文档和编辑框。原附件的失败可独立回读。新增九个站点配置只识别草稿附件入口，截图继续保留在托盘。 |
 | Saytile | [0.20（533）内测源码](https://github.com/haohongfei2001-png/saytile/tree/7c0df4728b113c17297a0cded20472de4ffc3337) · [上游 PR #49](https://github.com/haohongfei2001-png/saytile/pull/49) | 收音、识别、文字修订和手动插入使用同一提交。重开资料时先核对本地音频日志，恢复已落盘的录音帧。Nearpane 默认使用 Apple 本机识别，麦克风由用户启动，资料和凭据各归当前 Nearpane 配置。 |
 
+2026-11-23 核对了两个仓库的 GitHub Releases。Riftlet 的最新正式版为 1.0.5（31），锁定的开发提交包含该版源码。Saytile 当日只有预发布，其中最近发布的是 0.18（492）内测。包内 `source.json` 分别记录编译来源 `upstreamBuild` 和最近正式发布 `latestStableRelease`，后者为 `null` 表示核对时没有正式发布。[Riftlet 正式版](https://github.com/haohongfei2001-png/Riftlet/releases/tag/v1.0.5) · [Saytile Releases](https://github.com/haohongfei2001-png/saytile/releases)
+
 独立 Saytile 的 iCloud、iPhone 与记住待命涉及独立账户、权限或启动策略。Nearpane 的上游版本号说明编译进包的组件；端到端验收范围见[工具验证收据](../engineering/verification/embedded-tools/5.22-90/verification.json)。
 
 ## 构建与核对

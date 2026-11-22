@@ -61,8 +61,18 @@ def validate(pin):
         require(isinstance(build, dict) and re.fullmatch(r"\d+(?:\.\d+)+", str(build.get("version", "")))
                 and type(build.get("build")) is int and build["build"] > 0
                 and build.get("channel") in ("development", "internal", "release", "beta")
-                and type(build.get("pullRequest")) is int and build["pullRequest"] > 0,
+                and ((type(build.get("pullRequest")) is int and build["pullRequest"] > 0)
+                     or (build["channel"] == "release" and isinstance(pin.get("releaseTag"), str)
+                         and pin["releaseTag"].strip())),
                 "Invalid upstream product build")
+    release = pin.get("latestStableRelease")
+    if release is not None:
+        require(isinstance(release, dict) and isinstance(release.get("version"), str)
+                and re.fullmatch(r"\d+(?:\.\d+)+", release["version"])
+                and isinstance(release.get("tag"), str) and release["tag"].strip()
+                and type(release.get("releaseID")) is int and release["releaseID"] > 0 and release.get("prerelease") is False
+                and type(release.get("build")) is int and release["build"] > 0
+                and re.fullmatch(r"[0-9a-f]{40}", str(release.get("commit", ""))), "Invalid stable release record")
     files = pin["files"]
     require(files and all(valid_path(p) and selection(pin, p) and re.fullmatch(r"[a-f0-9]{64}", h)
                           for p, h in files.items()), "Invalid file inventory in lock")
@@ -315,6 +325,7 @@ def propose(lock, domain, revision, output):
     pin["commit"] = revision
     pin.pop("releaseTag", None)
     pin.pop("upstreamBuild", None)  # Verify the product version at the new commit before adopting it.
+    pin.pop("latestStableRelease", None)
     url = f"https://api.github.com/repos/{pin['repository']}/git/trees/{revision}?recursive=1"
     with remote(url) as response:
         tree = json.loads(response.read(8 * MIB))

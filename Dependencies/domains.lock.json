@@ -153,15 +153,16 @@
         "Sources/SaytileKit/VoiceTranscriptFlow.swift": "Sources/SaytileVoiceUI/VoiceTranscriptFlow.swift"
       },
       "captureReadiness": {
-        "patchSHA256": "67704874dc8cb0fbf9191f978930a1b3c57a2adc84bf31cfefbd420a3b72c922",
-        "compiledSHA256": "bc6d97e2e4ac8d8b2b6761ba5855e1faf6c118bc1788122a4eddbbd85506ab86"
+        "patchSHA256": "944c18f9b1e663b58d615823007b882e0be6095ff0e3d3f0d49554a314a26dbc",
+        "compiledSHA256": "60f98669a5b0cf32aa7f0b9712b0d99012a28f8a098f93cac61bf073b1aa09ff"
       },
       "upstreamBuild": {
         "version": "0.20",
         "build": 533,
         "channel": "internal",
         "pullRequest": 49
-      }
+      },
+      "latestStableRelease": null
     },
     "riftlet": {
       "repository": "haohongfei2001-png/Riftlet",
@@ -313,6 +314,14 @@
       "draftWitness": {
         "patchSHA256": "27798bd6ec4aa61a4f7a8c35df95d785960609ef139a9a322154bb5d7ef9a60d",
         "compiledSHA256": "cafe5e15277b4540245d9cb6b2613f20a389ad2c95e8ee5bc0333227c09a57b6"
+      },
+      "latestStableRelease": {
+        "releaseID": 449460970,
+        "prerelease": false,
+        "tag": "v1.0.5",
+        "version": "1.0.5",
+        "build": 31,
+        "commit": "fe9c227a3b89a082b9da39dc5bb1f5c0b955c2ee"
       }
     }
   }

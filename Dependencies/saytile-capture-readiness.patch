@@ -61,7 +61,17 @@
          await worker.start()
          let buffer = AVAudioPCMBuffer(pcmFormat: source.processingFormat, frameCapacity: 320)!
          do {
-@@ -699,7 +704,7 @@
+@@ -664,7 +669,8 @@
+         }
+         guard allowed else {
+             requestedRunning = false; restoringStandby = false; onMicrophonePermissionLost?()
+-            state = .interrupted("需要麦克风权限"); issue = "请在系统设置 → 隐私与安全性 → 麦克风中允许 Saytile"; return
++            let message = "Nearpane 尚无麦克风权限，可在系统设置的「隐私与安全性 → 麦克风」中核对。"
++            state = .interrupted(message); issue = message; return
+         }
+         var startingEngine: AVAudioEngine?
+         var tapInstalled = false
+@@ -699,7 +705,7 @@
              guard let sampleRate = pinned?.sampleRate ?? format?.sampleRate else { throw AudioFailure.message("没有可用的麦克风") }
              let ring = try AudioRing(capacity: UInt32(sampleRate * 4))
              let meterContinuation = beginMeterObservation()
@@ -70,7 +80,7 @@
                  meterContinuation.yield((speaking, level))
              }, failed: { [weak self] message in Task { @MainActor in await self?.suspend(reason: message) } })
              if let pinned {
-@@ -721,7 +726,8 @@
+@@ -721,7 +727,8 @@
                  waitingForOpenLid = requestedRunning
                  throw AudioFailure.message(MicrophoneLid.reason)
              }
@@ -80,7 +90,7 @@
              restoringStandby = false
              await worker.start()
              prepareLocalSpeechResourcesIfNeeded()
-@@ -1066,6 +1072,15 @@
+@@ -1066,6 +1073,15 @@
              if let lease { try? await store.releaseAudioLease(lease) }
          }
      }
@@ -96,7 +106,7 @@
      public func shutdown() async {
          if let shutdownTask { await shutdownTask.value; return }
          isShuttingDown = true; requestedRunning = false; playbackResume = false
-@@ -1083,7 +1098,7 @@
+@@ -1083,7 +1099,7 @@
              for release in Array(leaseReleaseTasks.values) { await release.value }
              leaseReleaseTasks.removeAll()
              await stopCapture()

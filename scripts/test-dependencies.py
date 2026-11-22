@@ -107,6 +107,10 @@ class DependencyTests(unittest.TestCase):
             resolver.validate(pin)
             self.assertIn("upstreamBuild", pin)
             self.assertEqual(resolver.source_receipt(pin)["upstreamBuild"], pin["upstreamBuild"])
+            self.assertIn("latestStableRelease", pin)
+            self.assertEqual(resolver.source_receipt(pin)["latestStableRelease"], pin["latestStableRelease"])
+            with self.assertRaisesRegex(resolver.DependencyError, "Invalid stable release"):
+                resolver.validate(dict(pin, latestStableRelease=dict(tag="v7-beta",version="7-beta",build=7,commit=COMMIT)))
             with self.assertRaisesRegex(resolver.DependencyError, "upstream product build"):
                 resolver.validate(dict(pin, upstreamBuild=dict(pin["upstreamBuild"], build=0)))
             bad = dict(pin, treeSHA256="f"*64)
@@ -114,6 +118,12 @@ class DependencyTests(unittest.TestCase):
                 resolver.validate(bad)
         self.assertIn("Sources/SaytileVoiceUI", lock["domains"]["saytile"]["sources"])
         self.assertNotIn("saytileUpdates", lock)
+
+    def test_published_stable_tag_does_not_require_a_development_pull_request(self):
+        stable = dict(self.pin, releaseTag="v1.0.3-zip", upstreamBuild=dict(version="1.0.3", build=29, channel="release"))
+        resolver.validate(stable)
+        with self.assertRaisesRegex(resolver.DependencyError, "upstream product build"):
+            resolver.validate(dict(stable, upstreamBuild=dict(stable["upstreamBuild"], channel="development")))
 
     def test_packaged_resources_must_match_the_entire_locked_inventory(self):
         root = self.cache.resolve()

@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--product", action="store_true", help="Exercise the ordinary Swift adapter and durable queue with an isolated Chromium transport")
     parser.add_argument("--browser", choices=["chrome", "edge"], default="chrome", help="Use a fresh headless browser profile")
     parser.add_argument("--candidate", type=Path, help="Check both exercised browser resources against this signed, installed product")
+    parser.add_argument("--build-products", type=Path, help="Use an existing debug SwiftPM products directory for the embedded tray")
     parser.add_argument("--scenario", choices=["composer-replaced"], help="Measure the live product feedback after editor replacement, without refresh, retry or restart")
     parser.add_argument("--session")
     parser.add_argument("--asset-id")
@@ -50,12 +51,19 @@ def main():
         if args.product:
             image = json.loads(raw)
             fixture.update(origin=image["origin"], width=image["pixelWidth"], height=image["pixelHeight"])
-    build = ROOT / ".build/app-native/debug"
-    lock = json.loads((ROOT / "Dependencies/domains.lock.json").read_bytes())["domains"]["saytile"]
+    build = (args.build_products or ROOT / ".build/app-native/debug").resolve(strict=True)
+    pins = json.loads((ROOT / "Dependencies/domains.lock.json").read_bytes())["domains"]
+    lock = pins["saytile"]
     module = ROOT / ".build/domain-cache-v1" / (lock["commit"] + "-" + lock["treeSHA256"]) / "Sources/CSQLite"
     product = ROOT / "build/debug/Nearpane.app/Contents"
     subprocess.run([str(product / "MacOS/NearpaneHost"), "--verify-bundled-resources"], check=True, cwd=ROOT)
     page = Path("Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/chatgpt-web-20261027.js")
+    compiled_page = build / "Nearpane_RiftletAdapters.bundle" / page.name
+    source_hash = pins["riftlet"]["files"]["Sources/RiftletAdapters/Resources/" + page.name]
+    if (hashlib.sha256(compiled_page.read_bytes()).hexdigest() != source_hash
+            or (product / page).read_bytes() != compiled_page.read_bytes()
+            or (product / "Resources/AcceptanceTargetGuard.js").read_bytes() != (ROOT / "Resources/AcceptanceTargetGuard.js").read_bytes()):
+        parser.error("Built, packaged and locked draft programs differ")
     if args.candidate:
         if not args.product or args.candidate.suffix != ".app":
             parser.error("--candidate requires an installed product .app and --product")
@@ -69,8 +77,12 @@ def main():
         fixture["candidateBrowserResources"] = hashes
     with tempfile.TemporaryDirectory(dir=ROOT / "build", prefix="local-compose-") as work:
         helper = Path(work) / "compose"
-        objects = [p for p in (build / "NearpaneHost.product/Objects.LinkFileList").read_text().splitlines()
-                   if "/NearpaneHost.build/" not in p]
+        targets = {"NearpaneTray", "NearpaneCore", "WindowGeometryCore", "RiftletCore", "RiftletCapture", "RiftletAdapters", "RiftletUI"}
+        directories = {build / (target + ".build") for target in targets}
+        objects = [Path(p) for p in (build / "NearpaneHost.product/Objects.LinkFileList").read_text().splitlines()
+                   if Path(p).resolve().parent in directories]
+        if {p.resolve().parent for p in objects} != directories:
+            parser.error("Required SwiftPM tray products are missing from the host link graph")
         subprocess.run(["xcrun", "swiftc", "-parse-as-library", "-target", platform.machine() + "-apple-macos26.0",
                         "-module-cache-path", str(ROOT / "build/verification/browser-compiler-cache"),
                         "-I", str(build / "Modules"), "-I", str(build / "CAudio.build"), "-I", str(module),
