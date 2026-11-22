@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "scope": "existing regular installed Host and independent observers on the physical console",
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "hostPID": 32364,
+  "hostBirthUS": 1795343882268848,
+  "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+  "fromUTC": "2026-11-22T11:58:12.393+00:00",
+  "untilUTC": "2026-11-22T11:58:17.614+00:00",
+  "naturalSpaceObservation": {
+    "notifications": 0,
+    "observedBy": "native reads including a 15-second fallback",
+    "transitions": [
+      {
+        "id": 5568,
+        "time": 1795345540.5494819,
+        "type": 4,
+        "utc": "2026-11-22T11:05:40.549+00:00"
+      },
+      {
+        "id": 4,
+        "time": 1795348435.55927,
+        "type": 0,
+        "utc": "2026-11-22T11:53:55.559+00:00"
+      },
+      {
+        "id": 5568,
+        "time": 1795348450.556723,
+        "type": 4,
+        "utc": "2026-11-22T11:54:10.556+00:00"
+      },
+      {
+        "id": 4,
+        "time": 1795348675.562141,
+        "type": 0,
+        "utc": "2026-11-22T11:57:55.562+00:00"
+      }
+    ],
+    "spaceSwitchRequests": 0
+  },
+  "ordinarySource": {
+    "cgDisplayID": 1,
+    "displayUUID": "uuid-1",
+    "currentID": 4,
+    "currentType": 0,
+    "currentUUID": "uuid-2",
+    "roster": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "uuid-2"
+      },
+      {
+        "id": 5568,
+        "type": 4,
+        "uuid": "uuid-3"
+      },
+      {
+        "id": 5184,
+        "type": 4,
+        "uuid": "uuid-4"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "uuid-5"
+      }
+    ]
+  },
+  "ordinaryFocusBefore": {
+    "readings": [
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      },
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      }
+    ],
+    "sameAXFocusedWindowObject": true
+  },
+  "missionControl": {
+    "officialPresentations": 1,
+    "officialDismissals": 1,
+    "sameSignedDockAXRootRecheckedBeforeDismissal": true,
+    "expectedManagedCount": 4,
+    "validatedVisibleCounts": [],
+    "visibleTileCount": null,
+    "owningHostBefore": {
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "pid": 32364,
+      "uptime": 408372.8193346667
+    },
+    "owningHostDuring": null,
+    "owningHostReadLater": {
+      "pid": 32364,
+      "missionControlPresented": 0,
+      "missionControlObservation": "signedDockAXListWithoutMC"
+    },
+    "status": "UNKNOWN",
+    "reason": "inputConsoleOrSpaceChanged",
+    "scopeOfReason": "A composite guard stopped the post-dismissal confirmation. This receipt does not distinguish a physical input change from a console or native scope change at that instant."
+  },
+  "ordinaryFocusAfter": {
+    "status": "UNVERIFIED",
+    "matchingReadCount": null,
+    "laterNativeSamples": [
+      {
+        "utc": "2026-11-22T11:58:46.691+00:00",
+        "id": 5568,
+        "type": 4
+      },
+      {
+        "utc": "2026-11-22T11:58:46.818+00:00",
+        "id": 5568,
+        "type": 4
+      }
+    ]
+  },
+  "spaceAccounting": {
+    "initial": [
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      17,
+      18,
+      19,
+      31,
+      38,
+      654,
+      5182,
+      5184,
+      5184,
+      5568,
+      5568,
+      5607,
+      5608
+    ],
+    "laterIndependentSamples": [
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608
+      ],
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608
+      ]
+    ],
+    "matchesLastCleanMultiset": true,
+    "entries": 22,
+    "distinctIDs": 20,
+    "knownTemporarySpacesAbsent": [
+      5614,
+      5643
+    ]
+  },
+  "outcomes": {
+    "P0": "BLOCKED",
+    "P1": "NOT_RUN",
+    "P2": "NOT_RUN",
+    "spacesBackend": "UNDETERMINED",
+    "corner": "NOT_RUN"
+  },
+  "actions": {
+    "hostInstalls": 0,
+    "hostRestarts": 0,
+    "testWindowCreations": 0,
+    "testSpaceCreations": 0,
+    "testWindowMoves": 0,
+    "forcedSpaceSwitches": 0,
+    "postedInput": 0,
+    "ownPanelReruns": 0
+  },
+  "rawPrivateSHA256": {
+    "ordinary-until.json": "e6e6e0ec7b6be637e5575e0d94690436eb7dc5d2d414aef51a0b682386a0c127",
+    "ordinary-presentation.json": "bfd4f41d92462d98e86a87c4b622a0284dababd9be74a5755eb776ba92c49dcd",
+    "after-console.json": "60030d13198abc3bd963658ef115691ec36dd5023010f65cb9dd93f58da30902",
+    "after-engine.json": "70c397b83b6262bfb14b747ed100afc9a293bcbdda0f15e8bbf6409eccbcb144",
+    "after-host.json": "0ec1e0e885e2ba98c6e3908f7c78d022162c05d934ab8249e0de509a8ae183f1",
+    "waiting-console-checkpoint.json": "dc4f57bfd563eb88d152fa0bdd29849ec474eda244241c10e947a04ff1aad710"
+  },
+  "observerSHA256": {
+    "ordinary-overview.swift": "c59740c3428ba9f2d054a303f378ba9b65c83499a5feadeb3b0de9c819976665",
+    "ordinary-overview": "e16f7ff4da3fd409778d475615110c6f70e98717baea43f86775879e154fb45b",
+    "ReadOnlyConsole.swift": "70d2e14e6abb959baf5859d77775d709482d68760c6a4e94c99d7bd7c5d9ba32"
+  }
+}
