@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 唯一安装 Host、四项权限、恢复责任 | PASS | 26A428、SIP 开启。Host `bec6cb2`、PID 32364 自读四项权限均通过，活动租约为零。[安装身份与读回](physical-admission.json) |
 | 静止按键与安全输入 | 源码 PASS | 实机写入入口在开始和投递前核对安全输入、硬件与会话鼠标按钮。64 组静止按压判定覆盖两个来源的 32 个按钮。[定向测试](input-admission.json) |
-| 普通桌面与原焦点 | BLOCKED | 两端均读到原生全屏类型 4，缺少可保留的普通前台窗口。Host 旧遥测只具有缓存读数。本轮零展示、零窗口或 Space 写入。[实机读回](physical-readback.json) |
+| 普通桌面与原焦点 | BLOCKED | 两端均读到原生全屏类型 4，缺少可保留的普通前台窗口。Host 旧遥测只具有缓存读数。前台抽样为系统通知中心，其原始普通 AX 窗口无法取得；历史实测曾无法交还通知界面的焦点。本轮零展示、零窗口或 Space 写入。[实机读回](physical-readback.json) |
 | 上次 Edge → GitHub Desktop 的发起者 | UNKNOWN | 复核 742 条限定时间内的系统记录，确认一次前台变更。该事件的 activity 与 parent 均为零，没有跨进程因果链接。[系统事件](focus-activity.json) · [上次同一展示的截图与录屏](../p0-p1-admission-26A428/RESULTS.md) |
 | Spaces 真实可交互窗口 | BLOCKED | 正式监督器在发出退出请求前停止。透明普通应用窗口只可验证归属和恢复；键鼠与兄弟窗口需要独立证据。[Spaces 准入](spaces-admission.json) |
 | Corner 只读签名夹具 | BLOCKED | 第一次提供的是较早升级包的收据，签名身份核对拒绝；用当前安装包匹配收据后，在普通桌面及焦点门槛停止。未投递停放或输入。[首次拒绝](corner-old-image-mismatch.json) · [匹配安装包后的结果](corner-readonly-admission.json) |

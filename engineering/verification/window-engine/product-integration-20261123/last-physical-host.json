@@ -64,5 +64,10 @@
   "sameImagePIDBirthPermissionsAndConfig": true,
   "launchedHosts": 0,
   "windowWrites": 0,
-  "spaceWrites": 0
+  "spaceWrites": 0,
+  "foregroundImageAtPriorPassiveSample": {
+    "pid": 1046,
+    "executable": "/System/Library/CoreServices/UserNotificationCenter.app/Contents/MacOS/UserNotificationCenter",
+    "evidence": "passive workspace front PID and independent process executable name only"
+  }
 }
