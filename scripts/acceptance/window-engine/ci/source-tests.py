@@ -116,6 +116,7 @@ def main():
         "corner-witness",
         "swift",
         "hosted-reader-build",
+        "overview-witness-build",
         "spaces-tests",
         "performance-tests",
         "corner-lease-tests",
@@ -247,6 +248,8 @@ def main():
                 lambda _: swift_count(xml, suites),
             )
         run("hosted-reader-build", build_reader(work / "hosted-reader-compile-only"))
+        with tempfile.TemporaryDirectory(dir="/private/tmp", prefix="nearpane-overview.") as kit:
+            run("overview-witness-build", ["bash", ACCEPTANCE / "host/build-overview-witness.sh", kit])
         run("installed-supervisor-tests", ["python3", "-B", "-m", "unittest", "discover", "-s",
             ACCEPTANCE.parent / "native-spaces", "-p", "test_private_installed_trials.py"], python_count)
         for name, folder in (

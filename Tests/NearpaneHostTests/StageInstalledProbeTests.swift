@@ -4,6 +4,33 @@ import Testing
 @testable import NearpaneHost
 
 struct StageInstalledProbeTests {
+    @MainActor @Test func stripSamplesAreBoundedAndRequireARealNonoverlappingRow() {
+        let display = CGRect(x:0, y:0, width:1440, height:900)
+        let points = StageOverviewHitTest.positions(in: display)
+        #expect(!points.isEmpty && points.count <= 200)
+        #expect(points.allSatisfy { display.contains($0) && $0.y < 160 })
+        let a = CGRect(x:100,y:20,width:80,height:50)
+        #expect(StageOverviewHitTest.validLayout([a, a.offsetBy(dx:90,dy:1)], in:display))
+        #expect(!StageOverviewHitTest.validLayout([], in:display))
+        #expect(!StageOverviewHitTest.validLayout([a,a], in:display))
+        #expect(!StageOverviewHitTest.validLayout([a,a.offsetBy(dx:90,dy:60)], in:display))
+        #expect(!StageOverviewHitTest.validLayout([a.offsetBy(dx:-190,dy:0)], in:display))
+    }
+    @MainActor @Test func fullscreenSupplementRequiresTwoMatchingDisplaySessionAndSpaceReads() {
+        let current: [String:Any] = ["type":4,"malformed":false,"id64":42,"managedID":42,"uuid":UUID().uuidString]
+        let sample: [String:Any] = ["current":current,"directCurrent":42,"directCurrentAfter":42,
+            "matchingRosterEntries":[current],"display":["topologyConfirmed":true,"activeCGCount":1,"primaryUUID":UUID().uuidString] as [String:Any],
+            "session":["qualified":true]]
+        var report: [String:Any] = ["scope":["reason":"fullscreenType4"],"workspace":["notificationsObserved":0],"samples":[sample,sample]]
+        #expect(StageCanaryOverview.fullscreenReadOnlyIdentity(report) != nil)
+        var conflicting = sample
+        conflicting["directCurrentAfter"] = 17
+        report["samples"] = [sample,conflicting]
+        #expect(StageCanaryOverview.fullscreenReadOnlyIdentity(report) == nil)
+        report["samples"] = [sample,sample]
+        report["workspace"] = ["notificationsObserved":1]
+        #expect(StageCanaryOverview.fullscreenReadOnlyIdentity(report) == nil)
+    }
     @MainActor @Test func overviewRequiresTheExactVisibleOrdinaryFocusedWindow() {
         let window: CGWindowID = 32
         let pid: pid_t = 77

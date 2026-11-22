@@ -71,28 +71,62 @@ import Security
         return nil
     }
     private static func focus() throws -> Focus {
+        var evidence = [String:Any]()
+        return try focus(&evidence)
+    }
+
+    private static func focus(_ evidence: inout [String:Any]) throws -> Focus {
         guard let current = NSWorkspace.shared.frontmostApplication, current.activationPolicy == .regular,
               !current.isHidden, !current.isTerminated else { throw Refusal("regularForegroundApplicationRequired") }
         let pid = current.processIdentifier
         guard pid > 1, pid != getpid() else { throw Refusal("externalFocusUnavailable") }
         let image = try OrdinaryProcessImage.read(pid)
-        let system = AXUIElementCreateSystemWide()
-        guard AXUIElementSetMessagingTimeout(system, 0.18) == .success,
-              let focused = attr(system,kAXFocusedApplicationAttribute), CFGetTypeID(focused) == AXUIElementGetTypeID() else { throw Refusal("externalAXFocusUnavailable") }
-        let app = focused as! AXUIElement
+        evidence["workspacePID"] = pid
+        evidence["birth"] = image.launch
+        let system = AXUIElementCreateSystemWide(), app = AXUIElementCreateApplication(pid)
+        guard AXUIElementSetMessagingTimeout(system,0.25) == .success,
+              AXUIElementSetMessagingTimeout(app,0.25) == .success else { throw Refusal("focusTimeoutUnavailable") }
+        var systemApp: CFTypeRef?, front: CFTypeRef?, focused: CFTypeRef?
+        let systemError = AXUIElementCopyAttributeValue(system,kAXFocusedApplicationAttribute as CFString,&systemApp)
+        let frontError = AXUIElementCopyAttributeValue(app,kAXFrontmostAttribute as CFString,&front)
+        let windowError = AXUIElementCopyAttributeValue(app,kAXFocusedWindowAttribute as CFString,&focused)
+        evidence["systemFocusedApplicationError"] = systemError.rawValue
+        evidence["axFrontmostError"] = frontError.rawValue
+        evidence["axFrontmost"] = (front as? Bool) as Any? ?? NSNull()
+        evidence["axFocusedWindowError"] = windowError.rawValue
         var owner = pid_t()
-        guard AXUIElementGetPid(app,&owner) == .success, owner == pid, AXUIElementSetMessagingTimeout(app,0.18) == .success else { throw Refusal("externalFocusedWindowUnavailable") }
-        guard let value = attr(app, kAXFocusedWindowAttribute), CFGetTypeID(value) == AXUIElementGetTypeID()
+        if systemError == .success {
+            guard let systemApp, CFGetTypeID(systemApp) == AXUIElementGetTypeID(),
+                  AXUIElementGetPid(systemApp as! AXUIElement,&owner) == .success, owner == pid
+            else { throw Refusal("systemAndWorkspaceFocusDisagree") }
+            evidence["appSource"] = "systemFocusedApplication"
+        } else {
+            // A missing system-wide attribute can be corroborated on the exact frontmost application itself.
+            guard [.noValue,.attributeUnsupported,.cannotComplete].contains(systemError),
+                  frontError == .success, front as? Bool == true else { throw Refusal("externalAXFocusUnavailable") }
+            evidence["appSource"] = "workspaceAndAXFrontmost"
+        }
+        guard windowError == .success, let focused, CFGetTypeID(focused) == AXUIElementGetTypeID()
         else { throw Refusal("externalFocusedWindowUnavailable") }
-        let window = value as! AXUIElement
-        guard AXUIElementGetPid(window, &owner) == .success, owner == pid,
+        let window = focused as! AXUIElement
+        guard AXUIElementGetPid(window,&owner) == .success, owner == pid,
               let number = NearpaneOrdinaryWindowRuntime.number(window),
-              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String:Any]],
-              matchesForeground(rows, pid: pid, number: number)
-        else { throw Refusal("visibleOrdinaryFocusedWindowUnconfirmed") }
-        guard try OrdinaryProcessImage.read(pid) == image,
-              NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw Refusal("focusChangedDuringRead") }
-        return Focus(image: image, window: window, number: number)
+              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow,number) as? [[String:Any]],
+              matchesForeground(rows,pid:pid,number:number) else { throw Refusal("visibleOrdinaryFocusedWindowUnconfirmed") }
+        evidence["cgWindowID"] = number
+        guard try OrdinaryProcessImage.read(pid) == image, NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+        else { throw Refusal("focusChangedDuringRead") }
+        return Focus(image:image,window:window,number:number)
+    }
+
+    static func admission() -> [String:Any] {
+        var evidence: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
+        do {
+            guard AXIsProcessTrusted() else { throw Refusal("observerAccessibilityUnavailable") }
+            guard try root(signedDock()) == nil else { throw Refusal("overviewAlreadyPresented") }
+            _ = try focus(&evidence)
+        } catch { evidence["reason"] = (error as? Refusal)?.reason ?? "systemIdentityUnavailable" }
+        return evidence
     }
     static func matchesForeground(_ rows: [[String:Any]], pid: pid_t, number: CGWindowID) -> Bool {
         guard pid > 1, number != 0, rows.count == 1, let row = rows.first else { return false }
@@ -153,41 +187,107 @@ import Security
 
     static func read(after cycle: [String:Any], initial: [String:Any], final: [String:Any],
                      channel: StageScopeReply) async -> [String:Any] {
-        var result: [String:Any] = ["status":"BLOCKED","presentations":0,"dismissals":0,"restored":true,
-                                    "inputEventsPosted":0,"tileCounts":[],"stage":"afterCanary"]
         guard cycle["status"] as? String == "PASS", cycle["safeToRollback"] as? Bool == true,
-              getuid() == geteuid(), getuid() > 0,
-              AXIsProcessTrusted(), Bundle.main.bundleURL.path == "/Applications/Nearpane.app"
-        else { result["reason"] = "cleanOwnCanaryAndInstalledAuthorizedHostRequired"; return result }
+              Bundle.main.bundleURL.path == "/Applications/Nearpane.app" else {
+            return ["status":"BLOCKED","reason":"cleanOwnCanaryAndInstalledAuthorizedHostRequired",
+                    "presentations":0,"dismissals":0,"restored":true,"inputEventsPosted":0,"tileCounts":[],"stage":"afterCanary"]
+        }
+        return await measure(initial: initial, final: final, stage: "afterCanary",
+                             cancelled: { try channel.exists(.abort) }, notify: { _ in })
+    }
+
+    /// A fullscreen observation can describe the public AX surface, but cannot qualify the ordinary-desktop gate.
+    static func fullscreenReadOnlyIdentity(_ report: [String:Any]) -> NSDictionary? {
+        guard (report["scope"] as? [String:Any])?["reason"] as? String == "fullscreenType4",
+              let samples = report["samples"] as? [[String:Any]], samples.count == 2,
+              (report["workspace"] as? NSDictionary)?["notificationsObserved"] as? Int == 0 else { return nil }
+        var identity: NSDictionary?
+        for sample in samples {
+            guard let current = sample["current"] as? NSDictionary,
+                  current["type"] as? Int == 4, current["malformed"] as? Bool == false,
+                  let n = current["managedID"] as? UInt64, n > 0, n == current["id64"] as? UInt64,
+                  (sample as NSDictionary)["directCurrent"] as? UInt64 == n, (sample as NSDictionary)["directCurrentAfter"] as? UInt64 == n,
+                  let matches = sample["matchingRosterEntries"] as? [NSDictionary], matches == [current],
+                  let space = current["uuid"] as? String, UUID(uuidString:space) != nil,
+                  let display = sample["display"] as? NSDictionary, display["topologyConfirmed"] as? Bool == true,
+                  display["activeCGCount"] as? Int == 1, let uuid = display["primaryUUID"] as? String,
+                  let session = sample["session"] as? NSDictionary, session["qualified"] as? Bool == true
+            else { return nil }
+            let row: NSDictionary = ["nativeID":n,"spaceUUID":space,"displayUUID":uuid,"session":session]
+            if let identity, identity != row { return nil }
+            identity = row
+        }
+        return identity
+    }
+
+    /// The acceptance observer can sample the running Host while this routine uses only read APIs and the system overview launcher.
+    static func measure(initial: [String:Any], final: [String:Any], stage: String,
+                        cancelled: @escaping () throws -> Bool, notify: (String) -> Void) async -> [String:Any] {
+        var result: [String:Any] = ["status":"BLOCKED","presentations":0,"dismissals":0,"restored":true,
+                                    "inputEventsPosted":0,"tileCounts":[],"stage":stage,"windowWrites":0,"spaceWrites":0]
+        guard getuid() == geteuid(), getuid() > 0, AXIsProcessTrusted() else {
+            result["reason"] = "authorizedConsoleObserverRequired"
+            return result
+        }
+        var finish: (() -> Void)?
         do {
-            guard let prior = initial["scope"] as? NSDictionary, let after = final["scope"] as? NSDictionary,
-                  prior.isEqual(after), prior["status"] as? String == "PASS",
-                  let expected = (final["samples"] as? [[String:Any]])?.last?["rosterCount"] as? Int,
+            let diagnostic = stage == "fullscreenPositionDiagnostic"
+            let prior = diagnostic ? fullscreenReadOnlyIdentity(initial) : initial["scope"] as? NSDictionary
+            let finalScope = diagnostic ? fullscreenReadOnlyIdentity(final) : final["scope"] as? NSDictionary
+            guard let prior, let finalScope, prior == finalScope, diagnostic || prior["status"] as? String == "PASS"
+            else { throw Refusal("activePhysicalScopeChangedOrUnavailable") }
+            guard let expected = (final["samples"] as? [[String:Any]])?.last?["rosterCount"] as? Int,
                   expected > 0, expected <= 256, NSScreen.screens.count == 1,
                   let alias = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue(),
-                  prior["displayUUID"] as? String == CFUUIDCreateString(nil,alias) as String else { throw Refusal("physicalScopeChangedAfterCanary") }
+                  prior["displayUUID"] as? String == CFUUIDCreateString(nil,alias) as String
+            else { throw Refusal("rosterOrPhysicalDisplayUnavailable") }
             let dock = try signedDock(), original = try focus(), start = hid(), rows = try inventory()
             guard let native = rows.first?["Spaces"] as? [NSDictionary], native.count == expected,
                   let active = rows.first?["Current Space"] as? [String: Any],
-                  StageEngineHostScope.Space(active).kind == 0,
+                  StageEngineHostScope.Space(active).kind == (diagnostic ? 4 : 0),
                   let currentID = StageEngineHostScope.Space(active).number, currentID == prior["nativeID"] as? UInt64
             else { throw Refusal("managedRosterChangedBeforeOverview") }
             result["originalFocus"] = ["pid":Int(original.image.pid), "birth":original.image.launch, "window":UInt64(original.number)] as [String:Any]
+            func focusData(_ value: Focus) -> [String:Any] {
+                ["uptime":ProcessInfo.processInfo.systemUptime, "pid":value.image.pid, "birth":value.image.launch,
+                 "cgWindowID":value.number, "sameOriginalAX":CFEqual(value.window,original.window)]
+            }
+            func inputUnchanged() -> Bool {
+                !Task.isCancelled && (try? cancelled()) == false && hid() == start && NSEvent.pressedMouseButtons == 0
+            }
             let bounds = CGDisplayBounds(CGMainDisplayID())
+            result["managedIDsBefore"] = native.compactMap { $0["ManagedSpaceID"] as? UInt64 }
+            result["expectedCount"] = expected
+            result["scopeType"] = diagnostic ? 4 : 0
+            result["currentSpaceID"] = currentID
+            result["hidBefore"] = start
+            finish = {
+                result["hidAfter"] = hid()
+                result["inputUninterrupted"] = inputUnchanged()
+                if let end = try? inventory(), let desktops = end.first?["Spaces"] as? [NSDictionary] {
+                    result["managedIDsAfter"] = desktops.compactMap { $0["ManagedSpaceID"] as? UInt64 }
+                    result["nativeInventoryRestored"] = end == rows
+                }
+            }
             func stable() throws {
                 guard let session = CGSessionCopyCurrentDictionary() as? [String:Any],
                       session[kCGSessionOnConsoleKey as String] as? Bool == true,
                       session[kCGSessionUserIDKey as String] as? uid_t == getuid(),
                       session["CGSSessionScreenIsLocked"] as? Bool != true,
-                      !Task.isCancelled, try !channel.exists(.abort), hid() == start, NSEvent.pressedMouseButtons == 0,
+                      inputUnchanged(),
                       try inventory() == rows, NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
                 else { throw Refusal("inputDesktopOrTopologyChanged") }
             }
+            var before = [[String:Any]]()
             for _ in 0..<2 {
                 try stable()
-                guard try root(dock) == nil, try focus() == original else { throw Refusal("ordinaryFocusedDesktopUnconfirmed") }
+                let current = try focus()
+                before.append(focusData(current))
+                result["focusBefore"] = before
+                guard try root(dock) == nil, current == original else { throw Refusal("ordinaryFocusedDesktopUnconfirmed") }
                 try await Task.sleep(for:.milliseconds(55))
             }
+            notify("before")
             try stable()
             guard try root(dock) == nil, try focus() == original else { throw Refusal("overviewAlreadyOpen") }
             result["presentations"] = 1
@@ -201,38 +301,78 @@ import Security
                 if enrolled == nil { try await Task.sleep(for:.milliseconds(80)) }
             } while enrolled == nil && ContinuousClock.now < until
             guard let enrolled else { throw Refusal("newSystemOverviewUnconfirmed") }
-            var samples = [[AXUIElement]](), sampleError: String?
-            do {
-                for _ in 0..<2 {
-                    try await Task.sleep(for:.milliseconds(160))
-                    try stable()
-                    guard try root(dock) == enrolled else { throw Refusal("overviewReplaced") }
-                    samples.append(try tiles(enrolled,dock,bounds:bounds))
+            notify("presented")
+            var samples = [StageOverviewHitTest.Sample]()
+            var treeAgrees = true
+            for _ in 0..<2 {
+                try await Task.sleep(for:.milliseconds(140))
+                try stable()
+                guard try root(dock) == enrolled else { throw Refusal("overviewReplaced") }
+                let sample = StageOverviewHitTest.sample(dock:dock.app, dockPID:dock.image.pid, bounds:bounds,
+                                                        inputUnchanged:inputUnchanged)
+                samples.append(sample)
+                result["hitTestSamples"] = samples.map(\.evidence)
+                try stable()
+                if let tree = try? tiles(enrolled,dock,bounds:bounds), tree != sample.tiles.map(\.element) {
+                    treeAgrees = false
                 }
-            } catch { sampleError = (error as? Refusal)?.reason ?? "stripReadUnavailable" }
-            result["tileCounts"] = samples.map(\.count)
-            result["expectedCount"] = expected
+            }
+            let counts = samples.map { $0.tiles.count }
+            result["observedTileHits"] = counts
+            let layouts = samples.map { $0.tiles.map(\.frame) }
+            let measured = treeAgrees && samples.allSatisfy(\.complete) && samples[0].tiles == samples[1].tiles &&
+                layouts.allSatisfy { StageOverviewHitTest.validLayout($0,in:bounds) }
+            result["stableHitLayout"] = measured
+            if measured { result["tileCounts"] = counts }
             try stable()
             guard try root(dock) == enrolled else { throw Refusal("overviewOwnershipLostBeforeDismissal") }
             result["dismissals"] = 1
             try toggle()
-            var cleanReads = 0
-            let end = ContinuousClock.now + .seconds(3)
+            var cleanReads = 0, reportedClosed = false, after = [[String:Any]]()
+            result["originalFocusConfirmedReads"] = 0
+            let end = ContinuousClock.now + .seconds(5)
             repeat {
                 try await Task.sleep(for:.milliseconds(90))
                 try stable()
-                do { cleanReads = try root(dock) == nil && focus() == original ? cleanReads + 1 : 0 }
-                catch { cleanReads = 0 }
+                var row: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
+                do {
+                    let closed = try root(dock) == nil
+                    result["overviewClosed"] = closed
+                    row["overviewClosed"] = closed
+                    if closed && !reportedClosed { reportedClosed = true; notify("dismissed"); try stable() }
+                    let current = try focus(&row)
+                    row.merge(focusData(current)) { _, value in value }
+                    cleanReads = closed && current == original ? cleanReads + 1 : 0
+                } catch {
+                    cleanReads = 0
+                    row["reason"] = (error as? Refusal)?.reason ?? "focusReadUnavailable"
+                }
+                after.append(row)
+                result["focusAfter"] = after
+                result["originalFocusConfirmedReads"] = cleanReads
+                try stable()
             } while cleanReads < 2 && ContinuousClock.now < end
             guard cleanReads == 2 else { throw Refusal("originalFocusOrOverviewDismissalUnconfirmed") }
             result["restored"] = true
             result["originalFocusConfirmedReads"] = cleanReads
-            guard sampleError == nil, samples.count == 2, samples[0] == samples[1] else { throw Refusal(sampleError ?? "systemTilesChangedBetweenReads") }
-            result["status"] = samples[0].count == expected ? "PASS" : "FAIL"
-            result["reason"] = samples[0].count == expected ? "visibleDesktopStripAndOriginalFocusConfirmed" : "visibleSystemTileCountDiffers"
+            try stable()
+            if !measured || counts != [expected,expected] {
+                result["status"] = "BLOCKED"
+                result["reason"] = "completeVisibleTileLayoutUnconfirmed"
+            } else {
+                result["status"] = "PASS"
+                result["reason"] = "twoHitTestLayoutsAndExactOriginalFocus"
+            }
+
         } catch {
             result["status"] = (result["presentations"] as? Int == 0) ? "BLOCKED" : "UNKNOWN"
             result["reason"] = (error as? Refusal)?.reason ?? "systemOrFocusReadUnavailable"
+        }
+        finish?()
+        if result["status"] as? String == "PASS" &&
+            (result["inputUninterrupted"] as? Bool != true || result["nativeInventoryRestored"] as? Bool != true) {
+            result["status"] = "UNKNOWN"
+            result["reason"] = "inputOrInventoryChangedBeforeReceipt"
         }
         return result
     }
