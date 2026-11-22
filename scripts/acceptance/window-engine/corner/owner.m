@@ -3,6 +3,22 @@
 #import <libproc.h>
 #import "gesture_witness.h"
 
+// The hosted and installed-fixture owners create the same ordinary AppKit window.
+static NSWindow *ordinaryFixtureWindow(NSRect content, NSView *view, NSString *title, NSColor *color) {
+    NSWindow *window = [[NSWindow alloc] initWithContentRect:content
+                                                  styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                                                            NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable
+                                                    backing:NSBackingStoreBuffered defer:NO];
+    window.contentView = view;
+    window.title = title;
+    window.releasedWhenClosed = NO;
+    window.backgroundColor = color;
+    return window;
+}
+
+#ifdef NP_HOST_INTERACTIVE_FIXTURE
+#import "interactive/session.inc"
+#else
 static NSString *root, *label;
 static NSMutableArray<NSWindow *> *wins;
 static NSMutableDictionary *counts, *recentMarkers;
@@ -73,16 +89,8 @@ int main(int argc, const char **argv) {
             unsigned slot = first ? i : i + 2;
             NSRect f = NSMakeRect(NSMinX(v) + 20 + (slot % 3) * (w + 10),
                                   NSMaxY(v) - 55 - h - (slot / 3) * (h + 40), w, h);
-            NSWindow *window =
-                [[NSWindow alloc] initWithContentRect:f
-                                            styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
-                                                      NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable
-                                              backing:NSBackingStoreBuffered
-                                                defer:NO];
-            window.contentView = [[ClickFixtureView alloc] initWithFrame:NSMakeRect(0, 0, w, h)];
-            window.title = @"Nearpane isolated window";
-            window.releasedWhenClosed = NO;
-            window.backgroundColor = first ? NSColor.systemBlueColor : NSColor.systemOrangeColor;
+            NSWindow *window = ordinaryFixtureWindow(f, [[ClickFixtureView alloc] initWithFrame:NSMakeRect(0, 0, w, h)],
+                @"Nearpane isolated window", first ? NSColor.systemBlueColor : NSColor.systemOrangeColor);
             [wins addObject:window];
             [window orderFront:nil];
             recentMarkers[@(window.windowNumber)] = [NSMutableArray array];
@@ -151,3 +159,4 @@ int main(int argc, const char **argv) {
         return 0;
     }
 }
+#endif
