@@ -1,0 +1,347 @@
+{
+  "schema": 1,
+  "scope": "Ordinary Desktop observation alongside the existing regular installed signed Host; no Host restart or self-panel rerun",
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+  "hostPID": 32364,
+  "hostBirthUS": 1795343882268848,
+  "ordinaryObservedUTC": "2026-11-22T12:42:31.956+00:00",
+  "finishedPresentationUTC": "2026-11-22T12:42:40.917+00:00",
+  "admission": {
+    "minimumIdleSeconds": 8,
+    "ordinarySeconds": 9.083992958068848,
+    "waitSeconds": 2366.1070330142975
+  },
+  "ordinaryDesktop": {
+    "displayID": 1,
+    "displayUUID": "uuid-1",
+    "spaceID": 4,
+    "spaceUUID": "uuid-2",
+    "spaceType": 0,
+    "managedOrdered": [
+      {
+        "spaceID": 4,
+        "spaceUUID": "uuid-2",
+        "type": 0
+      },
+      {
+        "spaceID": 5568,
+        "spaceUUID": "uuid-3",
+        "type": 4
+      },
+      {
+        "spaceID": 5184,
+        "spaceUUID": "uuid-4",
+        "type": 4
+      },
+      {
+        "spaceID": 6,
+        "spaceUUID": "uuid-5",
+        "type": 0
+      }
+    ]
+  },
+  "focus": {
+    "before": [
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      },
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      }
+    ],
+    "sameAXObjectBefore": true,
+    "independentDuringOverview": [
+      {
+        "utc": "2026-11-22T12:42:33.742+00:00",
+        "focus": {
+          "birth": 1795273468353550,
+          "CGWindowID": 64019,
+          "matchedVisibleLayerZeroCGWindow": true,
+          "pid": 58776
+        },
+        "stripReadResult": "dockTreeUnavailable"
+      },
+      {
+        "utc": "2026-11-22T12:42:33.914+00:00",
+        "focus": {
+          "birth": 1795273468353550,
+          "CGWindowID": 64019,
+          "matchedVisibleLayerZeroCGWindow": true,
+          "pid": 58776
+        },
+        "stripReadResult": "dockTreeUnavailable"
+      }
+    ],
+    "independentAXPairDuringMatched": true,
+    "confirmedReadsAfterDismissalWithinDeadline": 0,
+    "restoredTwice": "UNVERIFIED"
+  },
+  "missionControl": {
+    "presentationRequests": 1,
+    "dismissalRequests": 1,
+    "signedDockRootAppeared": true,
+    "sameSignedDockRootReadBeforeDismissal": true,
+    "readerLayout": {
+      "screen": [
+        0,
+        0,
+        1470,
+        956
+      ],
+      "steps": [
+        {
+          "expected": "mc.display",
+          "readError": "dockTreeUnavailable"
+        }
+      ]
+    },
+    "validVisibleCounts": [],
+    "expectedFromManagedRoster": 4,
+    "failureDuringReading": "visibleTilesUnavailable",
+    "finalGuard": "originalFocusOrPresentationNotRestored",
+    "actualOwningHostReadings": {
+      "initialHost": {
+        "missionControlObservation": "signedDockAXListWithoutMC",
+        "missionControlPresented": 0,
+        "pid": 32364,
+        "uptime": 411032.2539499167
+      },
+      "presentedHostAtArrival": {
+        "missionControlObservation": "signedDockAXListWithoutMC",
+        "missionControlPresented": 0,
+        "pid": 32364,
+        "uptime": 411032.65923650004
+      },
+      "finalHost": {
+        "missionControlObservation": "signedDockAXListWithoutMC",
+        "missionControlPresented": 0,
+        "pid": 32364,
+        "uptime": 411040.8434492917
+      }
+    },
+    "displayedThumbnailCount": null,
+    "rootCauseScope": "The signed mc root was found. Enumerating its children to resolve mc.display failed. The sampling error aggregates several AX predicates; it does not identify an OS regression or prove there were no visible tiles. The Host status was sampled at arrival, not continuously."
+  },
+  "spaceAccounting": {
+    "before": [
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      17,
+      18,
+      19,
+      31,
+      38,
+      654,
+      5182,
+      5184,
+      5184,
+      5568,
+      5568,
+      5607,
+      5608
+    ],
+    "after": [
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      17,
+      18,
+      19,
+      31,
+      38,
+      654,
+      5182,
+      5184,
+      5184,
+      5568,
+      5568,
+      5607,
+      5608
+    ],
+    "independentLaterSamples": [
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608
+      ],
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608
+      ]
+    ],
+    "sameAsEarlierCleanMultiset": true,
+    "entries": 22,
+    "distinctIDs": 20,
+    "knownTemporarySpacesAbsent": [
+      5614,
+      5643
+    ]
+  },
+  "terminal": {
+    "hostAfter": {
+      "pid": 32364,
+      "missionControlPresented": 0,
+      "missionControlObservation": "signedDockAXListWithoutMC"
+    },
+    "independentSignedDock": [
+      {
+        "currentSpaceID": 5568,
+        "dockBirth": 1794786957587871,
+        "dockPID": 697,
+        "signedDockRoot": "absentWithDockList",
+        "type": 4,
+        "utcUnix": 1795351531.222674
+      },
+      {
+        "currentSpaceID": 5568,
+        "dockBirth": 1794786957587871,
+        "dockPID": 697,
+        "signedDockRoot": "absentWithDockList",
+        "type": 4,
+        "utcUnix": 1795351531.55903
+      }
+    ],
+    "fullScreenAfter": 5568,
+    "testOwnedSpaces": 0,
+    "testOwnedWindows": 0
+  },
+  "passiveCrossCheck": {
+    "began": 1795351486.235621,
+    "closedRootSamples": 6,
+    "disambiguatedAXReadings": [],
+    "ended": 1795351666.29163,
+    "ordinarySamples": 6,
+    "overviewRequests": 0,
+    "postedInput": 0,
+    "presentRootSamples": 0,
+    "reason": "boundedPassiveObservationCompleted",
+    "samplesMatchingInitialOrdinaryFocus": 6,
+    "scope": "passive ordinary Desktop, signed Dock only",
+    "seenSpaceIDs": [
+      4,
+      5184,
+      5568
+    ],
+    "spaceWrites": 0,
+    "windowWrites": 0
+  },
+  "externalFixtureInspection": {
+    "observedUTC": "2026-11-22T12:10:07.177031+00:00",
+    "signatureVerified": true,
+    "Identifier": "org.nearpane.lab.NearpaneFixtureWindows",
+    "CDHash": "7e41a54550806271cfa2f1672404963703a6f508",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "executableSHA256": "57d90f7d96653453d36d7aaed94b9e24fd4d2ede3ae132eaa9e18594205ea4bc",
+    "sourceFilesSHA256": {
+      "engineering/window-lab/Sources/NearpaneFixtureWindows/main.swift": "19a7ded0c9b559b20012970ef3266502c906cb947272cda3737eb065981e9772",
+      "scripts/acceptance/window-engine/host/membership-window.m": "59f30742702c5110ffb4bb3011330f99ae7b10bda3d7f0a81e089b21bfe4a72a"
+    },
+    "inspectionScope": "installed signature and matching-source capabilities only; neither fixture launched",
+    "bundledMultiwindowApp": "accessory activation policy with normal NSWindow objects",
+    "existingRegularEnrolledFixture": "one transparent, mouse-ignoring window",
+    "P1WindowActions": 0,
+    "keyboardAndSiblingResult": "NOT_RUN"
+  },
+  "P0": "BLOCKED",
+  "presentation": "UNKNOWN",
+  "P1": {
+    "execution": "NOT_RUN",
+    "independentReadiness": "sameProductInstanceRunning",
+    "startupArgumentAvailableInRunningHost": false,
+    "foreignWindowDispatches": 0,
+    "preflightReceipt": "18-running-host-fixture-readiness.json"
+  },
+  "P2": {
+    "sidebarABCA": "NOT_RUN",
+    "10Cycles": "NOT_RUN",
+    "50Cycles": "NOT_RUN",
+    "performance": "NOT_RUN",
+    "corner": "NOT_RUN",
+    "spacesBackend": "UNDETERMINED",
+    "qualifiedBackends": 0,
+    "defaultChanged": false
+  },
+  "actions": {
+    "hostRestarts": 0,
+    "installs": 0,
+    "selfPanelExperiments": 0,
+    "fixtureLaunches": 0,
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "postedInput": 0,
+    "forcedSpaceSwitches": 0
+  },
+  "privateRawSHA256": {
+    "ordinary-followup.json": "1e3e5940d133dc0199bcae35be117e385d18f2e9fcd8e0df450e55027bf7eb12",
+    "ordinary-overview-followup.swift": "452b312e9003f9027f77a9ffed09a0a7cd8a7d6f1f60f0f1e318c6f5f976bc27",
+    "ordinary-overview-followup": "fa86a59f30d83cdbb3d18d73f6ee1bc4133a0c4ea76bab5162ac13d5ea80fea4",
+    "pending-second-console.json": "f452d9b44bb9c20c8d5f45df6823616b2236d8cf754c8cf47c0688b0c1e71782",
+    "final-console.json": "d1619bbde9696a948b85124f7a961ea2c86524f69583e81f790fa579d2a09dd2",
+    "final-engine.json": "112097dbd82b619e682e072c9b2cf7080171c63817449254e91bc304236ef160",
+    "final-host.json": "f8cb0e98616872d420191bf217a907b643875777a378a5bf10b3f8ca82f780a7",
+    "passive-dock.swift": "3a03b01e3821cd7fb0cafc8d31fcc453937824c5a6e976493c5737e16e850630",
+    "passive-dock.json": "371b0448d85ea530efb34cc58f1abbbf2aa6d0cb3dd9a4a1cf3127b5387e0246",
+    "dock-closure.json": "ab974e4fa6d16b78e92f247286995e18a6220cb9de493e3681afdfe3e196f9fe",
+    "final-dock.swift": "2cea5e2b81f13e6b398b64bc00557429fbf1c1d5acf7af33a9bb51fb070b54c7",
+    "fixture-signature-check.json": "934b434cf3a3df97ba35537acd46bd2dd643f2bf92a05e0e55385e3ad5465d31"
+  }
+}
