@@ -1,5 +1,17 @@
 # Nearpane 调度组正式验收合同
 
+## 5.22（90）正式 Host 的交互窗口单次往返
+
+`run-installed-stage.py` 的 `interactive-roster` 在标准安装路径登记两款签名应用的三扇普通窗口。`interactive-spaces` 额外要求与同一正式 Host、进程代际和 HID 绑定的本次 Mission Control P0 收据。监督器在正常退出 Host 前核对用户会话、配置、恢复责任及两款夹具的固定 CDHash。两个入口均使用 `--kit`、`--p0-receipt` 和新的 `--result-dir`。私有夹具由 `scripts/acceptance/window-engine/corner/interactive/build.py build` 生成。单次试验以唯一 nonce 为单位。
+
+1. 对目标、同应用旁窗和独立应用旁观窗分别登记进程代际、CGWindowID、原 AX 对象、几何、窗口生命周期和双向原生归属。三窗登记、PID 投递对照和真实 WindowServer 输入分别出具结果。
+2. 正式 Host 的自有面板首先完成往返和清理。随后仅目标窗口进入临时 Space。停放和返回各做两次独立读回，另外两窗须保留原归属和几何。
+3. 停放时让已登记的旁观窗接收完整鼠标手势及键盘标记。接收应用的队列、内容视图与唯一文档相互印证，同时核验目标及兄弟窗的零收件。返回后改由目标窗接收并验证，复查 Dock、原活动桌面、原焦点、光标与三窗清理。
+4. 所有权进入写前日志后，Host 中断或收据超时均保留恢复责任。引擎依据原有权属尝试一次迁回，两个夹具等待同一 nonce 的持久清理确认。观察不全记 UNKNOWN，确认投递到错误窗记 FAIL。独立重读归档并核对每项派发，才可报告整个交互试验通过。
+5. Corner 须另取得正式 Guardian 的恢复租约，独立完成停放、命中、崩溃恢复和清理。侧栏整组切换及稳定性测试以已取得生产资格的后端为前置条件。
+
+[本轮实机与隔离环境收据](../verification/window-engine/interactive-round-26A428/STATUS.md)
+
 ## PR #15 普通桌面准入顺序
 
 每个 Host 遥测阶段留存实际请求和响应的单调时间、进程出生代、读取来源、退出状态及每次尝试。只有同一正式 Host 的四个实际阶段依次为 0、1、0、0，且收起时原 AX 对象和 CGWindowID 连续两读相同，才允许监督器退出日常 Host。系统通知表示通知送达，发起方须由同次系统请求记录单独证明。[夜间分项证据](../verification/window-engine/overnight-20261122/STATUS.md)

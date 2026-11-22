@@ -109,6 +109,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
             trial = json.loads((folder / "result.json").read_bytes())
             install.persist(out, trial)
             update("qualificationReturned", trialExit=exit_code, qualification=trial["status"],
+                   trioRegistration=trial.get("pair", {}).get("trioRegistration", "NOT_RUN"),
                    inputs=trial.get("pair", {}).get("inputs", []), membershipRoundTrip=trial.get("engineVisibilityRoundTrip"),
                    productionQualified=False)
             return

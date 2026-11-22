@@ -172,6 +172,7 @@ jobs:
           path: |
             ${{ runner.temp }}/stage-group-lifecycle.json
             ${{ runner.temp }}/stage-group-windowserver.json
+            ${{ runner.temp }}/stage-group-windowserver-delivery/
           if-no-files-found: warn
           retention-days: 14
       - name: Assess the enrolled private archive on this clean hosted Mac

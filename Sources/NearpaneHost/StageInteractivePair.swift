@@ -71,13 +71,6 @@ import NearpaneWindowEngine
         let pointer = systemRoute && kind == "mouse" ? CGEvent(source:nil)?.location : nil
         let originalHID = StageCanaryOverview.hid()
         var lastPointer: CGPoint?
-        defer {
-            if let pointer, let lastPointer, let now = CGEvent(source:nil)?.location,
-               abs(now.x-lastPointer.x) < 2, abs(now.y-lastPointer.y) < 2,
-               !syntheticDown, StageCanaryOverview.hid() == originalHID, InputState.physical().refusal == nil {
-                _ = CGWarpMouseCursorPosition(pointer)
-            }
-        }
         do {
             guard let owner = peer.image, let slot = windows.rows.firstIndex(where: { $0.row.role == receiver }) else {
                 throw StagePairRefusal("unregisteredReceiver")
@@ -133,7 +126,9 @@ import NearpaneWindowEngine
                 event.flags = []; event.setIntegerValueField(.eventSourceUserData,value:Int64(bitPattern:tag))
                 if systemRoute {
                     try StageInteractiveRouting.clearInput(InputState.physical(),syntheticDown:syntheticDown)
-                    guard StageCanaryOverview.hid() == originalHID, StageInteractiveRouting.hasFocus(target,pid:owner.pid),
+                    let modifiers: CGEventFlags = [.maskCommand,.maskShift,.maskControl,.maskAlternate,.maskSecondaryFn]
+                    guard CGEventSource.flagsState(.hidSystemState).intersection(modifiers).isEmpty,
+                          StageCanaryOverview.hid() == originalHID, StageInteractiveRouting.hasFocus(target,pid:owner.pid),
                           kind != "mouse" || (pointer != nil && StageInteractiveRouting.hit(target,at:event.location))
                     else { throw StagePairRefusal("actualSystemReceiverChanged") }
                     event.post(tap:.cgSessionEventTap)
@@ -178,6 +173,21 @@ import NearpaneWindowEngine
                 }
             }
         }
+        if let pointer, let lastPointer {
+            let actual = CGEvent(source:nil)?.location
+            let moved = actual.map { abs($0.x-pointer.x) >= 1 || abs($0.y-pointer.y) >= 1 }
+            if moved == false {
+                row["cursorRestoration"] = "ALREADY_AT_ORIGIN"
+            } else if let actual, abs(actual.x-lastPointer.x) < 2, abs(actual.y-lastPointer.y) < 2,
+                      !syntheticDown, StageCanaryOverview.hid() == originalHID, InputState.physical().refusal == nil,
+                      CGWarpMouseCursorPosition(pointer) == .success, let readback = CGEvent(source:nil)?.location,
+                      abs(readback.x-pointer.x) < 1, abs(readback.y-pointer.y) < 1 {
+                row["cursorRestoration"] = "RESTORED"
+            } else {
+                row["cursorRestoration"] = "UNKNOWN"
+                if row["status"] as? String == "PASS" { row["status"] = "UNKNOWN" }
+            }
+        }
         row["submitted"] = count
         return row
     }
@@ -188,7 +198,7 @@ import NearpaneWindowEngine
         let pre = try await observe(nil)
         try channel.finish(JSONSerialization.data(withJSONObject: pre, options: [.sortedKeys]) + Data([10]), preflight: true)
         var result: JSON = ["status":"BLOCKED","fixtureLaunchRequested":false,"openRequestAttempted":false,"windowObservations":[],"inputs":[],
-            "physicalMouseHit":"NOT_RUN","physicalKeyboardRouting":"NOT_RUN","hiddenInputIsolation":"NOT_RUN",
+            "trioRegistration":"NOT_RUN","physicalMouseHit":"NOT_RUN","physicalKeyboardRouting":"NOT_RUN","hiddenInputIsolation":"NOT_RUN",
             "productionQualified":false,"windowEngineRoundTrip":["status":"NOT_RUN","reason":spacesCycle ? "awaitingTrioAdmission" : "observationOnly"],
             "originalFocus":original.first,"initialHID":hid,"initialInput":initialInput.evidence,"restorationInputEvents":0]
         var peer: StageInteractivePeer?, ids = [UInt32](), openRequested = false, closed = false
@@ -337,7 +347,9 @@ import NearpaneWindowEngine
                 else { throw StagePairRefusal("registeredWindowMembershipUnconfirmed") }
             }
             _ = try StageInteractiveWindows(raw:client.exchange("sample")["windows"],pid:image.pid,previous:windows)
+            _ = try StageInteractiveWindows(raw:bystander.exchange("sample")["windows"],pid:other.pid,previous:protected,bystander:true)
             try currentPair()
+            result["trioRegistration"] = "PASS"
             if let engine = NativeStageWindowEngine() {
                 let probe = try await engine.submit(.init(backend:UInt32(NP_CORNER),operation:UInt32(NP_PROBE),intent:UUID()))
                 result["productionReadOnlyProbe"] = ["status":probe.status,"flags":probe.flags,"detail":probe.detail,"closed":await engine.close(),"visibilityWrites":0] as JSON
@@ -381,17 +393,25 @@ import NearpaneWindowEngine
                     let raw = try client.exchange("sample")["windows"]
                     guard let raw, let rows = try? JSONDecoder().decode([StageInteractiveWindows.Row].self,from:JSONSerialization.data(withJSONObject:raw)),
                           rows.count == windows.rows.count, zip(rows,windows.rows).allSatisfy({ row, old in
-                              row.window == old.row.window && row.lifetime == old.row.lifetime && row.markedEvents == 0 &&
-                                row.documentWrites == 0 && row.documentErrors == 0
-                          }) else { throw StagePairRefusal("parkedTargetOrSiblingReceivedMarkedInput") }
+                              row.role == old.row.role && row.window == old.row.window && row.lifetime == old.row.lifetime &&
+                                row.sameOriginal && !row.minimized && row.rect == old.row.rect &&
+                                row.markedEvents != nil && row.documentWrites != nil && row.documentErrors == 0
+                          }) else { throw StagePairRefusal("parkedOwnerReadbackUnavailable") }
+                    result["parkedProtectedReceivers"] = rows.map { ["role":$0.role,"window":$0.window,"markedEvents":$0.markedEvents!,
+                                                                  "documentWrites":$0.documentWrites!,"onActiveSpace":$0.onActiveSpace] as JSON }
+                    guard rows.allSatisfy({ $0.markedEvents == 0 && $0.documentWrites == 0 }) else {
+                        throw StagePairRefusal("parkedTargetOrSiblingReceivedMarkedInput")
+                    }
+                    guard !rows[0].onActiveSpace, rows[1].onActiveSpace && rows[1].visible else {
+                        throw StagePairRefusal("ownerAndWindowServerDisagreeWhileParked")
+                    }
                     let dockDuring = try StageInteractiveRouting.DockState.read()
                     result["dockWhileParked"] = dockDuring.evidence
                     guard dock == dockDuring else { throw StagePairRefusal("dockChangedWhileParked") }
                     let correct = parkedRows.count == 2 && parkedRows.allSatisfy { $0["status"] as? String == "PASS" }
-                    try StageInteractiveRouting.acknowledge(client,target:target.row.window,receiver:receiver.row.window,status:correct ? "PASS" : "UNKNOWN")
-                    result["hiddenInputIsolation"] = correct ? "PASS" : "UNKNOWN"
-                    result["parkedProtectedReceivers"] = rows.map { ["role":$0.role,"window":$0.window,"markedEvents":$0.markedEvents ?? UInt64.max,
-                                                                  "documentWrites":$0.documentWrites ?? UInt64.max] as JSON }
+                    let status = correct ? "PASS" : parkedRows.contains { $0["status"] as? String == "FAIL" } ? "FAIL" : "UNKNOWN"
+                    try StageInteractiveRouting.acknowledge(client,target:target.row.window,receiver:receiver.row.window,status:status)
+                    result["hiddenInputIsolation"] = status
                 } catch {
                     result["hiddenInputIsolation"] = (error as? StagePairRefusal)?.reason == "parkedTargetOrSiblingReceivedMarkedInput" ? "FAIL" : "UNKNOWN"
                     result["parkedInputReason"] = (error as? StagePairRefusal)?.reason ?? "missingParkedReceiverEvidence"
@@ -406,18 +426,19 @@ import NearpaneWindowEngine
                 guard dispatch["safeToRollback"] as? Bool == true else {
                     throw StagePairRefusal("interactiveCycleRetainedRecoveryResponsibility")
                 }
-                guard dispatch["status"] as? String == "PASS",
-                      let subject = dispatch["fixture"] as? JSON, subject["pid"] as? Int32 == image.pid,
-                      subject["birth"] as? UInt64 == image.launch, subject["window"] as? UInt32 == windows.rows[0].row.window,
-                      subject["parkedIndependentReads"] as? UInt32 == 2, subject["returnedIndependentReads"] as? UInt32 == 2 else {
-                    throw StagePairRefusal("interactiveCycleDidNotProveReturn")
-                }
                 let dockAfter = try StageInteractiveRouting.DockState.read()
                 result["dockAfterReturn"] = dockAfter.evidence
                 guard dockAfter == dock else { throw StagePairRefusal("dockChangedAfterReturn") }
                 try currentPair()
                 _ = try StageInteractiveWindows(raw:client.exchange("sample")["windows"],pid:image.pid,previous:windows)
                 _ = try StageInteractiveWindows(raw:bystander.exchange("sample")["windows"],pid:other.pid,previous:protected,bystander:true)
+                result["restoredTrioAXAndGeometry"] = "PASS"
+                guard dispatch["status"] as? String == "PASS",
+                      let subject = dispatch["fixture"] as? JSON, subject["pid"] as? Int32 == image.pid,
+                      subject["birth"] as? UInt64 == image.launch, subject["window"] as? UInt32 == windows.rows[0].row.window,
+                      subject["parkedIndependentReads"] as? UInt32 == 2, subject["returnedIndependentReads"] as? UInt32 == 2 else {
+                    throw StagePairRefusal("interactiveCycleDidNotProveReturn")
+                }
             }
             if spacesCycle {
                 try currentPair()
@@ -455,7 +476,7 @@ import NearpaneWindowEngine
             result["reason"] = inputRows.last?["reason"] ?? (spacesCycle ? "seeSessionRoutedReceiverReceipts" : "seeTargetedReceiverReceipts")
         } catch {
             result["reason"] = (error as? StagePairRefusal)?.reason ?? "interactivePairObservationUnavailable"
-            if openRequested { result["status"] = "UNKNOWN" }
+            if openRequested { result["status"] = result["hiddenInputIsolation"] as? String == "FAIL" ? "FAIL" : "UNKNOWN" }
         }
         let engineReceipt = result["windowEngineRoundTrip"] as? JSON
         if spacesCycle && engineReceipt?["safeToRollback"] as? Bool == false {

@@ -57,6 +57,9 @@ private struct DeliveryIntent: Codable {
         receipt["reason"] = reason
         try JSONSerialization.data(withJSONObject:receipt, options:[.sortedKeys]).write(to:root.appendingPathComponent("delivery.json"), options:.withoutOverwriting)
     }
+    guard NSUserName() == "runner", ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else {
+        try save("dedicatedHostedLoginRequired"); return
+    }
     let owners = try ["a","b"].map { try JSONDecoder().decode(Owner.self, from:Data(contentsOf:root.appendingPathComponent($0+".json"))) }
     guard AXIsProcessTrusted(), CGPreflightPostEventAccess(), !StageManagerPreference.ownsWindowDispatch,
           let pair = enroll(owners[0],name:"a"), pair.count == 2, let other = enroll(owners[1],name:"b"), other.count == 1,
@@ -74,6 +77,22 @@ private struct DeliveryIntent: Codable {
         let r = before.cg[t.id]!
         return ["id":t.id,"frame":[r.minX,r.minY,r.width,r.height],"owner":t.owner.pid]
     }
+    let area = before.cg.values.reduce(CGRect.null) { $0.union($1) }.integral
+    let region = [Int(area.minX),Int(area.minY),Int(area.width),Int(area.height)]
+    receipt["captureRegion"] = region
+    receipt["screenCapturePreflight"] = CGPreflightScreenCaptureAccess()
+    var recording: Process?
+    if CGPreflightScreenCaptureAccess(), area.width > 0, area.height > 0, area.width <= 4096, area.height <= 2160 {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath:"/usr/sbin/screencapture")
+        task.arguments = ["-x","-v","-V3","-R"+region.map(String.init).joined(separator:","),
+                          root.appendingPathComponent("interactive.mov").path]
+        task.standardOutput = FileHandle.nullDevice
+        task.standardError = FileHandle.nullDevice
+        do { try task.run(); recording = task; try await Task.sleep(for:.milliseconds(800)) }
+        catch { receipt["recordingStart"] = "UNKNOWN" }
+    }
+    defer { if recording?.isRunning == true { recording?.terminate() } }
     guard let source = CGEventSource(stateID:.privateState) else { try save("eventSourceUnavailable"); return }
     let p = CGPoint(x:frame.midX,y:frame.midY), q = CGPoint(x:p.x+4,y:p.y+2)
     var submitted = 0
@@ -95,7 +114,7 @@ private struct DeliveryIntent: Codable {
         guard let packet else { receipt["status"] = "UNKNOWN"; try save("eventAllocationFailed"); return }
         packet.flags = []
         packet.setIntegerValueField(.eventSourceUserData,value:intent.tag)
-        packet.post(tap:.cghidEventTap)
+        packet.post(tap:.cgSessionEventTap)
         submitted += 1; receipt["submitted"] = submitted
         try await Task.sleep(for:.milliseconds(50))
     }
@@ -118,6 +137,11 @@ private struct DeliveryIntent: Codable {
     let after = try await sample(all,root:root)
     let stable = focused(target) && after?.cg == before.cg && after?.axFrames == before.axFrames &&
         all.allSatisfy { (try? birth($0.owner.pid)) == $0.owner.birth }
+    if let recording {
+        let stop = ContinuousClock.now.advanced(by:.seconds(5))
+        while recording.isRunning && ContinuousClock.now < stop { try await Task.sleep(for:.milliseconds(80)) }
+        receipt["recordingExitedSuccessfully"] = !recording.isRunning && recording.terminationStatus == 0
+    }
     receipt["sameFocusGeometryAndGenerations"] = stable
     receipt["status"] = matches && stable ? "PASS" : "FAIL"
     try save(matches && stable ? "targetConsumedGestureAndWroteUniqueDocument" : "receiverOrFinalStateDisagreed")

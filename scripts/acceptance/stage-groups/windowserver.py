@@ -6,6 +6,7 @@ from pathlib import Path
 import platform
 import plistlib
 import shutil
+import struct
 import subprocess
 import tempfile
 import time
@@ -36,6 +37,34 @@ def lifecycle(binary, root, old_owner, launch_owner):
         if inspector.poll() is None:
             inspector.terminate()
             inspector.wait(timeout=3)
+
+
+def preserve_delivery_media(binary, root, receipt, result):
+    out = receipt.parent / (receipt.stem + "-delivery")
+    out.mkdir(mode=0o700)
+    media = {"screen": "NOT_RUN", "video": "NOT_RUN"}
+    region = result.get("captureRegion")
+    if result.get("screenCapturePreflight") is not True or not isinstance(region, list) or len(region) != 4:
+        return {**media, "reason": "fixtureRegionOrCapturePermissionUnavailable"}
+    if not all(type(n) is int for n in region) or not (0 < region[2] <= 4096 and 0 < region[3] <= 2160):
+        return {**media, "reason": "invalidFixtureRegion"}
+    screen = out / "three-windows.png"
+    grab = subprocess.run(["/usr/sbin/screencapture", "-x", "-R" + ",".join(map(str, region)), screen],
+                          capture_output=True, timeout=6)
+    if grab.returncode == 0 and screen.is_file():
+        raw = screen.read_bytes()
+        if raw.startswith(b"\x89PNG\r\n\x1a\n") and len(raw) >= 24:
+            media.update(screen="PASS", pixels=list(struct.unpack(">II", raw[16:24])))
+    if media["screen"] != "PASS":
+        media["screen"] = "UNKNOWN"
+    movie = root / "interactive.mov"
+    if movie.is_file():
+        probe = subprocess.run([binary, "movie", movie], capture_output=True, text=True, timeout=6)
+        shutil.copy2(movie, out / "real-input.mov")
+        media["video"] = "PASS" if result.get("recordingExitedSuccessfully") is True and probe.returncode == 0 else "UNKNOWN"
+        if probe.returncode == 0:
+            media["seconds"] = float(probe.stdout.strip())
+    return media
 
 
 def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_only=False):
@@ -122,6 +151,10 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
                 delivery_path = root / "delivery.json"
                 result["interactiveDelivery"] = (json.loads(delivery_path.read_bytes()) if delivery_path.exists() else
                     {"status": "UNKNOWN", "reason": "deliveryReceiptMissing", "exit": delivery.returncode})
+                try:
+                    result["deliveryMedia"] = preserve_delivery_media(binary, root, receipt, result["interactiveDelivery"])
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    result["deliveryMedia"] = {"screen": "UNKNOWN", "video": "UNKNOWN", "reason": type(error).__name__}
                 probe = subprocess.run([binary, "visibility", root], capture_output=True, text=True, timeout=24)
                 observed = root / "visibility.json"
                 result["singleWindowVisibility"] = (json.loads(observed.read_bytes()) if observed.exists() else
