@@ -18,19 +18,6 @@ import Security
         let window: AXUIElement
         let number: CGWindowID
     }
-    private final class ActivationHistory: @unchecked Sendable {
-        let lock = NSLock()
-        var events = [[String:Any]]()
-        func append(_ note: Notification) {
-            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            let pid = app.processIdentifier, time = ProcessInfo.processInfo.systemUptime
-            let image = try? OrdinaryProcessImage.read(pid)
-            lock.withLock {
-                if events.count < 64 { events.append(["uptime":time,"pid":pid,"birth":image?.launch as Any? ?? NSNull()]) }
-            }
-        }
-        func read() -> [[String:Any]] { lock.withLock { events } }
-    }
     private static let launcher = URL(fileURLWithPath: "/System/Applications/Mission Control.app")
     private static func requirement(_ identifier: String) throws -> SecRequirement {
         var rule: SecRequirement?
@@ -200,7 +187,7 @@ import Security
               zip(rects,rects.dropFirst()).allSatisfy({ $0.midX < $1.midX }) else { throw Refusal("visibleTileOrderUnavailable") }
         return items
     }
-    static func toggle() throws {
+    @discardableResult static func toggle() throws -> [String: Any] {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(launcher as CFURL,[],&code) == errSecSuccess, let code,
               SecStaticCodeCheckValidity(code,[],try requirement("com.apple.exposelauncher")) == errSecSuccess else { throw Refusal("unverifiedSystemLauncher") }
@@ -208,9 +195,14 @@ import Security
         let p = Process()
         p.executableURL = URL(fileURLWithPath:"/usr/bin/open")
         p.arguments = ["-g","-a",launcher.path]
+        let start = ProcessInfo.processInfo.systemUptime
         try p.run()
+        let pid = p.processIdentifier
+        let birth = (try? OrdinaryProcessImage.read(pid))?.launch
         p.waitUntilExit()
         guard p.terminationStatus == 0 else { throw Refusal("systemLauncherReturnedError") }
+        return ["launcherPID": pid, "launcherBirth": birth as Any? ?? NSNull(), "startUptime": start,
+                "endUptime": ProcessInfo.processInfo.systemUptime, "exit": p.terminationStatus]
     }
 
     static func read(after cycle: [String:Any], initial: [String:Any], final: [String:Any],
@@ -250,19 +242,16 @@ import Security
 
     /// The acceptance observer can sample the running Host while this routine uses only read APIs and the system overview launcher.
     static func measure(initial: [String:Any], final: [String:Any], stage: String,
-                        cancelled: @escaping () throws -> Bool, notify: (String) -> Void) async -> [String:Any] {
+                        trace: StageOverviewFocusTrace? = nil, cancelled: @escaping () throws -> Bool, notify: (String) async -> Void) async -> [String:Any] {
         var result: [String:Any] = ["status":"BLOCKED","presentations":0,"dismissals":0,"restored":true,
                                     "inputEventsPosted":0,"tileCounts":[],"stage":stage,"windowWrites":0,"spaceWrites":0]
         guard getuid() == geteuid(), getuid() > 0, AXIsProcessTrusted() else {
             result["reason"] = "authorizedConsoleObserverRequired"
             return result
         }
+        let history = trace ?? StageOverviewFocusTrace()
         var finish: (() -> Void)?
         var restoreOwnedOverview: (() async -> Void)?
-        let activation = ActivationHistory(), center = NSWorkspace.shared.notificationCenter
-        let token = center.addObserver(forName:NSWorkspace.didActivateApplicationNotification,object:nil,queue:nil) {
-            activation.append($0)
-        }
         do {
             let diagnostic = stage == "fullscreenPositionDiagnostic"
             let prior = diagnostic ? fullscreenReadOnlyIdentity(initial) : initial["scope"] as? NSDictionary
@@ -328,12 +317,13 @@ import Security
                 guard try root(dock) == nil, current == original else { throw Refusal("ordinaryFocusedDesktopUnconfirmed") }
                 try await Task.sleep(for:.milliseconds(55))
             }
-            notify("before")
+            trace?.sample("before", originalPID: original.image.pid, window: original.window)
+            await notify("before")
             try stable()
             guard try root(dock) == nil, try focus() == original else { throw Refusal("overviewAlreadyOpen") }
             result["presentations"] = 1
             result["restored"] = false
-            try toggle()
+            result["presentationRequest"] = try toggle()
             let until = ContinuousClock.now + .seconds(3)
             var enrolled: AXUIElement?
             repeat {
@@ -354,7 +344,7 @@ import Security
                 else { return }
                 result["dismissals"] = 1
                 do {
-                    try toggle()
+                    result["cleanupDismissalRequest"] = try toggle()
                     result["cleanupDismissalIssued"] = true
                     for _ in 0..<12 {
                         try await Task.sleep(for:.milliseconds(100))
@@ -373,7 +363,10 @@ import Security
                     }
                 } catch { result["cleanupReason"] = "dismissalReadbackUnavailable" }
             }
-            notify("presented")
+            trace?.mark("signedDockFirstPresented")
+            await notify("presented")
+            try stable()
+            trace?.sample("presented", originalPID: original.image.pid, window: original.window)
             var samples = [StageOverviewHitTest.Sample]()
             var treeAgrees = true
             for _ in 0..<2 {
@@ -400,7 +393,7 @@ import Security
             try stable()
             guard try root(dock) == enrolled else { throw Refusal("overviewOwnershipLostBeforeDismissal") }
             result["dismissals"] = 1
-            try toggle()
+            result["dismissalRequest"] = try toggle()
             var cleanReads = 0, reportedClosed = false, after = [[String:Any]]()
             result["originalFocusConfirmedReads"] = 0
             let end = ContinuousClock.now + .seconds(5)
@@ -412,7 +405,13 @@ import Security
                     let closed = try root(dock) == nil
                     result["overviewClosed"] = closed
                     row["overviewClosed"] = closed
-                    if closed && !reportedClosed { reportedClosed = true; notify("dismissed"); try stable() }
+                    if closed && !reportedClosed {
+                        reportedClosed = true
+                        trace?.mark("signedDockFirstDismissed")
+                        trace?.sample("dismissed", originalPID: original.image.pid, window: original.window)
+                        await notify("dismissed")
+                        try stable()
+                    }
                     let current = try focus(&row)
                     row.merge(focusData(current)) { _, value in value }
                     cleanReads = closed && current == original ? cleanReads + 1 : 0
@@ -425,6 +424,7 @@ import Security
                 result["originalFocusConfirmedReads"] = cleanReads
                 try stable()
             } while cleanReads < 2 && ContinuousClock.now < end
+            trace?.sample("terminal", originalPID: original.image.pid, window: original.window)
             guard cleanReads == 2 else {
                 let verifiedAway = after.suffix(2)
                 if verifiedAway.count == 2 && verifiedAway.allSatisfy({ row in
@@ -453,8 +453,7 @@ import Security
         }
         await restoreOwnedOverview?()
         finish?()
-        center.removeObserver(token)
-        result["workspaceDidActivate"] = activation.read()
+        result["workspaceDidActivate"] = history.activations
         if result["status"] as? String == "PASS" &&
             (result["inputUninterrupted"] as? Bool != true || result["nativeInventoryRestored"] as? Bool != true) {
             result["status"] = "UNKNOWN"

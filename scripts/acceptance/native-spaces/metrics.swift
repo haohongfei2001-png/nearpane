@@ -63,6 +63,11 @@ let token = center.addObserver(forName: .init("com.holdsnow.nearpane.preview-met
        reason.range(of: "^[A-Za-z]+$", options: .regularExpression) != nil {
         output["missionControlObservation"] = reason
     }
+    if let start = fields["missionControlReadStartUptime"] as? Double,
+       let end = fields["missionControlReadEndUptime"] as? Double, start.isFinite, end.isFinite, start > 0, end >= start {
+        output["missionControlReadStartUptime"] = start
+        output["missionControlReadEndUptime"] = end
+    }
     received = output
 }
 var request = ["nonce": nonce]

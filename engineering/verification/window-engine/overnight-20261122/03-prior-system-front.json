@@ -1,0 +1,17 @@
+{
+  "scope": "historical 2026-11-22 22:35:21 to 22:35:32 +0800",
+  "source": "scripts/acceptance/native-spaces/p0_system_events.py",
+  "events": [
+    {
+      "kind": "setFront",
+      "targetPID": 56354,
+      "previousPID": 48228,
+      "pid": 392,
+      "time": 1795358124.755227,
+      "mach": 13709033690504,
+      "messageSHA256": "8a72a5898a181c27e15a0a3560338352fed5699937ea428b923b15158aded588"
+    }
+  ],
+  "initiator": "UNKNOWN",
+  "privateReceiptSHA256": "e1c0bece4a2fef62e272241635c8872e68188e26b5ff3f2f114e8d8ec98dbb04"
+}

@@ -476,6 +476,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         metrics["overviewShortcutRegistered"] = NSNumber(value: DesktopOverviewShortcut.shared.registered)
         let missionControl = panels?.missionControlDispatchState
         metrics["missionControlPresented"] = NSNumber(value: missionControl == "ordinary" ? 0 : missionControl == "exposed" ? 1 : -1)
+        if let interval = panels?.missionControlReadInterval {
+            metrics["missionControlReadStartUptime"] = NSNumber(value: interval.start)
+            metrics["missionControlReadEndUptime"] = NSNumber(value: interval.end)
+        }
         metrics["surfaceHidden"] = NSNumber(value: host.configuration.surfaceHidden)
         metrics["visibilityRevision"] = NSNumber(value: host.surfaceVisibilityRevision)
         DistributedNotificationCenter.default().postNotificationName(.init("com.holdsnow.nearpane.preview-metrics.reply"),

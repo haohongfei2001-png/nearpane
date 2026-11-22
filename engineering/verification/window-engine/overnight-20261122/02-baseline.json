@@ -1,0 +1,81 @@
+{
+  "source": "911189d94545f13cb1b6b56862360a669735d3ea",
+  "privateReceiptSHA256": "2f797f8913ec829b6be1f6ac8fb650c2590510de7e966cf6a90bf98af875f72c",
+  "observerSHA256": "302fe5f9a818791650f89555dc71ac3e5eb1ef0c04a78567bafe0cd4d8cfe1f6",
+  "startedUTC": "2026-11-22T15:57:44Z",
+  "endedUTC": "2026-11-22T16:03:46Z",
+  "status": "BLOCKED",
+  "reason": "fullscreenType4",
+  "hostPID": 32364,
+  "admissionChanges": [
+    {
+      "uptime": 422745.3164137917,
+      "focusPID": 49381,
+      "focusID": 33546,
+      "scope": "BLOCKED",
+      "scopeReason": "fullscreenType4",
+      "active": null
+    },
+    {
+      "uptime": 422903.2009495,
+      "focusPID": 4387,
+      "focusID": 69067,
+      "scope": "PASS",
+      "scopeReason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+      "active": 4
+    },
+    {
+      "uptime": 422904.11861216667,
+      "focusPID": 49381,
+      "focusID": 33546,
+      "scope": "BLOCKED",
+      "scopeReason": "fullscreenType4",
+      "active": null
+    },
+    {
+      "uptime": 422905.003455125,
+      "focusPID": 56354,
+      "focusID": 17742,
+      "scope": "BLOCKED",
+      "scopeReason": "fullscreenType4",
+      "active": null
+    },
+    {
+      "uptime": 422905.93099787505,
+      "focusPID": 56354,
+      "focusID": 17742,
+      "scope": "PASS",
+      "scopeReason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+      "active": 6
+    },
+    {
+      "uptime": 422907.73186558334,
+      "focusPID": 63480,
+      "focusID": 57074,
+      "scope": "BLOCKED",
+      "scopeReason": "fullscreenType4",
+      "active": null
+    },
+    {
+      "uptime": 422925.59501620836,
+      "focusPID": 56354,
+      "focusID": 17742,
+      "scope": "PASS",
+      "scopeReason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+      "active": 6
+    },
+    {
+      "uptime": 422926.46231583337,
+      "focusPID": 49381,
+      "focusID": 33546,
+      "scope": "BLOCKED",
+      "scopeReason": "fullscreenType4",
+      "active": null
+    }
+  ],
+  "presentations": 0,
+  "windowWrites": 0,
+  "spaceWrites": 0,
+  "sourceHadActivationRecorder": true,
+  "baselineMeasurementEntered": false
+}

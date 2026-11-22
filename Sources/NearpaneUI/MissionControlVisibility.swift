@@ -25,9 +25,15 @@ actor MissionControlVisibilityReader {
     private static let executable = "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
     private static let identifier = "com.apple.dock"
 
-    typealias Reading = (visibility: MissionControlVisibility, evidence: String)
+    typealias Reading = (visibility: MissionControlVisibility, evidence: String, startUptime: TimeInterval, endUptime: TimeInterval)
 
     func read() -> Reading {
+        let start = ProcessInfo.processInfo.systemUptime
+        let result = sampleDock()
+        return (result.visibility, result.evidence, start, ProcessInfo.processInfo.systemUptime)
+    }
+
+    private func sampleDock() -> (visibility: MissionControlVisibility, evidence: String) {
         guard AXIsProcessTrusted() else { return (.unknown, "accessibilityUnavailable") }
         let matches = NSRunningApplication.runningApplications(withBundleIdentifier: Self.identifier)
         guard matches.count == 1, let pid = matches.first?.processIdentifier,

@@ -31,7 +31,6 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
             return
     current = mac.inspect(mac.canonical, expected)
     require(current == expected, "Installed image changed after admission")
-    permissions = json.loads((work / "09-running-permissions.json").read_bytes())
     pid = mac.pid()
     require(pid is not None, "No running canonical Host")
     generation = install.process_stamp(pid)
@@ -40,11 +39,10 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalEvidenceOrHostBindingIncomplete",
                p0SHA256=digest, quitRequests=0)
         return
-    if (permissions.get("subject", {}).get("pid") != pid or
-            permissions.get("subject", {}).get("birth") != generation[1] * 1_000_000 + generation[2]):
-        permissions = cycle.backup.permissions.sample()
-        install.persist(result_dir / (name + "-before-permissions.json"), permissions)
+    permissions = cycle.backup.permissions.sample()
+    install.persist(result_dir / (name + "-before-permissions.json"), permissions)
     require(permissions["status"] == "PASS" and permissions["installed"]["CDHash"] == current["cdhash"]
+            and permissions.get("subject", {}).get("pid") == pid and permissions["subject"].get("birth") == birth
             and all(permissions["permissions"].get(key) is True for key in
                     ("accessibility", "listenEvent", "postEvent", "screenCapture")), "Host permissions are incomplete")
     roster = upgrade.census(work, mac.canonical)
@@ -57,6 +55,12 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
                 and preceding.get("cleanup", {}).get("clear") is True, "P1 installed round trip and regular Host return required")
     out = result_dir / (name + ".json")
     require(not out.exists(), "Do not replay a real qualification")
+    if name == "spaces":
+        hid = overview_admission.current_hid()
+        if hid["pressed"] or hid["counts"] != observation["measurement"]["hidAfter"] or not overview_admission.qualifies(observation, current, stamp[0], birth):
+            update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
+                   p0SHA256=digest, preQuitInput=hid, quitRequests=0)
+            return
     update("requestNormalQuit", previous=stamp, configurationBefore=mac.config(), beforeQuitRecovery=before)
     mac.quit(stamp)
     diagnostic_started = False

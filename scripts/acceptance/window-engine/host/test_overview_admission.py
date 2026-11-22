@@ -33,6 +33,13 @@ def receipt():
     names = ["before","presented","dismissed","terminal"]
     phases = [dict(pid=9, phase=name, endUptime=100+i, missionControlPresented=int(i == 1),
                    missionControlObservation="signedDockMCIdentifier" if i == 1 else "signedDockAXListWithoutMC") for i,name in enumerate(names)]
+    for phase in phases:
+        end = phase["endUptime"]
+        phase["startUptime"] = end - 0.4
+        phase["attempts"] = [dict(pid=9, targetPID=9, targetBirth=20, uptime=end-0.3, endUptime=end-0.1,
+                                  status="observed", exit=0, source="installedHostPreviewMetrics",
+                                  missionControlPresented=phase["missionControlPresented"],
+                                  missionControlObservation=phase["missionControlObservation"])]
     return dict(schema=1,stage="physicalP0BeforeWrites",status="PASS",build="26A428",systemVersion="27.0",sip="System Integrity Protection status: enabled.",
                 scope={"status":"PASS","nativeID":4},scopeImmediatelyBeforeOverview={"status":"PASS","nativeID":4},
                 windowWrites=0,spaceWrites=0,launchedHosts=0,observerAXTrusted=True,sameHostAtEnd=True,hostSequenceConfirmed=True,
@@ -52,6 +59,11 @@ class AdmissionTests(unittest.TestCase):
             lambda r:r["measurement"]["hitTestSamples"][0]["hits"][0].pop("dock"),
             lambda r:r["measurement"]["hitTestSamples"][0]["hits"][0]["systemWide"].update(object=0),
             lambda r:r["hostTelemetry"][1].update(missionControlPresented=0),
+            lambda r:r["hostTelemetry"][1]["attempts"][0].update(exit=3),
+            lambda r:r["hostTelemetry"][1]["attempts"][0].update(targetBirth=21),
+            lambda r:r["hostTelemetry"][1]["attempts"][0].update(missionControlObservation="unknown"),
+            lambda r:r["hostTelemetry"][3]["attempts"][0].update(uptime=900),
+            lambda r:r["hostTelemetry"][3]["attempts"].clear(),
         ):
             value = deepcopy(original)
             mutate(value)

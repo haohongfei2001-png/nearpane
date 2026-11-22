@@ -28,6 +28,7 @@ import NearpaneCore
     public var missionControlDispatchState: String { missionControl.rawValue }
     /// Fixed reason only, including incomplete reads on other macOS builds.
     public private(set) var missionControlDispatchEvidence = "waitingForDock"
+    public private(set) var missionControlReadInterval: (start: TimeInterval, end: TimeInterval)?
 
     private var localMouse: Any?, externalMouse: Any?
     private var clickLease: UUID?
@@ -57,6 +58,7 @@ import NearpaneCore
             if !held {
                 missionControl = .unknown
                 missionControlDispatchEvidence = "wallpaperRestoredAwaitingOrdinaryRead"
+                missionControlReadInterval = nil
                 pointer.windowPreviews?.currentDesktop?.changed()
             }
             publishOwnership(previous: previous)
@@ -124,11 +126,14 @@ import NearpaneCore
         sampleGeneration = UUID()
         missionControl = .unknown
         missionControlDispatchEvidence = "waitingForDock"
+        missionControlReadInterval = nil
         publishOwnership(previous: previous)
     }
 
-    func setMissionControl(_ value: MissionControlVisibility, evidence: String? = nil) {
+    func setMissionControl(_ value: MissionControlVisibility, evidence: String? = nil,
+                           interval: (TimeInterval, TimeInterval)? = nil) {
         guard !stopped, !suspended else { return }
+        missionControlReadInterval = interval
         if let evidence { missionControlDispatchEvidence = evidence }
         guard missionControl != value else { return }
         let previous = windowDispatchEligible
@@ -154,7 +159,7 @@ import NearpaneCore
 
     private func accept(_ sample: MissionControlVisibilityReader.Reading, started: ContinuousClock.Instant) {
         if .now - started <= .milliseconds(750) {
-            setMissionControl(sample.visibility, evidence: sample.evidence)
+            setMissionControl(sample.visibility, evidence: sample.evidence, interval: (sample.startUptime, sample.endUptime))
         } else { setMissionControl(.unknown, evidence: "sampleExpired") }
     }
 
@@ -232,6 +237,7 @@ import NearpaneCore
         if missionControlReader != nil {
             sampleGeneration = UUID(); missionControl = .unknown
             missionControlDispatchEvidence = value ? "sessionSuspended" : "waitingForDock"
+            missionControlReadInterval = nil
         }
         fullscreen.sessionBoundary(uptime: ProcessInfo.processInfo.systemUptime)
         publishOwnership(previous: previous)

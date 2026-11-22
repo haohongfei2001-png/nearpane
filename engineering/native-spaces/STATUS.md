@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-22 至 23 日 · 无人值守实机复核
+
+正式 Host 的签名、进程出生代、四项权限和本轮配置摘要已重新读取。初次六分钟物理预检结束于原生全屏。系统结构化日志证实上次 Mission Control 收起时发生了 Edge 到 GitHub Desktop 的前台变更。[分阶段状态和实机证据](../verification/window-engine/overnight-20261122/STATUS.md)
+
 ## 2026-11-22 · PR #15 普通桌面 P0 / P1 实机准入
 
 **桌面条 4/4 通过，P0 整体 UNKNOWN，P1 BLOCKED。** 在 26A428、SIP 开启的普通桌面 4 上，同一次展示中两轮各查 170 个坐标。Apple WindowManager 的可见子节点、父节点和 SystemWide 真实命中均证明有四个按钮，顺序与框一致。收起后前台由 Edge（窗口 68518）变为 GitHub Desktop，49 次读取均未取得其 AXFocusedWindow。十四类 HID 计数与原生 Space 清单前后一致。原焦点连续性尚未通过。[实机分项、截图和录屏](../verification/window-engine/p0-p1-admission-26A428/RESULTS.md)

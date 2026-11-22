@@ -1,12 +1,57 @@
 """Read the private, same-session P0 observation before the regular Host receives a quit request."""
 import hashlib
+import ctypes
 import json
+import math
 import os
 from pathlib import Path
 import stat
 import time
 
 from visible_strip import replay
+
+
+def current_hid():
+    # CGEventType values in the exact order of StageCanaryOverview.hid().
+    cg = ctypes.CDLL("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+    counter = cg.CGEventSourceCounterForEventType
+    counter.argtypes = [ctypes.c_int32, ctypes.c_uint32]
+    counter.restype = ctypes.c_uint32
+    button = cg.CGEventSourceButtonState
+    button.argtypes = [ctypes.c_int32, ctypes.c_uint32]
+    button.restype = ctypes.c_bool
+    return dict(uptime=time.monotonic(), counts=[counter(1, event) for event in
+                (1, 2, 3, 4, 25, 26, 5, 6, 7, 27, 10, 11, 12, 22)], pressed=any(button(1, n) for n in range(32)))
+
+
+def observed_host_phases(phases, pid, birth):
+    expected = [("before", 0), ("presented", 1), ("dismissed", 0), ("terminal", 0)]
+    if len(phases) != len(expected):
+        return False
+    previous = 0
+    for phase, (name, mode) in zip(phases, expected):
+        source = "signedDockMCIdentifier" if mode else "signedDockAXListWithoutMC"
+        attempts = phase["attempts"]
+        if (phase["phase"] != name or phase["pid"] != pid or phase["missionControlPresented"] != mode or
+                phase["missionControlObservation"] != source or not 1 <= len(attempts) <= 5):
+            return False
+        start, end = phase["startUptime"], phase["endUptime"]
+        if not (math.isfinite(start) and math.isfinite(end) and previous <= start <= end):
+            return False
+        cursor = start
+        for attempt in attempts:
+            a, b = attempt["uptime"], attempt["endUptime"]
+            if (not (math.isfinite(a) and math.isfinite(b) and cursor <= a <= b <= end) or
+                    attempt["targetPID"] != pid or attempt["targetBirth"] != birth or
+                    attempt["source"] != "installedHostPreviewMetrics"):
+                return False
+            cursor = b
+        last = attempts[-1]
+        if (last["status"] != "observed" or last["exit"] != 0 or last["pid"] != pid or
+                last["missionControlPresented"] != mode or last["missionControlObservation"] != source):
+            return False
+        previous = end
+    return True
 
 
 def load_receipt(path):
@@ -64,9 +109,7 @@ def qualifies(report, image, pid, birth, now=None):
                     [original["pid"], original["birth"], original["window"]]):
                 return False
         phases = report["hostTelemetry"]
-        expected = [("before", 0, "signedDockAXListWithoutMC"), ("presented", 1, "signedDockMCIdentifier"),
-                    ("dismissed", 0, "signedDockAXListWithoutMC"), ("terminal", 0, "signedDockAXListWithoutMC")]
-        if [(p["phase"], p["missionControlPresented"], p["missionControlObservation"]) for p in phases] != expected:
+        if not observed_host_phases(phases, pid, birth):
             return False
         last = phases[-1]["endUptime"]
         # The witness and supervisor use Darwin monotonic uptime, across one signed Host process generation.
