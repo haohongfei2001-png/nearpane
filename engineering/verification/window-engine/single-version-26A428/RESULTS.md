@@ -2,6 +2,14 @@
 
 2026-11-22，macOS 27.0（26A428），arm64，SIP 开启。Nearpane 5.22（90）使用原 Bundle ID `com.holdsnow.nearpane.alpha`、Team ID `ZB9D4T66QB` 和产品单实例限制。
 
+## 保持当前 Host 运行的复核
+
+正式 Host PID 32364 以原启动代际回答了一次新的随机挑战，四项系统权限均为允许。正常运行时的只读接口也返回了 Dock 的总览状态。首段 245 秒的系统通知观察没有出现普通桌面，独立读数仍为原生全屏 Space 5568。此时 Host 读到总览已关闭，可见缩略图数量和普通桌面的焦点还原均待测。
+
+两次读取均识别出同一物理显示器及四个受管理 Space 的原生 UUID。当前顺序为 4、5568、5184、6。全量 API 返回 22 条、20 个不同 ID，两个全屏 Space 各出现两次。保留重复次数后，完整清单与先前已清理的基线一致。历史试验使用的 5614、5643 均已消失。原始 UUID 留在私有机器收据中，公开记录使用同一套别名。[正式 Host、完整清单与现场边界](17-live-host-ordinary-admission.json)
+
+已安装版本的第三方迁窗试验通过 `--enrolled-spaces-cycle` 在进程启动时进入。当前 PID 的启动参数没有这个选项。正式侧栏从随包的资格清单载入可用后端，当前源码的清单为空。原运行进程能回答总览状态，未提供接受这次外部窗口登记的运行时入口。第三方窗口、整组切换和稳定性测试仍为 **NOT_RUN**，Spaces 的引擎能力仍待实测。[启动入口](../../../../Sources/NearpaneHost/NearpaneApp.swift) · [常规 Host 的资格清单](../../../../Sources/NearpaneUI/StageWindowEngineHost.swift)
+
 ## 安装与权限
 
 | 标准路径中的版本 | 常规 Host 首次 PID | Host CDHash |
