@@ -1,0 +1,33 @@
+   Compiling nearpane-window-engine v0.1.0 (<checkout>/build/window-engine/transport-revocation-609469a/baseline/Engine/nearpane-window-engine)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.41s
+     Running unittests src/lib.rs (build/window-engine/transport-revocation-609469a/baseline/cargo/debug/deps/nearpane_window_engine-6b15d84d3d6d2511)
+
+running 2 tests
+test runtime::transport_revocation_baseline::wrong_group_generation_must_not_retire_the_original_uncertain_member ... FAILED
+test runtime::transport_revocation_baseline::a_bare_visible_bit_must_not_retire_the_original_uncertain_member ... FAILED
+
+failures:
+
+---- runtime::transport_revocation_baseline::wrong_group_generation_must_not_retire_the_original_uncertain_member stdout ----
+
+thread 'runtime::transport_revocation_baseline::wrong_group_generation_must_not_retire_the_original_uncertain_member' panicked at src/runtime.rs:506:9:
+assertion `left == right` failed: a different group/generation/home discharged the old lease
+  left: None
+ right: Some(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- runtime::transport_revocation_baseline::a_bare_visible_bit_must_not_retire_the_original_uncertain_member stdout ----
+
+thread 'runtime::transport_revocation_baseline::a_bare_visible_bit_must_not_retire_the_original_uncertain_member' panicked at src/runtime.rs:514:9:
+assertion `left == right` failed: the stored owner was dropped without the AX/CG/Space readback
+  left: None
+ right: Some(1)
+
+
+failures:
+    runtime::transport_revocation_baseline::a_bare_visible_bit_must_not_retire_the_original_uncertain_member
+    runtime::transport_revocation_baseline::wrong_group_generation_must_not_retire_the_original_uncertain_member
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

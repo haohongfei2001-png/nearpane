@@ -69,7 +69,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     require(not out.exists(), "Do not replay a real qualification")
     expected_hid = observation["measurement"]["hidAfter"] if name == "spaces" else observation["hidAfterPassiveRead"]
     hid = overview_admission.current_hid()
-    if hid["pressed"] or hid["counts"] != expected_hid or not qualifies(observation, current, stamp[0], birth):
+    if hid["pressed"] or hid["secure"] or hid["counts"] != expected_hid or not qualifies(observation, current, stamp[0], birth):
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
                p0SHA256=digest, preQuitInput=hid, quitRequests=0)
         return
@@ -82,7 +82,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
         require(empty["pids"] == [] and cycle.stamp_is_gone(stamp), "Previous Host still running")
         update("soleInstalledImageReady", emptyRoster=empty)
         now = overview_admission.current_hid()
-        if now["pressed"] or now["counts"] != expected_hid:
+        if now["pressed"] or now["secure"] or now["counts"] != expected_hid:
             update("inputChangedBeforeDiagnosticLaunch", qualification="BLOCKED", preLaunchInput=now)
             return  # finally returns the ordinary Host; no fixture or Space has been created.
         args = [sys.executable, "-B", HERE / "sample-membership.py", mac.canonical, out, "--installed",

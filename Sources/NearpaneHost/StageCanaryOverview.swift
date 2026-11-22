@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import ApplicationServices
 import CNearpaneWindowEngine
 import NearpaneCore
@@ -157,6 +158,15 @@ import Security
             CGEventSource.counterForEventType(.hidSystemState,eventType:$0)
         }
     }
+    static func inputAvailable() -> Bool {
+        guard !IsSecureEventInputEnabled() else { return false }
+        for index in UInt32(0)..<32 {
+            guard let button = CGMouseButton(rawValue: index),
+                  !CGEventSource.buttonState(.hidSystemState, button: button),
+                  !CGEventSource.buttonState(.combinedSessionState, button: button) else { return false }
+        }
+        return !IsSecureEventInputEnabled()
+    }
     static func inventory() throws -> [NSDictionary] {
         var connection: Int32 = 0, error: Int32 = 0
         guard let rows = np_host_scope_copy_managed(&connection,&error) as? [NSDictionary], error == 0,
@@ -294,7 +304,7 @@ import Security
                  "cgWindowID":value.number, "sameOriginalAX":CFEqual(value.window,original.window)]
             }
             func inputUnchanged() -> Bool {
-                !Task.isCancelled && (try? cancelled()) == false && hid() == start && NSEvent.pressedMouseButtons == 0
+                !Task.isCancelled && (try? cancelled()) == false && hid() == start && inputAvailable()
             }
             let bounds = CGDisplayBounds(CGMainDisplayID())
             result["managedIDsBefore"] = native.compactMap { $0["ManagedSpaceID"] as? UInt64 }

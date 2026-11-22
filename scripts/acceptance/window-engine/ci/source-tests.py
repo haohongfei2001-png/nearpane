@@ -115,6 +115,8 @@ def main():
         "corner-witness-build",
         "corner-witness",
         "interactive-fixture-build",
+        "held-input-build",
+        "held-input",
         "swift",
         "hosted-reader-build",
         "overview-witness-build",
@@ -195,6 +197,10 @@ def main():
             "-mmacosx-version-min=26.0", "-DNP_HOST_INTERACTIVE_FIXTURE=1", "-I", CRATE / "src/corner",
             ACCEPTANCE / "corner/owner.m", "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics",
             "-lbsm", "-o", work / "interactive-fixture-compile-only"])
+        input_test = work / "held-input"
+        if run("held-input-build", ["xcrun", "clang", "-Wall", "-Wextra", "-Werror", "-I", CRATE / "src",
+                ACCEPTANCE / "ci/input-state-test.m", "-o", input_test]):
+            run("held-input", [input_test], lambda log: {"readback": json.loads(log)})
         archive = None
 
         def archive_result(log):

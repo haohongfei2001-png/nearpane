@@ -69,12 +69,13 @@ class AdmissionTests(unittest.TestCase):
         focus["uptime"] = phase["startUptime"] - 0.2
         r.update(status="NOT_RUN", stage="passiveReadOnly", hostTelemetry=[phase], scope=scope, terminalScope=scope.copy(),
                  admission=focus, terminalAdmission=dict(focus, sameOriginalAX=True, uptime=100.05),
-                 buttonsBefore=0, buttonsAfter=0, hidBeforePassiveRead=[4]*14, hidAfterPassiveRead=[4]*14, terminalReadbackUptime=100.1)
+                 buttonsBefore=0, buttonsAfter=0, inputAvailableBefore=True, inputAvailableAfter=True,
+                 hidBeforePassiveRead=[4]*14, hidAfterPassiveRead=[4]*14, terminalReadbackUptime=100.1)
         self.assertTrue(gate.qualifies_read_only(r,IMAGE,9,20,101))
         self.assertFalse(gate.qualifies(r,IMAGE,9,20,101))
         self.assertFalse(gate.qualifies_read_only(r,IMAGE,9,20,131))
         for edit in (lambda t:t["terminalScope"].update(nativeID=5), lambda t:t["terminalAdmission"].update(sameOriginalAX=False),
-                     lambda t:t.update(windowWrites=1), lambda t:t.update(hidAfterPassiveRead=[5]*14)):
+                     lambda t:t.update(windowWrites=1), lambda t:t.update(inputAvailableAfter=False), lambda t:t.update(hidAfterPassiveRead=[5]*14)):
             changed = deepcopy(r)
             edit(changed)
             self.assertFalse(gate.qualifies_read_only(changed,IMAGE,9,20,101))
@@ -93,8 +94,8 @@ class AdmissionTests(unittest.TestCase):
         self.assertFalse(gate.observed_host_phases(phases, 9, 20))
 
     def test_intervening_hardware_input_stops_before_quit_or_returns_the_sole_regular_host(self):
-        quiet = dict(counts=[0]*14, pressed=False)
-        changed = dict(counts=[1]+[0]*13, pressed=False)
+        quiet = dict(counts=[0]*14, pressed=False, secure=False)
+        changed = dict(counts=[1]+[0]*13, pressed=False, secure=False)
         rights = dict(status="PASS", installed={"CDHash":IMAGE["cdhash"]}, subject=dict(pid=9,birth=20),
                       permissions={k:True for k in ("accessibility","listenEvent","postEvent","screenCapture")})
         for after_quit in (False,True):

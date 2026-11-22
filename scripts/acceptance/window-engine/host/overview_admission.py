@@ -20,8 +20,13 @@ def current_hid():
     button = cg.CGEventSourceButtonState
     button.argtypes = [ctypes.c_int32, ctypes.c_uint32]
     button.restype = ctypes.c_bool
-    return dict(uptime=time.monotonic(), counts=[counter(1, event) for event in
-                (1, 2, 3, 4, 25, 26, 5, 6, 7, 27, 10, 11, 12, 22)], pressed=any(button(1, n) for n in range(32)))
+    secure = ctypes.CDLL("/System/Library/Frameworks/Carbon.framework/Carbon").IsSecureEventInputEnabled
+    secure.restype = ctypes.c_bool
+    secure.argtypes = []
+    start_secure = secure()
+    counts = [counter(1, event) for event in (1, 2, 3, 4, 25, 26, 5, 6, 7, 27, 10, 11, 12, 22)]
+    pressed = any(button(source, n) for n in range(32) for source in (1, 0))
+    return dict(uptime=time.monotonic(), counts=counts, pressed=pressed, secure=start_secure or secure())
 
 
 def observed_host_phases(phases, pid, birth):
@@ -108,6 +113,7 @@ def qualifies_read_only(report, image, pid, birth, now=None):
                 and before["uptime"] <= phase["startUptime"] <= attempt["uptime"] <= attempt["endUptime"] <= after["uptime"] <= stamp
                 and (attempt["missionControlSample"] == "cached" or attempt["uptime"] <= attempt["missionControlReadStartUptime"]
                      <= attempt["missionControlReadEndUptime"] <= attempt["endUptime"])
+                and report["inputAvailableBefore"] is True and report["inputAvailableAfter"] is True
                 and 0 <= age <= 30 and len(hid) == 14 and hid == report["hidAfterPassiveRead"]
                 and all(type(n) is int and n >= 0 for n in hid)
                 and all(report[k] == 0 for k in ("buttonsBefore","buttonsAfter","windowWrites","spaceWrites","launchedHosts")))

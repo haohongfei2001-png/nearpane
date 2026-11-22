@@ -122,6 +122,7 @@ import Security
             if passive {
                 result["hidBeforePassiveRead"] = StageCanaryOverview.hid()
                 result["buttonsBefore"] = NSEvent.pressedMouseButtons
+                result["inputAvailableBefore"] = StageCanaryOverview.inputAvailable()
                 result["scope"] = await StageEngineHostScope.sample()["scope"]
                 let focus = StageCanaryOverview.beginFocusObservation()
                 result["admission"] = focus.first
@@ -131,6 +132,7 @@ import Security
                 result["terminalScope"] = await StageEngineHostScope.sample()["scope"]
                 result["terminalAdmission"] = focus.finish()
                 result["buttonsAfter"] = NSEvent.pressedMouseButtons
+                result["inputAvailableAfter"] = StageCanaryOverview.inputAvailable()
                 result["hidAfterPassiveRead"] = StageCanaryOverview.hid()
                 result["terminalReadbackUptime"] = ProcessInfo.processInfo.systemUptime
                 result["reason"] = "passiveObservationWithoutPresentation"
@@ -155,7 +157,7 @@ import Security
                     let now = ProcessInfo.processInfo.systemUptime
                     let focus = ["workspacePID","birth","cgWindowID"].compactMap { (admission[$0] as? NSNumber)?.uint64Value }
                     let ordinary = scope["status"] as? String == "PASS" || fullscreenOnly
-                    let eligible = ordinary && admission["reason"] == nil && focus.count == 3 && idle.isFinite && idle >= 2 && buttons == 0
+                    let eligible = ordinary && admission["reason"] == nil && focus.count == 3 && idle.isFinite && idle >= 2 && buttons == 0 && StageCanaryOverview.inputAvailable()
                     if !eligible || eligibleSince == nil || lastInput != hid || lastFocus != focus || lastAdmittedScope != scope as NSDictionary {
                         eligibleSince = eligible ? now : nil
                     }

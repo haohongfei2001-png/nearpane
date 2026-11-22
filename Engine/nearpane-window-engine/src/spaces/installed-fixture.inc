@@ -3,6 +3,7 @@
 // file.
 #import <fcntl.h>
 #import <sys/stat.h>
+#import "../input_state.h"
 
 // Compiled from the separately shipped test source; a re-sign/rebuild requires
 // review.
@@ -299,6 +300,7 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
       if (!sessionReady(&sid) || sid != s->session || !sameDisplay(&display) ||
           display != s->display)
         return 4;
+      if (np_stage_input_interrupted()) return 10;
       for (unsigned j = 0; j < hidCount; j++)
         if (s->counters[j] !=
             CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState,
@@ -322,7 +324,7 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
             CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState,
                                              installedHIDTypes[j]))
           return 10;
-      return 0;
+      return np_stage_input_interrupted() ? 10 : 0;
     } @catch (NSException *e) {
       return 17;
     }

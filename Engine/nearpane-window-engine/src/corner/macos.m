@@ -13,6 +13,7 @@
 #define NP_CORNER_WITNESS_IMPL 1
 #import "gesture_witness.h"
 #import "scope_binding.h"
+#import "../input_state.h"
 
 enum {
     OK = 0,
@@ -129,20 +130,12 @@ void np_corner_inputs(uint32_t counters[13]) {
         counters[n] = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, e[n]);
 }
 int np_corner_secure_input(void) { return IsSecureEventInputEnabled() != 0; }
-static BOOL mouseButtonHeld(void) {
-    // A stationary held button has no new counter event. AX must not move a window
-    // underneath an in-flight gesture, including during Guardian recovery.
-    for (CGMouseButton button = 0; button < 32; button++)
-        if (CGEventSourceButtonState(kCGEventSourceStateHIDSystemState, button) ||
-            CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, button)) return YES;
-    return NO;
-}
 uint32_t np_corner_input_access(void) {
     if (!AXIsProcessTrusted() || !CGPreflightPostEventAccess())
         return NO_AX;
     if (!CGPreflightListenEventAccess()) return NO_LISTEN;
     if (np_corner_secure_input()) return SECURE;
-    return mouseButtonHeld() ? BUTTON_HELD : OK;
+    return np_stage_mouse_held() ? BUTTON_HELD : OK;
 }
 uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count) {
     @autoreleasepool {
@@ -518,7 +511,7 @@ uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, N
             CFRelease(value);
             return NEW_INTENT;
         }
-        if (mouseButtonHeld()) {
+        if (np_stage_mouse_held()) {
             CFRelease(value);
             return BUTTON_HELD;
         }
