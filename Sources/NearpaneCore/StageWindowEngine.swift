@@ -42,10 +42,25 @@ package struct StageEngineReply {
     func submit(_ operation: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) async throws -> StageEngineReply
     func start(_ owner: StageEngineOwner, nativeID: UInt64) async throws
     func prepareHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws
+    /// True only after this worker excluded the HIDE ticket permanently and its prepared Guardian
+    /// acknowledged its durable, independently witnessed withdrawal for this exact intent.
+    func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool
     func verified(_ command: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws
     func revoke()
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply
     func close() async -> Bool
+}
+
+package extension StageEngineTransport {
+    func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool { false }
+}
+
+/// Only the session that completed both sides of a Corner withdrawal can create this receipt.
+struct UnsubmittedCornerHide: Error {
+    let owner: StageEngineOwner, command: StageWindowCommand, yieldedFocus: NativeSpaceWindow?
+    fileprivate init(owner: StageEngineOwner, command: StageWindowCommand, yieldedFocus: NativeSpaceWindow?) {
+        self.owner = owner; self.command = command; self.yieldedFocus = yieldedFocus
+    }
 }
 
 @MainActor public final class StageEngineSession: StageWindowSession {
@@ -131,6 +146,7 @@ package struct StageEngineReply {
         let pre = try await read(c.scope)
         guard eligible(), pre.generation == c.generation, pre.nativeID == c.nativeID,
               pre.windows[c.before.window] == c.before else { throw StageSwitchError.interrupted }
+        var lastReadSequence = pre.sequence
         // Restoration can survive a revoked event tap/failed probe; the old worker must still explicitly
         // attest its retained ownership via RESTORE. No new hide/show/place follows a lost health result.
         if !c.restoring {
@@ -146,6 +162,7 @@ package struct StageEngineReply {
             guard eligible(), checked.sequence > pre.sequence, checked.generation == pre.generation,
                   checked.nativeID == pre.nativeID, checked.windows == pre.windows, checked.focus == pre.focus,
                   checked.workArea == pre.workArea else { throw StageSwitchError.interrupted }
+            lastReadSequence = checked.sequence
         }
         switch c.action {
         case .place, .focus:
@@ -164,11 +181,20 @@ package struct StageEngineReply {
             }
             if hiding, owner.backend == .corner {
                 try await transport.prepareHide(c,owner:owner)
-                let afterPrepare = try await read(c.scope)
-                guard eligible(), afterPrepare.scope == pre.scope, afterPrepare.nativeID == pre.nativeID,
-                      afterPrepare.generation == pre.generation, afterPrepare.sequence > pre.sequence,
-                      afterPrepare.windows == pre.windows, afterPrepare.focus == pre.focus, afterPrepare.workArea == pre.workArea else {
-                    throw StageSwitchError.interrupted
+                var yieldedFocus: NativeSpaceWindow?
+                do {
+                    let after = try await read(c.scope)
+                    guard after.scope == pre.scope, after.nativeID == pre.nativeID, after.generation == pre.generation,
+                          after.sequence > lastReadSequence, after.windows == pre.windows, after.workArea == pre.workArea
+                    else { throw StageSwitchError.interrupted }
+                    if let focus = after.focus, focus != pre.focus, after.foreignFocusScope == nil,
+                       after.windows[focus]?.visibility == .visible { yieldedFocus = focus }
+                    guard eligible(), after.focus == pre.focus else { throw StageSwitchError.interrupted }
+                } catch {
+                    guard c.restoreFrame == nil,
+                          (try? await transport.withdrawUnsubmittedHide(c, owner: owner)) == true else { throw error }
+                    freeze()
+                    throw UnsubmittedCornerHide(owner: owner, command: c, yieldedFocus: yieldedFocus)
                 }
             }
             let sent = try await transport.submit(c.restoring ? 5 : hiding ? 3 : 4,owner:owner,c)

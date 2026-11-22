@@ -20,6 +20,8 @@ typedef struct {
     BOOL serializedRecovery;
     void *profileID;
     __unsafe_unretained NSString *hostHash;
+    __unsafe_unretained NSData *hostDigest;
+    uint8_t preparedTransaction[16];
     __unsafe_unretained NSDictionary *stamp;
     uint32_t takeoverInput[13];
 #endif
@@ -142,7 +144,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(readPacket(STDIN_FILENO, &s->pre, sizeof(s->pre)) && journal(s, NO), @"preparePipeAndJournalDiffer");
 #else
     (void)kit;
-    NSData *parentDigest = signedProduct(getppid(), hostExe, @"com.holdsnow.nearpane.alpha");
+    NSData *__attribute__((objc_precise_lifetime)) parentDigest = signedProduct(getppid(), hostExe, @"com.holdsnow.nearpane.alpha");
     need(parentDigest.length &&
              signedProduct(getpid(), guardianExe, @"com.holdsnow.nearpane.alpha.corner-guardian").length,
          @"signedCanonicalHostAndNestedGuardianRequired");
@@ -150,11 +152,13 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     for (NSUInteger i = 0; i < parentDigest.length; i++)
         [hash appendFormat:@"%02x", ((const uint8_t *)parentDigest.bytes)[i]];
     s->hostHash = hash;
+    s->hostDigest = parentDigest;
     s->dir = open(folder.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     need(fileOK(s->dir, YES) && productOpen(s, folder), @"activeLockedHostProfileUnavailable");
     need(productPrepare(s, productMessage(), folder), @"pendingQualifiedProductHideNotInHostJournal");
-    NSDictionary *__attribute__((objc_precise_lifetime)) stamp =
-        [productFile(s->profile, "stage-visibility-v1.json")[@"owner"] copy];
+    NSDictionary *initialWAL = productFile(s->profile, "stage-visibility-v1.json");
+    NSDictionary *__attribute__((objc_precise_lifetime)) stamp = [initialWAL[@"owner"] copy];
+    (void)decodeUUID(initialWAL[@"pending"][@"intent"], s->preparedTransaction);
     s->stamp = stamp;
     need(stamp && journal(s, NO), @"hostOwnerStampChangedBeforeRetention");
 #endif
@@ -210,7 +214,31 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
              journal(s, YES),
          @"committedPostimageOrIntentMissing");
 #else
-    need(productSeal(s, productMessage()), @"independentCommittedProductOwnershipUnavailable");
+    NSDictionary *message = productMessage();
+    if ([message[@"phase"] isEqual:@"withdrawUnsubmitted"]) {
+        need(withdrawalMessage(s, message), @"withdrawalIntentOrEpochChanged");
+        NSDictionary *wal = withdrawableJournal(s);
+        need(withdrawalWitness(s, wal), @"originalPreparedWindowOrWALUnavailable");
+        usleep(25000);
+        need(withdrawalWitness(s, wal), @"secondOriginalPreparedWindowOrWALUnavailable");
+        receipt[@"withdrawal"] = @{
+            @"intent": [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString,
+            @"transaction": wal[@"pending"][@"intent"], @"epoch": @(r.epoch),
+            @"group": [[NSUUID alloc] initWithUUIDBytes:r.group].UUIDString,
+            @"member": [[NSUUID alloc] initWithUUIDBytes:r.member].UUIDString,
+            @"generation": [[NSUUID alloc] initWithUUIDBytes:r.generation].UUIDString,
+            @"lifetime": [[NSUUID alloc] initWithUUIDBytes:r.lifetime].UUIDString,
+            @"display": [[NSUUID alloc] initWithUUIDBytes:r.display].UUIDString,
+            @"space": [[NSUUID alloc] initWithUUIDBytes:r.native_space].UUIDString,
+            @"native": @(r.native_id), @"pid": @(r.pid), @"birth": @(r.birth), @"window": @(r.window),
+            @"frame": @[@(r.frame.x), @(r.frame.y), @(r.frame.width), @(r.frame.height)],
+            @"hostPID": @(s->pre.host), @"hostBirth": @(s->pre.host_birth),
+            @"guardianBirth": @(ncg_birth(getpid(), NULL)), @"originalReadbacks": @2
+        };
+        receipt[@"status"] = @"WITHDRAWN_BEFORE_SUBMISSION";
+        return;
+    }
+    need(productSeal(s, message), @"independentCommittedProductOwnershipUnavailable");
 #endif
     NCFrame parked = convert(s->sealed.result.frame);
     CGRect d = CGRectMake(s->display.frame.x, s->display.frame.y, s->display.frame.w, s->display.frame.h);
@@ -314,6 +342,17 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         receipt[@"status"] = @"UNKNOWN";
 #endif
 }
+// The parent cannot settle a pending entry from a pipe byte preceding durable evidence.
+static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
+    BOOL withdrawn = [receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"];
+    if (dir < 0 || !fileOK(dir, YES)) return !withdrawn;
+    int fd = openat(dir, "guardian-receipt.json", O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (fd < 0) return NO;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:receipt options:NSJSONWritingSortedKeys error:NULL];
+    BOOL durable = data.length && write(fd, data.bytes, data.length) == (ssize_t)data.length && fsync(fd) == 0;
+    close(fd);
+    return durable && (!withdrawn || (!fsync(dir) && write(reply, "W", 1) == 1));
+}
 int main(int argc, const char **argv) {
     @autoreleasepool {
         (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
@@ -360,18 +399,7 @@ int main(int argc, const char **argv) {
             close(s.ledger);
         if (s.kqueue >= 0)
             close(s.kqueue);
-        if (s.dir >= 0 && fileOK(s.dir, YES)) {
-            int fd =
-                openat(s.dir, "guardian-receipt.json", O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
-            NSData *data = [NSJSONSerialization dataWithJSONObject:r options:NSJSONWritingSortedKeys error:NULL];
-            if (fd >= 0) {
-                BOOL ok = write(fd, data.bytes, data.length) == (ssize_t)data.length && fsync(fd) == 0;
-                close(fd);
-                if (!ok)
-                    return 4;
-            } else
-                return 4;
-        }
+        BOOL published = publishReceipt(s.dir, r, STDOUT_FILENO);
         if (s.dir >= 0)
             close(s.dir);
 #ifndef NP_CORNER_FIXTURE
@@ -386,6 +414,7 @@ int main(int argc, const char **argv) {
         if (s.profileID)
             CFRelease(s.profileID);
 #endif
-        return [r[@"status"] isEqual:@"PASS"] ? 0 : 3;
+        if (!published) return 4;
+        return [r[@"status"] isEqual:@"PASS"] || [r[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"] ? 0 : 3;
     }
 }

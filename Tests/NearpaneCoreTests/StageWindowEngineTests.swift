@@ -13,11 +13,17 @@ import Testing
     var beforeRead: (() -> Void)?
     var beforeCloseRead: (() -> Void)?
     var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
+    enum Withdrawal: Sendable { case confirmed, denied, lostReply }
+    var withdrawal: Withdrawal = .denied
+    var afterPrepare: ((StageWindowCommand) -> Void)?
+    var prepareReplyLost = false, nextReadFails = false
+    var withdrawalAttempts = [StageWindowCommand](), withdrawn = Set<UUID>()
     var visibleAfterMutation = [Int]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
         beforeRead?()
+        if nextReadFails { nextReadFails = false; throw StageSwitchError.incomplete }
         sequence += 1
         return .init(scope:self.scope,generation:epoch,sequence:sequence,workArea:displayArea,windows:windows,focus:focus,nativeID:22)
     }
@@ -32,7 +38,7 @@ import Testing
     }
     func submit(_ op: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) throws -> StageEngineReply {
         let id = c.before.window
-        if [3,4,5].contains(op), !writeIntents.insert(c.intent).inserted { throw StageSwitchError.ownership }
+        if [3,4,5].contains(op), withdrawn.contains(c.intent) || !writeIntents.insert(c.intent).inserted { throw StageSwitchError.ownership }
         switch op {
         case 6: return .init(status:health ? 0 : 2,flags:health ? 64 | 16 | 32 : 0,intent:c.intent,nativeID:22)
         case 3:
@@ -56,6 +62,18 @@ import Testing
     func start(_ owner: StageEngineOwner,nativeID: UInt64) async throws { guard canStart && nativeID == 22 else { throw StageSwitchError.incomplete } }
     func prepareHide(_ c: StageWindowCommand, owner: StageEngineOwner) async throws {
         guard owner.backend == .corner, !writeIntents.contains(c.intent), prepared.insert(c.intent).inserted else { throw StageSwitchError.ownership }
+        if prepareReplyLost { throw StageSwitchError.incomplete }
+        afterPrepare?(c)
+    }
+    func withdrawUnsubmittedHide(_ c: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool {
+        withdrawalAttempts.append(c)
+        guard c.action == .hide, owner.backend == .corner, owner.generation == c.generation,
+              prepared.contains(c.intent), !writeIntents.contains(c.intent) else { return false }
+        switch withdrawal {
+        case .confirmed: return withdrawn.insert(c.intent).inserted
+        case .denied: return false
+        case .lostReply: throw StageSwitchError.incomplete
+        }
     }
     func verified(_ c: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws {
         guard writeIntents.contains(c.intent), (c.action != .hide || prepared.contains(c.intent)),
@@ -152,6 +170,129 @@ import Testing
     }
     private func activate(_ group: StageGroupDirectory.Group, _ engine: StageWindowEngineController, _ f: EngineFixture) async throws {
         try await engine.activate(group.id,member:group.members[0].id,in:f.scope,consent:true,current:{true})
+    }
+
+    @Test(arguments: [false, true]) func withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_ hasEarlierFocus: Bool) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let user = try #require(f.windows.keys.first { $0.number == 4 })
+        let original = f.windows
+        f.withdrawal = .confirmed
+        f.afterPrepare = { [unowned f] _ in f.focus = user }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await activate(groups[hasEarlierFocus ? 1 : 0], engine, f)
+        }
+        let attempted = try #require(f.withdrawalAttempts.first)
+        #expect(f.withdrawalAttempts.count == 1 && f.withdrawn == [attempted.intent] && f.effects.isEmpty)
+        #expect(f.windows == original && f.focus == user && f.ordinaryEffects == (hasEarlierFocus ? [.focus] : []))
+        let journal = try readJournal(profile)
+        let proof = try #require(journal.lastWithdrawnHide)
+        #expect(proof.owner == engine.session?.owner && proof.owner.generation == attempted.generation)
+        #expect(proof.scope == attempted.scope && proof.nativeID == attempted.nativeID && proof.before == attempted.before)
+        #expect(proof.intent == attempted.intent && proof.group == attempted.group && proof.member == attempted.member)
+        #expect(journal.owned.isEmpty && journal.owner == proof.owner)
+        let reopened = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(reopened.requiresRecovery == hasEarlierFocus && reopened.retainedOwner == journal.owner)
+        if hasEarlierFocus {
+            let earlier = try #require(journal.pending)
+            #expect(earlier.intent == proof.transaction && earlier.yieldedFocus == user)
+            #expect(earlier.entries.count == 1 && earlier.entries[0].action == .focus && earlier.entries[0].after != nil)
+        }
+        try await engine.release()
+        #expect(f.closes == 1 && f.focus == user && f.windows == original && f.effects.isEmpty)
+        #expect(f.ordinaryEffects == (hasEarlierFocus ? [.focus] : []))
+        #expect(!engine.coordinator.hasWindowAuthority && store.activeGroup(in: f.scope) == nil)
+        #expect(try readJournal(profile).lastInterruptedRelease?.focus == (hasEarlierFocus ? user : nil))
+    }
+
+    @Test(arguments: [EngineFixture.Withdrawal.denied, .lostReply])
+    private func missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_ mode: EngineFixture.Withdrawal) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let user = try #require(f.windows.keys.first { $0.number == 4 })
+        f.withdrawal = mode
+        f.afterPrepare = { [unowned f] _ in f.focus = user }
+        await #expect(throws: StageSwitchError.interrupted) { try await activate(groups[0], engine, f) }
+        let journal = try readJournal(profile), entry = try #require(journal.pending?.entries.last)
+        #expect(f.withdrawalAttempts.count == 1 && f.withdrawn.isEmpty && f.effects.isEmpty && f.ordinaryEffects.isEmpty)
+        #expect(entry.intent == f.withdrawalAttempts.first?.intent && entry.after == nil && journal.lastWithdrawnHide == nil)
+        #expect(try StageGroupCoordinator(store: store, profile: profile).requiresRecovery)
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+        #expect(f.focus == user && f.effects.isEmpty && f.closes == 0)
+    }
+
+    @Test func lostPrepareReplyAndUnknownSubmittedHideCannotBeWithdrawn() async throws {
+        for afterSubmit in [false, true] {
+            let (profile, _, engine, f, groups) = try setup()
+            defer { try? FileManager.default.removeItem(at: profile) }
+            try await bind(engine, f, qualification(.corner))
+            f.withdrawal = .confirmed
+            if afterSubmit { f.unknownHide = 2 } else { f.prepareReplyLost = true }
+            await #expect(throws: StageSwitchError.incomplete) { try await activate(groups[0], engine, f) }
+            let journal = try readJournal(profile)
+            #expect(f.prepared.count == 1 && f.withdrawalAttempts.isEmpty && journal.lastWithdrawnHide == nil)
+            #expect(f.effects.count == (afterSubmit ? 1 : 0) && journal.pending?.entries.count == 1)
+            #expect(journal.pending?.entries.first?.after == nil && engine.coordinator.requiresRecovery)
+        }
+    }
+
+    @Test func withdrawalRetainsExistingOwnershipAndTheEarlierConfirmedShow() async throws {
+        let (profile, _, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        try await activate(groups[0], engine, f)
+        let held = try #require(try readJournal(profile).owned.first { $0.group == groups[2].id })
+        let user = try #require(f.windows.keys.first { $0.number == 4 })
+        f.withdrawal = .confirmed
+        f.afterPrepare = { [unowned f] _ in f.focus = user }
+        await #expect(throws: StageSwitchError.interrupted) { try await activate(groups[1], engine, f) }
+        let journal = try readJournal(profile), earlier = try #require(journal.pending)
+        #expect(earlier.entries.map(\.action) == [.show, .focus] && earlier.entries.allSatisfy { $0.after != nil })
+        #expect(earlier.yieldedFocus == user && journal.owned == [held] && f.windows[held.hidden.window] == held.hidden)
+        #expect(journal.lastWithdrawnHide?.group == groups[0].id && f.effects.count == 3)
+        try await engine.release()
+        #expect(f.focus == user && f.effects.count == 4 && f.effects.last?.1 == held.hidden.window && f.closes == 1)
+    }
+
+    @Test func changedDurableTransactionCannotBeClearedByAnOtherwiseValidWithdrawal() async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let replacement = UUID(), user = try #require(f.windows.keys.first { $0.number == 4 })
+        f.withdrawal = .confirmed
+        f.afterPrepare = { [unowned f] _ in
+            f.focus = user
+            do {
+                var newer = try readJournal(profile)
+                newer.pending?.intent = replacement
+                try JSONEncoder().encode(newer).write(to: profile.appendingPathComponent("stage-visibility-v1.json"), options: .atomic)
+            } catch { Issue.record(error) }
+        }
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await activate(groups[0], engine, f) }
+        let onDisk = try readJournal(profile)
+        #expect(f.withdrawalAttempts.count == 1 && f.withdrawn.count == 1 && f.effects.isEmpty)
+        #expect(onDisk.lastWithdrawnHide == nil && onDisk.pending?.intent == replacement && onDisk.pending?.entries.count == 1)
+        #expect(try StageGroupCoordinator(store: store, profile: profile).requiresRecovery)
+    }
+
+    @Test func withdrawalAfterLostReadDoesNotInventAUserFocusForPreviousEffects() async throws {
+        let (profile, _, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        f.withdrawal = .confirmed
+        f.afterPrepare = { [unowned f] _ in f.nextReadFails = true }
+        await #expect(throws: StageSwitchError.interrupted) { try await activate(groups[1], engine, f) }
+        let journal = try readJournal(profile), earlier = try #require(journal.pending)
+        #expect(journal.lastWithdrawnHide != nil && earlier.entries.map(\.action) == [.focus] && earlier.yieldedFocus == nil)
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+        #expect(f.effects.isEmpty && f.ordinaryEffects == [.focus] && f.closes == 0)
+    }
+
+    private func readJournal(_ profile: URL) throws -> StageGroupCoordinator.Ledger {
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        return try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
     }
 
     @Test func fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged() async throws {

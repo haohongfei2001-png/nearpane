@@ -120,6 +120,8 @@ impl From<&Request> for Lease {
 #[derive(Default)]
 struct State {
     tickets: HashMap<u64, Ticket>,
+    // Qualified Corner only. An accepted or withdrawn HIDE stays spent even after its ticket is polled.
+    corner_hides: Option<HashSet<[u8; 16]>>,
     owner: Option<u32>,
     unresolved: HashSet<Lease>,
     health_lost: bool,
@@ -127,6 +129,13 @@ struct State {
     closed: bool,
 }
 impl State {
+    fn unused_hide(&mut self, intent: [u8; 16]) -> Result<(), u32> {
+        let spent = self.corner_hides.as_mut().ok_or(INCOMPATIBLE)?;
+        if spent.contains(&intent) {
+            return Err(BUSY);
+        }
+        spent.try_reserve(1).map_err(|_| BUSY)
+    }
     fn can_run_probe(&self, r: &Request) -> bool {
         match r.operation {
             LAUNCH => self.owner.is_none(),
@@ -255,7 +264,12 @@ fn pump_run_loop() {
 fn pump_run_loop() {}
 impl Session {
     pub(super) fn create(config: Config, qualified: Option<crate::Grant>) -> Result<Self, u32> {
-        let state = Arc::new(Mutex::new(State::default()));
+        let state = Arc::new(Mutex::new(State {
+            corner_hides: qualified
+                .filter(|g| g.backend == CORNER)
+                .map(|_| HashSet::new()),
+            ..Default::default()
+        }));
         let epoch = Arc::new(AtomicU64::new(ACQUISITION_EPOCH));
         let (tx, rx) = mpsc::sync_channel(LIMIT);
         let shared = state.clone();
@@ -306,6 +320,10 @@ impl Session {
         if s.tickets.len() >= LIMIT {
             return Err(BUSY);
         }
+        let track = r.backend == CORNER && r.operation == HIDE && s.corner_hides.is_some();
+        if track {
+            s.unused_hide(r.intent)?;
+        }
         let id = next(&self.sequence)?;
         let cancelled = Arc::new(AtomicBool::new(false));
         let began = Instant::now();
@@ -331,7 +349,28 @@ impl Session {
                 mpsc::TrySendError::Disconnected(_) => CLOSED,
             });
         }
+        if track {
+            s.corner_hides.as_mut().unwrap().insert(r.intent);
+        }
         Ok(id)
+    }
+    /// An exclusion on the original handle, never permission to write on the replacement epoch.
+    pub fn fence_unsubmitted_corner_hide(&self, r: Request) -> Result<(), u32> {
+        if !r.valid()
+            || r.pid <= 1
+            || r.backend != CORNER
+            || r.operation != HIDE
+            || r.epoch != ACQUISITION_EPOCH
+        {
+            return Err(INVALID);
+        }
+        let mut s = lock(&self.state);
+        if s.closed {
+            return Err(CLOSED);
+        }
+        s.unused_hide(r.intent)?;
+        s.corner_hides.as_mut().unwrap().insert(r.intent);
+        Ok(())
     }
     pub fn poll(&self, id: u64) -> Result<Receipt, u32> {
         let mut s = lock(&self.state);
@@ -449,6 +488,112 @@ fn terminal(r: Request, result: Outcome, elapsed: Duration) -> Receipt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn idle_corner_lane() -> (Session, mpsc::Receiver<Job>, Request) {
+        // No worker or window system is involved. Tests drive the actual synchronized ticket entry points.
+        let (tx, rx) = mpsc::sync_channel(LIMIT);
+        let session = Session {
+            tx,
+            state: Arc::new(Mutex::new(State {
+                corner_hides: Some(HashSet::new()),
+                ..Default::default()
+            })),
+            epoch: Arc::new(AtomicU64::new(1)),
+            sequence: AtomicU64::new(1),
+        };
+        let r = Request {
+            backend: CORNER,
+            operation: HIDE,
+            intent: [1; 16],
+            group: [2; 16],
+            display: [3; 16],
+            native_space: [4; 16],
+            member: [5; 16],
+            lifetime: [6; 16],
+            generation: [7; 16],
+            pid: 231,
+            birth: 123,
+            window: 41,
+            native_id: 9,
+            timeout_ms: 500,
+            epoch: 1,
+            frame: Rect {
+                x: 5.,
+                y: 9.,
+                width: 640.,
+                height: 380.,
+            },
+            ..Default::default()
+        };
+        (session, rx, r)
+    }
+    #[test]
+    fn withdrawal_and_ticket_admission_have_one_winner() {
+        let (session, rx, r) = idle_corner_lane();
+        let gate = std::sync::Barrier::new(2);
+        let (submitted, withdrawn) = std::thread::scope(|t| {
+            let submit = t.spawn(|| {
+                gate.wait();
+                session.submit(r)
+            });
+            gate.wait();
+            let fence = session.fence_unsubmitted_corner_hide(r);
+            (submit.join().unwrap(), fence)
+        });
+        assert_ne!(submitted.is_ok(), withdrawn.is_ok());
+        assert_eq!(rx.try_recv().is_ok(), submitted.is_ok());
+        assert_eq!(session.submit(r), Err(BUSY));
+        assert_eq!(session.fence_unsubmitted_corner_hide(r), Err(BUSY));
+    }
+    #[test]
+    fn accepted_and_consumed_unknown_or_cancelled_ticket_permanently_prevents_withdrawal() {
+        for dispatched in [false, true] {
+            let (session, _rx, r) = idle_corner_lane();
+            let id = session.submit(r).unwrap();
+            lock(&session.state)
+                .tickets
+                .get_mut(&id)
+                .unwrap()
+                .may_have_dispatched = dispatched;
+            session.cancel(id).unwrap();
+            assert_eq!(
+                session.poll(id).unwrap().status,
+                if dispatched { UNKNOWN } else { CANCELLED }
+            );
+            assert!(lock(&session.state).tickets.is_empty());
+            assert_eq!(session.fence_unsubmitted_corner_hide(r), Err(BUSY));
+        }
+    }
+    #[test]
+    fn only_original_qualified_hide_can_exclude_an_intent_after_revocation() {
+        let (session, rx, r) = idle_corner_lane();
+        session.epoch.store(2, Ordering::Release);
+        for invalid in [
+            Request { epoch: 2, ..r },
+            Request {
+                operation: RESTORE,
+                ..r
+            },
+            Request {
+                generation: [0; 16],
+                ..r
+            },
+            Request {
+                backend: SPACES,
+                ..r
+            },
+        ] {
+            assert_eq!(session.fence_unsubmitted_corner_hide(invalid), Err(INVALID));
+        }
+        assert_eq!(session.fence_unsubmitted_corner_hide(r), Ok(()));
+        assert_eq!(session.submit(r), Err(INVALID));
+        assert_eq!(session.submit(Request { epoch: 2, ..r }), Err(BUSY));
+        assert!(rx.try_recv().is_err() && lock(&session.state).owner.is_none());
+        session.close().unwrap();
+        assert_eq!(session.fence_unsubmitted_corner_hide(r), Err(CLOSED));
+        let (readonly, _rx, r) = idle_corner_lane();
+        lock(&readonly.state).corner_hides = None;
+        assert_eq!(readonly.fence_unsubmitted_corner_hide(r), Err(INCOMPATIBLE));
+    }
     #[test]
     fn cleanup_after_a_denied_startup_cannot_release_a_business_window() {
         let mut s = State::default();

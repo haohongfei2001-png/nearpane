@@ -55,6 +55,9 @@ uint32_t np_engine_create_qualified(uint32_t backend, const uint8_t *evidence, u
 bool np_engine_evidence_is_reviewed(uint32_t backend, const uint8_t *evidence);
 uint32_t np_engine_epoch(uint64_t handle, uint64_t *epoch);
 uint32_t np_engine_submit(uint64_t handle, const NPRequest *, uint64_t *ticket);
+/* Qualified original Corner handle only. OK permanently excludes this never-accepted HIDE intent.
+   An accepted ticket (including a consumed timeout/unknown), duplicate or closed handle cannot attest absence. */
+uint32_t np_engine_fence_unsubmitted_corner_hide(uint64_t handle, const NPRequest *);
 uint32_t np_engine_poll(uint64_t handle, uint64_t ticket, NPReceipt *receipt);
 uint32_t np_engine_cancel(uint64_t handle, uint64_t ticket);
 uint32_t np_engine_revoke(uint64_t handle);

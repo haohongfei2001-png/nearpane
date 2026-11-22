@@ -11,18 +11,20 @@ import Security
         let original: NativeStageEngineRequest
         let epoch: UInt64
         let process: Process
-        let writer, reader: FileHandle
+        let writer, reader, directory: FileHandle
         var result: NativeStageEngineReceipt?
         var sealed = false
+        var withdrawing = false
         var preparedAt: UInt64?
         var confirmedAt: UInt64?
         var guardianBirth: UInt64?
-        init(_ original: NativeStageEngineRequest, epoch: UInt64, process: Process, writer: FileHandle, reader: FileHandle) {
+        init(_ original: NativeStageEngineRequest, epoch: UInt64, process: Process, writer: FileHandle, reader: FileHandle, directory: FileHandle) {
             self.original = original
             self.epoch = epoch
             self.process = process
             self.writer = writer
             self.reader = reader
+            self.directory = directory
         }
     }
     private let profile: URL
@@ -95,6 +97,9 @@ import Security
               leases[w] == nil, leases.count < 32, Self.signedHelper() else { throw Failure.unavailable }
         let directory = try groupDirectory().appendingPathComponent(r.intent.uuidString.lowercased(), isDirectory: true)
         guard mkdir(directory.path, 0o700) == 0 else { throw Failure.pendingRecovery }
+        let fd = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard fd >= 0 else { throw Failure.unavailable }
+        let heldDirectory = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
         let data = try packet(["phase": "prepare", "epoch": epoch, "intent": r.intent.uuidString, "group": group.uuidString,
             "member": member.uuidString, "generation": generation.uuidString, "lifetime": lifetime.uuidString,
             "display": scope.display.uuidString, "space": scope.nativeSpace.uuidString, "native": r.nativeID,
@@ -107,7 +112,7 @@ import Security
         process.standardError = FileHandle.nullDevice
         _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
         try process.run()
-        let lease = Lease(r, epoch: epoch, process: process, writer: input.fileHandleForWriting, reader: output.fileHandleForReading)
+        let lease = Lease(r, epoch: epoch, process: process, writer: input.fileHandleForWriting, reader: output.fileHandleForReading, directory: heldDirectory)
         let launchedBirth = Self.childGeneration(process.processIdentifier)
         leases[w] = lease
         do {
@@ -126,7 +131,7 @@ import Security
     func observe(_ r: NativeStageEngineRequest, receipt: NativeStageEngineReceipt) throws {
         guard r.operation == 3 else { return }
         guard let w = r.window, let l = leases[w], same(l.original, r), r.intent == l.original.intent,
-              !l.sealed, l.result == nil, receipt.intent == r.intent, receipt.epoch == l.epoch,
+              !l.sealed, !l.withdrawing, l.result == nil, receipt.intent == r.intent, receipt.epoch == l.epoch,
               receipt.status == 0, receipt.nativeID == r.nativeID, receipt.flags & 190 == 190 else {
             throw Failure.pendingRecovery
         }
@@ -135,7 +140,7 @@ import Security
 
     func confirm(_ r: NativeStageEngineRequest, verifiedFrame: SurfaceRect) async throws {
         guard let w = r.window, let l = leases[w], same(l.original, r), l.original.intent == r.intent,
-              !l.sealed, let raw = l.result, zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
+              !l.sealed, !l.withdrawing, let raw = l.result, zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
         let data = try packet(["phase": "confirm", "intent": raw.intent.uuidString, "epoch": raw.epoch,
             "native": raw.nativeID, "status": raw.status, "flags": raw.flags, "owned": raw.owned,
             "frame": Self.frame(raw.frame), "verified": Self.frame(verifiedFrame)])
@@ -154,12 +159,34 @@ import Security
         leases.removeValue(forKey: w)
     }
 
-    nonisolated static func childGeneration(_ pid: Int32) -> UInt64? {
+    /// No caller can obtain the positive result from an error, a cancelled ticket, or a cold WAL.
+    func withdraw(_ r: NativeStageEngineRequest, epoch: UInt64, excludeTicket: () throws -> Void) async throws -> Bool {
+        guard r.backend == 1, r.operation == 3, let w = r.window, let l = leases[w], same(l.original, r),
+              l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
+              l.epoch == epoch, !l.sealed, !l.withdrawing, l.result == nil, l.preparedAt != nil,
+              let childBirth = l.guardianBirth, l.process.isRunning,
+              Self.childGeneration(l.process.processIdentifier) == childBirth,
+              let hostBirth = Self.generation(getpid(), parent: nil) else { return false }
+        let data = try packet(["phase": "withdrawUnsubmitted", "intent": r.intent.uuidString, "epoch": epoch])
+        try excludeTicket()
+        l.withdrawing = true
+        try await exchange(data, ack: 87, lease: l)
+        guard let receipt = CornerWithdrawalReceipt.read(in: l.directory.fileDescriptor),
+              receipt.matches(r, epoch: epoch, host: getpid(), hostBirth: hostBirth,
+                              child: l.process.processIdentifier, childBirth: childBirth) else { return false }
+        try? l.writer.close()
+        try? l.reader.close()
+        leases.removeValue(forKey: w)
+        return true
+    }
+
+    nonisolated static func childGeneration(_ pid: Int32) -> UInt64? { generation(pid, parent: getpid()) }
+    private nonisolated static func generation(_ pid: Int32, parent: Int32?) -> UInt64? {
         guard pid > 1 else { return nil }
         var b = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: b))
         guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &b, size) == size, b.pbi_pid == UInt32(pid),
-              b.pbi_ppid == UInt32(getpid()), b.pbi_uid == getuid() else { return nil }
+              parent.map({ b.pbi_ppid == UInt32($0) }) != false, b.pbi_uid == getuid() else { return nil }
         return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
     }
 

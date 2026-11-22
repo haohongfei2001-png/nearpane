@@ -71,13 +71,11 @@ public actor NativeStageWindowEngine {
         try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_CLEAN_LAUNCH), intent: UUID()),
                          timeoutMilliseconds: 9_000, expectedEpoch: expectedEpoch)
     }
-    /// The installed transport supplies the epoch it observed before its actor hop. Rust checks
-    /// that epoch again on admission and immediately before each authorized system write.
-    public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
-                       expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
-        var request = NPRequest(), ticket: UInt64 = 0
+    private nonisolated static func encode(_ input: NativeStageEngineRequest, timeout: UInt32, epoch: UInt64) -> NPRequest {
+        var request = NPRequest()
         request.size = UInt32(MemoryLayout<NPRequest>.size); request.version = UInt32(NP_ENGINE_ABI)
-        request.backend = input.backend; request.operation = input.operation; request.timeout_ms = timeoutMilliseconds
+        request.backend = input.backend; request.operation = input.operation; request.timeout_ms = timeout
+        request.epoch = epoch
         request.intent = input.intent.uuid
         if let id = input.group { request.group = id.uuid }
         if let scope = input.scope { request.display = scope.display.uuid; request.native_space = scope.nativeSpace.uuid }
@@ -88,8 +86,21 @@ public actor NativeStageWindowEngine {
         request.native_id = input.nativeID
         if let f = input.frame { request.frame = NPRect(x: f.x, y: f.y, width: f.width, height: f.height) }
         if let f = input.target { request.target = NPRect(x: f.x, y: f.y, width: f.width, height: f.height) }
+        return request
+    }
+    nonisolated func excludeUnsubmittedHide(_ input: NativeStageEngineRequest, epoch: UInt64) throws {
+        guard epoch == qualifiedEpoch else { throw NativeStageEngineError.correlation }
+        var request = Self.encode(input, timeout: 1000, epoch: epoch)
+        let status = np_engine_fence_unsubmitted_corner_hide(handle, &request)
+        guard status == NP_OK else { throw NativeStageEngineError.transport(status) }
+    }
+    /// The installed transport supplies the epoch it observed before its actor hop. Rust checks
+    /// that epoch again on admission and immediately before each authorized system write.
+    public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
+                       expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
         try Task.checkCancellation()
-        request.epoch = try expectedEpoch ?? qualifiedEpoch ?? currentEpoch()
+        let epoch = try expectedEpoch ?? qualifiedEpoch ?? currentEpoch()
+        var request = Self.encode(input, timeout: timeoutMilliseconds, epoch: epoch), ticket: UInt64 = 0
         let submitStatus = np_engine_submit(handle, &request, &ticket)
         guard submitStatus == NP_OK else { throw NativeStageEngineError.transport(submitStatus) }
         let accepted = ticket, usedEpoch = request.epoch

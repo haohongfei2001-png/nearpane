@@ -171,12 +171,11 @@ static BOOL productDirectory(Session *s) {
         }
     return hits == 1;
 }
-static BOOL productJournal(Session *s, BOOL confirmed, BOOL released) {
+static BOOL productJournalContents(Session *s, NSDictionary *l, BOOL confirmed, BOOL released) {
     if (!activeProfile(s))
         return NO;
     const NPRequest *r = &s->pre.lease;
-    NSDictionary *l = productFile(s->profile, "stage-visibility-v1.json"), *owner = l[@"owner"],
-                 *p = l[@"pending"];
+    NSDictionary *owner = l[@"owner"], *p = l[@"pending"];
     if (![l[@"version"] isEqual:@1] || ![owner isKindOfClass:NSDictionary.class] ||
         ![owner[@"backend"] isEqual:@"corner"] || !uuidField(owner[@"generation"], r->generation) ||
         ![owner[@"environment"][@"sipEnabled"] isEqual:@YES] ||
@@ -223,6 +222,36 @@ static BOOL productJournal(Session *s, BOOL confirmed, BOOL released) {
     if (!confirmed)
         return pending == 1 && owned == 0 && productDirectory(s);
     return owned == 1 && pending <= 1;
+}
+static BOOL productJournal(Session *s, BOOL confirmed, BOOL released) {
+    return productJournalContents(s, productFile(s->profile, "stage-visibility-v1.json"), confirmed, released);
+}
+
+// A withdrawal applies only to the last prepared, unconfirmed primitive. This helper never edits that WAL.
+static NSDictionary *withdrawableJournal(Session *s) {
+    NSDictionary *l = productFile(s->profile, "stage-visibility-v1.json");
+    if (!productJournalContents(s, l, NO, NO) || [l[@"releases"] count]) return nil;
+    NSDictionary *p = l[@"pending"], *last = [p[@"entries"] lastObject];
+    uint8_t transaction[16];
+    if (!decodeUUID(p[@"intent"], transaction) || memcmp(transaction, s->preparedTransaction, 16) ||
+        !uuidField(last[@"intent"], s->pre.lease.intent) ||
+        !sameWindow(last[@"before"][@"window"], &s->pre.lease) || ![last[@"action"] isEqual:@{@"hide": @{}}] ||
+        last[@"after"] || last[@"undoIntent"] || last[@"guardianPending"]) return nil;
+    return l;
+}
+static BOOL withdrawalMessage(Session *s, NSDictionary *m) {
+    return [m[@"phase"] isEqual:@"withdrawUnsubmitted"] && uuidField(m[@"intent"], s->pre.lease.intent) &&
+           number(m[@"epoch"]) && [m[@"epoch"] isEqual:@(s->pre.lease.epoch)];
+}
+static BOOL withdrawalWitness(Session *s, NSDictionary *expected) {
+    uint8_t digest[32] = {0};
+    return expected && s->held && s->facts.retained_before_park && !s->facts.parked_confirmed &&
+           getppid() == s->pre.host && ncg_birth(getppid(), NULL) == s->pre.host_birth &&
+           [s->hostDigest isEqual:signedProduct(getppid(), hostExe, @"com.holdsnow.nearpane.alpha")] &&
+           np_corner_signed_fingerprint(s->member.pid, s->member.birth, digest) &&
+           [s->hash isEqual:[NSData dataWithBytes:digest length:sizeof(digest)]] &&
+           [expected isEqual:withdrawableJournal(s)] && displayIs(s) && stable(s, convert(s->pre.lease.frame)) &&
+           np_corner_same_window(&s->member, s->held);
 }
 static NSDictionary *productMessage(void) {
     uint32_t size = 0;

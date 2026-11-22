@@ -1,0 +1,72 @@
+{
+  "buildSystem": "swiftpm-native-clt",
+  "coreTestTargetBuildReturnCode": 0,
+  "diffCheckReturnCode": 0,
+  "foundationOnly": true,
+  "intermediate": [
+    {
+      "cause": "parallel LinkedStageEngineTransport referenced CornerGuardianClient.withdraw while its implementation was being added",
+      "log": "native.log",
+      "result": "BUILD_FAILED",
+      "testsExecuted": 0
+    }
+  ],
+  "newPassingTests": [
+    "changedDurableTransactionCannotBeClearedByAnOtherwiseValidWithdrawal()",
+    "lostPrepareReplyAndUnknownSubmittedHideCannotBeWithdrawn()",
+    "missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_:)",
+    "withdrawalAfterLostReadDoesNotInventAUserFocusForPreviousEffects()",
+    "withdrawalRetainsExistingOwnershipAndTheEarlierConfirmedShow()",
+    "withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_:)"
+  ],
+  "newTestArguments": {
+    "missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry": [
+      "denied",
+      "lostReply"
+    ],
+    "withdrawnHidePreservesEarlierIntentsAndTheUsersFocus": [
+      false,
+      true
+    ]
+  },
+  "parentStage": "24f47dd",
+  "phase": "Corner prepared HIDE withdrawal before Rust submission",
+  "physical": {
+    "productionQualificationChanged": false,
+    "realGuardianAck": "NOT_RUN",
+    "status": "NOT_RUN",
+    "windowWrites": 0
+  },
+  "productionRustABIArchiveSHA256": "4ef8435a8af9f52d80c7e3e87fc6927b90549799574db5a6e4410ba5e7cd200c",
+  "rawSHA256": {
+    "core-build.log": "b6468d8e3d41692bcd1174ea15b66e6782dca6914dcc221419575efa88b34409",
+    "integrated.log": "5f6d7e7f9374aa0170600cac637f0d1d750eec656b8b300360b1251d1a240b01",
+    "integrated.xml": "65544819546dbafffa8ba7523dae59cb731234a9973b8e28b3ef4742cae5ee33",
+    "native.log": "7a69b95002a419bc91964216e9ae7ec80944b546d03e6c429d00de6849068a08"
+  },
+  "returnCode": 0,
+  "scope": "Core session and coordinator integration, offline",
+  "sourcesSHA256": {
+    "Sources/NearpaneCore/StageGroupCoordinator.swift": "001d195bd84154d4e31e0d8f04dfffb12993ff171ba9a2678c5d65132b5a86a6",
+    "Sources/NearpaneCore/StageWindowEngine.swift": "57d58a87f3b0c9fea89f3b25b108f395d4948654ea640fcab37809da934010f8",
+    "Tests/NearpaneCoreTests/StageWindowEngineTests.swift": "c08e83f8c4665afa9e922d4dbb2905f5cdd95c71c5a5c28c6a5e79aa8beaef49"
+  },
+  "status": "PASS",
+  "suites": {
+    "NearpaneCoreTests.StageGroupCoordinatorTests": 11,
+    "NearpaneCoreTests.StageGroupStoreTests": 12,
+    "NearpaneCoreTests.StageWindowArrivalTests": 5,
+    "NearpaneCoreTests.StageWindowEngineTests": 19,
+    "NearpaneUITests.NativeSidebarNavigationTests": 13,
+    "NearpaneUITests.StageGroupWindowLifetimesTests": 2,
+    "NearpaneUITests.StageHostGroupProjectionTests": 5,
+    "NearpaneUITests.StageWindowEngineWitnessTests": 6,
+    "NearpaneUITests.StageWindowOwnershipTests": 3
+  },
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "tests": 76
+  }
+}

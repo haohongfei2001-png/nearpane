@@ -50,7 +50,7 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws
 }
 
-public struct StageWindowCommand: Sendable {
+public struct StageWindowCommand: Equatable, Sendable {
     public let intent, group, member, generation: UUID
     public let scope: StageGroupScope, nativeID: UInt64?, action: StageWindowAction, before: StageWindowState
     public let restoring: Bool, restoreFrame: SurfaceRect?
@@ -96,6 +96,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var intent: UUID? = nil
         var undoIntent: UUID? = nil
         var guardianPending: Bool? = nil
+        var group: UUID? = nil
+        var member: UUID? = nil
     }
     struct Transaction: Codable {
         let scope: StageGroupScope, generation: UUID, target: UUID, preferred: NativeSpaceWindow
@@ -116,6 +118,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let transaction: UUID, owner: StageEngineOwner, scope: StageGroupScope, focus: NativeSpaceWindow
         let firstSequence, secondSequence: UInt64
     }
+    struct WithdrawnHide: Codable {
+        let transaction, intent, group, member: UUID
+        let owner: StageEngineOwner, scope: StageGroupScope, nativeID: UInt64, before: StageWindowState
+    }
     struct Ledger: Codable {
         var version = 1
         var owned = [Ownership]()
@@ -124,6 +130,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var releases: [Release]?
         var activeScopes: [StageGroupScope]?
         var lastInterruptedRelease: InterruptedRelease?
+        var lastWithdrawnHide: WithdrawnHide?
     }
 
     private let store: StageGroupStore, file: URL
@@ -208,6 +215,31 @@ public enum StageSwitchError: LocalizedError, Equatable {
 
     private func update(_ edit: (inout Ledger) -> Void) throws {
         var next = ledger; edit(&next); try save(next)
+    }
+
+    private func recordWithdrawal(_ proof: UnsubmittedCornerHide, command: StageWindowCommand, transaction: UUID,
+                                  target: UUID, owner: StageEngineOwner?) throws {
+        // A failed admission yields the current switch. Earlier actions stay recorded for their
+        // original owner; no focus or geometry compensation runs against a possible new user intent.
+        invalidate()
+        guard proof.command == command, owner == proof.owner, proof.owner.backend == .corner,
+              command.generation == proof.owner.generation, command.action == .hide, !command.restoring,
+              command.before.visibility == .visible, command.restoreFrame == nil, let nativeID = command.nativeID,
+              ledger.owner == owner, var pending = ledger.pending, pending.owner == owner,
+              pending.intent == transaction, pending.target == target, pending.scope == command.scope,
+              pending.nativeID == nativeID, pending.generation == command.generation, !pending.verifiedDirectoryCommit,
+              let entry = pending.entries.last, entry.action == .hide, entry.intent == command.intent,
+              entry.group == command.group, entry.member == command.member, entry.before == command.before,
+              entry.after == nil, entry.undoIntent == nil, entry.guardianPending == nil,
+              !ledger.owned.contains(where: { $0.hidden.window == command.before.window })
+        else { throw StageSwitchError.recoveryRequired }
+        pending.entries.removeLast()
+        if let focus = proof.yieldedFocus { pending.yieldedFocus = focus }
+        try update {
+            $0.pending = pending.entries.isEmpty ? nil : pending
+            $0.lastWithdrawnHide = .init(transaction: transaction, intent: command.intent, group: command.group,
+                member: command.member, owner: proof.owner, scope: command.scope, nativeID: nativeID, before: command.before)
+        }
     }
 
     private func absolute(_ relative: SurfaceRect, work: SurfaceRect) -> SurfaceRect {
@@ -309,13 +341,17 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard pre.windows == last.windows, let before = pre.windows[id] else { throw StageSwitchError.interrupted }
             last = pre
             let primitive = UUID()
-            try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive)) }
-            guard epoch == token else { throw StageSwitchError.interrupted }
             guard let member = members.first(where: { $0.windowHint == id }),
                   let owningGroup = groups.first(where: { $0.members.contains(where: { $0.id == member.id }) }) else { throw StageSwitchError.interrupted }
+            try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive, group: owningGroup.id, member: member.id)) }
+            guard epoch == token else { throw StageSwitchError.interrupted }
             let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
-            try await session.dispatch(command)
+            do { try await session.dispatch(command) }
+            catch let proof as UnsubmittedCornerHide {
+                try recordWithdrawal(proof, command: command, transaction: intent, target: group, owner: session.engineOwner)
+                throw StageSwitchError.interrupted
+            }
             for _ in 0..<2 {
                 let post = try await read()
                 try requireFocus(post, action == .focus ? id : pre.focus)

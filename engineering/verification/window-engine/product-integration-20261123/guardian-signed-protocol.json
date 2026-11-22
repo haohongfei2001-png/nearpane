@@ -1,0 +1,27 @@
+{
+  "kind": "private offline signing and packaged Guardian caller refusal",
+  "builtSourceBase": "a4c6b04",
+  "privateBinary": {
+    "CDHash": "d8a43522c0defefb996775876e2ad3bdf0730a5f",
+    "team": "ZB9D4T66QB",
+    "identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+    "actualDeveloperIDRequirement": "PASS",
+    "sha256": "4a0c1afd8142d7a7fcafc25766ef8ce7ba76ec5e384b5734969aa785b021e2f6"
+  },
+  "installedReadOnlyBeforeAndAfter": {
+    "CDHash": "a1d9d62dfa6a131dd1909a42513f39d4c78fe5f6",
+    "team": "ZB9D4T66QB",
+    "identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+    "actualDeveloperIDRequirement": "PASS",
+    "sha256": "7d8624c337ffb359999b101230cdac59c1c8609218cb05429e46080918cf1de3"
+  },
+  "unchangedInstalledBinary": true,
+  "ordinaryNonHostParentRejected": {
+    "exit": 3,
+    "replyBytes": 0,
+    "newProfileFiles": 0
+  },
+  "qualifiedCanonicalHostLiveWithdrawal": "NOT_RUN",
+  "actualAXRecoveryOrParkTest": "NOT_RUN",
+  "archiveSha256": "fc575eb8f84fc083b20c825ea06afc1c60054d949cda3f86fb4c2648412a5958"
+}

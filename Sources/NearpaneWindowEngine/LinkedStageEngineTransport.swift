@@ -83,6 +83,14 @@ import NearpaneCore
         let epoch = try commandEpoch(owner)
         try await guardian.prepare(request(3,owner:owner,c),epoch:epoch)
     }
+    func withdrawUnsubmittedHide(_ c: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool {
+        guard owner == acquiredOwner, owner.backend == .corner, let guardian,
+              c.action == .hide, !c.restoring, c.generation == owner.generation else { return false }
+        let hide = request(3, owner: owner, c)
+        return try await guardian.withdraw(hide, epoch: acquisitionEpoch) {
+            try engine.excludeUnsubmittedHide(hide, epoch: acquisitionEpoch)
+        }
+    }
     func submit(_ operation: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) async throws -> StageEngineReply {
         let restoring = c.restoring && c.action == .show && (operation == 5 || operation == 2)
         guard operation != 5 || restoring else { throw StageSwitchError.ownership }

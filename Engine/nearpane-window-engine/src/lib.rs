@@ -193,6 +193,16 @@ pub unsafe extern "C" fn np_engine_submit(
     })
 }
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_fence_unsubmitted_corner_hide(
+    handle: u64,
+    request: *const Request,
+) -> u32 {
+    boundary(|| {
+        unsafe { header(request)? };
+        find(handle)?.fence_unsubmitted_corner_hide(unsafe { request.read() })
+    })
+}
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_poll(handle: u64, ticket: u64, receipt: *mut Receipt) -> u32 {
     boundary(|| {
         unsafe { header(receipt)? };

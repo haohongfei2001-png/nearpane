@@ -125,6 +125,7 @@ int main(void) {
                @"before" : visible} mutableCopy];
         NSMutableDictionary *pending = [@{
             @"owner" : owner,
+            @"intent" : newID(s.preparedTransaction),
             @"scope" : scope,
             @"generation" : generation,
             @"nativeID" : @4,
@@ -138,6 +139,45 @@ int main(void) {
         put(profile, journal, ledger);
         assert(productJournal(&s, NO, NO));
         assert(!productJournal(&s, YES, NO));
+        int replies[2];
+        assert(pipe(replies) == 0 && fcntl(replies[0], F_SETFL, O_NONBLOCK) == 0);
+        NSDictionary *withdrawn = @{@"status": @"WITHDRAWN_BEFORE_SUBMISSION", @"issued": @0};
+        int jobFD = open(job.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        char reply;
+        assert(!publishReceipt(-1, withdrawn, replies[1]));
+        assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);
+        assert(publishReceipt(jobFD, withdrawn, replies[1]));
+        assert(read(replies[0], &reply, 1) == 1 && reply == 'W');
+        assert([productFile(jobFD, "guardian-receipt.json") isEqual:withdrawn]);
+        assert(!publishReceipt(jobFD, withdrawn, replies[1]));
+        assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);
+        close(jobFD);
+        close(replies[0]);
+        close(replies[1]);
+        // Real shipping WAL reader, disposable files only. Witness/AX are deliberately not simulated.
+        assert(withdrawableJournal(&s));
+        r->epoch = 1;
+        assert(withdrawalMessage(&s, @{@"phase": @"withdrawUnsubmitted", @"intent": intent, @"epoch": @1}));
+        assert(!withdrawalMessage(&s, @{@"phase": @"confirm", @"intent": intent, @"epoch": @1}));
+        assert(!withdrawalMessage(&s, @{@"phase": @"withdrawUnsubmitted", @"intent": intent, @"epoch": @2}));
+        assert(!withdrawalMessage(&s, @{@"phase": @"withdrawUnsubmitted", @"intent": NSUUID.UUID.UUIDString, @"epoch": @1}));
+        assert(!withdrawalWitness(&s, ledger));  // no previously retained real window
+        for (NSString *key in @[@"after", @"guardianPending", @"undoIntent"]) {
+            entry[key] = [key isEqual:@"after"] ? parked : (id)@YES;
+            put(profile, journal, ledger);
+            assert(!withdrawableJournal(&s));
+            [entry removeObjectForKey:key];
+        }
+        NSString *transaction = pending[@"intent"];
+        pending[@"intent"] = NSUUID.UUID.UUIDString;
+        put(profile, journal, ledger);
+        assert(!withdrawableJournal(&s));
+        pending[@"intent"] = transaction;
+        pending[@"entries"] = @[entry, @{@"intent": NSUUID.UUID.UUIDString}];
+        put(profile, journal, ledger);
+        assert(!withdrawableJournal(&s));
+        pending[@"entries"] = @[entry];
+        put(profile, journal, ledger);
         s.pre.lease.birth++;
         assert(!productJournal(&s, NO, NO));
         s.pre.lease.birth--;
@@ -160,6 +200,7 @@ int main(void) {
         ledger[@"owned"] = @[ owned ];
         put(profile, journal, ledger);
         assert(productJournal(&s, YES, NO));
+        assert(!withdrawableJournal(&s));
         assert(!productJournal(&s, YES, YES));
         assert(!ledgerAfterRemovingOnlyThisMember(ledger, r));
         [ledger removeObjectForKey:@"pending"];
