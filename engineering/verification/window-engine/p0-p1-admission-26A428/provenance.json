@@ -96,5 +96,10 @@
     "sha256": "976f59f6fb14bfbd3deb4d03aca6ab4e8730ef60056816ea7eb7ea4b0c98ec82",
     "byteIdenticalRebuild": true
   },
-  "sourceOfPhysicalReceipts": "The observations used the binaries listed here. Subsequent classifier, activation logging and admission changes are separately tested source changes."
+  "sourceOfPhysicalReceipts": "The observations used the binaries listed here. Subsequent classifier, activation logging and admission changes are separately tested source changes.",
+  "retrospectiveFocusMetadata": {
+    "file": "13-focus-event-metadata.json",
+    "sha256": "ef5c59ca11c4e71320ab493dcf2acc4e6e7e1da533ef15267783acb8222b232d",
+    "freeTextRetained": false
+  }
 }

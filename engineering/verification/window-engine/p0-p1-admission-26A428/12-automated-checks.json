@@ -19,6 +19,18 @@
       "sha": "f285f674f7cf4c089436361a261869c0d8f4f7d3",
       "run": 45034770984,
       "conclusion": "success"
+    },
+    {
+      "sha": "0ace430b8151d735d7e2e1c4df2fc28799769b8f",
+      "run": 45035696496,
+      "conclusion": "success",
+      "artifactID": 14760165307,
+      "receipt": "14-hosted-source-result.json",
+      "receiptSHA256": "c2991ae50787e62f1a0bc2bd2217c8d52a8f689b897f73726b51fa00dc859957"
     }
+  ],
+  "nativeProtocolChecksOnGitHub": [
+    {"sha": "c3b998ab5b6e334afd511553d7d80bff4f1de1f1", "run": 45032523883, "conclusion": "success"},
+    {"sha": "f285f674f7cf4c089436361a261869c0d8f4f7d3", "run": 45034771026, "conclusion": "success"}
   ]
 }

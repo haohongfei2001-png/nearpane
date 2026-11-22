@@ -33,3 +33,7 @@ Apple 的坐标查询使用显示器全局左上原点。应用级根只在本�
 获准后沿用已有的签名普通窗口、nonce 和 Swift Host/Rust 路径。独立进程在登记前及迁回后比对同一窗口的 AX/CG 几何、同一前台窗口、Dock 项目子角色顺序、双向归属和原生清单。监督器重新读取绑定本次启动代、挑战号、Host 及夹具身份的完成日志，区分归还、销毁、Host 回归与业务结果。这些新增检查已有编译和离线拒绝测试，其实机派发仍为 NOT_RUN。[登记与日志核对](../../../../scripts/acceptance/window-engine/host/sample-membership.py) · [独立窗口读回](../../../../scripts/acceptance/window-engine/host/fixture-readback.swift)
 
 普通桌面与全屏的观察器均按原输入重新编译，所得二进制 SHA-256 分别与采样收据完全一致。普通桌面的中间版源文件可由记录的 Git 基线和补丁还原。构建验证与实机分项分别记录。[来源、补丁用法与二进制摘要](provenance.json) · [源码补丁](ordinary-observer.patch) · [自动化收据](12-automated-checks.json)
+
+复核同一次普通桌面试验上下 11 秒的系统日志，191 条匹配记录中，Launch Services 在 22:35:23.960 与 22:35:24.753 两次提到系统总览启动器。留存信息能定位展示和收起，不能判定谁请求了 GitHub Desktop 获得前台。收据只保存时间、系统发出方、预先限定的进程标识及事件类别。[焦点事件元数据](13-focus-event-metadata.json)
+
+最后一次源码修改 `0ace430` 的 GitHub 原生引擎 CI 已通过。托管 runner 的系统 build 为 26A434，结果包含 102 项 Rust、91 项 Swift 测试及生产 C ABI 链接与读回。收据将该 runner 的实机资格标为 `NOT_RUN`。[CI 运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45035696496) · [原始 CI 收据](14-hosted-source-result.json)
