@@ -69,6 +69,11 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
         empty = upgrade.census(work, mac.canonical)
         require(empty["pids"] == [] and cycle.stamp_is_gone(stamp), "Previous Host still running")
         update("soleInstalledImageReady", emptyRoster=empty)
+        if name == "spaces":
+            now = overview_admission.current_hid()
+            if now["pressed"] or now["counts"] != observation["measurement"]["hidAfter"]:
+                update("inputChangedBeforeDiagnosticLaunch", qualification="BLOCKED", preLaunchInput=now)
+                return  # finally returns the ordinary Host; no fixture or Space has been created.
         args = [sys.executable, "-B", HERE / "sample-membership.py", mac.canonical, out, "--installed",
                 "--expected-source", current["source"], "--expected-cdhash", current["cdhash"]]
         if name == "spaces":

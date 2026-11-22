@@ -18,7 +18,8 @@ final class StageOverviewFocusTrace: @unchecked Sendable {
         var scale = mach_timebase_info_data_t()
         mach_timebase_info(&scale)
         return ["uptime": ProcessInfo.processInfo.systemUptime, "unix": Date().timeIntervalSince1970,
-                "machAbsolute": mach_absolute_time(), "numer": scale.numer, "denom": scale.denom]
+                "machAbsolute": mach_absolute_time(), "machContinuous": mach_continuous_time(),
+                "numer": scale.numer, "denom": scale.denom]
     }
 
     init() {
@@ -72,6 +73,17 @@ final class StageOverviewFocusTrace: @unchecked Sendable {
         return NearpaneOrdinaryWindowRuntime.number(window)
     }
 
+    private static func activeSpace(_ connection: inout Int32) -> (number: UInt64?, display: String?, catalogError: Int32, directError: Int32?) {
+        var error: Int32 = 0
+        let catalog = np_host_scope_copy_managed(&connection, &error) as? [[String: Any]]
+        guard error == 0, catalog?.count == 1, let entry = catalog?.first, let display = entry["Display Identifier"] as? String,
+              let current = entry["Current Space"] as? [String: Any], let id = StageEngineHostScope.Space(current).number else {
+            return (nil, nil, error, nil)
+        }
+        let direct = np_host_scope_direct(connection, display as CFString, &error)
+        return (direct == id && error == 0 ? id : nil, display, 0, error)
+    }
+
     @MainActor func sample(_ phase: String, originalPID: pid_t? = nil, window: AXUIElement? = nil) {
         let start = ProcessInfo.processInfo.systemUptime
         let workspace = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -89,26 +101,27 @@ final class StageOverviewFocusTrace: @unchecked Sendable {
         guard login?[kCGSessionOnConsoleKey as String] as? Bool == true,
               login?[kCGSessionUserIDKey as String] as? uid_t == getuid(),
               login?["CGSSessionScreenIsLocked"] as? Bool != true else { append(evidence); return }
-        var conn: Int32 = 0, inventoryError: Int32 = 0, directError: Int32 = 0
-        let catalog = np_host_scope_copy_managed(&conn, &inventoryError) as? [[String: Any]]
-        var active: UInt64?
-        if inventoryError == 0, catalog?.count == 1, let entry = catalog?.first,
-           let display = entry["Display Identifier"] as? String,
-           let current = entry["Current Space"] as? [String: Any], let id = StageEngineHostScope.Space(current).number,
-           np_host_scope_direct(conn, display as CFString, &directError) == id, directError == 0 { active = id }
+        var conn: Int32 = 0
+        let scope = Self.activeSpace(&conn), active = scope.number
         evidence["activeSpace"] = active as Any? ?? NSNull()
-        evidence["inventoryError"] = inventoryError
-        evidence["directError"] = directError
+        evidence["inventoryError"] = scope.catalogError
+        evidence["directError"] = scope.directError as Any? ?? NSNull()
         var subjects = [pid_t: String]()
         for id in Self.participants {
             for app in NSRunningApplication.runningApplications(withBundleIdentifier: id) { subjects[app.processIdentifier] = id }
         }
         if let originalPID, subjects[originalPID] == nil { subjects[originalPID] = "original" }
-        if let originalPID, let window {
-            evidence["retainedAXWindowID"] = Self.windowID(window, pid: originalPID) as Any? ?? NSNull()
-        }
+        let retainedID = originalPID.flatMap { pid in window.flatMap { Self.windowID($0, pid: pid) } }
+        if originalPID != nil { evidence["retainedAXWindowID"] = retainedID as Any? ?? NSNull() }
         // Project permitted fields only. Never request AX titles, document attributes or window pixels.
         let cg = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        let visible = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                  kCGNullWindowID) as? [[String: Any]])?.reduce(into: [pid_t: Set<CGWindowID>]()) { ids, row in
+            if let pid = row[kCGWindowOwnerPID as String] as? pid_t, subjects[pid] != nil,
+               let id = row[kCGWindowNumber as String] as? CGWindowID { ids[pid, default: []].insert(id) }
+        }
+        evidence["allWindowsRead"] = cg != nil
+        evidence["onScreenListRead"] = visible != nil
         var samples = [[String: Any]]()
         for (pid, label) in subjects.sorted(by: { $0.key < $1.key }) {
             guard let app = NSRunningApplication(processIdentifier: pid), let image = try? OrdinaryProcessImage.read(pid) else {
@@ -120,16 +133,20 @@ final class StageOverviewFocusTrace: @unchecked Sendable {
             let (focusedError, focused) = Self.value(ax, kAXFocusedWindowAttribute)
             var n = 0, list: CFArray?
             let key = kAXWindowsAttribute as CFString
-            let countError = AXUIElementGetAttributeValueCount(ax, key, &n)
+            let countError: AXError? = label == "original" ? nil : AXUIElementGetAttributeValueCount(ax, key, &n)
             let listError: AXError? = countError == .success && (0...32).contains(n) && n > 0
                 ? AXUIElementCopyAttributeValues(ax, key, 0, n, &list) : nil
             let axIDs = (list as? [AXUIElement])?.compactMap { Self.windowID($0, pid: pid) }
-            let rows = cg?.filter { $0[kCGWindowOwnerPID as String] as? pid_t == pid && $0[kCGWindowLayer as String] as? Int == 0 }
+            let rows = cg?.filter { r in
+                r[kCGWindowOwnerPID as String] as? pid_t == pid && r[kCGWindowLayer as String] as? Int == 0 &&
+                    (label != "original" || (retainedID != nil && r[kCGWindowNumber as String] as? CGWindowID == retainedID))
+            }
             var windows = [[String: Any]]()
             for r in (rows ?? []).prefix(32) {
                 guard let id = r[kCGWindowNumber as String] as? CGWindowID else { continue }
                 var w: [String: Any] = ["id": id, "layer": 0, "onScreen": r[kCGWindowIsOnscreen as String] ?? NSNull(),
                     "alpha": r[kCGWindowAlpha as String] ?? NSNull(), "frame": r[kCGWindowBounds as String] ?? NSNull()]
+                w["inOnScreenList"] = visible.map { $0[pid]?.contains(id) == true } as Any? ?? NSNull()
                 if let active {
                     var err: Int32 = 0
                     let reverse = np_host_scope_reverse(conn, id, &err) as? [NSNumber]
@@ -146,12 +163,17 @@ final class StageOverviewFocusTrace: @unchecked Sendable {
                 "hidden": app.isHidden, "terminated": app.isTerminated,
                 "axFrontmostError": frontError.rawValue, "axFrontmost": front as? Bool as Any? ?? NSNull(),
                 "axFocusedWindowError": focusedError.rawValue, "axFocusedWindowID": Self.windowID(focused,pid:pid) as Any? ?? NSNull(),
-                "axCountError": countError.rawValue, "axWindowCount": countError == .success ? n as Any : NSNull(),
+                "axCountError": countError?.rawValue as Any? ?? NSNull(), "axWindowCount": countError == .success ? n as Any : NSNull(),
                 "axListError": listError?.rawValue as Any? ?? NSNull(),
                 "axWindowIDs": (n == 0 && countError == .success ? [] : axIDs) as Any? ?? NSNull(),
+                "scope": label == "original" ? "retainedWindowOnly" : "application",
                 "cgLayerZeroCount": rows?.count as Any? ?? NSNull(), "windows": windows])
         }
         evidence["subjects"] = samples
+        let endScope = Self.activeSpace(&conn)
+        evidence["activeSpaceAtEnd"] = endScope.number as Any? ?? NSNull()
+        evidence["sameActiveSpace"] = active != nil && active == endScope.number && scope.display == endScope.display
+        evidence["workspaceFrontPIDAtEnd"] = NSWorkspace.shared.frontmostApplication?.processIdentifier as Any? ?? NSNull()
         evidence["endUptime"] = ProcessInfo.processInfo.systemUptime
         append(evidence)
     }

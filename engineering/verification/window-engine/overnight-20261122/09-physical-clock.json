@@ -1,0 +1,218 @@
+{
+  "status": "PASS",
+  "scope": "physicalSystemTimestampCorrelationOnly",
+  "anchors": [
+    {
+      "denom": 3,
+      "machAbsolute": 10183197768094,
+      "machContinuous": 13864919569075,
+      "numer": 125,
+      "unix": 1795364620.0274029,
+      "uptime": 424299.90700350003
+    },
+    {
+      "denom": 3,
+      "machAbsolute": 10183219705943,
+      "machContinuous": 13864941506923,
+      "numer": 125,
+      "unix": 1795364620.941483,
+      "uptime": 424300.8210801667
+    }
+  ],
+  "samples": [
+    {
+      "mach": 13864921728080,
+      "unix": 1795364620.114029,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9969620417
+    },
+    {
+      "mach": 13864921728397,
+      "unix": 1795364620.114042,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99697525
+    },
+    {
+      "mach": 13864921742144,
+      "unix": 1795364620.114615,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9975480417
+    },
+    {
+      "mach": 13864921744827,
+      "unix": 1795364620.114727,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99765983335
+    },
+    {
+      "mach": 13864921754869,
+      "unix": 1795364620.115145,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99807825004
+    },
+    {
+      "mach": 13864921758212,
+      "unix": 1795364620.115284,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9982175417
+    },
+    {
+      "mach": 13864921758309,
+      "unix": 1795364620.115288,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9982215834
+    },
+    {
+      "mach": 13864921760456,
+      "unix": 1795364620.115378,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9983110417
+    },
+    {
+      "mach": 13864921760573,
+      "unix": 1795364620.115383,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9983159167
+    },
+    {
+      "mach": 13864921760737,
+      "unix": 1795364620.11539,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99832275003
+    },
+    {
+      "mach": 13864921760983,
+      "unix": 1795364620.1154,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99833300005
+    },
+    {
+      "mach": 13864921761057,
+      "unix": 1795364620.115403,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9983360834
+    },
+    {
+      "mach": 13864921761828,
+      "unix": 1795364620.115435,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99836820835
+    },
+    {
+      "mach": 13864921762157,
+      "unix": 1795364620.115449,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9983819167
+    },
+    {
+      "mach": 13864921766801,
+      "unix": 1795364620.115642,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9985754167
+    },
+    {
+      "mach": 13864921766803,
+      "unix": 1795364620.115642,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99857550004
+    },
+    {
+      "mach": 13864921768966,
+      "unix": 1795364620.115733,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99866562505
+    },
+    {
+      "mach": 13864921769057,
+      "unix": 1795364620.115736,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9986694167
+    },
+    {
+      "mach": 13864921769074,
+      "unix": 1795364620.115737,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99867012503
+    },
+    {
+      "mach": 13864921769859,
+      "unix": 1795364620.11577,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99870283337
+    },
+    {
+      "mach": 13864921770622,
+      "unix": 1795364620.115802,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99873462506
+    },
+    {
+      "mach": 13864921770841,
+      "unix": 1795364620.115811,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99874375004
+    },
+    {
+      "mach": 13864921770850,
+      "unix": 1795364620.115811,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.998744125
+    },
+    {
+      "mach": 13864921771406,
+      "unix": 1795364620.115834,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9987672917
+    },
+    {
+      "mach": 13864921771581,
+      "unix": 1795364620.115841,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9987745834
+    },
+    {
+      "mach": 13864921771804,
+      "unix": 1795364620.115851,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.998783875
+    },
+    {
+      "mach": 13864921772153,
+      "unix": 1795364620.115865,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9987984167
+    },
+    {
+      "mach": 13864921773593,
+      "unix": 1795364620.115925,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9988584167
+    },
+    {
+      "mach": 13864921773627,
+      "unix": 1795364620.115927,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.99885983334
+    },
+    {
+      "mach": 13864921773640,
+      "unix": 1795364620.115927,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.998860375
+    },
+    {
+      "mach": 13864921773691,
+      "unix": 1795364620.115929,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9988625
+    },
+    {
+      "mach": 13864921773710,
+      "unix": 1795364620.11593,
+      "clockStatus": "machContinuous",
+      "uptime": 424299.9988632917
+    }
+  ],
+  "sameBoot": true,
+  "privateReceiptSHA256": "bf859afc971bd24729122d1c8edb47f19caf41b155c380f537f7d74d74bbb507"
+}

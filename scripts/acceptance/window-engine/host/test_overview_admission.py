@@ -1,4 +1,5 @@
 from copy import deepcopy
+from contextlib import ExitStack
 import importlib
 import json
 from pathlib import Path
@@ -47,6 +48,43 @@ def receipt():
 
 
 class AdmissionTests(unittest.TestCase):
+    def test_intervening_hardware_input_stops_before_quit_or_returns_the_sole_regular_host(self):
+        quiet = dict(counts=[0]*14, pressed=False)
+        changed = dict(counts=[1]+[0]*13, pressed=False)
+        rights = dict(status="PASS", installed={"CDHash":IMAGE["cdhash"]}, subject=dict(pid=9,birth=20),
+                      permissions={k:True for k in ("accessibility","listenEvent","postEvent","screenCapture")})
+        for after_quit in (False,True):
+            with self.subTest(after_quit=after_quit), tempfile.TemporaryDirectory() as name, ExitStack() as mocks:
+                directory = Path(name)
+                (directory/"08-upgrade.json").write_text(json.dumps(dict(status="PASS",stage="running",installed=IMAGE)))
+                mac = mocks.enter_context(patch.object(stage.install, "Mac")).return_value
+                mac.inspect.return_value = IMAGE
+                mac.pid.return_value = 9
+                mac.bound.return_value = (9,0,20)
+                mac.wait_owner.return_value = (10,0,22)
+                mocks.enter_context(patch.object(stage.install,"process_stamp",return_value=(9,0,20)))
+                mocks.enter_context(patch.object(gate,"load_receipt",return_value=(receipt(),"abc")))
+                mocks.enter_context(patch.object(gate,"qualifies",return_value=True))
+                mocks.enter_context(patch.object(gate,"current_hid",side_effect=[quiet,changed] if after_quit else [changed]))
+                mocks.enter_context(patch.object(stage.cycle.backup.permissions,"sample",return_value=rights))
+                mocks.enter_context(patch.object(stage.cycle,"admit_daily",return_value=True))
+                mocks.enter_context(patch.object(stage.cycle,"stamp_is_gone",return_value=True))
+                mocks.enter_context(patch.object(stage.upgrade,"recoveries",return_value={"quitPermitted":True}))
+                mocks.enter_context(patch.object(stage.upgrade,"census",
+                    side_effect=[{"pids":[9]},{"pids":[]},{"pids":[]},{"pids":[10]}]))
+                child = mocks.enter_context(patch.object(stage.subprocess,"Popen"))
+                events = []
+                stage.run(directory,"spaces",lambda key,**row:events.append((key,row)),directory,directory/"p0")
+                child.assert_not_called()
+                if after_quit:
+                    mac.quit.assert_called_once_with((9,0,20))
+                    mac.open_daily.assert_called_once()
+                    self.assertIn("inputChangedBeforeDiagnosticLaunch", [key for key,row in events])
+                    self.assertEqual(events[-1][0],"regularHostRunning")
+                else:
+                    mac.quit.assert_not_called()
+                    self.assertEqual(events[-1][1]["quitRequests"],0)
+
     def test_rejects_single_root_partial_or_unbound_p0(self):
         original = receipt()
         self.assertTrue(gate.qualifies(original,IMAGE,9,20,104))

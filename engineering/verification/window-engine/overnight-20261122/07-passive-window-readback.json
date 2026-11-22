@@ -1,0 +1,337 @@
+{
+  "schema": 1,
+  "status": "NOT_RUN",
+  "stage": "passiveReadOnly",
+  "reason": "passiveObservationWithoutPresentation",
+  "observerSHA256": "965b4d84a92ffbcdea125f6cb23e27883bb6ee789abdda25f1841a0b1a818a1b",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "startedUTC": "2026-11-22T16:23:39Z",
+  "endedUTC": "2026-11-22T16:23:40Z",
+  "sip": "System Integrity Protection status: enabled.",
+  "build": "26A428",
+  "systemVersion": "27.0",
+  "sameHostAtEnd": true,
+  "windowWrites": 0,
+  "spaceWrites": 0,
+  "launchedHosts": 0,
+  "hostTelemetry": [
+    {
+      "attempts": [
+        {
+          "endUptime": 424300.74212833337,
+          "exit": 0,
+          "missionControlObservation": "signedDockAXListWithoutMC",
+          "missionControlPresented": 0,
+          "pid": 32364,
+          "source": "installedHostPreviewMetrics",
+          "status": "observed",
+          "targetBirth": 1795343882268848,
+          "targetPID": 32364,
+          "uptime": 424300.2675323334
+        }
+      ],
+      "endUptime": 424300.74228325003,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "passive",
+      "pid": 32364,
+      "startUptime": 424300.2675264167
+    }
+  ],
+  "clockStart": {
+    "denom": 3,
+    "machAbsolute": 10183197768094,
+    "machContinuous": 13864919569075,
+    "numer": 125,
+    "unix": 1795364620.0274029,
+    "uptime": 424299.90700350003
+  },
+  "clockEnd": {
+    "denom": 3,
+    "machAbsolute": 10183219705943,
+    "machContinuous": 13864941506923,
+    "numer": 125,
+    "unix": 1795364620.941483,
+    "uptime": 424300.8210801667
+  },
+  "scope": {
+    "reason": "fullscreenType4",
+    "status": "BLOCKED"
+  },
+  "privateReceiptSHA256": "1b15eb6f6503f3faa4a59c0525e7761c7d17afbf8937a8b86437632320644858",
+  "projection": "Window identity, system geometry and event metadata only. Hardware UUIDs are aliased and absolute HID counts are withheld.",
+  "presentations": 0,
+  "dismissals": 0,
+  "activationNotifications": [],
+  "workspaceTimeline": {
+    "clock": "ProcessInfo.systemUptime",
+    "dropped": 0,
+    "events": [
+      {
+        "activeSpace": 5184,
+        "activeSpaceAtEnd": 5184,
+        "allWindowsRead": true,
+        "axFocusedApplicationError": 0,
+        "axFocusedApplicationPID": 1046,
+        "directError": 0,
+        "endUptime": 424300.267450625,
+        "inventoryError": 0,
+        "kind": "windowSnapshot",
+        "onScreenListRead": true,
+        "phase": "passive",
+        "sameActiveSpace": true,
+        "screenLocked": false,
+        "sessionOnConsole": true,
+        "subjects": [
+          {
+            "axCountError": 0,
+            "axFocusedWindowError": -25212,
+            "axFocusedWindowID": null,
+            "axFrontmost": false,
+            "axFrontmostError": 0,
+            "axListError": null,
+            "axWindowCount": 0,
+            "axWindowIDs": [],
+            "birth": 1795271950317697,
+            "cgLayerZeroCount": 5,
+            "hidden": false,
+            "pid": 48228,
+            "sameGenerationAtEnd": true,
+            "scope": "application",
+            "subject": "com.microsoft.edgemac",
+            "terminated": false,
+            "windows": [
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63794,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63793,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63792,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63791,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 64,
+                  "Width": 64,
+                  "X": 0,
+                  "Y": 456
+                },
+                "id": 65126,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              }
+            ]
+          },
+          {
+            "axCountError": 0,
+            "axFocusedWindowError": 0,
+            "axFocusedWindowID": 17742,
+            "axFrontmost": false,
+            "axFrontmostError": 0,
+            "axListError": null,
+            "axWindowCount": 0,
+            "axWindowIDs": [],
+            "birth": 1794944389149251,
+            "cgLayerZeroCount": 6,
+            "hidden": false,
+            "pid": 56354,
+            "sameGenerationAtEnd": true,
+            "scope": "application",
+            "subject": "com.github.GitHubClient",
+            "terminated": false,
+            "windows": [
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 500,
+                  "Width": 500,
+                  "X": 0,
+                  "Y": 456
+                },
+                "id": 17744,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 660,
+                  "Width": 960,
+                  "X": 110,
+                  "Y": 151
+                },
+                "id": 17742,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": [
+                  6
+                ]
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17741,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17740,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17739,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17738,
+                "inOnScreenList": false,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              }
+            ]
+          }
+        ],
+        "uptime": 424300.212832875,
+        "workspaceFrontPID": 1046,
+        "workspaceFrontPIDAtEnd": 1046
+      }
+    ],
+    "notificationTime": "callbackDelivery"
+  },
+  "admissionChanges": [],
+  "passiveFocus": {
+    "uptime": 424300.18739158334,
+    "reason": "regularForegroundApplicationRequired"
+  },
+  "hidUnchangedDuringPassiveRead": true
+}

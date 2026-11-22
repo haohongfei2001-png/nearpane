@@ -114,11 +114,13 @@ import Security
             }
             let media = OverviewMedia(dir)
             if passive {
+                result["hidBeforePassiveRead"] = StageCanaryOverview.hid()
                 result["scope"] = await StageEngineHostScope.sample()["scope"]
                 result["admission"] = StageCanaryOverview.admission()
                 trace.sample("passive")
                 await readHost("passive")
                 result["sameHostAtEnd"] = try host().0 == original
+                result["hidAfterPassiveRead"] = StageCanaryOverview.hid()
                 result["reason"] = "passiveObservationWithoutPresentation"
             } else {
                 var admissions = [[String:Any]]()
@@ -128,6 +130,8 @@ import Security
                 var lastInput: [UInt32]?, lastAdmittedScope: NSDictionary?
                 var eligibleSince: TimeInterval?, lastFocus: [UInt64]?
                 var lastReason = ""
+                var sampleCounts = [String:Int](), maximumIdle = [String:Double]()
+                var lastAdmission = [String:Any]()
                 repeat {
                     initial = await StageEngineHostScope.sample()
                     let scope = initial["scope"] as? [String:Any] ?? [:]
@@ -149,6 +153,9 @@ import Security
                         (admission["reason"] as? String ?? (!eligible ? "waitingForIdleInput" : ready ? "ready" : "waitingForStableFocusAndInput"))
                     admission["idleSeconds"] = idle.isFinite ? idle as Any : NSNull(); admission["hid14"] = hid
                     admission["pressedButtons"] = buttons; admission["admissionState"] = reason
+                    sampleCounts[reason, default:0] += 1
+                    if idle.isFinite { maximumIdle[reason] = max(maximumIdle[reason] ?? 0, idle) }
+                    lastAdmission = admission
                     if admissions.isEmpty || lastReason != reason ||
                         admissions.last?["workspacePID"] as? Int32 != admission["workspacePID"] as? Int32 ||
                         (admissions.last?["nativeScope"] as? NSDictionary) != (scope as NSDictionary) || ready {
@@ -158,6 +165,8 @@ import Security
                     if !ready && AXIsProcessTrusted() { try await Task.sleep(for:.milliseconds(700)) }
                 } while !ready && AXIsProcessTrusted() && ContinuousClock.now < deadline
                 result["admissionReads"] = admissions
+                result["admissionSampling"] = ["counts":sampleCounts, "maximumIdleSeconds":maximumIdle,
+                                                "last":lastAdmission] as [String:Any]
                 result["scope"] = initial["scope"]
                 if !ready {
                     result["reason"] = lastReason
