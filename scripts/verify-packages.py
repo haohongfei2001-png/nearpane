@@ -48,7 +48,7 @@ def verify_fixture_boundary(image):
         start = right + 1
 
 
-def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
+def verify_engine_boundary(contents, plist, binary, host_image, sandbox, *, execute=True):
     private_names = (b"SkyLight.framework/", b"SLSCopySpacesForWindows", b"SLSCopyManagedDisplaySpaces",
                      b"SLSMainConnectionID", b"_AXUIElementGetWindow")
     abi = plist.get("NearpaneStageEngineABI")
@@ -82,6 +82,8 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox):
         for path in (ROOT/"Sources"/module).rglob("*.swift"):
             if any(symbol in path.read_bytes() for symbol in private_names):
                 raise ValueError("Private window calls outside the engine shim: " + path.name)
+    if not execute:
+        return
     reply = json.loads(subprocess.check_output(sandbox + [str(binary), "--verify-stage-window-engine"], timeout=12))
     gates = reply.get("engines", [])
     if (reply.get("abi") != abi or reply.get("closed") is not True or len(gates) != 2
@@ -124,7 +126,7 @@ def verify_ordinary_window_actions(writer, imports):
         raise ValueError("Unexpected ordinary AX action or target")
 
 
-def verify(app, lock, sandbox):
+def verify(app, lock, sandbox, *, execute=True):
     contents = app / "Contents"
     plist = plistlib.loads((contents/"Info.plist").read_bytes())
     package_version = tuple(int(part) for part in plist["CFBundleShortVersionString"].split("."))
@@ -171,18 +173,19 @@ def verify(app, lock, sandbox):
     for exe in (binary, helper, writer):
         if "SkyLight.framework" in subprocess.check_output(["/usr/bin/otool", "-L", str(exe)], text=True):
             raise ValueError("Private desktop framework linked directly: " + exe.name)
-    verify_engine_boundary(contents, plist, binary, host_image, sandbox)
+    verify_engine_boundary(contents, plist, binary, host_image, sandbox, execute=execute)
     # The admission observer can read attributes and test their writability. It must
     # not acquire the setter or AX action entry points of the separate frame controller.
     imports = subprocess.check_output(["/usr/bin/nm", "-u", str(helper)], text=True).splitlines()
     banned = {"_AXUIElementSetAttributeValue", "_AXUIElementPerformAction", "_CGEventPost", "_CGEventPostToPid"}
     if any(line.split() and line.split()[-1] in banned for line in imports):
         raise ValueError("Desktop reader imports an external input or window-writing API")
-    if subprocess.check_output(sandbox + [str(helper), "--self-check"], text=True).strip() != "Nearpane desktop reader 1":
-        raise ValueError("Desktop reader protocol unavailable")
-    result = subprocess.check_output(sandbox + [str(binary), "--verify-bundled-resources"],text=True)
-    if "Packaged Saytile and Riftlet resources verified." not in result:
-        raise ValueError("Missing full packaged resource verification")
+    if execute:
+        if subprocess.check_output(sandbox + [str(helper), "--self-check"], text=True).strip() != "Nearpane desktop reader 1":
+            raise ValueError("Desktop reader protocol unavailable")
+        result = subprocess.check_output(sandbox + [str(binary), "--verify-bundled-resources"],text=True)
+        if "Packaged Saytile and Riftlet resources verified." not in result:
+            raise ValueError("Missing full packaged resource verification")
     root = contents / "Resources"
     if not digest(root/"AcceptanceTargetGuard.js") == digest(ROOT/"Resources/AcceptanceTargetGuard.js") == plist.get("NearpaneDraftGuardSHA256"):
         raise ValueError("Unexpected acceptance guard in packaged resources")
@@ -222,6 +225,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("apps", nargs="+", type=Path)
     parser.add_argument("--deny-cache", action="append", type=Path, default=[])
+    parser.add_argument("--static-only", action="store_true",
+                        help="verify signatures, installed boundaries and all resource bytes without starting a product process")
     args = parser.parse_args()
     deny = [ROOT/".build", ROOT.parent/"saytile", ROOT.parent/"Riftlet", *args.deny_cache]
     support = Path.home()/"Library/Application Support"
@@ -233,7 +238,7 @@ def main():
     profile = f"(version 1)(allow default)(deny file-read* file-write* {paths})(deny network-outbound (remote tcp) (remote udp))"
     sandbox = ["/usr/bin/sandbox-exec", *params, "-p", profile]
     lock = json.loads((ROOT/"Dependencies/domains.lock.json").read_text())
-    hashes = {verify(app.resolve(), lock, sandbox) for app in args.apps}
+    hashes = {verify(app.resolve(), lock, sandbox, execute=not args.static_only) for app in args.apps}
     if len(hashes) != 1:
         raise ValueError("Packages contain different resource files or bytes")
 

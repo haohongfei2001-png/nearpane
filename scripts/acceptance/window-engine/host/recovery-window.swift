@@ -27,6 +27,12 @@ for index in 0..<2 {
             ($0[kCGWindowNumber as String] as? UInt32) == window
         }
         sample["exactWindowCount"] = exact?.count
+        if exact?.count == 1, let row = exact?.first {
+            let app = NSRunningApplication(processIdentifier: pid)
+            sample["regularForeground"] = row[kCGWindowLayer as String] as? Int == 0 &&
+                row[kCGWindowIsOnscreen as String] as? Bool == true && app?.activationPolicy == .regular &&
+                app?.isHidden == false && NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+        }
         if exact?.count == 1, let raw = exact?.first?[kCGWindowBounds as String] as? [String: NSNumber],
            let x = raw["X"], let y = raw["Y"], let width = raw["Width"], let height = raw["Height"] {
             sample["windowServerFrame"] = ["x": x, "y": y, "width": width, "height": height]
