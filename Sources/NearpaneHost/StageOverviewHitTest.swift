@@ -20,6 +20,7 @@ import Security
         let tiles: [Tile]
         let evidence: Row
         let complete: Bool
+        let visibleRow: [[Double]]
     }
 
     static func positions(in bounds: CGRect) -> [CGPoint] {
@@ -32,10 +33,25 @@ import Security
     }
 
     static func validLayout(_ rects: [CGRect], in bounds: CGRect) -> Bool {
-        guard !rects.isEmpty, rects.allSatisfy({ !$0.isEmpty && bounds.contains($0) }),
-              let first = rects.first else { return false }
+        guard let first = rects.first, rects.allSatisfy({ !$0.isEmpty && bounds.intersects($0) }) else { return false }
         return rects.allSatisfy { $0.minY < first.maxY && $0.maxY > first.minY } &&
-            zip(rects,rects.dropFirst()).allSatisfy { $0.maxX <= $1.minX }
+            zip(rects,rects.dropFirst()).allSatisfy { $0.midX < $1.midX }
+    }
+
+    /// In the collapsed strip Apple reports overlapping AX frames extending above y=0.
+    /// The same physical scanline must hit all buttons in their actual left-to-right order.
+    static func orderedHitRow(_ groups: [[CGPoint]]) -> [[Double]] {
+        guard let first = groups.first else { return [] }
+        let ys = Set(first.map(\.y)).sorted()
+        for y in ys {
+            let spans = groups.compactMap { points -> [Double]? in
+                let xs = points.filter { $0.y == y }.map(\.x)
+                guard let l = xs.min(), let r = xs.max() else { return nil }
+                return [y,l,r]
+            }
+            if spans.count == groups.count && zip(spans,spans.dropFirst()).allSatisfy({ $0[2] < $1[1] }) { return spans }
+        }
+        return []
     }
 
     static func box(_ rect: CGRect) -> [Double] { [rect.minX, rect.minY, rect.width, rect.height] }
@@ -98,6 +114,8 @@ import Security
         let dockTimeout = AXUIElementSetMessagingTimeout(dock,timeout), systemTimeout = AXUIElementSetMessagingTimeout(sys,timeout)
         var indexes = [AXUIElement:Int](), nodes = [Node](), parent = [AXUIElement:AXUIElement]()
         var noParent = Set<AXUIElement>(), measured = [AXUIElement:Tile](), observations = [Row]()
+        var hitPoints = [AXUIElement:[CGPoint]]()
+        var listChildren = [AXUIElement:Set<AXUIElement>](), listReads = [Row](), parentReads = [Row]()
         let points = positions(in:bounds)
         var conflicting = false
         func index(_ ax: AXUIElement) -> Int {
@@ -111,25 +129,53 @@ import Security
             if let stored = parent[item] { return stored }
             guard !noParent.contains(item) else { return nil }
             let (rc,v) = value(item,kAXParentAttribute)
-            guard rc == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else { noParent.insert(item); return nil }
+            var record: Row = ["object":index(item),"axError":rc.rawValue]
+            guard rc == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else {
+                noParent.insert(item); parentReads.append(record); return nil
+            }
             let next = v as! AXUIElement
             parent[item] = next
+            record["parent"] = index(next)
+            parentReads.append(record)
             return next
+        }
+        func recordList(_ item: AXUIElement) {
+            let node = nodes[index(item)]
+            guard node.id == "mc.spaces.list", owners.contains(node.pid), listChildren[item] == nil else { return }
+            var members = Set<AXUIElement>(), reads = [Row]()
+            for field in [kAXChildrenAttribute,kAXVisibleChildrenAttribute,"AXChildrenInNavigationOrder"] {
+                let (error,value) = value(item,field)
+                var row: Row = ["attribute":field,"axError":error.rawValue]
+                if error == .success, let array = value as? [AXUIElement], array.count <= 256 {
+                    row["objects"] = array.map { index($0) }
+                    members.formUnion(array)
+                }
+                reads.append(row)
+            }
+            listChildren[item] = members
+            listReads.append(["list":index(item),"attributes":reads])
         }
         func tile(_ hit: AXUIElement, at point: CGPoint) -> Tile? {
             var item = hit, seen = Set<AXUIElement>()
             for _ in 0..<8 {
                 let node = nodes[index(item)]
                 guard owners.contains(node.pid), seen.insert(item).inserted else { return nil }
-                if node.role == kAXButtonRole, let rect = node.frame, bounds.contains(rect), rect.contains(point) {
+                recordList(item)
+                if node.role == kAXButtonRole, let rect = node.frame, bounds.contains(point), rect.contains(point) {
                     // A fullscreen window, a desktop icon and the Add/Remove buttons each have distinct AX identities.
                     if node.id == "mc.spaces.space" { return Tile(element:item,frame:rect) }
                     if let container = parentOf(item) {
+                        recordList(container)
                         let list = nodes[index(container)]
                         if list.id == "mc.spaces.list", list.pid == node.pid, let area = list.frame,
-                           area.contains(rect), !["mc.spaces.add","mc.spaces.remove"].contains(node.id ?? "") {
+                           area.contains(point), !["mc.spaces.add","mc.spaces.remove"].contains(node.id ?? "") {
                             return Tile(element:item,frame:rect)
                         }
+                    }
+                    for (list,children) in listChildren where children.contains(item) {
+                        let strip = nodes[index(list)]
+                        if strip.pid == node.pid, let area = strip.frame, area.contains(point),
+                           !["mc.spaces.add","mc.spaces.remove"].contains(node.id ?? "") { return Tile(element:item,frame:rect) }
                     }
                 }
                 guard let next = parentOf(item) else { return nil }
@@ -159,6 +205,7 @@ import Security
                         if label == "dock" { dockTile = found }
                         else {
                             measured[found.element] = found
+                            hitPoints[found.element,default:[]].append(point)
                             if let dockTile, dockTile != found { conflicting = true }
                         }
                     }
@@ -169,13 +216,15 @@ import Security
         }
         if !inputUnchanged() { interrupted = true }
         let sorted = measured.values.sorted { $0.frame.midX < $1.frame.midX }
+        let visible = orderedHitRow(sorted.map { hitPoints[$0.element] ?? [] })
         let complete = observations.count == points.count && !conflicting && !interrupted
         let evidence: Row = ["startUptime":start,"endUptime":ProcessInfo.processInfo.systemUptime,
             "displayFrame":box(bounds),"targetPoints":points.count,"pointsRead":observations.count,
             "rootTimeoutErrors":["dock":dockTimeout.rawValue,"systemWide":systemTimeout.rawValue],
             "inputInterrupted":interrupted,"rootDisagreement":conflicting,"objects":nodes.map(\.row),"hits":observations,
+            "stripAttributes":listReads,"parentReads":parentReads,
             "visibleTiles":sorted.map { ["object":index($0.element),"frame":box($0.frame)] as Row },
-            "completeGrid":complete]
-        return Sample(tiles:sorted,evidence:evidence,complete:complete)
+            "completeGrid":complete,"topmostHitSpans":visible]
+        return Sample(tiles:sorted,evidence:evidence,complete:complete,visibleRow:visible)
     }
 }

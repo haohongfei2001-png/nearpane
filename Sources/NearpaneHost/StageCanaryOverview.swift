@@ -9,7 +9,7 @@ import Security
 /// No AX action, desktop selection, global key or pointer event is issued.
 @MainActor enum StageCanaryOverview {
     private struct Refusal: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
-    private struct Dock {
+    struct Dock {
         let image: OrdinaryProcessImage
         let app: AXUIElement
     }
@@ -18,6 +18,19 @@ import Security
         let window: AXUIElement
         let number: CGWindowID
     }
+    private final class ActivationHistory: @unchecked Sendable {
+        let lock = NSLock()
+        var events = [[String:Any]]()
+        func append(_ note: Notification) {
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            let pid = app.processIdentifier, time = ProcessInfo.processInfo.systemUptime
+            let image = try? OrdinaryProcessImage.read(pid)
+            lock.withLock {
+                if events.count < 64 { events.append(["uptime":time,"pid":pid,"birth":image?.launch as Any? ?? NSNull()]) }
+            }
+        }
+        func read() -> [[String:Any]] { lock.withLock { events } }
+    }
     private static let launcher = URL(fileURLWithPath: "/System/Applications/Mission Control.app")
     private static func requirement(_ identifier: String) throws -> SecRequirement {
         var rule: SecRequirement?
@@ -25,7 +38,7 @@ import Security
                                               [], &rule) == errSecSuccess, let rule else { throw Refusal("appleRequirementUnavailable") }
         return rule
     }
-    private static func signedDock() throws -> Dock {
+    static func signedDock() throws -> Dock {
         let apps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
         guard apps.count == 1, let pid = apps.first?.processIdentifier else { throw Refusal("ambiguousSystemDock") }
         let image = try OrdinaryProcessImage.read(pid)
@@ -53,7 +66,7 @@ import Security
               }) else { throw Refusal("systemAXTreeUnavailable") }
         return result
     }
-    private static func root(_ dock: Dock) throws -> AXUIElement? {
+    static func root(_ dock: Dock) throws -> AXUIElement? {
         guard try OrdinaryProcessImage.read(dock.image.pid) == dock.image else { throw Refusal("dockGenerationChanged") }
         let items = try children(dock.app, dock)
         var roots = [AXUIElement]()
@@ -134,13 +147,13 @@ import Security
             && row[kCGWindowLayer as String] as? Int == 0 && row[kCGWindowIsOnscreen as String] as? Bool == true
             && (row[kCGWindowAlpha as String] as? Double ?? 0) > 0
     }
-    private static func hid() -> [UInt32] {
+    static func hid() -> [UInt32] {
         [.leftMouseDown,.leftMouseUp,.rightMouseDown,.rightMouseUp,.otherMouseDown,.otherMouseUp,.mouseMoved,
          .leftMouseDragged,.rightMouseDragged,.otherMouseDragged,.keyDown,.keyUp,.flagsChanged,.scrollWheel].map {
             CGEventSource.counterForEventType(.hidSystemState,eventType:$0)
         }
     }
-    private static func inventory() throws -> [NSDictionary] {
+    static func inventory() throws -> [NSDictionary] {
         var connection: Int32 = 0, error: Int32 = 0
         guard let rows = np_host_scope_copy_managed(&connection,&error) as? [NSDictionary], error == 0,
               rows.count == 1, let display = rows[0]["Display Identifier"] as? String,
@@ -149,6 +162,21 @@ import Security
               np_host_scope_direct(connection,display as CFString,&error) == id, error == 0 else { throw Refusal("nativeScopeUnavailable") }
         return rows
     }
+    static func inventoryIdentity(_ rows: [NSDictionary]) throws -> NSDictionary {
+        guard rows.count == 1, let first = rows.first, let token = first["Display Identifier"] as? String,
+              let values = first["Spaces"] as? [[String:Any]], !values.isEmpty,
+              let active = first["Current Space"] as? [String:Any] else { throw Refusal("managedRosterUnavailable") }
+        func identity(_ row: [String:Any]) throws -> NSDictionary {
+            let space = StageEngineHostScope.Space(row)
+            guard !space.malformed, let id = space.number, let type = space.kind, let uuid = space.uuid
+            else { throw Refusal("managedIdentityUnavailable") }
+            return ["id":id,"type":type,"uuid":uuid.uuidString]
+        }
+        let roster = try values.map(identity), current = try identity(active)
+        guard roster.filter({ $0 == current }).count == 1 else { throw Refusal("activeRosterMismatch") }
+        return ["display":token,"current":current,"roster":roster]
+    }
+
     private static func frame(_ element: AXUIElement) -> CGRect? {
         var p = CGPoint.zero, s = CGSize.zero
         guard let a = attr(element,kAXPositionAttribute), CFGetTypeID(a) == AXValueGetTypeID(),
@@ -172,7 +200,7 @@ import Security
               zip(rects,rects.dropFirst()).allSatisfy({ $0.midX < $1.midX }) else { throw Refusal("visibleTileOrderUnavailable") }
         return items
     }
-    private static func toggle() throws {
+    static func toggle() throws {
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(launcher as CFURL,[],&code) == errSecSuccess, let code,
               SecStaticCodeCheckValidity(code,[],try requirement("com.apple.exposelauncher")) == errSecSuccess else { throw Refusal("unverifiedSystemLauncher") }
@@ -230,6 +258,11 @@ import Security
             return result
         }
         var finish: (() -> Void)?
+        var restoreOwnedOverview: (() async -> Void)?
+        let activation = ActivationHistory(), center = NSWorkspace.shared.notificationCenter
+        let token = center.addObserver(forName:NSWorkspace.didActivateApplicationNotification,object:nil,queue:nil) {
+            activation.append($0)
+        }
         do {
             let diagnostic = stage == "fullscreenPositionDiagnostic"
             let prior = diagnostic ? fullscreenReadOnlyIdentity(initial) : initial["scope"] as? NSDictionary
@@ -242,6 +275,8 @@ import Security
                   prior["displayUUID"] as? String == CFUUIDCreateString(nil,alias) as String
             else { throw Refusal("rosterOrPhysicalDisplayUnavailable") }
             let dock = try signedDock(), original = try focus(), start = hid(), rows = try inventory()
+            let baseInventory = try inventoryIdentity(rows)
+            result["nativeBefore"] = baseInventory
             guard let native = rows.first?["Spaces"] as? [NSDictionary], native.count == expected,
                   let active = rows.first?["Current Space"] as? [String: Any],
                   StageEngineHostScope.Space(active).kind == (diagnostic ? 4 : 0),
@@ -266,7 +301,11 @@ import Security
                 result["inputUninterrupted"] = inputUnchanged()
                 if let end = try? inventory(), let desktops = end.first?["Spaces"] as? [NSDictionary] {
                     result["managedIDsAfter"] = desktops.compactMap { $0["ManagedSpaceID"] as? UInt64 }
-                    result["nativeInventoryRestored"] = end == rows
+                    result["rawManagedDictionaryEqual"] = end == rows
+                    if let last = try? inventoryIdentity(end) {
+                        result["nativeAfter"] = last
+                        result["nativeInventoryRestored"] = last == baseInventory
+                    }
                 }
             }
             func stable() throws {
@@ -274,9 +313,11 @@ import Security
                       session[kCGSessionOnConsoleKey as String] as? Bool == true,
                       session[kCGSessionUserIDKey as String] as? uid_t == getuid(),
                       session["CGSSessionScreenIsLocked"] as? Bool != true,
-                      inputUnchanged(),
-                      try inventory() == rows, NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
-                else { throw Refusal("inputDesktopOrTopologyChanged") }
+                      NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
+                else { throw Refusal("consoleOrDisplayChanged") }
+                guard inputUnchanged() else { throw Refusal("hidOrHostInterrupted") }
+                let current = try inventoryIdentity(inventory())
+                if current != baseInventory { result["changedNativeIdentity"] = current; throw Refusal("managedRosterOrActiveSpaceChanged") }
             }
             var before = [[String:Any]]()
             for _ in 0..<2 {
@@ -301,6 +342,37 @@ import Security
                 if enrolled == nil { try await Task.sleep(for:.milliseconds(80)) }
             } while enrolled == nil && ContinuousClock.now < until
             guard let enrolled else { throw Refusal("newSystemOverviewUnconfirmed") }
+            restoreOwnedOverview = {
+                guard result["dismissals"] as? Int == 0, inputUnchanged(),
+                      let login = CGSessionCopyCurrentDictionary() as? [String:Any],
+                      login[kCGSessionOnConsoleKey as String] as? Bool == true,
+                      login[kCGSessionUserIDKey as String] as? uid_t == getuid(), login["CGSSessionScreenIsLocked"] as? Bool != true,
+                      let now = try? inventoryIdentity(inventory()), now["roster"] as? NSArray == baseInventory["roster"] as? NSArray,
+                      now["display"] as? String == baseInventory["display"] as? String,
+                      NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds,
+                      let rootNow = try? root(dock), CFEqual(rootNow,enrolled), inputUnchanged()
+                else { return }
+                result["dismissals"] = 1
+                do {
+                    try toggle()
+                    result["cleanupDismissalIssued"] = true
+                    for _ in 0..<12 {
+                        try await Task.sleep(for:.milliseconds(100))
+                        guard inputUnchanged() else { break }
+                        var row = [String:Any]()
+                        let closed = try root(dock) == nil
+                        let observed = try? focus(&row)
+                        row["overviewClosed"] = closed
+                        row["sameOriginalAX"] = observed.map{ CFEqual($0.window,original.window) } ?? false
+                        var reads = result["cleanupReads"] as? [[String:Any]] ?? []
+                        reads.append(row)
+                        result["cleanupReads"] = reads
+                        if closed && reads.count >= 2 && reads.suffix(2).allSatisfy({ $0["overviewClosed"] as? Bool == true && $0["sameOriginalAX"] as? Bool == true }) {
+                            result["restored"] = true; break
+                        }
+                    }
+                } catch { result["cleanupReason"] = "dismissalReadbackUnavailable" }
+            }
             notify("presented")
             var samples = [StageOverviewHitTest.Sample]()
             var treeAgrees = true
@@ -321,6 +393,7 @@ import Security
             result["observedTileHits"] = counts
             let layouts = samples.map { $0.tiles.map(\.frame) }
             let measured = treeAgrees && samples.allSatisfy(\.complete) && samples[0].tiles == samples[1].tiles &&
+                !samples[0].visibleRow.isEmpty && samples[0].visibleRow == samples[1].visibleRow &&
                 layouts.allSatisfy { StageOverviewHitTest.validLayout($0,in:bounds) }
             result["stableHitLayout"] = measured
             if measured { result["tileCounts"] = counts }
@@ -352,7 +425,17 @@ import Security
                 result["originalFocusConfirmedReads"] = cleanReads
                 try stable()
             } while cleanReads < 2 && ContinuousClock.now < end
-            guard cleanReads == 2 else { throw Refusal("originalFocusOrOverviewDismissalUnconfirmed") }
+            guard cleanReads == 2 else {
+                let verifiedAway = after.suffix(2)
+                if verifiedAway.count == 2 && verifiedAway.allSatisfy({ row in
+                    if let pid = row["workspacePID"] as? pid_t, let birth = row["birth"] as? UInt64 {
+                        return row["overviewClosed"] as? Bool == true && row["axFrontmost"] as? Bool == true &&
+                            birth > 0 && pid != original.image.pid
+                    }
+                    return false
+                }) { result["foregroundContinuity"] = "FAIL" }
+                throw Refusal("originalFocusOrOverviewDismissalUnconfirmed")
+            }
             result["restored"] = true
             result["originalFocusConfirmedReads"] = cleanReads
             try stable()
@@ -368,7 +451,10 @@ import Security
             result["status"] = (result["presentations"] as? Int == 0) ? "BLOCKED" : "UNKNOWN"
             result["reason"] = (error as? Refusal)?.reason ?? "systemOrFocusReadUnavailable"
         }
+        await restoreOwnedOverview?()
         finish?()
+        center.removeObserver(token)
+        result["workspaceDidActivate"] = activation.read()
         if result["status"] as? String == "PASS" &&
             (result["inputUninterrupted"] as? Bool != true || result["nativeInventoryRestored"] as? Bool != true) {
             result["status"] = "UNKNOWN"

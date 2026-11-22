@@ -40,7 +40,15 @@ import Security
         return p.terminationStatus == 0 ? data : nil
     }
 
-    @MainActor static func main() async throws {
+    @MainActor static func main() async {
+        do { try await run() }
+        catch {
+            FileHandle.standardError.write(Data(("overview witness: " + String(describing:error) + "\n").utf8))
+            exit(2)
+        }
+    }
+
+    @MainActor private static func run() async throws {
         let supplement = CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--include-fullscreen-diagnostic"
         guard CommandLine.arguments.count == 2 || supplement else { throw Refusal.invocation }
         umask(0o077)
@@ -70,10 +78,20 @@ import Security
             let readHost: (String) -> Void = { phase in
                 let t = ProcessInfo.processInfo.systemUptime
                 var r: [String:Any] = ["phase":phase,"startUptime":t]
-                if let data = output(base.appendingPathComponent("metrics"),[String(original.pid)]),
-                   let metrics = (try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {
-                    for key in ["pid","missionControlPresented","missionControlObservation"] { r[key] = metrics[key] }
-                }
+                let expected = phase == "presented" ? 1 : 0
+                let deadline = ContinuousClock.now + .milliseconds(1000)
+                var attempts = [[String:Any]]()
+                repeat {
+                    var sample: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
+                    if let data = output(base.appendingPathComponent("metrics"),[String(original.pid)]),
+                       let metrics = (try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {
+                        for key in ["pid","missionControlPresented","missionControlObservation"] { sample[key] = metrics[key] }
+                    }
+                    attempts.append(sample)
+                    for key in ["pid","missionControlPresented","missionControlObservation"] { r[key] = sample[key] }
+                    if sample["missionControlPresented"] as? Int == expected { break }
+                } while attempts.count < 4 && ContinuousClock.now < deadline
+                r["attempts"] = attempts
                 r["endUptime"] = ProcessInfo.processInfo.systemUptime
                 telemetry.append(r)
             }

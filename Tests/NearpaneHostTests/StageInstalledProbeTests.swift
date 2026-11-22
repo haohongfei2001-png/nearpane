@@ -4,6 +4,17 @@ import Testing
 @testable import NearpaneHost
 
 struct StageInstalledProbeTests {
+    @MainActor @Test func inventoryRetainsDesktopIdentityOrderAndActiveSpaceAcrossOverviewAnimation() throws {
+        let a: [String:Any] = ["id64":1,"ManagedSpaceID":1,"type":0,"uuid":UUID().uuidString]
+        let b: [String:Any] = ["id64":2,"ManagedSpaceID":2,"type":4,"uuid":UUID().uuidString]
+        func catalog(_ active: [String:Any],_ roster: [[String:Any]], _ animation: Int) -> [NSDictionary] {
+            [["Current Space":active,"Display Identifier":"Main","Spaces":roster,"unrelatedMetadata":animation] as NSDictionary]
+        }
+        let first = try StageCanaryOverview.inventoryIdentity(catalog(a,[a,b],0))
+        #expect(try StageCanaryOverview.inventoryIdentity(catalog(a,[a,b],1)) == first)
+        #expect(try StageCanaryOverview.inventoryIdentity(catalog(b,[a,b],0)) != first)
+        #expect(try StageCanaryOverview.inventoryIdentity(catalog(a,[b,a],0)) != first)
+    }
     @MainActor @Test func stripSamplesAreBoundedAndRequireARealNonoverlappingRow() {
         let display = CGRect(x:0, y:0, width:1440, height:900)
         let points = StageOverviewHitTest.positions(in: display)
@@ -14,8 +25,17 @@ struct StageInstalledProbeTests {
         #expect(!StageOverviewHitTest.validLayout([], in:display))
         #expect(!StageOverviewHitTest.validLayout([a,a], in:display))
         #expect(!StageOverviewHitTest.validLayout([a,a.offsetBy(dx:90,dy:60)], in:display))
-        #expect(!StageOverviewHitTest.validLayout([a.offsetBy(dx:-190,dy:0)], in:display))
+        #expect(!StageOverviewHitTest.validLayout([a.offsetBy(dx:-220,dy:0)], in:display))
     }
+    @MainActor @Test func publicOverlappingAXFramesRequireDistinctOrderedTopmostHits() {
+        let rectangles = [416.5,513.5,611.5,862.5].map{ CGRect(x:$0,y:-0.5,width:168.4,height:129) }
+        #expect(StageOverviewHitTest.validLayout(rectangles,in:CGRect(x:0,y:0,width:1470,height:956)))
+        let rows = [[454.0,584],[627,670],[713,757],[886,1016]].map { xs in xs.map { CGPoint(x:$0,y:32) } }
+        #expect(StageOverviewHitTest.orderedHitRow(rows).count == 4)
+        #expect(StageOverviewHitTest.orderedHitRow([rows[0],rows[2],rows[1],rows[3]]).isEmpty)
+        #expect(StageOverviewHitTest.orderedHitRow([rows[0],[]]).isEmpty)
+    }
+
     @MainActor @Test func fullscreenSupplementRequiresTwoMatchingDisplaySessionAndSpaceReads() {
         let current: [String:Any] = ["type":4,"malformed":false,"id64":42,"managedID":42,"uuid":UUID().uuidString]
         let sample: [String:Any] = ["current":current,"directCurrent":42,"directCurrentAfter":42,
