@@ -1,0 +1,34 @@
+{
+  "build": "26A428",
+  "endedUTC": "2026-11-22T14:05:19Z",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "hostRole": "runningRegularInstalledHost",
+  "hostTelemetry": [],
+  "launchedHosts": 0,
+  "observerAXTrusted": true,
+  "observerSHA256": "69d7a8d95252e141ffa137737e5df43cdb70a51417fce7a3427c4b39315cafe9",
+  "reason": "externalAXFocusUnavailable",
+  "schema": 1,
+  "scope": {
+    "displayUUID": "physical-uuid-1",
+    "nativeID": 4,
+    "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID": "physical-uuid-2",
+    "status": "PASS"
+  },
+  "sip": "System Integrity Protection status: enabled.",
+  "spaceWrites": 0,
+  "stage": "physicalP0BeforeWrites",
+  "startedUTC": "2026-11-22T14:04:49Z",
+  "status": "BLOCKED",
+  "systemVersion": "27.0",
+  "windowWrites": 0
+}

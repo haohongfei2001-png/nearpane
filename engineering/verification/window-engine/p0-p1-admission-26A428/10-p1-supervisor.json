@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "p0RequiredBeforeQuit",
+      "utc": "2026-11-22T14:38:44.588780+00:00"
+    }
+  ],
+  "status": "BLOCKED",
+  "scope": "spaces",
+  "qualification": "BLOCKED",
+  "p0Status": "UNKNOWN",
+  "p0Reason": "originalFocusOrOverviewDismissalUnconfirmed",
+  "p0SHA256": "0cb2fcdd41ac561e0044f177718d6d6d0ad74da05cd1441371dea17d32fbded7",
+  "quitRequests": 0,
+  "stage": "p0RequiredBeforeQuit"
+}

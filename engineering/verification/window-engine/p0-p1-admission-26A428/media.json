@@ -1,0 +1,19 @@
+{
+  "method": "ScreenCaptureKit complete frames, system-owned strip only, source PTS, 144x16, no sound or pointer",
+  "ordinary": {
+    "seconds": 6.815,
+    "videoTracks": 1,
+    "audioTracks": 0,
+    "inputFrames": 78,
+    "screenshotSource": "frame-016.png",
+    "videoSHA256": "0d2d5b323ceb7771956be8e94ed179fd0d912bab1de90785fef007ba34d411c4"
+  },
+  "fullscreen": {
+    "videoTracks": 1,
+    "audioTracks": 0,
+    "seconds": 1.615,
+    "inputFrames": 19,
+    "screenshotSource": "frame-014.png",
+    "videoSHA256": "a4b19a7a3cdac4fffdce9e563ec1fd26ce0a5a4744d242300d032d2baf71ba69"
+  }
+}

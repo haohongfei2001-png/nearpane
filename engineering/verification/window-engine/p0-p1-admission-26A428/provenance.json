@@ -1,0 +1,100 @@
+{
+  "privateOriginalDigests": {
+    "01-ordinary-no-focus.json": {
+      "privateOriginalSHA256": "ce5ee2d9c3a10535eb7cfd0198e0892131db5f2707ede0bc01a332417e9a8189",
+      "publicSHA256": "8a91888ac68f902f1a52cec602374352c6646406132de4957c47d66ec450ab59"
+    },
+    "02-scope-changed-before-show.json": {
+      "privateOriginalSHA256": "88239a37420e097ee648cc8a6080a3e1556f70243379cc94200e4df685678e0e",
+      "publicSHA256": "6b7ef677e5245ff2bf6990cac41f64fef0439d172fbf14e7810cd30386b3d8d8"
+    },
+    "03-ordinary-admission-watch.json": {
+      "privateOriginalSHA256": "bbff5e28b6dfdb0f7fc7f3fcb61e2e86073cf4f0065977072facfc6b7c5a0985",
+      "publicSHA256": "175c7e36bf28b4c2e65673e0ec386f8a9bc7773b5fcc71a18cbe6a2bbf609dc6"
+    },
+    "04-fullscreen-typing-preflight.json": {
+      "privateOriginalSHA256": "5a01ded364eb1f2456dc2a9e79f800f673e128ae5b201cabe8262dfa75cbbd45",
+      "publicSHA256": "254f85e63063e73f8cc813cc6228c91a2f3f82113d44cb42788cd8ca1fcc0031"
+    },
+    "05-fullscreen-component.json": {
+      "privateOriginalSHA256": "35e649be946a878bf58730341207e5438906f0af3e2bcab57b402728fc0a8c9e",
+      "publicSHA256": "86475b3a6f1fd614868451fe24dc7258580c17017569ddd41d105952267a6d2a"
+    },
+    "06-hid-interruption.json": {
+      "privateOriginalSHA256": "291ff9e30ffb3b3320db99dd4eb27522b2ef3399450ca174adbd5dd07a54491f",
+      "publicSHA256": "21fbab41bcac33f708552dae3ce37a49eec9a2bef3342e186f9d9179eeac4f6b"
+    },
+    "07-ordinary-position-and-focus.json": {
+      "privateOriginalSHA256": "0cb2fcdd41ac561e0044f177718d6d6d0ad74da05cd1441371dea17d32fbded7",
+      "publicSHA256": "a8c497e08bfaa15552d241d6a87b4d7bf71e287a2c910460a0f92a34daec22df"
+    },
+    "10-p1-supervisor.json": {
+      "privateOriginalSHA256": "9401fdc403f659d81a64186cb6a49f123a98702e7d4102d3a78cf7f163f5c3ab",
+      "publicSHA256": "9401fdc403f659d81a64186cb6a49f123a98702e7d4102d3a78cf7f163f5c3ab"
+    }
+  },
+  "redactions": "Hardware and native Space UUIDs use stable aliases. AX usernames, document titles and window contents were not queried. Non-system AX identifiers were hashed at acquisition. Media contains sampled system strip pixels.",
+  "observerBinaries": [
+    {
+      "sha256": "69d7a8d95252e141ffa137737e5df43cdb70a51417fce7a3427c4b39315cafe9",
+      "receipt": "01-ordinary-no-focus.json"
+    },
+    {
+      "sha256": "49f8a0409dc563c564c0f1b808c21183479653262af05f74e8c86d352c9bd943",
+      "receipt": "02-scope-changed-before-show.json"
+    },
+    {
+      "sha256": "6489495a60afd7b585c199cdb9f343c00b9bc45a918248528ff01b958321f149",
+      "receipt": "03-ordinary-admission-watch.json"
+    },
+    {
+      "sha256": "261d5e1d8699b8c87ece2c104b7a820c9d05649b8eeb2e73070294f7ea798802",
+      "receipt": "04-fullscreen-typing-preflight.json"
+    },
+    {
+      "sha256": "976f59f6fb14bfbd3deb4d03aca6ab4e8730ef60056816ea7eb7ea4b0c98ec82",
+      "receipt": "05-fullscreen-component.json"
+    },
+    {
+      "sha256": "92ae262bed2b1ad6c3171d1ac3f93edc7893cc9cc338472befc0a49bddc7c665",
+      "receipt": "07-ordinary-position-and-focus.json"
+    }
+  ],
+  "preObservationToolError": {
+    "exit": 133,
+    "reason": "Foundation standardized /private/tmp to /tmp before path admission; changed to kernel realpath",
+    "presentations": 0,
+    "windowWrites": 0,
+    "spaceWrites": 0
+  },
+  "initialMediaEncoding": {
+    "status": "FAIL",
+    "failure": "AVFoundation -11800 / underlying -12903 in sandbox",
+    "resolved": "encoded original acquired frames via system video service",
+    "validation": "media.json"
+  },
+  "ordinaryObserverSource": {
+    "baseCommit": "c3b998ab5b6e334afd511553d7d80bff4f1de1f1",
+    "patch": "ordinary-observer.patch",
+    "sourceBlobs": {
+      "Sources/NearpaneHost/StageCanaryOverview.swift": "480051f1426f2353767570b60dec4c8364758d6e",
+      "Sources/NearpaneHost/StageEngineHostScope.swift": "44982ef80fadcaea073e8d5c07cecd46e0ad5543",
+      "Sources/NearpaneHost/StageOverviewHitTest.swift": "2f90acb9d4a8a9190a4a33988e72827bab9fc83b",
+      "Sources/NearpaneHost/StageScopeReply.swift": "b757b8cdf2ad9232754adf9bc42761cbbe620332",
+      "scripts/acceptance/window-engine/host/overview-media.swift": "8f2d2e44e2ba5111cb71636d47291ef9a67a0fa9",
+      "scripts/acceptance/window-engine/host/overview-witness.swift": "b19d0db494af5ec306b91a5ca001251ddae547b7"
+    },
+    "sha256": "92ae262bed2b1ad6c3171d1ac3f93edc7893cc9cc338472befc0a49bddc7c665",
+    "byteIdenticalRebuild": true,
+    "patchSHA256": "b21d2e0e4f3a37f73277d258dd0532a9d85ac2e8a7efe6fb6f08b046b53517dd",
+    "swift": "Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+    "installedHostSource": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "apply": "git apply --unidiff-zero ordinary-observer.patch at the recorded base commit"
+  },
+  "fullscreenObserverSource": {
+    "commit": "c3b998ab5b6e334afd511553d7d80bff4f1de1f1",
+    "sha256": "976f59f6fb14bfbd3deb4d03aca6ab4e8730ef60056816ea7eb7ea4b0c98ec82",
+    "byteIdenticalRebuild": true
+  },
+  "sourceOfPhysicalReceipts": "The observations used the binaries listed here. Subsequent classifier, activation logging and admission changes are separately tested source changes."
+}

@@ -1,5 +1,12 @@
 # 当前安装与专项状态
 
+## 2026-11-22 · PR #15 普通桌面 P0 / P1 实机准入
+
+**桌面条 4/4 通过，P0 整体 UNKNOWN，P1 BLOCKED。** 在 26A428、SIP 开启的普通桌面 4 上，同一次展示中两轮各查 170 个坐标。Apple WindowManager 的可见子节点、父节点和 SystemWide 真实命中均证明有四个按钮，顺序与框一致。收起后前台由 Edge（窗口 68518）变为 GitHub Desktop，49 次读取均未取得其 AXFocusedWindow。十四类 HID 计数与原生 Space 清单前后一致。原焦点连续性尚未通过。[实机分项、截图和录屏](../verification/window-engine/p0-p1-admission-26A428/RESULTS.md)
+
+正式 `spaces` 监督器已在日常 Host 退出前执行新门槛。实体机实际返回 BLOCKED，退出请求、第三方窗口登记与迁移均为零。常规 Host 仍为同一 PID、出生代及签名，配置摘要相同，阻塞恢复记录和活动共享租约均为零。两种后端的生产资格仍为 0/2。[P1 收据](../verification/window-engine/p0-p1-admission-26A428/10-p1-supervisor.json) · [清理核对](../verification/window-engine/p0-p1-admission-26A428/11-cleanup.json)
+
+
 ## 2026-11-22 · 单版本正式安装与首次面板往返
 
 macOS 27.0（26A428）、SIP 开启的实体机已直接升级至 5.22（90），原生源码 `bec6cb2`。最终唯一登记与运行的 App 为 `/Applications/Nearpane.app`，PID 32364，四项权限由该进程自读均为允许。历史普通窗口按当前几何原样归档，活动租约为零，配置摘要相同。 [最终运行回执](../verification/window-engine/single-version-26A428/15-final-regular-host.json)

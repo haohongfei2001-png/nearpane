@@ -1,0 +1,24 @@
+{
+  "kind": "localSourceChecks",
+  "physicalWindowTrial": false,
+  "hostPythonTests": 26,
+  "stageInstalledSwiftTests": 8,
+  "ciClassificationPythonTests": 13,
+  "physicalCoordinateReplay": "PASS",
+  "formalHostP0Admission": "UNKNOWN",
+  "formalThirdPartyTrial": "NOT_RUN",
+  "fixtureReadbackCompiled": true,
+  "observerAndMediaToolsCompiled": true,
+  "sourceChecksOnGitHub": [
+    {
+      "sha": "c3b998ab5b6e334afd511553d7d80bff4f1de1f1",
+      "run": 45032523943,
+      "conclusion": "success"
+    },
+    {
+      "sha": "f285f674f7cf4c089436361a261869c0d8f4f7d3",
+      "run": 45034770984,
+      "conclusion": "success"
+    }
+  ]
+}

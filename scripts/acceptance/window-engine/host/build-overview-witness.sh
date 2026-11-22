@@ -17,6 +17,7 @@ common=(-parse-as-library -package-name nearpane -target "$(uname -m)-apple-maco
     "$archive" -lobjc -framework Carbon -framework Security -framework ImageIO \
     Sources/NearpaneHost/{StageEngineHostScope,StageScopeReply,StageOverviewHitTest,StageCanaryOverview}.swift)
 xcrun swiftc "${common[@]}" "$src/overview-media.swift" "$src/finish-presented.swift" -o "$work/finish-presented"
+xcrun swiftc "${common[@]}" "$src/fixture-readback.swift" -o "$work/fixture-readback"
 xcrun swiftc "${common[@]}" "$src/overview-media.swift" "$src/overview-witness.swift" -o "$work/overview-witness"
 xcrun swiftc -module-cache-path "$build_root/clang-cache" scripts/acceptance/native-spaces/metrics.swift -o "$work/metrics"
 xcrun swiftc -parse-as-library -module-cache-path "$build_root/clang-cache" scripts/acceptance/native-spaces/title-movie.swift -o "$work/strip-movie"

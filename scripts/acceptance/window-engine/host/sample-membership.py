@@ -17,6 +17,7 @@ import sys
 import tempfile
 import time
 import uuid
+import overview_admission
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
@@ -190,7 +191,7 @@ def prepare_fixture(work, report):
 
 
 @contextmanager
-def registered_window(pre, challenge, work, fixture, exe, digest, report):
+def registered_window(pre, challenge, work, fixture, exe, digest, report, reader=None):
     if not preflight_allows(pre):
         report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
         yield None
@@ -211,6 +212,12 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report):
             else:
                 report["fixtureAdmission"] = "registeredSignedBackgroundWindow"
                 if report["requestedSpacesCycle"]:
+                    baseline = read_fixture(reader, challenge, first, digest)
+                    report["independentBefore"] = baseline
+                    if baseline["status"] != "PASS":
+                        report["fixtureAdmission"] = "independentFocusDockOrMembershipUnavailable"
+                        yield None
+                        return
                     report.update(backendSafeToRollback=False, retainedForRecovery=True)
                 yield json.dumps(dict(pid=first["pid"], birth=first["birth"], window=first["window"],
                                       executable=str(exe), cdhash=digest)).encode()
@@ -352,6 +359,20 @@ def released_before_dispatch(observed, archive, challenge):
     return True
 
 
+def panel_actions(window, home, parking):
+    return [
+        ("willOpenCanary", 0, 0, 0), ("openedCanaryResponse", window, 0, 1),
+        ("willCreateSpace", 0, 0, 0), ("createdSpaceResponse", 0, parking, 1),
+        ("willHideWindow", window, parking, 0), ("hideResponse", window, parking, 1),
+        ("twoMembershipReads", window, parking, 1),
+        ("willReturnWindow", window, home, 0), ("returnResponse", window, home, 1),
+        ("twoMembershipReads", window, home, 0),
+        ("willCloseCanary", window, 0, 0), ("closedCanaryResponse", window, 0, 1),
+        ("willDestroySpace", 0, parking, 0), ("destroyResponse", 0, parking, 1),
+        ("canaryFullyRecovered", window, parking, 1), ("terminalClean", 0, 0, 1),
+    ]
+
+
 def panel_archive(observed, challenge):
     """Read the specific Host's durable archive only after its correlated response."""
     verdict = panel_verdict(observed, challenge)
@@ -396,17 +417,7 @@ def panel_archive(observed, challenge):
                       and ids.count(home) == 1 and parking not in ids for ids in (before, managed))
               and len(set(managed)) == len(managed) and set(managed) <= set(before)
               and confirmed_desktops(observed) == managed)
-    expected = [
-        ("willOpenCanary", 0, 0, 0), ("openedCanaryResponse", window, 0, 1),
-        ("willCreateSpace", 0, 0, 0), ("createdSpaceResponse", 0, parking, 1),
-        ("willHideWindow", window, parking, 0), ("hideResponse", window, parking, 1),
-        ("twoMembershipReads", window, parking, 1),
-        ("willReturnWindow", window, home, 0), ("returnResponse", window, home, 1),
-        ("twoMembershipReads", window, home, 0),
-        ("willCloseCanary", window, 0, 0), ("closedCanaryResponse", window, 0, 1),
-        ("willDestroySpace", 0, parking, 0), ("destroyResponse", 0, parking, 1),
-        ("canaryFullyRecovered", window, parking, 1), ("terminalClean", 0, 0, 1),
-    ]
+    expected = panel_actions(window, home, parking)
     actions, previous = archive.get("knownActions"), archive.get("startUptime")
     matched = 0
     if origin and clock(previous) and isinstance(actions, list):
@@ -424,6 +435,66 @@ def panel_archive(observed, challenge):
     return dict(status="PASS" if proven else "UNKNOWN", archiveRead=True, sameBoot=same_boot,
                 matchedActions=matched, expectedActions=len(expected), archive=archive,
                 reason="boundPanelJournal" if proven else "incompleteOrConflictingPanelJournal")
+
+
+def fixture_archive(observed, challenge, report):
+    """Reopen the completed Rust write-ahead journal independently of the Host transport."""
+    try:
+        archive = journal.inspect(uuid.UUID(challenge))
+        same_boot = uuid.UUID(archive.pop("boot")) == uuid.UUID(scope_reader.command("/usr/sbin/sysctl", "-n", "kern.bootsessionuuid").strip())
+        cycle, subject, owner = observed["installedSpacesFixtureCycle"], observed["subject"], report["ownerStart"]
+        doc, panel = cycle["fixture"], cycle["canary"]
+        window, home, parking = doc["window"], doc["homeID"], doc["parkingID"]
+        canary = panel_actions(panel["window"], home, panel["parkingID"])[:-1]
+        external = [
+            ("willCreateSpace", 0, 0, 0), ("createdSpaceResponse", 0, parking, 1),
+            ("willHideWindow", window, parking, 0), ("hideResponse", window, parking, 1),
+            ("twoMembershipReads", window, parking, 1), ("willReturnWindow", window, home, 0),
+            ("returnResponse", window, home, 1), ("twoMembershipReads", window, home, 0),
+            ("willDestroySpace", 0, parking, 0), ("destroyResponse", 0, parking, 1),
+            ("fixtureFullyRecovered", window, parking, 1),
+        ]
+        expected = ([("installedHostCanary", *event) for event in canary] +
+                    [("signedOrdinaryFixture", *event) for event in external] +
+                    [("installedHostCanary", "terminalClean", 0, 0, 1)])
+        actions = archive["knownActions"]
+        actual = [tuple(row[k] for k in ("owner","event","window","space","response")) for row in actions]
+        times = [archive["startUptime"]] + [row["uptime"] for row in actions]
+        origin = (same_boot and cycle["challenge"] == challenge == archive["challenge"] and
+                  archive["status"] == "ARCHIVED_CLEAN" and archive["scopeOfTrial"] == "ownPanelAndEnrolledWindow" and
+                  archive["hostPID"] == subject["pid"] and archive["hostBirth"] == subject["birth"] and
+                  all(archive[k] == doc[s] == owner[s] for k, s in
+                      (("fixturePID","pid"), ("fixtureBirth","birth"), ("fixtureWindow","window"))) and
+                  archive["originalFrame"] == doc["originalCGAndAXFrame"] and archive["originalSpace"] == home and
+                  home in archive["initialSpaceInventory"] and parking not in archive["initialSpaceInventory"] and
+                  archive["managedDesktopIDs"] == [r["managedID"] for r in report["independentBefore"]["samples"][0]["managedRows"][0]["orderedDesktops"]])
+        matched = origin and actual == expected and all(math.isfinite(n) for n in times) and times == sorted(times)
+        return dict(status="PASS" if matched else "UNKNOWN", archive=archive, sameBoot=same_boot,
+                    expectedActions=len(expected), observedActions=len(actions))
+    except (OSError, ValueError, TypeError, AttributeError, KeyError, IndexError, subprocess.SubprocessError) as err:
+        return dict(status="UNKNOWN", reason="fixtureArchiveUnconfirmed", error=type(err).__name__)
+
+
+def independent_pair(before, after):
+    try:
+        if not all(r["status"] == "PASS" and r["scope"]["status"] == "PASS" and
+                   r["membership"]["status"] == "PASS" and len(r["samples"]) == 2 for r in (before, after)):
+            return False
+        return (before["axFrame"] == before["cgFrame"] == after["axFrame"] == after["cgFrame"] and
+                before["scope"] == after["scope"] and before["dock"] == after["dock"] and
+                all(before["focus"][k] == after["focus"][k] for k in ("workspacePID", "birth", "cgWindowID")) and
+                all(s["managedRows"] == before["samples"][0]["managedRows"] for s in before["samples"] + after["samples"]))
+    except (KeyError, TypeError, IndexError):
+        return False
+
+
+def read_fixture(reader, challenge, owner, digest):
+    try:
+        data = subprocess.check_output([reader,"--registered",challenge,str(owner["pid"]),str(owner["birth"]),
+                                        str(owner["window"]),digest], timeout=6)
+        return json.loads(data)
+    except (ValueError, OSError, subprocess.SubprocessError, KeyError) as err:
+        return dict(status="UNKNOWN", reason=type(err).__name__)
 
 
 def overview_verdict(witness, expected):
@@ -460,6 +531,17 @@ def own_panel_first(a, report):
 
 
 def run(a, report):
+    if a.installed and (a.enrolled_spaces_cycle or a.own_spaces_canary):
+        try:
+            p0, digest = overview_admission.load_receipt(getattr(a, "p0_receipt", None))
+            host = p0.get("host", {})
+            allowed = (digest == a.p0_sha256 and overview_admission.qualifies(
+                p0, {"source": a.expected_source, "cdhash": a.expected_cdhash}, host.get("pid"), host.get("birth")))
+        except (OSError, ValueError, TypeError, AttributeError):
+            allowed = False
+        if not allowed:
+            report.update(status="BLOCKED", reason="physicalP0EvidenceRequiredBeforeAnyCanary")
+            return
     app = a.host.resolve(strict=True)
     image = scope_reader.identity(app)
     if a.installed:
@@ -480,6 +562,7 @@ def run(a, report):
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
         return
     if a.enrolled_spaces_cycle:
+        subprocess.run(["bash", HERE / "build-overview-witness.sh", a.independent_reader.parent], check=True, timeout=180)
         if not own_panel_first(a, report):
             report.update(status=report["ownPanelPredecessor"]["status"], reason="standalonePanelOrVisibleSystemStripNotConfirmed",
                           membershipStatus="NOT_RUN")
@@ -530,13 +613,16 @@ def run(a, report):
                     current["samples"][0].get(key) != prior_scope["samples"][-1].get(key)
                     for key in ("session","display","managedRows"))):
                 raise ValueError("console, display or managed Spaces changed before fixture admission")
-        return registered_window(pre, challenge, work, fixture, exe, digest, report)
+        return registered_window(pre, challenge, work, fixture, exe, digest, report, getattr(a,"independent_reader",None))
     def inspect_final(raw):
         if a.enrolled_spaces_cycle:
             cycle = raw.get("installedSpacesFixtureCycle", {})
             report["backendSafeToRollback"] = cycle.get("safeToRollback") is True
             report["retainedForRecovery"] = not report["backendSafeToRollback"]
             report["spacesCycleStatus"] = cycle.get("status", "UNKNOWN")
+            if cycle.get("status") == "PASS" and report["backendSafeToRollback"] and report.get("ownerStart"):
+                report["independentAfter"] = read_fixture(a.independent_reader, challenge, report["ownerStart"], digest)
+                report["fixtureJournal"] = fixture_archive(raw, challenge, report)
     report["hostObservationStarted"] = True
     observed = scope_reader.observe(app, challenge, channel, raw_output, enroll=enroll, expected_image=image,
                                     spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final)
@@ -564,6 +650,13 @@ def run(a, report):
     report["membershipStatus"] = report["status"]
     if a.enrolled_spaces_cycle and report.get("spacesCycleStatus") != "PASS":
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
+
+    if a.enrolled_spaces_cycle and report["status"] == "PASS":
+        independent = independent_pair(report.get("independentBefore"), report.get("independentAfter"))
+        verified = independent and report.get("fixtureJournal", {}).get("status") == "PASS"
+        report["singleWindowHideRestore"] = "PASS" if verified else "UNKNOWN"
+        if not verified:
+            report.update(status="UNKNOWN", reason="independentWindowDockFocusInventoryOrJournalUnconfirmed")
 
 
 def resources(report):
@@ -607,6 +700,8 @@ def main():
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
+    p.add_argument("--p0-receipt", type=Path, help="private physical P0 receipt checked before the sole regular Host quit")
+    p.add_argument("--p0-sha256", help="digest bound by the installed-stage supervisor")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--preflight-only", action="store_true", help="inspect the signed candidate, standard installation and process roster without launching either app")
     mode.add_argument("--own-spaces-canary", action="store_true", help="cycle only the installed Host's own panel, without preparing a fixture")
@@ -635,7 +730,13 @@ def main():
         productionQualified=False,
     )
     try:
-        run(a, report)
+        if a.enrolled_spaces_cycle:
+            with tempfile.TemporaryDirectory(prefix="nearpane-overview.",dir="/private/tmp") as scratch:
+                # Build the observer only after the supervisor supplied a passing, fresh P0 receipt.
+                a.independent_reader = Path(scratch) / "fixture-readback"
+                run(a, report)
+        else:
+            run(a, report)
     except (OSError, subprocess.SubprocessError, ValueError, KeyError) as err:
         report.update(status="UNKNOWN", reason=type(err).__name__, error=str(err)[:300])
     finally:

@@ -188,9 +188,12 @@ class InstalledScopeTests(unittest.TestCase):
             canonical = Path(td).resolve() / "Applications" / "Nearpane.app"
             canonical.mkdir(parents=True)
             args = membership.argparse.Namespace(host=canonical, expected_source=revision, expected_cdhash=digest,
-                out=Path(td)/"run.json", installed=True, preflight_only=False, own_spaces_canary=False, enrolled_spaces_cycle=True)
+                out=Path(td)/"run.json", installed=True, preflight_only=False, own_spaces_canary=False, enrolled_spaces_cycle=True,
+                p0_receipt=Path(td)/"prior.json", p0_sha256="admitted", independent_reader=Path(td)/"fixture-readback")
             report = dict(osBuild="26A428",requestedSpacesCycle=True)
-            with patch.object(reader,"DAILY",canonical), patch.object(reader,"identity",return_value=image), \
+            with patch.object(membership.overview_admission,"load_receipt",return_value=({"host":{}}, "admitted")), \
+                    patch.object(membership.overview_admission,"qualifies",return_value=True), patch.object(membership.subprocess,"run"), \
+                    patch.object(reader,"DAILY",canonical), patch.object(reader,"identity",return_value=image), \
                     patch.object(membership,"inspect_launch",return_value=dict(status="PASS")), \
                     patch.object(membership,"own_panel_first",side_effect=lambda a,r: r.update(ownPanelPredecessor=dict(status="UNKNOWN", resourcesClear=False))), \
                     patch.object(membership,"prepare_fixture") as prepare:
