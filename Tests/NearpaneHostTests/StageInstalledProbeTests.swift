@@ -1,8 +1,25 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import NearpaneHost
 
 struct StageInstalledProbeTests {
+    @MainActor @Test func overviewRequiresTheExactVisibleOrdinaryFocusedWindow() {
+        let window: CGWindowID = 32
+        let pid: pid_t = 77
+        let layer = kCGWindowLayer as String, visible = kCGWindowIsOnscreen as String, alpha = kCGWindowAlpha as String
+        let row: [String: Any] = [kCGWindowOwnerPID as String: pid, kCGWindowNumber as String: window,
+                                  layer: 0, visible: true, alpha: 1.0]
+        #expect(StageCanaryOverview.matchesForeground([row], pid: pid, number: window))
+        for change: [String: Any] in [[layer: 8], [visible: false], [alpha: 0.0],
+                                      [kCGWindowOwnerPID as String: pid + 1], [kCGWindowNumber as String: window + 1]] {
+            let changed = row.merging(change) { _, new in new }
+            #expect(!StageCanaryOverview.matchesForeground([changed], pid: pid, number: window))
+        }
+        #expect(!StageCanaryOverview.matchesForeground([], pid: pid, number: window))
+        #expect(!StageCanaryOverview.matchesForeground([row, row], pid: pid, number: window))
+    }
+
     private func makeReport(registered: Bool = false, scope: UInt64 = 42, displayCount: UInt32 = 1,
                             login: UInt32 = 91, post: Bool = true, reverse: Bool = true) -> [String: Any] {
         let d: [String: Any] = ["topologyConfirmed": true, "activeCGCount": displayCount, "primaryUUID": "fixture-display"]

@@ -53,7 +53,7 @@ var targets: [Target] = [
                       path: ordinarySources, exclude: ordinaryRuntimeSources, sources: ["main.swift"]),
     .executableTarget(name: "NearpaneDesktopReader", dependencies: ["NearpaneCore", "WindowGeometryCore", "CReadOnlySpaces"]),
     .target(name: "NearpaneUI", dependencies: ["NearpaneCore", "WindowGeometryCore", "NearpaneWindowEngine", "NearpaneOrdinaryWindowRuntime"] + domains),
-    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneWindowEngine", "CNearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
+    .executableTarget(name: "NearpaneHost", dependencies: ["NearpaneCore", "NearpaneUI", "NearpaneOrdinaryWindowRuntime", "NearpaneWindowEngine", "CNearpaneWindowEngine"] + (full ? ["NearpaneTray", "SaytileKit", "RiftletAdapters", "RiftletCore", "RiftletCapture", "Sparkle"] : []),
         linkerSettings: full ? [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])] : []),
     .testTarget(name: "WindowGeometryCoreTests", dependencies: ["WindowGeometryCore"]),
     .testTarget(name: "NearpaneOrdinaryWindowControllerTests", dependencies: ["NearpaneOrdinaryWindowController", "NearpaneOrdinaryWindowRuntime"]),

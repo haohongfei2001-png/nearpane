@@ -2,9 +2,10 @@ import AppKit
 import ApplicationServices
 import CNearpaneWindowEngine
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 import Security
 
-/// This single-use installed-Host diagnostic opens only Apple's overview on a disposable console.
+/// This single-use installed-Host diagnostic opens only Apple's overview in the current, verified console session.
 /// No AX action, desktop selection, global key or pointer event is issued.
 @MainActor enum StageCanaryOverview {
     private struct Refusal: Error { let reason: String; init(_ reason: String) { self.reason = reason } }
@@ -14,7 +15,8 @@ import Security
     }
     private struct Focus: Equatable {
         let image: OrdinaryProcessImage
-        let window: AXUIElement?
+        let window: AXUIElement
+        let number: CGWindowID
     }
     private static let launcher = URL(fileURLWithPath: "/System/Applications/Mission Control.app")
     private static func requirement(_ identifier: String) throws -> SecRequirement {
@@ -69,7 +71,10 @@ import Security
         return nil
     }
     private static func focus() throws -> Focus {
-        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier, pid > 1, pid != getpid() else { throw Refusal("externalFocusUnavailable") }
+        guard let current = NSWorkspace.shared.frontmostApplication, current.activationPolicy == .regular,
+              !current.isHidden, !current.isTerminated else { throw Refusal("regularForegroundApplicationRequired") }
+        let pid = current.processIdentifier
+        guard pid > 1, pid != getpid() else { throw Refusal("externalFocusUnavailable") }
         let image = try OrdinaryProcessImage.read(pid)
         let system = AXUIElementCreateSystemWide()
         guard AXUIElementSetMessagingTimeout(system, 0.18) == .success,
@@ -77,37 +82,23 @@ import Security
         let app = focused as! AXUIElement
         var owner = pid_t()
         guard AXUIElementGetPid(app,&owner) == .success, owner == pid, AXUIElementSetMessagingTimeout(app,0.18) == .success else { throw Refusal("externalFocusedWindowUnavailable") }
-        var value: CFTypeRef?
-        let rc = AXUIElementCopyAttributeValue(app,kAXFocusedWindowAttribute as CFString,&value)
-        var window: AXUIElement?
-        if rc == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
-            let found = value as! AXUIElement
-            guard AXUIElementGetPid(found,&owner) == .success, owner == pid else { throw Refusal("focusedWindowOwnerChanged") }
-            window = found
-        } else if rc != .noValue || value != nil { throw Refusal("externalFocusedWindowUnavailable") }
+        guard let value = attr(app, kAXFocusedWindowAttribute), CFGetTypeID(value) == AXUIElementGetTypeID()
+        else { throw Refusal("externalFocusedWindowUnavailable") }
+        let window = value as! AXUIElement
+        guard AXUIElementGetPid(window, &owner) == .success, owner == pid,
+              let number = NearpaneOrdinaryWindowRuntime.number(window),
+              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String:Any]],
+              matchesForeground(rows, pid: pid, number: number)
+        else { throw Refusal("visibleOrdinaryFocusedWindowUnconfirmed") }
         guard try OrdinaryProcessImage.read(pid) == image,
               NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { throw Refusal("focusChangedDuringRead") }
-        return Focus(image:image, window:window)
+        return Focus(image: image, window: window, number: number)
     }
-    private static func fixtureDesktop() -> Bool {
-        // The signed runner explicitly requested this test. Inspect numeric owner fields only.
-        // A regular window of any other application keeps the system overview closed.
-        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else { return false }
-        var validated = Set<pid_t>()
-        for w in windows {
-            guard let pid = w[kCGWindowOwnerPID as String] as? pid_t, let level = w[kCGWindowLayer as String] as? Int,
-                  let alpha = w[kCGWindowAlpha as String] as? Double else { return false }
-            if level != 0 || alpha == 0 || pid == getpid() || validated.contains(pid) { continue }
-            guard let app = NSRunningApplication(processIdentifier:pid), let id = app.bundleIdentifier,
-                  ["com.holdsnow.nearpane.engine-fixture.a","com.holdsnow.nearpane.engine-fixture.b"].contains(id) else { return false }
-            var code: SecCode?, rule: SecRequirement?
-            let text = "anchor apple generic and identifier \"" + id + "\" and certificate leaf[subject.OU] = \"ZB9D4T66QB\""
-            guard SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:pid] as CFDictionary,[],&code) == errSecSuccess, let code,
-                  SecRequirementCreateWithString(text as CFString,[],&rule) == errSecSuccess, let rule,
-                  SecCodeCheckValidity(code,[],rule) == errSecSuccess else { return false }
-            validated.insert(pid)
-        }
-        return true
+    static func matchesForeground(_ rows: [[String:Any]], pid: pid_t, number: CGWindowID) -> Bool {
+        guard pid > 1, number != 0, rows.count == 1, let row = rows.first else { return false }
+        return row[kCGWindowOwnerPID as String] as? pid_t == pid && row[kCGWindowNumber as String] as? CGWindowID == number
+            && row[kCGWindowLayer as String] as? Int == 0 && row[kCGWindowIsOnscreen as String] as? Bool == true
+            && (row[kCGWindowAlpha as String] as? Double ?? 0) > 0
     }
     private static func hid() -> [UInt32] {
         [.leftMouseDown,.leftMouseUp,.rightMouseDown,.rightMouseUp,.otherMouseDown,.otherMouseUp,.mouseMoved,
@@ -165,9 +156,9 @@ import Security
         var result: [String:Any] = ["status":"BLOCKED","presentations":0,"dismissals":0,"restored":true,
                                     "inputEventsPosted":0,"tileCounts":[],"stage":"afterCanary"]
         guard cycle["status"] as? String == "PASS", cycle["safeToRollback"] as? Bool == true,
-              getuid() == geteuid(), getuid() > 0, fixtureDesktop(),
+              getuid() == geteuid(), getuid() > 0,
               AXIsProcessTrusted(), Bundle.main.bundleURL.path == "/Applications/Nearpane.app"
-        else { result["reason"] = "cleanOwnCanaryAndDisposablePhysicalLoginRequired"; return result }
+        else { result["reason"] = "cleanOwnCanaryAndInstalledAuthorizedHostRequired"; return result }
         do {
             guard let prior = initial["scope"] as? NSDictionary, let after = final["scope"] as? NSDictionary,
                   prior.isEqual(after), prior["status"] as? String == "PASS",
@@ -176,20 +167,29 @@ import Security
                   let alias = CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID())?.takeRetainedValue(),
                   prior["displayUUID"] as? String == CFUUIDCreateString(nil,alias) as String else { throw Refusal("physicalScopeChangedAfterCanary") }
             let dock = try signedDock(), original = try focus(), start = hid(), rows = try inventory()
-            guard let native = rows.first?["Spaces"] as? [NSDictionary], native.count == expected else { throw Refusal("managedRosterChangedBeforeOverview") }
+            guard let native = rows.first?["Spaces"] as? [NSDictionary], native.count == expected,
+                  let active = rows.first?["Current Space"] as? [String: Any],
+                  StageEngineHostScope.Space(active).kind == 0,
+                  let currentID = StageEngineHostScope.Space(active).number, currentID == prior["nativeID"] as? UInt64
+            else { throw Refusal("managedRosterChangedBeforeOverview") }
+            result["originalFocus"] = ["pid":Int(original.image.pid), "birth":original.image.launch, "window":UInt64(original.number)] as [String:Any]
             let bounds = CGDisplayBounds(CGMainDisplayID())
             func stable() throws {
-                guard !Task.isCancelled, try !channel.exists(.abort), hid() == start, NSEvent.pressedMouseButtons == 0,
+                guard let session = CGSessionCopyCurrentDictionary() as? [String:Any],
+                      session[kCGSessionOnConsoleKey as String] as? Bool == true,
+                      session[kCGSessionUserIDKey as String] as? uid_t == getuid(),
+                      session["CGSSessionScreenIsLocked"] as? Bool != true,
+                      !Task.isCancelled, try !channel.exists(.abort), hid() == start, NSEvent.pressedMouseButtons == 0,
                       try inventory() == rows, NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
                 else { throw Refusal("inputDesktopOrTopologyChanged") }
             }
             for _ in 0..<2 {
                 try stable()
-                guard fixtureDesktop(), try root(dock) == nil, try focus() == original else { throw Refusal("ordinaryFocusedDesktopUnconfirmed") }
+                guard try root(dock) == nil, try focus() == original else { throw Refusal("ordinaryFocusedDesktopUnconfirmed") }
                 try await Task.sleep(for:.milliseconds(55))
             }
             try stable()
-            guard fixtureDesktop(), try root(dock) == nil, try focus() == original else { throw Refusal("overviewAlreadyOpen") }
+            guard try root(dock) == nil, try focus() == original else { throw Refusal("overviewAlreadyOpen") }
             result["presentations"] = 1
             result["restored"] = false
             try toggle()
@@ -226,6 +226,7 @@ import Security
             } while cleanReads < 2 && ContinuousClock.now < end
             guard cleanReads == 2 else { throw Refusal("originalFocusOrOverviewDismissalUnconfirmed") }
             result["restored"] = true
+            result["originalFocusConfirmedReads"] = cleanReads
             guard sampleError == nil, samples.count == 2, samples[0] == samples[1] else { throw Refusal(sampleError ?? "systemTilesChangedBetweenReads") }
             result["status"] = samples[0].count == expected ? "PASS" : "FAIL"
             result["reason"] = samples[0].count == expected ? "visibleDesktopStripAndOriginalFocusConfirmed" : "visibleSystemTileCountDiffers"
