@@ -7,7 +7,16 @@
 #import <sys/stat.h>
 #import <sys/un.h>
 
+#ifdef NP_INTERACTIVE_BYSTANDER
+static const BOOL bystander = YES;
+static NSString *const fixtureID = @"com.holdsnow.nearpane.stage-interactive-bystander";
+#else
+static const BOOL bystander = NO;
 static NSString *const fixtureID = @"com.holdsnow.nearpane.stage-interactive-fixture";
+#endif
+static NSString *receiverRole(NSUInteger slot) {
+    return bystander ? @"bystander" : slot == 0 ? @"target" : @"sibling";
+}
 static NSString *const hostID = @"com.holdsnow.nearpane.alpha";
 static NSString *const hostBinary = @"/Applications/Nearpane.app/Contents/MacOS/NearpaneHost";
 

@@ -98,6 +98,25 @@ static int offlineTests(void) {
     scope[@"status"] = @"PASS";
     NSMutableDictionary *denied = pre.mutableCopy; denied[@"permissions"] = @{};
     checks[@"missingHostAccessRefusedBeforeAppKit"] = @(!ordinaryHostPreflight(denied,peer,open,5));
+    char dirName[] = "/private/tmp/nearpane-lease-selftest.XXXXXXXX";
+    if (mkdtemp(dirName)) {
+        int dir = privateDirectory(@(dirName));
+        if (dir >= 0) {
+            BOOL clear = !engineStillOwns(dir,uuid);
+            int hold = openat(dir,"interactive-lease",O_CREAT|O_EXCL|O_WRONLY,0600);
+            if (hold >= 0) close(hold);
+            BOOL retained = engineStillOwns(dir,uuid);
+            int release = openat(dir,"interactive-release",O_CREAT|O_EXCL|O_WRONLY,0600);
+            BOOL partial = engineStillOwns(dir,uuid);
+            if (release >= 0) {
+                (void)write(release,uuid.UTF8String,36); (void)fsync(release); close(release);
+            }
+            BOOL released = !engineStillOwns(dir,uuid) && engineStillOwns(dir,NSUUID.UUID.UUIDString.lowercaseString);
+            checks[@"crashAfterClaimPreservesOwnedWindowsUntilExactRelease"] = @(clear && retained && partial && released);
+            unlinkat(dir,"interactive-release",0); unlinkat(dir,"interactive-lease",0); close(dir);
+        }
+        rmdir(dirName);
+    }
     testLocalTransport(checks);
     SecCodeRef self = NULL;
     NSString *digest = nil;

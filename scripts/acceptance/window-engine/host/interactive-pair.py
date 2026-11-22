@@ -12,6 +12,8 @@ import subprocess
 import sys
 import uuid
 
+import overview_admission
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 
@@ -40,12 +42,26 @@ def signed_image(image, revision, pin):
             and re.fullmatch(r"[a-f0-9]{40}", image.get("CDHash", "")) and (pin is None or image["CDHash"] == pin))
 
 
+def reviewed_owners(kit):
+    """Match both signed executable images to the exact pins compiled into the native admission."""
+    fixture.private(kit)
+    header = (ROOT / "Engine/nearpane-window-engine/src/spaces/installed-interactive-pins.h").read_text()
+    pins = dict(re.findall(r'^#define NP_INTERACTIVE_(OWNER|BYSTANDER)_CDHASH "([0-9a-f]{40})"$', header, re.M))
+    actual = {"OWNER": fixture.verify(kit / fixture.APP)["cdhash"],
+              "BYSTANDER": fixture.verify(kit / fixture.BYSTANDER_APP)["cdhash"]}
+    require(actual == pins, "opaqueFixtureBuildDiffersFromReviewedNativePins")
+    return actual
+
+
 def may_remove(result):
     if result.get("launchRequested") is False:
         return True
     if result.get("hostExit", {}).get("status") != "PASS":
         return False
     pair = result.get("pair", {})
+    bystander = pair.get("bystanderCleanup", {})
+    if (pair.get("bystanderLaunchAttempted") or "bystanderPID" in pair) and not (bystander.get("exited") is True and bystander.get("removed") is True):
+        return False
     return (pair.get("fixtureLaunchRequested") is False or
             (result.get("verifiedUnopenedFixtureExit") is True and pair.get("openRequestAttempted") is False
              and pair.get("cleanup", {}).get("fixtureExited") is True) or
@@ -85,10 +101,22 @@ def run(args):
     result = {"schema": 1, "challenge": nonce, "status": "BLOCKED", "launchRequested": False,
               "physicalHitTesting": "NOT_RUN", "actualSystemKeyboardRouting": "NOT_RUN",
               "engineVisibilityRoundTrip": "NOT_RUN", "productionQualified": False}
+    cycle = getattr(args, "spaces_cycle", False)
     try:
         image = scope.identity(scope.DAILY)
         result["installedImage"] = image
         require(signed_image(image, args.revision, args.cdhash), "installedSignedCandidateMismatch")
+        if cycle:
+            result["reviewedOwners"] = reviewed_owners(args.kit)
+            p0, digest = overview_admission.load_receipt(args.p0_receipt)
+            held = p0.get("host", {})
+            require(digest == args.p0_sha256 and overview_admission.qualifies(
+                p0, {"source": args.revision, "cdhash": image["CDHash"]}, held.get("pid"), held.get("birth")),
+                "freshSameHostPhysicalP0RequiredForWrite")
+            hid = overview_admission.current_hid()
+            require(not hid["pressed"] and not hid["secure"] and hid["counts"] == p0["measurement"]["hidAfter"],
+                    "physicalInputChangedBeforeWriteAdmission")
+            result["p0SHA256"] = digest
         with scope.exclusive(image["Identifier"]):
             for path in (directory, workspace):
                 path.mkdir(mode=0o700)
@@ -98,12 +126,16 @@ def run(args):
             require(roster.get("complete") is True and roster.get("pids") == [] and
                     roster.get("session", {}).get("qualified") is True, "existingHostOrUnqualifiedConsole")
             prepared = fixture.prepare(args.kit, nonce)
+            bystander = fixture.prepare(args.kit, nonce, bystander=True)["signature"]
             signature = prepared["signature"]
             require(signature["identifier"] == fixture.IDENTIFIER and signature["team"] == fixture.TEAM
                     and signature["strictDeveloperIDVerification"] is True, "signedFixtureUnavailable")
+            require(bystander["identifier"] == fixture.BYSTANDER_ID and bystander["team"] == fixture.TEAM
+                    and bystander["cdhash"] != signature["cdhash"], "separateSignedBystanderUnavailable")
             result["fixture"] = signature
+            result["bystander"] = bystander
             scope.publish(directory, "fixture.json", json.dumps(
-                {"kind": "interactiveWindowPair", "challenge": nonce, "cdhash": signature["cdhash"]}).encode())
+                {"kind": "interactiveWindowPair", "challenge": nonce, "cdhash": signature["cdhash"], "bystanderCDHash": bystander["cdhash"]}).encode())
             version = scope.command("/usr/bin/sw_vers", "-productVersion").strip()
             build = scope.command("/usr/bin/sw_vers", "-buildVersion").strip()
             sip = scope.command("/usr/bin/csrutil", "status").strip()
@@ -115,7 +147,7 @@ def run(args):
             result["launchRequested"] = None
             exit_subject = {}
             try:
-                reply = json.loads(scope.command(launcher, scope.DAILY, nonce, "--interactive-window-pair"))
+                reply = json.loads(scope.command(launcher, scope.DAILY, nonce, "--interactive-spaces-cycle" if cycle else "--interactive-window-pair"))
                 require(isinstance(reply, dict), "malformedLaunchServicesReply")
                 launch = reply
                 prelaunch = launch.get("prelaunch", {})
@@ -143,14 +175,39 @@ def run(args):
                 scope.validate(raw, nonce, image, launch, scope.DAILY, build, version, sip)
                 require(raw["subject"] == pre["subject"], "hostGenerationChangedDuringTrial")
                 pair = raw["interactiveWindowPair"]
-                require(pair["productionQualified"] is False and pair["physicalMouseHit"] == "NOT_RUN"
-                        and pair["physicalKeyboardRouting"] == "NOT_RUN"
-                        and pair["windowEngineRoundTrip"]["status"] == "NOT_RUN", "unsupportedInferenceInHostResponse")
+                require(pair["productionQualified"] is False and (cycle or (pair["physicalMouseHit"] == "NOT_RUN"
+                        and pair["physicalKeyboardRouting"] == "NOT_RUN" and pair["windowEngineRoundTrip"]["status"] == "NOT_RUN")), "unsupportedInferenceInHostResponse")
                 data = scope.read_private(directory / "response.json", 196608)
                 require(hashlib.sha256(data).hexdigest() == digest, "responseChanged")
                 scope.publish(args.output, "host-raw.json", data)
+                if cycle:
+                    native = pair["windowEngineRoundTrip"]
+                    result["engineVisibilityRoundTrip"] = native["status"]
+                    result["safeToRollback"] = native.get("safeToRollback")
+                    result["physicalHitTesting"] = pair["physicalMouseHit"]
+                    result["actualSystemKeyboardRouting"] = pair["physicalKeyboardRouting"]
+                    if native.get("fixture", {}).get("dispatchAttempts", {}).get("hide", 0) or native.get("status") == "PASS":
+                        audit = module("interactive_membership_trace", HERE / "sample-membership.py")
+                        owner = json.loads(scope.read_private(workspace / "interactive-windows.json", 4096))
+                        target = next(w for w in owner["windows"] if w["role"] == "target")
+                        result["independentArchive"] = audit.fixture_archive(
+                            {"installedSpacesFixtureCycle": native, "subject": raw["subject"]}, nonce,
+                            {"ownerStart": {"window": target["window"], "pid": owner["pid"], "birth": owner["birth"]},
+                             "independentBefore": pre["spaceScope"]}, expected_trial="ownPanelAndInteractiveTarget")
+                for filename in ("interactive-windows.json", "bystander-windows.json", "interactive-closed.json", "bystander-closed.json"):
+                    if (workspace / filename).exists():
+                        scope.publish(args.output, filename, scope.read_private(workspace / filename, 16384))
+                for entry in [*pair.get("inputs", []), *pair.get("parkedInputs", [])]:
+                    if entry.get("kind") == "key" and entry.get("receiver") in {"target","sibling","bystander"} and entry.get("intent"):
+                        intent = str(uuid.UUID(entry["intent"]))
+                        for role in ("target","sibling","bystander"):
+                            filename = "document-" + role + "-" + intent + ".json"
+                            if (workspace / filename).exists():
+                                scope.publish(args.output, filename, scope.read_private(workspace / filename, 4096))
                 result.update(pair=scope.public_scope(pair), status=pair["status"], rawSHA256=digest,
                               reason=pair.get("reason", "seeHostEvidence"))
+                if cycle and result["status"] == "PASS" and result.get("independentArchive", {}).get("status") != "PASS":
+                    result.update(status="UNKNOWN", reason="independentDurableCycleNotConfirmed")
                 if pair.get("fixtureLaunchRequested") is True and pair.get("openRequestAttempted") is False:
                     try:
                         close = scope.read_private(workspace / "interactive-closed.json", 16384)
@@ -177,7 +234,8 @@ def run(args):
         result.update(status="BLOCKED" if result["launchRequested"] is False else "UNKNOWN",
                       reason=str(error)[:250])
     finally:
-        if may_remove(result):
+        result["probeResourcesClear"] = may_remove(result) and result.get("safeToRollback") is not False
+        if result["probeResourcesClear"]:
             for path in reversed(created):
                 shutil.rmtree(path)
         else:
@@ -192,6 +250,9 @@ if __name__ == "__main__":
     p.add_argument("--kit", type=Path, required=True, help="signed Interactive Windows fixture kit")
     p.add_argument("--revision", default=subprocess.check_output(["git", "-C", ROOT, "rev-parse", "HEAD"], text=True).strip())
     p.add_argument("--cdhash", help="expected installed candidate CDHash")
+    p.add_argument("--spaces-cycle", action="store_true", help="run the installed interactive migration once after physical P0")
+    p.add_argument("--p0-receipt", type=Path)
+    p.add_argument("--p0-sha256")
     p.add_argument("--preflight-only", action="store_true", help="no Host or fixture launch")
     args = p.parse_args()
     row = run(args)

@@ -189,6 +189,12 @@ trait Platform {
 trait Authority {
     fn active(&self) -> Check<()>;
     fn observation(&self) -> Check<()>;
+    fn fixture_parked_input(&self, _parking: u64) -> Check<()> {
+        Ok(())
+    }
+    fn fixture_companions(&self, _home: u64, _hidden: bool) -> Check<()> {
+        Ok(())
+    }
     fn fixture_home_ax(&self) -> Check<()> {
         Ok(())
     }

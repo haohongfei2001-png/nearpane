@@ -23,7 +23,7 @@ enum InstalledSpacesFixtureCycle {
         "launchPassed", "probeClosed", "probeFocus",
     ]
 
-    private static func observe(_ challenge: UUID, ownPanelOnly: Bool) -> Data {
+    private static func observe(_ challenge: UUID, ownPanelOnly: Bool, interactive: Bool) -> Data {
         var proof = NPInstalledSpacesReceipt()
         proof.size = UInt32(MemoryLayout<NPInstalledSpacesReceipt>.size)
         proof.version = 1
@@ -61,7 +61,7 @@ enum InstalledSpacesFixtureCycle {
             "dispatchAttempts": dispatches(r.canary_creates, r.canary_hides, r.canary_shows, r.canary_destroys),
         ]
         let document: [String: Any] = [
-            "owner": "separatePinnedSignedRegularTransparentFixture", "pid": r.fixture_pid, "birth": r.fixture_birth,
+            "owner": interactive ? "pinnedOpaqueTargetWithSiblingAndOtherOwner" : "separatePinnedSignedRegularTransparentFixture", "pid": r.fixture_pid, "birth": r.fixture_birth,
             "window": r.fixture_window, "homeID": r.home_id, "parkingID": r.fixture_space,
             "originalCGAndAXFrame": [r.original_frame.0, r.original_frame.1, r.original_frame.2, r.original_frame.3],
             "initialIndependentReads": r.before_proofs, "parkedIndependentReads": r.parked_proofs,
@@ -76,7 +76,7 @@ enum InstalledSpacesFixtureCycle {
             "phase": name(phases, r.phase), "refusal": refusals[r.refusal] ?? "unrecognizedAdmissionCode",
             "reason": r.detail >= 200 ? name(reasons, r.detail - 200) : "noEngineResult",
             "engineDetail": r.detail, "admission": checks, "canary": canary,
-            "trial": ownPanelOnly ? "ownPanelOnly" : "ownPanelAndEnrolledWindow",
+            "trial": ownPanelOnly ? "ownPanelOnly" : interactive ? "ownPanelAndInteractiveTarget" : "ownPanelAndEnrolledWindow",
             "fixture": ownPanelOnly ? ["status": "NOT_RUN", "dispatchAttempts": dispatches(r.fixture_creates, r.fixture_hides, r.fixture_shows, r.fixture_destroys)] : document,
             "endInventoryAndFocusReads": r.final_proofs, "heldWindows": r.held_windows, "heldSpaces": r.held_spaces,
             "canaryUnresolved": r.outstanding_canary != 0, "safeToRollback": transport == 0 && r.safe_to_rollback == 1,
@@ -86,9 +86,9 @@ enum InstalledSpacesFixtureCycle {
         return (try? JSONSerialization.data(withJSONObject: row, options: [.sortedKeys])) ?? Data()
     }
 
-    @MainActor static func read(challenge: UUID, ownPanelOnly: Bool) async -> [String: Any] {
+    @MainActor static func read(challenge: UUID, ownPanelOnly: Bool, interactive: Bool = false) async -> [String: Any] {
         // Release the main actor so its existing AppKit canary can perform bounded callbacks.
-        let data = await Task.detached { observe(challenge, ownPanelOnly: ownPanelOnly) }.value
+        let data = await Task.detached { observe(challenge, ownPanelOnly: ownPanelOnly, interactive: interactive) }.value
         return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ??
             ["schema": 1, "status": "UNKNOWN", "reason": "invalidNativeReceipt", "safeToRollback": false]
     }

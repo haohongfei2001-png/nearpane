@@ -71,6 +71,8 @@ unsafe extern "C" {
         reason: *mut u32,
     ) -> *mut c_void;
     fn np_stage_fixture_guard(token: *mut c_void, committing: u32) -> u32;
+    fn np_stage_fixture_parked_input(token: *mut c_void, parking: u64) -> i32;
+    fn np_stage_fixture_companions(token: *mut c_void, home: u64, hidden: u32) -> i32;
     fn np_stage_fixture_home_ax(token: *mut c_void) -> i32;
     fn np_stage_fixture_same(token: *mut c_void, element: *mut c_void, frame: *const f64) -> i32;
     fn np_stage_fixture_first_journal(
@@ -255,6 +257,20 @@ impl Guard {
     }
 }
 impl Authority for Guard {
+    fn fixture_parked_input(&self, parking: u64) -> Check<()> {
+        if unsafe { np_stage_fixture_parked_input(self.0.native.as_ptr(), parking) } == 1 {
+            Ok(())
+        } else {
+            Err(unknown(Why::Readback))
+        }
+    }
+    fn fixture_companions(&self, home: u64, hidden: bool) -> Check<()> {
+        if unsafe { np_stage_fixture_companions(self.0.native.as_ptr(), home, u32::from(hidden)) } == 1 {
+            Ok(())
+        } else {
+            Err(unknown(Why::Readback))
+        }
+    }
     fn fixture_home_ax(&self) -> Check<()> {
         if unsafe { np_stage_fixture_home_ax(self.0.native.as_ptr()) } == 1 {
             Ok(())
@@ -318,6 +334,7 @@ fn proof<P: Platform>(
 ) -> Check<()> {
     for _ in 0..2 {
         state.scope(c, lease.slot.home, top, a)?;
+        a.fixture_companions(lease.slot.home.id, hidden)?;
         if !hidden {
             a.fixture_home_ax()?;
         }
@@ -557,7 +574,7 @@ fn cycle<P: Platform>(
         if state.sys.members(c, home_id)? != parked_members {
             return Err(unknown(Why::Membership));
         }
-        Ok(())
+        a.fixture_parked_input(r.fixture_space)
     })();
     // Exactly one return/cleanup attempt. State::show checks actual ownership and both
     // endpoints first; a rejected or uncertain move is never issued a second time.

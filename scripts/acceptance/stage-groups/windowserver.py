@@ -139,6 +139,9 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
             print(json.dumps(result, sort_keys=True))
         qualification = result.get("singleWindowVisibility", {}).get("status", "NOT_RUN")
         print("Directory and exact fixture geometry:", result["status"], "| Public single-window AX qualification:", qualification)
+        delivery = result.get("interactiveDelivery", {}).get("status")
+        if delivery in {"FAIL", "UNKNOWN"}:
+            raise SystemExit("Isolated three-window receiver verification: " + delivery)
         if qualification in ("FAIL", "UNKNOWN"):
             print("::warning::Single-window visibility qualification recorded " + qualification)
         if result["status"] not in ("PASS", "BLOCKED") or result.get("processLifecycle", {}).get("status") in ("FAIL", "UNKNOWN"):

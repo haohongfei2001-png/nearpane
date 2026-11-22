@@ -29,7 +29,7 @@ def summarize_trial(name, trial):
     return result
 
 
-def run(work, name, update, result_dir=None, p0_receipt=None):
+def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
     result_dir = result_dir or work
     mac = install.Mac()
     previous = json.loads((work / "08-upgrade.json").read_bytes())
@@ -40,7 +40,9 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     except (OSError, ValueError) as error:
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason=str(error), quitRequests=0)
         return
-    if name == "spaces" and observation.get("status") != "PASS":
+    writes = name in {"spaces", "interactive-spaces"}
+    interactive = name in {"interactive-spaces", "interactive-roster"}
+    if writes and observation.get("status") != "PASS":
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Status=observation.get("status"),
                p0Reason=observation.get("reason"), p0SHA256=digest, quitRequests=0)
         return
@@ -50,11 +52,15 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     require(pid is not None, "No running canonical Host")
     generation = install.process_stamp(pid)
     birth = generation[1] * 1_000_000 + generation[2]
-    qualifies = overview_admission.qualifies if name == "spaces" else overview_admission.qualifies_read_only
+    qualifies = overview_admission.qualifies if writes else overview_admission.qualifies_read_only
     if not qualifies(observation, current, pid, birth):
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalEvidenceOrHostBindingIncomplete",
                p0SHA256=digest, quitRequests=0)
         return
+    if interactive:
+        pair_runner = importlib.import_module("interactive-pair")
+        require(kit is not None, "signedInteractiveFixtureKitRequired")
+        pair_runner.reviewed_owners(kit)
     permissions = cycle.backup.permissions.sample()
     install.persist(result_dir / (name + "-before-permissions.json"), permissions)
     require(permissions["status"] == "PASS" and permissions["installed"]["CDHash"] == current["cdhash"]
@@ -67,7 +73,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
     stamp = mac.bound(mac.pid(), mac.daily, current)
     out = result_dir / (name + ".json")
     require(not out.exists(), "Do not replay a real qualification")
-    expected_hid = observation["measurement"]["hidAfter"] if name == "spaces" else observation["hidAfterPassiveRead"]
+    expected_hid = observation["measurement"]["hidAfter"] if writes else observation["hidAfterPassiveRead"]
     hid = overview_admission.current_hid()
     if hid["pressed"] or hid["secure"] or hid["counts"] != expected_hid or not qualifies(observation, current, stamp[0], birth):
         update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
@@ -89,9 +95,23 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
                 "--expected-source", current["source"], "--expected-cdhash", current["cdhash"]]
         if name == "spaces":
             args.extend(["--enrolled-spaces-cycle", "--p0-receipt", str(p0_receipt), "--p0-sha256", digest])
+        if interactive:
+            folder = result_dir / (name + "-evidence")
+            require(not folder.exists(), "interactiveNonceAlreadyUsed")
+            args = [sys.executable, "-B", HERE / "interactive-pair.py", folder, "--kit", kit,
+                    "--revision", current["source"], "--cdhash", current["cdhash"]]
+            if writes:
+                args.extend(["--spaces-cycle", "--p0-receipt", str(p0_receipt), "--p0-sha256", digest])
         with subprocess.Popen(args) as child:
             diagnostic_started = True
             exit_code = child.wait()
+        if interactive:
+            trial = json.loads((folder / "result.json").read_bytes())
+            install.persist(out, trial)
+            update("qualificationReturned", trialExit=exit_code, qualification=trial["status"],
+                   inputs=trial.get("pair", {}).get("inputs", []), membershipRoundTrip=trial.get("engineVisibilityRoundTrip"),
+                   productionQualified=False)
+            return
         trial = json.loads(out.read_bytes())
         update("qualificationReturned", trialExit=exit_code, cleanup=trial["probeResources"], **summarize_trial(name, trial))
     finally:
@@ -112,7 +132,8 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("work", type=Path)
-    p.add_argument("scope", choices=["spaces", "corner-readback"])
+    p.add_argument("scope", choices=["spaces", "corner-readback", "interactive-roster", "interactive-spaces"])
+    p.add_argument("--kit", type=Path, help="reviewed two-application signed fixture kit for the interactive paths")
     p.add_argument("--p0-receipt", type=Path, help="private observation of the running regular Host before any trial")
     p.add_argument("--result-dir", type=Path, help="fresh private directory for this stage's receipts")
     args = p.parse_args()
@@ -131,7 +152,7 @@ def main():
 
     try:
         with install.free_lock(install.Mac.root / "supervisor.lock"):
-            run(args.work, args.scope, update, result_dir=directory, p0_receipt=args.p0_receipt)
+            run(args.work, args.scope, update, result_dir=directory, p0_receipt=args.p0_receipt, kit=args.kit)
         if record.get("stage") == "p0RequiredBeforeQuit":
             record["status"] = "BLOCKED"
         elif record.get("stage") == "regularHostRunning":

@@ -447,7 +447,7 @@ def panel_archive(observed, challenge):
                 reason="boundPanelJournal" if proven else "incompleteOrConflictingPanelJournal")
 
 
-def fixture_archive(observed, challenge, report):
+def fixture_archive(observed, challenge, report, expected_trial="ownPanelAndEnrolledWindow"):
     """Reopen the completed Rust write-ahead journal independently of the Host transport."""
     try:
         archive = journal.inspect(uuid.UUID(challenge))
@@ -471,7 +471,7 @@ def fixture_archive(observed, challenge, report):
         actual = [tuple(row[k] for k in ("owner","event","window","space","response")) for row in actions]
         times = [archive["startUptime"]] + [row["uptime"] for row in actions]
         origin = (same_boot and cycle["challenge"] == challenge == archive["challenge"] and
-                  archive["status"] == "ARCHIVED_CLEAN" and archive["scopeOfTrial"] == "ownPanelAndEnrolledWindow" and
+                  archive["status"] == "ARCHIVED_CLEAN" and archive["scopeOfTrial"] == expected_trial and
                   archive["hostPID"] == subject["pid"] and archive["hostBirth"] == subject["birth"] and
                   all(archive[k] == doc[s] == owner[s] for k, s in
                       (("fixturePID","pid"), ("fixtureBirth","birth"), ("fixtureWindow","window"))) and

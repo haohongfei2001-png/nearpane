@@ -93,7 +93,7 @@ enum StageEnginePackageProbe {
 
     @MainActor static func readScope(challenge: UUID, fixture initialFixture: StageEngineHostScope.Fixture?, channel: StageScopeReply?,
                                     awaitRegistration: Bool = false, enrolledSpacesCycle: Bool = false,
-                                    ownSpacesCanary: Bool = false, interactivePair: Bool = false) async -> Int32 {
+                                    ownSpacesCanary: Bool = false, interactivePair: Bool = false, interactiveSpaces: Bool = false) async -> Int32 {
         let bundle = Bundle.main
         let pid = getpid()
         do {
@@ -128,7 +128,7 @@ enum StageEnginePackageProbe {
                 guard let channel, !awaitRegistration, !enrolledSpacesCycle, !ownSpacesCanary,
                       initialFixture == nil, subject["atDailyInstallPath"] as? Bool == true,
                       bundle.bundleIdentifier == "com.holdsnow.nearpane.alpha" else { return 2 }
-                let final = try await StageInteractivePair.run(challenge, channel: channel, observe: observation)
+                let final = try await StageInteractivePair.run(challenge, channel: channel, spacesCycle: interactiveSpaces, observe: observation)
                 try channel.finish(JSONSerialization.data(withJSONObject: final, options: [.sortedKeys]) + Data([10]))
                 return 0
             }

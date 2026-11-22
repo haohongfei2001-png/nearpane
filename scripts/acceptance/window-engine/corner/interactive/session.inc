@@ -12,6 +12,10 @@ static NSMutableSet<NSUUID *> *used;
 static BOOL invalidated;
 static NSDictionary *scope;
 static NSString *displayToken;
+static int documentDirectory = -1;
+static NSString *sessionNonce;
+static BOOL save(int dir, const char *name, NSDictionary *row);
+static NSUInteger documentWrites[2], documentErrors[2], markedEvents[2];
 
 static double now(void) { return NSProcessInfo.processInfo.systemUptime; }
 // Reuse the same direct per-display getter as the Corner contract, from this process's own connection.
@@ -35,7 +39,7 @@ static NSArray *windowsSnapshot(void) {
         NSWindow *w = owned[i];
         NSRect f = w.frame;
         NSRect c = [w convertRectToScreen:[w.contentView convertRect:w.contentView.bounds toView:nil]];
-        [rows addObject:@{@"role":i == 0 ? @"target" : @"sibling", @"window":numbers[i], @"lifetime":lifetimes[i],
+        [rows addObject:@{@"role":receiverRole(i), @"documentWrites":@(documentWrites[i]), @"documentErrors":@(documentErrors[i]), @"markedEvents":@(markedEvents[i]), @"window":numbers[i], @"lifetime":lifetimes[i],
             @"sameOriginal":@( (BOOL)(w.windowNumber == numbers[i].intValue)), @"visible":@(w.isVisible),
             @"onActiveSpace":@(w.isOnActiveSpace), @"minimized":@(w.isMiniaturized), @"key":@(w.isKeyWindow),
             @"main":@(w.isMainWindow), @"firstResponderIsContent":@( (BOOL)(w.firstResponder == w.contentView)),
@@ -46,13 +50,20 @@ static NSArray *windowsSnapshot(void) {
     return rows;
 }
 static BOOL sameWindows(void) {
-    return !invalidated && owned.count == 2 && numbers.count == 2 && [numbers[0] intValue] > 0 &&
-           [numbers[1] intValue] > 0 && ![numbers[0] isEqual:numbers[1]] &&
-           owned[0].windowNumber == [numbers[0] intValue] && owned[1].windowNumber == [numbers[1] intValue];
+    NSUInteger count = bystander ? 1 : 2;
+    if (invalidated || owned.count != count || numbers.count != count ||
+        [NSSet setWithArray:numbers].count != count) return NO;
+    for (NSUInteger i = 0; i < count; ++i)
+        if (numbers[i].intValue <= 0 || owned[i].windowNumber != numbers[i].intValue) return NO;
+    return YES;
 }
 static void observe(NSEvent *event, NSWindow *window, NPReceiver stream) {
-    if (!active || !window || [owned indexOfObjectIdenticalTo:window] == NSNotFound) return;
+    if (!window || [owned indexOfObjectIdenticalTo:window] == NSNotFound) return;
     unsigned slot = (unsigned)[owned indexOfObjectIdenticalTo:window];
+    CGEventRef observed = event.CGEvent;
+    if (stream == NPQueue && observed && ((uint64_t)CGEventGetIntegerValueField(observed, kCGEventSourceUserData) &
+                                           NC_FIXTURE_GESTURE_MASK) == NC_FIXTURE_GESTURE_PREFIX) markedEvents[slot]++;
+    if (!active) return;
     NPInputPhase phase;
     switch (event.type) {
         case NSEventTypeLeftMouseDown: phase = NPDown; break;
@@ -79,6 +90,15 @@ static void observe(NSEvent *event, NSWindow *window, NPReceiver stream) {
         matches = !event.isARepeat && window.isKeyWindow && window.firstResponder == window.contentView &&
                   [event.characters isEqual:active.marker];
     }
+    if (stream == NPContent && phase == NPKeyDown && matches) {
+        NSString *intent = active.intent.UUIDString.lowercaseString, *role = receiverRole(slot);
+        NSString *name = [NSString stringWithFormat:@"document-%@-%@.json", role, intent];
+        NSDictionary *entry = @{@"challenge":sessionNonce, @"intent":intent, @"marker":active.marker,
+            @"role":role, @"window":numbers[slot], @"lifetime":lifetimes[slot], @"pid":@(getpid()),
+            @"birth":@(processBirth(getpid()))};
+        if (save(documentDirectory, name.fileSystemRepresentation, entry)) documentWrites[slot]++;
+        else documentErrors[slot]++;
+    }
     [active receive:phase from:from tag:tag slot:slot stream:stream now:now() markerMatches:matches];
 }
 @interface NPInteractiveView : NSView
@@ -93,7 +113,7 @@ static void observe(NSEvent *event, NSWindow *window, NPReceiver stream) {
 - (void)keyUp:(NSEvent *)e { observe(e,self.window,NPContent); }
 @end
 
-static BOOL openTwo(NSString *displayUUID) {
+static BOOL openOwned(NSString *displayUUID) {
     [NSApplication sharedApplication];
     if (![NSApp setActivationPolicy:NSApplicationActivationPolicyRegular]) return NO;
     [NSApp finishLaunching];
@@ -108,11 +128,13 @@ static BOOL openTwo(NSString *displayUUID) {
     CGFloat w = MIN(264, floor((NSWidth(v) - 60) / 2)), h = MIN(180, NSHeight(v) - 120);
     if (w < 124 || h < 92) return NO;
     NSMutableArray *made = [NSMutableArray array], *ids = [NSMutableArray array];
-    for (unsigned i = 0; i < 2; i++) {
-        NSRect f = NSMakeRect(NSMinX(v) + 20 + i*(w + 12), NSMaxY(v) - 60 - h, w, h);
+    for (unsigned i = 0; i < (bystander ? 1u : 2u); i++) {
+        NSRect f = NSMakeRect(NSMinX(v) + 20 + i*(w + 12), NSMaxY(v) - 60 - h - (bystander ? h + 60 : 0), w, h);
+        if (!NSContainsRect(v, [NSWindow frameRectForContentRect:f styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable])) return NO;
         NSView *view = [[NPInteractiveView alloc] initWithFrame:NSMakeRect(0,0,w,h)];
-        NSWindow *win = ordinaryFixtureWindow(f, view, i ? @"Nearpane interactive sibling" : @"Nearpane interactive target",
+        NSWindow *win = ordinaryFixtureWindow(f, view, bystander ? @"Nearpane interactive bystander" : i ? @"Nearpane interactive sibling" : @"Nearpane interactive target",
                                                i ? NSColor.systemOrangeColor : NSColor.systemBlueColor);
+        [win setAccessibilityIdentifier:[@"nearpane.fixture." stringByAppendingString:receiverRole(i)]];
         win.tabbingMode = NSWindowTabbingModeDisallowed;
         [made addObject:win];
         [win makeFirstResponder:view];
@@ -143,7 +165,21 @@ static BOOL save(int dir, const char *name, NSDictionary *row) {
     if (f < 0) return NO;
     NSData *data = [NSJSONSerialization dataWithJSONObject:row options:NSJSONWritingSortedKeys error:NULL];
     NSFileHandle *handle = [[NSFileHandle alloc] initWithFileDescriptor:f closeOnDealloc:YES];
-    return data && [handle writeData:data error:NULL] && [handle synchronizeAndReturnError:NULL] && [handle closeAndReturnError:NULL];
+    return data && [handle writeData:data error:NULL] && [handle synchronizeAndReturnError:NULL] && [handle closeAndReturnError:NULL] && fsync(dir) == 0;
+}
+// EOF, an owner timeout or a Host crash must not dispose of a parked window.
+static BOOL engineStillOwns(int dir, NSString *nonce) {
+    struct stat lease;
+    if (fstatat(dir,"interactive-lease",&lease,AT_SYMLINK_NOFOLLOW) != 0) return errno != ENOENT;
+    int release = openat(dir,"interactive-release",O_NOFOLLOW|O_RDONLY|O_NONBLOCK|O_CLOEXEC);
+    if (release < 0) return YES;
+    struct stat s;
+    char token[37] = {0};
+    BOOL clean = !fstat(release,&s) && S_ISREG(s.st_mode) && s.st_uid == getuid() &&
+                 (s.st_mode & 0777) == 0600 && s.st_nlink == 1 && s.st_size == 36 &&
+                 read(release,token,sizeof(token)) == 36 && !memcmp(token,nonce.UTF8String,36);
+    close(release);
+    return !clean;
 }
 static BOOL exactKeys(NSDictionary *msg, NSArray *extra) {
     NSMutableSet *keys = [NSMutableSet setWithArray:@[@"challenge",@"seq",@"op"]];
@@ -167,18 +203,27 @@ static NSDictionary *handle(NSDictionary *m, NSDictionary *peer, NSString *nonce
         scope = @{@"displayUUID":m[@"displayUUID"],@"spaceUUID":m[@"spaceUUID"],@"nativeID":m[@"nativeID"]};
         NSArray *samples = pre[@"spaceScope"][@"samples"];
         displayToken = samples.lastObject[@"managedDisplayToken"];
-        if (!stillOnLease(scope,displayToken) || !openTwo(m[@"displayUUID"]) || !stillOnLease(scope,displayToken)) return nil;
-        return @{@"windows":windowsSnapshot(), @"regular":@( (BOOL)(NSApp.activationPolicy == NSApplicationActivationPolicyRegular))};
+        if (!stillOnLease(scope,displayToken) || !openOwned(m[@"displayUUID"]) || !stillOnLease(scope,displayToken)) return nil;
+        NSArray *rows = windowsSnapshot();
+        if (!save(documentDirectory, bystander ? "bystander-windows.json" : "interactive-windows.json",
+                  @{@"challenge":nonce, @"pid":@(getpid()), @"birth":@(processBirth(getpid())), @"windows":rows, @"scope":scope})) return nil;
+        return @{@"windows":rows, @"regular":@( (BOOL)(NSApp.activationPolicy == NSApplicationActivationPolicyRegular))};
     }
     if (!sameWindows()) return nil;
     if ([op isEqual:@"close"] && exactKeys(m,@[])) { *stop = YES; return @{}; }
     if (!stillOnLease(scope,displayToken)) return nil;
+    if ([op isEqual:@"focusOwned"] && !active && exactKeys(m,@[]) && !engineStillOwns(documentDirectory,nonce)) {
+        // Only these signed, retained test windows are ever made key. The Host separately verifies the system AX focus.
+        [NSApp activate];
+        [owned[0] makeKeyAndOrderFront:nil];
+        return @{@"windows":windowsSnapshot()};
+    }
     if ([op isEqual:@"sample"] && exactKeys(m,@[])) return @{@"windows":windowsSnapshot()};
     NSUUID *intent = [m[@"intent"] isKindOfClass:NSString.class] ? [[NSUUID alloc] initWithUUIDString:m[@"intent"]] : nil;
     if (!intent) return nil;
     if ([op isEqual:@"arm"] && !active && ![used containsObject:intent] && used.count < 16 &&
         exactKeys(m,@[@"intent",@"kind",@"receiver"]) &&
-        [@[@"mouse",@"key"] containsObject:m[@"kind"]] && [@[@"target",@"sibling"] containsObject:m[@"receiver"]]) {
+        [@[@"mouse",@"key"] containsObject:m[@"kind"]] && [(bystander ? @[@"bystander"] : @[@"target",@"sibling"]) containsObject:m[@"receiver"]]) {
         unsigned slot = [m[@"receiver"] isEqual:@"sibling"] ? 1 : 0;
         active = [[NPInputWitness alloc] initWithIntent:intent source:[peer[@"pid"] intValue] slot:slot
                                               keyboard:[m[@"kind"] isEqual:@"key"] now:now()];
@@ -191,7 +236,13 @@ static NSDictionary *handle(NSDictionary *m, NSDictionary *peer, NSString *nonce
         return r;
     }
     if ([op isEqual:@"finish"] && [active.intent isEqual:intent] && exactKeys(m,@[@"intent"])) {
-        NSDictionary *r = @{@"delivery":[active resultAt:now()], @"before":prior,
+        NSMutableDictionary *result = [[active resultAt:now()] mutableCopy];
+        if (bystander) {
+            NSMutableDictionary *first = [result[@"receivers"][0] mutableCopy];
+            first[@"role"] = @"bystander";
+            result[@"receivers"] = @[first]; result[@"receiver"] = @"bystander";
+        }
+        NSDictionary *r = @{@"delivery":result, @"before":prior,
                             @"after":@{@"windows":windowsSnapshot(), @"uptime":@(now())}};
         active = nil; prior = nil;
         return r;
@@ -201,7 +252,7 @@ static NSDictionary *handle(NSDictionary *m, NSDictionary *peer, NSString *nonce
 
 static int serve(NSString *nonce) {
     NSString *root = [@"/private/tmp/nearpane-membership." stringByAppendingString:nonce];
-    NSString *binary = [root stringByAppendingPathComponent:@"Interactive Windows.app/Contents/MacOS/InteractiveWindows"];
+    NSString *binary = [root stringByAppendingPathComponent:(bystander ? @"Interactive Bystander.app/Contents/MacOS/InteractiveBystander" : @"Interactive Windows.app/Contents/MacOS/InteractiveWindows")];
     int dir = privateDirectory(root);
     uint64_t birth = processBirth(getpid());
     SecCodeRef self = NULL;
@@ -210,7 +261,9 @@ static int serve(NSString *nonce) {
     NSString *digest = codeHash(self,fixtureID);
     CFRelease(self);
     if (!digest) { close(dir); return 2; }
-    NSString *path = [root stringByAppendingPathComponent:@"interactive.sock"];
+    documentDirectory = dir; sessionNonce = nonce;
+    NSString *socketName = bystander ? @"bystander.sock" : @"interactive.sock";
+    NSString *path = [root stringByAppendingPathComponent:socketName];
     int listener = socket(AF_UNIX,SOCK_STREAM,0);
     struct sockaddr_un addr = {.sun_family=AF_UNIX};
     if (listener < 0 || strlcpy(addr.sun_path,path.fileSystemRepresentation,sizeof(addr.sun_path)) >= sizeof(addr.sun_path)) {
@@ -221,16 +274,16 @@ static int serve(NSString *nonce) {
     mode_t mask = umask(0077);
     BOOL bound = !bind(listener,(struct sockaddr *)&addr,addr.sun_len);
     umask(mask);
-    if (!bound || listen(listener,1)) { if (bound) unlinkat(dir,"interactive.sock",0); close(listener); close(dir); return 2; }
+    if (!bound || listen(listener,1)) { if (bound) unlinkat(dir,socketName.fileSystemRepresentation,0); close(listener); close(dir); return 2; }
     double started = now(), limit = started + 75;
     NSDictionary *owner = @{@"pid":@(getpid()), @"birth":@(birth), @"cdhash":digest, @"identifier":fixtureID};
     NSDictionary *fixed = @{@"schema":@1,@"challenge":nonce,@"owner":owner,@"startedUptime":@(started),@"deadlineUptime":@(limit)};
-    BOOL ready = save(dir,"interactive-ready.json",fixed);
+    BOOL ready = save(dir,bystander ? "bystander-ready.json" : "interactive-ready.json",fixed);
     struct pollfd pollFD = {.fd=listener,.events=POLLIN};
     int connection = -1;
     if (ready && poll(&pollFD,1,12000) == 1 && (pollFD.revents & POLLIN)) connection = accept(listener,NULL,NULL);
     close(listener);
-    unlinkat(dir,"interactive.sock",0);
+    unlinkat(dir,socketName.fileSystemRepresentation,0);
     NSDictionary *peer = connection >= 0 ? authenticatedHost(connection) : nil;
     int yes = 1;
     struct timeval shortWrite = {.tv_sec=0,.tv_usec=150000};
@@ -302,6 +355,13 @@ static int serve(NSString *nonce) {
         active.interrupted = YES;
         unfinished = @{@"before":prior, @"delivery":[active resultAt:now()]};
     }
+    if (owned && engineStillOwns(dir,nonce)) {
+        save(dir,bystander ? "bystander-retained.json" : "interactive-retained.json",
+             @{@"challenge":nonce, @"reason":@"awaitingPositiveEngineRelease", @"windows":numbers});
+        while (engineStillOwns(dir,nonce)) @autoreleasepool {
+            [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.5]];
+        }
+    }
     NSArray *beforeClose = owned ? windowsSnapshot() : @[];
     BOOL locallyClosed = YES;
     for (NSWindow *w in owned) { [w close]; locallyClosed &= !w.visible; }
@@ -311,7 +371,7 @@ static int serve(NSString *nonce) {
         @"physicalInput":@"NOT_ASSESSED",@"systemRemoval":@"REQUIRES_INDEPENDENT_READBACK"}];
     if (peer) last[@"host"] = peer;
     if (unfinished) last[@"unfinished"] = unfinished;
-    BOOL durable = save(dir,"interactive-closed.json",last);
+    BOOL durable = save(dir,bystander ? "bystander-closed.json" : "interactive-closed.json",last);
     if (closeRequested && durable) sendReply(connection,last);
     if (connection >= 0) close(connection);
     close(dir);

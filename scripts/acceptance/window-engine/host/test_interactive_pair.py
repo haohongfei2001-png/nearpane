@@ -91,7 +91,7 @@ class InstalledPairTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp, patch.object(pair.scope,"identity",return_value=image), \
              patch.object(pair.scope,"exclusive",return_value=nullcontext()), patch.object(pair.scope,"build_launcher",return_value="offline"), \
              patch.object(pair.scope,"command",side_effect=command), patch.object(pair.scope,"await_exit",side_effect=observed_exit) as census, \
-             patch.object(pair.fixture,"prepare",return_value={"signature":signature}), patch.object(pair.os,"uname",return_value=SimpleNamespace(machine="arm64")):
+             patch.object(pair.fixture,"prepare",side_effect=lambda *a, bystander=False: {"signature":dict(signature, identifier=pair.fixture.BYSTANDER_ID, cdhash="d"*40) if bystander else signature}), patch.object(pair.os,"uname",return_value=SimpleNamespace(machine="arm64")):
             try:
                 args = SimpleNamespace(output=Path(temp)/"receipt",kit=Path(temp),revision=image["source"],cdhash=image["CDHash"],preflight_only=False)
                 row = pair.run(args)

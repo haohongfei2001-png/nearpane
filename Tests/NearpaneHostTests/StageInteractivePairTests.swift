@@ -4,6 +4,31 @@ import Testing
 
 @MainActor struct StageInteractivePairTests {
     typealias JSON = [String: Any]
+    @Test func sameOwnerCannotImpersonateThirdApplicationInScreenshotFootprint() throws {
+        typealias F = StageInteractiveFootprint
+        let frames = try F.project(screen:CGRect(x:0,y:0,width:1440,height:900),
+                                   visible:CGRect(x:0,y:52,width:1440,height:810),includeBystander:true,outerFrame:{$0})
+        #expect(frames.count == 3)
+        let front = F.Window(pid:10,number:101,frame:CGRect(x:1000,y:500,width:200,height:200))
+        let baseline = try F(proposed:frames,windows:[front],foregroundPID:10,foregroundWindow:101,uptime:1)
+        let pair = [F.Window(pid:20,number:201,frame:frames[0]),F.Window(pid:20,number:202,frame:frames[1])]
+        for otherPID: pid_t in [20,30] {
+            let trio = pair + [F.Window(pid:otherPID,number:301,frame:frames[2])]
+            let snapshot = try F(proposed:frames,windows:trio+[front],foregroundPID:10,foregroundWindow:101,uptime:2)
+            #expect((snapshot.assess(previous:baseline,registered:trio).reason == nil) == (otherPID == 30))
+        }
+    }
+
+    @Test func systemGestureAllowsOnlyItsOwnCombinedLeftButtonDuringDrag() {
+        typealias Routing = StageInteractiveRouting
+        for down in [true,false] {
+            #expect(throws:StagePairRefusal.self) { try Routing.clearInput(.init(secure:false,hardwareButtons:1,sessionButtons:1),syntheticDown:down) }
+            #expect(throws:StagePairRefusal.self) { try Routing.clearInput(.init(secure:true,hardwareButtons:0,sessionButtons:0),syntheticDown:down) }
+            #expect(throws:StagePairRefusal.self) { try Routing.clearInput(.init(secure:false,hardwareButtons:0,sessionButtons:2),syntheticDown:down) }
+            #expect(((try? Routing.clearInput(.init(secure:false,hardwareButtons:0,sessionButtons:1),syntheticDown:down)) != nil) == down)
+        }
+    }
+
     @Test func stationaryButtonsAndSecureInputPreventEachSubsequentEffect() throws {
         let clear = StageInteractivePair.InputState(secure:false,hardwareButtons:0,sessionButtons:0)
         let blocked = [StageInteractivePair.InputState(secure:true,hardwareButtons:0,sessionButtons:0),

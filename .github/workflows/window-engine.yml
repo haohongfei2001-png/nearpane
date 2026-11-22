@@ -46,6 +46,19 @@ jobs:
           persist-credentials: false
       - name: Run the engine and its language bindings
         run: python3 -B scripts/acceptance/window-engine/ci/source-tests.py "$RUNNER_TEMP/window-engine-source"
+      - name: Exercise one Corner fixture on the disposable WindowServer
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[corner-single]')
+        run: |
+          bash scripts/acceptance/window-engine/corner/run-hosted.sh "$RUNNER_TEMP/window-engine-corner" --single-window
+          cat "$RUNNER_TEMP/window-engine-corner/result.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve the independent Corner receipt
+        if: always() && github.event_name == 'push' && contains(github.event.head_commit.message, '[corner-single]')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-corner-single
+          path: ${{ runner.temp }}/window-engine-corner/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Preserve each build and test result
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

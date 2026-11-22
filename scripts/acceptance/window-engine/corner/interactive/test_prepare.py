@@ -52,6 +52,16 @@ try FileHandle.standardOutput.write(contentsOf: JSONEncoder().encode(info))
         FACTS["stagedCDHash"] = report["signature"]["cdhash"]
         FACTS["stagedMatchingMachOSHA256"] = report["signature"]["executableSHA256"]
 
+    def test_three_windows_require_two_different_signed_applications(self):
+        a = build.prepare(KIT, self.nonce)
+        b = build.prepare(KIT, self.nonce, bystander=True)
+        self.assertEqual(b["signature"]["identifier"], build.BYSTANDER_ID)
+        self.assertNotEqual(a["signature"]["cdhash"], b["signature"]["cdhash"])
+        self.assertNotEqual(a["socket"], b["socket"])
+        self.assertEqual(set(p.name for p in self.session.iterdir()), {build.APP, build.BYSTANDER_APP})
+        with self.assertRaises(FileExistsError):
+            build.prepare(KIT, self.nonce, bystander=True)
+
     def test_existing_enrollment_is_not_replaced(self):
         existing = self.session / build.APP
         existing.mkdir()

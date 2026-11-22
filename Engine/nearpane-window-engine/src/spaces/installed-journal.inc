@@ -121,6 +121,17 @@ static BOOL appendLedger(NPInstalledFixture *s, NSDictionary *row) {
   }
   return fsync(s->ledger) == 0 && fcntl(s->ledger, F_FULLFSYNC) == 0;
 }
+// Keep both disposable owner processes alive across a Host exit once the first write is possible.
+static BOOL ownerLeaseMarker(NPInstalledFixture *s, const char *name) {
+  if (!s->interactive) return YES;
+  const char *nonce = s->challenge.UTF8String;
+  size_t size = strlen(nonce);
+  int fd = openat(s->owner,name,O_CREAT|O_EXCL|O_NOFOLLOW|O_WRONLY|O_CLOEXEC,0600);
+  if (fd < 0) return NO;
+  BOOL ok = size == 36 && write(fd,nonce,size) == (ssize_t)size && fsync(fd) == 0;
+  int closed = close(fd);
+  return ok && closed == 0 && fsync(s->owner) == 0;
+}
 uint32_t np_stage_fixture_first_journal(void *token, const NPStageDesktop *top,
                                         size_t nt, const uint64_t *all,
                                         size_t na, uint64_t home,
@@ -181,8 +192,8 @@ uint32_t np_stage_fixture_first_journal(void *token, const NPStageDesktop *top,
         @"fixturePID" : @(s->subject.pid),
         @"fixtureBirth" : @(s->subject.birth),
         @"fixtureWindow" : @(s->subject.window),
-        @"scopeOfTrial" : s->panelOnly ? @"ownPanelOnly" : @"ownPanelAndEnrolledWindow",
-        @"fixtureCDHash" : s->panelOnly ? (id)NSNull.null : enrolledFixtureCDHash,
+        @"scopeOfTrial" : s->panelOnly ? @"ownPanelOnly" : s->interactive ? @"ownPanelAndInteractiveTarget" : @"ownPanelAndEnrolledWindow",
+        @"fixtureCDHash" : s->panelOnly ? (id)NSNull.null : (s->expectedHash ?: enrolledFixtureCDHash),
         @"route" : @"bridge",
         @"home" : @(home),
         @"ordinaryMemberCount" : @(homeMembers),
@@ -191,7 +202,7 @@ uint32_t np_stage_fixture_first_journal(void *token, const NPStageDesktop *top,
         @"frame" : frame ? @[ @(frame[0]), @(frame[1]), @(frame[2]), @(frame[3]) ] : (id)NSNull.null,
         @"externalFocusAndHIDBound" : @YES
       };
-      return appendLedger(s, row) && fsync(s->ledgerDir) == 0 ? 0 : 19;
+      return appendLedger(s, row) && fsync(s->ledgerDir) == 0 && ownerLeaseMarker(s,"interactive-lease") ? 0 : 19;
     } @catch (NSException *e) {
       return 19;
     }
@@ -264,7 +275,7 @@ uint32_t np_stage_fixture_finish_journal(void *token, uint32_t clean) {
                    0) != 0 ||
           fsync(s->ledgerDir) != 0)
         return 19;
-      return 0;
+      return ownerLeaseMarker(s,"interactive-release") ? 0 : 19;
     } @catch (NSException *e) {
       return 19;
     }

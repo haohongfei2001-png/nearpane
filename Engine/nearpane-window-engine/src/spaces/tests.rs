@@ -5,8 +5,17 @@ use std::cell::Cell;
 struct Guard {
     ok: Cell<bool>,
     approved: Option<Route>,
+    lose_companion_while_hidden: bool,
+    input_observed: bool,
 }
 impl Authority for Guard {
+    fn fixture_companions(&self, _home: u64, hidden: bool) -> Check<()> {
+        if hidden && self.lose_companion_while_hidden { Err(unknown(Why::Readback)) } else { Ok(()) }
+    }
+    fn fixture_parked_input(&self, _parking: u64) -> Check<()> {
+        if self.input_observed { Ok(()) } else { Err(unknown(Why::Readback)) }
+    }
+
     fn approved_route(&self) -> Option<Route> {
         self.approved
     }
@@ -339,6 +348,23 @@ fn installed_cycle_does_not_acquire_fixture_after_failed_canary_or_superseding_i
 }
 #[cfg(target_os = "macos")]
 #[test]
+fn loss_of_companion_or_input_refuses_qualification_but_returns_the_original_once() {
+    for lost_companion in [false, true] {
+        let (mut state, mut guard, window) = installed_fixture();
+        guard.lose_companion_while_hidden = lost_companion;
+        guard.input_observed = lost_companion;
+        let (status, proof) = installed::replay(&mut state, window, &guard, || ());
+        assert_ne!(status, PASS);
+        assert_eq!(proof[2], 2, "independent returned-window proofs");
+        assert!(state.owned.is_empty() && state.slots.is_empty());
+        let moves: Vec<_> = state.sys.moved.iter().filter(|action| action.1 == window.number).collect();
+        assert_eq!(moves.len(), 2);
+        assert_eq!(moves[1].2, 10);
+        assert_eq!(state.sys.spaces, Rows::from([10]));
+    }
+}
+#[cfg(target_os = "macos")]
+#[test]
 fn replacement_ax_object_preserves_ownership_without_an_unproven_restore_or_resend() {
     let (mut s, g, w) = installed_fixture();
     s.sys.replace_fixture_when_parked = true;
@@ -395,6 +421,8 @@ fn setup() -> (State<Fake>, Guard) {
         Guard {
             ok: Cell::new(true),
             approved: None,
+            lose_companion_while_hidden: false,
+            input_observed: true,
         },
     )
 }

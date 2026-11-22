@@ -269,9 +269,15 @@ enum StageEngineHostScope {
         } else {
             guard local == nil else { return false }
             if let nonce = f.interactiveChallenge {
-                let fixed = "/private/tmp/nearpane-membership." + nonce.uuidString.lowercased() + "/Interactive Windows.app/Contents/MacOS/InteractiveWindows"
+                let relative: String
+                switch bundleIdentifier {
+                case "com.holdsnow.nearpane.stage-interactive-fixture": relative = "Interactive Windows.app/Contents/MacOS/InteractiveWindows"
+                case "com.holdsnow.nearpane.stage-interactive-bystander": relative = "Interactive Bystander.app/Contents/MacOS/InteractiveBystander"
+                default: return false
+                }
+                let fixed = "/private/tmp/nearpane-membership." + nonce.uuidString.lowercased() + "/" + relative
                 var kernelPath = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-                guard bundleIdentifier == "com.holdsnow.nearpane.stage-interactive-fixture", f.executable.path == fixed,
+                guard f.executable.path == fixed,
                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
                       String(cString: kernelPath) == fixed else { return false }
             } else {

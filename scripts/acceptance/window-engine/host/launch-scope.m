@@ -86,7 +86,7 @@ int main(int argc, const char **argv) {
         BOOL installed = [physical(url.path) isEqual:@"/Applications/Nearpane.app"] && [bundle.bundleIdentifier isEqual:@"com.holdsnow.nearpane.alpha"];
         BOOL cycle = argc == 5 && installed && !strcmp(argv[3], "--await-registered-window") && !strcmp(argv[4], "--enrolled-spaces-cycle");
         BOOL panelOnly = argc == 4 && installed && !strcmp(argv[3], "--installed-spaces-canary");
-        BOOL interactive = argc == 4 && installed && !strcmp(argv[3], "--interactive-window-pair");
+        BOOL interactive = argc == 4 && installed && (!strcmp(argv[3], "--interactive-window-pair") || !strcmp(argv[3], "--interactive-spaces-cycle"));
         if (!nonce || (argc == 5 && !cycle) || (argc >= 4 && !panelOnly && !interactive && ![@[@"--registered-window",@"--await-registered-window"] containsObject:@(argv[3])])) return 2;
         if (![before[@"complete"] boolValue] || [before[@"pids"] count] || ![before[@"session"][@"qualified"] boolValue])
             return emit(@{@"prelaunch":before, @"launched":@NO, @"exactLaunchPath":@NO, @"pid":@0, @"reason":@"singleInstanceOrLoginUnavailable"});

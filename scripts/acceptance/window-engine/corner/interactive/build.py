@@ -24,6 +24,9 @@ TMP = Path("/private/tmp")
 APP = "Interactive Windows.app"
 EXE = Path("Contents/MacOS/InteractiveWindows")
 IDENTIFIER = "com.holdsnow.nearpane.stage-interactive-fixture"
+BYSTANDER_APP = "Interactive Bystander.app"
+BYSTANDER_EXE = Path("Contents/MacOS/InteractiveBystander")
+BYSTANDER_ID = "com.holdsnow.nearpane.stage-interactive-bystander"
 TEAM = "ZB9D4T66QB"
 GESTURES = ROOT / "Engine/nearpane-window-engine/src/corner/gesture_witness.h"
 SOURCES = [CORNER / "owner.m", GESTURES, GESTURES.with_name("scope_binding.h"), HERE / "session.inc", HERE / "admission.h",
@@ -62,62 +65,76 @@ def private(path):
 
 
 def verify(app):
+    bystander = app.name == BYSTANDER_APP
+    need(bystander or app.name == APP, "unexpected fixture bundle name")
+    executable = BYSTANDER_EXE if bystander else EXE
+    identifier = BYSTANDER_ID if bystander else IDENTIFIER
     folders = {Path("."): {"Contents"}, Path("Contents"): {"Info.plist", "MacOS", "_CodeSignature"},
-               Path("Contents/MacOS"): {EXE.name}, Path("Contents/_CodeSignature"): {"CodeResources"}}
+               Path("Contents/MacOS"): {executable.name}, Path("Contents/_CodeSignature"): {"CodeResources"}}
     for relative, names in folders.items():
         p = app / relative
         st = p.lstat()
         need(stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid() and not st.st_mode & 0o022,
              "unexpected directory in fixture")
         need({child.name for child in p.iterdir()} == names, "unexpected component in fixture")
-    for relative in (EXE, Path("Contents/Info.plist"), Path("Contents/_CodeSignature/CodeResources")):
+    for relative in (executable, Path("Contents/Info.plist"), Path("Contents/_CodeSignature/CodeResources")):
         st = (app / relative).lstat()
         need(stat.S_ISREG(st.st_mode) and st.st_uid == os.getuid() and st.st_nlink == 1 and
              not st.st_mode & 0o022 and 0 < st.st_size <= 2 * 1024 * 1024, "unexpected file in fixture")
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
-    need(info["CFBundlePackageType"] == "APPL" and info["CFBundleIdentifier"] == IDENTIFIER and
-         info["CFBundleExecutable"] == EXE.name and info["LSUIElement"] is False and info["NSPrincipalClass"] == "NSApplication",
+    need(info["CFBundlePackageType"] == "APPL" and info["CFBundleIdentifier"] == identifier and
+         info["CFBundleExecutable"] == executable.name and info["LSUIElement"] is False and info["NSPrincipalClass"] == "NSApplication",
          "ordinary fixture metadata mismatch")
-    rule = (f'=anchor apple generic and identifier "{IDENTIFIER}" and certificate 1[field.1.2.840.113635.100.6.2.6] exists '
+    rule = (f'=anchor apple generic and identifier "{identifier}" and certificate 1[field.1.2.840.113635.100.6.2.6] exists '
             f'and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU]="{TEAM}"')
     command("/usr/bin/codesign", "--verify", "--strict", "--deep", "-R" + rule, app)
     raw = command("/usr/bin/codesign", "-dvvv", app)
     hashes = re.findall(r"^CDHash=([0-9a-f]{40})$", raw, re.M)
     need(len(hashes) == 1 and f"TeamIdentifier={TEAM}" in raw and "(runtime)" in raw, "signed app identity mismatch")
-    imports = {s.split()[-1] for s in command("/usr/bin/nm", "-u", app / EXE).splitlines() if s.split()}
+    imports = {s.split()[-1] for s in command("/usr/bin/nm", "-u", app / executable).splitlines() if s.split()}
     need(imports.isdisjoint(FORBIDDEN), "unexpected external observation or system action imported")
-    return {"identifier": IDENTIFIER, "team": TEAM, "cdhash": hashes[0], "executableSHA256": digest(app / EXE),
+    return {"identifier": identifier, "team": TEAM, "cdhash": hashes[0], "executableSHA256": digest(app / executable),
             "regularApplicationBundle": True, "strictDeveloperIDVerification": True, "auditedForbiddenImportCount": len(FORBIDDEN)}
+
+
+def build_owner(kit, bystander, signing):
+    app = kit / (BYSTANDER_APP if bystander else APP)
+    exe = app / (BYSTANDER_EXE if bystander else EXE)
+    exe.parent.mkdir(parents=True)
+    (app / "Contents/Info.plist").write_bytes(plistlib.dumps(dict(CFBundlePackageType="APPL",
+        CFBundleIdentifier=BYSTANDER_ID if bystander else IDENTIFIER, CFBundleName="Nearpane interactive windows", CFBundleExecutable=exe.name,
+        CFBundleVersion="1", LSUIElement=False, NSPrincipalClass="NSApplication", LSMinimumSystemVersion="26.0")))
+    flags = ["-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror", "-I", GESTURES.parent]
+    if bystander:
+        flags.append("-DNP_INTERACTIVE_BYSTANDER=1")
+    command("/usr/bin/xcrun", "clang", *flags, "-mmacosx-version-min=26.0", "-DNP_HOST_INTERACTIVE_FIXTURE=1",
+            CORNER / "owner.m", "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics",
+            "-lbsm", "-o", exe)
+    command("/usr/bin/codesign", "--force", "--options", "runtime", "--timestamp=none", "--sign", signing, app)
+    signed = verify(app)
+    # A signed executable process, before NSApplication initialization; never open the .app via Launch Services here.
+    result = subprocess.run([str(exe), "--self-test"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=8)
+    tests = json.loads(result.stdout)
+    need(result.returncode == 0 and tests["status"] == "PASS" and tests["cdhash"] == signed["cdhash"] and
+         tests["windowCount"] == 0 and tests["appKitApplicationInitialized"] is False,
+         "headless signed fixture regression failed: " + json.dumps({"exit": result.returncode,
+            "application": tests["appKitApplicationInitialized"], "windows": tests["windowCount"], "status": tests["status"],
+            "sameHash": tests["cdhash"] == signed["cdhash"], "failedChecks": [k for k, v in tests["checks"].items() if not v]}))
+    return signed, tests
 
 
 def build():
     kit = Path(tempfile.mkdtemp(prefix="nearpane-interactive-kit.", dir=TMP))
     try:
-        app = kit / APP
-        exe = app / EXE
-        exe.parent.mkdir(parents=True)
-        (app / "Contents/Info.plist").write_bytes(plistlib.dumps(dict(CFBundlePackageType="APPL",
-            CFBundleIdentifier=IDENTIFIER, CFBundleName="Nearpane interactive windows", CFBundleExecutable=EXE.name,
-            CFBundleVersion="1", LSUIElement=False, NSPrincipalClass="NSApplication", LSMinimumSystemVersion="26.0")))
-        flags = ["-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror", "-I", GESTURES.parent]
-        command("/usr/bin/xcrun", "clang", *flags, "-fsyntax-only", CORNER / "owner.m")
-        command("/usr/bin/xcrun", "clang", *flags, "-mmacosx-version-min=26.0", "-DNP_HOST_INTERACTIVE_FIXTURE=1",
-                CORNER / "owner.m", "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics",
-                "-lbsm", "-o", exe)
         signing = product_fingerprint(command("/usr/bin/security", "find-identity", "-v", "-p", "codesigning"))
-        command("/usr/bin/codesign", "--force", "--options", "runtime", "--timestamp=none", "--sign", signing, app)
-        signed = verify(app)
-        # A signed executable process, before NSApplication initialization; never open the .app via Launch Services here.
-        result = subprocess.run([str(exe), "--self-test"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=8)
-        tests = json.loads(result.stdout)
-        need(result.returncode == 0 and tests["status"] == "PASS" and tests["cdhash"] == signed["cdhash"] and
-             tests["windowCount"] == 0 and tests["appKitApplicationInitialized"] is False,
-             "headless signed fixture regression failed: " + json.dumps({"exit": result.returncode,
-                "application": tests["appKitApplicationInitialized"], "windows": tests["windowCount"], "status": tests["status"],
-                "sameHash": tests["cdhash"] == signed["cdhash"], "failedChecks": [k for k, v in tests["checks"].items() if not v]}))
+        command("/usr/bin/xcrun", "clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror", "-I", GESTURES.parent,
+                "-fsyntax-only", CORNER / "owner.m")
+        signed, tests = build_owner(kit, False, signing)
+        bystander, bystander_tests = build_owner(kit, True, signing)
         receipt = {"schema": 1, "status": "PASS", "scope": "signedFixtureBuildAndHeadlessReceiverTests",
                    "gitBase": command("git", "-C", ROOT, "rev-parse", "HEAD").strip(),
                    "sourceSHA256": {str(p.relative_to(ROOT)): digest(p) for p in SOURCES},
+                   "bystander": bystander, "bystanderTests": bystander_tests,
                    "osBuild": command("sw_vers", "-buildVersion").strip(), "signature": signed, "tests": tests,
                    "hostedOriginalOwnerCompile": "PASS", "launchServicesOpen": "NOT_RUN",
                    "ordinaryWindowsAndAppKitInput": "NOT_RUN", "realHostHideSiblingRestore": "NOT_RUN",
@@ -129,7 +146,7 @@ def build():
         raise
 
 
-def prepare(kit, challenge):
+def prepare(kit, challenge, *, bystander=False):
     private(kit)
     need(bool(re.fullmatch(r"nearpane-interactive-kit\.[a-z0-9_]{8}", kit.name)), "unrecognized build kit")
     need(str(uuid.UUID(challenge)) == challenge, "expected a canonical existing membership challenge")
@@ -139,16 +156,17 @@ def prepare(kit, challenge):
     need(stat.S_ISREG(origin.st_mode) and origin.st_nlink == 1 and origin.st_uid == os.getuid() and
          not origin.st_mode & 0o022 and 0 < origin.st_size < 65536, "unverified build receipt")
     manifest = json.loads((kit / "build.json").read_bytes())
-    expected = verify(kit / APP)
-    need(manifest["status"] == "PASS" and manifest["signature"] == expected and
-         manifest["tests"]["cdhash"] == expected["cdhash"], "kit fingerprint mismatch")
-    dest = session / APP
+    name = BYSTANDER_APP if bystander else APP
+    expected = verify(kit / name)
+    need(manifest["status"] == "PASS" and manifest["bystander" if bystander else "signature"] == expected and
+         manifest["bystanderTests" if bystander else "tests"]["cdhash"] == expected["cdhash"], "kit fingerprint mismatch")
+    dest = session / name
     dest.mkdir(mode=0o700)  # Exclusive reservation; never replace a running or previously enrolled fixture.
     # A failed copy leaves this reservation in place. A second session cannot overwrite it.
-    command("/usr/bin/ditto", kit / APP, dest)
+    command("/usr/bin/ditto", kit / name, dest)
     need(verify(dest) == expected, "staged executable fingerprint mismatch")
     return {"schema": 1, "status": "PREPARED", "challenge": challenge, "bundle": str(dest), "signature": expected,
-            "arguments": ["--interactive-fixture", challenge], "socket": str(session / "interactive.sock"), "launched": False}
+            "arguments": ["--interactive-fixture", challenge], "socket": str(session / ("bystander.sock" if bystander else "interactive.sock")), "launched": False}
 
 
 def main():

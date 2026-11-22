@@ -27,7 +27,10 @@ typedef struct {
 @public
   NPInstalledSubject subject;
   int channel, owner;
-  BOOL panelOnly;
+  BOOL panelOnly, interactive;
+  uint64_t interactiveHome;
+  NSString *expectedID, *expectedHash;
+  NSArray<NPInstalledFixture *> *protectedWindows;
   NSString *executable;
   pid_t front;
   uint64_t frontBirth;
@@ -159,10 +162,10 @@ static BOOL fixtureImagePath(NPInstalledFixture *s) {
   NSRunningApplication *app = [NSRunningApplication
       runningApplicationWithProcessIdentifier:s->subject.pid];
   if (birth(s->subject.pid) != s->subject.birth || !app || app.terminated ||
-      app.active ||
+      (app.active && ![s->expectedID isEqual:@"com.holdsnow.nearpane.stage-interactive-bystander"]) ||
       app.activationPolicy != NSApplicationActivationPolicyRegular ||
       ![app.bundleIdentifier
-          isEqual:@"com.holdsnow.nearpane.engine-fixture.a"] ||
+          isEqual:(s->expectedID ?: @"com.holdsnow.nearpane.engine-fixture.a")] ||
       !app.executableURL ||
       !realpath(app.executableURL.fileSystemRepresentation, bundlePath) ||
       proc_pidpath(s->subject.pid, raw, sizeof(raw)) <= 0 ||
@@ -182,12 +185,13 @@ static BOOL signedFixture(NPInstalledFixture *s) {
           URLByDeletingLastPathComponent] URLByDeletingLastPathComponent];
   NSDictionary *attr =
       @{(__bridge NSString *)kSecGuestAttributePid : @(s->subject.pid)};
+  NSString *identifier = s->expectedID ?: @"com.holdsnow.nearpane.engine-fixture.a";
+  NSString *requirement = [NSString stringWithFormat:
+      @"anchor apple generic and identifier \"%@\" and certificate leaf[subject.OU] = \"ZB9D4T66QB\" "
+       "and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate 1[field.1.2.840.113635.100.6.2.6] exists",identifier];
   BOOL ok =
       SecRequirementCreateWithString(
-          CFSTR("anchor apple generic and identifier "
-                "\"com.holdsnow.nearpane.engine-fixture.a\" and certificate "
-                "leaf[subject.OU] = \"ZB9D4T66QB\" and certificate "
-                "leaf[field.1.2.840.113635.100.6.1.13] exists"),
+          (__bridge CFStringRef)requirement,
           kSecCSDefaultFlags, &rule) == errSecSuccess &&
       SecCodeCopyGuestWithAttributes(NULL, (__bridge CFDictionaryRef)attr, 0,
                                      &guest) == errSecSuccess &&
@@ -213,7 +217,7 @@ static BOOL signedFixture(NPInstalledFixture *s) {
     char hex[41] = {0};
     for (unsigned j = 0; j < 20; j++)
       snprintf(hex + j * 2, 3, "%02x", bytes[j]);
-    ok = ok && [enrolledFixtureCDHash
+    ok = ok && [(s->expectedHash ?: enrolledFixtureCDHash)
                    isEqualToString:[NSString stringWithUTF8String:hex]];
   }
   if (disk)
@@ -250,7 +254,9 @@ static BOOL documentGeometry(AXUIElementRef element, CGRect *result) {
     *result = (CGRect){point, extent};
   return ok;
 }
+static BOOL interactiveRoster(NPInstalledFixture *s, BOOL hiddenAllowed);
 static BOOL singleRegisteredDocument(NPInstalledFixture *s, BOOL permitEmpty) {
+  if (s->interactive) return interactiveRoster(s,permitEmpty);
   AXUIElementRef app = AXUIElementCreateApplication(s->subject.pid);
   CFIndex count = 0;
   CFArrayRef windows = NULL;
@@ -291,7 +297,8 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
         return 19;
       if (NSProcessInfo.processInfo.systemUptime >= s->expires ||
           !fileAbsent(s->channel, "abort") || (!s->panelOnly &&
-          (!fileAbsent(s->owner, "stop") || !fileAbsent(s->owner, "owner-closed.json"))))
+          (!fileAbsent(s->owner, "stop") || !fileAbsent(s->owner, "owner-closed.json") ||
+           (s->interactive && (!fileAbsent(s->owner,"interactive-closed.json") || !fileAbsent(s->owner,"bystander-closed.json"))))))
         return 13;
       if (!AXIsProcessTrusted())
         return 3;
@@ -348,6 +355,8 @@ int32_t np_stage_fixture_same(void *token, void *candidate,
     }
   }
 }
+#import "installed-interactive.inc"
+
 static BOOL registerFixtureWindow(NPInstalledFixture *s, NSString *idString, uint32_t *bits, uint32_t *reason) {
   NSString *owner = [@"/private/tmp/nearpane-membership."
       stringByAppendingString:idString];
@@ -433,7 +442,8 @@ void *np_stage_fixture_enroll(const uint8_t nonce[16], uint32_t panelOnly, NPIns
       if (!me || me.active ||
           me.activationPolicy != NSApplicationActivationPolicyProhibited)
         return NULL;
-      NSArray *options = s->panelOnly ? @[@"--private-receipt", @"--installed-spaces-canary"]
+      s->interactive = !s->panelOnly && [args containsObject:@"--interactive-spaces-cycle"];
+      NSArray *options = s->interactive ? @[@"--private-receipt", @"--interactive-spaces-cycle"] : s->panelOnly ? @[@"--private-receipt", @"--installed-spaces-canary"]
           : @[@"--private-receipt", @"--await-registered-window", @"--enrolled-spaces-cycle"];
       if (args.count != options.count + 3 || ![args[1] isEqual:@"--read-stage-engine-scope"] ||
           ![[[NSUUID alloc] initWithUUIDString:args[2]] isEqual:[[NSUUID alloc] initWithUUIDBytes:nonce]] ||
@@ -446,6 +456,8 @@ void *np_stage_fixture_enroll(const uint8_t nonce[16], uint32_t panelOnly, NPIns
       if (s->panelOnly) {
         if (!fileAbsent(s->channel, "fixture.json")) return NULL;
         s->expires = NSProcessInfo.processInfo.systemUptime + 12;
+      } else if (s->interactive) {
+        if (!registerInteractiveWindows(s,idString,bits,reason)) return NULL;
       } else if (!registerFixtureWindow(s, idString, bits, reason)) {
         return NULL;
       }

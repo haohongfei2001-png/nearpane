@@ -64,7 +64,7 @@ private struct DeliveryIntent: Codable {
     let all = pair + other, target = pair[0]
     guard let before = try await sample(all,root:root), before.cg.count == 3, before.axFrames == before.cg,
           let frame = before.cg[target.id], try await takeFocus(target), focused(target) else { try save("exactFocusOrGeometryUnavailable"); return }
-    let nonce = UUID(), intent = DeliveryIntent(nonce:nonce, source:getpid(), tag:Int64.random(in:1...Int64.max), character:"v")
+    let nonce = UUID(), intent = DeliveryIntent(nonce:nonce, source:getpid(), tag:Int64.random(in:1...Int64.max), character:nonce.uuidString.lowercased())
     try JSONEncoder().encode(intent).write(to:root.appendingPathComponent("delivery-intent.json"),options:.withoutOverwriting)
     receipt["nonce"] = nonce.uuidString
     receipt["sourcePID"] = getpid()
