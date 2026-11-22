@@ -1,10 +1,16 @@
 # 当前安装与专项状态
 
-## 2026-11-22 · StageGroup 单窗口调度
+## 2026-11-22 · 单版本正式安装与首次面板往返
+
+macOS 27.0（26A428）、SIP 开启的实体机已直接升级至 5.22（90），原生源码 `bec6cb2`。最终唯一登记与运行的 App 为 `/Applications/Nearpane.app`，PID 32364，四项权限由该进程自读均为允许。历史普通窗口按当前几何原样归档，活动租约为零，配置摘要相同。 [最终运行回执](../verification/window-engine/single-version-26A428/15-final-regular-host.json)
+
+正式 Host `9509bd0` 在普通桌面 4 上创建临时 Space 5643、自有面板迁入迁回、关闭面板并销毁临时 Space，16 条日志及系统读回通过。较早的系统桌面准备试验未能恢复原先通知窗口的前台。现版 `bec6cb2` 以稳定的普通前台窗核对 Mission Control。在其验收时段，实体机保持原生全屏，桌面条为 **BLOCKED**。第三方窗、Corner 停放和 Guardian 恢复均为 **NOT_RUN**。生产资格 **0/2**；整组、10/50 次及性能对照待验。 [实机分项与失败记录](../verification/window-engine/single-version-26A428/RESULTS.md) · [机器总表](../verification/window-engine/single-version-26A428/14-target-qualification.json)
+
+## 2026-11-22 · 早期隔离候选的单窗口调度
 
 5.22（90）源码 `4a84113` 已接入 Spaces 的面板操作日志、独立桌面清单和 Mission Control 可见桌面核对，以及 Corner 的逐显示器裁片、真实事件接收者和 Guardian 解除租约核对。26A428 实体机的本机源码回归、Host 与 Guardian 严格验签通过。日常 Host PID 59938 占用标准安装的单实例，隔离签名候选停在只读预检。两后端实机单窗口资格 **BLOCKED**，生产资格 **0/2**，整组及 10/50 次均为 **NOT_RUN**。 [结果、失败记录和签名](../verification/window-engine/single-window-witnesses/RESULTS.md)
 
-## 正式 Host 单窗口资格
+## 早期隔离候选的正式 Host 单窗口资格
 
 5.22（90）的生产后端资格仍为 **0/2**。目标机 26A428、SIP 开启。修正后的引擎连续两次读到相同的桌面清单及全屏记录。正式候选与日常 Host 使用同一个单实例标识，当前控制台的标准路径已有日常实例运行。Spaces 自有面板、签名第三方窗口和 Corner 的真实鼠标及 Guardian 验收均为 **BLOCKED**。整组和 10/50 次测试为 **NOT_RUN**。 [本轮结果和机器收据](../verification/window-engine/single-window-isolation/RESULTS.md)
 

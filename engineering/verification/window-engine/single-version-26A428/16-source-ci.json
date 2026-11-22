@@ -1,0 +1,33 @@
+{
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "checks": [
+    {
+      "conclusion": "success",
+      "databaseId": 45013218835,
+      "headSha": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "status": "completed",
+      "updatedAt": "2026-11-22T10:39:42Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45013218835",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 45013218748,
+      "headSha": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "status": "completed",
+      "updatedAt": "2026-11-22T10:41:53Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45013218748",
+      "workflowName": "Nearpane native 5.22 protocol"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 45013218743,
+      "headSha": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "status": "completed",
+      "updatedAt": "2026-11-22T10:44:45Z",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45013218743",
+      "workflowName": "Embedded tool integration"
+    }
+  ],
+  "physicalWindowQualification": false
+}
