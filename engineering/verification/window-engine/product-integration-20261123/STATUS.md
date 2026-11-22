@@ -16,3 +16,5 @@
 | 生产侧栏 A→B→C→A、10/50 次、与 Apple 的速度对照 | NOT_RUN | 先取得至少一个后端的真实单窗口隔离、输入和恢复证据。 |
 
 下一个实机动作是在普通桌面和稳定前台窗口自然可用时采集一次新收据。`overview-witness --observe-only` 的独立普通桌面读回可供 `corner-readback` 使用，不需要先迁窗。写入路径由同一安装 Host 的完整 P0 读回和恢复责任约束。安全回退基准为标准路径中仍在运行的签名 `bec6cb2`，其签名与配置有历史实机回执。[单版本恢复基准](../single-version-26A428/15-final-regular-host.json)
+
+旧的 `ordinary-stage-fixture.py` 曾在只检查清理时给整次访问标记 PASS，还会为测试创建桌面。原入口现打印 BLOCKED 并退出。原实现逐字节保存，SHA-256 为 `9574e63abce0de7e63c61dd3b3e73988de5a2d6d1d6341e59c4694b7944110c6`。[历史源码](archived-ordinary-stage-fixture.py.txt)

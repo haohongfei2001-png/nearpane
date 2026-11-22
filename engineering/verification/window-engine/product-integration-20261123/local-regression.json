@@ -1,0 +1,25 @@
+{
+  "scope": "Offscreen SwiftPM product tests on macOS 27.0 26A428, working source at 2a7543d before interactive integration",
+  "firstSandboxedRun": {
+    "status": "FAIL",
+    "logSHA256": "9fa7528fb156066d42b1f298eec947336872cbe7baa864a00ceefa50cac29884",
+    "errors": [
+      "temporary file bookmark creation failed",
+      "CoreVideo pixel buffers unavailable",
+      "null NSPasteboard from native service"
+    ]
+  },
+  "nativeFrameworks": {
+    "status": "PASS",
+    "executed": 769,
+    "skipped": [
+      "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()",
+      "coldFileJournalAndIndependentReopen()",
+      "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord()"
+    ],
+    "failed": 0,
+    "xunit": "full-native.xml",
+    "sha256": "884db568402469751e0e6ead1636a82aca8d751be7d23496edf6e5e660b14151"
+  },
+  "physicalGroupWrites": "NOT_RUN"
+}

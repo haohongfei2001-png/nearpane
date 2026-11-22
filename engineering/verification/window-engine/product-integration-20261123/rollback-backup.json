@@ -1,0 +1,47 @@
+{
+  "scope": "privatePreQuitBackup",
+  "status": "PASS",
+  "recordedUTC": "2026-11-22T17:31:51.537239+00:00",
+  "canonicalApp": "/Applications/Nearpane.app",
+  "installed": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "engineABI": 1,
+    "hostSHA256": "488c61c412064a9894801ba6b888fb116f18aa9b005ff4b274f00bae442ef2b8"
+  },
+  "copyStrictSignatureVerified": true,
+  "equalSigningIdentity": true,
+  "sameConfiguration": true,
+  "items": {
+    "Nearpane.app": {
+      "present": true,
+      "verified": true
+    },
+    "profile-generations": {
+      "present": true,
+      "verified": true
+    },
+    "support": {
+      "present": true,
+      "verified": true
+    },
+    "install-recovery": {
+      "present": true,
+      "verified": true
+    },
+    "spaces-recovery": {
+      "present": true,
+      "verified": true
+    },
+    "preferences.plist": {
+      "present": true,
+      "verified": true
+    }
+  },
+  "windowActions": 0,
+  "quitRequests": 0
+}
