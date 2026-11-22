@@ -1,0 +1,423 @@
+{
+  "schema": 1,
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+  "sameInstalledHost": {
+    "pid": 32364,
+    "birthUS": 1795343882268848,
+    "installed": "/Applications/Nearpane.app"
+  },
+  "startedOnOrdinaryDesktopUTC": "2026-11-22T12:55:46.081+00:00",
+  "observationStoppedUTC": "2026-11-22T12:55:52.471+00:00",
+  "naturalIdleAdmission": {
+    "minimumIdleSeconds": 8,
+    "ordinarySeconds": 12.107910990715027,
+    "waitSeconds": 235.84787499904633
+  },
+  "currentDisplayAndDesktop": {
+    "displayID": 1,
+    "displayUUID": "uuid-1",
+    "active": 4,
+    "spaceUUID": "uuid-2",
+    "managed": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "uuid-2"
+      },
+      {
+        "id": 5568,
+        "type": 4,
+        "uuid": "uuid-3"
+      },
+      {
+        "id": 5661,
+        "type": 4,
+        "uuid": "uuid-6"
+      },
+      {
+        "id": 5184,
+        "type": 4,
+        "uuid": "uuid-4"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "uuid-5"
+      }
+    ],
+    "rawUUIDsRetainedPrivately": true
+  },
+  "missionControlDetection": {
+    "status": "PASS",
+    "before": {
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "pid": 32364,
+      "uptime": 411826.3872019167
+    },
+    "atIndependentRootArrival": {
+      "missionControlObservation": "signedDockMCIdentifier",
+      "missionControlPresented": 1,
+      "pid": 32364,
+      "uptime": 411826.78465387505
+    },
+    "whileSignedRootPresent": [
+      {
+        "missionControlObservation": "signedDockMCIdentifier",
+        "missionControlPresented": 1,
+        "pid": 32364,
+        "uptime": 411826.90972220834
+      },
+      {
+        "missionControlObservation": "signedDockMCIdentifier",
+        "missionControlPresented": 1,
+        "pid": 32364,
+        "uptime": 411827.70982733334
+      },
+      {
+        "missionControlObservation": "signedDockMCIdentifier",
+        "missionControlPresented": 1,
+        "pid": 32364,
+        "uptime": 411828.525990375
+      },
+      {
+        "missionControlObservation": "signedDockMCIdentifier",
+        "missionControlPresented": 1,
+        "pid": 32364,
+        "uptime": 411829.33403487504
+      },
+      {
+        "missionControlObservation": "signedDockMCIdentifier",
+        "missionControlPresented": 1,
+        "pid": 32364,
+        "uptime": 411830.141871
+      }
+    ],
+    "after": {
+      "pid": 32364,
+      "missionControlPresented": 0,
+      "missionControlObservation": "signedDockAXListWithoutMC"
+    },
+    "independentSignedDockClosure": [
+      {
+        "currentSpaceID": 4,
+        "dockBirth": 1794786957587871,
+        "dockPID": 697,
+        "signedDockRoot": "absentWithDockList",
+        "type": 0,
+        "utcUnix": 1795352176.040749
+      },
+      {
+        "currentSpaceID": 4,
+        "dockBirth": 1794786957587871,
+        "dockPID": 697,
+        "signedDockRoot": "absentWithDockList",
+        "type": 0,
+        "utcUnix": 1795352176.380275
+      }
+    ]
+  },
+  "visibleThumbnailCount": {
+    "status": "BLOCKED",
+    "managedCount": 5,
+    "measuredCount": null,
+    "uniqueAXDiagnostics": [
+      {
+        "levels": [
+          {
+            "APIs": [
+              {
+                "allDockOwned": true,
+                "count": 0,
+                "countRC": 0,
+                "directCount": 0,
+                "directKind": "array",
+                "directRC": 0,
+                "exactChildMatches": 0,
+                "key": "AXChildren",
+                "listed": true,
+                "uniqueCount": 0
+              },
+              {
+                "allDockOwned": true,
+                "count": 0,
+                "countRC": 0,
+                "directCount": 0,
+                "directKind": "array",
+                "directRC": 0,
+                "exactChildMatches": 0,
+                "key": "AXVisibleChildren",
+                "listed": false,
+                "uniqueCount": 0
+              },
+              {
+                "allDockOwned": true,
+                "count": 0,
+                "countRC": -25205,
+                "directCount": 0,
+                "directKind": "array",
+                "directRC": 0,
+                "exactChildMatches": 0,
+                "key": "AXChildrenInNavigationOrder",
+                "listed": false,
+                "uniqueCount": 0
+              },
+              {
+                "count": 0,
+                "countRC": -25205,
+                "directKind": "none",
+                "directRC": -25205,
+                "key": "AXContents",
+                "listed": false
+              },
+              {
+                "count": 0,
+                "countRC": -25205,
+                "directKind": "none",
+                "directRC": -25205,
+                "key": "AXRows",
+                "listed": false
+              },
+              {
+                "count": 0,
+                "countRC": -25205,
+                "directKind": "none",
+                "directRC": -25205,
+                "key": "AXGroups",
+                "listed": false
+              }
+            ],
+            "expected": "mc.display"
+          }
+        ],
+        "rootRole": "AXGroup",
+        "screenFrame": [
+          0,
+          0,
+          1470,
+          956
+        ]
+      }
+    ],
+    "observedError": "cannotResolve-mc.display",
+    "standardReaderSamples": 0,
+    "directReaderSamples": 0,
+    "scope": "The signed mc AXGroup returned empty children, visible children and navigation-order children. Contents, rows and groups returned AXError.attributeUnsupported. These values do not measure visible screen tiles."
+  },
+  "focus": {
+    "before": [
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      },
+      {
+        "birth": 1795273468353550,
+        "CGWindowID": 64019,
+        "matchedVisibleLayerZeroCGWindow": true,
+        "pid": 58776
+      }
+    ],
+    "sameAXObjectWithinBeforePair": true,
+    "immediatelyAfter": {
+      "signedRootAbsentSamples": 14,
+      "verifiedOriginalFocusedWindowSamples": 0
+    },
+    "nativeScopeAtInterruption": {
+      "id": 4,
+      "type": 0,
+      "unchanged": true
+    },
+    "HIDCounterChanged": [
+      "mouseMoved"
+    ],
+    "laterSamples": [
+      {
+        "utc": "2026-11-22T12:56:16.125+00:00",
+        "secondsAfterStopped": 23.654,
+        "focus": {
+          "birth": 1795273468353550,
+          "CGWindowID": 64019,
+          "matchedVisibleLayerZeroCGWindow": true,
+          "pid": 58776
+        },
+        "dockState": "closed"
+      },
+      {
+        "utc": "2026-11-22T12:56:16.290+00:00",
+        "secondsAfterStopped": 23.819,
+        "focus": {
+          "birth": 1795273468353550,
+          "CGWindowID": 64019,
+          "matchedVisibleLayerZeroCGWindow": true,
+          "pid": 58776
+        },
+        "dockState": "closed"
+      }
+    ],
+    "sameAXObjectWithinLaterPair": true,
+    "samePIDBirthCGWindowIDBeforeAndLater": true,
+    "uninterruptedPostDismissalFocus": "UNVERIFIED"
+  },
+  "spaceAccounting": {
+    "earlierBaselineFullIDs": [
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      17,
+      18,
+      19,
+      31,
+      38,
+      654,
+      5182,
+      5184,
+      5184,
+      5568,
+      5568,
+      5607,
+      5608
+    ],
+    "beforePresentationFullIDs": [
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      17,
+      18,
+      19,
+      31,
+      38,
+      654,
+      5182,
+      5184,
+      5184,
+      5568,
+      5568,
+      5607,
+      5608,
+      5661,
+      5661
+    ],
+    "twoLaterInventories": [
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608,
+        5661,
+        5661
+      ],
+      [
+        4,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        5182,
+        5184,
+        5184,
+        5568,
+        5568,
+        5607,
+        5608,
+        5661,
+        5661
+      ]
+    ],
+    "sameWithinThisPresentation": true,
+    "totalEntries": 24,
+    "uniqueSpaceIDs": 21,
+    "newSinceEarlierSession": [
+      {
+        "id": 5661,
+        "nativeType": 4,
+        "alreadyPresentBeforePresentation": true,
+        "fullInventoryOccurrences": 2
+      }
+    ],
+    "unmanagedSpaceDeltaFromEarlierBaseline": [],
+    "knownEarlierTestSpacesAbsent": [
+      5614,
+      5643
+    ],
+    "testSpaceCreations": 0,
+    "testSpaceDestructions": 0
+  },
+  "outcomes": {
+    "P0": "BLOCKED",
+    "P1ForeignOrdinaryWindow": "NOT_RUN",
+    "P1RunningHostReadiness": "sameProductInstanceRunning",
+    "P1PreflightReceipt": "18-running-host-fixture-readiness.json",
+    "P2SidebarABCA": "NOT_RUN",
+    "P2TenAndFifty": "NOT_RUN",
+    "P2PerformanceComparison": "NOT_RUN",
+    "corner": "NOT_RUN",
+    "spacesEngineVerdict": "UNDETERMINED",
+    "qualifiedBackends": 0,
+    "productionDefaultChanged": false
+  },
+  "actionsThisObservation": {
+    "systemOverviewPresentation": 1,
+    "systemOverviewDismissal": 1,
+    "hostRestarts": 0,
+    "installs": 0,
+    "selfPanelReruns": 0,
+    "fixtureLaunches": 0,
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "forcedSpaceSwitches": 0,
+    "postedInput": 0
+  },
+  "privateOriginalSHA256": {
+    "ordinary-direct.json": "6b927cc9ed3243381bc61efb51e2d72d89050fc06ba6e5db29a81546784553cc",
+    "direct-end-engine.json": "dbf85231d91a781020f45e6490462641b1d706466270714fab524499ce57f34d",
+    "direct-end-console.json": "78188fd2189e4a19c3c645ff88d306a78e2097b49d532cb12c64ca5aa71b446e",
+    "direct-end-host.json": "a62a90cb659eb3b95650cc512d158618cfe8b02ae61f64fa78fca694b6bd43ff",
+    "direct-end-dock.json": "d9b5e91abd6f92f3946ff3a6ae1c09c97704c502fc0b1e0850dbda06152ea3f1",
+    "ordinary-protocol.swift": "3fbeffea34a20ed4ac97d5efb522d6031b6ebd9c69507785190008755445d6b2",
+    "ordinary-protocol": "21f6e1fa5416c789c805635a453d3dbaaffbcf9723de2fb1ba5aeaad58361b87",
+    "dock-attributes.swift": "bca22450b449c77e82b011c9c59701ab3a95d345aee09c502d4769b858252551"
+  }
+}
