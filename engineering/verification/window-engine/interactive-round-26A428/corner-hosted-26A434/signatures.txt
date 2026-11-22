@@ -1,0 +1,20 @@
+Identifier=com.holdsnow.nearpane.engine-fixture
+CDHash=332664f3b9f7e6ce7e3e8c5833575fcec10ed4b3
+Signature=adhoc
+TeamIdentifier=not set
+Identifier=com.holdsnow.nearpane.engine-guardian.fixture
+CDHash=57ce231f1e21fe8027c45b65b37f5025826ade58
+Signature=adhoc
+TeamIdentifier=not set
+Identifier=com.holdsnow.nearpane.engine-fixture.a
+CDHash=749d37efc84f094a5bfb581413c729176d922534
+Signature=adhoc
+TeamIdentifier=not set
+Identifier=com.holdsnow.nearpane.engine-fixture.b
+CDHash=506860983e7ba95d3cbf574a6296c945b9c816da
+Signature=adhoc
+TeamIdentifier=not set
+arm64
+27.0.1
+26A434
+5f2e1f8baf3ac5a09e4b2cdf54cb63bc92a11f33

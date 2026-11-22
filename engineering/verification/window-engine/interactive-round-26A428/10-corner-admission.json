@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "p0RequiredBeforeQuit",
+      "utc": "2026-11-22T22:11:07.749841+00:00"
+    }
+  ],
+  "status": "BLOCKED",
+  "scope": "corner-readback",
+  "qualification": "BLOCKED",
+  "p0Reason": "physicalEvidenceOrHostBindingIncomplete",
+  "p0SHA256": "bf8c7a45c7640d7aa444ae5fe109d334ecf3bcd2de7f43f39e6833601c852da2",
+  "quitRequests": 0,
+  "stage": "p0RequiredBeforeQuit"
+}

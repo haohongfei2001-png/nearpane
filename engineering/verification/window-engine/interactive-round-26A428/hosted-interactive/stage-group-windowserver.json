@@ -1,0 +1,258 @@
+{
+  "status": "PASS",
+  "profileRemoved": true,
+  "installedHost": "NOT_RUN",
+  "groupVisibilitySwitch": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN",
+  "nativeWrites": 0,
+  "sourceRevision": "b77111458e18d354d456304efd5c8317e1277104",
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "2CFFA85D-6329-4281-A28B-1F40B5E8DE21",
+      "48F45871-D8E8-4420-80AE-63047B33F462"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 12629,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "2CFFA85D-6329-4281-A28B-1F40B5E8DE21",
+      "48F45871-D8E8-4420-80AE-63047B33F462"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 12630,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "interactiveDelivery": {
+    "captureRegion": [
+      20,
+      236,
+      400,
+      132
+    ],
+    "cornerParking": "NOT_RUN",
+    "geometry": [
+      {
+        "frame": [
+          20,
+          236,
+          140,
+          132
+        ],
+        "id": 133,
+        "owner": 12625
+      },
+      {
+        "frame": [
+          120,
+          236,
+          140,
+          132
+        ],
+        "id": 134,
+        "owner": 12625
+      },
+      {
+        "frame": [
+          280,
+          236,
+          140,
+          132
+        ],
+        "id": 132,
+        "owner": 12626
+      }
+    ],
+    "host": "NOT_RUN",
+    "nonce": "E923C048-C70E-4394-BC28-4ED6FF90DD55",
+    "owners": [
+      {
+        "birth": 1795386521321949,
+        "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+        "identifier": "net.example.nearpane.stage-group-a",
+        "numbers": [
+          133,
+          134
+        ],
+        "onActiveSpace": true,
+        "pid": 12625
+      },
+      {
+        "birth": 1795386521484058,
+        "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+        "identifier": "net.example.nearpane.stage-group-b",
+        "numbers": [
+          132
+        ],
+        "onActiveSpace": true,
+        "pid": 12626
+      }
+    ],
+    "productionQualified": false,
+    "reason": "targetConsumedGestureAndWroteUniqueDocument",
+    "receivers": [
+      {
+        "documentExists": true,
+        "events": [
+          "down",
+          "drag",
+          "up",
+          "keyDown",
+          "keyUp"
+        ],
+        "exactMarker": true,
+        "owner": 12625,
+        "window": 133,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 12625,
+        "window": 134,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 12626,
+        "window": 132,
+        "writeError": false
+      }
+    ],
+    "recordingExitedSuccessfully": true,
+    "sameFocusGeometryAndGenerations": true,
+    "scope": "isolatedHostedWindowServer",
+    "screenCapturePreflight": true,
+    "sourcePID": 12631,
+    "spacesMigration": "NOT_RUN",
+    "status": "PASS",
+    "submitted": 5,
+    "systemBuild": "Version 26.7.2 (Build 25G332)",
+    "target": 133
+  },
+  "deliveryMedia": {
+    "screen": "PASS",
+    "video": "PASS",
+    "pixels": [
+      400,
+      132
+    ],
+    "seconds": 3.0533333333333332
+  },
+  "singleWindowVisibility": {
+    "identity": "retained AX object and owner-assigned AX identifier bound to its declared CGWindowID",
+    "nativeMembership": "UNKNOWN",
+    "naturalKeyboardInput": "NOT_RUN",
+    "park": {
+      "focusObservation": {
+        "frontProcessUnchanged": true,
+        "siblingKeyUnchanged": false,
+        "targetKeyUnchanged": false
+      },
+      "independentSamples": 2,
+      "observed": {
+        "restoredPresentation": true,
+        "siblingAndOtherApp": true,
+        "targetAppKit": true,
+        "targetAX": true,
+        "targetCG": true
+      },
+      "status": "PASS"
+    },
+    "parkSetter": 0,
+    "profileChanges": 0,
+    "reason": "singleAttributeRoundTripObserved",
+    "restore": {
+      "focusObservation": {
+        "frontProcessUnchanged": true,
+        "siblingKeyUnchanged": true,
+        "targetKeyUnchanged": true
+      },
+      "independentSamples": 2,
+      "observed": {
+        "restoredPresentation": true,
+        "siblingAndOtherApp": true,
+        "targetAppKit": true,
+        "targetAX": true,
+        "targetCG": true
+      },
+      "status": "PASS"
+    },
+    "restoreIdentity": {
+      "dispatchAvailable": true,
+      "listedIdentifierMatches": 1,
+      "listedSameObject": true,
+      "originalEnumerationRoute": false,
+      "ownerAndAXAgreeOnState": true,
+      "ownerConfirmedSameNumber": true,
+      "ownerGeneration": true,
+      "retainedAXOwner": true,
+      "retainedIdentifierMatches": true,
+      "retainedIdentifierPresent": true,
+      "windowListReadable": true
+    },
+    "restoreSetter": 0,
+    "scope": "one enrolled foreign window, one same-owner sibling, one other-app bystander",
+    "setRequests": 2,
+    "status": "PASS",
+    "wholeGroupSwitch": "NOT_RUN"
+  },
+  "fixtureProcessesExited": true
+}

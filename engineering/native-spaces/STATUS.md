@@ -1,5 +1,9 @@
 # 当前安装与专项状态
 
+## 2026-11-23 · 三扇真实交互窗口与正式 Host
+
+5.22（90）私有候选源码为 `b771114`。隔离 Mac 上，WindowServer 将完整鼠标手势及键盘标记送到目标窗口 133，另两扇同应用及跨应用窗口均为零收件、零文档。候选已把三窗身份、旁窗保护、输入和恢复读回接入现有正式 Spaces 单次迁移入口。26A428 实体机仍为原生全屏，末轮缺少可交还的普通 AX 前台窗口，正式登记、Spaces 和 Corner 三项准入均为 **BLOCKED**。唯一日常 Host 四项权限有效、配置一致、活动租约为零。两种后端的生产资格为 **0/2**，整组和 10/50 次均为 **NOT_RUN**。[分项状态、实录与原始失败](../verification/window-engine/interactive-round-26A428/STATUS.md) · [机器总表](../verification/window-engine/interactive-round-26A428/qualification.json)
+
 ## 2026-11-23 · 窗口调度、布局及实机准入
 
 5.22（90）的私有签名候选为 `4701693`。14 个可执行文件均有加固运行时和安全时间戳，Gatekeeper 判定未公证。当前安装的正式 Host `bec6cb2` 四项权限通过，活动租约为零。目标机处于原生全屏，缺少可交还的普通窗口焦点，第三方窗口测试在退出 Host 前停止。调度事务、组内布局、历史预览和托盘语音生命周期已修复并做了离屏回归。生产合格后端为 0/2。[本轮状态、复现与恢复入口](../verification/window-engine/product-integration-20261123/STATUS.md)

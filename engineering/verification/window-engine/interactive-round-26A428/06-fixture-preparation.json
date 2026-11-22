@@ -1,0 +1,18 @@
+{
+  "applicationLaunches": 0,
+  "realInputAndWindowRestoration": "NOT_RUN",
+  "realLaunchServicesOpen": "NOT_RUN",
+  "schema": 1,
+  "scope": "isolatedSignedClonePreparationAndApplicationMetadata",
+  "stagedCDHash": "c5d6a238ce6c7bc504a6b536f41ef60c01527d6b",
+  "stagedMatchingMachOSHA256": "28c415bf7ac656d800ac28e5625f320d006565deb0ebc96c92424ea48ca9f0d9",
+  "status": "PASS",
+  "systemFileURLMetadata": {
+    "identifier": "com.holdsnow.nearpane.stage-interactive-fixture",
+    "isApplication": "true",
+    "isDirectory": "true",
+    "type": "com.apple.application-bundle"
+  },
+  "testCount": 6,
+  "testSourceSHA256": "7f747833bebd1f244140571d14aac6e44ba7894c6e5157b718b54b841e897e07"
+}

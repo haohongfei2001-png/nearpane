@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "scope": "signedHostInteractiveWindowQualification",
+  "product": "Nearpane",
+  "version": "5.22",
+  "build": 90,
+  "date": "2026-11-23",
+  "pullRequest": {
+    "number": 15,
+    "branch": "codex/r4-native-candidate-20261120",
+    "draft": true,
+    "startingHead": "1c789f6a4c74d55b1d0eb3f39f7107e5725aa0cc",
+    "previousProductSource": "4701693f132759bc16c96b7c4d67d015d3096ef4",
+    "testedProductSource": "b77111458e18d354d456304efd5c8317e1277104"
+  },
+  "target": {
+    "version": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "sip": "System Integrity Protection status: enabled.",
+    "physical": true,
+    "ordinaryDesktopAdmission": "BLOCKED",
+    "initialNativeSpace": {
+      "reason": "fullscreenType4",
+      "status": "BLOCKED"
+    },
+    "finalNativeSpace": {
+      "reason": "fullscreenType4",
+      "status": "BLOCKED"
+    },
+    "initialFocusedWindow": 33546,
+    "finalFocusReason": "originalFocusUnavailable",
+    "sameGenerationAcrossScopeReads": true,
+    "windowWrites": 0,
+    "spaceWrites": 0
+  },
+  "installedHost": {
+    "canonicalExecutable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "pid": 32364,
+    "birth": 1795343882268848,
+    "unique": true,
+    "permissions": {
+      "screenCapture": true,
+      "accessibility": true,
+      "postEvent": true,
+      "listenEvent": true
+    },
+    "sameConfiguration": true,
+    "sameProfileIndex": true,
+    "activeLeases": 0,
+    "quitRequests": 0
+  },
+  "targetInteractiveRoster": {
+    "supervisor": "BLOCKED",
+    "hostRegistration": "NOT_RUN",
+    "windowCountDispatched": 0,
+    "evidence": "08-roster-admission.json"
+  },
+  "backends": {
+    "spaces": {
+      "targetAdmission": "BLOCKED",
+      "formalHostSingleInteractiveWindowHideRestore": "NOT_RUN",
+      "interactiveNativeMembership": "NOT_RUN",
+      "parkedAndRestoredSystemInput": "NOT_RUN",
+      "cleanupAfterLiveMigration": "NOT_RUN",
+      "reason": "passiveObservationWithoutPresentation",
+      "productionQualified": false,
+      "evidence": "09-spaces-admission.json"
+    },
+    "corner": {
+      "targetReadbackAdmission": "BLOCKED",
+      "formalHostSingleInteractiveWindowHideRestore": "NOT_RUN",
+      "parkedDownDragUpIsolation": "NOT_RUN",
+      "positiveGuardianLease": "NOT_RUN",
+      "crashTakeoverAndRecovery": "NOT_RUN",
+      "productionQualified": false,
+      "hostedAttempt": {
+        "build": "26A434",
+        "status": "BLOCKED",
+        "reason": "currentOrdinaryUUIDUnavailableOrContradictory",
+        "singleTrials": 0
+      },
+      "signedGuardianUnownedRequest": {
+        "result": "PASS",
+        "exit": 3,
+        "ackBytes": 0
+      },
+      "historicalMask": {
+        "status": "FAIL",
+        "reason": "parkedWindowReceivedRealMouseDown",
+        "evidence": "../../stage-groups/5.22-90/isolation/qualification/corner.json"
+      },
+      "evidence": "10-corner-admission.json"
+    }
+  },
+  "hostedSystemInput": {
+    "system": "Version 26.7.2 (Build 25G332)",
+    "source": "b77111458e18d354d456304efd5c8317e1277104",
+    "status": "PASS",
+    "through": "globalSessionWindowServer",
+    "responders": [
+      {
+        "documentExists": true,
+        "events": [
+          "down",
+          "drag",
+          "up",
+          "keyDown",
+          "keyUp"
+        ],
+        "exactMarker": true,
+        "owner": 12625,
+        "window": 133,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 12625,
+        "window": 134,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 12626,
+        "window": 132,
+        "writeError": false
+      }
+    ],
+    "focusGeometryGenerationsMatch": true,
+    "fixtureProcessesExited": true,
+    "profileRemoved": true,
+    "media": {
+      "screen": "PASS",
+      "video": "PASS",
+      "pixels": [
+        400,
+        132
+      ],
+      "seconds": 3.0533333333333332
+    },
+    "installedProductionHost": "NOT_RUN",
+    "lifecycle": "PASS",
+    "evidence": "hosted-interactive/stage-group-windowserver.json"
+  },
+  "tests": {
+    "physicalOffline": {
+      "status": "PASS",
+      "cases": 786,
+      "passed": 783,
+      "failed": 0,
+      "skipped": [
+        "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord()",
+        "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()",
+        "coldFileJournalAndIndependentReopen()"
+      ]
+    },
+    "engineCI": {
+      "status": "PASS",
+      "executionBuild": "26A434",
+      "checks": 18,
+      "rustPassed": 108,
+      "swiftPassed": 118,
+      "productionABI": "PASS"
+    },
+    "nativeCI": "16-native-workflow.json",
+    "engineWorkflow": "17-engine-workflow.json"
+  },
+  "productQualification": {
+    "qualifiedBackends": 0,
+    "productionBackendSelected": false,
+    "groupCycleABCAndReturn": "NOT_RUN",
+    "stability10": "NOT_RUN",
+    "stability50": "NOT_RUN",
+    "appleStageManagerComparison": "NOT_RUN"
+  },
+  "privateCandidate": {
+    "archive": "Nearpane-5.22-90-b7711145-arm64.zip",
+    "sha256": "28c9e169ad3fc527be53fcf037cd8c571eeaf4f2ae879dacbd133d9b7cda72dc",
+    "cdhash": "b370a4d032689fd555e079d88518c575e76487db",
+    "signatureVerification": "PASS",
+    "gatekeeper": {
+      "status": "FAIL",
+      "exitCode": 3,
+      "readback": "Nearpane.app: rejected\nsource=Unnotarized Developer ID"
+    },
+    "notarization": "NOT_RUN",
+    "installedOrLaunched": "NOT_RUN",
+    "fixtureKit": "Nearpane-5.22-90-b7711145-interactive-fixtures.zip",
+    "published": false
+  },
+  "evidenceSHA256": {
+    "01-passive-scope.json": "cc2d8312e4a880bfc01acebaf14c8dccadb8bc9e4a4da5386c77704c760f5110",
+    "02-canonical-host.json": "6051734f941cc222dc25842eaa9b379ed02969e91cb2dc3d8c883f01a791ce05",
+    "03-isolation-environment.json": "f07b7b6ded1c3868316c507cefc95b42f23304b95de0ea265e8130c3205318a0",
+    "04-hosted-windowserver.json": "24a7ab2a79ab82eaa9efc2c4020f1e27183ac92f44d6b1ebb8431264643ac723",
+    "05-signed-fixtures.json": "da54dcb7b1156ab89fc032572f2f53c9e781cddac47bfd8d3c549c4518b01692",
+    "06-fixture-preparation.json": "2794d50b83cc73cffd9bc1e0d5c600bd5a56a5a1bdb6b8cc89308f695978a61c",
+    "07-final-physical-readback.json": "bf8c7a45c7640d7aa444ae5fe109d334ecf3bcd2de7f43f39e6833601c852da2",
+    "08-roster-admission.json": "dc5078406016b312494fea3d861190938fec86f284b74b87661ac92a13acc5c2",
+    "09-spaces-admission.json": "3d763538d1dcc7ec695fdb164e324334db8073301c8bf9ab79a4a2a0f02fef3e",
+    "10-corner-admission.json": "b011194ea6bb62bd65cf0d2817c8a3e8f8d3d653912ba8a9457ac167297e185b",
+    "11-host-and-config-after.json": "ec68f0ceb047ee62523cc05b21122f4b48c701ec55691a8e724c873fd1f701c0",
+    "12-physical-offline-engine.json": "f6c341e3d7a90d22c461d107ceec17bb509bebe0c49db8b0a1d196eb4cc450ea",
+    "13-full-native-summary.json": "e9d17399b4a877788018588bac0664305b7b2b05aa5b27f4e5d59eda5913b9f7",
+    "13-full-native.xml": "6b0894b727f1aefed121178d5319f89313a9a51eb691556ec0d8c267a2f2917a",
+    "14-hosted-uuid-document.json": "1204949108a043d21e05a1931f812c6c07e9e496cfee2a62e892af43fcb378b4",
+    "15-engine-ci.json": "a65cfaf83cf6c7d61a9f1cecf38a74d797d0abcef3db4a0a5ab34e44d9dd925d",
+    "16-native-workflow.json": "012b85d74dd72ca5db9b378af2f3ef4a8704a723b051d9ea7a4cd7f50dcd308c",
+    "17-engine-workflow.json": "bfcbfc7e975bc30db3e57fa8f4c1ab5c4367741338223805ee4e7beba1e26cd6",
+    "corner-hosted-26A434/build.log": "5cf221e86eac5a3dbf88c0fc3c03520e5b2ef2ccafad4c5b0c01f7cd3a1cc3d8",
+    "corner-hosted-26A434/events.jsonl": "e4c2de4398699b305f8e6a0536384cb40a3a2cbce030dc46f7c60647c41274e4",
+    "corner-hosted-26A434/result.json": "356639f3231d3dd0aed3b8572595a18ee511ac71c18fa5d8825b7940e2aa4681",
+    "corner-hosted-26A434/signatures.txt": "49836ad80a6b8ffdf3594740b8b5e615ec4023b6a005d777e213d23ba133d87f",
+    "engine-ci-logs.zip": "0d68ce2ffdf4c95e50a054abe90233cdd48fde132578d4bee860de472bc73b4f",
+    "fixture-kit-archive.json": "c5223e340c9857477599fa1697776df3821d59b097e8967d5d28558cf19a045c",
+    "guardian-unowned-request.json": "442970d48e765ed37ac7988e6ee6f9cf7652d37e2977cd060082900b64f033ed",
+    "hosted-interactive/real-input.mov": "ce877c658579e78474ec4d7a9579e880aeff1cfc07bff6b35ffcfe2a02a5619d",
+    "hosted-interactive/stage-group-lifecycle.json": "1bf41fa0df0a9743383caf71d3645c9523e1219f5bc412cdd830a99897469a3b",
+    "hosted-interactive/stage-group-windowserver.json": "1d3b01d877f15977d06274b8489565311215ca1947f24f8488707eaa2ad34a91",
+    "hosted-interactive/three-windows.png": "426b5bade954c903f8353aee7eba4122748b6daad282d79d8e1917bdbfeb4879",
+    "intermediate-builds/complete-bridge-swift.log": "b748111d349265a7abb5885cac1d6310889895410d47cd89ff0f926e3604bede",
+    "intermediate-builds/overview-witness-build.stderr.log": "addbb5c0832685a09517c06673afd864b6f3f4013cd84f11e14eccba54726afd",
+    "intermediate-builds/source-result.json": "deebe9dd1b011dd45aa83f41de6afd0019e45f5181b61254313fe1119aa8893c",
+    "signed-candidate.json": "d4bd8a05bc36c55a65794b7a3d7fea71a00a697c07b5be9ad16871ed863f875a"
+  }
+}
