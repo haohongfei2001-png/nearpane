@@ -674,6 +674,11 @@ def run(a, report):
     else:
         report.update(status="PASS", reason="oneHostOwnerAndTwoDirectionalHostReads")
     report["membershipStatus"] = report["status"]
+    if not a.enrolled_spaces_cycle:
+        guardian = observed.get("guardianIndependent") or {}
+        evidence = guardian.get("evidence") or {}
+        report["guardianReadback"] = {k: guardian.get(k) for k in ("status","reason","childExit","park","mayPark","crashRecovery")}
+        report["guardianReadback"]["temporaryRetention"] = evidence.get("temporaryRetention", "NOT_RUN")
     if a.enrolled_spaces_cycle and report.get("spacesCycleStatus") != "PASS":
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
 

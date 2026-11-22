@@ -51,6 +51,15 @@ def receipt():
 
 
 class AdmissionTests(unittest.TestCase):
+    def test_membership_observation_cannot_promote_either_backend(self):
+        trial = dict(status="PASS", guardianReadback={"status":"BLOCKED"}, thirdPartyMembershipRoundTrip="PASS",
+                     singleWindowHideRestore="NOT_RUN")
+        corner = stage.summarize_trial("corner-readback",trial)
+        self.assertEqual(corner["membershipReadback"],"PASS")
+        self.assertEqual(corner["guardianReadback"]["status"],"BLOCKED")
+        self.assertEqual(corner["qualification"],"NOT_RUN")
+        self.assertEqual(stage.summarize_trial("spaces",trial)["qualification"],"BLOCKED")
+
     def test_passive_read_admits_fixture_readback_only_without_prior_spaces_trial(self):
         r = receipt()
         focus = dict(uptime=100., workspacePID=8, birth=25, cgWindowID=41)

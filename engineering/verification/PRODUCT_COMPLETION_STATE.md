@@ -1,6 +1,12 @@
 # Nearpane 产品完成状态（持续维护入口）
 
-**当前安装版 5.22（90），源码 `365fdc4`。** 无可列窗口时工具下方留白。正式 Host 实测 0→2→0，窗口区三个状态均无独立桌面卡。原跨桌面能力继续逐项验收。[实测与签名候选](native-spaces/5.22-90-window-roster/RESULTS.md)
+## 2026-11-23 · 原生 StageGroup
+
+5.22（90）的唯一实机安装为 `bec6cb2`。本轮已复核四项 Host 权限、配置和零活动租约，并完成六项回滚资料的独立备份核对。Swift Host 持有产品事务，Rust 的 Corner、Spaces 各自等待正式单窗输入与恢复验收，生产合格后端为 0/2。窗口组逻辑、嵌入工具、签名候选与真实操作分别登记。[当前工程收据与恢复入口](window-engine/product-integration-20261123/STATUS.md) · [安装版备份](window-engine/product-integration-20261123/rollback-backup.json)
+
+## 此前的安装记录
+
+**5.22（90），源码 `365fdc4`。** 无可列窗口时工具下方留白。正式 Host 实测 0→2→0，窗口区三个状态均无独立桌面卡。原跨桌面能力继续逐项验收。[实测与签名候选](native-spaces/5.22-90-window-roster/RESULTS.md)
 
 **此前的 5.22（90），源码 `0777130`。** 系统权限在同签名换装后保留，正式安装版与隔离资料在单台物理 Mac 实测，核心验收保持 PARTIAL，候选仅在 Draft PR #15 内提供。[逐项结果、媒体与候选](native-spaces/5.22-90-installed-contract/RESULTS.md)
 

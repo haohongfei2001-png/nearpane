@@ -114,6 +114,7 @@ def main():
         "c-abi",
         "corner-witness-build",
         "corner-witness",
+        "interactive-fixture-build",
         "swift",
         "hosted-reader-build",
         "overview-witness-build",
@@ -190,6 +191,10 @@ def main():
                 "-framework", "AppKit", "-framework", "CoreGraphics", "-framework", "CoreFoundation",
                 "-framework", "ImageIO", "-o", witness]):
             run("corner-witness", [witness, work / "fixture.png"], lambda log: {"readback": json.loads(log)})
+        run("interactive-fixture-build", ["xcrun", "clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror",
+            "-mmacosx-version-min=26.0", "-DNP_HOST_INTERACTIVE_FIXTURE=1", "-I", CRATE / "src/corner",
+            ACCEPTANCE / "corner/owner.m", "-framework", "AppKit", "-framework", "Security", "-framework", "CoreGraphics",
+            "-lbsm", "-o", work / "interactive-fixture-compile-only"])
         archive = None
 
         def archive_result(log):

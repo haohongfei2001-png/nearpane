@@ -13,6 +13,22 @@ install, cycle, require = upgrade.install, upgrade.cycle, upgrade.require
 HERE = Path(__file__).resolve().parent
 
 
+def summarize_trial(name, trial):
+    result = dict(qualification=trial["status"], reason=trial.get("reason"))
+    if name == "corner-readback":
+        result.update(membershipReadback=trial["status"], guardianReadback=trial.get("guardianReadback"),
+                      singleWindowHideRestore="NOT_RUN", productionQualified=False)
+        if trial["status"] == "PASS":
+            result["qualification"] = "NOT_RUN"
+        return result
+    membership = trial.get("thirdPartyMembershipRoundTrip", "UNKNOWN")
+    isolation = trial.get("singleWindowHideRestore", "UNKNOWN")
+    result.update(thirdPartyMembershipRoundTrip=membership, singleWindowHideRestore=isolation)
+    if trial["status"] == "PASS" and (membership != "PASS" or isolation != "PASS"):
+        result["qualification"] = "BLOCKED" if membership == "PASS" and isolation == "NOT_RUN" else "UNKNOWN"
+    return result
+
+
 def run(work, name, update, result_dir=None, p0_receipt=None):
     result_dir = result_dir or work
     mac = install.Mac()
@@ -77,18 +93,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None):
             diagnostic_started = True
             exit_code = child.wait()
         trial = json.loads(out.read_bytes())
-        qualification = trial["status"]
-        outcome = {}
-        if name == "corner-readback":
-            outcome = dict(membershipReadback=qualification, singleWindowHideRestore="NOT_RUN", productionQualified=False)
-        if name == "spaces":
-            membership = trial.get("thirdPartyMembershipRoundTrip", "UNKNOWN")
-            isolation = trial.get("singleWindowHideRestore", "UNKNOWN")
-            outcome = dict(thirdPartyMembershipRoundTrip=membership, singleWindowHideRestore=isolation)
-            if qualification == "PASS" and (membership != "PASS" or isolation != "PASS"):
-                qualification = "BLOCKED" if membership == "PASS" and isolation == "NOT_RUN" else "UNKNOWN"
-        update("qualificationReturned", trialExit=exit_code, qualification=qualification,
-               cleanup=trial["probeResources"], reason=trial.get("reason"), **outcome)
+        update("qualificationReturned", trialExit=exit_code, cleanup=trial["probeResources"], **summarize_trial(name, trial))
     finally:
         remaining = upgrade.census(work, mac.canonical)
         leases = upgrade.recoveries(work)
@@ -130,12 +135,12 @@ def main():
         if record.get("stage") == "p0RequiredBeforeQuit":
             record["status"] = "BLOCKED"
         elif record.get("stage") == "regularHostRunning":
-            record["status"] = (record.get("qualification", "UNKNOWN") if
-                                record["configurationBefore"] == record["configurationAfter"] else "UNKNOWN")
+            verdict = record.get("membershipReadback", record.get("qualification", "UNKNOWN"))
+            record["status"] = verdict if record["configurationBefore"] == record["configurationAfter"] else "UNKNOWN"
     except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
         record["error"] = str(error)[:400]
     install.persist(out, record)
-    return 0 if record["status"] == "PASS" and record.get("qualification") == "PASS" else 2
+    return 0 if record["status"] == "PASS" else 2
 
 
 if __name__ == "__main__":
