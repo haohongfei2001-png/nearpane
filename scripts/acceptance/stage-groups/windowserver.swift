@@ -52,7 +52,11 @@ func birth(_ pid: Int32) throws -> UInt64 {
                         window = NSWindow(contentRect: rect, styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                           backing: .buffered, defer: false)
                     }
-                    if comparison {
+                    if FileManager.default.fileExists(atPath: root.appendingPathComponent("delivery-mode").path) {
+                        let receiver = HostedDocumentReceiver(root: root)
+                        window.contentView = receiver
+                        _ = window.makeFirstResponder(receiver)
+                    } else if comparison {
                         let input = FixtureKeyReceiver()
                         window.contentView = input
                         _ = window.makeFirstResponder(input)
@@ -196,7 +200,7 @@ private struct FixtureGeometry: Codable {
 @main private struct Fixture {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
-        guard args.count == 2, ["a", "b", "record", "reopen", "lifecycle", "visibility", "minimize", "corner", "wallpaper", "desktop-items", "movie", "film"].contains(args[0]),
+        guard args.count == 2, ["a", "b", "record", "reopen", "lifecycle", "delivery", "visibility", "minimize", "corner", "wallpaper", "desktop-items", "movie", "film"].contains(args[0]),
               ProcessInfo.processInfo.environment["RUNNER_ENVIRONMENT"] == "github-hosted" else { exit(64) }
         if args[0] == "movie" {
             Task {
@@ -233,9 +237,13 @@ private struct FixtureGeometry: Codable {
             app.run()
             return
         }
-        if args[0] == "visibility" {
+        if args[0] == "visibility" || args[0] == "delivery" {
             Task { @MainActor in
-                do { try await qualifyVisibility(root: root); exit(0) }
+                do {
+                    if args[0] == "delivery" { try await checkHostedDelivery(root: root) }
+                    else { try await qualifyVisibility(root: root) }
+                    exit(0)
+                }
                 catch { fputs("Visibility receipt failed: \(error)\n", stderr); exit(1) }
             }
             RunLoop.main.run()

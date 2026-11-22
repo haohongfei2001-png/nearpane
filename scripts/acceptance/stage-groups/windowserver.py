@@ -54,7 +54,7 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
                         Path(__file__).with_suffix(".swift"), Path(__file__).with_name("visibility.swift"),
                         Path(__file__).with_name("comparison.swift"), Path(__file__).with_name("recording.swift"),
                         Path(__file__).with_name("wallpaper.swift"), Path(__file__).with_name("lifecycle.swift"),
-                        Path(__file__).with_name("desktop-items.swift"),
+                        Path(__file__).with_name("desktop-items.swift"), Path(__file__).with_name("interactive-delivery.swift"),
                         Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/WallpaperRevealMonitor.swift",
                         Path(__file__).resolve().parents[3] / "Sources/NearpaneUI/DesktopItemsSetting.swift",
                         *inputs, "-o", binary], check=True)
@@ -75,6 +75,8 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
             return proc
 
         try:
+            if not lifecycle_only:
+                (root / "delivery-mode").touch(exist_ok=False)
             for name in ("a", "b"):
                 app = root / ("Stage Fixture " + name + ".app")
                 executable = app / "Contents/MacOS/StageFixture"
@@ -116,6 +118,10 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
                 result["processLifecycle"] = lifecycle(binary, root, processes[1], launch_owner)
                 result["status"] = result["processLifecycle"]["status"]
             elif result["status"] == "PASS":
+                delivery = subprocess.run([binary, "delivery", root], capture_output=True, text=True, timeout=13)
+                delivery_path = root / "delivery.json"
+                result["interactiveDelivery"] = (json.loads(delivery_path.read_bytes()) if delivery_path.exists() else
+                    {"status": "UNKNOWN", "reason": "deliveryReceiptMissing", "exit": delivery.returncode})
                 probe = subprocess.run([binary, "visibility", root], capture_output=True, text=True, timeout=24)
                 observed = root / "visibility.json"
                 result["singleWindowVisibility"] = (json.loads(observed.read_bytes()) if observed.exists() else

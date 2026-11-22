@@ -52,7 +52,7 @@ private func sameOwner(_ target: Target) -> Bool {
         (try? birth(pid)) == target.owner.birth && NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == target.owner.identifier
 }
 
-private func focused(_ target: Target) -> Bool {
+func focused(_ target: Target) -> Bool {
     guard sameOwner(target),
           NSWorkspace.shared.frontmostApplication?.processIdentifier == target.owner.pid,
           let value = ax(AXUIElementCreateApplication(target.owner.pid), kAXFocusedWindowAttribute) else { return false }
