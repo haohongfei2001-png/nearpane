@@ -129,20 +129,18 @@ struct DesktopSurface: View {
                                     if let feed, let current {
                                         ForEach(feed.stageEngine.heldGroups.filter { $0.scope.display.uuidString.caseInsensitiveCompare(screen.id) == .orderedSame &&
                                             $0.scope.nativeSpace == current.uuid }) { held in
-                                            let id = held.state.window
-                                            let key = DesktopWindowKey(pid:id.pid,birth:id.birth,number:id.number)
-                                            let caption = feed.groups.groups(in: held.scope).first { $0.id == held.id }?.name
-                                            CurrentWindowCard(label:caption ?? (held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count)),
-                                                badge:nil,size:nil,target:nil,key:key,gallery:nil,permitted:false,border:1,fontSize:10,
-                                                selected:{ nil },describe:{ _ in "已核对的非活动窗口组" },select:{
-                                                    let input = NativeSelectionPermit.inputCounters()
-                                                    navigation.submit(stage:true) { token in
-                                                        try await feed.stageEngine.chooseHeld(held,in:feed,current:{
-                                                            canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-                                                        })
-                                                    }
-                                                },selectable:canNavigate)
-                                                .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
+                                            heldCard(held, feed:feed, snapshot:snapshot)
+                                        }
+                                        if picturesAllowed, let gallery = feed.stageGallery, let displayID = UUID(uuidString:screen.id) {
+                                            let scope = StageGroupScope(display:displayID,nativeSpace:current.uuid)
+                                            let visible = Set(feed.visibleGroups(in:snapshot,on:screen).values.map(\.id))
+                                            let held = Set(feed.stageEngine.heldGroups.map(\.id))
+                                            ForEach(feed.groups.groups(in:scope).filter { !visible.contains($0.id) && !held.contains($0.id) }) { group in
+                                                if let picture = gallery.observedGroups[group.id], picture.matches(snapshot),
+                                                   group.needsReorganization != true, Set(group.members.map(\.id)) == Set(picture.members.map(\.id)) {
+                                                    observedCard(group,picture:picture,gallery:gallery,snapshot:snapshot)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -153,7 +151,10 @@ struct DesktopSurface: View {
                                 guard picturesAllowed, let previews = display?.pointer?.windowPreviews else { return }
                                 await previews.gallery.run(on: screen.id, snapshot: { overview }, allowed: {
                                     picturesAllowed && previews.visibleDisplays.contains(screen.id)
-                                }, recheck: feed.map { feed in { await feed.readNow() } })
+                                }, recheck: feed.map { feed in { await feed.readNow() } }, groups: { sample in
+                                    guard let work = workArea(for:screen) else { return nil }
+                                    return feed?.pictureGroups(in:sample,screen:screen,area:work)
+                                })
                             }
                             .frame(width: innerWidth, alignment: .topLeading)
                             .padding(inset)
@@ -171,6 +172,59 @@ struct DesktopSurface: View {
                     }
                 }
             }
+        }
+    }
+
+    private func heldCard(_ held: StageWindowEngineHost.HeldGroup, feed: CurrentDesktopWindows,
+                          snapshot: DesktopSnapshot) -> some View {
+        let title = feed.groups.groups(in:held.scope).first { $0.id == held.id }?.name ??
+            (held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count))
+        let departure = held.departure.flatMap { $0.matches(snapshot) ? $0 : nil }
+        var pictures = [UUID:CGImage]()
+        if let departure, picturesAllowed, let gallery = feed.stageGallery {
+            for member in departure.members {
+                pictures[member.id] = gallery.heldImage(member,departure:departure,snapshot:snapshot,permitted:true) {
+                    feed.stageEngine.confirmsPicture(member, group:held)
+                }
+            }
+        }
+        let description = pictures.isEmpty ? "暂无历史画面" : "历史画面 " + String(pictures.count) + "/" + String(held.count)
+        return Button {
+            let input = NativeSelectionPermit.inputCounters()
+            navigation.submit(stage:true) { token in
+                try await feed.stageEngine.chooseHeld(held,in:feed,current:{
+                    canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
+                })
+            }
+        } label: {
+            VStack(spacing:0) {
+                if let departure { StageGroupHistoryPicture(departure:departure,images:pictures) }
+                HStack(spacing:3) {
+                    Text(title).lineLimit(1)
+                    Text(description).lineLimit(1).foregroundStyle(.secondary).fixedSize()
+                }.font(.caption2).frame(maxWidth:.infinity).frame(height:18)
+            }.contentShape(Rectangle())
+        }.buttonStyle(.plain).disabled(!canNavigate)
+            .accessibilityLabel(title).accessibilityValue(description)
+            .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
+    }
+
+    @ViewBuilder private func observedCard(_ group: StageGroupDirectory.Group, picture: StageGroupDeparture,
+                                           gallery: DesktopWindowGallery, snapshot: DesktopSnapshot) -> some View {
+        let pairs = picture.members.compactMap { member in
+            gallery.observedImage(member.key,group:group.id,snapshot:snapshot,permitted:picturesAllowed).map { (member.id,$0) }
+        }
+        if !pairs.isEmpty {
+            let title = group.name ?? (group.members.count == 1 ? "窗口" : "窗口组合")
+            let status = "历史画面 " + String(pairs.count) + "/" + String(group.members.count)
+            VStack(spacing:0) {
+                StageGroupHistoryPicture(departure:picture,images:Dictionary(uniqueKeysWithValues:pairs))
+                HStack(spacing:3) {
+                    Text(title).lineLimit(1)
+                    Text(status).lineLimit(1).foregroundStyle(.secondary).fixedSize()
+                }.font(.caption2).frame(height:18)
+            }.accessibilityElement(children:.ignore).accessibilityLabel(title).accessibilityValue(status)
+                .accessibilityIdentifier("observed-window-group:" + group.id.uuidString)
         }
     }
 
@@ -359,7 +413,9 @@ struct DesktopSurface: View {
                         fontSize: labelSize, selected: { pictures && target?.present(in: overview) == true ? selectedPicture(for: target) : nil },
                         describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
                         select: { chooseCurrent() },
-                        selectable: target != nil)
+                        selectable: target != nil, groupHistory:{
+                            group.flatMap { gallery?.observedImage(row.id,group:$0.id,snapshot:snapshot,permitted:permitted) }
+                        })
                     .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
                         width: width, feed: feed,
                         select: { chooseCurrent() },

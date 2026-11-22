@@ -28,6 +28,23 @@ import NearpaneOrdinaryWindowRuntime
     private var lastSnapshot: DesktopSnapshot?, lastStates = [NativeSpaceWindow:StageWindowState]()
     private var lastSample: StageWindowSample?
     private var lastAppearances = [DesktopWindowKey: UUID]()
+    private var pendingDeparture: (target: UUID, after: UInt64)?
+    private(set) var departures = [UUID:StageGroupDeparture]()
+
+    func preparePictures(leavingFor target: UUID) { pendingDeparture = (target, sequence) }
+    func endPicturePreparation() { pendingDeparture = nil }
+
+    func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture) -> Bool {
+        let window = member.before.window
+        guard generation == departure.generation, scope == departure.scope, departures[departure.group] == departure,
+              let binding = bindings[window], mayManage(member.before), binding.lifetime == member.before.lifetime,
+              let held = lastStates[window], held.lifetime == binding.lifetime, let claim = claims[window],
+              held.visibility == .parked || held.visibility == .stageSpace, let home,
+              let actual = try? binding.monitor.observation(home:home), actual.id.pid == window.pid,
+              actual.id.number == window.number, actual.id.launch == window.birth, !actual.minimized,
+              actual.frame == held.frame, actual.membership == claim.member else { return false }
+        return held.visibility == .parked ? actual.membership == departure.nativeID : held.hiddenSpaceID == actual.membership
+    }
     private struct ArrivalWatch {
         let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow
         let directory: StageGroupDirectory
@@ -221,8 +238,24 @@ import NearpaneOrdinaryWindowRuntime
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
             windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign)
         if candidate == nil {
+            let previousAppearances = lastAppearances
             lastAppearances = feed.confirmGroupLifetimes(previous: lastSample, current: sample, inventory: last,
                                                          previousAppearances: lastAppearances, enrolled: authorizedLifetimes)
+            if let plan = pendingDeparture, let previous = lastSample, previous.sequence > plan.after,
+               let opening = lastSnapshot, let gallery = feed.stageGallery {
+                pendingDeparture = nil
+                let stable = lastAppearances.filter { previousAppearances[$0.key] == $0.value }
+                for group in feed.groups.groups(in:scope) where group.id != plan.target &&
+                    group.members.contains(where: { states[$0.windowHint]?.visibility == .visible }) {
+                    departures[group.id] = nil
+                    guard let captured = StageGroupDeparture.read(group:group,first:previous,second:sample,
+                        opening:opening,closing:last,appearances:stable,authorized:authorizedLifetimes) else { continue }
+                    if gallery.remember(captured, in:feed.stageEngine.snapshotForGroups(last)) {
+                        departures[group.id] = captured
+                    }
+                }
+                departures = departures.filter { gallery.retains($0.value) }
+            }
             lastSnapshot = last; lastStates = states; lastSample = sample
         }
         return sample

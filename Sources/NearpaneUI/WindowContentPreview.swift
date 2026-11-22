@@ -104,6 +104,7 @@ struct PreviewWindowBinding: Equatable {
         let feed = readOverview.map { CurrentDesktopWindows(read: $0, stageGroupProfile: stageGroupProfile) }
         currentDesktop = feed
         gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, audit: feed?.windowAudit?.previewTrace, lifetime: { key in feed?.lifetime(of: key) })
+        feed?.stageGallery = gallery
     }
     private(set) var choosing = false
     private(set) var notice = ""

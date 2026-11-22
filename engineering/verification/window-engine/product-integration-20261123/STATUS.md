@@ -13,6 +13,7 @@
 | 引擎撤权与所有权 | 源码 / ABI PASS | 基线复现被撤销的请求重新绑定下一代以及两个归属反例。修复后 103 项 Rust、104 项隔离构建测试和 35 项 Swift 测试通过。[撤权反例](engine-original-race.json) · [原始归属失败](engine-original-owner-failures.log) · [Rust](engine-revocation.json) · [Swift](engine-swift.xml) |
 | Guardian 接管后、隐藏派发前发生中断 | 源码 / 签名辅助程序 PASS，实机 NOT_RUN | Rust 锁住从未入队的该次意图。原 Guardian 复核窗口并持久确认后，协调器才结束该次责任。106 项 Rust、50 项引擎 Swift、76 项协调器回归通过。真实签名 Guardian 拒绝非 Host 调用。[引擎](guardian-withdrawal.json) · [签名协议](guardian-signed-protocol.json) · [协调器](coordinator-withdrawal.json) |
 | 分组命名与布局往返 | 源码 PASS | 实际离场几何只有在整组事务确认后才持久化，重复选择当前单窗保留用户的新位置。70 项离屏用例通过。[源码与测试](stage-groups.json) |
+| 非活动组组合预览 | 源码与离屏绘制 PASS，新候选实机 NOT_RUN | 当前显示器已经显示的成员可用其最后有效帧组成一个组。窗口号重用、权限撤回、跨屏和全屏会使相应历史失效，缺帧的覆盖区保持不透明。63 项回归通过。[验收范围与旧版延迟](history-preview/receipt.json) · [离屏组合图](history-preview/offscreen/historical-group-complete.png) |
 | Riftlet 与 Saytile | 部分 PASS | 两款浏览器 18 个隔离草稿场景均为零发送。六个冷启动音频文件逐字节恢复。真实麦克风、已登录草稿未跑，中文识别受本地模型阻塞。[版本、测试与边界](../../embedded-tools/5.22-90/2026-11-23/results.json) |
 | 生产侧栏 A→B→C→A、10/50 次、与 Apple 的速度对照 | NOT_RUN | 先取得至少一个后端的真实单窗口隔离、输入和恢复证据。 |
 

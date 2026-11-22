@@ -24,6 +24,7 @@ import NearpaneOrdinaryWindowRuntime
     private weak var feed: CurrentDesktopWindows?
     struct HeldGroup: Equatable, Identifiable {
         let id, member: UUID, scope: StageGroupScope, state: StageWindowState, owner: StageEngineOwner, count: Int
+        let departure: StageGroupDeparture?
     }
     private(set) var heldGroups = [HeldGroup]()
     @ObservationIgnored private var heldRefresh: Task<Void,Never>?
@@ -206,6 +207,7 @@ import NearpaneOrdinaryWindowRuntime
 
     func freeze() {
         groupProjection = nil
+        feed?.stageGallery?.clearHeldPictures()
         witness?.cancelArrivals()
         consentRequest = nil
         granted = nil
@@ -228,6 +230,7 @@ import NearpaneOrdinaryWindowRuntime
     private func beginRelease() -> Task<Void,Never>? {
         if let releaseTask { return releaseTask }
         guard let engine, engine.holdsWindowDispatch else { return nil }
+        feed?.stageGallery?.clearHeldPictures()
         witness?.cancelArrivals()
         releaseInput = NativeSelectionPermit.inputCounters()
         let pending = Task { [weak self] in
@@ -324,6 +327,8 @@ import NearpaneOrdinaryWindowRuntime
         if engine.session != nil { feed.observeStageOwnership(true) }
         guard available, permitted() else { throw StageSwitchError.unavailable }
         do {
+            witness?.preparePictures(leavingFor:group)
+            defer { witness?.endPicturePreparation() }
             try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted)
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
@@ -346,10 +351,28 @@ import NearpaneOrdinaryWindowRuntime
                       return engine.coordinator.confirmsHidden(group:g.id,member:m.id,state:s,scope:scope,owner:session.owner)
                   }), let target = g.focusMember(),
                   let state = witness.state(of:target.windowHint) else { return nil }
-            return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:g.members.count)
+            let departure = witness.departures[g.id].flatMap { captured -> StageGroupDeparture? in
+                guard captured.generation == session.owner.generation, captured.scope == scope,
+                      captured.members.count == g.members.count,
+                      captured.members.allSatisfy({ m in
+                          g.members.contains { $0.id == m.id && $0.windowHint == m.before.window && $0.layout == m.layout } &&
+                              witness.state(of:m.before.window)?.lifetime == m.before.lifetime
+                      }) else { return nil }
+                return captured
+            }
+            return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:g.members.count,departure:departure)
         }
         lastVerifiedAt = ProcessInfo.processInfo.systemUptime
         if heldGroups != next { heldGroups = next }
+    }
+
+    func confirmsPicture(_ member: StageGroupDeparture.Member, group: HeldGroup) -> Bool {
+        guard let departure = group.departure, heldGroups.contains(group), !releasing, !terminationOwnsLane,
+              let engine, engine.canObserve, engine.session?.owner == group.owner, granted?.scope == group.scope,
+              let witness, let state = witness.state(of:member.before.window),
+              engine.coordinator.confirmsHidden(group:group.id,member:member.id,state:state,scope:group.scope,owner:group.owner)
+        else { return false }
+        return witness.confirmsHistoricalMember(member, of:departure)
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
@@ -431,6 +454,8 @@ import NearpaneOrdinaryWindowRuntime
             freeze(); throw StageSwitchError.ownership
         }
         do {
+            witness?.preparePictures(leavingFor:held.id)
+            defer { witness?.endPicturePreparation() }
             try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current)
             projectHeld(feed.groups,in:held.scope)
             await armArrivals(in: feed, revision: token)

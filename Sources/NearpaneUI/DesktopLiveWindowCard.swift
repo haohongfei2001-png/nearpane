@@ -55,11 +55,12 @@ struct CurrentWindowCard: View {
     let describe: (String) -> String
     let select: @MainActor () -> Void
     let selectable: Bool
+    var groupHistory: (() -> CGImage?)? = nil
 
     var body: some View {
         let image = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
         let picked = image == nil ? selected() : nil
-        let previous = image == nil && picked == nil ? target.flatMap { gallery?.previousImage(for: $0, permitted: permitted) } : nil
+        let previous = image == nil && picked == nil ? target.flatMap { gallery?.previousImage(for: $0, permitted: permitted) } ?? groupHistory?() : nil
         let _ = gallery?.recordCardSource(key, image != nil ? .liveImage : picked != nil ? .selectedImage : previous != nil ? .previousImage : .outline)
         let missing = permitted && target.map { gallery?.lacksPicture($0) == true } == true
         let caption = previous == nil ? label : "上次画面 · " + label
@@ -122,6 +123,7 @@ struct WindowPanePicture: View {
     let gallery: DesktopWindowGallery?
     let target: DesktopWindowTarget
     let permitted: Bool
+    var groupHistory: (() -> CGImage?)? = nil
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -129,6 +131,10 @@ struct WindowPanePicture: View {
             Rectangle().fill(DesktopWindowCard.windowBacking(for: scheme))
             if let image = gallery?.image(for: target, permitted: permitted) {
                 Image(decorative: image, scale: 1).resizable().aspectRatio(contentMode: .fit)
+            } else if permitted, let previous = groupHistory?() {
+                Image(decorative: previous, scale: 1).resizable().aspectRatio(contentMode: .fit)
+                    .overlay(alignment:.bottomLeading) { Text("历史").font(.caption2).padding(1).background(.regularMaterial) }
+                    .accessibilityLabel("历史画面")
             } else if permitted && gallery?.lacksPicture(target) == true {
                 Text("无法读取画面").font(.caption2).lineLimit(1)
             }

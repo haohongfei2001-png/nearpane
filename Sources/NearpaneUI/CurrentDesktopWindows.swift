@@ -28,6 +28,7 @@ import OSLog
     @ObservationIgnored private var pendingAudit: NativeSidebarWindowAudit.Sample?
     let groups: StageGroupStore
     let stageEngine: StageWindowEngineHost
+    @ObservationIgnored weak var stageGallery: DesktopWindowGallery?
     private(set) var groupIssue: String?
     @ObservationIgnored var splitPresentationChanged: (() -> Void)?
     private(set) var pairedDisplays = Set<String>()
@@ -132,6 +133,19 @@ import OSLog
     }
 
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
+    func pictureGroups(in snapshot: DesktopSnapshot, screen: DisplayObservation, area: SurfaceRect) -> ObservedPictureGroups? {
+        let active = snapshot.scopes.filter { $0.displayID == screen.id }.flatMap(\.records).filter(\.isCurrent)
+        guard active.count == 1, let space = active[0].ordinaryUUID, let display = UUID(uuidString:screen.id),
+              snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true else { return nil }
+        let scope = StageGroupScope(display:display,nativeSpace:space)
+        let candidates = stageWindows(in:snapshot,on:screen)
+        let eligible = groups.projectedGroups(on:display,among:candidates)
+        let stamped = Dictionary(grouping:candidates) { window in
+            DesktopWindowKey(pid:window.identity.pid,birth:window.identity.birth,number:window.identity.number)
+        }.compactMapValues { $0.count == 1 ? $0.first?.lifetime : nil }
+        return .init(scope:scope,area:.init(x:area.x + screen.frame.x,y:area.y + screen.frame.y,width:area.width,height:area.height),
+                     groups:groups.groups(in:scope),visible:Set(eligible.map(\.id)),lifetimes:stamped)
+    }
     func groupLifetime(of key: DesktopWindowKey) -> UUID? {
         stageLifetimes.lifetime(of: key, appearance: lifetimes[key])
     }

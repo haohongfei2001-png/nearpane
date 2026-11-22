@@ -187,6 +187,9 @@ struct DesktopWindowTarget: Equatable {
         let time: TimeInterval
         enum Use { case current, previous, recent, mapOnly }
         var use: Use = .current
+        var signedOwner: DesktopPreviewOwner? = nil
+        var original: StagePictureOriginal? = nil
+        var departure: StageGroupDeparture.Stamp? = nil
 
         /// Only reuse a full-size original. The transformed presentation alone
         /// cannot establish either the actual window size or the current Space.
@@ -215,6 +218,16 @@ struct DesktopWindowTarget: Equatable {
         func matches(_ candidate: DesktopWindowTarget, lifetime current: UUID?, now: TimeInterval) -> Bool {
             use == .current && current == lifetime && target.samePicture(as: candidate) && now >= time && now - time < 12
         }
+
+        func matchesDeparture(_ member: StageGroupDeparture.Member, _ group: StageGroupDeparture,
+                              now: TimeInterval, appearance: UUID?) -> Bool {
+            departure == group.stamp(for:member) && group.members.contains(member) && lifetime == member.appearance &&
+                (appearance == nil || appearance == lifetime) && now >= time && now - time < 60 &&
+                target.key == member.key && target.session == group.session && target.topology == group.topology &&
+                UUID(uuidString:target.display) == group.scope.display && target.desktopUUID == group.scope.nativeSpace &&
+                target.overviewSpace == String(group.nativeID) && target.membership == .known(recordIDs:[String(group.nativeID)]) &&
+                target.frame == member.before.frame
+        }
     }
     @MainActor private final class Live {
         let target: DesktopWindowTarget, incarnation: UUID, run: UUID, stream: WindowFrameStream
@@ -225,6 +238,7 @@ struct DesktopWindowTarget: Equatable {
         var task: Task<Void, Never>?
         let acquired = ProcessInfo.processInfo.systemUptime
         var sequence: UInt64 = 0
+        weak var lastShown: CGImage?
         var publishedEpoch: UInt64?
         var checkedRevision: UInt64?
         var cancelled = false
@@ -246,7 +260,7 @@ struct DesktopWindowTarget: Equatable {
     // Includes asynchronously stopping streams until ScreenCaptureKit acknowledges teardown.
     var activeStreamCount: Int { streams.count }
     func frameSequence(for target: DesktopWindowTarget) -> UInt64 {
-        guard stills.peek(target.key) != nil, let live = streams[target.key], !live.cancelled, live.target.samePicture(as: target),
+        guard stills.peek(.current(target.key)) != nil, let live = streams[target.key], !live.cancelled, live.target.samePicture(as: target),
               live.incarnation == lifetime(target.key), live.publishedEpoch == live.stream.epoch else { return 0 }
         return live.sequence
     }
@@ -267,7 +281,15 @@ struct DesktopWindowTarget: Equatable {
     }
     // Parent layout observes sizes only. Each card observes its own cached image.
     private var sizes = [DesktopWindowKey: MeasuredSize]()
-    private let stills = PreviewPixelCache<DesktopWindowKey, Still>()
+    enum StillSlot: Hashable { case current(DesktopWindowKey), held(DesktopWindowKey), observed(DesktopWindowKey) }
+    private let stills = PreviewPixelCache<StillSlot, Still>()
+    private(set) var observedGroups = [UUID:StageGroupDeparture]()
+    private struct PictureInventory {
+        let snapshot: DesktopSnapshot
+        let lifetimes, appearances: [DesktopWindowKey: UUID]
+    }
+    @ObservationIgnored private var recentInventory = [String:PictureInventory]()
+    @ObservationIgnored private var lastObservation = [String:TimeInterval]()
     @ObservationIgnored private(set) var captureRequests: UInt64 = 0
     @ObservationIgnored private(set) var capturesInFlight = 0
     var cacheCount: Int { stills.count }
@@ -301,7 +323,8 @@ struct DesktopWindowTarget: Equatable {
         self.lifetime = lifetime
         self.audit = audit
         if let audit {
-            stills.onRemoval = { [weak self] key in
+            stills.onRemoval = { [weak self] slot in
+                guard case let .current(key) = slot else { return }
                 let live = self?.streams[key]
                 audit.record(key, .cache, .removed, epoch: live?.stream.epoch, sequence: live?.sequence)
             }
@@ -325,12 +348,12 @@ struct DesktopWindowTarget: Equatable {
             lastService.removeValue(forKey: key)
             let live = streams[key]
             if live?.target.display == display { live?.cancel() }
-            if var still = stills.peek(key) {
-                if (live != nil && live?.publishedEpoch != live?.stream.epoch) || still.use == .previous || still.target.overviewSpace == nil { stills.remove(key) }
+            if var still = stills.peek(.current(key)) {
+                if (live != nil && live?.publishedEpoch != live?.stream.epoch) || still.use == .previous || still.target.overviewSpace == nil { stills.remove(.current(key)) }
                 else if let cost = PreviewPixelBudget.charge(still.capture.image) {
                     audit?.record(key, .cache, .mapOnly)
                     still.use = .mapOnly
-                    stills.store(still, for: key, cost: cost)
+                    stills.store(still, for: .current(key), cost: cost)
                 }
             }
             missingPictures.removeValue(forKey: key)
@@ -343,12 +366,15 @@ struct DesktopWindowTarget: Equatable {
             live.cancel()
         }
         if let display {
+            observedGroups = observedGroups.filter { $0.value.scope.display.uuidString.caseInsensitiveCompare(display) != .orderedSame }
+            recentInventory[display] = nil; lastObservation[display] = nil
             operations.removeValue(forKey: display)
             changes.removeValue(forKey: display)?.finish()
             stills.remove { _, still in still.target.display == display }
             sizes = sizes.filter { $0.value.target.display != display }
             missingPictures = missingPictures.filter { $0.value != display }
         } else {
+            observedGroups.removeAll(); recentInventory.removeAll(); lastObservation.removeAll()
             generation &+= 1
             operations.removeAll(); stills.removeAll(); sizes.removeAll(); missingPictures.removeAll(); lastService.removeAll()
             for events in changes.values { events.finish() }
@@ -366,7 +392,7 @@ struct DesktopWindowTarget: Equatable {
         }
         guard permitted, permitsWindow(target.key) else { return rejected(.notPermitted) }
         guard visible[target.display]?.contains(target.key) == true else { return rejected(.notVisible) }
-        guard let still = stills.peek(target.key) else { return rejected(.noFrame) }
+        guard let still = stills.peek(.current(target.key)) else { return rejected(.noFrame) }
         guard let live = streams[target.key], !live.cancelled, live.sequence > 0 else { return rejected(.streamInactive) }
         guard live.publishedEpoch == live.stream.epoch else { return rejected(.streamEpochChanged) }
         guard still.matches(target, lifetime: lifetime(target.key), now: now) else { return rejected(.stillMismatch) }
@@ -375,7 +401,8 @@ struct DesktopWindowTarget: Equatable {
         let check = target.pictureEligibility(needsMembership: live.needsMembership, owner: live.owner, audit: audit)
         guard check == .allowed else { return rejected(check) }
         audit?.record(target.key, .lookup, .allowed, epoch: live.stream.epoch, sequence: live.sequence)
-        stills.touch(target.key)
+        live.lastShown = still.capture.image
+        stills.touch(.current(target.key))
         return still.capture.image
     }
 
@@ -383,10 +410,10 @@ struct DesktopWindowTarget: Equatable {
     /// current window is still shareable. The caller also checks the live roster.
     func previousImage(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         guard permitted, permitsWindow(target.key), visible[target.display]?.contains(target.key) == true,
-              let still = stills.peek(target.key), still.canShowPrevious(target, lifetime: lifetime(target.key), now: now),
+              let still = stills.peek(.current(target.key)), still.canShowPrevious(target, lifetime: lifetime(target.key), now: now),
               WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed(),
               target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: true) else { return nil }
-        stills.touch(target.key)
+        stills.touch(.current(target.key))
         return still.capture.image
     }
 
@@ -394,17 +421,17 @@ struct DesktopWindowTarget: Equatable {
     /// with a changed target must never supply pixels for this fallback.
     private func keepPreviousIfEligible(for key: DesktopWindowKey, as target: DesktopWindowTarget?) {
         guard let target, permitsWindow(key), visible[target.display]?.contains(key) == true,
-              streams[key].map({ $0.publishedEpoch == $0.stream.epoch }) != false, var still = stills.peek(key),
+              streams[key].map({ $0.publishedEpoch == $0.stream.epoch }) != false, var still = stills.peek(.current(key)),
               still.canRetainPrevious(target, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
               target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: false),
               let cost = PreviewPixelBudget.charge(still.capture.image) else {
-            stills.remove(key)
+            stills.remove(.current(key))
             return
         }
         if still.use != .previous {
             audit?.record(key, .cache, .previous)
             still.use = .previous
-            stills.store(still, for: key, cost: cost)
+            stills.store(still, for: .current(key), cost: cost)
         }
     }
 
@@ -415,7 +442,7 @@ struct DesktopWindowTarget: Equatable {
         var result = [UInt32: CGSize]()
         for window in windows {
             guard let target = DesktopWindowTarget.preview(window, in: snapshot), permitsWindow(target.key),
-                  let known = sizes[target.key], stills.contains(target.key), known.incarnation == lifetime(target.key),
+                  let known = sizes[target.key], stills.contains(.current(target.key)), known.incarnation == lifetime(target.key),
                   known.target.samePicture(as: target) else { continue }
             result[target.key.number] = known.size
         }
@@ -427,16 +454,154 @@ struct DesktopWindowTarget: Equatable {
     func imageForMap(key: DesktopWindowKey, display: String, space: String, session: UUID,
                      topology: String, permitted: Bool) -> CGImage? {
         guard permitted, permitsWindow(key), WindowContentPreview.sessionAvailable(),
-              WindowPermissionProbe.screen.allowed(), let still = stills.peek(key), still.use != .previous, still.lifetime == lifetime(key),
+              WindowPermissionProbe.screen.allowed(), let still = stills.peek(.current(key)), still.use != .previous, still.lifetime == lifetime(key),
               still.target.session == session, still.target.topology == topology, still.target.display == display,
               still.target.overviewSpace == space, ProcessInfo.processInfo.systemUptime - still.time < 60,
               still.target.liveOwner() != nil, still.target.sharedSurface(visible: false, matchFrame: false)
         else { return nil }
-        stills.touch(key)
+        stills.touch(.current(key))
         return still.capture.image
     }
 
     func lacksPicture(_ target: DesktopWindowTarget) -> Bool { missingPictures[target.key] == target.display }
+
+    /// Remember only a frame that the normal visible card already displayed.
+    /// This reuses the gallery's bounded LRU without mounting a card or starting a stream.
+    @discardableResult func remember(_ departure: StageGroupDeparture, in snapshot: DesktopSnapshot, observed: Bool = false) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard departure.matches(snapshot), snapshot.nativeIsFresh(now:.now,uptime:now),
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return false }
+        var saved = false
+        for member in departure.members {
+            let key = member.key
+            let slot = observed ? StillSlot.observed(key) : .held(key)
+            let previous = stills.peek(slot)
+            if previous?.departure != departure.stamp(for:member) { stills.remove(slot) }
+            guard permitsWindow(key), lifetime(key) == member.appearance, let row = snapshot.windows.first(where: { DesktopWindowKey($0) == key }),
+                  let target = DesktopWindowTarget.preview(row, in:snapshot), target.publiclyVisible, target.frame == member.before.frame,
+                  visible[target.display]?.contains(key) == true,
+                  var still = stills.peek(.current(key)),
+                  still.matches(target,lifetime:member.appearance,now:now),
+                  let live = streams[key], !live.cancelled, live.sequence > 0, live.publishedEpoch == live.stream.epoch,
+                  live.lastShown === still.capture.image, viewport[target.display]?[key] == true,
+                  still.signedOwner?.stillSigned(as:key) == true,
+                  target.pictureEligibility(needsMembership:live.needsMembership,owner:live.owner,audit:audit) == .allowed,
+                  let cost = PreviewPixelBudget.charge(still.capture.image) else { continue }
+            if observed {
+                if previous?.departure == departure.stamp(for:member), let original = previous?.original {
+                    guard original.matches(key) else { stills.remove(slot); continue }
+                    still.original = original
+                } else {
+                    guard let original = StagePictureOriginal(key) else { continue }
+                    still.original = original
+                }
+            }
+            still.departure = departure.stamp(for:member)
+            stills.store(still, for:slot,cost:cost)
+            saved = saved || stills.contains(slot)
+        }
+        return saved
+    }
+
+    func clearHeldPictures() {
+        stills.remove { slot, _ in if case .held = slot { return true }; return false }
+    }
+
+    func retains(_ departure: StageGroupDeparture) -> Bool {
+        departure.members.contains { stills.peek(.held($0.key))?.departure == departure.stamp(for:$0) }
+    }
+
+    func heldImage(_ member: StageGroupDeparture.Member, departure: StageGroupDeparture,
+                   snapshot: DesktopSnapshot, permitted: Bool, confirmOwner: () -> Bool) -> CGImage? {
+        let key = member.key, now = ProcessInfo.processInfo.systemUptime
+        guard permitted, permitsWindow(key), snapshot.nativeIsFresh(now:.now,uptime:now),
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
+        return Self.heldPixels(member, departure:departure, snapshot:snapshot, cache:stills, appearance:lifetime(key), now:now) { still in
+            still.signedOwner?.stillSigned(as:key) == true && confirmOwner() && still.target.sharedSurface(visible:false, matchFrame:false)
+        }
+    }
+
+    static func heldPixels(_ member: StageGroupDeparture.Member, departure: StageGroupDeparture, snapshot: DesktopSnapshot,
+                           cache: PreviewPixelCache<StillSlot, Still>, appearance: UUID?, now: TimeInterval, observed: Bool = false,
+                           allows: (Still) -> Bool) -> CGImage? {
+        let slot = observed ? StillSlot.observed(member.key) : .held(member.key)
+        guard departure.matches(snapshot), let still = cache.peek(slot),
+              still.matchesDeparture(member,departure,now:now,appearance:appearance), allows(still) else { return nil }
+        cache.touch(slot)
+        return still.capture.image
+    }
+
+    func observedImage(_ key: DesktopWindowKey, group id: UUID, snapshot:DesktopSnapshot, permitted:Bool) -> CGImage? {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard permitted, permitsWindow(key), let group = observedGroups[id], let member = group.members.first(where:{ $0.key == key }),
+              snapshot.nativeIsFresh(now:.now,uptime:now), snapshot.native?.catalogComplete == true,
+              WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
+        guard group.containsOriginal(member,in:snapshot,appearance:lifetime(key)) else { return nil }
+        return Self.heldPixels(member,departure:group,snapshot:snapshot,cache:stills,appearance:lifetime(key),now:now,observed:true) { still in
+            let eligible = still.signedOwner?.stillSigned(as:key) == true && still.original?.matches(key) == true &&
+                still.target.sharedSurface(visible:false,matchFrame:false)
+            if !eligible {
+                // Evict the original on revocation after this SwiftUI update. A newly enrolled
+                // window or a newer independently checked frame may already occupy this key.
+                Task { [weak self] in
+                    guard let self, let saved = self.stills.peek(.observed(key)), saved.original === still.original,
+                          saved.time == still.time, saved.departure == still.departure else { return }
+                    self.stills.remove(.observed(key))
+                }
+            }
+            return eligible
+        }
+    }
+
+    private func observePictures(on display: String, snapshot: DesktopSnapshot?, now: TimeInterval,
+                                 groups: (DesktopSnapshot) -> ObservedPictureGroups?) {
+        let existing = observedGroups.filter { $0.value.scope.display.uuidString.caseInsensitiveCompare(display) == .orderedSame }
+        guard !existing.isEmpty || streams.values.contains(where: {
+            $0.target.display == display && !$0.cancelled && $0.lastShown != nil && viewport[display]?[$0.target.key] == true
+        }) else {
+            recentInventory[display] = nil
+            return
+        }
+        let old = recentInventory[display]
+        if let snapshot, let old, old.snapshot.sessionID == snapshot.sessionID, old.snapshot.revision == snapshot.revision,
+           snapshot.nativeIsFresh(now:.now,uptime:now) { return }
+        guard let snapshot, snapshot.nativeIsFresh(now:.now,uptime:now), let directory = groups(snapshot) else {
+            recentInventory[display] = nil
+            for id in existing.keys { observedGroups[id] = nil }
+            stills.remove { slot, value in if case .observed = slot { return value.target.display == display }; return false }
+            return
+        }
+        var currentAppearances = [DesktopWindowKey: UUID]()
+        for key in directory.lifetimes.keys { currentAppearances[key] = lifetime(key) }
+        recentInventory[display] = .init(snapshot:snapshot,lifetimes:directory.lifetimes,appearances:currentAppearances)
+        for (id, group) in existing {
+            let entry = directory.groups.first { $0.id == id }
+            let current = entry.map { $0.needsReorganization != true &&
+                Set($0.members.map(\.id)) == Set(group.members.map(\.id)) } == true
+            var remaining = false
+            for member in group.members {
+                let slot = StillSlot.observed(member.key)
+                guard let still = stills.peek(slot), still.departure == group.stamp(for:member) else { continue }
+                if current, group.containsOriginal(member,in:snapshot,appearance:lifetime(member.key)),
+                   now >= still.time, now - still.time < 60 { remaining = true }
+                else { stills.remove(slot) }
+            }
+            if !remaining { observedGroups[id] = nil }
+        }
+        guard let old, old.snapshot.revision < snapshot.revision, old.snapshot.nativeIsFresh(now:.now,uptime:now),
+              now - (lastObservation[display] ?? -.infinity) >= 1 else { return }
+        lastObservation[display] = now
+        for group in directory.groups where directory.visible.contains(group.id) {
+            guard let next = StageGroupDeparture.observed(group,scope:directory.scope,area:directory.area,
+                opening:old.snapshot,closing:snapshot,earlierLifetimes:old.lifetimes,lifetimes:directory.lifetimes,
+                earlierAppearances:old.appearances,appearances:currentAppearances) else { continue }
+            let prior = observedGroups[group.id]
+            let held = prior.flatMap { $0.sameLayout(as:next) ? $0 : nil } ?? next
+            let saved = remember(held,in:snapshot,observed:true)
+            if saved, prior != held { observedGroups[group.id] = held }
+            else if !saved, prior != nil, prior != held { observedGroups[group.id] = nil }
+        }
+    }
 
     /// A visible surface has an independent public identity check. Keep these batches
     /// separate so an unavailable Space inventory cannot stall foreground thumbnails.
@@ -456,7 +621,7 @@ struct DesktopWindowTarget: Equatable {
 
     /// The timer reconciles the roster and retries unavailable windows. The compositor drives picture updates.
     func run(on display: String, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
-             recheck: (() async -> DesktopSnapshot?)? = nil) async {
+             recheck: (() async -> DesktopSnapshot?)? = nil, groups: ((DesktopSnapshot) -> ObservedPictureGroups?)? = nil) async {
         let token = UUID(), (stream, events) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         changes[display]?.finish()
         operations[display] = token
@@ -496,12 +661,20 @@ struct DesktopWindowTarget: Equatable {
                 }
             }
             let now = ProcessInfo.processInfo.systemUptime
+            if let groups { observePictures(on:display,snapshot:sample,now:now,groups:groups) }
             for live in streams.values where live.target.display == display && !live.cancelled && live.sequence == 0 && now - live.acquired > 2 {
                 if missingPictures[live.target.key] == nil { missingPictures[live.target.key] = display }
                 if now - live.acquired > 5 { live.cancel(); retry[live.target.key] = now + 2 }
             }
-            stills.remove { key, still in
+            stills.remove { slot, still in
                 guard still.target.display == display else { return false }
+                guard case let .current(key) = slot else {
+                    guard let sample, sample.sessionID == still.target.session, sample.topologyFingerprint == still.target.topology,
+                          sample.native?.stageManagerEnabled == false, now >= still.time, now - still.time < 60,
+                          let scope = sample.scopes.first(where: { $0.displayID == display }) else { return true }
+                    let current = scope.records.filter(\.isCurrent)
+                    return current.count != 1 || current[0].ordinaryUUID != still.target.desktopUUID
+                }
                 guard let sample, still.lifetime == lifetime(key) else { return true }
                 if let target = active[key] {
                     if still.use == .previous {
@@ -519,7 +692,7 @@ struct DesktopWindowTarget: Equatable {
                       membership.contains(space), old.membership == row.membership else { return true }
                 return false
             }
-            for (key, measurement) in sizes where measurement.target.display == display && !stills.contains(key) {
+            for (key, measurement) in sizes where measurement.target.display == display && !stills.contains(.current(key)) {
                 sizes.removeValue(forKey: key)
             }
             retry = retry.filter { active[$0.key] != nil }
@@ -531,7 +704,7 @@ struct DesktopWindowTarget: Equatable {
                 }
             guard let next = due.first else { continue }
             if streams.count >= WindowFrameStream.limit {
-                for target in due where stills.peek(target.key) == nil && missingPictures[target.key] == nil { missingPictures[target.key] = display }
+                for target in due where stills.peek(.current(target.key)) == nil && missingPictures[target.key] == nil { missingPictures[target.key] = display }
                 // Give newly visible cards an exact first frame. Retire at most one lease until its OS stop completes.
                 if !streams.values.contains(where: { $0.cancelled }),
                    let victim = streams.values.filter({ live in
@@ -542,10 +715,10 @@ struct DesktopWindowTarget: Equatable {
                        let left = priority(a.target), right = priority(b.target)
                        return left == right ? a.acquired < b.acquired : left < right
                    }) {
-                    if victim.publishedEpoch == victim.stream.epoch, var still = stills.peek(victim.target.key), still.use == .current,
+                    if victim.publishedEpoch == victim.stream.epoch, var still = stills.peek(.current(victim.target.key)), still.use == .current,
                        let cost = PreviewPixelBudget.charge(still.capture.image) {
                         audit?.record(victim.target.key, .cache, .recent)
-                        still.use = .recent; stills.store(still, for: victim.target.key, cost: cost)
+                        still.use = .recent; stills.store(still, for: .current(victim.target.key), cost: cost)
                     }
                     victim.cancel()
                 }
@@ -631,7 +804,7 @@ struct DesktopWindowTarget: Equatable {
             for await update in pipe.updates {
                 guard admitted(live, snapshot: snapshot(), allowed: allowed) else { break }
                 if case .unavailable = update {
-                    stills.remove(key)
+                    stills.remove(.current(key))
                     if missingPictures[key] != target.display { missingPictures[key] = target.display }
                     continue
                 }
@@ -661,13 +834,13 @@ struct DesktopWindowTarget: Equatable {
                 case let .frame(frame):
                     guard let image = frame.image() else {
                         audit?.record(key, .membership, .conversionFailed, epoch: epoch, sequence: live.sequence)
-                        stills.remove(key); missingPictures[key] = target.display
+                        stills.remove(.current(key)); missingPictures[key] = target.display
                         continue
                     }
                     capture = Capture(image: image, logicalSize: pipe.logicalSize)
                 case .idle:
                     // An idle notification can only extend the time of this same stream's last image.
-                    guard live.sequence > 0, live.publishedEpoch == epoch, let last = stills.peek(key), last.use == .current,
+                    guard live.sequence > 0, live.publishedEpoch == epoch, let last = stills.peek(.current(key)), last.use == .current,
                           last.lifetime == live.incarnation, last.target == target else { continue }
                     capture = last.capture
                 case .unavailable: continue
@@ -685,9 +858,9 @@ struct DesktopWindowTarget: Equatable {
                 }
                 if case .frame = update { live.sequence &+= 1; live.publishedEpoch = epoch; deliveredFrameCount &+= 1 }
                 stills.store(Still(target: target, lifetime: live.incarnation, capture: capture,
-                                  time: ProcessInfo.processInfo.systemUptime), for: key, cost: cost)
+                                  time: ProcessInfo.processInfo.systemUptime, signedOwner: live.owner), for: .current(key), cost: cost)
                 if let audit {
-                    let stored = stills.peek(key)
+                    let stored = stills.peek(.current(key))
                     let accepted = stored?.use == .current && stored?.capture.image === capture.image
                     audit.record(key, .cache, accepted ? .current : .notStored, epoch: epoch, sequence: live.sequence)
                 }
@@ -705,7 +878,7 @@ struct DesktopWindowTarget: Equatable {
             streams.removeValue(forKey: key)
             if failedWhileCurrent, operations[target.display] == live.run, lifetime(key) == live.incarnation,
                visible[target.display]?.contains(key) == true {
-                stills.remove(key); missingPictures[key] = target.display
+                stills.remove(.current(key)); missingPictures[key] = target.display
             }
             changes[target.display]?.yield(())
         }

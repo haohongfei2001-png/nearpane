@@ -36,6 +36,14 @@ final class DesktopPreviewOwner {
         !bundle.isEmpty && !bundle.hasPrefix("com.holdsnow.nearpane") && !bundle.hasPrefix("org.nearpane.")
     }
 
+    func stillSigned(as candidate: DesktopWindowKey,
+                     kernel: (pid_t) throws -> OrdinaryProcessImage = OrdinaryProcessImage.read,
+                     signing: (pid_t) throws -> Data = OrdinaryProcessImage.signingDigest) -> Bool {
+        guard key == candidate else { return false }
+        do { try identity.verify(key.pid, launch: key.birth, bundle: bundle, kernel:kernel, signing:signing); return true }
+        catch { return false }
+    }
+
     static func generationMatches(_ key: DesktopWindowKey) -> Bool? {
         guard key.pid > 1, key.birth > 0 else { return false }
         var info = proc_bsdinfo()

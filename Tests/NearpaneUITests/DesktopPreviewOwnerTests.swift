@@ -31,6 +31,15 @@ import Testing
         }
     }
 
+    @Test func historicalPictureChecksOriginalSignatureAndProcessImageEvenWithALiveAppReference() throws {
+        let f = Fixture(), bound = try #require(f.bind())
+        #expect(bound.stillSigned(as:f.key,kernel:f.kernel,signing:f.signed))
+        f.digest = Data([99])
+        #expect(!bound.stillSigned(as:f.key,kernel:f.kernel,signing:f.signed))
+        f.digest = Data([7]); f.birth += 1
+        #expect(!bound.stillSigned(as:f.key,kernel:f.kernel,signing:f.signed))
+    }
+
     @Test func exactSelectionCanReproveAMissingApplicationReferenceForTheSameForegroundProcess() {
         let f = Fixture()
         let direct = DesktopPreviewOwner.read(f.key, generation: { _ in true }, find: { _ -> Application? in nil })

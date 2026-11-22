@@ -182,7 +182,9 @@ struct NativeWindowGroupCard: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
                 if let target {
-                    WindowPanePicture(gallery: gallery, target: target, permitted: permitted)
+                    WindowPanePicture(gallery:gallery,target:target,permitted:permitted,groupHistory:{
+                        gallery?.observedImage(member.key,group:id,snapshot:snapshot,permitted:permitted)
+                    })
                 } else if let icon, min(width, height) > 11 {
                     Image(nsImage: icon).resizable().scaledToFit().frame(width: min(16, width), height: min(16, height))
                 }
