@@ -334,7 +334,7 @@ struct UnsubmittedCornerHide: Error {
         return true
     }
 
-    public func activate(_ group: UUID, member: UUID, in scope: StageGroupScope, consent: Bool,
+    public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope, consent: Bool,
                          current: @escaping @MainActor () -> Bool,
                          newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
         guard !busy, !releaseRequested else { throw StageSwitchError.busy }

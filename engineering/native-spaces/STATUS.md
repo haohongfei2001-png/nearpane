@@ -2,6 +2,8 @@
 
 ## 2026-11-24 · Host 中断后的真实窗口归位
 
+R4 工作集合现在保留用户自己最小化的组成员。点击整组时，焦点可落到仍能交互的同组窗口；明确点名字的单窗仍须精确命中。协调器持续核对受保护窗口，用户通过 Dock 恢复非活动窗口会撤销活动集合的判断。历史组合只绘制离开时独立可见的成员。本机完整源码回归 805 项执行通过、3 项跳过，包含同应用双窗和相互矛盾的画面读数。整组实机切换仍为 **NOT_RUN**。[完整 xUnit 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/protected-worksets-xunit.zip)
+
 **PASS，限屏内归位。** 在 26A428、ARM64、SIP 开启的普通桌面 4 上，隔离 Host `8c5ddf8` 向 Guardian 交接后直接退出，跳过 Host 的清理。内核对同一 PID 50655 返回 `NOTE_EXIT | NOTE_EXITSTATUS` 和原始状态 19200（退出码 75）。Guardian 50674 随后只写入一次，把签名夹具窗口 84388 从 (649, 407) 送回 (625, 407)，尺寸 220×143。两次独立 AX / WindowServer 读回和夹具自己的 AppKit 读回一致。日常 Host 的身份、权限、配置和已有恢复记录指纹相同。已归档该次夹具的原始文件并移除两个临时会合目录。角落退场、退场后输入隔离及 R4 整组循环仍待实测。[实机读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [内核退出和清理](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/cleanup.json)
 
 ## 2026-11-23 · 真实窗口与恢复责任

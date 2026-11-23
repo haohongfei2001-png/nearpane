@@ -314,6 +314,42 @@ import Testing
                 runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .parked)
     }
 
+    @Test func enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches() async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let a = groups[0].members[0], b = groups[1].members[0], other = groups[2]
+        func live(_ m: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let state = try #require(runtime.windows[m.windowHint])
+            return .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime,
+                         layout: m.layout, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(live(b), to: live(a))
+        let both = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        let originalLayout = store.groups(in: runtime.scope).first { $0.id == both.id }?.members.first { $0.id == b.id }?.layout
+        runtime.windows[b.windowHint]?.visibility = .minimized
+        runtime.focus = a.windowHint
+        let protected = try #require(runtime.windows[b.windowHint]), owner = try #require(runtime.engineOwner)
+        runtime.writes.removeAll()
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        }
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(engine.observesActiveGroup(try runtime.read(runtime.scope), owner: owner))
+        try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.focus == a.windowHint && runtime.windows[b.windowHint] == protected)
+        #expect(runtime.writes.allSatisfy { $0.1 != b.windowHint })
+        #expect(store.groups(in: runtime.scope).first { $0.id == both.id }?.members.first { $0.id == b.id }?.layout == originalLayout)
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        runtime.windows[b.windowHint]?.visibility = .visible
+        runtime.writes.removeAll()
+        #expect(!engine.observesActiveGroup(try runtime.read(runtime.scope), owner: owner))
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty && !engine.requiresRecovery)
+    }
+
     @Test(arguments: [1, 3]) func userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_ boundary: Int) async throws {
         let (profile, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: profile) }

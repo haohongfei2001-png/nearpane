@@ -53,8 +53,7 @@ struct StageGroupDeparture: Equatable {
             home[0].ordinaryUUID == scope.nativeSpace && UInt64(home[0].id) == nativeID
     }
 
-    /// A parked engine member has a different Space by design. This check is only
-    /// for groups remembered from the ordinary read-only sidebar.
+    /// An observed sidebar picture must still belong to the same ordinary native desktop.
     func containsOriginal(_ member: Member, in snapshot: DesktopSnapshot, appearance: UUID?) -> Bool {
         guard matches(snapshot), snapshot.native?.catalogComplete == true,
               appearance == nil || appearance == member.appearance else { return false }
@@ -110,12 +109,23 @@ struct StageGroupDeparture: Equatable {
         for m in group.members {
             let id = m.windowHint, key = DesktopWindowKey(pid:id.pid,birth:id.birth,number:id.number)
             guard let state = second.windows[id], state.window == id, first.windows[id] == state,
-                  state.visibility == .visible, state.hiddenSpaceID == nil, authorized[id] == state.lifetime,
+                  state.hiddenSpaceID == nil, authorized[id] == state.lifetime else { return nil }
+            if state.visibility == .minimized {
+                for inventory in [opening, closing] {
+                    let rows = inventory.windows.filter { $0.metadata?.number == key.number }
+                    guard rows.count == 1, let row = rows.first, DesktopWindowKey(row) == key,
+                          row.metadata?.minimized == true, row.metadata?.isOnscreen == false,
+                          UUID(uuidString: row.displayID) == second.scope.display,
+                          row.membership == .known(recordIDs:[String(native)]) else { return nil }
+                }
+                continue
+            }
+            guard state.visibility == .visible,
                   let appearance = appearances[key], let layout = StageGroupWindow.relativeFrame(state.frame, in: second.workArea),
                   let z = rank(key, in: closing), z == rank(key, in: opening) else { return nil }
             ordered.append(.init(id:m.id,before:state,appearance:appearance,layout:layout,rank:z))
         }
-        guard Set(ordered.map(\.rank)).count == ordered.count else { return nil }
+        guard !ordered.isEmpty, Set(ordered.map(\.rank)).count == ordered.count else { return nil }
         let result = Self(id:UUID(),group:group.id,generation:second.generation,session:closing.sessionID,
             scope:second.scope,nativeID:native,topology:closing.topologyFingerprint,area:second.workArea,
             members:ordered.sorted { $0.rank > $1.rank })

@@ -178,16 +178,40 @@ public enum StageSwitchError: LocalizedError, Equatable {
     public var requiresRecovery: Bool { journalCommitUnconfirmed || ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
     /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
-    public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner) -> Bool {
+    public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner,
+                                    mayManage: (StageWindowState) -> Bool = { _ in true }) -> Bool {
         guard !busy, !requiresRecovery, ledger.owner == owner, sample.generation == owner.generation,
-              let focus = sample.focus, let group = store.groups(in: sample.scope).first(where: { $0.verifiedActive == true }) else { return false }
+              let focus = sample.focus else { return false }
+        let groups = store.participatingGroups(in: sample.scope) { key in
+            guard let state = sample.windows[key], mayManage(state) else { return nil }
+            return state.lifetime
+        }
+        guard let group = groups.first(where: { $0.verifiedActive == true }) else { return false }
         if let other = sample.foreignFocusScope {
             guard other.display != sample.scope.display, sample.windows[focus] == nil else { return false }
-        } else if !group.members.contains(where: { $0.windowHint == focus }) { return false }
-        return group.members.allSatisfy { member in
-            guard let state = sample.windows[member.windowHint] else { return false }
-            return state.visibility == .visible && store.isBound(member, to: state.lifetime)
-        } && ledger.owned.filter { $0.scope == sample.scope }.allSatisfy { sample.windows[$0.hidden.window] == $0.hidden }
+        } else if sample.windows[focus]?.visibility != .visible || !group.members.contains(where: { $0.windowHint == focus }) {
+            return false
+        }
+        return matchesActiveSet(group, groups: groups, sample: sample)
+    }
+
+    private func matchesActiveSet(_ active: StageGroupDirectory.Group, groups: [StageGroupDirectory.Group],
+                                  sample: StageWindowSample) -> Bool {
+        let leases = ledger.owned.filter { $0.scope == sample.scope }
+        let held = Dictionary(uniqueKeysWithValues: leases.map { ($0.hidden.window, $0) })
+        guard active.members.contains(where: { sample.windows[$0.windowHint]?.visibility == .visible }),
+              Set(held.keys).isSubset(of: groups.flatMap { $0.members.map(\.windowHint) }),
+              leases.allSatisfy({ sample.windows[$0.hidden.window] == $0.hidden }) else { return false }
+        return groups.allSatisfy { group in
+            group.members.allSatisfy { member in
+                guard let state = sample.windows[member.windowHint], store.isBound(member, to: state.lifetime) else { return false }
+                if let lease = held[state.window] {
+                    return group.id != active.id && lease.group == group.id && lease.member == member.id && lease.hidden == state
+                }
+                return (state.visibility == .minimized && state.hiddenSpaceID == nil) ||
+                    (group.id == active.id && state.visibility == .visible)
+            }
+        }
     }
     public func confirmsHidden(group: UUID, member: UUID, state: StageWindowState, scope: StageGroupScope, owner: StageEngineOwner) -> Bool {
         !busy && !requiresRecovery && ledger.owner == owner &&
@@ -298,24 +322,36 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard let state = first.windows[key], session.mayManage(state) else { return nil }
             return state.lifetime
         }
-        guard let target = groups.first(where: { $0.id == group }),
-              let preferred = target.focusMember(requested: member)
-        else { throw StageSwitchError.incomplete }
-        let members = groups.flatMap(\.members), ids = Set(members.map(\.windowHint)), targets = Set(target.members.map(\.windowHint))
+        guard let target = groups.first(where: { $0.id == group }) else { throw StageSwitchError.incomplete }
+        let enrolled = groups.flatMap(\.members), enrolledIDs = Set(enrolled.map(\.windowHint))
         guard epoch == token, first.scope == scope, first.workArea.width > 0, first.workArea.height > 0,
-              ids.count == members.count, ids.isSubset(of: Set(first.windows.keys)),
+              enrolledIDs.count == enrolled.count, enrolledIDs.isSubset(of: Set(first.windows.keys)),
               first.windows.allSatisfy({ $0.key == $0.value.window }),
-              members.allSatisfy({ m in first.windows[m.windowHint].map { state in store.isBound(m, to: state.lifetime) } == true }),
-              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(ids.contains) == true
+              enrolled.allSatisfy({ m in first.windows[m.windowHint].map { state in store.isBound(m, to: state.lifetime) } == true }),
+              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(enrolledIDs.contains) == true
         else { throw StageSwitchError.incomplete }
         let originalHeld = ledger.owned.filter { $0.scope == scope }
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
-        guard originalHeld.allSatisfy({ ids.contains($0.hidden.window) && first.windows[$0.hidden.window] == $0.hidden }),
-              ids.allSatisfy({ held[$0] != nil || first.windows[$0]?.visibility == .visible }) else { throw StageSwitchError.ownership }
+        guard originalHeld.allSatisfy({ enrolledIDs.contains($0.hidden.window) && first.windows[$0.hidden.window] == $0.hidden }) else {
+            throw StageSwitchError.ownership
+        }
+        // An independently observed user-minimized window remains in its workset. It has no engine lease.
+        let members = enrolled.filter { m in
+            guard let state = first.windows[m.windowHint] else { return false }
+            return held[m.windowHint] != nil || state.visibility != .minimized || state.hiddenSpaceID != nil
+        }
+        let ids = Set(members.map(\.windowHint))
+        guard ids.allSatisfy({ held[$0] != nil || first.windows[$0]?.visibility == .visible }) else { throw StageSwitchError.ownership }
+        guard let preferred = target.focusMember(requested: member, including: { ids.contains($0.windowHint) }) else {
+            throw StageSwitchError.incomplete
+        }
+        if ledger.owner != nil, let active = groups.first(where: { $0.verifiedActive == true }),
+           !matchesActiveSet(active, groups: groups, sample: first) { throw StageSwitchError.interrupted }
+        let activeMembers = target.members.filter { ids.contains($0.windowHint) }, targets = Set(activeMembers.map(\.windowHint))
         let alreadyVisible = target.verifiedActive == true && first.focus.map(targets.contains) == true &&
             Set(held.keys) == ids.subtracting(targets)
         var targetLayouts = [UUID: SurfaceRect]()
-        for m in target.members {
+        for m in activeMembers {
             if alreadyVisible {
                 guard let current = first.windows[m.windowHint],
                       let layout = StageGroupWindow.relativeFrame(current.frame, in: first.workArea) else { throw StageSwitchError.incomplete }
@@ -367,7 +403,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   next.scope == scope, next.generation == first.generation, next.workArea == first.workArea,
                   next.sequence > last.sequence, next.windows.keys == first.windows.keys,
                   next.windows.allSatisfy({ $0.key == $0.value.window && $0.value.lifetime == first.windows[$0.key]?.lifetime }),
-                  members.allSatisfy({ member in
+                  enrolled.allSatisfy({ member in
                       guard let state = next.windows[member.windowHint] else { return false }
                       return session.mayManage(state) && store.isBound(member, to: state.lifetime)
                   }),
@@ -429,7 +465,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         do {
             // A desktop with only the outgoing group must keep a real work window visible. Reveal
             // verified incoming members first, while the outgoing group can still receive the keyboard.
-            for member in target.members {
+            for member in activeMembers {
                 if let previous = held[member.windowHint] {
                     try await perform(.show, id:member.windowHint) { value, _ in
                         value.visibility == .visible && self.matches(value.frame,previous.original.frame)
@@ -449,7 +485,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     value.hiddenSpaceID == nil }
                 verifiedLayouts[m.id] = layout
             }
-            for m in target.members {
+            for m in activeMembers {
                 let id = m.windowHint
                 if let relative = targetLayouts[m.id] {
                     let frame = absolute(relative, work: first.workArea)
@@ -462,7 +498,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 let parked = ledger.owned.filter { $0.scope == scope }
                 return Set(parked.map { $0.hidden.window }) == ids.subtracting(targets) &&
                     parked.allSatisfy { s.windows[$0.hidden.window] == $0.hidden } &&
-                    target.members.allSatisfy { m in
+                    activeMembers.allSatisfy { m in
                         guard let value = s.windows[m.windowHint], value.visibility == .visible else { return false }
                         return targetLayouts[m.id].map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
                     }

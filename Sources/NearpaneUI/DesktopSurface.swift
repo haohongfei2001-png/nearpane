@@ -262,7 +262,7 @@ struct DesktopSurface: View {
             guard valid() else { throw StageSwitchError.interrupted }
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
-            let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid,
+            let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,
                 newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
             if !handled && valid() {
                 try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }

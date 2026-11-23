@@ -14,13 +14,14 @@ import Testing
          .init(window:front,lifetime:frontLife,frame:.init(x:70,y:20,width:100,height:60),visibility:.visible)]
     }
     func snapshot(_ rev: UInt64, scope replacement: StageGroupScope? = nil, ranks: [Int] = [1,0], session other: UUID? = nil,
-                  fullscreen: Bool = false, stage: Bool = false, birth: UInt64? = nil) -> DesktopSnapshot {
+                  fullscreen: Bool = false, stage: Bool = false, birth: UInt64? = nil,
+                  minimized: NativeSpaceWindow? = nil) -> DesktopSnapshot {
         let scope = replacement ?? scope, uptime = ProcessInfo.processInfo.systemUptime
         let rows = zip(members,ranks).map { state,rank in
             WindowObservation(id:String(state.window.number),displayID:scope.display.uuidString,bounds:state.frame,
                 membership:.known(recordIDs:["4"]),confidence:.unknown,metadata:.init(number:state.window.number,pid:state.window.pid,
-                    launchMicroseconds:birth ?? state.window.birth,element:nil,globalFrame:state.frame,frontToBack:rank,minimized:false,
-                    fullScreen:false,isOnscreen:true,onActiveDesktop:true,overviewSpaceID:"4",hasCatalogGeometry:true,
+                    launchMicroseconds:birth ?? state.window.birth,element:nil,globalFrame:state.frame,frontToBack:rank,minimized:state.window == minimized,
+                    fullScreen:false,isOnscreen:state.window != minimized,onActiveDesktop:true,overviewSpaceID:"4",hasCatalogGeometry:true,
                     catalogLogicalFrame:state.frame,overviewIsPresented:true,overviewOrdinaryRole:true))
         }
         return .observed(.init(session:other ?? session,revision:rev,parentPID:1,fixtureWindows:nil,anchors:[],experimentalSpaces:false),
@@ -31,18 +32,26 @@ import Testing
             windows:rows,evidence:.init(population:.workWindows,accessibility:.partial,spaces:.observed,rows:[],windowLimitReached:false,
                 beganUptime:uptime,endedUptime:uptime,stageManagerEnabled:stage,catalogComplete:true))
     }
-    func departure(opening: DesktopSnapshot? = nil, closing: DesktopSnapshot? = nil, lifetime: UUID? = nil) -> StageGroupDeparture? {
+    func departure(opening: DesktopSnapshot? = nil, closing: DesktopSnapshot? = nil, lifetime: UUID? = nil,
+                   minimized: NativeSpaceWindow? = nil) -> StageGroupDeparture? {
         let roster = StageGroupDirectory.Group(id:groupID,members:[
             .init(id:backMember,windowHint:back),.init(id:frontMember,windowHint:front)],nativeSpace:scope.nativeSpace)
         let appearances = Dictionary(uniqueKeysWithValues:members.map {
             (DesktopWindowKey(pid:$0.window.pid,birth:$0.window.birth,number:$0.window.number),$0.lifetime)
         })
-        let states = Dictionary(uniqueKeysWithValues:members.map { ($0.window,$0) })
+        var states = Dictionary(uniqueKeysWithValues:members.map { ($0.window,$0) })
+        if let minimized { states[minimized]?.visibility = .minimized }
         func read(_ seq:UInt64) -> StageWindowSample {
             .init(scope:scope,generation:generation,sequence:seq,workArea:area,windows:states,focus:front,nativeID:4)
         }
         return StageGroupDeparture.read(group:roster,first:read(1),second:read(2),opening:opening ?? snapshot(1),
             closing:closing ?? snapshot(2),appearances:appearances,authorized:[back:backLife,front:lifetime ?? frontLife])
+    }
+    @Test func historicalWorksetContainsOnlyIndependentlyVisibleMembers() throws {
+        let before = snapshot(1, minimized: front), after = snapshot(2, minimized: front)
+        let picture = try #require(departure(opening: before, closing: after, minimized: front))
+        #expect(picture.members.map(\.id) == [backMember])
+        #expect(departure(opening: before, closing: snapshot(2), minimized: front) == nil)
     }
     func image(red: Bool, width: Int, height: Int) throws -> CGImage {
         let space = try #require(CGColorSpace(name:CGColorSpace.sRGB))

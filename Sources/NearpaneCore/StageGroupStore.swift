@@ -25,9 +25,10 @@ public struct StageGroupDirectory: Codable, Equatable, Sendable {
         public var verifiedActive: Bool?
         public var name: String?
 
-        public func focusMember(requested: UUID? = nil) -> Member? {
-            guard let id = requested ?? selectedMember else { return members.first }
-            return members.first { $0.id == id }
+        public func focusMember(requested: UUID? = nil, including eligible: (Member) -> Bool = { _ in true }) -> Member? {
+            if let requested { return members.first { $0.id == requested && eligible($0) } }
+            if let last = members.first(where: { $0.id == selectedMember && eligible($0) }) { return last }
+            return members.first(where: eligible)
         }
     }
 

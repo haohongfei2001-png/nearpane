@@ -306,7 +306,7 @@ import NearpaneOrdinaryWindowRuntime
             participants.map { ($0.id, $0.members.map(\.id)) }), lifetimes: lifetimes)
     }
 
-    func groupChoice(_ group: UUID, member: NativeSidebarMember, in feed: CurrentDesktopWindows,
+    func groupChoice(_ group: UUID, member: NativeSidebarMember, selection: StageSidebarSelection, in feed: CurrentDesktopWindows,
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
                      newerChoice: @escaping @MainActor () -> Bool = { false }) async throws -> Bool {
         guard routesGroupChoice else { return false }
@@ -359,7 +359,7 @@ import NearpaneOrdinaryWindowRuntime
         do {
             witness?.preparePictures(leavingFor:group)
             defer { witness?.endPicturePreparation() }
-            try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted,
+            try await engine.activate(group,member:selection == .member ? saved.id : nil,in:scope,consent:true,current:permitted,
                                       newerChoice: { environmentCurrent() && newerChoice() })
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
@@ -379,22 +379,29 @@ import NearpaneOrdinaryWindowRuntime
         guard let engine, let session = engine.session, session.qualifiedHiddenState != nil, let witness,
               witness.matches(scope) else { heldGroups = []; return }
         let next = store.groups(in:scope).compactMap { g -> HeldGroup? in
-            guard g.verifiedActive != true, g.needsReorganization != true,
-                  g.members.allSatisfy({ m in
-                      guard let s = witness.state(of:m.windowHint) else { return false }
-                      return engine.coordinator.confirmsHidden(group:g.id,member:m.id,state:s,scope:scope,owner:session.owner)
-                  }), let target = g.focusMember(),
+            guard g.verifiedActive != true, g.needsReorganization != true else { return nil }
+            let parked = g.members.filter { m in
+                guard let s = witness.state(of:m.windowHint) else { return false }
+                return engine.coordinator.confirmsHidden(group:g.id,member:m.id,state:s,scope:scope,owner:session.owner)
+            }
+            let parkedIDs = Set(parked.map(\.id))
+            guard g.members.allSatisfy({ m in
+                      if parkedIDs.contains(m.id) { return true }
+                      guard let s = witness.state(of:m.windowHint), s.visibility == .minimized, s.hiddenSpaceID == nil,
+                            witness.mayManage(s), !witness.hasVisibilityClaim(m.windowHint) else { return false }
+                      return store.isBound(m, to:s.lifetime)
+                  }), let target = g.focusMember(including: { parkedIDs.contains($0.id) }),
                   let state = witness.state(of:target.windowHint) else { return nil }
             let departure = witness.departures[g.id].flatMap { captured -> StageGroupDeparture? in
                 guard captured.generation == session.owner.generation, captured.scope == scope,
-                      captured.members.count == g.members.count,
+                      Set(captured.members.map(\.id)) == parkedIDs,
                       captured.members.allSatisfy({ m in
                           g.members.contains { $0.id == m.id && $0.windowHint == m.before.window && $0.layout == m.layout } &&
                               witness.state(of:m.before.window)?.lifetime == m.before.lifetime
                       }) else { return nil }
                 return captured
             }
-            return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:g.members.count,departure:departure)
+            return .init(id:g.id,member:target.id,scope:scope,state:state,owner:session.owner,count:parked.count,departure:departure)
         }
         lastVerifiedAt = ProcessInfo.processInfo.systemUptime
         if heldGroups != next { heldGroups = next }
@@ -421,7 +428,7 @@ import NearpaneOrdinaryWindowRuntime
                 try await session.checkHealth()
                 do {
                     let sample = try await session.read(scope)
-                    guard engine.coordinator.observesActiveGroup(sample, owner: session.owner) else {
+                    guard engine.coordinator.observesActiveGroup(sample, owner: session.owner, mayManage: session.mayManage) else {
                         throw StageSwitchError.ownership
                     }
                 } catch {
