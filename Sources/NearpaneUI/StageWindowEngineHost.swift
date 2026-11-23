@@ -103,7 +103,8 @@ import NearpaneOrdinaryWindowRuntime
     static func projectGroups(_ raw: DesktopSnapshot, current: @MainActor () -> Bool = { true },
         measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) async -> DesktopSnapshot? {
         guard needsDirectoryRead(raw) else { return nil }
-        let deadline = ProcessInfo.processInfo.systemUptime + 1
+        // Charge time spent querying AX. Time yielded to the UI cannot exhaust the remaining rows.
+        var remainingReadTime: TimeInterval = 1
         var copy = raw, confirmed = false
         for i in raw.windows.indices {
             let w = raw.windows[i]
@@ -116,9 +117,11 @@ import NearpaneOrdinaryWindowRuntime
             let visibleCandidate = m.isOnscreen == true && m.fullScreen != true && m.minimized != true
             m.overviewOrdinaryRole = nil
             m.minimized = nil
-            if visibleCandidate && ProcessInfo.processInfo.systemUptime < deadline {
+            if visibleCandidate && remainingReadTime > 0 {
                 await Task.yield()
                 guard !Task.isCancelled, current() else { return nil }
+                let started = ProcessInfo.processInfo.systemUptime
+                defer { remainingReadTime -= ProcessInfo.processInfo.systemUptime - started }
                 do {
                     let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
                     if let s = try measure(member, .init(display: w.displayID, record: record.id, uuid: uuid)) {
