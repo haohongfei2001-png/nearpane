@@ -34,10 +34,10 @@ import NearpaneCore
               onscreen: true, minimized: false, focus: nil)
     }
 
-    @Test func actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() throws {
+    @Test func actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() async throws {
         let raw = snapshot([window(8), window(9), window(10), window(11, member: "5")])
         var requested = [UInt32]()
-        let copy = try #require(StageWindowEngineHost.projectGroups(raw) { key, home in
+        let copy = try #require(await StageWindowEngineHost.projectGroups(raw) { key, home in
             requested.append(key.number)
             #expect(home.display == display && home.uuid == space && home.record == "4")
             switch key.number { case 8: return seen(8); case 9: return nil; default: throw StageSwitchError.incomplete }
@@ -50,12 +50,12 @@ import NearpaneCore
         #expect(copy.windows[3] == raw.windows[3])
     }
 
-    @Test func directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows() throws {
+    @Test func directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows() async throws {
         var raw = snapshot([window(8), window(9)])
         raw.native?.accessibility = .partial
         raw.windows[0].metadata?.overviewOrdinaryRole = true
         raw.windows[0].metadata?.minimized = false
-        let projection = try #require(StageWindowEngineHost.projectGroups(raw) { key, _ in
+        let projection = try #require(await StageWindowEngineHost.projectGroups(raw) { key, _ in
             #expect(key.number == 9)
             return seen(9)
         })
@@ -65,15 +65,25 @@ import NearpaneCore
         #expect(raw.windows[1].metadata?.overviewOrdinaryRole == nil)
     }
 
-    @Test func foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() throws {
+    @Test func interruptedDirectoryReadCannotPublishPartialHistoryOrQueryAnotherWindow() async {
+        let raw = snapshot([window(8), window(9)])
+        var read = [UInt32]()
+        let result = await StageWindowEngineHost.projectGroups(raw, current: { read.isEmpty }) { key, _ in
+            read.append(key.number)
+            return seen(key.number)
+        }
+        #expect(result == nil && read == [8])
+    }
+
+    @Test func foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() async throws {
         let raw = snapshot([window(8)])
         for mismatch in [seen(9), seen(8, birth: 3500), seen(8, member: 5), seen(8, bounds: .init(width: 30, height: 30))] {
-            let copy = try #require(StageWindowEngineHost.projectGroups(raw) { _, _ in mismatch })
+            let copy = try #require(await StageWindowEngineHost.projectGroups(raw) { _, _ in mismatch })
             #expect(copy.native?.accessibility == .denied && !copy.isCurrentDesktopWindow(copy.windows[0]))
         }
         for stopped in [snapshot([window(8)], stage: true), snapshot([window(8)], stage: nil),
                         snapshot([window(8)], complete: false)] {
-            #expect(StageWindowEngineHost.projectGroups(stopped) { _, _ in Issue.record("Unexpected AX read"); return nil } == nil)
+            #expect(await StageWindowEngineHost.projectGroups(stopped) { _, _ in Issue.record("Unexpected AX read"); return nil } == nil)
         }
     }
 

@@ -57,6 +57,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     let evidence: Evidence?
     let liveHandoffInHost: String
     let originalRetainedAtOperationalPrepare, pendingWALAtOperationalPrepare, committedWALAtOperationalConfirm: String
+    private(set) var postExitWatchArmed = false
     let currentWALRead = "NOT_RUN"
     let committedOwnershipWatch = "NOT_STARTED_BY_DIAGNOSTIC"
     let park = "NOT_RUN"
@@ -118,16 +119,22 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     static func temporaryRetention(code: Int32, signature: Bool, scope: Bool, permission: String, attribution: String,
                                    attempted: Bool, held: Bool, released: Bool, sameGeometry: Bool, samplesMatch: Bool) -> String {
         if permission == "DENIED_TO_CALLING_PROCESS" { return "BLOCKED_GUARDIAN_AX_DENIED" }
-        if attribution != "GUARDIAN_IS_RESPONSIBLE_PROCESS" {
+        if attribution == "UNKNOWN" {
             return attempted ? "UNKNOWN_ATTRIBUTION_CHANGED_DURING_READ" : "NOT_ATTEMPTED_WITH_UNCERTAIN_ATTRIBUTION"
+        }
+        if attribution == "ANOTHER_PROCESS_IS_RESPONSIBLE" && !attempted {
+            return "NOT_ATTEMPTED_WITH_UNCERTAIN_ATTRIBUTION"
         }
         if !scope { return "NOT_ATTEMPTED_WITHOUT_ORDINARY_SCOPE" }
         if code == 0 && signature && permission == "GRANTED_TO_CALLING_PROCESS" &&
-            held && released && sameGeometry && samplesMatch { return "ORIGINAL_OBJECT_OBSERVED_TWICE_THEN_RELEASED" }
+            held && released && sameGeometry && samplesMatch {
+            return attribution == "GUARDIAN_IS_RESPONSIBLE_PROCESS" ? "ORIGINAL_OBJECT_OBSERVED_TWICE_THEN_RELEASED" :
+                "ORIGINAL_OBJECT_READ_DURING_PARENT_GRANT"
+        }
         return "UNKNOWN"
     }
 
-    @MainActor package static func sample(host: CornerGuardianFixtureReport, executable: URL) async -> Self {
+    @MainActor package static func sample(host: CornerGuardianFixtureReport, executable: URL, observeParentExit: UUID? = nil) async -> Self {
         let handoff = host.handoff.state
         guard host.hostPID == getpid(), let birth = host.hostBirth, let window = host.registered,
               let hash = host.registeredCDHash, host.hostReceiptCode == 0, host.samples.count == 2,
@@ -142,8 +149,8 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         let ordinary = host.sampledScope, native = host.nativeID
         return await Task.detached {
             do {
-                let evidence = try exchange(window: window, executable: executable, fixtureHash: hash, hostBirth: birth,
-                                            scope: ordinary, native: native, registeredFrame: host.samples.last?.cg)
+                let (evidence, armed) = try exchange(window: window, executable: executable, fixtureHash: hash, hostBirth: birth,
+                                            scope: ordinary, native: native, registeredFrame: host.samples.last?.cg, observeParentExit: observeParentExit)
                 let reason: String
                 if evidence.effectiveAccessibility == "DENIED_TO_CALLING_PROCESS" {
                     reason = "guardianAccessibilityDenied"
@@ -157,7 +164,9 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
                     reason = handoff == "NO_LIVE_HANDOFF_IN_THIS_HOST"
                         ? "noOperationalWALOrRetainedRecoveryLease" : "diagnosticHandleReleasedOperationalLeaseRemainsSeparate"
                 }
-                return Self(status: "BLOCKED", reason: reason, childExit: 0, evidence: evidence, host: host)
+                var result = Self(status: "BLOCKED", reason: reason, childExit: armed ? nil : 0, evidence: evidence, host: host)
+                result.postExitWatchArmed = armed
+                return result
             } catch {
                 return Self(status: "UNKNOWN", reason: (error as? Failure)?.rawValue ?? "authenticatedReadbackUnavailable",
                             childExit: nil, evidence: nil, host: host)
@@ -166,7 +175,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     }
 
     private static func exchange(window: NativeSpaceWindow, executable: URL, fixtureHash: String, hostBirth: UInt64,
-                                 scope: StageGroupScope?, native: UInt64?, registeredFrame: SurfaceRect?) throws -> Evidence {
+                                 scope: StageGroupScope?, native: UInt64?, registeredFrame: SurfaceRect?, observeParentExit: UUID?) throws -> (Evidence, Bool) {
         let helper = CornerGuardianClient.helper, pid = getpid()
         let image = try OrdinaryProcessImage.read(pid)
         let hostHash = try digest(pid)
@@ -174,7 +183,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
               image.launch == hostBirth else { throw Failure.hostGenerationOrCanonicalPathChanged }
         let process = Process(), input = Pipe(), output = Pipe()
         process.executableURL = helper
-        process.arguments = ["--inspect-registered-fixture"]
+        process.arguments = [observeParentExit == nil ? "--inspect-registered-fixture" : "--inspect-fixture-after-host-exit"]
         process.environment = [:]
         process.standardInput = input
         process.standardOutput = output
@@ -190,7 +199,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         guard let childBirth = CornerGuardianClient.childGeneration(child), childImage.launch == childBirth,
               childImage.executable.path == helper.path else { throw Failure.signedChildGenerationUnavailable }
         let validScope = scope != nil && (native ?? 0) > 0
-        let request = Request(challenge: UUID(), hostPID: pid, hostBirth: hostBirth, hostHash: hostHash,
+        let request = Request(challenge: observeParentExit ?? UUID(), hostPID: pid, hostBirth: hostBirth, hostHash: hostHash,
                               childPID: child, childBirth: childBirth, childHash: childHash, window: window,
                               executable: executable.path, fixtureHash: fixtureHash, display: validScope ? scope?.display : nil,
                               space: validScope ? scope?.nativeSpace : nil, nativeID: validScope ? native : nil,
@@ -206,14 +215,21 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
               try OrdinaryProcessImage.read(pid) == image, try digest(pid) == hostHash else {
             throw Failure.childOrHostChangedBeforeReturn
         }
-        // Q ends this one inspection. No pipe message in this mode is an engine operation.
-        try writer.write(contentsOf: Data([81]))
+        // A watch owns a read-only AX reference and a NOTE_EXIT observation. It never owns a recovery lease.
+        let canWatch = observeParentExit != nil && evidence.matchesHostRegisteredGeometry == true &&
+            ["ORIGINAL_OBJECT_OBSERVED_TWICE_THEN_RELEASED", "ORIGINAL_OBJECT_READ_DURING_PARENT_GRANT"].contains(evidence.temporaryRetention)
+        try writer.write(contentsOf: Data(canWatch ? "W".utf8 : "Q".utf8))
+        if canWatch {
+            let reply = try readLine(reader.fileDescriptor, until: DispatchTime.now().uptimeNanoseconds + 2_000_000_000)
+            if reply == Data("ARMED".utf8) { return (evidence, true) }
+            guard reply == Data("REFUSED".utf8) else { throw Failure.boundedPipeFailure }
+        }
         let deadline = DispatchTime.now().uptimeNanoseconds + 2_000_000_000
         while process.isRunning && DispatchTime.now().uptimeNanoseconds < deadline { usleep(5_000) }
         guard !process.isRunning, process.terminationReason == .exit, process.terminationStatus == 0 else {
             throw Failure.childExitUnconfirmed
         }
-        return evidence
+        return (evidence, false)
     }
 
     private static func digest(_ pid: Int32) throws -> String {
@@ -271,7 +287,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
                                     responsibleBefore: r.responsibleBefore, responsibleAfter: r.responsibleAfter)
         let held = obs.held_in_caller == 1, released = obs.released == 1, same = obs.same_geometry == 1
         let attempted = raw.contains { $0.cornerAXAndMembershipStatus != nil }
-        if !r.axBefore || r.responsibleBefore != r.childPID || r.nativeID == nil {
+        if !r.axBefore || ![r.childPID, r.hostPID].contains(r.responsibleBefore) || r.nativeID == nil {
             guard !attempted, !held, !released else { throw Failure.signedReplyNotBoundToOriginalRequest }
         }
         let status = temporaryRetention(code: r.receiptCode, signature: obs.signatures_closed == 1, scope: r.nativeID != nil,

@@ -84,6 +84,12 @@ struct CornerGuardianIndependentProbeTests {
         #expect(r.effectiveAccessibility == "GRANTED_TO_CALLING_PROCESS")
         #expect(r.permissionAttribution == "ANOTHER_PROCESS_IS_RESPONSIBLE")
         #expect(r.temporaryRetention == "NOT_ATTEMPTED_WITH_UNCERTAIN_ATTRIBUTION")
+        let borrowed = try Probe.decode(packet(q, {
+            $0["responsibleBefore"] = q.hostPID; $0["responsibleAfter"] = q.hostPID
+        }), for: q, registeredFrame: source, now: 200)
+        #expect(borrowed.heldInGuardian && borrowed.temporaryObjectReleased)
+        #expect(borrowed.temporaryRetention == "ORIGINAL_OBJECT_READ_DURING_PARENT_GRANT")
+        #expect(borrowed.permissionAttribution == "ANOTHER_PROCESS_IS_RESPONSIBLE")
         let unknown = Probe.permission(child: q.childPID, before: true, after: true, responsibleBefore: -1, responsibleAfter: -1)
         #expect(unknown.effective == "GRANTED_TO_CALLING_PROCESS" && unknown.attribution == "UNKNOWN")
         let changed = try packet(q, { $0["responsibleAfter"] = q.hostPID })
@@ -116,7 +122,7 @@ struct CornerGuardianIndependentProbeTests {
         let changes: [[String: Any]] = [
             ["challenge": UUID().uuidString], ["hostPID": 114], ["hostBirth": 144], ["hostHash": "new"],
             ["childPID": 214], ["childBirth": 243], ["childHash": "other"], ["fixtureHash": "other"],
-            ["responsibleBefore": q.hostPID], ["axBefore": false],
+            ["responsibleBefore": 918], ["axBefore": false],
             ["space": UUID().uuidString], ["nativeID": 18],
             ["window": ["pid": 317, "birth": 384, "number": 86]], ["observation": "AA=="],
             ["started": 99], ["ended": 201],

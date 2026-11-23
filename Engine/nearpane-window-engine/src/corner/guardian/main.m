@@ -358,7 +358,9 @@ int main(int argc, const char **argv) {
         (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
 #ifndef NP_CORNER_FIXTURE
         if (argc == 2 && !strcmp(argv[1], "--inspect-registered-fixture"))
-            return inspectRegisteredFixture();
+            return inspectRegisteredFixture(NO);
+        if (argc == 2 && !strcmp(argv[1], "--inspect-fixture-after-host-exit"))
+            return inspectRegisteredFixture(YES);
 #endif
         if (argc != 3)
             return 2;

@@ -80,10 +80,12 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
-    func updateGroupProjection(_ raw: DesktopSnapshot) {
+    func updateGroupProjection(_ raw: DesktopSnapshot, current: @MainActor () -> Bool) async {
+        guard current() else { return }
         groupProjection = nil
         guard Self.needsDirectoryRead(raw), let measure = try? StageHostAccess.directoryReader() else { return }
-        groupProjection = Self.projectGroups(raw, measure: measure)
+        let projection = await Self.projectGroups(raw, current: current, measure: measure)
+        if current() { groupProjection = projection }
     }
 
     static func needsDirectoryRead(_ raw: DesktopSnapshot) -> Bool {
@@ -98,8 +100,8 @@ import NearpaneOrdinaryWindowRuntime
         }
     }
 
-    static func projectGroups(_ raw: DesktopSnapshot,
-        measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) -> DesktopSnapshot? {
+    static func projectGroups(_ raw: DesktopSnapshot, current: @MainActor () -> Bool = { true },
+        measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) async -> DesktopSnapshot? {
         guard needsDirectoryRead(raw) else { return nil }
         let deadline = ProcessInfo.processInfo.systemUptime + 1
         var copy = raw, confirmed = false
@@ -115,6 +117,8 @@ import NearpaneOrdinaryWindowRuntime
             m.overviewOrdinaryRole = nil
             m.minimized = nil
             if visibleCandidate && ProcessInfo.processInfo.systemUptime < deadline {
+                await Task.yield()
+                guard !Task.isCancelled, current() else { return nil }
                 do {
                     let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
                     if let s = try measure(member, .init(display: w.displayID, record: record.id, uuid: uuid)) {

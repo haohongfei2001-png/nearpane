@@ -112,6 +112,9 @@ def main():
         "release",
         "c-abi-link",
         "c-abi",
+        "product-guardian-build",
+        "guardian-exit-build",
+        "guardian-exit",
         "corner-witness-build",
         "corner-witness",
         "interactive-fixture-build",
@@ -187,6 +190,11 @@ def main():
             "--no-default-features",
         ]
         run("rust", ["cargo", "test", *cargo, "--features", "corner,spaces,isolated-fixtures"], rust_count)
+        exit_watch = work / "guardian-exit"
+        if run("guardian-exit-build", ["xcrun", "clang", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror",
+                "-I", CRATE / "src/corner", ACCEPTANCE / "corner/guardian-exit-test.m",
+                "-framework", "Foundation", "-framework", "Security", "-o", exit_watch]):
+            run("guardian-exit", [exit_watch], lambda log: {"readback": json.loads(log)})
         witness = work / "corner-witness"
         if run("corner-witness-build", ["xcrun", "clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror",
                 "-I", CRATE / "src/corner", ACCEPTANCE / "corner/patch-input-test.m",
@@ -215,6 +223,8 @@ def main():
 
         if run("release", ["bash", "scripts/build-window-engine.sh"], archive_result):
             env["NEARPANE_ENGINE_ARCHIVE"] = str(archive)
+            run("product-guardian-build", ["bash", ACCEPTANCE / "corner/build-guardian.sh",
+                                          work / "NearpaneCornerGuardian", archive])
             link = [part for name in FRAMEWORKS for part in ("-framework", name)]
             exe = work / "passive-c-abi"
             if run(

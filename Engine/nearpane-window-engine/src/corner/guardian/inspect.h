@@ -53,7 +53,8 @@ static BOOL diagnosticEnvelope(NSDictionary *m, uint64_t now) {
            [m[@"nativeID"] compare:@0] == NSOrderedDescending &&
            [m[@"nativeID"] isEqual:@([m[@"nativeID"] unsignedLongLongValue])];
 }
-static int inspectRegisteredFixture(void) {
+#include "survival.h"
+static int inspectRegisteredFixture(BOOL watchExit) {
     if (!diagnosticPipes())
         return 2;
     pid_t parent = getppid(), own = getpid(), actualParent = 0;
@@ -71,9 +72,9 @@ static int inspectRegisteredFixture(void) {
 
     pid_t responsibleBefore = diagnosticResponsible();
     BOOL axBefore = AXIsProcessTrusted();
-    // Effective access can be attributed to another responsible process. In that case observe just this
-    // registered CG owner and report the helper's permission query without using effective AX on the fixture.
-    BOOL inspectWindow = responsibleBefore == own && axBefore;
+    // A signed parent may lend effective AX access. A live read can measure that fact.
+    // Only an independent read after its kernel exit can say anything about survival.
+    BOOL inspectWindow = axBefore && (responsibleBefore == own || responsibleBefore == parent);
     NPGuardianFixtureObservation raw = {.size = sizeof(raw), .version = 1};
     int32_t result = np_guardian_observe_fixture(
         [w[@"pid"] intValue], [w[@"birth"] unsignedLongLongValue], [w[@"number"] unsignedIntValue],
@@ -107,5 +108,8 @@ static int inspectRegisteredFixture(void) {
         return 4;
     struct pollfd finish = {.fd = STDIN_FILENO, .events = POLLIN};
     char release = 0;
-    return poll(&finish, 1, 2000) > 0 && read(STDIN_FILENO, &release, 1) == 1 && release == 'Q' ? 0 : 4;
+    if (poll(&finish, 1, 2000) <= 0 || read(STDIN_FILENO, &release, 1) != 1) return 4;
+    if (release == 'Q') return 0;
+    if (!watchExit || release != 'W') return 4;
+    return observeAfterParentExit(m, &raw, parent, hostBirth, responsibleAfter);
 }

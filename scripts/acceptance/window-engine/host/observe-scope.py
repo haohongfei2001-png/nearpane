@@ -188,8 +188,58 @@ def await_exit(launcher, app, launch):
         time.sleep(.06)
 
 
+def guardian_survival_result(row, host, nonce, exited):
+    """Only a read-only retained-object drill. A PASS here cannot admit a hide or a restore."""
+    watch = host.get("guardianIndependent", {})
+    evidence = watch.get("evidence") or {}
+    child, parent = evidence.get("guardian", {}), evidence.get("host", {})
+    expected = {"hostPID": parent.get("pid"), "hostBirth": parent.get("birth"), "hostHash": parent.get("cdhash"),
+                "childPID": child.get("pid"), "childBirth": child.get("birth"), "childHash": child.get("cdhash")}
+    def frame(value):
+        return isinstance(value, list) and len(value) == 4 and all(type(n) in (int, float) and abs(n) < 1e9 for n in value) and min(value[2:]) > 0
+    pre = evidence.get("samples", [])
+    def measured(key):
+        rect = pre[-1].get(key) if pre and isinstance(pre[-1], dict) else None
+        if not isinstance(rect, dict):
+            return []
+        return [rect.get(k) for k in ("x", "y", "width", "height")]
+    if not (isinstance(row, dict) and isinstance(pre, list) and watch.get("postExitWatchArmed") is True and watch.get("mayPark") is False
+            and evidence.get("matchesHostRegisteredGeometry") is True and len(pre) == 2
+            and str(row.get("challenge", "")).lower() == str(nonce).lower() == str(evidence.get("challenge", "")).lower()
+            and all(v and row.get(k) == v for k, v in expected.items())
+            and host.get("subject", {}).get("pid") == parent.get("pid") == exited.get("pid")
+            and host["subject"].get("birth") == parent.get("birth") == exited.get("birth") and exited.get("status") == "PASS"
+            and all(evidence.get(k) and row.get(k) == evidence[k] for k in ("window", "fixtureHash", "nativeID", "display", "space"))
+            and row.get("schema") == 1 and row.get("scope") == "readOnlyOriginalObjectAcrossHostExit"
+            and row.get("mayPark") is False and all(type(row.get(k)) is int and row[k] == 0 for k in ("windowWrites", "spaceWrites"))):
+        return "UNKNOWN"
+    flags = ("kernelExit", "postExitAXTrusted", "exactOriginalRetained", "geometryReturned", "inputStable", "originalReleased")
+    timing = all(type(row.get(k)) is int for k in ("firstPostReadNS", "secondPostReadNS"))
+    frames = all(frame(row.get(k)) for k in ("originalAX", "originalCG", "postAX", "postCG"))
+    valid = (row.get("status") == "PASS" and all(row.get(k) is True for k in flags) and type(row.get("sampleCode")) is int and row["sampleCode"] == 0
+             and timing and type(evidence.get("ended")) is int and 0 < evidence["ended"] < row["firstPostReadNS"] < row["secondPostReadNS"]
+             and frames and measured("ax") == row["originalAX"] == row["postAX"]
+             and measured("cg") == row["originalCG"] == row["postCG"])
+    return "PASS" if valid else "UNKNOWN"
+
+
+def await_guardian_exit(pid):
+    if type(pid) is not int or pid <= 1:
+        return False
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        try:
+            os.kill(pid, 0)  # existence query only
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            return False
+        time.sleep(.04)
+    return False
+
+
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
-            spaces_cycle=False, inspect_final=None, own_canary=False):
+            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False):
     image = identity(app)
     before = identity(DAILY)
     result = dict(schema=2, scope="ownPanelOnly" if own_canary else "oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
@@ -200,7 +250,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                   productionQualified=False, launchRequested=False, status="BLOCKED")
     try:
         if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
-                or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))):
+                or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
+                or (guardian_survival and (app != DAILY or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
             result["reason"] = "pinnedImageOrRegisteredSessionUnavailable"
             return result
         if image["engineABI"] != 1 or image["sourceState"] != "clean":
@@ -213,6 +264,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
             return result
         launcher = build_launcher(directory)
         with exclusive(image["Identifier"]):
+            if guardian_survival:
+                publish(directory, "guardian-survival.request")
             args = [launcher, app, challenge]
             if own_canary:
                 args.append("--installed-spaces-canary")
@@ -266,6 +319,25 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                                   rawSHA256=digest, abi=raw["abi"], permissionSource=raw["permissionSource"],
                                   redaction="Display and Space UUIDs consistently tokenized across each Host report.",
                                   **public_observation(raw))
+                    if guardian_survival:
+                        # Keep the fixture alive until after the signed diagnostic Host naturally exits.
+                        probe = raw.get("guardianIndependent", {})
+                        if probe.get("postExitWatchArmed") is True:
+                            exited = await_exit(launcher, app, launch)
+                            child = probe["evidence"]["guardian"]["pid"]
+                            continuation = {"status": "UNKNOWN", "readerExited": False}
+                            result["postExitGuardian"] = continuation
+                            try:
+                                terminal, digest = response(directory, "guardian-post-exit.json", 10)
+                                continuation.update(status=guardian_survival_result(terminal, raw, challenge, exited),
+                                                    raw=public_scope(terminal), receiptSHA256=digest, hostExit=exited)
+                            finally:
+                                continuation["readerExited"] = await_guardian_exit(child)
+                                if not continuation["readerExited"]:
+                                    continuation["status"] = "UNKNOWN"
+                        else:
+                            result["postExitGuardian"] = {"status": "BLOCKED", "reason": "retainedOriginalWatchNotArmed",
+                                "readerExited": probe.get("childExit") == 0, "childStarted": probe.get("evidence") is not None}
             finally:
                 publish(directory, "abort")
                 result["hostExit"] = await_exit(launcher, app, launch)

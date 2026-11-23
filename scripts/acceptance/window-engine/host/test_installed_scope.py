@@ -46,6 +46,41 @@ def correlated(value, opened=launch):
 
 
 class InstalledScopeTests(unittest.TestCase):
+    def test_survival_cleanup_requires_a_terminal_helper_when_a_fixture_started(self):
+        record = {"hostObservationStarted": True, "hostLaunchRequested": True, "hostExit": {"status": "PASS"},
+                  "fixtureLaunchRequested": True, "ownerClosed": True, "ownedProcessExited": True,
+                  "requestedGuardianSurvival": True, "requestedSpacesCycle": False}
+        self.assertFalse(membership.resources(record)["clear"])
+        self.assertFalse(membership.resources({**record, "postExitGuardian": {"status": "PASS", "readerExited": False}})["clear"])
+        self.assertTrue(membership.resources({**record, "postExitGuardian": {"status": "UNKNOWN", "readerExited": True}})["clear"])
+        self.assertTrue(membership.resources({**record, "fixtureLaunchRequested": False})["clear"])
+
+    def test_guardian_continuation_binds_the_kernel_exit_original_object_and_both_geometry_readers(self):
+        frame = [40, 60, 220, 143]
+        rect = dict(zip(("x", "y", "width", "height"), frame))
+        a = {"pid": 8, "birth": 102, "cdhash": digest}
+        b = {"pid": 12, "birth": 109, "cdhash": revision}
+        scope = {"window": {"pid": 21, "birth": 99, "number": 14}, "fixtureHash": "3"*40,
+                 "nativeID": 4, "display": str(uuid.uuid4()), "space": str(uuid.uuid4())}
+        subject = dict(scope, host=a, guardian=b, challenge=nonce, ended=160,
+                       samples=[dict(cg=rect, ax=rect)]*2, matchesHostRegisteredGeometry=True)
+        raw = {"subject": a, "guardianIndependent": dict(postExitWatchArmed=True, mayPark=False, evidence=subject)}
+        exited = dict(status="PASS", pid=8, birth=102)
+        row = dict(scope, schema=1, challenge=nonce, hostPID=8, hostBirth=102, hostHash=digest,
+                   childPID=12, childBirth=109, childHash=revision, mayPark=False, windowWrites=0, spaceWrites=0,
+                   scope="readOnlyOriginalObjectAcrossHostExit", kernelExit=True, postExitAXTrusted=True,
+                   exactOriginalRetained=True, geometryReturned=True, inputStable=True, originalReleased=True,
+                   status="PASS", sampleCode=0, firstPostReadNS=208, secondPostReadNS=332,
+                   originalAX=frame, originalCG=frame, postAX=frame, postCG=frame)
+        verdict = lambda value: reader.guardian_survival_result(value, raw, nonce, exited)
+        self.assertEqual(verdict(row), "PASS")
+        for key in ("kernelExit", "postExitAXTrusted", "exactOriginalRetained", "inputStable", "originalReleased", "geometryReturned"):
+            self.assertEqual(verdict({**row, key: False}), "UNKNOWN")
+        for delta in ({"childBirth": 12}, {"challenge": str(uuid.uuid4())}, {"sampleCode": 19}, {"firstPostReadNS": 155},
+                      {"nativeID": 5}, {"postAX": [41, 60, 220, 143]}, {"originalCG": []}, {"mayPark": True}):
+            self.assertEqual(verdict({**row, **delta}), "UNKNOWN")
+        self.assertEqual(reader.guardian_survival_result(row, raw, nonce, dict(exited, status="UNKNOWN")), "UNKNOWN")
+
     def test_own_canary_receipt_requires_exact_operations_original_scope_and_no_external_write(self):
         ops = ("create", "hide", "return", "destroy")
         panel = dict(owner="installedHostPrivateNonactivatingPanel", pid=412, window=8, originalSpace=6, parkingID=7,

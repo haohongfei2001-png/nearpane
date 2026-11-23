@@ -185,7 +185,9 @@ enum StageEnginePackageProbe {
                 let guardian = CornerGuardianFixtureReport.sample(pid: fixture.pid, birth: fixture.birth, number: fixture.number,
                     executable: fixture.executable, cdhash: fixture.cdhash, scope: ordinary, nativeID: native)
                 report["guardianFixture"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(guardian))
-                let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable)
+                let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil
+                let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
+                    observeParentExit: survival ? challenge : nil)
                 report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
             }
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])

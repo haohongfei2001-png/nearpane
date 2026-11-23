@@ -419,7 +419,12 @@ import OSLog
             }
             self.lifetimes = next
             if self.panelRequested, self.groups.loadIssue == nil {
-                self.stageEngine.updateGroupProjection(result)
+                @MainActor func currentDirectory() -> Bool {
+                    !Task.isCancelled && expected == self.epoch && self.panelRequested && self.sessionAvailable()
+                        && result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+                }
+                await self.stageEngine.updateGroupProjection(result, current: currentDirectory)
+                guard currentDirectory() else { return nil }
                 let stage = self.stageEngine.snapshotForGroups(result)
                 let candidates = stage.displays.flatMap { self.stageWindows(in: stage, on: $0) }
                 do {

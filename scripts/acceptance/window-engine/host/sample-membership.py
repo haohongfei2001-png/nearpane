@@ -651,9 +651,12 @@ def run(a, report):
                 report["fixtureJournal"] = fixture_archive(raw, challenge, report)
     report["hostObservationStarted"] = True
     observed = scope_reader.observe(app, challenge, channel, raw_output, enroll=enroll, expected_image=image,
-                                    spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final)
+                                    spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final,
+                                    guardian_survival=getattr(a, "guardian_survival", False))
     report["hostLaunchRequested"] = observed.get("launchRequested")
     report["preexistingSameID"] = observed.get("launchServices", {}).get("prelaunch", {}).get("pids", [])
+    if getattr(a, "guardian_survival", False):
+        report["postExitGuardian"] = observed.get("postExitGuardian", {"status": "NOT_RUN"})
     source = observed if observed.get("subject") else observed.get("preflight", {})
     report.update(rawHostSHA256=observed.get("rawSHA256"), hostExit=observed.get("hostExit"),
                   subject=source.get("subject"), permissions=source.get("permissions"),
@@ -679,6 +682,9 @@ def run(a, report):
         evidence = guardian.get("evidence") or {}
         report["guardianReadback"] = {k: guardian.get(k) for k in ("status","reason","childExit","park","mayPark","crashRecovery")}
         report["guardianReadback"]["temporaryRetention"] = evidence.get("temporaryRetention", "NOT_RUN")
+    if getattr(a, "guardian_survival", False) and report["status"] == "PASS":
+        report["status"] = report["postExitGuardian"].get("status", "UNKNOWN")
+        report["reason"] = "postExitReadOnlyOriginalObject"
     if a.enrolled_spaces_cycle and report.get("spacesCycleStatus") != "PASS":
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
 
@@ -711,10 +717,13 @@ def resources(report):
         backend = "PASS" if report.get("backendSafeToRollback") is True else "UNKNOWN"
     overview = report.get("overviewObservation", {})
     overview_clear = (not report.get("requestedOwnCanary") or backend == "NOT_RUN" or overview.get("restored") is True)
+    watch = report.get("postExitGuardian")
+    reader_clear = (not report.get("requestedGuardianSurvival") or not report.get("fixtureLaunchRequested")
+                    or (watch is not None and watch.get("readerExited") is True))
     preceding = report.get("ownPanelPredecessor")
     return dict(candidateExit=host, registeredWindowExit=fixture, backendCleanup=backend,
                 clear=all(state in {"PASS", "NOT_RUN"} for state in (host, fixture, backend))
-                and overview_clear and (preceding is None or preceding["resourcesClear"] is True))
+                and reader_clear and overview_clear and (preceding is None or preceding["resourcesClear"] is True))
 
 
 
@@ -724,6 +733,7 @@ def main():
     p.add_argument("host", type=Path)
     p.add_argument("preflight", type=Path, nargs="?", help="existing Host receipt for legacy comparison mode")
     p.add_argument("out", type=Path)
+    p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
@@ -738,6 +748,8 @@ def main():
         p.error("provide either a prior Host receipt or --installed with expected source and CDHash")
     if (a.enrolled_spaces_cycle or a.own_spaces_canary or a.preflight_only) and not a.installed:
         p.error("formal Host qualification requires --installed")
+    if a.guardian_survival and (not a.installed or a.own_spaces_canary or a.enrolled_spaces_cycle or a.preflight_only):
+        p.error("Guardian continuation requires an installed read-only fixture session")
     with a.out.open("x"):
         pass
     report = dict(
@@ -752,6 +764,7 @@ def main():
         scopePostedInput=0,
         requestedSpacesCycle=a.enrolled_spaces_cycle,
         requestedOwnCanary=a.own_spaces_canary,
+        requestedGuardianSurvival=a.guardian_survival,
         permissionPrompts=0,
         thirdPartyMembershipRoundTrip="NOT_RUN",
         singleWindowHideRestore="NOT_RUN",

@@ -16,6 +16,11 @@ HERE = Path(__file__).resolve().parent
 
 def summarize_trial(name, trial):
     result = dict(qualification=trial["status"], reason=trial.get("reason"))
+    if name == "guardian-survival":
+        result.update(membershipReadback=trial.get("membershipStatus", "UNKNOWN"),
+                      postExitOriginalObject=trial.get("postExitGuardian", {"status": "NOT_RUN"}),
+                      singleWindowHideRestore="NOT_RUN", productionQualified=False)
+        return result
     if name == "corner-readback":
         result.update(membershipReadback=trial["status"], guardianReadback=trial.get("guardianReadback"),
                       singleWindowHideRestore="NOT_RUN", productionQualified=False)
@@ -70,6 +75,14 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
         update(admission_stage, qualification="BLOCKED", admissionReason="physicalEvidenceOrHostBindingIncomplete",
                observationSHA256=digest, quitRequests=0)
         return
+    if name == "guardian-survival":
+        with (mac.canonical / "Contents/MacOS/NearpaneHost").open("rb") as file:
+            with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as binary:
+                supported = binary.find(b"guardian-survival.request") >= 0
+        if not supported:
+            update("interactiveEntryUnavailableBeforeQuit", qualification="BLOCKED",
+                   admissionReason="installedImageLacksGuardianSurvivalProtocol", quitRequests=0)
+            return
     if interactive:
         pair_runner = importlib.import_module("interactive-pair")
         require(kit is not None, "signedInteractiveFixtureKitRequired")
@@ -114,6 +127,8 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
             return  # finally returns the ordinary Host; no fixture or Space has been created.
         args = [sys.executable, "-B", HERE / "sample-membership.py", mac.canonical, out, "--installed",
                 "--expected-source", current["source"], "--expected-cdhash", current["cdhash"]]
+        if name == "guardian-survival":
+            args.append("--guardian-survival")
         if name == "spaces":
             args.extend(["--enrolled-spaces-cycle", "--p0-receipt", str(p0_receipt), "--p0-sha256", digest])
         if interactive:
@@ -154,7 +169,7 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("work", type=Path)
-    p.add_argument("scope", choices=["spaces", "corner-readback", "interactive-roster", "interactive-spaces"])
+    p.add_argument("scope", choices=["spaces", "corner-readback", "guardian-survival", "interactive-roster", "interactive-spaces"])
     p.add_argument("--kit", type=Path, help="reviewed two-application signed fixture kit for the interactive paths")
     observation = p.add_mutually_exclusive_group()
     observation.add_argument("--desktop-receipt", type=Path, help="fresh passive ordinary desktop, original focus and HID observation")
@@ -182,7 +197,7 @@ def main():
         if record.get("stage") in {"p0RequiredBeforeQuit", "ordinaryDesktopRequiredBeforeQuit", "interactiveEntryUnavailableBeforeQuit"}:
             record["status"] = "BLOCKED"
         elif record.get("stage") == "regularHostRunning":
-            verdict = record.get("membershipReadback", record.get("qualification", "UNKNOWN"))
+            verdict = record.get("membershipReadback", "UNKNOWN") if args.scope == "corner-readback" else record.get("qualification", "UNKNOWN")
             record["status"] = verdict if record["configurationBefore"] == record["configurationAfter"] else "UNKNOWN"
     except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
         record["error"] = str(error)[:400]

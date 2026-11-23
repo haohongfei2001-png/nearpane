@@ -11,7 +11,9 @@
 
 [权威产品状态](STATUS.md) · [技术裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [归档的原生 Spaces / Mission Control 专项合同](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/native-spaces/ACCEPTANCE.md)
 
-## 当前单次隔离门槛
+正式 Host 支持 `guardian-survival` 只读诊断。监督器以 `--desktop-receipt` 接受新鲜的普通桌面、原焦点及 HID 观察。仅在登记的签名夹具仍存活时正常退出诊断 Host，Guardian 用内核 NOTE_EXIT、出生代和已保留的 AX 引用核对同一窗口、几何与原生归属。监督器独立解析原始收据并查验 Guardian 和夹具退出。此单项 PASS 只表示跨进程退出的读取能力。恢复租约、真实停放、输入隔离和还原分别验收。
+
+## 历史隔离实验合同
 
 使用两个签名且已注册的普通 App。一个 App 提供两扇分别归入不同组的文档窗，另一个提供第三组、独立旁窗、用户预先最小化的窗及辅助面板。系统 Stage Manager 全程关闭。独立记录每扇窗的进程出生代、CGWindowID、AX 身份、AX/CG/AppKit 矩形和可见性、前台焦点、真实输入唯一接收者、Dock 窗口图块及退出清理。实机证据只采集隔离测试窗口。含私人窗口的屏幕仅记录必要的数值身份与布局，图像证据仅取测试窗口。
 
