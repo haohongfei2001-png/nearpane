@@ -1,0 +1,477 @@
+{
+  "schema": 2,
+  "scope": "oneHostReadOnlyScope",
+  "recordedUTC": "2026-11-23T12:10:00.059866+00:00",
+  "os": "27.0",
+  "osBuild": "26A428",
+  "sip": "System Integrity Protection status: enabled.",
+  "independentSystemSource": "sw_vers + csrutil",
+  "image": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "c2ec5706ea2324e88791061cee3addbd2fcb257e",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "readOnlyGuardianProtocol": 1,
+    "version": "0.2.0",
+    "build": "1",
+    "source": "224bf3d88a2caabdfe96640bb3cd83ed61fbccec",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": false
+  },
+  "dailyBefore": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": true
+  },
+  "scopeWindowWrites": 0,
+  "scopeSpaceWrites": 0,
+  "scopeInputEvents": 0,
+  "productionQualified": false,
+  "launchRequested": true,
+  "status": "BLOCKED",
+  "launchServices": {
+    "birth": 1795435802695602,
+    "errorCode": 0,
+    "errorDomain": "",
+    "exactLaunchPath": true,
+    "kernelExecutable": "/private/tmp/nearpane-stage-engine-dev.OnzPvca2/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "launched": true,
+    "pid": 32573,
+    "postlaunch": {
+      "complete": true,
+      "pids": [
+        32573
+      ],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    },
+    "prelaunch": {
+      "complete": true,
+      "pids": [],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    }
+  },
+  "preflightRawSHA256": "d518c71e19c4536c22363fcd6861d6caeb72f1c802fe5fe02d2d0c737ed77fe7",
+  "preflight": {
+    "subject": {
+      "atDailyInstallPath": false,
+      "birth": 1795435802695602,
+      "build": "1",
+      "cdhash": "c2ec5706ea2324e88791061cee3addbd2fcb257e",
+      "identifier": "com.holdsnow.nearpane.host",
+      "kernelExecutable": "/tmp/nearpane-stage-engine-dev.OnzPvca2/Nearpane.app/Contents/MacOS/NearpaneHost",
+      "pid": 32573,
+      "source": "224bf3d88a2caabdfe96640bb3cd83ed61fbccec",
+      "sourceState": "clean",
+      "teamIdentifier": "ZB9D4T66QB",
+      "version": "0.2.0"
+    },
+    "permissions": {
+      "accessibility": true,
+      "listenEvent": true,
+      "postEvent": true,
+      "screenCapture": false
+    },
+    "system": {
+      "build": "26A428",
+      "buildSource": "Host/sysctl kern.osversion",
+      "sip": {
+        "bits": 0,
+        "enabled": true,
+        "returnCode": 0,
+        "source": "Host/csr_get_active_config",
+        "status": "OBSERVED"
+      },
+      "version": [
+        27,
+        0,
+        0
+      ],
+      "versionSource": "Host/ProcessInfo"
+    },
+    "rawSHA256": "d518c71e19c4536c22363fcd6861d6caeb72f1c802fe5fe02d2d0c737ed77fe7",
+    "spaceScope": {
+      "fixtureMembership": {
+        "reason": "noSignedFixtureRegistered",
+        "spaceToWindow": {
+          "reason": "noSignedFixtureRegistered",
+          "status": "NOT_RUN"
+        },
+        "status": "NOT_RUN",
+        "windowToSpaces": {
+          "reason": "noSignedFixtureRegistered",
+          "status": "NOT_RUN"
+        }
+      },
+      "readOnly": true,
+      "samples": [
+        {
+          "connection": 10978219,
+          "current": {
+            "id64": 4,
+            "malformed": false,
+            "managedID": 4,
+            "type": 0,
+            "uuid": "uuid-1"
+          },
+          "directCurrent": 4,
+          "directCurrentAfter": 4,
+          "directError": 0,
+          "directErrorAfter": 0,
+          "display": {
+            "activeCGCount": 1,
+            "appKitScreenIDs": [
+              1
+            ],
+            "cgDisplays": [
+              {
+                "activeAndOnline": true,
+                "builtIn": true,
+                "cgID": 1,
+                "mirrored": false,
+                "primary": true,
+                "uuid": "uuid-2"
+              }
+            ],
+            "primaryCGID": 1,
+            "primaryUUID": "uuid-2",
+            "topologyConfirmed": true
+          },
+          "endedUptimeNS": 495483564309625,
+          "fixture": {
+            "appKitIsOnActiveSpace": {
+              "reason": "noSignedFixtureRegistered",
+              "status": "NOT_RUN",
+              "value": null
+            },
+            "birth": null,
+            "boundBeforeAndAfter": false,
+            "decision": {
+              "reason": "noSignedFixtureRegistered",
+              "status": "NOT_RUN"
+            },
+            "pid": null,
+            "registered": false,
+            "spaceToWindowError": null,
+            "spaceToWindowHitCount": null,
+            "window": null,
+            "windowToSpaces": null,
+            "windowToSpacesError": null
+          },
+          "hostBirth": 1795435802695602,
+          "hostPID": 32573,
+          "managedDisplayCount": 1,
+          "managedDisplayToken": "uuid-2",
+          "managedReadError": 0,
+          "managedRows": [
+            {
+              "current": {
+                "id64": 4,
+                "malformed": false,
+                "managedID": 4,
+                "type": 0,
+                "uuid": "uuid-1"
+              },
+              "displayToken": "uuid-2",
+              "matchingActiveEntries": [
+                {
+                  "id64": 4,
+                  "malformed": false,
+                  "managedID": 4,
+                  "type": 0,
+                  "uuid": "uuid-1"
+                }
+              ],
+              "orderedDesktops": [
+                {
+                  "id64": 4,
+                  "malformed": false,
+                  "managedID": 4,
+                  "type": 0,
+                  "uuid": "uuid-1"
+                },
+                {
+                  "id64": 6,
+                  "malformed": false,
+                  "managedID": 6,
+                  "type": 0,
+                  "uuid": "uuid-3"
+                }
+              ],
+              "rosterCount": 2
+            }
+          ],
+          "matchingManagedDisplays": 1,
+          "matchingRosterEntries": [
+            {
+              "id64": 4,
+              "malformed": false,
+              "managedID": 4,
+              "type": 0,
+              "uuid": "uuid-1"
+            }
+          ],
+          "ordinaryIdentity": {
+            "reason": "ordinaryCurrentAndRosterMatchDirect",
+            "status": "PASS"
+          },
+          "rosterCount": 2,
+          "sample": 1,
+          "session": {
+            "consoleUserMatches": true,
+            "loginDone": true,
+            "onConsole": true,
+            "qualified": true,
+            "screenLocked": null,
+            "securitySessionID": 100022,
+            "securityStatus": 0
+          },
+          "startedUptimeNS": 495483536140375,
+          "workspaceSequenceEnd": 0,
+          "workspaceSequenceStart": 0
+        },
+        {
+          "connection": 10978219,
+          "current": {
+            "id64": 4,
+            "malformed": false,
+            "managedID": 4,
+            "type": 0,
+            "uuid": "uuid-1"
+          },
+          "directCurrent": 4,
+          "directCurrentAfter": 4,
+          "directError": 0,
+          "directErrorAfter": 0,
+          "display": {
+            "activeCGCount": 1,
+            "appKitScreenIDs": [
+              1
+            ],
+            "cgDisplays": [
+              {
+                "activeAndOnline": true,
+                "builtIn": true,
+                "cgID": 1,
+                "mirrored": false,
+                "primary": true,
+                "uuid": "uuid-2"
+              }
+            ],
+            "primaryCGID": 1,
+            "primaryUUID": "uuid-2",
+            "topologyConfirmed": true
+          },
+          "endedUptimeNS": 495483736335625,
+          "fixture": {
+            "appKitIsOnActiveSpace": {
+              "reason": "noSignedFixtureRegistered",
+              "status": "NOT_RUN",
+              "value": null
+            },
+            "birth": null,
+            "boundBeforeAndAfter": false,
+            "decision": {
+              "reason": "noSignedFixtureRegistered",
+              "status": "NOT_RUN"
+            },
+            "pid": null,
+            "registered": false,
+            "spaceToWindowError": null,
+            "spaceToWindowHitCount": null,
+            "window": null,
+            "windowToSpaces": null,
+            "windowToSpacesError": null
+          },
+          "hostBirth": 1795435802695602,
+          "hostPID": 32573,
+          "managedDisplayCount": 1,
+          "managedDisplayToken": "uuid-2",
+          "managedReadError": 0,
+          "managedRows": [
+            {
+              "current": {
+                "id64": 4,
+                "malformed": false,
+                "managedID": 4,
+                "type": 0,
+                "uuid": "uuid-1"
+              },
+              "displayToken": "uuid-2",
+              "matchingActiveEntries": [
+                {
+                  "id64": 4,
+                  "malformed": false,
+                  "managedID": 4,
+                  "type": 0,
+                  "uuid": "uuid-1"
+                }
+              ],
+              "orderedDesktops": [
+                {
+                  "id64": 4,
+                  "malformed": false,
+                  "managedID": 4,
+                  "type": 0,
+                  "uuid": "uuid-1"
+                },
+                {
+                  "id64": 6,
+                  "malformed": false,
+                  "managedID": 6,
+                  "type": 0,
+                  "uuid": "uuid-3"
+                }
+              ],
+              "rosterCount": 2
+            }
+          ],
+          "matchingManagedDisplays": 1,
+          "matchingRosterEntries": [
+            {
+              "id64": 4,
+              "malformed": false,
+              "managedID": 4,
+              "type": 0,
+              "uuid": "uuid-1"
+            }
+          ],
+          "ordinaryIdentity": {
+            "reason": "ordinaryCurrentAndRosterMatchDirect",
+            "status": "PASS"
+          },
+          "rosterCount": 2,
+          "sample": 2,
+          "session": {
+            "consoleUserMatches": true,
+            "loginDone": true,
+            "onConsole": true,
+            "qualified": true,
+            "screenLocked": null,
+            "securitySessionID": 100022,
+            "securityStatus": 0
+          },
+          "startedUptimeNS": 495483724926458,
+          "workspaceSequenceEnd": 0,
+          "workspaceSequenceStart": 0
+        }
+      ],
+      "schema": 1,
+      "scope": {
+        "displayUUID": "uuid-2",
+        "nativeID": 4,
+        "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+        "spaceUUID": "uuid-1",
+        "status": "PASS"
+      },
+      "spaceWrites": 0,
+      "windowWrites": 0,
+      "workspace": {
+        "isOnActiveSpaceMeaning": "whether the owning NSWindow is on an active Space, never a numeric Space ID",
+        "nativeSpaceIDGetter": "UNAVAILABLE",
+        "notification": "activeSpaceDidChangeNotification",
+        "notificationsObserved": 0,
+        "sequenceReference": "thisObservationOnly"
+      }
+    },
+    "survivalContinuity": {
+      "currentFocus": {
+        "appSource": "systemFocusedApplication",
+        "axFocusedWindowError": 0,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1795151346365238,
+        "cgWindowID": 57074,
+        "sameOriginalAX": true,
+        "systemFocusedApplicationError": 0,
+        "uptime": 495484.10942700005,
+        "workspacePID": 63480
+      },
+      "currentHID": [
+        12201,
+        12201,
+        118,
+        118,
+        0,
+        0,
+        1461311,
+        40277,
+        38,
+        0,
+        6850,
+        6850,
+        383,
+        370705
+      ],
+      "firstFocus": {
+        "appSource": "systemFocusedApplication",
+        "axFocusedWindowError": 0,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1795151346365238,
+        "cgWindowID": 57074,
+        "systemFocusedApplicationError": 0,
+        "uptime": 495483.43181325,
+        "workspacePID": 63480
+      },
+      "firstHID": [
+        12201,
+        12201,
+        118,
+        118,
+        0,
+        0,
+        1461311,
+        40277,
+        38,
+        0,
+        6850,
+        6850,
+        383,
+        370669
+      ],
+      "inputQuiet": false
+    },
+    "guardianPrincipal": {
+      "accessibility": true,
+      "birth": 1795435804237786,
+      "cdhash": "5dc9701e8639d579f725f2908460130cf959db08",
+      "challenge": "66AF18E3-2EBA-466A-A6EC-6CE06D53C681",
+      "hostBirth": 1795435802695602,
+      "hostHash": "c2ec5706ea2324e88791061cee3addbd2fcb257e",
+      "hostPID": 32573,
+      "identifier": "com.holdsnow.nearpane.host.corner-guardian",
+      "pid": 32627,
+      "responsiblePID": 32573
+    }
+  },
+  "reason": "signedFixtureNotAdmitted",
+  "hostExit": {
+    "status": "PASS",
+    "sameIdentifierRunning": 0,
+    "pid": 32573,
+    "birth": 1795435802695602
+  },
+  "dailyAfter": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": true
+  }
+}

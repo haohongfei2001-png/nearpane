@@ -384,6 +384,13 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                                                rawSHA256=digest, **public_observation(pre))
                     if "guardianPrincipal" in pre:
                         result["preflight"]["guardianPrincipal"] = pre["guardianPrincipal"]
+                    if "prelaunchQuiet" in launch:
+                        counts = launch["prelaunchQuiet"]["finalHID"]
+                        continuous = counts == pre.get("survivalContinuity", {}).get("firstHID")
+                        result["quietThroughHostStart"] = continuous
+                        if not continuous:
+                            result["reason"] = "physicalInputAfterPrelaunchAdmission"
+                            return result
                     if "kernelObserverError" in result:
                         result["reason"] = "hostNormalExitObserverUnavailable"
                         result["postExitGuardian"] = {"status": "BLOCKED", "childStarted": False, "readerExited": True}

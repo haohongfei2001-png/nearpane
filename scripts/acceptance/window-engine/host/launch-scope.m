@@ -73,6 +73,32 @@ static int emit(NSDictionary *row) {
     return 0;
 }
 
+// Wait for a quiet interval *before* opening the internal Host. Once admitted, its HID
+// and original-focus baselines remain immutable. No key codes, event contents or taps.
+static NSArray *hidCounts(void) {
+    const CGEventType types[] = {kCGEventLeftMouseDown,kCGEventLeftMouseUp,kCGEventRightMouseDown,kCGEventRightMouseUp,
+        kCGEventOtherMouseDown,kCGEventOtherMouseUp,kCGEventMouseMoved,kCGEventLeftMouseDragged,kCGEventRightMouseDragged,
+        kCGEventOtherMouseDragged,kCGEventKeyDown,kCGEventKeyUp,kCGEventFlagsChanged,kCGEventScrollWheel};
+    NSMutableArray *counts = [NSMutableArray array];
+    for (size_t i = 0; i < sizeof(types) / sizeof(*types); i++)
+        [counts addObject:@(CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState,types[i]))];
+    return counts;
+}
+static NSDictionary *quietBeforeLaunch(void) {
+    NSTimeInterval start = NSProcessInfo.processInfo.systemUptime, stable = start, now = start;
+    NSArray *first = hidCounts(), *last = first;
+    unsigned changes = 0;
+    while (now - start < 12 && now - stable < 1.5) {
+        [NSThread sleepForTimeInterval:.10];
+        NSArray *current = hidCounts();
+        now = NSProcessInfo.processInfo.systemUptime;
+        if (![last isEqual:current]) { stable = now; changes++; }
+        last = current;
+    }
+    return @{@"status": now - stable >= 1.5 ? @"PASS" : @"BLOCKED", @"started":@(start), @"quietSince":@(stable),
+             @"ended":@(now), @"changesBeforeAdmission":@(changes), @"initialHID":first, @"finalHID":last};
+}
+
 int main(int argc, const char **argv) {
     @autoreleasepool {
         if (argc < 3 || argc > 5) return 2;
@@ -90,6 +116,15 @@ int main(int argc, const char **argv) {
         if (!nonce || (argc == 5 && !cycle) || (argc >= 4 && !panelOnly && !interactive && ![@[@"--registered-window",@"--await-registered-window"] containsObject:@(argv[3])])) return 2;
         if (![before[@"complete"] boolValue] || [before[@"pids"] count] || ![before[@"session"][@"qualified"] boolValue])
             return emit(@{@"prelaunch":before, @"launched":@NO, @"exactLaunchPath":@NO, @"pid":@0, @"reason":@"singleInstanceOrLoginUnavailable"});
+        NSDictionary *quiet = nil;
+        if ([bundle.bundleIdentifier isEqual:@"com.holdsnow.nearpane.host"] &&
+            [[bundle objectForInfoDictionaryKey:@"NearpaneReadOnlyGuardianProtocol"] isEqual:@1] &&
+            argc == 4 && !strcmp(argv[3], "--await-registered-window")) {
+            quiet = quietBeforeLaunch();
+            if (![quiet[@"status"] isEqual:@"PASS"] || ![census(bundle) isEqual:before])
+                return emit(@{@"prelaunch":before, @"launched":@NO, @"exactLaunchPath":@NO, @"pid":@0,
+                              @"prelaunchQuiet":quiet, @"reason":@"noQuietIntervalOrSessionChangedBeforeLaunch"});
+        }
         NSWorkspaceOpenConfiguration *config = NSWorkspaceOpenConfiguration.configuration;
         config.promptsUserIfNeeded = NO;
         config.activates = NO;
@@ -116,6 +151,11 @@ int main(int argc, const char **argv) {
                         [after[@"complete"] boolValue] && [after[@"pids"] isEqual:@[@(pid)]] && [after[@"session"] isEqual:before[@"session"]];
                     result = @{@"prelaunch":before, @"postlaunch":after, @"launched":@YES, @"exactLaunchPath":@(exact),
                                @"pid":@(pid), @"birth":@(birth), @"kernelExecutable":path ?: @"", @"errorDomain":error.domain ?: @"", @"errorCode":@(error.code)};
+                    if (quiet) {
+                        NSMutableDictionary *receipt = [result mutableCopy];
+                        receipt[@"prelaunchQuiet"] = quiet;
+                        result = receipt;
+                    }
                 });
             }];
         double end = NSProcessInfo.processInfo.systemUptime + 8;
