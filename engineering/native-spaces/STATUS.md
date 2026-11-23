@@ -1,12 +1,20 @@
 # Nearpane 当前工程状态
 
+## 2026-11-23 · R4 单窗口调度
+
+Corner 生产资格为 **NO-GO**。源代码 `ea4580b` 修复了鼠标按下恰逢窗口叠放顺序更新时放行的分支。执行器须收到输入线程对新窗口清单的确认才能停放，已开始的拖动与释放沿用原接收决定。Host 在停放前重新核验辅助功能、输入监听、事件投递和屏幕录制。已持有窗口的恢复仍独立核验责任方、窗口身份与原始几何。
+
+签名开发 Host 新增了只读的正式 Rust 执行器入口，可对一扇已登记的普通夹具窗口核对两次身份、几何和原生归属。收据分别记录读取、停放准入及真实隐藏。单窗隐藏、恢复、完整输入隔离和 R4 整组切换均为 **NOT_RUN**。
+
+上一轮仅观察到普通桌面从 6 切至 4，期间 HID 计数未变。夹具未启动。随后到达的同一 nonce 日常 Host 权限记录另存，整次运行仍按原收据保留 **UNKNOWN**。[原始运行](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/result.json) · [延迟到达的系统日志](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/delayed-permission-event.json)
+
 ## 2026-11-23 · 隔离签名 Host 与 Guardian 实机验收
 
 26A428 / ARM64 / SIP 开启。系统通过 Launch Services 后台启动独立开发 Host，团队签名、完整资源签封、实际路径及进程出生代均已核实。开发 Host 的辅助功能和输入监听有效，屏幕录制未授权。Guardian 在 Host 存活时的权限责任主体为 Host。日常 `bec6cb2` 全程保持同一进程，四项权限、配置与恢复资料一致。[签封收据](../verification/window-engine/guardian-survival-26A428/internal-host/signed-package.json) · [全屏阻塞原始记录](../verification/window-engine/guardian-survival-26A428/internal-host/01-fullscreen/result.json)
 
 普通桌面首次执行中，内核确认 Host 正常退出。Guardian 成为自己的责任主体，从保留的 AX 对象两次读到真实签名窗口 78627，AX、WindowServer 几何和原生归属一致。整轮为 **UNKNOWN**。Host 的第一次登记采样未确认夹具，第二次确认；退出后的双读子项为 **PASS**。夹具与两个测试进程均已退出。后续登记增加窗口所有者的 WindowServer 连续双读，并在 Host 的双向归属通过后装载退出观察。[登记与清理](../verification/window-engine/guardian-survival-26A428/internal-host/02-registration/session.json) · [两次原始读回与内核退出](../verification/window-engine/guardian-survival-26A428/internal-host/02-registration/session-host.json)
 
-## 2026-11-23 · R4 工作集合切换与 Guardian
+## 2026-11-23 · 历史基线 0ea2bd0 的工作集合切换与 Guardian
 
 5.22（90）产品源码为 `0ea2bd0`。Corner 生产调度保持 **NO-GO**。本轮完成侧栏选择、窗口所有权及执行器的修复。该源码的 GitHub 窗口引擎与原生协议检查均已通过。正式 Host 退出后的原窗口 AX 双读仍为 **NOT_RUN**。[机器总表](../verification/window-engine/stage-switch-admission-26A428/result.json) · [GitHub CI 回执](../verification/window-engine/stage-switch-admission-26A428/github-ci.json)
 

@@ -135,6 +135,7 @@ enum StageEnginePackageProbe {
             var fixture = initialFixture
             var preflight: [String: Any]?
             var survivalContinuity: (() -> [String: Any])?
+            let cornerReadback = try channel?.exists(.cornerReadback) == true
             if ownSpacesCanary {
                 guard channel != nil, !awaitRegistration, !enrolledSpacesCycle, fixture == nil else { return 2 }
                 preflight = try await observation(nil)
@@ -142,7 +143,8 @@ enum StageEnginePackageProbe {
             if awaitRegistration {
                 guard initialFixture == nil, let channel else { return 2 }
                 let wantsSurvival = try channel.exists(.guardianSurvival)
-                if wantsSurvival {
+                guard !(wantsSurvival && cornerReadback) else { return 2 }
+                if wantsSurvival || cornerReadback {
                     let input = StageCanaryOverview.hid()
                     let focus = StageCanaryOverview.beginFocusObservation(checkOverview: false)
                     survivalContinuity = {
@@ -152,6 +154,15 @@ enum StageEnginePackageProbe {
                     }
                 }
                 var first = try await observation(nil)
+                if cornerReadback {
+                    guard let engine = NativeStageWindowEngine() else { return 3 }
+                    let access = try await engine.submit(.init(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_PARK_ACCESS),
+                                                               intent: challenge))
+                    let closed = await engine.close()
+                    first["cornerParkAccess"] = ["status": access.status, "detail": access.detail, "flags": access.flags,
+                                                  "owned": access.owned, "closed": closed] as [String: Any]
+                    guard closed, access.owned == 0 else { return 3 }
+                }
                 #if DEBUG
                 if bundle.bundleIdentifier == "com.holdsnow.nearpane.host",
                    bundle.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") as? Int == 1,
@@ -216,9 +227,16 @@ enum StageEnginePackageProbe {
                 let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil &&
                     membership?["status"] as? String == "PASS" && continuity?["inputQuiet"] as? Bool == true &&
                     originalFocus?["sameOriginalAX"] as? Bool == true
-                let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
+                if cornerReadback {
+                    guard membership?["status"] as? String == "PASS", continuity?["inputQuiet"] as? Bool == true,
+                          originalFocus?["sameOriginalAX"] as? Bool == true else { throw CocoaError(.userCancelled) }
+                    report["cornerWindowReadback"] = await guardian.productReadback(intent: challenge)
+                    report["survivalContinuity"] = survivalContinuity?()
+                } else {
+                    let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
                     observeParentExit: survival ? challenge : nil)
-                report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
+                    report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
+                }
             }
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             if let channel {

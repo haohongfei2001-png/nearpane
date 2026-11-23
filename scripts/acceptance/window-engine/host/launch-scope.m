@@ -87,16 +87,27 @@ static NSArray *hidCounts(void) {
 static NSDictionary *quietBeforeLaunch(void) {
     NSTimeInterval start = NSProcessInfo.processInfo.systemUptime, stable = start, now = start;
     NSArray *first = hidCounts(), *last = first;
-    unsigned changes = 0;
-    while (now - start < 12 && now - stable < 1.5) {
-        [NSThread sleepForTimeInterval:.10];
+    NSWorkspace *workspace = NSWorkspace.sharedWorkspace;
+    __block unsigned spaceChanges = 0;
+    id token = [workspace.notificationCenter addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
+        object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) { (void)note; spaceChanges++; }];
+    unsigned changes = 0, frontChanges = 0, seen = 0;
+    pid_t front = workspace.frontmostApplication.processIdentifier;
+    while (now - start < 12 && now - stable < 2) {
+        [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.10]];
         NSArray *current = hidCounts();
         now = NSProcessInfo.processInfo.systemUptime;
         if (![last isEqual:current]) { stable = now; changes++; }
+        NSRunningApplication *app = workspace.frontmostApplication;
+        if (app.processIdentifier != front) { front = app.processIdentifier; frontChanges++; stable = now; }
+        if (seen != spaceChanges) { stable = now; seen = spaceChanges; }
+        if (!app || front <= 1 || app.terminated || app.activationPolicy != NSApplicationActivationPolicyRegular) stable = now;
         last = current;
     }
-    return @{@"status": now - stable >= 1.5 ? @"PASS" : @"BLOCKED", @"started":@(start), @"quietSince":@(stable),
-             @"ended":@(now), @"changesBeforeAdmission":@(changes), @"initialHID":first, @"finalHID":last};
+    [workspace.notificationCenter removeObserver:token];
+    return @{@"status": now - stable >= 2 ? @"PASS" : @"BLOCKED", @"started":@(start), @"quietSince":@(stable),
+             @"ended":@(now), @"changesBeforeAdmission":@(changes), @"initialHID":first, @"finalHID":last,
+             @"frontPID":@(front), @"frontChanges":@(frontChanges), @"spaceNotifications":@(spaceChanges)};
 }
 
 int main(int argc, const char **argv) {

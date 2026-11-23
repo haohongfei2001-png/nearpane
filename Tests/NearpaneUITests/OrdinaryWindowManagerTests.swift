@@ -218,8 +218,8 @@ private let fixtureDisplayID = "7AE8A89E-A767-4F89-9303-85AE9A867EDD"
         let feed = world.feed(), tiling = world.automation(manager, feed)
         feed.observe(true)
         defer { feed.observe(false) }
-        try await world.until { feed.snapshot != nil }
-        let original = try #require(feed.snapshot)
+        let firstRead = await feed.readNow()
+        let original = try #require(firstRead)
         let catalog = try #require(NativeSpaceCatalog(original, displayID: fixtureDisplayID, now: Date(), uptime: ProcessInfo.processInfo.systemUptime))
         let destination = try #require(NativeSidebarDestination(catalog.rows[0], in: catalog))
         let x = try #require(NativeSidebarMember(original.windows[0], source: destination))

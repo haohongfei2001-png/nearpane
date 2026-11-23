@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the sealed internal read-only pair once, bracketed by observations of the untouched daily Host."""
+"""Run one signed internal Host read, bracketed by observations of the untouched daily Host."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -70,6 +70,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package_receipt', type=Path)
     parser.add_argument('output', type=Path, help='fresh private evidence directory')
+    parser.add_argument('--corner-readback', action='store_true', help='read a registered window on the product worker without starting Guardian')
     a = parser.parse_args()
     out = a.output.resolve()
     out.mkdir(mode=0o700, exist_ok=False)
@@ -86,20 +87,24 @@ def main():
         result['source'] = seal['source']
         result['dailyBefore'] = daily(out / 'before-permissions.json')
         run = subprocess.run([sys.executable, '-B', HERE / 'sample-membership.py', app, out / 'session.json',
-                              '--internal-survival', '--guardian-survival', '--expected-source', seal['source'],
+                              '--internal-host', '--corner-readback' if a.corner_readback else '--guardian-survival', '--expected-source', seal['source'],
                               '--expected-cdhash', seal['host']['CDHash']], timeout=180, check=False)
         session = json.loads((out / 'session.json').read_bytes())
         post = session.get('postExitGuardian') or {}
         result.update(status=session['status'], reason=session.get('reason'), sessionExit=run.returncode,
                       postExitRead=post.get('status', 'NOT_RUN'),
                       cleanup=session['probeResources'], rawSession='session.json')
-        if session.get('hostReadback'):
+        if a.corner_readback:
+            result['cornerParkAccess'] = session.get('cornerParkAccess')
+            result['productWindowRead'] = session.get('cornerWindowReadback') or {'status': 'NOT_RUN'}
+        elif session.get('hostReadback'):
             host = json.loads((out / session['hostReadback']).read_bytes())
             principal = (host.get('preflight') or {}).get('guardianPrincipal') or {}
             result['principalMatchesSignedPackage'] = bool(principal.get('cdhash') and principal['cdhash'] ==
                 seal['components']['Contents/Helpers/NearpaneCornerGuardian']['CDHash'])
-        if result['status'] == 'PASS' and (run.returncode or result.get('principalMatchesSignedPackage') is not True
-                or result['postExitRead'] != 'PASS' or not result['cleanup']['clear']):
+        proved = (result['productWindowRead']['status'] == 'PASS' if a.corner_readback else
+                  result.get('principalMatchesSignedPackage') is True and result['postExitRead'] == 'PASS')
+        if result['status'] == 'PASS' and (run.returncode or not proved or not result['cleanup']['clear']):
             result.update(status='UNKNOWN', reason='incompleteReadOrCleanup')
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         result.update(status='UNKNOWN', reason=str(error)[:400])

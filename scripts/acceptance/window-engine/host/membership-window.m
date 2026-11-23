@@ -57,7 +57,7 @@ int main(int argc, const char *argv[]) {
     @autoreleasepool {
         BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
 #ifdef NP_SURVIVAL_WINDOW
-        BOOL survival = argc == 4 && !strcmp(argv[3], "--guardian-survival");
+        BOOL survival = argc == 4 && (!strcmp(argv[3], "--guardian-survival") || !strcmp(argv[3], "--ordinary-window"));
         if ((!cycle && !survival && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
 #else
         if ((!cycle && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())

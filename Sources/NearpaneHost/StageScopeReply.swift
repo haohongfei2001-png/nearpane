@@ -20,7 +20,10 @@ final class StageScopeReply {
     deinit { close(directory) }
 
     /// Only the fixed, per-nonce rendezvous names may be awaited. No caller-supplied pathname.
-    enum Signal: String { case launch = "launched", registration = "fixture.json", abort = "abort", guardianSurvival = "guardian-survival.request" }
+    enum Signal: String {
+        case launch = "launched", registration = "fixture.json", abort = "abort"
+        case guardianSurvival = "guardian-survival.request", cornerReadback = "corner-readback.request"
+    }
 
     func exists(_ signal: Signal) throws -> Bool {
         var info = stat()

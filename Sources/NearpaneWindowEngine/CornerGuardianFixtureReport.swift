@@ -79,6 +79,42 @@ package struct CornerGuardianFixtureReport: Encodable, Sendable {
     let globalEventsPosted = 0
     let windowWrites = 0
 
+    /// Re-bind the signed ordinary window on the shipping worker, after the independent
+    /// AX reference above was released. This read-only engine cannot acquire a hide lease.
+    @MainActor package func productReadback(intent: UUID) async -> [String: Any] {
+        guard hostObservation == "CONFIRMED", let registered, let sampledScope, let nativeID,
+              let frame = samples.last?.cg, let engine = NativeStageWindowEngine() else {
+            return ["status": "BLOCKED", "reason": "signedWindowOrEngineUnavailable"]
+        }
+        let request = NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_READBACK),
+            intent: intent, group: UUID(), scope: sampledScope, member: UUID(), lifetime: UUID(), generation: UUID(),
+            window: registered, nativeID: nativeID, frame: frame)
+        var rows = [[String: Any]]()
+        let required = UInt32(NP_AX_VALID | NP_CG_VALID | NP_MEMBERSHIP_VALID | NP_VISIBLE)
+        var verified = true
+        do {
+            for index in 0..<2 {
+                if index > 0 { try await Task.sleep(for: .milliseconds(70)) }
+                let read = try await engine.submit(request)
+                let owner = try OrdinaryProcessImage.read(registered.pid)
+                let digest = try OrdinaryProcessImage.signingDigest(registered.pid).map { String(format: "%02x", $0) }.joined()
+                let bound = owner.launch == registered.birth && digest == registeredCDHash
+                rows.append(["uptimeNS": DispatchTime.now().uptimeNanoseconds, "status": read.status, "detail": read.detail,
+                             "flags": read.flags, "owned": read.owned, "nativeID": read.nativeID, "birthAndSigner": bound,
+                             "frame": [read.frame.x, read.frame.y, read.frame.width, read.frame.height]])
+                guard bound, read.intent == intent, read.status == NP_PASS, read.flags == required, read.owned == 0,
+                      read.nativeID == nativeID, Self.sameFrame(frame, read.frame) else { verified = false; break }
+            }
+        } catch {
+            verified = false
+            rows.append(["error": String(describing: error)])
+        }
+        let closed = await engine.close()
+        return ["status": verified && rows.count == 2 && closed ? "PASS" : "UNKNOWN", "reads": rows,
+                "pid": registered.pid, "birth": registered.birth, "window": registered.number,
+                "signedCDHash": registeredCDHash ?? "", "handleClosed": closed, "writes": 0]
+    }
+
     static func assess(_ h: Handoff, observedFrame: SurfaceRect?) -> Recovery {
         let absent = h.state == "NO_LIVE_HANDOFF_IN_THIS_HOST"
         let sealed = h.state == "SEALED_ACKNOWLEDGED"

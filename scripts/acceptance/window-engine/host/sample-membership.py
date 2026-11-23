@@ -130,7 +130,7 @@ def preflight_allows(pre):
                     and s["display"]["activeCGCount"] == 1 for s in pre["spaceScope"]["samples"]))
 
 
-def internal_survival_gates(pre):
+def internal_survival_gates(pre, *, guardian=True):
     # The first signed v1 reader boxed Darwin Boolean as the JSON integer 0 or 1.
     # Treat other numeric values, strings and missing fields as unmeasured.
     principal = pre.get("guardianPrincipal") or {}
@@ -145,16 +145,37 @@ def internal_survival_gates(pre):
     scope = pre["spaceScope"]
     continuity = pre.get("survivalContinuity", {})
     focus = continuity.get("currentFocus", {})
-    return dict(
+    gates = dict(
         ordinaryDesktop=scope["scope"].get("status", "UNKNOWN"),
         singleDisplayConsole="PASS" if len(scope["samples"]) == 2 and all(s["session"]["qualified"] and
             s["display"]["topologyConfirmed"] and s["display"]["activeCGCount"] == 1 for s in scope["samples"]) else "BLOCKED",
         targetSystem="PASS" if pre["system"]["build"] == "26A428" and pre["system"]["sip"].get("enabled") is True else "BLOCKED",
         hostAccessibility="PASS" if pre["permissions"].get("accessibility") is True else "BLOCKED",
-        guardianAccessibility=ax if signed_child else "UNKNOWN",
-        guardianResponsibility="PASS" if signed_child and principal.get("responsiblePID") in (child, host["pid"]) else "UNKNOWN",
         originalFocus="PASS" if focus.get("sameOriginalAX") is True else "UNKNOWN",
         quietHID="PASS" if continuity.get("inputQuiet") is True else "BLOCKED")
+    if guardian:
+        gates.update(guardianAccessibility=ax if signed_child else "UNKNOWN",
+                     guardianResponsibility="PASS" if signed_child and principal.get("responsiblePID") in (child, host["pid"]) else "UNKNOWN")
+    return gates
+
+
+def corroborate_corner_read(report, native_id):
+    result = report.get("cornerWindowReadback") or {}
+    owner = report.get("ownerStart") or {}
+    publication = report.get("ownerPublication") or {}
+    published = publication.get("first") or {}
+    frame = published.get("frame") or []
+    rows = result.get("reads") or []
+    return bool(result.get("status") == "PASS" and result.get("handleClosed") is True and result.get("writes") == 0
+                and result.get("signedCDHash") == (report.get("fixture") or {}).get("CDHash") and result.get("signedCDHash")
+                and all(result.get(key) == owner.get(key) and owner.get(key) for key in ("pid", "birth", "window"))
+                and published == publication.get("second") and published.get("pid") == owner["pid"]
+                and published.get("window") == owner["window"] and len(frame) == 4 and native_id
+                and publication.get("secondUptime", 0) > publication.get("firstUptime", 0) > 0
+                and len(rows) == 2 and rows[1].get("uptimeNS", 0) > rows[0].get("uptimeNS", 0) > 0
+                and all(row.get("birthAndSigner") is True and row.get("owned") == row.get("detail") == row.get("status") == 0
+                        and row.get("flags") == 45 and row.get("nativeID") == native_id and len(row.get("frame") or []) == 4
+                        and all(math.isclose(a, b, rel_tol=0, abs_tol=.75) for a, b in zip(frame, row["frame"])) for row in rows))
 
 
 def prepare_fixture(work, report):
@@ -183,7 +204,7 @@ def prepare_fixture(work, report):
         "-Wextra",
         "-Werror",
         "-mmacosx-version-min=26.0",
-        *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") else []),
+        *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") or report.get("cornerReadbackRequested") else []),
         HERE / "membership-window.m",
         "-framework",
         "AppKit",
@@ -221,12 +242,13 @@ def prepare_fixture(work, report):
 
 @contextmanager
 def registered_window(pre, challenge, work, fixture, exe, digest, report, reader=None):
-    internal = report.get("internalGuardianSurvival") is True
+    corner = report.get("cornerReadbackRequested") is True
+    internal = report.get("internalGuardianSurvival") is True or corner
     if internal:
-        gates = internal_survival_gates(pre)
+        gates = internal_survival_gates(pre, guardian=not corner)
         report["admissionChecks"] = gates
         if any(status != "PASS" for status in gates.values()):
-            report["fixtureAdmission"] = "internalSurvivalAdmissionIncomplete"
+            report["fixtureAdmission"] = "ordinaryFixtureAdmissionIncomplete"
             yield None
             return
         work.mkdir(mode=0o700)
@@ -235,7 +257,7 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
         yield None
         return
-    survival = report.get("requestedGuardianSurvival") is True
+    survival = report.get("requestedGuardianSurvival") is True or corner
     if survival:
         guard = pre.get("survivalContinuity", {})
         if guard.get("inputQuiet") is not True or guard.get("currentFocus", {}).get("sameOriginalAX") is not True:
@@ -248,7 +270,7 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         if report["requestedSpacesCycle"]:
             args.append("--enrolled-spaces-cycle")
         elif survival:
-            args.append("--guardian-survival")
+            args.append("--ordinary-window" if corner else "--guardian-survival")
         report["fixtureLaunchRequested"] = True
         process = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -708,12 +730,16 @@ def run(a, report):
     report["hostObservationStarted"] = True
     observed = scope_reader.observe(app, challenge, channel, raw_output, enroll=enroll, expected_image=image,
                                     spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final,
-                                    guardian_survival=getattr(a, "guardian_survival", False))
+                                    guardian_survival=getattr(a, "guardian_survival", False),
+                                    corner_readback=getattr(a, "corner_readback", False))
     report["hostLaunchRequested"] = observed.get("launchRequested")
     report["preexistingSameID"] = observed.get("launchServices", {}).get("prelaunch", {}).get("pids", [])
     if getattr(a, "guardian_survival", False):
         report["postExitGuardian"] = observed.get("postExitGuardian", {"status": "NOT_RUN"})
     source = observed if observed.get("subject") else observed.get("preflight", {})
+    if getattr(a, "corner_readback", False):
+        report["cornerParkAccess"] = (observed.get("preflight") or {}).get("cornerParkAccess")
+        report["cornerWindowReadback"] = observed.get("cornerWindowReadback") or {"status": "NOT_RUN"}
     report.update(rawHostSHA256=observed.get("rawSHA256"), hostExit=observed.get("hostExit"),
                   subject=source.get("subject"), permissions=source.get("permissions"),
                   hostPermissionPhase="registered" if observed.get("subject") else "initial" if source else "NOT_RUN")
@@ -728,12 +754,18 @@ def run(a, report):
     if not valid:
         report.update(status=member.get("status") if member.get("status") in {"FAIL","BLOCKED"} else "UNKNOWN",
                       reason="scopeOrMembershipIncomplete")
-    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd"), getattr(a, "guardian_survival", False)):
+    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd"), getattr(a, "guardian_survival", False) or getattr(a, "corner_readback", False)):
         report.update(status="UNKNOWN", reason="owningWindowOrFocusChangedBeforeCleanup")
     else:
         report.update(status="PASS", reason="oneHostOwnerAndTwoDirectionalHostReads")
     report["membershipStatus"] = report["status"]
-    if not a.enrolled_spaces_cycle:
+    if getattr(a, "corner_readback", False):
+        end = observed.get("survivalContinuity") or {}
+        report["ownerCorroboratesProductReads"] = corroborate_corner_read(report, current.get("scope", {}).get("nativeID"))
+        if report["status"] == "PASS" and (not report["ownerCorroboratesProductReads"] or
+                end.get("inputQuiet") is not True or (end.get("currentFocus") or {}).get("sameOriginalAX") is not True):
+            report.update(status="UNKNOWN", reason="productReadOrOriginalInputUnconfirmed")
+    elif not a.enrolled_spaces_cycle:
         guardian = observed.get("guardianIndependent") or {}
         evidence = guardian.get("evidence") or {}
         report["guardianReadback"] = {k: guardian.get(k) for k in ("status","reason","childExit","park","mayPark","crashRecovery")}
@@ -790,7 +822,8 @@ def main():
     p.add_argument("preflight", type=Path, nargs="?", help="existing Host receipt for legacy comparison mode")
     p.add_argument("out", type=Path)
     p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
-    p.add_argument("--internal-survival", action="store_true", help="use the sealed read-only development pair while the daily Host remains running")
+    p.add_argument("--internal-survival", "--internal-host", action="store_true", help="use the sealed internal Host while the daily Host remains running")
+    p.add_argument("--corner-readback", action="store_true", help="read the real registered window twice through the shipping Corner worker")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
@@ -803,7 +836,8 @@ def main():
     a = p.parse_args()
     if (sum((a.installed, a.internal_survival, bool(a.preflight))) != 1 or
             ((a.installed or a.internal_survival) and not (a.expected_source and a.expected_cdhash)) or
-            (a.internal_survival and not a.guardian_survival)):
+            (a.internal_survival and sum((a.guardian_survival, a.corner_readback)) != 1)
+            or (a.corner_readback and not a.internal_survival)):
         p.error("choose one pinned installed/internal Host or a prior read-only receipt")
     if (a.enrolled_spaces_cycle or a.own_spaces_canary or a.preflight_only) and not a.installed:
         p.error("formal Host qualification requires --installed")
@@ -824,7 +858,8 @@ def main():
         requestedSpacesCycle=a.enrolled_spaces_cycle,
         requestedOwnCanary=a.own_spaces_canary,
         requestedGuardianSurvival=a.guardian_survival,
-        internalGuardianSurvival=a.internal_survival,
+        internalGuardianSurvival=a.internal_survival and a.guardian_survival,
+        cornerReadbackRequested=a.corner_readback,
         permissionPrompts=0,
         thirdPartyMembershipRoundTrip="NOT_RUN",
         singleWindowHideRestore="NOT_RUN",

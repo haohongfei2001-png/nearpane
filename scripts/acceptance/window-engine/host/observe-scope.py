@@ -60,7 +60,8 @@ def public_scope(raw):
 def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
     result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "canaryMissionControl", "guardianFixture", "guardianIndependent", "survivalContinuity",
-                                                            "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
+                                                            "installedSpacesFixtureCycle","installedSpacesCanary",
+                                                            "cornerParkAccess","cornerWindowReadback") if key in observation})
     # This nonce is issued by the runner for one invocation. Only restore the
     # verified field itself; a display or Space UUID elsewhere must stay redacted.
     for key in ("installedSpacesCanary", "installedSpacesFixtureCycle"):
@@ -314,7 +315,7 @@ def await_guardian_exit(pid):
 
 
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
-            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False):
+            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False):
     image = identity(app)
     before = identity(DAILY)
     result = dict(schema=2, scope="ownPanelOnly" if own_canary else "oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
@@ -326,7 +327,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
     try:
         if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
                 or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
-                or (guardian_survival and ((app != DAILY and not internal_survival_image(app, image))
+                or (corner_readback and guardian_survival)
+                or ((guardian_survival or corner_readback) and ((app != DAILY and not internal_survival_image(app, image))
                     or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
             result["reason"] = "pinnedImageOrRegisteredSessionUnavailable"
             return result
@@ -342,6 +344,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
         with exclusive(image["Identifier"]), ExitStack() as resources:
             if guardian_survival:
                 publish(directory, "guardian-survival.request")
+            elif corner_readback:
+                publish(directory, "corner-readback.request")
             args = [launcher, app, challenge]
             if own_canary:
                 args.append("--installed-spaces-canary")
@@ -388,8 +392,11 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                         counts = launch["prelaunchQuiet"]["finalHID"]
                         continuous = counts == pre.get("survivalContinuity", {}).get("firstHID")
                         result["quietThroughHostStart"] = continuous
-                        if not continuous:
-                            result["reason"] = "physicalInputAfterPrelaunchAdmission"
+                        first_focus = pre.get("survivalContinuity", {}).get("firstFocus", {})
+                        same_front = launch["prelaunchQuiet"].get("frontPID") == first_focus.get("workspacePID")
+                        result["sameForegroundThroughHostStart"] = same_front
+                        if not continuous or not same_front:
+                            result["reason"] = "inputOrForegroundChangedAfterPrelaunchAdmission"
                             return result
                     if "kernelObserverError" in result:
                         result["reason"] = "hostNormalExitObserverUnavailable"

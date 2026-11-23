@@ -1,0 +1,87 @@
+{
+  "schema": 2,
+  "scope": "physicalReadOnlyRegisteredWindowMembership",
+  "osBuild": "26A428",
+  "observedUTC": "2026-11-23T12:13:26.699951+00:00",
+  "runnerSource": "58cea0274100b49c445a33abe8e232b1b8106bb8",
+  "status": "BLOCKED",
+  "scopeWindowWrites": 0,
+  "scopeSpaceWrites": 0,
+  "scopePostedInput": 0,
+  "requestedSpacesCycle": false,
+  "requestedOwnCanary": false,
+  "requestedGuardianSurvival": true,
+  "internalGuardianSurvival": true,
+  "permissionPrompts": 0,
+  "thirdPartyMembershipRoundTrip": "NOT_RUN",
+  "singleWindowHideRestore": "NOT_RUN",
+  "productionQualified": false,
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "c2ec5706ea2324e88791061cee3addbd2fcb257e",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "readOnlyGuardianProtocol": 1,
+    "version": "0.2.0",
+    "build": "1",
+    "source": "224bf3d88a2caabdfe96640bb3cd83ed61fbccec",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": false
+  },
+  "challenge": "6c0fffe5-d3e9-4f9e-994b-28d6c2c0fd4e",
+  "hostReadback": "session-host.json",
+  "hostObservationStarted": true,
+  "admissionChecks": {
+    "ordinaryDesktop": "UNKNOWN",
+    "singleDisplayConsole": "PASS",
+    "targetSystem": "PASS",
+    "hostAccessibility": "PASS",
+    "guardianAccessibility": "PASS",
+    "guardianResponsibility": "PASS",
+    "originalFocus": "UNKNOWN",
+    "quietHID": "PASS"
+  },
+  "fixtureAdmission": "internalSurvivalAdmissionIncomplete",
+  "hostLaunchRequested": true,
+  "preexistingSameID": [],
+  "postExitGuardian": {
+    "status": "NOT_RUN"
+  },
+  "rawHostSHA256": null,
+  "hostExit": {
+    "status": "PASS",
+    "sameIdentifierRunning": 0,
+    "pid": 36669,
+    "birth": 1795436011478879
+  },
+  "subject": {
+    "atDailyInstallPath": false,
+    "birth": 1795436011478879,
+    "build": "1",
+    "cdhash": "c2ec5706ea2324e88791061cee3addbd2fcb257e",
+    "identifier": "com.holdsnow.nearpane.host",
+    "kernelExecutable": "/tmp/nearpane-stage-engine-dev.OnzPvca2/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 36669,
+    "source": "224bf3d88a2caabdfe96640bb3cd83ed61fbccec",
+    "sourceState": "clean",
+    "teamIdentifier": "ZB9D4T66QB",
+    "version": "0.2.0"
+  },
+  "permissions": {
+    "accessibility": true,
+    "listenEvent": true,
+    "postEvent": true,
+    "screenCapture": false
+  },
+  "hostPermissionPhase": "initial",
+  "reason": "signedFixtureNotAdmitted",
+  "membershipStatus": "NOT_RUN",
+  "probeResources": {
+    "candidateExit": "PASS",
+    "registeredWindowExit": "NOT_RUN",
+    "backendCleanup": "NOT_RUN",
+    "clear": true
+  },
+  "probeResourcesClear": true,
+  "safeToRollback": true
+}

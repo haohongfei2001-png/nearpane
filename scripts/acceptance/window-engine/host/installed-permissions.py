@@ -9,6 +9,7 @@ import plistlib
 import re
 import subprocess
 import tempfile
+import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -68,8 +69,14 @@ def sample():
     receipt["subject"] = reply
     predicate = (f'processID == {pid} AND subsystem == "com.holdsnow.nearpane.alpha" AND '
                  f'category == "PermissionCheck" AND eventMessage BEGINSWITH "Permission check {nonce} "')
-    entries = json.loads(output("/usr/bin/log", "show", "--last", "1m", "--style", "json", "--predicate", predicate))
-    matching = [e for e in entries if e.get("processID") == pid and e.get("eventMessage", "").startswith("Permission check "+nonce+" ")]
+    deadline = time.monotonic() + 4
+    while True:
+        entries = json.loads(output("/usr/bin/log", "show", "--last", "1m", "--style", "json", "--predicate", predicate))
+        matching = [e for e in entries if e.get("processID") == pid and e.get("eventMessage", "").startswith("Permission check "+nonce+" ")]
+        if matching or time.monotonic() >= deadline:
+            break
+        # Unified logging can publish after the process acknowledgment. Re-read this nonce only.
+        time.sleep(.25)
     if len(matching) != 1:
         receipt["reason"] = "nonceSpecificHostLogNotUnique"
         return receipt
