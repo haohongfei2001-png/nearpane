@@ -1,5 +1,11 @@
 # Nearpane 当前工程状态
 
+## 工作集合切换期间的输入与画面连续性
+
+同一应用在停放窗口上方新建旁窗时，Quartz 可能先报告新窗接收按下事件，稍后才在窗口列表中列出它。Corner 现在会把整次按下、拖动、释放保留给这个旁窗，并撤销不一致的输入读数。显示器、原生桌面、面板几何和实时前后顺序均一致时，组成员增减可复用仍有效的面板画面。壁纸刷新逐像素一致时保留已绘画面。实机停放后键鼠命中、R4 整组循环与多屏调度仍待验证。
+
+Rust 全部后端 116 项、Corner 定向 75 项通过。Swift 首次并行回归有 3 项超时或未满足限时断言；这 3 项单独串行通过，随后完整串行回归 806 项通过、3 项跳过。首轮失败与复测均已保留。上一源码 `d300d3c` 的 ARM64 开发候选通过 14 项签名及压缩包解压复验。[完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-continuity-regression.zip) · [签名候选指纹](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-d300d3c.json)
+
 ## 2026-11-24 · 正式遮挡面板的实际画面
 
 在目标实体机普通桌面 4 上，签名观察器使用正式引擎创建一个非激活面板，置于普通窗口下方。WindowServer 为面板 84616 和 Apple 壁纸分别提供画面，连续两次对比整块 86×176 点区域，所有像素均不透明，各通道相差不超过 1。关窗后第一次系统读回仍能看见面板，随后连续两次确认消失。前台进程与原生桌面均保持一致。第一次只检查一次清理的总结果保留为 **UNKNOWN**，随后独立确认当时的窗号已消失。[实机记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/rendered-panel.json) · [原始收据及完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/rendered-panel-raw.zip)

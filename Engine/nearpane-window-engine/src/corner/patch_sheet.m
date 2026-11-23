@@ -132,8 +132,6 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
 @property(nonatomic, strong) NCWallpaperPanel *panel;
 @property(nonatomic, strong) NSArray *source;
 @property(nonatomic, strong) id materialImage;
-@property(nonatomic) uint32_t anchor;
-@property(nonatomic, copy) NSData *group;
 @property(nonatomic) NSUInteger generation;
 @property(nonatomic) BOOL sampling;
 @property(nonatomic) NSTimeInterval lastAttempt, lastMatch;
@@ -171,21 +169,16 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         return !stopped && latest == packet && clock_gettime_nsec_np(CLOCK_UPTIME_RAW) < validUntil;
     }
 }
-- (BOOL)picture:(NCPatchSheet *)sheet group:(NSData *)group key:(NSData *)key frame:(NCFrame)frame {
-    if (![sheet.group isEqual:group]) {
-        [sheet invalidatePicture];
-        sheet.group = group;
-    }
+- (BOOL)picture:(NCPatchSheet *)sheet home:(const NCMember *)home key:(NSData *)key frame:(NCFrame)frame {
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
     // The geometry/tap path remains independent. Only live parked sheets incur captures.
     // Recheck before expiry, and never block the event-tap or the AppKit run loop.
     if (!sheet.sampling && (!sheet.lastAttempt || now - sheet.lastAttempt >= 0.75)) {
-        const NCParkedPatchMember *rows = group.bytes;
         NSUInteger epoch = sheet.generation;
         sheet.sampling = YES;
         sheet.lastAttempt = now;
         __weak NCPatchSession *weak = self;
-        np_corner_compare_panel(sheet.panel, rows[0].member, frame, ^(NCCornerPicture verdict) {
+        np_corner_compare_panel(sheet.panel, *home, frame, ^(NCCornerPicture verdict) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 NCPatchSession *session = weak;
                 if (session.sheets[key] != sheet || sheet.generation != epoch) return;
@@ -266,9 +259,12 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     panel.members = ids;
     panel.verifiedFrame = frame;
     panel.displayIdentity = key;
-    if (panel.visible && panel.onActiveSpace && sheet.anchor &&
-        targetOrder(members, count, frame, number, NO) == sheet.anchor) {
-        *verified = [self picture:sheet group:group key:key frame:frame];
+    // A new member may change the highest parked window without moving the existing sheet.
+    // Its real Z-order must already cover this exact roster. The surface proof still belongs
+    // to the same panel, material, native desktop, display and pixel rectangle.
+    uint32_t covered = panel.visible && panel.onActiveSpace ? targetOrder(members, count, frame, number, NO) : 0;
+    if (covered) {
+        *verified = [self picture:sheet home:&members[0].member key:key frame:frame];
         return YES;
     }
     if (panel.visible)
@@ -278,10 +274,9 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         return NO;
     [sheet invalidatePicture];
     [panel orderWindow:NSWindowAbove relativeTo:anchor];
-    sheet.anchor = anchor;
     if (!panel.visible || !panel.onActiveSpace || panel.keyWindow || panel.mainWindow ||
         !panel.ignoresMouseEvents || ![self current:packet] || targetOrder(members, count, frame, number, NO) != anchor) return NO;
-    *verified = [self picture:sheet group:group key:key frame:frame];
+    *verified = [self picture:sheet home:&members[0].member key:key frame:frame];
     return YES;
 }
 - (void)update {

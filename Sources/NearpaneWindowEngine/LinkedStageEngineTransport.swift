@@ -25,7 +25,8 @@ import NearpaneCore
                                                intent: intent, scope: scope, nativeID: nativeID)
         let read = try await engine.submit(request, timeoutMilliseconds: 4_000, expectedEpoch: epoch)
         guard try engine.currentEpoch() == epoch, read.epoch == epoch, read.intent == intent,
-              read.status == NP_PASS, read.flags == 0, read.nativeID == nativeID,
+              read.status == NP_PASS, read.detail == NP_CORNER_MATERIAL_WALLPAPER_SURFACE,
+              read.flags == 0, read.nativeID == nativeID,
               read.frame.width > 0, read.frame.height > 0 else { throw StageSwitchError.unavailable }
     }
 
@@ -71,7 +72,10 @@ import NearpaneCore
         let command = request(operation,owner:owner,c)
         if operation == 6 { try guardian.checkLiveOwners() }
         let peer = operation == 3 ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
-        let receipt = try await engine.submit(command, expectedEpoch: epoch, guardian: peer)
+        // A guarded hide includes the settled AX position and the asynchronous compositor comparison.
+        // Cancellation and the Guardian handoff remain live during that read-only interval.
+        let timeout: UInt32 = operation == NP_HIDE ? 2_500 : 1_000
+        let receipt = try await engine.submit(command, timeoutMilliseconds: timeout, expectedEpoch: epoch, guardian: peer)
         if c.action == .hide, operation == 3 { try await guardian.observe(command,receipt:receipt) }
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
         return .init(status:receipt.status,flags:receipt.flags,intent:receipt.intent,nativeID:receipt.nativeID,frame:receipt.frame)

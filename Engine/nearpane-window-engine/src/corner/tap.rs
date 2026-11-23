@@ -68,6 +68,12 @@ fn press_decision(
     if id == 0 || pid == 0 {
         return (predicted.unwrap_or(false), predicted.err());
     }
+    // A new ordinary window can appear above a parked sibling between CG snapshots.
+    // Its positive Quartz window number never enrolled in this shield. Preserve that
+    // window's complete gesture even if the previous geometry still predicts a sliver.
+    if !p.shield.parked.contains(&id) && predicted != Ok(false) {
+        return (false, Some(predicted.err().unwrap_or(RECEIVER_DISAGREES)));
+    }
     let actual = observed_recipient(p, now, id, pid);
     match (predicted, actual) {
         (Ok(expected), Some(receiver)) if expected == receiver => (receiver, None),
@@ -461,6 +467,20 @@ mod tests {
             assert_eq!(state(raw) & 1, 0);
             assert_eq!(port.health(), Err(SECURE_INPUT));
         }
+    }
+    #[test]
+    fn window_appearing_above_parked_sibling_receives_its_complete_gesture() {
+        let initial = publication(Instant::now(), false);
+        let (port, mut handler) = Tap::pair(initial);
+        handler.shared.ready.store(true, Ordering::Release);
+        let raw = (&mut handler as *mut TapThread).cast();
+        // Window 9, PID 44 is parked. Window 400 belongs to the same real
+        // recipient PID but wasn't present when the corner snapshot was taken.
+        assert_eq!(decide(raw, 1, 95., 97., 0, 400, 44), 0);
+        assert_eq!(port.health(), Err(RECEIVER_DISAGREES));
+        assert_eq!(decide(raw, 6, 95., 97., 0, 9, 44), 0);
+        assert_eq!(decide(raw, 2, 95., 97., 0, 9, 44), 0);
+        assert!(!handler.shared.busy.load(Ordering::Acquire));
     }
     #[test]
     fn missing_recipient_uses_geometry_but_a_wrong_owner_or_changing_zone_cannot_attest_input_safety()

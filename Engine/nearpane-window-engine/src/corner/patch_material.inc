@@ -117,12 +117,18 @@ static void captureCornerSurface(SCDisplay *screenSource, SCWindow *window, CGRe
     _started = NSProcessInfo.processInfo.systemUptime;
     CGRect frame = _displayFrame, region = _region;
     CGDirectDisplayID displayID = _display;
+    id previous = _pixels;
+    CGFloat previousScale = _scale;
     void (^finish)(id, CGFloat) = ^(id image, CGFloat scale) {
+        // Repainting an identical surface would discard the independent WindowServer
+        // proof shared by already parked group members. Compare native pixels off-main.
+        BOOL unchanged = image && previous && previousScale == scale &&
+            cornerPixelsMatch((__bridge CGImageRef)previous, (__bridge CGImageRef)image);
         dispatch_async(dispatch_get_main_queue(), ^{
             BOOL valid = image && NSProcessInfo.processInfo.systemUptime - self.started < 3 &&
                 [self sourceCurrent:screen home:&self->_home] && [stillWallpaperWindow(frame) isEqual:owner];
             self.pending = NO;
-            self.pixels = valid ? image : nil;
+            self.pixels = valid ? (unchanged && self.pixels == previous ? previous : image) : nil;
             if (valid) {
                 self.scale = scale;
                 NSTimeInterval sampled = NSProcessInfo.processInfo.systemUptime;

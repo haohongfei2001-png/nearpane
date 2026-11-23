@@ -1,16 +1,18 @@
 // Only the local click-through panel and the Apple-signed wallpaper surface may be sampled.
 // A comparison returns a verdict to the owner; the pixels never leave the capturing process.
 static NSScreen *cornerScreen(const NCMember *home) {
+    NSScreen *bound = nil;
     for (NSScreen *screen in NSScreen.screens) {
         CGDirectDisplayID d = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
         CFUUIDRef uuid = CGDisplayCreateUUIDFromDisplayID(d);
         if (!uuid) continue;
         CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuid);
         CFRelease(uuid);
-        if (!memcmp(&bytes, home->display, 16) && CGDisplayIsActive(d) && !CGDisplayIsInMirrorSet(d))
-            return screen;
+        if (memcmp(&bytes, home->display, 16)) continue;
+        if (bound || !CGDisplayIsActive(d) || CGDisplayIsInMirrorSet(d)) return nil;
+        bound = screen;
     }
-    return nil;
+    return bound;
 }
 
 static NSRect cornerPanelFrame(NSScreen *screen, CGRect display, CGRect area) {
