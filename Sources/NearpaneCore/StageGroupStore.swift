@@ -341,7 +341,7 @@ public struct StageGroupWindow: Sendable {
         if next != directory { try commit(next) }
     }
 
-    func isBound(_ member: StageGroupDirectory.Member, to lifetime: UUID) -> Bool { bindings[member.windowHint] == lifetime }
+    package func isBound(_ member: StageGroupDirectory.Member, to lifetime: UUID) -> Bool { bindings[member.windowHint] == lifetime }
 
     public func boundWindows(of pid: Int32) -> [NativeSpaceWindow: UUID] { bindings.filter { $0.key.pid == pid } }
 

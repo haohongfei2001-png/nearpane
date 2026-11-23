@@ -133,6 +133,17 @@ import OSLog
     }
 
     func lifetime(of key: DesktopWindowKey) -> UUID? { lifetimes[key] }
+
+    func stillGroups(_ member: NativeSidebarMember, in group: UUID, appearance: UUID) -> Bool {
+        guard groups.loadIssue == nil, lifetime(of: member.key) == appearance, let bound = groupLifetime(of: member.key),
+              let location = member.location else { return false }
+        let scope = StageGroupScope(display: location.display, nativeSpace: location.spaceUUID)
+        return groups.groups(in: scope).contains { saved in
+            saved.id == group && saved.needsReorganization != true && saved.members.contains {
+                $0.windowHint == location.window && groups.isBound($0, to: bound)
+            }
+        }
+    }
     func pictureGroups(in snapshot: DesktopSnapshot, screen: DisplayObservation, area: SurfaceRect) -> ObservedPictureGroups? {
         let active = snapshot.scopes.filter { $0.displayID == screen.id }.flatMap(\.records).filter(\.isCurrent)
         guard active.count == 1, let space = active[0].ordinaryUUID, let display = UUID(uuidString:screen.id),

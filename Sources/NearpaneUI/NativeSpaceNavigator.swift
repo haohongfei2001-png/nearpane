@@ -58,6 +58,27 @@ enum StageSidebarSelection {
     }
 }
 
+struct StageGroupMemberChoice: Identifiable {
+    let window: WindowObservation
+    let member: NativeSidebarMember
+    let lifetime: UUID
+    let label: String
+    var id: DesktopWindowKey { member.key }
+
+    /// Number siblings in sidebar order, independently of which miniature is drawn in front.
+    static func rows(_ windows: [WindowObservation], source: NativeSidebarDestination,
+                     lifetime: (DesktopWindowKey) -> UUID?, name: (WindowObservation) -> String) -> [Self] {
+        let rows = DesktopWindowRow.rows(windows)
+        let siblings = Dictionary(grouping: rows, by: { $0.id.pid })
+        return rows.compactMap { row in
+            guard let appearance = lifetime(row.id), let member = NativeSidebarMember(row.window, source: source),
+                  let family = siblings[row.id.pid], let index = family.firstIndex(where: { $0.id == row.id }) else { return nil }
+            let suffix = family.count > 1 ? " · \(index + 1)" : ""
+            return Self(window: row.window, member: member, lifetime: appearance, label: name(row.window) + suffix)
+        }
+    }
+}
+
 struct NativeWindowGroupCard: View {
     let destination: NativeSidebarDestination
     let display: DisplayObservation
@@ -66,8 +87,8 @@ struct NativeWindowGroupCard: View {
     let gallery: DesktopWindowGallery?
     let permitted: Bool
     let workArea: SurfaceRect?
-    let select: (NativeSidebarMember) -> Void
-    let selectGroup: () -> Void
+    let select: (NativeSidebarMember, UUID) -> Void
+    let selectGroup: (() -> Void)?
     let id: UUID
     let name: String?
     let windows: [WindowObservation]
@@ -81,15 +102,18 @@ struct NativeWindowGroupCard: View {
     var body: some View {
         let ordered = windows.sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }
         let canvas = workArea
-        let unplaced = ordered.filter { projectedFrame($0, canvas: canvas) == nil }
+        let choices = StageGroupMemberChoice.rows(windows, source: destination, lifetime: feed.lifetime(of:),
+                                                  name: { badges[$0.id]?.name ?? "窗口" })
+        let byKey = Dictionary(uniqueKeysWithValues: choices.map { ($0.id, $0) })
+        let unplaced = choices.filter { projectedFrame($0.window, canvas: canvas) == nil }
         VStack(spacing: 0) {
             ZStack(alignment: .topLeading) {
-                Button(action: selectGroup) {
-                    Color.clear.contentShape(Rectangle())
+                if let selectGroup {
+                    Button(action: selectGroup) { Color.clear.contentShape(Rectangle()) }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(name.map { "切换到窗口组合 " + $0 } ?? "切换到此窗口组合")
+                        .accessibilityIdentifier("stage-group-select:" + id.uuidString)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(name.map { "切换到窗口组合 " + $0 } ?? "切换到此窗口组合")
-                .accessibilityIdentifier("stage-group-select:" + id.uuidString)
                 GeometryReader { proxy in
                     let scale = canvas.map { min(proxy.size.width / $0.width, proxy.size.height / $0.height) } ?? 0
                     let dx = (proxy.size.width - (canvas?.width ?? 0) * scale) / 2
@@ -98,8 +122,8 @@ struct NativeWindowGroupCard: View {
                         ForEach(DesktopWindowRow.rows(ordered).reversed()) { row in
                             let window = row.window
                             if let canvas, let frame = projectedFrame(window, canvas: canvas),
-                               let member = NativeSidebarMember(window, source: destination) {
-                                miniature(member, window: window, name: badges[window.id]?.name ?? "窗口", icon: badges[window.id]?.icon,
+                               let choice = byKey[row.id] {
+                                miniature(choice, icon: badges[window.id]?.icon,
                                           width: frame.width * scale, height: frame.height * scale)
                                     .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
                             }
@@ -112,11 +136,7 @@ struct NativeWindowGroupCard: View {
                     HStack {
                         Spacer()
                         Menu {
-                            ForEach(unplaced) { window in
-                                if let member = NativeSidebarMember(window, source: destination) {
-                                    Button(badges[window.id]?.name ?? "窗口") { select(member) }
-                                }
-                            }
+                            memberButtons(unplaced)
                         } label: {
                             Image(systemName: "macwindow.on.rectangle").font(.caption2)
                         }
@@ -128,14 +148,22 @@ struct NativeWindowGroupCard: View {
             .frame(maxWidth: .infinity).aspectRatio(canvas.map { $0.width / $0.height } ?? 1.9, contentMode: .fit)
             .background(.primary.opacity(0.09), in: RoundedRectangle(cornerRadius: 7))
             .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.primary.opacity(0.4)).allowsHitTesting(false) }
-            Button(action: selectGroup) {
-                HStack(spacing: 3) {
-                    ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
-                        Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
-                    }
-                    Text(name ?? "窗口组合").font(.caption2).lineLimit(1)
-                }.frame(maxWidth: .infinity).frame(height: 18).contentShape(Rectangle())
-            }.buttonStyle(.plain).accessibilityHidden(true)
+            let caption = HStack(spacing: 3) {
+                ForEach(Array(appIcons(for: ordered).prefix(4).enumerated()), id: \.offset) { _, badge in
+                    Image(nsImage: badge.icon).resizable().scaledToFit().frame(width: 12, height: 12)
+                }
+                Text(name ?? "窗口组合").font(.caption2).lineLimit(1)
+            }.frame(maxWidth: .infinity).frame(height: 18).contentShape(Rectangle())
+            if let selectGroup {
+                Button(action: selectGroup) { caption }.buttonStyle(.plain).accessibilityHidden(true)
+            } else {
+                Menu { memberButtons(choices) } label: { caption }
+                    .menuStyle(.borderlessButton)
+                    .disabled(choices.isEmpty)
+                    .accessibilityLabel((name ?? "窗口组合") + "，选择组内窗口")
+                    .accessibilityIdentifier("stage-group-members:" + id.uuidString)
+                    .help("选择要置前的组内窗口")
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(name ?? "窗口组合")
@@ -143,13 +171,13 @@ struct NativeWindowGroupCard: View {
         .contextMenu {
             Button("命名窗口组…", action: rename)
             Button("解散窗口组合", action: dissolve)
-            ForEach(ordered) { window in
-                if let member = NativeSidebarMember(window, source: destination) {
-                    let siblings = ordered.filter { $0.metadata?.pid == member.key.pid }
-                    let index = siblings.firstIndex(of: window).map { " · \($0 + 1)" } ?? ""
-                    Button((badges[window.id]?.name ?? "窗口") + (siblings.count > 1 ? index : "")) { select(member) }
-                }
-            }
+            memberButtons(choices)
+        }
+    }
+
+    private func memberButtons(_ choices: [StageGroupMemberChoice]) -> some View {
+        ForEach(choices) { choice in
+            Button(choice.label) { select(choice.member, choice.lifetime) }
         }
     }
 
@@ -174,11 +202,12 @@ struct NativeWindowGroupCard: View {
         return frame.geometry.intersection(canvas.geometry) == nil ? nil : frame
     }
 
-    private func miniature(_ member: NativeSidebarMember, window: WindowObservation, name: String, icon: NSImage?,
+    private func miniature(_ choice: StageGroupMemberChoice, icon: NSImage?,
                            width: CGFloat, height: CGFloat) -> some View {
+        let member = choice.member
         let dest = member.source
-        let target = DesktopWindowTarget.preview(window, in: snapshot)
-        return Button { select(member) } label: {
+        let target = DesktopWindowTarget.preview(choice.window, in: snapshot)
+        return Button { select(member, choice.lifetime) } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
                 if let target {
@@ -196,10 +225,10 @@ struct NativeWindowGroupCard: View {
         .buttonStyle(.plain)
         .contextMenu { Button("从组合中移出") { remove(member) } }
         .modifier(GalleryCardExposure(gallery: gallery, target: target))
-        .help(name)
-        .accessibilityLabel(name)
+        .help(choice.label)
+        .accessibilityLabel(choice.label)
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
-        .modifier(SidebarWindowDragAndDrop(member: member, lifetime: feed.lifetime(of: member.key),
-            width: width, feed: feed, select: { select(member) }, place: place))
+        .modifier(SidebarWindowDragAndDrop(member: member, lifetime: choice.lifetime,
+            width: width, feed: feed, select: { select(member, choice.lifetime) }, place: place))
     }
 }

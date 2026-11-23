@@ -187,6 +187,14 @@ import NearpaneOrdinaryWindowRuntime
     var holdsDispatch: Bool { terminationOwnsLane || unreadableLedger || releasing || engine?.holdsWindowDispatch == true }
     var routesGroupChoice: Bool { !admissions.isEmpty || holdsDispatch }
 
+    func offersGroupSelection(on source: NativeSidebarDestination) -> Bool {
+        guard source.kind == .ordinary, let display = UUID(uuidString: source.display) else { return false }
+        return observedCapability != nil && !needsReassessment && !recoveryRequested && !unreadableLedger &&
+            !releasing && !terminationOwnsLane && engine?.coordinator.requiresRecovery == false &&
+            engine?.session?.isFrozen != true && (witness?.matches(.init(display: display, nativeSpace: source.uuid)) ?? true) &&
+            management?.permitsStageEngine(on: source.display) == true
+    }
+
     func observeDirectory(_ candidates: [StageGroupWindow], in store: StageGroupStore) throws {
         if !holdsDispatch { try store.observe(candidates) }
         else if let scope = witness?.scope { try store.observe(candidates, preserving: scope.display) }
@@ -225,6 +233,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func freeze() {
+        needsReassessment = true
+        observedCapability = nil
         groupProjection = nil
         feed?.stageGallery?.clearHeldPictures()
         witness?.cancelArrivals()

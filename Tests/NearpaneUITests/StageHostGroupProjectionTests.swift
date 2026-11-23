@@ -14,24 +14,57 @@ import NearpaneCore
         #expect(focusCount == 1)
     }
     let display = UUID().uuidString, space = UUID(), rect = SurfaceRect(x: 24, y: 32, width: 320, height: 200)
-    func window(_ n: UInt32, member: String = "4", membership: WindowMembership? = nil) -> WindowObservation {
+    func window(_ n: UInt32, member: String = "4", membership: WindowMembership? = nil, rank: Int = 0) -> WindowObservation {
         .init(id: String(n), displayID: display, bounds: rect, membership: membership ?? .known(recordIDs: [member]), confidence: .unknown,
-              metadata: .init(number: n, pid: 614, launchMicroseconds: 3400, element: nil, globalFrame: rect, frontToBack: 0,
+              metadata: .init(number: n, pid: 614, launchMicroseconds: 3400, element: nil, globalFrame: rect, frontToBack: rank,
                               minimized: nil, fullScreen: nil, isOnscreen: true, onActiveDesktop: true, overviewSpaceID: member))
     }
-    func snapshot(_ windows: [WindowObservation], stage: Bool? = false, complete: Bool = true) -> DesktopSnapshot {
+    func snapshot(_ windows: [WindowObservation], stage: Bool? = false, complete: Bool = true,
+                  request: DesktopReadRequest? = nil, accessibility: AXReadStatus = .denied) -> DesktopSnapshot {
         let now = Date(), uptime = ProcessInfo.processInfo.systemUptime, screen = SurfaceRect(width: 900, height: 700)
-        return .observed(.init(session: UUID(), revision: 5, parentPID: 1, fixtureWindows: nil, anchors: [], experimentalSpaces: false),
+        return .observed(request ?? .init(session: UUID(), revision: 5, parentPID: 1, fixtureWindows: nil, anchors: [], experimentalSpaces: false),
             from: now, to: now, build: "fixture", topology: "fixture", consistent: true, separateSpaces: true,
             displays: [.init(id: display, frame: screen, rotationDegrees: 0, backingScale: 1, usable: screen)],
             scopes: [.init(id: "scope", displayID: display, records: [.init(id: "4", isCurrent: true, ordinaryUUID: space)])],
-            windows: windows, evidence: .init(population: .workWindows, accessibility: .denied, spaces: .observed, rows: [],
+            windows: windows, evidence: .init(population: .workWindows, accessibility: accessibility, spaces: .observed, rows: [],
                    windowLimitReached: false, beganUptime: uptime, endedUptime: uptime, stageManagerEnabled: stage,
                    catalogComplete: complete))
     }
     func seen(_ n: UInt32, birth: UInt64 = 3400, bounds: SurfaceRect? = nil, member: UInt64 = 4) -> StageWindowPhysicalObservation {
         .init(id: .init(pid: 614, launch: birth, number: n, element: UUID()), frame: bounds ?? rect, membership: member,
               onscreen: true, minimized: false, focus: nil)
+    }
+
+    @Test func overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup() async throws {
+        let windows = [window(8, rank: 1), window(9, rank: 0)].map { observed in
+            var confirmed = observed
+            confirmed.metadata?.overviewOrdinaryRole = true
+            confirmed.metadata?.minimized = false
+            return confirmed
+        }
+        let feed = CurrentDesktopWindows(read: { request in await self.snapshot(windows, request: request, accessibility: .partial) },
+                                         sessionAvailable: { true }, fingerprint: { 0 })
+        feed.observe(true)
+        defer { feed.observe(false) }
+        let sample = try #require(await feed.readNow())
+        let source = NativeSidebarDestination(session: sample.sessionID, topology: sample.topologyFingerprint,
+                                             display: display, space: "4", uuid: space)
+        let choices = StageGroupMemberChoice.rows(windows, source: source, lifetime: feed.lifetime(of:), name: { _ in "编辑器" })
+        try #require(choices.count == 2)
+        let first = choices[0], second = choices[1]
+        #expect(first.window.bounds == second.window.bounds)
+        #expect(choices.map(\.label) == ["编辑器 · 1", "编辑器 · 2"])
+        #expect(choices.map(\.id.number) == [8, 9])
+        #expect(!feed.stageEngine.offersGroupSelection(on: source))
+        try feed.join(first.member, second.member, in: sample)
+        let group = try #require(feed.groups.groups(in: .init(display: UUID(uuidString: display)!, nativeSpace: space)).first)
+        #expect(feed.stillGroups(first.member, in: group.id, appearance: first.lifetime))
+        #expect(feed.stillGroups(second.member, in: group.id, appearance: second.lifetime))
+        #expect(!feed.stillGroups(first.member, in: group.id, appearance: UUID()))
+        try feed.groups.detach(try #require(feed.groupWindow(first.member, in: sample)), from: group.id)
+        #expect(!feed.stillGroups(first.member, in: group.id, appearance: first.lifetime))
+        feed.invalidate()
+        #expect(!feed.stillGroups(second.member, in: group.id, appearance: second.lifetime))
     }
 
     @Test func actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() async throws {

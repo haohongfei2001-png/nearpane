@@ -239,19 +239,22 @@ struct DesktopSurface: View {
             primary: display?.secondary != true, settings: settings, fallbackEdge: host.configuration.edge).ordinary
     }
 
-    private func choose(_ member: NativeSidebarMember, group: UUID, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows,
+    private func choose(_ member: NativeSidebarMember, group: UUID, lifetime: UUID?, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows,
                         intent: StageSidebarSelection = .member) {
-        guard let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
-              let lifetime = feed.lifetime(of:member.key) else { return }
         guard canNavigate else { return }
+        guard let lifetime, let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
+              feed.stillGroups(member, in: group, appearance: lifetime) else {
+            selectionIssue = StageGroupError.staleBinding.localizedDescription
+            return
+        }
         if !feed.stageEngine.routesGroupChoice && intent == .member {
-            selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member)
+            selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member,group:group)
             return
         }
         let input = NativeSelectionPermit.inputCounters()
         navigation.submit(stage:true) { token in
             let valid: @MainActor () -> Bool = {
-                canNavigate && navigation.isCurrent(token) && feed.lifetime(of:member.key) == lifetime &&
+                canNavigate && navigation.isCurrent(token) && feed.stillGroups(member, in: group, appearance: lifetime) &&
                     NativeSelectionPermit.inputCounters() == input
             }
             guard valid() else { throw StageSwitchError.interrupted }
@@ -259,7 +262,7 @@ struct DesktopSurface: View {
             guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
             let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid)
             if !handled && valid() {
-                try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member) }
+                try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }
             }
         }
     }
@@ -368,7 +371,7 @@ struct DesktopSurface: View {
                 let group = member?.location.flatMap { visibleGroups[$0.window] }
                 let chooseCurrent: @MainActor () -> Void = {
                     if let feed, feed.stageEngine.routesGroupChoice, let member, let group, group.members.count == 1 {
-                        choose(member, group:group.id, snapshot:snapshot, feed:feed)
+                        choose(member, group:group.id, lifetime:lifetime, snapshot:snapshot, feed:feed)
                     } else if let target {
                         selectWindow(target, snapshot:snapshot, lifetime:lifetime)
                     }
@@ -377,18 +380,20 @@ struct DesktopSurface: View {
                     let keys = Set(group.members.map(\.windowHint))
                     if members.first(where: { $0.location.map { keys.contains($0.window) } == true })?.key == member.key {
                         let grouped = windows.filter { w in NativeSidebarMember(w, source: member.source)?.location.map { keys.contains($0.window) } == true }
+                        let preferred = group.focusMember().flatMap { saved in
+                            members.first(where: { $0.location?.window == saved.windowHint })
+                        }
+                        let preferredLifetime = preferred.flatMap { feed.lifetime(of: $0.key) }
                         NativeWindowGroupCard(destination: member.source, display: screen,
                             feed: feed, badges: Dictionary(uniqueKeysWithValues: grouped.compactMap { w in
                                 DesktopWindowKey(w).flatMap { appBadges[$0] }.map { (w.id, $0) }
                             }), gallery: gallery,
                             permitted: permitted, workArea: workArea(for: screen),
-                            select: { choose($0, group: group.id, snapshot: snapshot, feed: feed) },
-                            selectGroup: {
-                                guard let saved = group.focusMember(),
-                                      let preferred = members.first(where: { $0.location?.window == saved.windowHint })
-                                else { selectionIssue = StageGroupError.staleBinding.localizedDescription; return }
-                                choose(preferred, group: group.id, snapshot: snapshot, feed: feed, intent: .group)
-                            },
+                            select: { choose($0, group: group.id, lifetime: $1, snapshot: snapshot, feed: feed) },
+                            selectGroup: canNavigate && feed.stageEngine.offersGroupSelection(on: member.source) ? {
+                                guard let preferred, feed.stageEngine.offersGroupSelection(on: member.source) else { return }
+                                choose(preferred, group: group.id, lifetime: preferredLifetime, snapshot: snapshot, feed: feed, intent: .group)
+                            } : nil,
                             id: group.id, name: group.name, windows: grouped, snapshot: snapshot,
                             place: { place($0, feed: feed) }, remove: { chosen in
                                 editGroup([chosen]) { fresh in
@@ -489,7 +494,7 @@ struct DesktopSurface: View {
     }
 
     private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?,
-                              member: NativeSidebarMember? = nil) {
+                              member: NativeSidebarMember? = nil, group: UUID? = nil) {
         let timing = WindowFocusTiming.begin()
         guard snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
@@ -501,6 +506,12 @@ struct DesktopSurface: View {
                   display?.id == target.display else { return DesktopWindowSelection.refusedCurrentCard("display or sidebar") }
             guard feed == nil || (lifetime != nil && feed?.lifetime(of: target.key) == lifetime) else {
                 return DesktopWindowSelection.refusedCurrentCard("window lifetime")
+            }
+            if let group {
+                guard let member, let lifetime, feed?.stillGroups(member, in: group, appearance: lifetime) == true,
+                      feed?.stageEngine.holdsDispatch == false else {
+                    return DesktopWindowSelection.refusedCurrentCard("group membership or window ownership")
+                }
             }
             if let original = member?.originalWindow, let location = member?.location, feed?.tracks(original, at: location) != true {
                 return DesktopWindowSelection.refusedCurrentCard("group window identity")
