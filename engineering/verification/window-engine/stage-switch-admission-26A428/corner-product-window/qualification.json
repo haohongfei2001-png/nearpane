@@ -1,0 +1,90 @@
+{
+  "scope": "physical signed internal product engine and read-only Guardian, macOS 27.0 26A428 ARM64 SIP enabled",
+  "productWindowRead": {
+    "status": "PASS",
+    "source": "a66754142cc0cc69e3c1a4b3c51ab749ed0e4082",
+    "CGWindowID": 81791,
+    "fixtureOwnerMatchedTwice": true
+  },
+  "guardianSurvival": {
+    "status": "PASS",
+    "source": "1b03f10c6d0e0b8645bc3075b5cc6122c62149dc",
+    "CGWindowID": 81949,
+    "responsibleBefore": 78729,
+    "responsibleAfter": 78748,
+    "kernelExit": true,
+    "numberOfPostExitReads": 2,
+    "receipt": "../../guardian-survival-26A428/internal-host/05-confirmed-original/session.json"
+  },
+  "parkAdmission": {
+    "status": "BLOCKED",
+    "reason": "internal subject screen-capture preflight denied; its Guardian supports read-only diagnostics",
+    "engineRead": {
+      "closed": true,
+      "detail": 21,
+      "flags": 0,
+      "owned": 0,
+      "status": 3
+    }
+  },
+  "persistentWindowRecovery": "NOT_RUN",
+  "realSingleWindowParkInputRestore": "NOT_RUN",
+  "sidebarABCA": "NOT_RUN",
+  "ten": "NOT_RUN",
+  "fifty": "NOT_RUN",
+  "productionQualified": false,
+  "regression": {
+    "fullSwift": {
+      "passed": 799,
+      "skipped": 3,
+      "failed": 0,
+      "source": "1b03f10c6d0e0b8645bc3075b5cc6122c62149dc"
+    },
+    "sandboxFullSuite": "FAIL",
+    "sandboxFailureRetained": "local-regressions.zip#recovery/park-swift.log",
+    "cornerRustAtPhysicalSource": 112,
+    "kernelAndAcknowledgementChecks": "PASS",
+    "targetRecoveryAfterWindowMutation": "NOT_RUN",
+    "CI": [
+      {
+        "name": "StageGroup window engine",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45177585936",
+        "headSha": "a66754142cc0cc69e3c1a4b3c51ab749ed0e4082",
+        "jobs": [
+          {
+            "name": "Rust, Swift and production C ABI",
+            "conclusion": "success"
+          },
+          {
+            "name": "Read-only hosted desktop preflight",
+            "conclusion": "skipped"
+          }
+        ]
+      },
+      {
+        "name": "StageGroup window engine",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45181410863",
+        "headSha": "1b03f10c6d0e0b8645bc3075b5cc6122c62149dc",
+        "jobs": [
+          {
+            "name": "Rust, Swift and production C ABI",
+            "conclusion": "success"
+          },
+          {
+            "name": "Read-only hosted desktop preflight",
+            "conclusion": "skipped"
+          }
+        ]
+      }
+    ]
+  },
+  "dailyPreserved": true,
+  "fixtureCleanup": [
+    "fixture-cleanup.json",
+    "../../guardian-survival-26A428/internal-host/05-confirmed-original/cleanup.json"
+  ]
+}

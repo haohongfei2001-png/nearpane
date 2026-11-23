@@ -1,0 +1,71 @@
+{
+  "status": "PASS",
+  "scope": "internalDevelopmentSigning",
+  "productionQualified": false,
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "8d66b0fb3ffbd02071be0fed7f272ea93abb8da1",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "0.2.0",
+    "build": "1"
+  },
+  "components": {
+    "Contents/Helpers/NearpaneCornerGuardian": {
+      "Identifier": "com.holdsnow.nearpane.host.corner-guardian",
+      "CDHash": "a1f7c4ead794819529cc7377c8af8d8b1bffd8de",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Helpers/NearpaneDesktopReader": {
+      "Identifier": "NearpaneDesktopReader",
+      "CDHash": "ba2d20e2d967b31e398242d0536c289a3f8d346f",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Helpers/NearpaneOrdinaryWindowController": {
+      "Identifier": "NearpaneOrdinaryWindowController",
+      "CDHash": "a533d096f003ea22a9dd639b3a289cd1c0d8c880",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Helpers/NearpaneSpaceAction": {
+      "Identifier": "NearpaneSpaceAction",
+      "CDHash": "cf82bc1a833f54ffc26ec38b74780b59c0482d86",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc": {
+      "Identifier": "org.sparkle-project.InstallerLauncher",
+      "CDHash": "9a49e482423ddec111b806b6a762c55dd4c36087",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc": {
+      "Identifier": "org.sparkle-project.DownloaderService",
+      "CDHash": "df77cd033b0f8a0a557fa563c07e5537d79e6f8b",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate": {
+      "Identifier": "org.sparkle-project.Sparkle.Autoupdate",
+      "CDHash": "b0511e41fffdb5bdc010ca05a62f0f795d48563a",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app": {
+      "Identifier": "org.sparkle-project.Sparkle.Updater",
+      "CDHash": "0dcab7f829797e76d0be4b7150459a305e29dd54",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "Contents/Frameworks/Sparkle.framework": {
+      "Identifier": "org.sparkle-project.Sparkle",
+      "CDHash": "ae42037a97a325f27c7127f2deb5be785b22e7a4",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    ".": {
+      "Identifier": "com.holdsnow.nearpane.host",
+      "CDHash": "8d66b0fb3ffbd02071be0fed7f272ea93abb8da1",
+      "TeamIdentifier": "ZB9D4T66QB"
+    }
+  },
+  "source": "1b03f10c6d0e0b8645bc3075b5cc6122c62149dc",
+  "protocol": 1,
+  "engineABI": 1,
+  "codeResourcesSHA256": "327029a871a8699ebb340942ee0c94364de1d72ab2851c6966d09982e126d706",
+  "deepStrictAllArchitectures": true,
+  "staticPackageVerification": true,
+  "app": "/private/tmp/nearpane-stage-engine-dev.wym4gfbr/Nearpane.app"
+}

@@ -1,0 +1,7 @@
+{
+  "status": "BLOCKED",
+  "scope": "internalDevelopmentSigning",
+  "productionQualified": false,
+  "reason": "build the internal package from the current clean source revision",
+  "detail": ""
+}

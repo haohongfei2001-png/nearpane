@@ -1,10 +1,12 @@
 # Nearpane 当前工程状态
 
-## 2026-11-23 · R4 单窗口调度
+## 2026-11-23 · 真实窗口与恢复责任
 
-Corner 生产资格为 **NO-GO**。源代码 `ea4580b` 修复了鼠标按下恰逢窗口叠放顺序更新时放行的分支。执行器须收到输入线程对新窗口清单的确认才能停放，已开始的拖动与释放沿用原接收决定。Host 在停放前重新核验辅助功能、输入监听、事件投递和屏幕录制。已持有窗口的恢复仍独立核验责任方、窗口身份与原始几何。
+**Guardian Survival 已通过隔离签名 Host 的实机验收。** 在 26A428、ARM64、SIP 开启的普通桌面上，内核确认 Host 78729 退出。Guardian 78748 随后以自己的权限身份，通过原有 AX 对象连续两次读到窗口 81949，窗口身份、AX 与 WindowServer 几何、原生桌面 4 全部一致。签名夹具和两个测试进程均已退出，两处临时目录已清理。日常 5.22（90）的进程出生代、权限、配置及窗口恢复记录前后一致。[完整实机收据](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/session.json) · [清理回执](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/cleanup.json)
 
-签名开发 Host 新增了只读的正式 Rust 执行器入口，可对一扇已登记的普通夹具窗口核对两次身份、几何和原生归属。收据分别记录读取、停放准入及真实隐藏。单窗隐藏、恢复、完整输入隔离和 R4 整组切换均为 **NOT_RUN**。
+**正式 Corner 执行器的同窗读取通过，单窗口退场仍未执行。** 在另一次独立登记中，Rust 和签名窗口所属应用均连续两次确认窗口 81791 的位置、尺寸和原生归属。开发 Host 的停放前检查返回 `unsupported`，原因码 21 对应屏幕录制未授权。该测试包仅支持只读交接。真实停放、鼠标及键盘隔离、实际恢复、侧栏 A→B→C→A 和 10/50 次均为 **NOT_RUN**。生产切换保持关闭。[产品读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/session-host.json) · [分项资格](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/qualification.json)
+
+产品修复涵盖鼠标按下与窗口清单更新并发、遮罩尚未出现在窗口合成器时过早报告隐藏，以及主程序在窗口所有权落盘后、收到恢复确认前退出。`1b03f10` 的内核退出与管道回归通过，完整 Swift 回归 799 项通过、3 项跳过。沙箱内首次完整回归失败，原始日志已保留。下一项实机门槛是验证对实际停放窗口的持久恢复责任。[内核交接](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-park-ack.json) · [离线回归与失败原文](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/local-regressions.zip) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45181410863)
 
 上一轮仅观察到普通桌面从 6 切至 4，期间 HID 计数未变。夹具未启动。随后到达的同一 nonce 日常 Host 权限记录另存，整次运行仍按原收据保留 **UNKNOWN**。[原始运行](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/result.json) · [延迟到达的系统日志](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/delayed-permission-event.json)
 
