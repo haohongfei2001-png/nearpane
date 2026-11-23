@@ -14,6 +14,13 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        // A signed internal reader may be opened from Finder. Never enter the daily UI or profile.
+        if Bundle.main.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") != nil {
+            guard Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.host",
+                  args.first == "--read-stage-engine-scope",
+                  Array(args.dropFirst(2)) == ["--private-receipt", "--await-registered-window"]
+            else { exit(2) }
+        }
         if args.first == "--read-stage-engine-scope" {
             guard (2...5).contains(args.count), let challenge = UUID(uuidString: args[1]) else { exit(2) }
             let options = Set(args.dropFirst(2))
