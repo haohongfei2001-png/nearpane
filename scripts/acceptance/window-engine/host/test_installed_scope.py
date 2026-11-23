@@ -69,7 +69,8 @@ class InstalledScopeTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "darwin", "uses the Darwin process-exit filter")
     def test_exit_status_distinguishes_zero_and_error_after_process_disappears(self):
-        for code in (0, 7):
+        for code, abrupt, expected in ((0, False, "PASS"), (7, False, "FAIL"), (75, False, "FAIL"),
+                                       (0, True, "FAIL"), (75, True, "PASS")):
             command = [sys.executable, "-c", "import sys; sys.stdin.read(); sys.exit(int(sys.argv[1]))", str(code)]
             with self.subTest(code=code), closing(select.kqueue()) as queue, subprocess.Popen(command, stdin=subprocess.PIPE) as child:
                 try:
@@ -77,8 +78,8 @@ class InstalledScopeTests(unittest.TestCase):
                 finally:
                     child.stdin.close()
                 self.assertEqual(child.wait(timeout=3), code)
-                event = reader.read_exit_status(queue, child.pid)
-                self.assertEqual(event["status"], "PASS" if code == 0 else "FAIL")
+                event = reader.read_exit_status(queue, child.pid, abrupt_visible_exit=abrupt)
+                self.assertEqual(event["status"], expected)
                 self.assertEqual(event["waitStatus"], code << 8)
 
     def test_complete_atomically_published_guardian_receipt_does_not_need_a_newline(self):

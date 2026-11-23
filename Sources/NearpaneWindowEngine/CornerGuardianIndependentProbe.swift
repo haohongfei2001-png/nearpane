@@ -58,7 +58,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     let evidence: Evidence?
     let liveHandoffInHost: String
     let originalRetainedAtOperationalPrepare, pendingWALAtOperationalPrepare, committedWALAtOperationalConfirm: String
-    private(set) var postExitWatchArmed = false
+    package private(set) var postExitWatchArmed = false
     let currentWALRead = "NOT_RUN"
     let committedOwnershipWatch = "NOT_STARTED_BY_DIAGNOSTIC"
     let park = "NOT_RUN"

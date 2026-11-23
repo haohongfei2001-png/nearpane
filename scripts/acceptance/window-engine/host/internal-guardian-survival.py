@@ -73,7 +73,10 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--visible-recovery', action='store_true', help='measure only the return of one still-visible signed fixture')
     mode.add_argument('--corner-readback', action='store_true', help='read a registered window on the product worker without starting Guardian')
+    parser.add_argument('--abrupt-visible-exit', action='store_true', help='bypass Host teardown only in the internal visible fixture drill')
     a = parser.parse_args()
+    if a.abrupt_visible_exit and not a.visible_recovery:
+        parser.error('--abrupt-visible-exit requires --visible-recovery')
     out = a.output.resolve()
     out.mkdir(mode=0o700, exist_ok=False)
     seal = json.loads(a.package_receipt.read_bytes())
@@ -85,14 +88,16 @@ def main():
         if (seal.get('status') != 'PASS' or seal.get('protocol') != 1 or not seal.get('deepStrictAllArchitectures')
                 or seal['host']['Identifier'] != 'com.holdsnow.nearpane.host'
                 or seal['host']['TeamIdentifier'] != 'ZB9D4T66QB'
-                or (a.visible_recovery and seal.get('visibleRecoveryProtocol') != 1)):
+                or (a.visible_recovery and seal.get('visibleRecoveryProtocol') != 1)
+                or (a.abrupt_visible_exit and seal.get('abruptFixtureExitProtocol') != 1)):
             raise ValueError('expected a signed internal package receipt')
         result['source'] = seal['source']
         result['dailyBefore'] = daily(out / 'before-permissions.json')
         run = subprocess.run([sys.executable, '-B', HERE / 'sample-membership.py', app, out / 'session.json',
                               '--internal-host', '--visible-recovery' if a.visible_recovery else
                               '--corner-readback' if a.corner_readback else '--guardian-survival', '--expected-source', seal['source'],
-                              '--expected-cdhash', seal['host']['CDHash']], timeout=180, check=False)
+                              '--expected-cdhash', seal['host']['CDHash'],
+                              *(['--abrupt-visible-exit'] if a.abrupt_visible_exit else [])], timeout=180, check=False)
         session = json.loads((out / 'session.json').read_bytes())
         post = session.get('postExitGuardian') or {}
         result.update(status=session['status'], reason=session.get('reason'), sessionExit=run.returncode,
@@ -121,7 +126,7 @@ def main():
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
             result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if a.visible_recovery:
-            result['normalExitVisibleReturn'] = result['status']
+            result['abruptExitVisibleReturn' if a.abrupt_visible_exit else 'normalExitVisibleReturn'] = result['status']
         elif result.get('postExitRead') in ('PASS', 'FAIL', 'UNKNOWN'):
             result['guardianSurvival'] = result['status']
         save(out / 'result.json', result)

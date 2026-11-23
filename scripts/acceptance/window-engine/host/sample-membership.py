@@ -666,6 +666,8 @@ def run(a, report):
             admitted = legacy_matches(json.loads(a.preflight.read_bytes()), image)
     if getattr(a, "visible_recovery", False) and image.get("visibleFixtureRecoveryProtocol") != 1:
         admitted = False
+    if getattr(a, "abrupt_visible_exit", False) and image.get("abruptFixtureExitProtocol") != 1:
+        admitted = False
     if not admitted:
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
         return
@@ -739,7 +741,8 @@ def run(a, report):
                                     spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final,
                                     guardian_survival=getattr(a, "guardian_survival", False),
                                     corner_readback=getattr(a, "corner_readback", False),
-                                    visible_recovery=getattr(a, "visible_recovery", False))
+                                    visible_recovery=getattr(a, "visible_recovery", False),
+                                    abrupt_visible_exit=getattr(a, "abrupt_visible_exit", False))
     report["hostLaunchRequested"] = observed.get("launchRequested")
     report["preexistingSameID"] = observed.get("launchServices", {}).get("prelaunch", {}).get("pids", [])
     if getattr(a, "guardian_survival", False) or getattr(a, "visible_recovery", False):
@@ -846,6 +849,7 @@ def main():
     p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
     p.add_argument("--internal-survival", "--internal-host", action="store_true", help="use the sealed internal Host while the daily Host remains running")
     p.add_argument("--visible-recovery", action="store_true", help="one on-screen fixture self-move and a guarded return after Host exit")
+    p.add_argument("--abrupt-visible-exit", action="store_true", help="in the sealed internal fixture drill, exit without Host cleanup")
     p.add_argument("--corner-readback", action="store_true", help="read the real registered window twice through the shipping Corner worker")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
@@ -857,6 +861,8 @@ def main():
     mode.add_argument("--own-spaces-canary", action="store_true", help="cycle only the installed Host's own panel, without preparing a fixture")
     mode.add_argument("--enrolled-spaces-cycle", action="store_true", help="also request the separately scoped installed fixture operation")
     a = p.parse_args()
+    if a.abrupt_visible_exit and not (a.internal_survival and a.visible_recovery):
+        p.error("--abrupt-visible-exit requires the internal signed visible fixture")
     if (sum((a.installed, a.internal_survival, bool(a.preflight))) != 1 or
             ((a.installed or a.internal_survival) and not (a.expected_source and a.expected_cdhash)) or
             (a.internal_survival and sum((a.guardian_survival, a.corner_readback, a.visible_recovery)) != 1)
@@ -882,6 +888,7 @@ def main():
         requestedOwnCanary=a.own_spaces_canary,
         requestedGuardianSurvival=a.guardian_survival,
         visibleRecoveryRequested=a.visible_recovery,
+        abruptVisibleExitRequested=a.abrupt_visible_exit,
         internalGuardianSurvival=a.internal_survival and a.guardian_survival,
         cornerReadbackRequested=a.corner_readback,
         permissionPrompts=0,

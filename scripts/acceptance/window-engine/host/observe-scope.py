@@ -38,6 +38,8 @@ def identity(app):
         fields["readOnlyGuardianProtocol"] = info["NearpaneReadOnlyGuardianProtocol"]
     if "NearpaneVisibleFixtureRecoveryProtocol" in info:
         fields["visibleFixtureRecoveryProtocol"] = info["NearpaneVisibleFixtureRecoveryProtocol"]
+    if "NearpaneAbruptFixtureExitProtocol" in info:
+        fields["abruptFixtureExitProtocol"] = info["NearpaneAbruptFixtureExitProtocol"]
     return dict(fields, version=info["CFBundleShortVersionString"], build=info["CFBundleVersion"],
                 source=info.get("NearpaneStageEngineSourceRevision") or info.get("NearpaneSourceRevision"),
                 sourceState=info.get("NearpaneStageEngineSourceState"), engineABI=info.get("NearpaneStageEngineABI"),
@@ -216,7 +218,7 @@ def arm_exit_status(queue, pid):
                                  fflags=EXIT_STATUS_FLAGS)], 0, 0)
 
 
-def read_exit_status(queue, pid):
+def read_exit_status(queue, pid, *, abrupt_visible_exit=False):
     try:
         events = queue.control([], 1, 1)
     except OSError as error:
@@ -226,7 +228,7 @@ def read_exit_status(queue, pid):
         if (event.ident == pid and event.filter == select.KQ_FILTER_PROC and not event.flags & select.KQ_EV_ERROR
                 and event.fflags & EXIT_STATUS_FLAGS == EXIT_STATUS_FLAGS and 0 <= event.data <= 0xffff):
             return {"pid": pid, "fflags": event.fflags, "waitStatus": event.data,
-                    "status": "PASS" if event.data == 0 else "FAIL"}
+                    "status": "PASS" if event.data == ((os.EX_TEMPFAIL if abrupt_visible_exit else 0) << 8) else "FAIL"}
     return {"pid": pid, "status": "UNKNOWN"}
 
 
@@ -316,7 +318,7 @@ def await_guardian_exit(pid):
     return False
 
 
-def visible_return_result(row, host, nonce, exited):
+def visible_return_result(row, host, nonce, exited, *, abrupt=False):
     """Validate the signed child, original Host kernel exit, and two fresh reads after one actual setter."""
     probe = host.get("guardianIndependent") or {}
     evidence = probe.get("evidence") or {}
@@ -326,7 +328,9 @@ def visible_return_result(row, host, nonce, exited):
     samples = registered.get("samples") or []
     termination = exited.get("kernelTermination") or {}
     if (not all(evidence.get(k) and evidence[k] == row.get(k) for k in ("window","fixtureHash","display","space","nativeID"))
-            or termination.get("pid") != subject.get("pid") or termination.get("waitStatus") != 0
+            or termination.get("pid") != subject.get("pid")
+            or termination.get("waitStatus") != ((os.EX_TEMPFAIL if abrupt else 0) << 8)
+            or host.get("abruptVisibleExitCode") != (os.EX_TEMPFAIL if abrupt else None)
             or not isinstance(termination.get("fflags"),int) or termination["fflags"] & EXIT_STATUS_FLAGS != EXIT_STATUS_FLAGS
             or row.get("scope") != "visibleFixtureGeometryAcrossHostExit" or row.get("schema") != 1
             or str(row.get("challenge")).lower() != str(nonce).lower() or row.get("scopeSpaceWrites") != 0
@@ -362,7 +366,8 @@ def visible_return_result(row, host, nonce, exited):
 
 
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
-            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False, visible_recovery=False):
+            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False,
+            visible_recovery=False, abrupt_visible_exit=False):
     watch_exit = guardian_survival or visible_recovery
     image = identity(app)
     before = identity(DAILY)
@@ -376,6 +381,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
         if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
                 or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
                 or (visible_recovery and (app == DAILY or image.get("visibleFixtureRecoveryProtocol") != 1 or guardian_survival))
+                or (abrupt_visible_exit and (not visible_recovery or image.get("abruptFixtureExitProtocol") != 1))
                 or (corner_readback and watch_exit)
                 or ((watch_exit or corner_readback) and ((app != DAILY and not internal_survival_image(app, image))
                     or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
@@ -393,6 +399,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
         with exclusive(image["Identifier"]), ExitStack() as resources:
             if watch_exit:
                 publish(directory, "guardian-visible-return.request" if visible_recovery else "guardian-survival.request")
+                if abrupt_visible_exit:
+                    publish(directory, "guardian-visible-exit-without-cleanup.request")
             elif corner_readback:
                 publish(directory, "corner-readback.request")
             args = [launcher, app, challenge]
@@ -477,7 +485,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                         probe = raw.get("guardianIndependent", {})
                         if probe.get("postExitWatchArmed") is True:
                             exited = await_exit(launcher, app, launch)
-                            exited["kernelTermination"] = read_exit_status(queue, launch["pid"])
+                            exited["kernelTermination"] = read_exit_status(queue, launch["pid"], abrupt_visible_exit=abrupt_visible_exit)
                             child = probe["evidence"]["guardian"]["pid"]
                             continuation = {"status": "UNKNOWN", "readerExited": False}
                             result["postExitGuardian"] = continuation
@@ -485,9 +493,11 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                                 receipt_dir = Path("/private/tmp") / ("nearpane-membership." + challenge) if visible_recovery else directory
                                 name = "guardian-receipt.json" if visible_recovery else "guardian-post-exit.json"
                                 terminal, digest = response(receipt_dir, name, 10)
-                                verdict = (visible_return_result if visible_recovery else guardian_survival_result)(terminal, raw, challenge, exited)
                                 if visible_recovery:
+                                    verdict = visible_return_result(terminal, raw, challenge, exited, abrupt=abrupt_visible_exit)
                                     result["scopeWindowWrites"] = terminal.get("issued")
+                                else:
+                                    verdict = guardian_survival_result(terminal, raw, challenge, exited)
                                 continuation.update(status=verdict,
                                                     raw=public_scope(terminal), receiptSHA256=digest, hostExit=exited)
                             finally:

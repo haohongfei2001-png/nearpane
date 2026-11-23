@@ -99,6 +99,7 @@ if (( internal_survival )); then
   if (( visible_recovery )); then
     bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE" -DNP_INTERNAL_SURVIVAL=1 -DNP_INTERNAL_VISIBLE_RESTORE=1
     /usr/bin/plutil -insert NearpaneVisibleFixtureRecoveryProtocol -integer 1 "$stage/Contents/Info.plist"
+    /usr/bin/plutil -insert NearpaneAbruptFixtureExitProtocol -integer 1 "$stage/Contents/Info.plist"
   else
     bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE" -DNP_INTERNAL_SURVIVAL=1
   fi

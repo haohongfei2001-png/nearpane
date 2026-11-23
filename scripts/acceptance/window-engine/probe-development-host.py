@@ -75,7 +75,8 @@ def seal(app, survival):
     if not plistlib.loads(resources).get('files2'):
         raise ValueError('missing resource envelope')
     return dict(status='PASS', host=metadata(app), components=components, source=plist['NearpaneStageEngineSourceRevision'],
-                protocol=plist.get('NearpaneReadOnlyGuardianProtocol'), visibleRecoveryProtocol=plist.get('NearpaneVisibleFixtureRecoveryProtocol'), engineABI=plist['NearpaneStageEngineABI'],
+                protocol=plist.get('NearpaneReadOnlyGuardianProtocol'), visibleRecoveryProtocol=plist.get('NearpaneVisibleFixtureRecoveryProtocol'),
+                abruptFixtureExitProtocol=plist.get('NearpaneAbruptFixtureExitProtocol'), engineABI=plist['NearpaneStageEngineABI'],
                 codeResourcesSHA256=hashlib.sha256(resources).hexdigest(), deepStrictAllArchitectures=True,
                 staticPackageVerification=True, app=str(app))
 

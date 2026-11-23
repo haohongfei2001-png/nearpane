@@ -23,6 +23,7 @@ final class StageScopeReply {
     enum Signal: String {
         case launch = "launched", registration = "fixture.json", abort = "abort"
         case visibleRecovery = "guardian-visible-return.request"
+        case abruptVisibleExit = "guardian-visible-exit-without-cleanup.request"
         case guardianSurvival = "guardian-survival.request", cornerReadback = "corner-readback.request"
     }
 

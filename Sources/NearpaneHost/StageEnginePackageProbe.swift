@@ -135,6 +135,9 @@ enum StageEnginePackageProbe {
             var fixture = initialFixture
             var preflight: [String: Any]?
             var survivalContinuity: (() -> [String: Any])?
+            #if DEBUG
+            var abruptAfterHandoff = false
+            #endif
             let cornerReadback = try channel?.exists(.cornerReadback) == true
             if ownSpacesCanary {
                 guard channel != nil, !awaitRegistration, !enrolledSpacesCycle, fixture == nil else { return 2 }
@@ -147,6 +150,15 @@ enum StageEnginePackageProbe {
                 guard !wantsVisibleRecovery || (bundle.bundleIdentifier == "com.holdsnow.nearpane.host" &&
                     bundle.object(forInfoDictionaryKey: "NearpaneVisibleFixtureRecoveryProtocol") as? Int == 1)
                     else { return 2 }
+                if try channel.exists(.abruptVisibleExit) {
+                    #if DEBUG
+                    guard wantsVisibleRecovery, subject["atDailyInstallPath"] as? Bool == false,
+                          bundle.object(forInfoDictionaryKey: "NearpaneAbruptFixtureExitProtocol") as? Int == 1 else { return 2 }
+                    abruptAfterHandoff = true
+                    #else
+                    return 2
+                    #endif
+                }
                 guard !(wantsSurvival && cornerReadback) else { return 2 }
                 if wantsSurvival || cornerReadback {
                     let input = StageCanaryOverview.hid()
@@ -241,11 +253,22 @@ enum StageEnginePackageProbe {
                     let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
                     observeParentExit: survival ? challenge : nil, visibleRecovery: visibleRecovery && survival)
                     report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
+                    #if DEBUG
+                    if abruptAfterHandoff && visibleRecovery && survival && independent.postExitWatchArmed {
+                        report["abruptVisibleExitCode"] = Int(EX_TEMPFAIL)
+                    }
+                    #endif
                 }
             }
             let data = try JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
             if let channel {
                 try channel.finish(data + Data([10]))
+                #if DEBUG
+                if abruptAfterHandoff && report["abruptVisibleExitCode"] as? Int == Int(EX_TEMPFAIL) {
+                    // Only the sealed internal fixture drill reaches here. Skip Host cleanup after the durable handoff.
+                    Darwin._exit(EX_TEMPFAIL)
+                }
+                #endif
             } else {
                 try FileHandle.standardOutput.write(contentsOf: data + Data([10]))
             }
