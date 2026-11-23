@@ -14,9 +14,13 @@ on:
       - 'Sources/NearpaneSaytileBridge/**'
       - 'Sources/NearpaneHost/CandidateProfile.swift'
       - 'Sources/NearpaneUI/SettingsView.swift'
+      - 'Sources/NearpaneUI/SidebarNotebook.swift'
+      - 'Sources/NearpaneUI/SelectionTranslation.swift'
+      - 'Sources/NearpaneCore/LocalToolStage.swift'
       - 'Tests/NearpaneTrayTests/**'
       - 'Tests/NearpaneVoiceTests/**'
       - 'Tests/NearpaneUITests/IntegratedHostTests.swift'
+      - 'Tests/NearpaneUITests/TranslationHandoffTests.swift'
       - 'scripts/acceptance/*browser*'
       - 'scripts/acceptance/test-composed-target.js'
       - 'scripts/build-app.sh'
@@ -42,7 +46,7 @@ jobs:
       - name: Verify locked inputs and embedded Host regressions
         run: |
           python3 -B scripts/test-dependencies.py
-          bash scripts/test.sh --filter 'NearpaneTrayTests|NearpaneVoiceTests|IntegratedHostTests'
+          bash scripts/test.sh --filter 'NearpaneTrayTests|NearpaneVoiceTests|IntegratedHostTests|TranslationHandoffTests'
       - name: Build the development Host and verify its bundled resources offline
         env:
           NEARPANE_OFFLINE: '1'

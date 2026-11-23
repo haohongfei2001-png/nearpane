@@ -53,6 +53,25 @@ import SwiftUI
         catch { readable = false; issue = "暂时无法打开已保存的工具资料。" }
     }
 
+    func words(matching query: String) -> [Word] {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty else { return contents.words }
+        return contents.words.filter { $0.source.localizedStandardContains(term) || $0.translation.localizedStandardContains(term) }
+    }
+
+    /// A saved answer can stand on its own only for the same text and known translation direction.
+    func savedTranslation(for source: String, from: String, to: String) -> String? {
+        guard readable else { return nil }
+        let text = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answers = Set(contents.words.compactMap { word -> String? in
+            guard word.sourceLanguage == from, word.language == to,
+                  word.source.trimmingCharacters(in: .whitespacesAndNewlines) == text else { return nil }
+            let answer = word.translation.trimmingCharacters(in: .whitespacesAndNewlines)
+            return answer.isEmpty ? nil : answer
+        })
+        return answers.count == 1 ? answers.first : nil
+    }
+
     func diskWord(for request: UUID) throws -> Word? {
         do {
             return try JSONDecoder().decode(Contents.self, from: Data(contentsOf: file)).words.first { $0.requestID == request }
@@ -152,6 +171,34 @@ enum NoteArithmetic {
 }
 
 private typealias NotebookState<T> = State<T>
+
+struct WordbookSection: View {
+    let notebook: SidebarNotebook
+    @NotebookState private var query = ""
+
+    var body: some View {
+        DisclosureGroup("单词本") {
+            if !notebook.readable {
+                Text(notebook.issue ?? "暂时无法打开单词本。").font(.caption)
+            } else if notebook.contents.words.isEmpty {
+                Text("尚无查询记录").font(.caption)
+            } else {
+                HStack {
+                    TextField("查找原文或译文", text: $query)
+                        .accessibilityIdentifier("wordbook-search")
+                    if !query.isEmpty {
+                        Button("清除搜索") { query = "" }.buttonStyle(.borderless)
+                    }
+                }
+                let matches = notebook.words(matching: query)
+                if matches.isEmpty { Text("没有匹配的词条").font(.caption) }
+                ForEach(matches) { word in
+                    LabeledContent(word.source, value: word.translation).textSelection(.enabled)
+                }
+            }
+        }
+    }
+}
 
 struct NotebookCard: View {
     let notebook: SidebarNotebook

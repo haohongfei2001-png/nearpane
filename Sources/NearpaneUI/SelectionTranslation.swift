@@ -139,10 +139,18 @@ struct TranslationResultContent: View {
         }
         dismissal?.cancel()
         present("正在查询…")
+        let detectedLanguage = NLLanguageRecognizer.dominantLanguage(for: request.source)?.rawValue
+        let language = detectedLanguage ?? "en"
+        let target = language.hasPrefix("zh") ? "en" : "zh-Hans"
+        func modelUnavailable(_ stage: LocalToolStage, message: String) {
+            stage.emit(id)
+            if let detectedLanguage, let saved = notebook.savedTranslation(for: request.source, from: detectedLanguage, to: target) {
+                LocalToolStage.savedWordMatched.emit(id)
+                present("单词本 · 已保存的译文\n" + saved)
+            } else { present(message) }
+        }
         #if canImport(Translation)
         if #available(macOS 26, *) {
-            let language = NLLanguageRecognizer.dominantLanguage(for: request.source)?.rawValue ?? "en"
-            let target = language.hasPrefix("zh") ? "en" : "zh-Hans"
             let from = Locale.Language(identifier: language), to = Locale.Language(identifier: target)
             let available = await LanguageAvailability().status(from: from, to: to)
             guard !Task.isCancelled else { return false }
@@ -169,15 +177,13 @@ struct TranslationResultContent: View {
                     present("本机翻译未完成。")
                 }
             case .supported:
-                LocalToolStage.modelMissing.emit(id)
-                present("请先在 macOS 翻译设置中下载所需语言。")
+                modelUnavailable(.modelMissing, message: "请先在 macOS 翻译设置中下载所需语言。")
             default:
-                LocalToolStage.modelUnsupported.emit(id)
-                present("当前系统不支持这组语言的本地翻译。")
+                modelUnavailable(.modelUnsupported, message: "当前系统不支持这组语言的本地翻译。")
             }
-        } else { LocalToolStage.modelUnsupported.emit(id); present("当前系统不支持本地翻译。") }
+        } else { modelUnavailable(.modelUnsupported, message: "当前系统不支持本地翻译。") }
         #else
-        LocalToolStage.modelUnsupported.emit(id); present("当前系统不支持本地翻译。")
+        modelUnavailable(.modelUnsupported, message: "当前系统不支持本地翻译。")
         #endif
         guard !Task.isCancelled else { return false }
         dismissal = Task { [weak self] in

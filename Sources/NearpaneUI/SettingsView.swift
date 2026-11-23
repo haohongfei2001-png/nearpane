@@ -412,7 +412,7 @@ public struct SettingsView: View {
                 host.setWindowThumbnails(show)
                 if !show { domains?.windowPreviews.gallery.clear() }
             })).disabled(!enabled)
-            Text("当前桌面的每扇窗口各占一项，使用本屏统一比例缩放。侧栏可见时自动更新，点击可将对应窗口置前。")
+            Text("本屏窗口按比例显示，组合卡保留组内窗口的相对位置。点击成员可将该窗口置前。")
                 .font(.caption).foregroundStyle(.secondary)
             if enabled { WindowAccessSteps(showPictures: host.configuration.showsWindowThumbnails) }
             Toggle("识别窗口所属桌面（实验性）", isOn: Binding(get: { host.configuration.experimentalSpaceObservation },
@@ -448,12 +448,7 @@ public struct SettingsView: View {
                 Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
                     .font(.callout).foregroundStyle(.secondary)
                 if let notebook = domains?.notebook {
-                    DisclosureGroup("单词本") {
-                        if notebook.contents.words.isEmpty { Text("尚无查询记录").font(.caption) }
-                        ForEach(notebook.contents.words) { word in
-                            LabeledContent(word.source, value: word.translation).textSelection(.enabled)
-                        }
-                    }
+                    WordbookSection(notebook: notebook).id(ObjectIdentifier(notebook))
                 }
                 ForEach(host.registry.preferences, id: \.id) { pref in
                     if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
