@@ -36,6 +36,8 @@ def identity(app):
     fields = dict(re.findall(r"^(CDHash|Identifier|TeamIdentifier)=(.+)$", command("/usr/bin/codesign", "-dvvv", app), re.M))
     if "NearpaneReadOnlyGuardianProtocol" in info:
         fields["readOnlyGuardianProtocol"] = info["NearpaneReadOnlyGuardianProtocol"]
+    if "NearpaneVisibleFixtureRecoveryProtocol" in info:
+        fields["visibleFixtureRecoveryProtocol"] = info["NearpaneVisibleFixtureRecoveryProtocol"]
     return dict(fields, version=info["CFBundleShortVersionString"], build=info["CFBundleVersion"],
                 source=info.get("NearpaneStageEngineSourceRevision") or info.get("NearpaneSourceRevision"),
                 sourceState=info.get("NearpaneStageEngineSourceState"), engineABI=info.get("NearpaneStageEngineABI"),
@@ -133,7 +135,7 @@ def read_private(path, limit):
 def response(directory, name, seconds):
     deadline = time.monotonic() + seconds
     # The Guardian fsyncs a private file and atomically renames it without a newline.
-    atomic_guardian = name == "guardian-post-exit.json"
+    atomic_guardian = name in ("guardian-post-exit.json", "guardian-receipt.json")
     while time.monotonic() < deadline:
         try:
             raw = read_private(directory / name, 4095 if atomic_guardian else 196608)
@@ -314,21 +316,68 @@ def await_guardian_exit(pid):
     return False
 
 
+def visible_return_result(row, host, nonce, exited):
+    """Validate the signed child, original Host kernel exit, and two fresh reads after one actual setter."""
+    probe = host.get("guardianIndependent") or {}
+    evidence = probe.get("evidence") or {}
+    child = evidence.get("guardian") or {}
+    subject = host.get("subject") or {}
+    registered = host.get("guardianFixture") or {}
+    samples = registered.get("samples") or []
+    termination = exited.get("kernelTermination") or {}
+    if (not all(evidence.get(k) and evidence[k] == row.get(k) for k in ("window","fixtureHash","display","space","nativeID"))
+            or termination.get("pid") != subject.get("pid") or termination.get("waitStatus") != 0
+            or not isinstance(termination.get("fflags"),int) or termination["fflags"] & EXIT_STATUS_FLAGS != EXIT_STATUS_FLAGS
+            or row.get("scope") != "visibleFixtureGeometryAcrossHostExit" or row.get("schema") != 1
+            or str(row.get("challenge")).lower() != str(nonce).lower() or row.get("scopeSpaceWrites") != 0
+            or row.get("parked") is not False or probe.get("postExitWatchArmed") is not True
+            or exited.get("status") != "PASS" or (exited.get("kernelTermination") or {}).get("status") != "PASS"
+            or len(samples) != 2 or row.get("hostPID") != subject.get("pid") or row.get("hostBirth") != subject.get("birth")
+            or row.get("hostHash") != subject.get("cdhash") or row.get("childPID") != child.get("pid")
+            or row.get("childBirth") != child.get("birth") or row.get("childHash") != child.get("cdhash")
+            or row.get("window") != registered.get("registered") or row.get("fixtureHash") != registered.get("registeredCDHash")
+            or str(row.get("display")).lower() != str((registered.get("sampledScope") or {}).get("display")).lower()
+            or str(row.get("space")).lower() != str((registered.get("sampledScope") or {}).get("nativeSpace")).lower()
+            or not row.get("nativeID") or row["nativeID"] != registered.get("nativeID")):
+        return "UNKNOWN"
+    original = row.get("original")
+    if not isinstance(original,list) or len(original)!=4 or any(type(v) not in (int,float) for v in original):
+        return "UNKNOWN"
+    if (row.get("displaced") != [original[0]+24,*original[1:]] or row.get("displacedReads") != 2
+            or row.get("kernelExit") is not True or row.get("originalPipeEOF") is not True
+            or row.get("responsibleAfter") != child["pid"] or row.get("issued") != 1):
+        return "UNKNOWN"
+    if row.get("setterCode") != 0:
+        return "FAIL"
+    if any([s.get("cg",{}).get(k) for k in ("x","y","width","height")] != original for s in samples):
+        return "UNKNOWN"
+    reads = row.get("postReads") or []
+    fields = ("signature","generation","cgOwner","onScreen","axTrusted","membershipAttempted","sameRetained")
+    if (len(reads) != 2 or not all(isinstance(q,dict) and type(q.get("uptimeNS")) is int for q in reads)
+            or type(evidence.get("ended")) is not int or not 0 < evidence["ended"] < reads[0]["uptimeNS"] < reads[1]["uptimeNS"]
+            or any(any(q.get(k) != 1 for k in fields) or q.get("membershipAndAXCode") != 0
+                   or q.get("ax") != original or q.get("cg") != original for q in reads)):
+        return "UNKNOWN"
+    return "PASS" if row.get("status")=="PASS" and row.get("sampleCode")==0 else "UNKNOWN"
+
+
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
-            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False):
+            spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False, visible_recovery=False):
+    watch_exit = guardian_survival or visible_recovery
     image = identity(app)
     before = identity(DAILY)
-    result = dict(schema=2, scope="ownPanelOnly" if own_canary else "oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
+    result = dict(schema=2, scope="visibleSignedFixtureRecovery" if visible_recovery else "ownPanelOnly" if own_canary else "oneHostScopeAndEnrolledCycle" if spaces_cycle else "oneHostReadOnlyScope",
                   recordedUTC=datetime.now(timezone.utc).isoformat(),
                   os=command("/usr/bin/sw_vers", "-productVersion").strip(), osBuild=command("/usr/bin/sw_vers", "-buildVersion").strip(),
                   sip=command("/usr/bin/csrutil", "status").strip(), independentSystemSource="sw_vers + csrutil",
-                  image=image, dailyBefore=before, scopeWindowWrites=0, scopeSpaceWrites=0, scopeInputEvents=0,
+                  image=image, dailyBefore=before, scopeWindowWrites=None if visible_recovery else 0, scopeSpaceWrites=0, scopeInputEvents=0,
                   productionQualified=False, launchRequested=False, status="BLOCKED")
     try:
         if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
                 or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
-                or (corner_readback and guardian_survival)
-                or ((guardian_survival or corner_readback) and ((app != DAILY and not internal_survival_image(app, image))
+                or (visible_recovery and (app == DAILY or image.get("visibleFixtureRecoveryProtocol") != 1 or guardian_survival))
+                or (corner_readback and watch_exit)
+                or ((watch_exit or corner_readback) and ((app != DAILY and not internal_survival_image(app, image))
                     or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
             result["reason"] = "pinnedImageOrRegisteredSessionUnavailable"
             return result
@@ -342,8 +391,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
             return result
         launcher = build_launcher(directory)
         with exclusive(image["Identifier"]), ExitStack() as resources:
-            if guardian_survival:
-                publish(directory, "guardian-survival.request")
+            if watch_exit:
+                publish(directory, "guardian-visible-return.request" if visible_recovery else "guardian-survival.request")
             elif corner_readback:
                 publish(directory, "corner-readback.request")
             args = [launcher, app, challenge]
@@ -370,7 +419,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                     result["hostExit"] = dict(status="NOT_RUN", reason="noLaunchRequested")
                 return result
             try:
-                if guardian_survival:
+                if watch_exit:
                     # Arm before the nonce-bound preflight from the very same process generation.
                     # A later empty roster alone cannot distinguish normal termination from a crash.
                     queue = resources.enter_context(closing(select.kqueue()))
@@ -423,7 +472,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                                   rawSHA256=digest, abi=raw["abi"], permissionSource=raw["permissionSource"],
                                   redaction="Display and Space UUIDs consistently tokenized across each Host report.",
                                   **public_observation(raw))
-                    if guardian_survival:
+                    if watch_exit:
                         # Keep the fixture alive until after the signed diagnostic Host naturally exits.
                         probe = raw.get("guardianIndependent", {})
                         if probe.get("postExitWatchArmed") is True:
@@ -433,8 +482,13 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                             continuation = {"status": "UNKNOWN", "readerExited": False}
                             result["postExitGuardian"] = continuation
                             try:
-                                terminal, digest = response(directory, "guardian-post-exit.json", 10)
-                                continuation.update(status=guardian_survival_result(terminal, raw, challenge, exited),
+                                receipt_dir = Path("/private/tmp") / ("nearpane-membership." + challenge) if visible_recovery else directory
+                                name = "guardian-receipt.json" if visible_recovery else "guardian-post-exit.json"
+                                terminal, digest = response(receipt_dir, name, 10)
+                                verdict = (visible_return_result if visible_recovery else guardian_survival_result)(terminal, raw, challenge, exited)
+                                if visible_recovery:
+                                    result["scopeWindowWrites"] = terminal.get("issued")
+                                continuation.update(status=verdict,
                                                     raw=public_scope(terminal), receiptSHA256=digest, hostExit=exited)
                             finally:
                                 continuation["readerExited"] = await_guardian_exit(child)

@@ -90,6 +90,9 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
 #ifndef NP_CORNER_FIXTURE
 static BOOL displayIs(Session *s);
 static BOOL stable(Session *s, NCFrame frame);
+static BOOL captureDisplays(Session *s, const uint8_t id[16], NCFrame original);
+static CGRect displayRect(NCFrame f);
+static void need(BOOL yes, NSString *why);
 #include "packaged.h"
 #include "inspect.h"
 static NSDictionary *originalProof(Session *s, NSDictionary *wal) {

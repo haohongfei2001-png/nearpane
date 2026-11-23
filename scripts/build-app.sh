@@ -19,11 +19,13 @@ case "$configuration" in debug|release) ;; *) echo "Usage: $0 [debug|release]" >
 candidate_dir=""
 prepare_only=0
 internal_survival=0
-if [[ $# == 3 && "$configuration" == debug && "$2" == --prepare-internal-survival ]]; then
+visible_recovery=0
+if [[ $# == 3 && "$configuration" == debug && ( "$2" == --prepare-internal-survival || "$2" == --prepare-internal-visible-recovery ) ]]; then
   candidate_dir="$(cd "$3" && pwd -P)"
   [[ ! -L "$3" && "${candidate_dir%/*}" == /private/tmp && "${candidate_dir##*/}" == nearpane-stage-engine-dev.* &&
      "$(stat -f '%u:%Lp' "$candidate_dir")" == "$(id -u):700" && ! -e "$candidate_dir/Nearpane.app" &&
      "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]] || { echo "Expected a fresh private development package directory" >&2; exit 2; }
+  [[ "$2" != --prepare-internal-visible-recovery ]] || visible_recovery=1
   internal_survival=1
   prepare_only=1
 elif (( $# > 1 )); then
@@ -94,7 +96,12 @@ install -m 755 "$ordinary" "$stage/Contents/Helpers/NearpaneOrdinaryWindowContro
 guardian="$stage/Contents/Helpers/NearpaneCornerGuardian"
 guardian_id=com.holdsnow.nearpane.alpha.corner-guardian
 if (( internal_survival )); then
-  bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE" -DNP_INTERNAL_SURVIVAL=1
+  if (( visible_recovery )); then
+    bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE" -DNP_INTERNAL_SURVIVAL=1 -DNP_INTERNAL_VISIBLE_RESTORE=1
+    /usr/bin/plutil -insert NearpaneVisibleFixtureRecoveryProtocol -integer 1 "$stage/Contents/Info.plist"
+  else
+    bash scripts/acceptance/window-engine/corner/build-guardian.sh "$guardian" "$NEARPANE_ENGINE_ARCHIVE" -DNP_INTERNAL_SURVIVAL=1
+  fi
   guardian_id=com.holdsnow.nearpane.host.corner-guardian
   /usr/bin/plutil -insert NearpaneReadOnlyGuardianProtocol -integer 1 "$stage/Contents/Info.plist"
 else

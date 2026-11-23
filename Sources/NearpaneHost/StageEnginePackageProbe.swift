@@ -142,7 +142,11 @@ enum StageEnginePackageProbe {
             }
             if awaitRegistration {
                 guard initialFixture == nil, let channel else { return 2 }
-                let wantsSurvival = try channel.exists(.guardianSurvival)
+                let wantsVisibleRecovery = try channel.exists(.visibleRecovery)
+                let wantsSurvival = try channel.exists(.guardianSurvival) || wantsVisibleRecovery
+                guard !wantsVisibleRecovery || (bundle.bundleIdentifier == "com.holdsnow.nearpane.host" &&
+                    bundle.object(forInfoDictionaryKey: "NearpaneVisibleFixtureRecoveryProtocol") as? Int == 1)
+                    else { return 2 }
                 guard !(wantsSurvival && cornerReadback) else { return 2 }
                 if wantsSurvival || cornerReadback {
                     let input = StageCanaryOverview.hid()
@@ -224,7 +228,8 @@ enum StageEnginePackageProbe {
                 let continuity = report["survivalContinuity"] as? [String: Any]
                 let originalFocus = continuity?["currentFocus"] as? [String: Any]
                 let membership = scope["fixtureMembership"] as? [String: Any]
-                let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil &&
+                let visibleRecovery = try channel?.exists(.visibleRecovery) == true
+                let survival = try (channel?.exists(.guardianSurvival) == true || visibleRecovery) && awaitRegistration && ordinary != nil &&
                     membership?["status"] as? String == "PASS" && continuity?["inputQuiet"] as? Bool == true &&
                     originalFocus?["sameOriginalAX"] as? Bool == true
                 if cornerReadback {
@@ -234,7 +239,7 @@ enum StageEnginePackageProbe {
                     report["survivalContinuity"] = survivalContinuity?()
                 } else {
                     let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
-                    observeParentExit: survival ? challenge : nil)
+                    observeParentExit: survival ? challenge : nil, visibleRecovery: visibleRecovery && survival)
                     report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))
                 }
             }

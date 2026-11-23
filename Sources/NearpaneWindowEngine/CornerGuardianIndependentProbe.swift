@@ -201,7 +201,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     }
     #endif
 
-    @MainActor package static func sample(host: CornerGuardianFixtureReport, executable: URL, observeParentExit: UUID? = nil) async -> Self {
+    @MainActor package static func sample(host: CornerGuardianFixtureReport, executable: URL, observeParentExit: UUID? = nil, visibleRecovery: Bool = false) async -> Self {
         let handoff = host.handoff.state
         guard host.hostPID == getpid(), let birth = host.hostBirth, let window = host.registered,
               let hash = host.registeredCDHash, host.hostReceiptCode == 0, host.samples.count == 2,
@@ -218,7 +218,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
             do {
                 let (evidence, armed) = try exchange(window: window, executable: executable, fixtureHash: hash, hostBirth: birth,
                                             scope: ordinary, native: native, registeredFrame: host.samples.last?.cg,
-                                            observeParentExit: observeParentExit, images: images)
+                                            observeParentExit: observeParentExit, visibleRecovery: visibleRecovery, images: images)
                 let reason: String
                 if evidence.effectiveAccessibility == "DENIED_TO_CALLING_PROCESS" {
                     reason = "guardianAccessibilityDenied"
@@ -244,7 +244,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
 
     private static func exchange(window: NativeSpaceWindow, executable: URL, fixtureHash: String, hostBirth: UInt64,
                                  scope: StageGroupScope?, native: UInt64?, registeredFrame: SurfaceRect?, observeParentExit: UUID?,
-                                 images: (host: URL, helper: URL)) throws -> (Evidence, Bool) {
+                                 visibleRecovery: Bool, images: (host: URL, helper: URL)) throws -> (Evidence, Bool) {
         let helper = images.helper, pid = getpid()
         let image = try OrdinaryProcessImage.read(pid)
         let hostHash = try digest(pid)
@@ -284,12 +284,14 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
               try OrdinaryProcessImage.read(pid) == image, try digest(pid) == hostHash else {
             throw Failure.childOrHostChangedBeforeReturn
         }
-        // A watch owns a read-only AX reference and a NOTE_EXIT observation. It never owns a recovery lease.
+        // W is the read-only survival contract. Only the separate signed internal fixture build accepts V.
         let canWatch = observeParentExit != nil && evidence.matchesHostRegisteredGeometry == true &&
             ["ORIGINAL_OBJECT_OBSERVED_TWICE_THEN_RELEASED", "ORIGINAL_OBJECT_READ_DURING_PARENT_GRANT"].contains(evidence.temporaryRetention)
-        try writer.write(contentsOf: Data(canWatch ? "W".utf8 : "Q".utf8))
+        let command = canWatch ? (visibleRecovery ? "V" : "W") : "Q"
+        try writer.write(contentsOf: Data(command.utf8))
         if canWatch {
-            let reply = try readLine(reader.fileDescriptor, until: DispatchTime.now().uptimeNanoseconds + 2_000_000_000)
+            let budget: UInt64 = visibleRecovery ? 5_000_000_000 : 2_000_000_000
+            let reply = try readLine(reader.fileDescriptor, until: DispatchTime.now().uptimeNanoseconds + budget)
             if reply == Data("ARMED".utf8) { return (evidence, true) }
             guard reply == Data("REFUSED".utf8) else { throw Failure.boundedPipeFailure }
         }

@@ -204,7 +204,8 @@ def prepare_fixture(work, report):
         "-Wextra",
         "-Werror",
         "-mmacosx-version-min=26.0",
-        *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") or report.get("cornerReadbackRequested") else []),
+        *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") or report.get("cornerReadbackRequested") or report.get("visibleRecoveryRequested") else []),
+        *(["-DNP_VISIBLE_RECOVERY_WINDOW=1", "-framework", "Security"] if report.get("visibleRecoveryRequested") else []),
         HERE / "membership-window.m",
         "-framework",
         "AppKit",
@@ -243,7 +244,8 @@ def prepare_fixture(work, report):
 @contextmanager
 def registered_window(pre, challenge, work, fixture, exe, digest, report, reader=None):
     corner = report.get("cornerReadbackRequested") is True
-    internal = report.get("internalGuardianSurvival") is True or corner
+    visible_recovery = report.get("visibleRecoveryRequested") is True
+    internal = report.get("internalGuardianSurvival") is True or corner or visible_recovery
     if internal:
         gates = internal_survival_gates(pre, guardian=not corner)
         report["admissionChecks"] = gates
@@ -257,7 +259,7 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
         yield None
         return
-    survival = report.get("requestedGuardianSurvival") is True or corner
+    survival = report.get("requestedGuardianSurvival") is True or corner or visible_recovery
     if survival:
         guard = pre.get("survivalContinuity", {})
         if guard.get("inputQuiet") is not True or guard.get("currentFocus", {}).get("sameOriginalAX") is not True:
@@ -270,7 +272,7 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         if report["requestedSpacesCycle"]:
             args.append("--enrolled-spaces-cycle")
         elif survival:
-            args.append("--ordinary-window" if corner else "--guardian-survival")
+            args.append("--visible-recovery" if visible_recovery else "--ordinary-window" if corner else "--guardian-survival")
         report["fixtureLaunchRequested"] = True
         process = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -313,9 +315,12 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
                     exit_code = None
                 report.update(ownerEnd=last, launchExit=exit_code)
                 for key, file in (("ownerPreflight","owner-preflight.json"), ("ownerSession","owner-session.json"),
-                                  ("ownerPublication","owner-published.json")):
+                                  ("ownerPublication","owner-published.json"), ("fixtureDisplaced","owner-displaced.json"),
+                                  ("fixtureRestored","owner-returned.json"), ("visibleGuardianReceipt","guardian-receipt.json"),
+                                  ("visibleGuardianPrepare","guardian-prepared.json")):
                     if (work / file).is_file():
-                        report[key] = json.loads((work / file).read_bytes())
+                        value = json.loads(scope_reader.read_private(work / file, 16384))
+                        report[key] = scope_reader.public_scope(value) if key.startswith("visibleGuardian") else value
                 same = last and first and all(first.get(k) == last.get(k) for k in ("pid","birth","window"))
                 gone = False
                 pid = (first or report.get("ownerPreflight") or {}).get("pid")
@@ -659,6 +664,8 @@ def run(a, report):
                         and a.expected_source == image["source"] and a.expected_cdhash == image["CDHash"])
         else:
             admitted = legacy_matches(json.loads(a.preflight.read_bytes()), image)
+    if getattr(a, "visible_recovery", False) and image.get("visibleFixtureRecoveryProtocol") != 1:
+        admitted = False
     if not admitted:
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
         return
@@ -731,10 +738,11 @@ def run(a, report):
     observed = scope_reader.observe(app, challenge, channel, raw_output, enroll=enroll, expected_image=image,
                                     spaces_cycle=a.enrolled_spaces_cycle, inspect_final=inspect_final,
                                     guardian_survival=getattr(a, "guardian_survival", False),
-                                    corner_readback=getattr(a, "corner_readback", False))
+                                    corner_readback=getattr(a, "corner_readback", False),
+                                    visible_recovery=getattr(a, "visible_recovery", False))
     report["hostLaunchRequested"] = observed.get("launchRequested")
     report["preexistingSameID"] = observed.get("launchServices", {}).get("prelaunch", {}).get("pids", [])
-    if getattr(a, "guardian_survival", False):
+    if getattr(a, "guardian_survival", False) or getattr(a, "visible_recovery", False):
         report["postExitGuardian"] = observed.get("postExitGuardian", {"status": "NOT_RUN"})
     source = observed if observed.get("subject") else observed.get("preflight", {})
     if getattr(a, "corner_readback", False):
@@ -754,7 +762,7 @@ def run(a, report):
     if not valid:
         report.update(status=member.get("status") if member.get("status") in {"FAIL","BLOCKED"} else "UNKNOWN",
                       reason="scopeOrMembershipIncomplete")
-    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd"), getattr(a, "guardian_survival", False) or getattr(a, "corner_readback", False)):
+    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd"), getattr(a, "guardian_survival", False) or getattr(a, "corner_readback", False) or getattr(a, "visible_recovery", False)):
         report.update(status="UNKNOWN", reason="owningWindowOrFocusChangedBeforeCleanup")
     else:
         report.update(status="PASS", reason="oneHostOwnerAndTwoDirectionalHostReads")
@@ -773,6 +781,20 @@ def run(a, report):
     if getattr(a, "guardian_survival", False) and report["status"] == "PASS":
         report["status"] = report["postExitGuardian"].get("status", "UNKNOWN")
         report["reason"] = "postExitReadOnlyOriginalObject"
+    if getattr(a, "visible_recovery", False):
+        terminal = report.get("visibleGuardianReceipt") or {}
+        report["scopeWindowWrites"] = terminal.get("issued")
+        report["fixtureSelfMoves"] = 1 if report.get("fixtureDisplaced") else 0
+        if report["status"] == "PASS":
+            report["status"] = report["postExitGuardian"].get("status", "UNKNOWN")
+            original = (report.get("ownerPublication") or {}).get("first")
+            ended = report.get("fixtureRestored")
+            displaced = report.get("fixtureDisplaced") or {}
+            if (not original or ended != original or displaced.get("window") != original.get("window")
+                    or displaced.get("pid") != original.get("pid") or displaced.get("frame") != terminal.get("displaced")
+                    or terminal.get("original") != original.get("frame") or not report.get("visibleGuardianPrepare")):
+                report["status"] = "UNKNOWN"
+            report["reason"] = "visibleFixtureAfterHostExitAndIndependentOwnerRead"
     if a.enrolled_spaces_cycle and report.get("spacesCycleStatus") != "PASS":
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
 
@@ -806,7 +828,7 @@ def resources(report):
     overview = report.get("overviewObservation", {})
     overview_clear = (not report.get("requestedOwnCanary") or backend == "NOT_RUN" or overview.get("restored") is True)
     watch = report.get("postExitGuardian")
-    reader_clear = (not report.get("requestedGuardianSurvival") or not report.get("fixtureLaunchRequested")
+    reader_clear = (not (report.get("requestedGuardianSurvival") or report.get("visibleRecoveryRequested")) or not report.get("fixtureLaunchRequested")
                     or (watch is not None and watch.get("readerExited") is True))
     preceding = report.get("ownPanelPredecessor")
     return dict(candidateExit=host, registeredWindowExit=fixture, backendCleanup=backend,
@@ -823,6 +845,7 @@ def main():
     p.add_argument("out", type=Path)
     p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
     p.add_argument("--internal-survival", "--internal-host", action="store_true", help="use the sealed internal Host while the daily Host remains running")
+    p.add_argument("--visible-recovery", action="store_true", help="one on-screen fixture self-move and a guarded return after Host exit")
     p.add_argument("--corner-readback", action="store_true", help="read the real registered window twice through the shipping Corner worker")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
@@ -836,8 +859,8 @@ def main():
     a = p.parse_args()
     if (sum((a.installed, a.internal_survival, bool(a.preflight))) != 1 or
             ((a.installed or a.internal_survival) and not (a.expected_source and a.expected_cdhash)) or
-            (a.internal_survival and sum((a.guardian_survival, a.corner_readback)) != 1)
-            or (a.corner_readback and not a.internal_survival)):
+            (a.internal_survival and sum((a.guardian_survival, a.corner_readback, a.visible_recovery)) != 1)
+            or ((a.corner_readback or a.visible_recovery) and not a.internal_survival)):
         p.error("choose one pinned installed/internal Host or a prior read-only receipt")
     if (a.enrolled_spaces_cycle or a.own_spaces_canary or a.preflight_only) and not a.installed:
         p.error("formal Host qualification requires --installed")
@@ -847,7 +870,7 @@ def main():
         pass
     report = dict(
         schema=2,
-        scope="physicalReadOnlyRegisteredWindowMembership",
+        scope="visibleFixtureDisplacementAndGuardedReturn" if a.visible_recovery else "physicalReadOnlyRegisteredWindowMembership",
         osBuild=scope_reader.command("sw_vers", "-buildVersion").strip(),
         observedUTC=datetime.now(timezone.utc).isoformat(),
         runnerSource=scope_reader.command("git", "-C", ROOT, "rev-parse", "HEAD").strip(),
@@ -858,6 +881,7 @@ def main():
         requestedSpacesCycle=a.enrolled_spaces_cycle,
         requestedOwnCanary=a.own_spaces_canary,
         requestedGuardianSurvival=a.guardian_survival,
+        visibleRecoveryRequested=a.visible_recovery,
         internalGuardianSurvival=a.internal_survival and a.guardian_survival,
         cornerReadbackRequested=a.corner_readback,
         permissionPrompts=0,

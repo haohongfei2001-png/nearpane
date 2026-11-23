@@ -2,6 +2,8 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+独立签名的验收观察器在 26A428 上读取到自身录屏授权。该次读取发生在枚举窗口前，采集帧数为零。隔离包新增一次限定在普通显示区域内的恢复入口，签名夹具自行将一扇后台测试窗平移 24 点，Guardian 仅可在确证父进程退出后将该窗归位。原只读协议和发行包均没有这项写入入口。[观察器本机授权](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visual-observer.json)
+
 `19505ea` 已加固真实窗口的写前交接。Guardian 在首次移窗前持久记录自己和 Host 的进程出生代、目标窗口、原始几何和桌面归属。Host 提交前复读该记录。恢复时按显示器 UUID 核对完整拓扑，跨屏残条和显示器布局变化会中止写入。隔离回归通过，实体多屏和停放后实际恢复仍待验收。正在运行的日常 `bec6cb2` 仅提供权限和预览统计，缺少可认证的一次性画面观察入口。[分项收据与上游来源核对](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json) · [原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation-logs.zip)
 
 **Guardian Survival 已通过隔离签名 Host 的实机验收。** 在 26A428、ARM64、SIP 开启的普通桌面上，内核确认 Host 78729 退出。Guardian 78748 随后以自己的权限身份，通过原有 AX 对象连续两次读到窗口 81949，窗口身份、AX 与 WindowServer 几何、原生桌面 4 全部一致。签名夹具和两个测试进程均已退出，两处临时目录已清理。日常 5.22（90）的进程出生代、权限、配置及窗口恢复记录前后一致。[完整实机收据](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/session.json) · [清理回执](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/cleanup.json)

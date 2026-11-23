@@ -22,6 +22,7 @@ final class StageScopeReply {
     /// Only the fixed, per-nonce rendezvous names may be awaited. No caller-supplied pathname.
     enum Signal: String {
         case launch = "launched", registration = "fixture.json", abort = "abort"
+        case visibleRecovery = "guardian-visible-return.request"
         case guardianSurvival = "guardian-survival.request", cornerReadback = "corner-readback.request"
     }
 

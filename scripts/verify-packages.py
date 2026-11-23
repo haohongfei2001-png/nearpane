@@ -75,6 +75,12 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox, *, exec
         if plist["CFBundleIdentifier"] != "com.holdsnow.nearpane.host" or plist["NearpaneReadOnlyGuardianProtocol"] != 1:
             raise ValueError("Read-only development Guardian in an unexpected package")
         guardian_id = "com.holdsnow.nearpane.host.corner-guardian"
+    visible_fixture = plist.get("NearpaneVisibleFixtureRecoveryProtocol")
+    has_visible_entry = b"visibleFixtureGeometryAcrossHostExit" in guardian.read_bytes()
+    if (visible_fixture is not None) != has_visible_entry or (has_visible_entry and (
+            type(visible_fixture) is not int or visible_fixture != 1 or plist.get("NearpaneReadOnlyGuardianProtocol") != 1
+            or plist["CFBundleIdentifier"] != "com.holdsnow.nearpane.host")):
+        raise ValueError("Unexpected fixture-only visible recovery capability")
     subprocess.run(["/usr/bin/codesign", "--verify", "--strict", f'-R=identifier "{guardian_id}"',
                     str(guardian)], check=True)
     if b"com.holdsnow.nearpane.engine-guardian.fixture" in guardian.read_bytes():

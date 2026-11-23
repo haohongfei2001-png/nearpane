@@ -52,12 +52,80 @@ static BOOL waitForPublication(NSWindow *w, pid_t front, int dir) {
     }
     return NO;
 }
+#ifdef NP_VISIBLE_RECOVERY_WINDOW
+#import "../../../../Engine/nearpane-window-engine/src/corner/guardian/identity.h"
+static NSDictionary *jobRecord(int dir, const char *name) {
+    int fd = openat(dir, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK);
+    if (fd < 0)
+        return nil;
+    struct stat st;
+    uint8_t data[4096];
+    ssize_t n = -1;
+    if (!fstat(fd, &st) && S_ISREG(st.st_mode) && st.st_uid == getuid() && (st.st_mode & 0777) == 0600 &&
+        st.st_nlink == 1 && st.st_size > 0 && (uint64_t)st.st_size <= sizeof(data))
+        n = pread(fd, data, (size_t)st.st_size, 0);
+    close(fd);
+    if (n <= 0 || n != st.st_size)
+        return nil;
+    id row = [NSJSONSerialization JSONObjectWithData:[NSData dataWithBytes:data length:(size_t)n]
+                                             options:0
+                                               error:NULL];
+    return [row isKindOfClass:NSDictionary.class] ? row : nil;
+}
+static BOOL verifiedFixturePeer(pid_t pid, NSString *path, NSString *identifier, NSString *expected) {
+    NSString *rule = [NSString
+        stringWithFormat:
+            @"anchor apple generic and certificate leaf[subject.OU] = \"ZB9D4T66QB\" and identifier \"%@\"",
+            identifier];
+    NSData *hash = ncg_rule_hash(pid, path, rule);
+    if (!hash.length || hash.length * 2 != expected.length)
+        return NO;
+    NSMutableString *hex = [NSMutableString string];
+    for (size_t i = 0; i < hash.length; i++)
+        [hex appendFormat:@"%02x", ((const uint8_t *)hash.bytes)[i]];
+    return [expected isEqual:hex];
+}
+static BOOL fixtureCanMove(NSDictionary *row, NSUUID *nonce, NSWindow *w, uint64_t birth, NSArray *original) {
+    NSDictionary *window = row[@"window"];
+    pid_t parent = [row[@"hostPID"] intValue], child = [row[@"guardianPID"] intValue], actual = 0;
+    char host[PROC_PIDPATHINFO_MAXSIZE];
+    if (![row[@"scope"] isEqual:@"restoreOneVisibleSignedFixture"] ||
+        ![[[NSUUID alloc] initWithUUIDString:row[@"challenge"]] isEqual:nonce] ||
+        ![window[@"pid"] isEqual:@(getpid())] || ![window[@"birth"] isEqual:@(birth)] ||
+        ![window[@"number"] isEqual:@(w.windowNumber)] || ![row[@"original"] isEqual:original] ||
+        ![row[@"displaced"]
+            isEqual:@[ @([original[0] doubleValue] + 24), original[1], original[2], original[3] ]] ||
+        !ncg_birth(parent, NULL) || ![row[@"hostBirth"] isEqual:@(ncg_birth(parent, NULL))] ||
+        ![row[@"guardianBirth"] isEqual:@(ncg_birth(child, &actual))] || actual != parent ||
+        proc_pidpath(parent, host, sizeof(host)) <= 0)
+        return NO;
+    NSString *bundle =
+        @(host)
+            .stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
+    NSString *container = bundle.stringByDeletingLastPathComponent;
+    struct stat st;
+    if (![container.stringByDeletingLastPathComponent isEqual:@"/private/tmp"] ||
+        ![container.lastPathComponent hasPrefix:@"nearpane-stage-engine-dev."] ||
+        ![bundle.lastPathComponent isEqual:@"Nearpane.app"] || lstat(container.fileSystemRepresentation, &st) ||
+        !S_ISDIR(st.st_mode) || st.st_uid != getuid() || (st.st_mode & 0777) != 0700)
+        return NO;
+    return verifiedFixturePeer(parent, [bundle stringByAppendingPathComponent:@"Contents/MacOS/NearpaneHost"],
+                               @"com.holdsnow.nearpane.host", row[@"hostHash"]) &&
+           verifiedFixturePeer(child,
+                               [bundle stringByAppendingPathComponent:@"Contents/Helpers/NearpaneCornerGuardian"],
+                               @"com.holdsnow.nearpane.host.corner-guardian", row[@"guardianHash"]);
+}
+#endif
 #endif
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
 #ifdef NP_SURVIVAL_WINDOW
         BOOL survival = argc == 4 && (!strcmp(argv[3], "--guardian-survival") || !strcmp(argv[3], "--ordinary-window"));
+#ifdef NP_VISIBLE_RECOVERY_WINDOW
+        BOOL visibleRecovery = argc==4 && !strcmp(argv[3],"--visible-recovery");
+        survival = survival || visibleRecovery;
+#endif
         if ((!cycle && !survival && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
 #else
         if ((!cycle && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
@@ -154,10 +222,36 @@ int main(int argc, const char *argv[]) {
 #else
         BOOL ready = window > 0 && window <= UINT32_MAX && emit(dir, "owner-start.json", read());
 #endif
-        while (ready && !stopped(dir) && NSProcessInfo.processInfo.systemUptime < deadline &&
-               !NSApp.isActive && !w.isKeyWindow && !w.isMainWindow &&
-               front == NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier)
-            [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.03]];
+#ifdef NP_VISIBLE_RECOVERY_WINDOW
+        BOOL moved = NO, published = NO, returned = NO;
+        NSArray *original = visibleRecovery ? serverWindow((CGWindowID)window)[@"frame"] : nil;
+#endif
+        while (ready && !stopped(dir) && NSProcessInfo.processInfo.systemUptime < deadline && !NSApp.isActive &&
+               !w.isKeyWindow && !w.isMainWindow &&
+               front == NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier) {
+#ifdef NP_VISIBLE_RECOVERY_WINDOW
+            if (visibleRecovery && original.count == 4 && !moved) {
+                NSDictionary *record = jobRecord(dir, "guardian-prepared.json");
+                if (record && fixtureCanMove(record, id, w, birth, original) &&
+                    [serverWindow((CGWindowID)window)[@"frame"] isEqual:original]) {
+                    NSRect shifted = NSOffsetRect(w.frame, 24, 0);
+                    if (NSContainsRect(screen, w.frame) && NSContainsRect(screen, shifted)) {
+                        moved = YES;
+                        [w setFrameOrigin:shifted.origin];
+                    }
+                }
+            } else if (visibleRecovery && moved && !returned) {
+                NSDictionary *live = serverWindow((CGWindowID)window);
+                if (!published &&
+                    [live[@"frame"]
+                        isEqual:@[ @([original[0] doubleValue] + 24), original[1], original[2], original[3] ]])
+                    published = emit(dir, "owner-displaced.json", live);
+                else if (published && [live[@"frame"] isEqual:original])
+                    returned=emit(dir,"owner-returned.json",live);
+            }
+#endif
+            [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.015]];
+        }
         NSMutableDictionary *last = [read() mutableCopy];
         [w orderOut:nil];
         [w close];

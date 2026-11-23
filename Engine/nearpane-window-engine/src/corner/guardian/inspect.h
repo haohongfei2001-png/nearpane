@@ -54,6 +54,9 @@ static BOOL diagnosticEnvelope(NSDictionary *m, uint64_t now) {
            [m[@"nativeID"] isEqual:@([m[@"nativeID"] unsignedLongLongValue])];
 }
 #include "survival.h"
+#ifdef NP_INTERNAL_VISIBLE_RESTORE
+#include "visible-restore.h"
+#endif
 static int inspectRegisteredFixture(BOOL watchExit, NSUUID *principal) {
     if (!diagnosticPipes())
         return 2;
@@ -145,6 +148,10 @@ static int inspectRegisteredFixture(BOOL watchExit, NSUUID *principal) {
     char release = 0;
     if (poll(&finish, 1, 2000) <= 0 || read(STDIN_FILENO, &release, 1) != 1) return 4;
     if (release == 'Q') return 0;
+#ifdef NP_INTERNAL_VISIBLE_RESTORE
+    if (release == 'V' && watchExit)
+        return recoverVisibleFixture(m, &raw, parent, hostBirth, responsibleAfter);
+#endif
     if (!watchExit || release != 'W') return 4;
     return observeAfterParentExit(m, &raw, parent, hostBirth, responsibleAfter);
 }
