@@ -40,6 +40,8 @@ def identity(app):
         fields["visibleFixtureRecoveryProtocol"] = info["NearpaneVisibleFixtureRecoveryProtocol"]
     if "NearpaneAbruptFixtureExitProtocol" in info:
         fields["abruptFixtureExitProtocol"] = info["NearpaneAbruptFixtureExitProtocol"]
+    if "NearpaneFixtureVisualWitnessProtocol" in info:
+        fields["fixtureVisualProtocol"] = info["NearpaneFixtureVisualWitnessProtocol"]
     return dict(fields, version=info["CFBundleShortVersionString"], build=info["CFBundleVersion"],
                 source=info.get("NearpaneStageEngineSourceRevision") or info.get("NearpaneSourceRevision"),
                 sourceState=info.get("NearpaneStageEngineSourceState"), engineABI=info.get("NearpaneStageEngineABI"),
@@ -65,7 +67,7 @@ def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
     result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "canaryMissionControl", "guardianFixture", "guardianIndependent", "survivalContinuity",
                                                             "installedSpacesFixtureCycle","installedSpacesCanary",
-                                                            "cornerParkAccess","cornerWindowReadback","abruptVisibleExitCode") if key in observation})
+                                                            "cornerParkAccess","cornerWindowReadback","abruptVisibleExitCode","fixturePixelWitness") if key in observation})
     # This nonce is issued by the runner for one invocation. Only restore the
     # verified field itself; a display or Space UUID elsewhere must stay redacted.
     for key in ("installedSpacesCanary", "installedSpacesFixtureCycle"):
@@ -76,6 +78,12 @@ def public_observation(observation):
             if nonce != uuid.UUID(observation["challenge"]):
                 raise ValueError("engine receipt belongs to another Host invocation")
             result[key]["challenge"] = str(nonce)
+    pixel = observation.get("fixturePixelWitness", {})
+    if isinstance(pixel,dict) and isinstance(pixel.get("raw"),dict):
+        item = pixel["raw"]["request"]
+        if uuid.UUID(item["session"]) != uuid.UUID(observation["challenge"]) or uuid.UUID(item["session"]) == uuid.UUID(item["challenge"]):
+            raise ValueError("fixture pixel receipt belongs to a different invocation")
+        result["fixturePixelWitness"]["raw"]["request"].update(session=item["session"],challenge=item["challenge"])
     return result
 
 
@@ -365,9 +373,38 @@ def visible_return_result(row, host, nonce, exited, *, abrupt=False):
     return "PASS" if row.get("status")=="PASS" and row.get("sampleCode")==0 else "UNKNOWN"
 
 
+@contextmanager
+def fixture_visual_peer(executable, nonce, directory):
+    binary = executable.resolve(strict=True)
+    if (binary != executable or binary.name != "observe" or binary.parent.parent != Path("/private/tmp")
+            or not re.fullmatch(r"nearpane-d01\.[A-Za-z0-9_-]+", binary.parent.name)
+            or binary.parent.stat().st_uid != os.getuid() or binary.parent.stat().st_mode & 0o077):
+        raise ValueError("unexpected fixture observer path")
+    rule = '=anchor apple generic and identifier "net.example.nearpane.p2-observer" and certificate leaf[subject.OU] = "ZB9D4T66QB"'
+    command("/usr/bin/codesign","--verify","--strict","-R",rule,binary)
+    digest = re.search(r"^CDHash=([0-9a-f]{40})$", command("/usr/bin/codesign","-dvvv",binary), re.M)
+    if not digest:
+        raise ValueError("fixture observer signing hash unavailable")
+    with subprocess.Popen([binary, "corner-fixture-witness", nonce], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as observer:
+        end = time.monotonic() + 4
+        while not (directory / "visual.sock").is_socket() and observer.poll() is None and time.monotonic() < end:
+            time.sleep(.025)
+        if not (directory / "visual.sock").is_socket() or observer.poll() is not None:
+            raise ValueError("authenticated fixture observer did not start")
+        pin = dict(pid=observer.pid, cdhash=digest.group(1))
+        publish(directory, "corner-fixture-visual.request", json.dumps(pin).encode())
+        try:
+            yield pin
+        finally:
+            observer.wait(timeout=30)
+            pin["exit"] = observer.returncode
+            pin["socketRetired"] = not os.path.lexists(directory / "visual.sock")
+
+
 def observe(app, challenge, directory, output, registration=None, enroll=None, expected_image=None,
             spaces_cycle=False, inspect_final=None, own_canary=False, guardian_survival=False, corner_readback=False,
-            visible_recovery=False, abrupt_visible_exit=False):
+            visible_recovery=False, abrupt_visible_exit=False, visual_observer=None):
     watch_exit = guardian_survival or visible_recovery
     image = identity(app)
     before = identity(DAILY)
@@ -382,6 +419,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                 or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
                 or (visible_recovery and (app == DAILY or image.get("visibleFixtureRecoveryProtocol") != 1 or guardian_survival))
                 or (abrupt_visible_exit and (not visible_recovery or image.get("abruptFixtureExitProtocol") != 1))
+                or (visual_observer and (not corner_readback or app == DAILY or image.get("fixtureVisualProtocol") != 1))
                 or (corner_readback and watch_exit)
                 or ((watch_exit or corner_readback) and ((app != DAILY and not internal_survival_image(app, image))
                     or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
@@ -403,6 +441,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                     publish(directory, "guardian-visible-exit-without-cleanup.request")
             elif corner_readback:
                 publish(directory, "corner-readback.request")
+                if visual_observer:
+                    result["fixtureVisualPeer"] = resources.enter_context(fixture_visual_peer(visual_observer, challenge, directory))
             args = [launcher, app, challenge]
             if own_canary:
                 args.append("--installed-spaces-canary")

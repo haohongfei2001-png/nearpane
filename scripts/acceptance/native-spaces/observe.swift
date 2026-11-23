@@ -215,6 +215,15 @@ struct Sidebar {
 }
 
 #if NP_PRODUCT_CORNER_MATERIAL
+if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "corner-fixture-witness",
+   let nonce = UUID(uuidString: CommandLine.arguments[2]) {
+    Task {
+        do { try await CornerFixturePixels.serve(nonce); exit(0) }
+        catch { fputs("one-shot fixture witness: \(error)\n", stderr); exit(2) }
+    }
+    RunLoop.main.run()
+    exit(3)
+}
 if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "product-corner-material",
    let nonce = UUID(uuidString: CommandLine.arguments[2]) {
     DispatchQueue.global(qos: .userInitiated).async {

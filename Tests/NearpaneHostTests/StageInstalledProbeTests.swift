@@ -4,6 +4,24 @@ import Testing
 @testable import NearpaneHost
 
 struct StageInstalledProbeTests {
+    #if DEBUG
+    @Test func fixturePixelReplyBindsBothReadsToOneFreshPeerAndWindow() {
+        typealias Wire = StageFixtureVisualLink
+        let q = Wire.Request(session:UUID(),challenge:UUID(),display:UUID(),space:UUID(),native:4,birth:17,
+                             began:1_000_000,window:38,pid:71,cdhash:String(repeating:"a",count:40))
+        func accepted(_ times: [UInt64], _ counts: [Int], peer: Int32 = 42, end: UInt64 = 71_000_000) -> Bool {
+            let reply = Wire.Reply(request:q,observerPID:42,screenAccess:true,
+                samples:zip(times,counts).map { .init(time:$0.0,matchingStripes:$0.1) },
+                status:"PASS",reason:"registeredFixturePixelsTwice")
+            return reply.confirms(q,observer:peer,until:end)
+        }
+        #expect(accepted([2_000_000,70_000_000],[16,16]))
+        #expect(!accepted([2_000_000,70_000_000],[16,15]))
+        #expect(!accepted([2_000_000,2_001_000],[16,16]))
+        #expect(!accepted([2_000_000,70_000_000],[16,16],peer:43))
+        #expect(!accepted([2_000_000,70_000_000],[16,16],end:9_000_000_000))
+    }
+    #endif
     @MainActor @Test func inventoryRetainsDesktopIdentityOrderAndActiveSpaceAcrossOverviewAnimation() throws {
         let a: [String:Any] = ["id64":1,"ManagedSpaceID":1,"type":0,"uuid":UUID().uuidString]
         let b: [String:Any] = ["id64":2,"ManagedSpaceID":2,"type":4,"uuid":UUID().uuidString]

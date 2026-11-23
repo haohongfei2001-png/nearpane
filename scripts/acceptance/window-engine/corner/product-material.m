@@ -23,6 +23,13 @@ static NSDictionary *ordinaryDisplay(void) {
     return @{@"display":display, @"space":home[@"space"], @"native":@(direct)};
 }
 
+bool NPCornerObserverMatchesHome(CFStringRef display, CFStringRef space, uint64_t native) {
+    NSDictionary *home = ordinaryDisplay();
+    return native && [home[@"native"] isEqual:@(native)] &&
+        [nc_uuid(home[@"display"]) isEqual:nc_uuid((__bridge NSString *)display)] &&
+        [nc_uuid(home[@"space"]) isEqual:nc_uuid((__bridge NSString *)space)];
+}
+
 static NSDictionary *observe(uint64_t handle, NSDictionary *home, NSUUID *nonce) {
     NSMutableDictionary *record = [@{@"challenge":nonce.UUIDString, @"status":@"UNKNOWN"} mutableCopy];
     NPRequest request = {.size=sizeof(NPRequest), .version=NP_ENGINE_ABI, .backend=NP_CORNER,

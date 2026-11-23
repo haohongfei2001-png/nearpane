@@ -248,6 +248,29 @@ enum StageEnginePackageProbe {
                     guard membership?["status"] as? String == "PASS", continuity?["inputQuiet"] as? Bool == true,
                           originalFocus?["sameOriginalAX"] as? Bool == true else { throw CocoaError(.userCancelled) }
                     report["cornerWindowReadback"] = await guardian.productReadback(intent: challenge)
+                    #if DEBUG
+                    if let channel, try channel.exists(.visualObserver) {
+                        guard let ordinary, let native, bundle.bundleIdentifier == "com.holdsnow.nearpane.host",
+                              bundle.object(forInfoDictionaryKey:"NearpaneFixtureVisualWitnessProtocol") as? Int == 1,
+                              membership?["status"] as? String == "PASS",
+                              (report["cornerWindowReadback"] as? [String:Any])?["status"] as? String == "PASS"
+                        else { throw CocoaError(.fileReadNoPermission) }
+                        let pin = try JSONDecoder().decode(StageFixtureVisualLink.Pin.self,from:channel.registration(.visualObserver))
+                        let item = StageFixtureVisualLink.Request(session:challenge,challenge:UUID(),display:ordinary.display,
+                            space:ordinary.nativeSpace,native:native,birth:fixture.birth,began:DispatchTime.now().uptimeNanoseconds,
+                            window:fixture.number,pid:fixture.pid,cdhash:fixture.cdhash)
+                        do {
+                            let receipt = try await Task.detached { try StageFixtureVisualLink.request(item,from:pin) }.value
+                            let end = DispatchTime.now().uptimeNanoseconds
+                            report["fixturePixelWitness"] = ["status":receipt.confirms(item,observer:pin.pid,until:end) ? "PASS" :
+                                (["BLOCKED","FAIL"].contains(receipt.status) ? receipt.status : "UNKNOWN"),
+                                "observerCDHash":pin.cdhash,"receivedNS":end,"storedFrames":0,"windowWrites":0,
+                                "raw":try JSONSerialization.jsonObject(with:JSONEncoder().encode(receipt))] as [String : Any]
+                        } catch {
+                            report["fixturePixelWitness"] = ["status":"UNKNOWN","reason":(error as? StageFixtureVisualLink.Fault)?.rawValue ?? "observerUnavailable"]
+                        }
+                    }
+                    #endif
                     report["survivalContinuity"] = survivalContinuity?()
                 } else {
                     let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,

@@ -117,6 +117,26 @@ static BOOL fixtureCanMove(NSDictionary *row, NSUUID *nonce, NSWindow *w, uint64
 }
 #endif
 #endif
+#ifdef NP_FIXTURE_VISUAL_WINDOW
+@interface NPMembershipStripes : NSView
+@property(nonatomic, strong) NSUUID *nonce;
+@end
+@implementation NPMembershipStripes
+- (BOOL)isOpaque { return YES; }
+- (void)drawRect:(NSRect)dirty {
+    (void)dirty;
+    uuid_t bytes; [self.nonce getUUIDBytes:bytes];
+    for (int i = 0; i < 16; i++) {
+        BOOL green = bytes[i / 8] & (1 << (i % 8));
+        [(green ? [NSColor colorWithSRGBRed:.05 green:.92 blue:.12 alpha:1] :
+                  [NSColor colorWithSRGBRed:.92 green:.05 blue:.88 alpha:1]) setFill];
+        CGFloat left = floor(NSWidth(self.bounds) * i / 16);
+        CGFloat right = floor(NSWidth(self.bounds) * (i + 1) / 16);
+        NSRectFill(NSMakeRect(left, 0, right - left, NSHeight(self.bounds)));
+    }
+}
+@end
+#endif
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
@@ -188,6 +208,13 @@ int main(int argc, const char *argv[]) {
         w.alphaValue = survival ? 1 : 0;
         w.ignoresMouseEvents = !survival;
         if (survival) w.contentView = [NSTextField labelWithString:@"Nearpane Guardian verification"];
+#ifdef NP_FIXTURE_VISUAL_WINDOW
+        if (survival && !strcmp(argv[3], "--ordinary-window")) {
+            NPMembershipStripes *view = [[NPMembershipStripes alloc] initWithFrame:w.contentView.bounds];
+            view.nonce = id;
+            w.contentView = view;
+        }
+#endif
 #else
         w.alphaValue = 0;
         w.ignoresMouseEvents = YES;

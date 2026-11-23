@@ -5,4 +5,5 @@ CFArrayRef NPContractPublicWindowNumbers(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPContractOnscreenWindowNumbers(void) CF_RETURNS_RETAINED;
 #ifdef NP_PRODUCT_CORNER_MATERIAL
 CFDictionaryRef _Nonnull NPObserveProductCornerMaterial(CFStringRef _Nonnull nonce) CF_RETURNS_RETAINED;
+bool NPCornerObserverMatchesHome(CFStringRef _Nonnull display, CFStringRef _Nonnull space, uint64_t native);
 #endif

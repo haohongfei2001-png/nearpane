@@ -24,6 +24,7 @@ final class StageScopeReply {
         case launch = "launched", registration = "fixture.json", abort = "abort"
         case visibleRecovery = "guardian-visible-return.request"
         case abruptVisibleExit = "guardian-visible-exit-without-cleanup.request"
+        case visualObserver = "corner-fixture-visual.request"
         case guardianSurvival = "guardian-survival.request", cornerReadback = "corner-readback.request"
     }
 
@@ -48,8 +49,9 @@ final class StageScopeReply {
         throw CocoaError(.fileReadUnknown)
     }
 
-    func registration() throws -> Data {
-        let fd = openat(directory, "fixture.json", O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW)
+    func registration(_ signal: Signal = .registration) throws -> Data {
+        guard signal == .registration || signal == .visualObserver else { throw CocoaError(.fileReadNoPermission) }
+        let fd = openat(directory, signal.rawValue, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW)
         guard fd >= 0 else { throw CocoaError(.fileNoSuchFile) }
         let input = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
         var info = stat()

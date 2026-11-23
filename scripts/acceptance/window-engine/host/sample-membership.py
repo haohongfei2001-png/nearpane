@@ -206,6 +206,7 @@ def prepare_fixture(work, report):
         "-mmacosx-version-min=26.0",
         *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") or report.get("cornerReadbackRequested") or report.get("visibleRecoveryRequested") else []),
         *(["-DNP_VISIBLE_RECOVERY_WINDOW=1", "-framework", "Security"] if report.get("visibleRecoveryRequested") else []),
+        *(["-DNP_FIXTURE_VISUAL_WINDOW=1"] if report.get("fixturePixelWitnessRequested") else []),
         HERE / "membership-window.m",
         "-framework",
         "AppKit",
@@ -742,7 +743,7 @@ def run(a, report):
                                     guardian_survival=getattr(a, "guardian_survival", False),
                                     corner_readback=getattr(a, "corner_readback", False),
                                     visible_recovery=getattr(a, "visible_recovery", False),
-                                    abrupt_visible_exit=getattr(a, "abrupt_visible_exit", False))
+                                    abrupt_visible_exit=getattr(a, "abrupt_visible_exit", False), visual_observer=getattr(a, "visual_observer", None))
     report["hostLaunchRequested"] = observed.get("launchRequested")
     report["preexistingSameID"] = observed.get("launchServices", {}).get("prelaunch", {}).get("pids", [])
     if getattr(a, "guardian_survival", False) or getattr(a, "visible_recovery", False):
@@ -751,6 +752,9 @@ def run(a, report):
     if getattr(a, "corner_readback", False):
         report["cornerParkAccess"] = (observed.get("preflight") or {}).get("cornerParkAccess")
         report["cornerWindowReadback"] = observed.get("cornerWindowReadback") or {"status": "NOT_RUN"}
+        if getattr(a, "visual_observer", None):
+            report["fixturePixelWitness"] = observed.get("fixturePixelWitness") or {"status":"NOT_RUN"}
+            report["fixtureVisualPeer"] = observed.get("fixtureVisualPeer")
     report.update(rawHostSHA256=observed.get("rawSHA256"), hostExit=observed.get("hostExit"),
                   subject=source.get("subject"), permissions=source.get("permissions"),
                   hostPermissionPhase="registered" if observed.get("subject") else "initial" if source else "NOT_RUN")
@@ -798,6 +802,17 @@ def run(a, report):
                     or terminal.get("original") != original.get("frame") or not report.get("visibleGuardianPrepare")):
                 report["status"] = "UNKNOWN"
             report["reason"] = "visibleFixtureAfterHostExitAndIndependentOwnerRead"
+    if getattr(a, "visual_observer", None) and report["status"] == "PASS":
+        visual = report["fixturePixelWitness"]
+        peer = report.get("fixtureVisualPeer") or {}
+        if (peer.get("exit") != 0 or peer.get("socketRetired") is not True or
+                (visual.get("status") == "PASS" and (visual.get("observerCDHash") != peer.get("cdhash") or
+                 visual.get("raw", {}).get("observerPID") != peer.get("pid")))):
+            report.update(status="UNKNOWN",reason="visualPeerIdentityOrExit")
+        elif visual.get("status") in ("PASS", "FAIL", "BLOCKED", "UNKNOWN"):
+            report.update(status=visual["status"],reason=visual.get("raw",{}).get("reason",visual.get("reason")))
+        else:
+            report.update(status="UNKNOWN",reason="registeredFixtureWasNotMeasured")
     if a.enrolled_spaces_cycle and report.get("spacesCycleStatus") != "PASS":
         report.update(status=report.get("spacesCycleStatus", "UNKNOWN"), reason="enrolledCycleRequiresSeparatePositiveReceipt")
 
@@ -851,6 +866,7 @@ def main():
     p.add_argument("--visible-recovery", action="store_true", help="one on-screen fixture self-move and a guarded return after Host exit")
     p.add_argument("--abrupt-visible-exit", action="store_true", help="in the sealed internal fixture drill, exit without Host cleanup")
     p.add_argument("--corner-readback", action="store_true", help="read the real registered window twice through the shipping Corner worker")
+    p.add_argument("--visual-observer", type=Path, help="already-authorized signed QA observer, limited to the nonce fixture")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
@@ -863,6 +879,8 @@ def main():
     a = p.parse_args()
     if a.abrupt_visible_exit and not (a.internal_survival and a.visible_recovery):
         p.error("--abrupt-visible-exit requires the internal signed visible fixture")
+    if a.visual_observer and not (a.internal_survival and a.corner_readback):
+        p.error("--visual-observer requires the sealed internal --corner-readback")
     if (sum((a.installed, a.internal_survival, bool(a.preflight))) != 1 or
             ((a.installed or a.internal_survival) and not (a.expected_source and a.expected_cdhash)) or
             (a.internal_survival and sum((a.guardian_survival, a.corner_readback, a.visible_recovery)) != 1)
@@ -891,6 +909,7 @@ def main():
         abruptVisibleExitRequested=a.abrupt_visible_exit,
         internalGuardianSurvival=a.internal_survival and a.guardian_survival,
         cornerReadbackRequested=a.corner_readback,
+        fixturePixelWitnessRequested=bool(a.visual_observer),
         permissionPrompts=0,
         thirdPartyMembershipRoundTrip="NOT_RUN",
         singleWindowHideRestore="NOT_RUN",

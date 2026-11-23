@@ -71,9 +71,13 @@ def daily(path):
 def collect_closed_fixture(out, session, result):
     """Keep the original bytes in the private receipt directory and retire both nonce rendezvous."""
     post = session.get('postExitGuardian') or {}
-    if not (result.get('dailyPreserved') and result.get('status') == 'PASS' and session['probeResources']['clear']
-            and session.get('ownedProcessExited') and session.get('ownerClosed') and post.get('readerExited')
-            and post.get('status') == 'PASS' and session.get('hostExit', {}).get('status') == 'PASS'):
+    visual = session.get('fixturePixelWitnessRequested') is True
+    peer = session.get('fixtureVisualPeer') or {}
+    finished = (peer.get('exit') == 0 and peer.get('socketRetired') is True and
+                all(session.get(k) == 0 for k in ('scopeWindowWrites','scopeSpaceWrites','scopePostedInput'))
+                if visual else result.get('status') == 'PASS' and post.get('readerExited') and post.get('status') == 'PASS')
+    if not (result.get('dailyPreserved') and finished and session['probeResources']['clear']
+            and session.get('ownedProcessExited') and session.get('ownerClosed') and session.get('hostExit', {}).get('status') == 'PASS'):
         raise ValueError('fixture, Guardian or Host exit has not been independently confirmed')
     nonce = str(uuid.UUID(session['challenge']))
     paths = [Path('/private/tmp') / (prefix + nonce) for prefix in ('nearpane-host-scope.', 'nearpane-membership.')]
@@ -81,7 +85,8 @@ def collect_closed_fixture(out, session, result):
         info = path.lstat()
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise ValueError('fixture evidence directory identity changed')
-    if not (paths[0] / 'response.json').is_file() or not (paths[1] / 'guardian-receipt.json').is_file():
+    terminal = 'owner-closed.json' if visual else 'guardian-receipt.json'
+    if not (paths[0] / 'response.json').is_file() or not (paths[1] / terminal).is_file():
         raise ValueError('fixture terminal receipts unavailable')
     raw = (paths[0] / 'response.json').read_bytes()
     raw_hash = hashlib.sha256(raw).hexdigest()
@@ -94,8 +99,9 @@ def collect_closed_fixture(out, session, result):
     for path in paths:
         path.rename(archive / path.name)
     return dict(scope='private fixture rendezvous after independently witnessed process exit', challenge=nonce,
-                hostExit=post['hostExit'], guardianExited=True, fixtureProcessExited=True,
-                originalWindowRecovered='PASS', directoryRemoved=[not p.exists() for p in paths],
+                hostExit=session['hostExit'] if visual else post['hostExit'], guardianExited=None if visual else True,
+                fixtureProcessExited=True, originalWindowRecovered='NOT_RUN' if visual else 'PASS',
+                directoryRemoved=[not p.exists() for p in paths],
                 privateOriginals=archive.name, rawHostSHA256=raw_hash, hostAbruptExitDeclaration=intended,
                 dailyImagePermissionsConfigurationAndOwnershipUnchanged=True)
 
@@ -108,9 +114,12 @@ def main():
     mode.add_argument('--visible-recovery', action='store_true', help='measure only the return of one still-visible signed fixture')
     mode.add_argument('--corner-readback', action='store_true', help='read a registered window on the product worker without starting Guardian')
     parser.add_argument('--abrupt-visible-exit', action='store_true', help='bypass Host teardown only in the internal visible fixture drill')
+    parser.add_argument('--visual-observer', type=Path, help='verify only the signed fixture content through an independent authorized observer')
     a = parser.parse_args()
     if a.abrupt_visible_exit and not a.visible_recovery:
         parser.error('--abrupt-visible-exit requires --visible-recovery')
+    if a.visual_observer and not a.corner_readback:
+        parser.error('--visual-observer requires --corner-readback')
     out = a.output.resolve()
     out.mkdir(mode=0o700, exist_ok=False)
     seal = json.loads(a.package_receipt.read_bytes())
@@ -123,7 +132,8 @@ def main():
                 or seal['host']['Identifier'] != 'com.holdsnow.nearpane.host'
                 or seal['host']['TeamIdentifier'] != 'ZB9D4T66QB'
                 or (a.visible_recovery and seal.get('visibleRecoveryProtocol') != 1)
-                or (a.abrupt_visible_exit and seal.get('abruptFixtureExitProtocol') != 1)):
+                or (a.abrupt_visible_exit and seal.get('abruptFixtureExitProtocol') != 1)
+                or (a.visual_observer and seal.get('fixtureVisualProtocol') != 1)):
             raise ValueError('expected a signed internal package receipt')
         result['source'] = seal['source']
         result['dailyBefore'] = daily(out / 'before-permissions.json')
@@ -131,7 +141,8 @@ def main():
                               '--internal-host', '--visible-recovery' if a.visible_recovery else
                               '--corner-readback' if a.corner_readback else '--guardian-survival', '--expected-source', seal['source'],
                               '--expected-cdhash', seal['host']['CDHash'],
-                              *(['--abrupt-visible-exit'] if a.abrupt_visible_exit else [])], timeout=180, check=False)
+                              *(['--abrupt-visible-exit'] if a.abrupt_visible_exit else []),
+                              *(['--visual-observer', a.visual_observer] if a.visual_observer else [])], timeout=180, check=False)
         session = json.loads((out / 'session.json').read_bytes())
         post = session.get('postExitGuardian') or {}
         result.update(status=session['status'], reason=session.get('reason'), sessionExit=run.returncode,
@@ -140,6 +151,8 @@ def main():
         if a.corner_readback:
             result['cornerParkAccess'] = session.get('cornerParkAccess')
             result['productWindowRead'] = session.get('cornerWindowReadback') or {'status': 'NOT_RUN'}
+            if a.visual_observer:
+                result['registeredFixturePixelRead'] = session.get('fixturePixelWitness', {}).get('status', 'NOT_RUN')
         elif session.get('hostReadback'):
             host = json.loads((out / session['hostReadback']).read_bytes())
             principal = (host.get('preflight') or {}).get('guardianPrincipal') or {}
@@ -159,13 +172,14 @@ def main():
                 result.update(status='UNKNOWN', preservationError='dailyWitnessChangedOrUnavailable')
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
             result.update(status='UNKNOWN', preservationError=str(error)[:320])
+        if ((a.visible_recovery and result['status'] == 'PASS') or
+                (a.visual_observer and result.get('cleanup', {}).get('clear') and session.get('fixtureLaunchRequested'))):
+            try:
+                cleanup = collect_closed_fixture(out, session, result)
+                save(out / 'cleanup.json', cleanup)
+            except (OSError, ValueError, KeyError) as error:
+                result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if a.visible_recovery:
-            if result['status'] == 'PASS':
-                try:
-                    cleanup = collect_closed_fixture(out, session, result)
-                    save(out / 'cleanup.json', cleanup)
-                except (OSError, ValueError, KeyError) as error:
-                    result.update(status='UNKNOWN', preservationError=str(error)[:320])
             result['abruptExitVisibleReturn' if a.abrupt_visible_exit else 'normalExitVisibleReturn'] = result['status']
         elif result.get('postExitRead') in ('PASS', 'FAIL', 'UNKNOWN'):
             result['guardianSurvival'] = result['status']
