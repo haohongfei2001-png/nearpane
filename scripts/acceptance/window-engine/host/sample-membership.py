@@ -130,6 +130,33 @@ def preflight_allows(pre):
                     and s["display"]["activeCGCount"] == 1 for s in pre["spaceScope"]["samples"]))
 
 
+def internal_survival_gates(pre):
+    # The first signed v1 reader boxed Darwin Boolean as the JSON integer 0 or 1.
+    # Treat other numeric values, strings and missing fields as unmeasured.
+    principal = pre.get("guardianPrincipal") or {}
+    value = principal.get("accessibility")
+    ax = ("PASS" if value == 1 else "BLOCKED") if type(value) in (bool, int) and value in (0, 1) else "UNKNOWN"
+    host = pre["subject"]
+    child = principal.get("pid")
+    signed_child = (type(child) is int and child > 1 and child != host["pid"] and
+                    principal.get("hostPID") == host["pid"] and principal.get("hostBirth") == host["birth"] and
+                    principal.get("hostHash") == host["cdhash"] and
+                    principal.get("identifier") == "com.holdsnow.nearpane.host.corner-guardian")
+    scope = pre["spaceScope"]
+    continuity = pre.get("survivalContinuity", {})
+    focus = continuity.get("currentFocus", {})
+    return dict(
+        ordinaryDesktop=scope["scope"].get("status", "UNKNOWN"),
+        singleDisplayConsole="PASS" if len(scope["samples"]) == 2 and all(s["session"]["qualified"] and
+            s["display"]["topologyConfirmed"] and s["display"]["activeCGCount"] == 1 for s in scope["samples"]) else "BLOCKED",
+        targetSystem="PASS" if pre["system"]["build"] == "26A428" and pre["system"]["sip"].get("enabled") is True else "BLOCKED",
+        hostAccessibility="PASS" if pre["permissions"].get("accessibility") is True else "BLOCKED",
+        guardianAccessibility=ax if signed_child else "UNKNOWN",
+        guardianResponsibility="PASS" if signed_child and principal.get("responsiblePID") in (child, host["pid"]) else "UNKNOWN",
+        originalFocus="PASS" if focus.get("sameOriginalAX") is True else "UNKNOWN",
+        quietHID="PASS" if continuity.get("inputQuiet") is True else "BLOCKED")
+
+
 def prepare_fixture(work, report):
     fixture = work / "Membership Window.app"
     exe = fixture / "Contents/MacOS/MembershipWindow"
@@ -194,15 +221,18 @@ def prepare_fixture(work, report):
 
 @contextmanager
 def registered_window(pre, challenge, work, fixture, exe, digest, report, reader=None):
-    if not preflight_allows(pre):
-        report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
-        yield None
-        return
     internal = report.get("internalGuardianSurvival") is True
-    principal = pre.get("guardianPrincipal", {})
-    if internal and (principal.get("accessibility") is not True or principal.get("responsiblePID") not in
-                     (principal.get("pid"), pre["subject"]["pid"])):
-        report["fixtureAdmission"] = "guardianPrincipalNotAdmitted"
+    if internal:
+        gates = internal_survival_gates(pre)
+        report["admissionChecks"] = gates
+        if any(status != "PASS" for status in gates.values()):
+            report["fixtureAdmission"] = "internalSurvivalAdmissionIncomplete"
+            yield None
+            return
+        work.mkdir(mode=0o700)
+        fixture, exe, digest = prepare_fixture(work, report)
+    elif not preflight_allows(pre):
+        report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
         yield None
         return
     survival = report.get("requestedGuardianSurvival") is True
@@ -260,7 +290,8 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
                 except subprocess.TimeoutExpired:
                     exit_code = None
                 report.update(ownerEnd=last, launchExit=exit_code)
-                for key, file in (("ownerPreflight","owner-preflight.json"), ("ownerSession","owner-session.json")):
+                for key, file in (("ownerPreflight","owner-preflight.json"), ("ownerSession","owner-session.json"),
+                                  ("ownerPublication","owner-published.json")):
                     if (work / file).is_file():
                         report[key] = json.loads((work / file).read_bytes())
                 same = last and first and all(first.get(k) == last.get(k) for k in ("pid","birth","window"))
@@ -646,8 +677,11 @@ def run(a, report):
                             overview.get("reason","visibleSystemStripUnconfirmed") if archived["status"] == "PASS" else archived["reason"])
         return
     work = Path("/private/tmp") / ("nearpane-membership." + challenge)
-    work.mkdir(mode=0o700)
-    fixture, exe, digest = prepare_fixture(work, report)
+    if getattr(a, "internal_survival", False):
+        fixture = exe = digest = None
+    else:
+        work.mkdir(mode=0o700)
+        fixture, exe, digest = prepare_fixture(work, report)
     def enroll(pre):
         if a.enrolled_spaces_cycle:
             prior = report["ownPanelPredecessor"]

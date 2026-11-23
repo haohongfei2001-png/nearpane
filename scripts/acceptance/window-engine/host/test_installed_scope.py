@@ -50,6 +50,23 @@ def correlated(value, opened=launch):
 
 
 class InstalledScopeTests(unittest.TestCase):
+    def test_internal_survival_attribute_and_independent_admission_results(self):
+        pre = raw()
+        parent = pre["subject"]
+        principal = dict(pid=51, hostPID=parent["pid"], hostBirth=parent["birth"], hostHash=parent["cdhash"],
+                         identifier="com.holdsnow.nearpane.host.corner-guardian", responsiblePID=parent["pid"])
+        pre["survivalContinuity"] = dict(currentFocus=dict(sameOriginalAX=True), inputQuiet=True)
+        for value, expected in ((True,"PASS"), (1,"PASS"), (0,"BLOCKED"), (False,"BLOCKED"), ("1","UNKNOWN"), (2,"UNKNOWN")):
+            pre["guardianPrincipal"] = dict(principal, accessibility=value)
+            self.assertEqual(membership.internal_survival_gates(pre)["guardianAccessibility"], expected)
+        pre["guardianPrincipal"] = dict(principal, accessibility=1, hostHash="unrelated")
+        self.assertEqual(membership.internal_survival_gates(pre)["guardianAccessibility"], "UNKNOWN")
+        pre["guardianPrincipal"] = dict(principal, accessibility=1)
+        pre["spaceScope"]["scope"]["status"] = "BLOCKED"
+        pre["survivalContinuity"]["inputQuiet"] = False
+        gates = membership.internal_survival_gates(pre)
+        self.assertEqual((gates["ordinaryDesktop"], gates["quietHID"], gates["guardianAccessibility"]), ("BLOCKED","BLOCKED","PASS"))
+
     @unittest.skipUnless(sys.platform == "darwin", "uses the Darwin process-exit filter")
     def test_exit_status_distinguishes_zero_and_error_after_process_disappears(self):
         for code in (0, 7):

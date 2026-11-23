@@ -91,7 +91,7 @@ def main():
         session = json.loads((out / 'session.json').read_bytes())
         post = session.get('postExitGuardian') or {}
         result.update(status=session['status'], reason=session.get('reason'), sessionExit=run.returncode,
-                      guardianSurvival=post.get('status', 'UNKNOWN') if post.get('status') not in (None, 'BLOCKED') else 'NOT_RUN',
+                      postExitRead=post.get('status', 'NOT_RUN'),
                       cleanup=session['probeResources'], rawSession='session.json')
         if session.get('hostReadback'):
             host = json.loads((out / session['hostReadback']).read_bytes())
@@ -99,7 +99,7 @@ def main():
             result['principalMatchesSignedPackage'] = bool(principal.get('cdhash') and principal['cdhash'] ==
                 seal['components']['Contents/Helpers/NearpaneCornerGuardian']['CDHash'])
         if result['status'] == 'PASS' and (run.returncode or result.get('principalMatchesSignedPackage') is not True
-                or result['guardianSurvival'] != 'PASS' or not result['cleanup']['clear']):
+                or result['postExitRead'] != 'PASS' or not result['cleanup']['clear']):
             result.update(status='UNKNOWN', reason='incompleteReadOrCleanup')
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         result.update(status='UNKNOWN', reason=str(error)[:400])
@@ -111,6 +111,8 @@ def main():
                 result.update(status='UNKNOWN', preservationError='dailyWitnessChangedOrUnavailable')
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
             result.update(status='UNKNOWN', preservationError=str(error)[:320])
+        if result.get('postExitRead') in ('PASS', 'FAIL', 'UNKNOWN'):
+            result['guardianSurvival'] = result['status']
         save(out / 'result.json', result)
     print(json.dumps({k: result.get(k) for k in ('status', 'reason', 'guardianSurvival', 'dailyPreserved')}))
     return 0 if result['status'] == 'PASS' else 2

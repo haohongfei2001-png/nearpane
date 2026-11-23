@@ -21,6 +21,38 @@ static BOOL stopped(int dir) {
     struct stat st;
     return fstatat(dir, "stop", &st, AT_SYMLINK_NOFOLLOW) == 0;
 }
+#ifdef NP_SURVIVAL_WINDOW
+// AppKit assigns a number before the compositor necessarily exposes its owner and frame.
+// Publish the fixture only after two separate WindowServer reads of this one window agree.
+static NSDictionary *serverWindow(CGWindowID number) {
+    NSArray *rows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, number));
+    if (rows.count != 1) return nil;
+    NSDictionary *r = rows.firstObject;
+    CGRect b;
+    if (![r[(__bridge NSString *)kCGWindowNumber] isEqual:@(number)] ||
+        ![r[(__bridge NSString *)kCGWindowOwnerPID] isEqual:@(getpid())] ||
+        ![r[(__bridge NSString *)kCGWindowLayer] isEqual:@0] ||
+        ![r[(__bridge NSString *)kCGWindowIsOnscreen] boolValue] ||
+        !CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)r[(__bridge NSString *)kCGWindowBounds], &b) ||
+        CGRectIsEmpty(b) || CGRectIsInfinite(b)) return nil;
+    return @{@"pid":@(getpid()), @"window":@(number), @"frame":@[@(b.origin.x),@(b.origin.y),@(b.size.width),@(b.size.height)]};
+}
+static BOOL waitForPublication(NSWindow *w, pid_t front, int dir) {
+    NSDictionary *previous = nil;
+    double priorTime = 0, deadline = NSProcessInfo.processInfo.systemUptime + 2;
+    while (NSProcessInfo.processInfo.systemUptime < deadline && !stopped(dir) && !NSApp.isActive &&
+           NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier == front && w.isOnActiveSpace) {
+        NSDictionary *read = serverWindow((CGWindowID)w.windowNumber);
+        double now = NSProcessInfo.processInfo.systemUptime;
+        if (read && [previous isEqual:read] && now - priorTime >= .04)
+            return emit(dir, "owner-published.json", @{@"first":previous, @"second":read,
+                        @"firstUptime":@(priorTime), @"secondUptime":@(now)});
+        if (![previous isEqual:read]) { previous = read; priorTime = now; }
+        [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.02]];
+    }
+    return NO;
+}
+#endif
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
@@ -116,7 +148,12 @@ int main(int argc, const char *argv[]) {
               @"alpha" : @(w.alphaValue)
           };
         };
+#ifdef NP_SURVIVAL_WINDOW
+        BOOL ready = window > 0 && window <= UINT32_MAX && (!survival || waitForPublication(w, front, dir)) &&
+                     emit(dir, "owner-start.json", read());
+#else
         BOOL ready = window > 0 && window <= UINT32_MAX && emit(dir, "owner-start.json", read());
+#endif
         while (ready && !stopped(dir) && NSProcessInfo.processInfo.systemUptime < deadline &&
                !NSApp.isActive && !w.isKeyWindow && !w.isMainWindow &&
                front == NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier)

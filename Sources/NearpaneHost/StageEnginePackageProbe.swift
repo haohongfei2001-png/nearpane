@@ -212,8 +212,10 @@ enum StageEnginePackageProbe {
                 report["guardianFixture"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(guardian))
                 let continuity = report["survivalContinuity"] as? [String: Any]
                 let originalFocus = continuity?["currentFocus"] as? [String: Any]
+                let membership = scope["fixtureMembership"] as? [String: Any]
                 let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil &&
-                    continuity?["inputQuiet"] as? Bool == true && originalFocus?["sameOriginalAX"] as? Bool == true
+                    membership?["status"] as? String == "PASS" && continuity?["inputQuiet"] as? Bool == true &&
+                    originalFocus?["sameOriginalAX"] as? Bool == true
                 let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
                     observeParentExit: survival ? challenge : nil)
                 report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))

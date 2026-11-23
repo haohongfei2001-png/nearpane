@@ -86,7 +86,8 @@ static int inspectRegisteredFixture(BOOL watchExit, NSUUID *principal) {
     if (principal) {
         NSDictionary *row = @{@"challenge":principal.UUIDString, @"pid":@(own), @"birth":@(childBirth),
             @"cdhash":childHash, @"hostPID":@(parent), @"hostBirth":@(hostBirth), @"hostHash":hostHash,
-            @"identifier":childID, @"responsiblePID":@(diagnosticResponsible()), @"accessibility":@(AXIsProcessTrusted())};
+            @"identifier":childID, @"responsiblePID":@(diagnosticResponsible()),
+            @"accessibility": AXIsProcessTrusted() ? @YES : @NO};
         NSData *data = [NSJSONSerialization dataWithJSONObject:row options:NSJSONWritingSortedKeys error:NULL];
         if (!data.length || write(STDOUT_FILENO, data.bytes, data.length) != (ssize_t)data.length ||
             write(STDOUT_FILENO, "\n", 1) != 1) return 4;
