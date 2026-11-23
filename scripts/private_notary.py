@@ -120,6 +120,8 @@ def helper_pins(app, info):
               (contents/"Helpers/NearpaneSpaceAction",info["NearpaneSpaceActionSHA256"]),
               (fixture/"Helpers/NearpaneDesktopReader",fixture_info["NearpaneDesktopReaderSHA256"]),
               (contents/"Resources/AcceptanceTargetGuard.js",info["NearpaneDraftGuardSHA256"])]
+    if "NearpaneStageEngineABI" in info:
+        subjects.append((contents/"Helpers/NearpaneCornerGuardian", info.get("NearpaneCornerGuardianSHA256")))
     subjects.extend((contents/relative,expected) for relative,expected in info["NearpaneAutomationSHA256"].items())
     pins={}
     for path,expected in subjects:
@@ -140,14 +142,14 @@ def fingerprint(app, revision, *, previous_archive=False):
         require(not package["missingDistributionSignatures"], "at least one binary lacks its distribution signature")
         require(all(package["hostResourceEntitlements"].values()), "Host lacks its signed automation or audio resource access")
     expected = set(gate.update_runtime.EXECUTABLES)
-    for name in gate.PRODUCT_IDENTIFIERS:
+    for name in gate.product_identifiers(app):
         item = app/name
         if item.is_dir():
             identifier = plistlib.loads((item/"Contents/Info.plist").read_bytes())["CFBundleExecutable"]
             item = item/"Contents/MacOS"/identifier
         expected.add(str(item.relative_to(app)))
     binaries = package["binaries"]
-    require({"Contents/"+key for key in binaries} == expected and len(expected)==13, "frozen binary inventory differs")
+    require({"Contents/"+key for key in binaries} == expected, "frozen binary inventory differs")
     inventory = {}
     for rel, meta in binaries.items():
         path = app/"Contents"/rel
@@ -330,6 +332,8 @@ def rollback_check(session, previous, previous_hash, revision):
         # Older private builds can predate the shipping runtime and timestamp policy.
         before=fingerprint(old,revision,previous_archive=True)
         require(before["source"]!=prepared["candidate"]["source"], "rollback needs two distinct source revisions")
+        incoming_subjects = gate.product_identifiers(new)
+        shared_subjects = incoming_subjects.keys() & gate.product_identifiers(old).keys()
         signing.check_continuity(old,new)
         for relative,_ in gate.update_runtime.COMPONENTS:
             for source,target in ((old/relative,new/relative),(new/relative,old/relative)):
@@ -344,8 +348,8 @@ def rollback_check(session, previous, previous_hash, revision):
                 "previous and candidate identities did not recover")
         result=dict(status="PRIVATE_PACKAGE_ROUNDTRIP_VERIFIED",scope="two non-running private unpacked bundles",
                     previousSource=revision, previousSHA256=previous_hash,currentSHA256=prepared["sha256"],
-                    permissionSubjects=len(gate.PRODUCT_IDENTIFIERS),
-                    mutualSigningRequirements=len(gate.PRODUCT_IDENTIFIERS)+len(gate.update_runtime.COMPONENTS),codeRestored=True,oldArchiveUnchanged=sha(previous)==previous_hash,
+                    permissionSubjects=len(incoming_subjects),
+                    mutualSigningRequirements=len(shared_subjects)+len(gate.update_runtime.COMPONENTS),codeRestored=True,oldArchiveUnchanged=sha(previous)==previous_hash,
                     installed=False,userDataOrPermissionsTested=False)
         save(session/"private-rollback.json",result)
         return result

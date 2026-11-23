@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read the signed Host's physical scope once, before any fixture or window operation."""
 import argparse
-from contextlib import contextmanager, nullcontext
+from contextlib import closing, contextmanager, ExitStack, nullcontext
 import fcntl
 from datetime import datetime, timezone
 import hashlib
@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import select
 import stat
 import subprocess
 import time
@@ -119,13 +120,16 @@ def read_private(path, limit):
 
 def response(directory, name, seconds):
     deadline = time.monotonic() + seconds
+    # The Guardian fsyncs a private file and atomically renames it without a newline.
+    atomic_guardian = name == "guardian-post-exit.json"
     while time.monotonic() < deadline:
         try:
-            raw = read_private(directory / name, 196608)
+            raw = read_private(directory / name, 4095 if atomic_guardian else 196608)
         except FileNotFoundError:
-            raw = b""
-        if raw.endswith(b"\n"):
-            return json.loads(raw), hashlib.sha256(raw).hexdigest()
+            pass
+        else:
+            if atomic_guardian or raw.endswith(b"\n"):
+                return json.loads(raw), hashlib.sha256(raw).hexdigest()
         time.sleep(.04)
     raise TimeoutError("missing Host " + name)
 
@@ -188,6 +192,30 @@ def await_exit(launcher, app, launch):
         time.sleep(.06)
 
 
+# Darwin sys/event.h: NOTE_EXIT | NOTE_EXITSTATUS. The latter has no Python constant.
+EXIT_STATUS_FLAGS = 0x80000000 | 0x04000000
+
+
+def arm_exit_status(queue, pid):
+    queue.control([select.kevent(pid, filter=select.KQ_FILTER_PROC,
+                                 flags=select.KQ_EV_ADD | select.KQ_EV_ONESHOT,
+                                 fflags=EXIT_STATUS_FLAGS)], 0, 0)
+
+
+def read_exit_status(queue, pid):
+    try:
+        events = queue.control([], 1, 1)
+    except OSError as error:
+        return {"pid": pid, "status": "UNKNOWN", "kernelError": error.errno}
+    if len(events) == 1:
+        event = events[0]
+        if (event.ident == pid and event.filter == select.KQ_FILTER_PROC and not event.flags & select.KQ_EV_ERROR
+                and event.fflags & EXIT_STATUS_FLAGS == EXIT_STATUS_FLAGS and 0 <= event.data <= 0xffff):
+            return {"pid": pid, "fflags": event.fflags, "waitStatus": event.data,
+                    "status": "PASS" if event.data == 0 else "FAIL"}
+    return {"pid": pid, "status": "UNKNOWN"}
+
+
 def guardian_survival_result(row, host, nonce, exited):
     """Only a read-only retained-object drill. A PASS here cannot admit a hide or a restore."""
     watch = host.get("guardianIndependent", {})
@@ -198,6 +226,7 @@ def guardian_survival_result(row, host, nonce, exited):
     def frame(value):
         return isinstance(value, list) and len(value) == 4 and all(type(n) in (int, float) and abs(n) < 1e9 for n in value) and min(value[2:]) > 0
     pre = evidence.get("samples", [])
+    termination = exited.get("kernelTermination") or {}
     def measured(key):
         rect = pre[-1].get(key) if pre and isinstance(pre[-1], dict) else None
         if not isinstance(rect, dict):
@@ -209,17 +238,44 @@ def guardian_survival_result(row, host, nonce, exited):
             and all(v and row.get(k) == v for k, v in expected.items())
             and host.get("subject", {}).get("pid") == parent.get("pid") == exited.get("pid")
             and host["subject"].get("birth") == parent.get("birth") == exited.get("birth") and exited.get("status") == "PASS"
+            and host["subject"].get("cdhash") == parent.get("cdhash")
+            and termination.get("pid") == exited["pid"] and termination.get("status") == "PASS"
+            and type(termination.get("waitStatus")) is int and termination["waitStatus"] == 0
+            and type(termination.get("fflags")) is int
+            and termination["fflags"] & EXIT_STATUS_FLAGS == EXIT_STATUS_FLAGS
             and all(evidence.get(k) and row.get(k) == evidence[k] for k in ("window", "fixtureHash", "nativeID", "display", "space"))
             and row.get("schema") == 1 and row.get("scope") == "readOnlyOriginalObjectAcrossHostExit"
             and row.get("mayPark") is False and all(type(row.get(k)) is int and row[k] == 0 for k in ("windowWrites", "spaceWrites"))):
         return "UNKNOWN"
+    # A signed, correlated negative measurement is different from a lost or contradictory receipt.
+    if not (row.get("kernelExit") is True and row.get("inputStable") is True and row.get("originalReleased") is True
+            and frame(measured("ax")) and frame(measured("cg"))
+            and measured("ax") == row.get("originalAX") and measured("cg") == row.get("originalCG")
+            and row.get("responsibleBefore") == evidence.get("responsibleAfter")
+            and row.get("responsibleBefore") in (parent["pid"], child["pid"])
+            and type(row.get("responsibleAfter")) is int):
+        return "UNKNOWN"
+    if row.get("status") == "UNKNOWN" and row.get("exactOriginalRetained") is False and row.get("geometryReturned") is False:
+        if type(row.get("sampleCode")) is int:
+            if (row.get("postExitAXTrusted") is False and row["sampleCode"] == -1
+                    and row.get("firstPostReadNS") == row.get("secondPostReadNS") == 0
+                    and row.get("postAX") == row.get("postCG") == [0, 0, 0, 0]):
+                return "FAIL"
+            # Observation ABI v1 returns nonzero for invalid arguments or a failed identity/signature read.
+            if row.get("postExitAXTrusted") is True and row["sampleCode"] in (1, 2):
+                return "FAIL"
+    if row["responsibleAfter"] <= 0:
+        return "UNKNOWN"
     flags = ("kernelExit", "postExitAXTrusted", "exactOriginalRetained", "geometryReturned", "inputStable", "originalReleased")
-    timing = all(type(row.get(k)) is int for k in ("firstPostReadNS", "secondPostReadNS"))
+    timing = (all(type(row.get(k)) is int for k in ("firstPostReadNS", "secondPostReadNS"))
+              and type(evidence.get("ended")) is int and 0 < evidence["ended"] < row["firstPostReadNS"] < row["secondPostReadNS"])
     frames = all(frame(row.get(k)) for k in ("originalAX", "originalCG", "postAX", "postCG"))
-    valid = (row.get("status") == "PASS" and all(row.get(k) is True for k in flags) and type(row.get("sampleCode")) is int and row["sampleCode"] == 0
-             and timing and type(evidence.get("ended")) is int and 0 < evidence["ended"] < row["firstPostReadNS"] < row["secondPostReadNS"]
-             and frames and measured("ax") == row["originalAX"] == row["postAX"]
-             and measured("cg") == row["originalCG"] == row["postCG"])
+    returned = row.get("originalAX") == row.get("postAX") and row.get("originalCG") == row.get("postCG")
+    sampled = type(row.get("sampleCode")) is int and row["sampleCode"] == 0
+    if (row.get("status") == "UNKNOWN" and row.get("geometryReturned") is False and not returned
+            and row.get("postExitAXTrusted") is True and row.get("exactOriginalRetained") is True and timing and frames and sampled):
+        return "FAIL"
+    valid = row.get("status") == "PASS" and all(row.get(k) is True for k in flags) and sampled and timing and frames and returned
     return "PASS" if valid else "UNKNOWN"
 
 
@@ -263,7 +319,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
             result["reason"] = "expectedProductSignatureUnavailable"
             return result
         launcher = build_launcher(directory)
-        with exclusive(image["Identifier"]):
+        with exclusive(image["Identifier"]), ExitStack() as resources:
             if guardian_survival:
                 publish(directory, "guardian-survival.request")
             args = [launcher, app, challenge]
@@ -290,6 +346,16 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                     result["hostExit"] = dict(status="NOT_RUN", reason="noLaunchRequested")
                 return result
             try:
+                if guardian_survival:
+                    # Arm before the nonce-bound preflight from the very same process generation.
+                    # A later empty roster alone cannot distinguish normal termination from a crash.
+                    queue = resources.enter_context(closing(select.kqueue()))
+                    try:
+                        arm_exit_status(queue, launch["pid"])
+                    except OSError as error:
+                        result.update(reason="hostNormalExitObserverUnavailable", kernelError=error.errno,
+                                      postExitGuardian={"status": "BLOCKED", "childStarted": False, "readerExited": True})
+                        return result
                 publish(directory, "launched")
                 pre = None
                 if enroll:
@@ -324,6 +390,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                         probe = raw.get("guardianIndependent", {})
                         if probe.get("postExitWatchArmed") is True:
                             exited = await_exit(launcher, app, launch)
+                            exited["kernelTermination"] = read_exit_status(queue, launch["pid"])
                             child = probe["evidence"]["guardian"]["pid"]
                             continuation = {"status": "UNKNOWN", "readerExited": False}
                             result["postExitGuardian"] = continuation

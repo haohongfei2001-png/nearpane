@@ -38,6 +38,36 @@ class PrivateNotaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             n.accepted(self.prepared,{"id":str(uuid.uuid4())},self.info,self.log)
 
+    def test_guardian_must_match_the_signed_pin_in_engine_archives(self):
+        contents = self.root / "Nearpane.app" / "Contents"
+        fixture = contents / "Helpers/NearpaneFixtureWindows.app/Contents"
+        info = {"NearpaneAutomationSHA256": {}}
+        for key, path in [
+            ("NearpaneDesktopReaderSHA256", contents / "Helpers/NearpaneDesktopReader"),
+            ("NearpaneOrdinaryWindowControllerSHA256", contents / "Helpers/NearpaneOrdinaryWindowController"),
+            ("NearpaneSpaceActionSHA256", contents / "Helpers/NearpaneSpaceAction"),
+            ("NearpaneDraftGuardSHA256", contents / "Resources/AcceptanceTargetGuard.js")
+        ]:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"enrolled resource")
+            info[key] = n.sha(path)
+        reader = fixture / "Helpers/NearpaneDesktopReader"
+        reader.parent.mkdir(parents=True)
+        reader.write_bytes(b"fixture reader")
+        (fixture / "Info.plist").write_bytes(plistlib.dumps({"NearpaneDesktopReaderSHA256": n.sha(reader)}))
+        guardian = contents / "Helpers/NearpaneCornerGuardian"
+        relative = str(guardian.relative_to(contents))
+        self.assertNotIn(relative, n.helper_pins(contents.parent, info))
+        info["NearpaneStageEngineABI"] = 1
+        with self.assertRaisesRegex(ValueError, "pin mismatch"):
+            n.helper_pins(contents.parent, info)
+        guardian.write_bytes(b"enrolled guardian")
+        info["NearpaneCornerGuardianSHA256"] = n.sha(guardian)
+        self.assertEqual(n.helper_pins(contents.parent, info)[relative], n.sha(guardian))
+        guardian.write_bytes(b"different guardian")
+        with self.assertRaisesRegex(ValueError, "pin mismatch"):
+            n.helper_pins(contents.parent, info)
+
     def test_pending_failed_and_accepted_without_log_do_not_admit_stapling(self):
         for status,want in (("In Progress","IN_PROGRESS"),("Rejected","REJECTED"),
                             ("Invalid","INVALID"),("Accepted","SERVICE_ACCEPTED_AWAITING_LOG")):

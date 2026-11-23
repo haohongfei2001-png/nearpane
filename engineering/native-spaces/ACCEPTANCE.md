@@ -11,7 +11,7 @@
 
 [权威产品状态](STATUS.md) · [技术裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [归档的原生 Spaces / Mission Control 专项合同](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/native-spaces/ACCEPTANCE.md)
 
-正式 Host 支持 `guardian-survival` 只读诊断。监督器以 `--desktop-receipt` 接受新鲜的普通桌面、原焦点及 HID 观察。仅在登记的签名夹具仍存活时正常退出诊断 Host，Guardian 用内核 NOTE_EXIT、出生代和已保留的 AX 引用核对同一窗口、几何与原生归属。监督器独立解析原始收据并查验 Guardian 和夹具退出。此单项 PASS 只表示跨进程退出的读取能力。恢复租约、真实停放、输入隔离和还原分别验收。
+正式 Host 支持 `guardian-survival` 只读诊断。监督器以 `--desktop-receipt` 接受新鲜的普通桌面、原焦点及 HID 观察。它在同一 Host 的挑战应答前向内核登记 NOTE_EXIT 和 NOTE_EXITSTATUS，要求原进程代际消失且退出码为 0。Guardian 保留签名夹具的原 AX 引用，在 Host 退出后双读同一窗口、几何和原生归属，以原子重命名交付只读 JSON。监督器独立核对收据、夹具与 Guardian 退出以及日常 Host 和配置。明确的退出后权限拒绝、采样错误或已证实的几何变化为 FAIL，读数矛盾或不全为 UNKNOWN。此单项 PASS 只表示跨进程退出的读取能力。恢复租约、真实停放、输入隔离和还原分别验收。
 
 ## 历史隔离实验合同
 

@@ -28,7 +28,7 @@ python3 scripts/private_notary.py prepare "$private_stage/export/Nearpane.app" "
 python3 scripts/private_notary.py verify "$private_stage/session"
 ```
 
-已有分发 ZIP 时向 `prepare` 传入该文件和可信收据的 `--sha256`。准备工具保留原始 ZIP 字节，查验 13 个可执行对象的签名、每个架构的 CDHash 和安全时间戳，验证助手/资源指纹，再从归档独立解包读回。输入就绪收据为 `session/prepared.json`。用旧分发 ZIP 在私有目录内演练原子切换与回退可执行 `python3 scripts/private_notary.py rollback-check "$private_stage/session" "$old_zip" --source "$old_revision" --sha256 "$old_sha256"`。
+已有分发 ZIP 时向 `prepare` 传入该文件和可信收据的 `--sha256`。准备工具保留原始 ZIP 字节，按产品签名清单逐一查验可执行对象的签名（带 WindowEngine 的 5.22 包含 Guardian，共 14 项）、每个架构的 CDHash 和安全时间戳，验证助手/资源指纹，再从归档独立解包读回。输入就绪收据为 `session/prepared.json`。用旧分发 ZIP 在私有目录内演练原子切换与回退可执行 `python3 scripts/private_notary.py rollback-check "$private_stage/session" "$old_zip" --source "$old_revision" --sha256 "$old_sha256"`。
 
 向 Apple 交付需要独立授权。以下命令供届时使用；首次提交前创建唯一请求目录，使同一会话的重复执行停在上传之前。凭证通过本机明确选定的 Nearpane Keychain profile 使用。就绪收据中的文件名和 SHA-256 必须与交付对象一致。
 

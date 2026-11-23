@@ -1,8 +1,12 @@
 import copy
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import select
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -46,6 +50,37 @@ def correlated(value, opened=launch):
 
 
 class InstalledScopeTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "darwin", "uses the Darwin process-exit filter")
+    def test_exit_status_distinguishes_zero_and_error_after_process_disappears(self):
+        for code in (0, 7):
+            command = [sys.executable, "-c", "import sys; sys.stdin.read(); sys.exit(int(sys.argv[1]))", str(code)]
+            with self.subTest(code=code), closing(select.kqueue()) as queue, subprocess.Popen(command, stdin=subprocess.PIPE) as child:
+                try:
+                    reader.arm_exit_status(queue, child.pid)
+                finally:
+                    child.stdin.close()
+                self.assertEqual(child.wait(timeout=3), code)
+                event = reader.read_exit_status(queue, child.pid)
+                self.assertEqual(event["status"], "PASS" if code == 0 else "FAIL")
+                self.assertEqual(event["waitStatus"], code << 8)
+
+    def test_complete_atomically_published_guardian_receipt_does_not_need_a_newline(self):
+        raw = b'{"schema":1,"scope":"readOnlyOriginalObjectAcrossHostExit"}'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            staged = root / "guardian-post-exit.pending"
+            staged.write_bytes(raw)
+            staged.chmod(0o600)
+            staged.rename(root / "guardian-post-exit.json")
+            self.assertEqual(reader.response(root, "guardian-post-exit.json", .1),
+                             (json.loads(raw), hashlib.sha256(raw).hexdigest()))
+            (root / "guardian-post-exit.json").write_bytes(b'{"schema":')
+            with self.assertRaises(json.JSONDecodeError):
+                reader.response(root, "guardian-post-exit.json", .1)
+            (root / "guardian-post-exit.json").write_bytes(b"x"*4096)
+            with self.assertRaises(ValueError):
+                reader.response(root, "guardian-post-exit.json", .1)
+
     def test_survival_cleanup_requires_a_terminal_helper_when_a_fixture_started(self):
         record = {"hostObservationStarted": True, "hostLaunchRequested": True, "hostExit": {"status": "PASS"},
                   "fixtureLaunchRequested": True, "ownerClosed": True, "ownedProcessExited": True,
@@ -62,15 +97,17 @@ class InstalledScopeTests(unittest.TestCase):
         b = {"pid": 12, "birth": 109, "cdhash": revision}
         scope = {"window": {"pid": 21, "birth": 99, "number": 14}, "fixtureHash": "3"*40,
                  "nativeID": 4, "display": str(uuid.uuid4()), "space": str(uuid.uuid4())}
-        subject = dict(scope, host=a, guardian=b, challenge=nonce, ended=160,
+        subject = dict(scope, host=a, guardian=b, challenge=nonce, ended=160, responsibleAfter=8,
                        samples=[dict(cg=rect, ax=rect)]*2, matchesHostRegisteredGeometry=True)
         raw = {"subject": a, "guardianIndependent": dict(postExitWatchArmed=True, mayPark=False, evidence=subject)}
-        exited = dict(status="PASS", pid=8, birth=102)
+        termination = dict(pid=8, status="PASS", fflags=reader.EXIT_STATUS_FLAGS, waitStatus=0)
+        exited = dict(status="PASS", pid=8, birth=102, kernelTermination=termination)
         row = dict(scope, schema=1, challenge=nonce, hostPID=8, hostBirth=102, hostHash=digest,
                    childPID=12, childBirth=109, childHash=revision, mayPark=False, windowWrites=0, spaceWrites=0,
                    scope="readOnlyOriginalObjectAcrossHostExit", kernelExit=True, postExitAXTrusted=True,
                    exactOriginalRetained=True, geometryReturned=True, inputStable=True, originalReleased=True,
-                   status="PASS", sampleCode=0, firstPostReadNS=208, secondPostReadNS=332,
+                   status="PASS", sampleCode=0, responsibleBefore=8, responsibleAfter=12,
+                   firstPostReadNS=208, secondPostReadNS=332,
                    originalAX=frame, originalCG=frame, postAX=frame, postCG=frame)
         verdict = lambda value: reader.guardian_survival_result(value, raw, nonce, exited)
         self.assertEqual(verdict(row), "PASS")
@@ -80,6 +117,19 @@ class InstalledScopeTests(unittest.TestCase):
                       {"nativeID": 5}, {"postAX": [41, 60, 220, 143]}, {"originalCG": []}, {"mayPark": True}):
             self.assertEqual(verdict({**row, **delta}), "UNKNOWN")
         self.assertEqual(reader.guardian_survival_result(row, raw, nonce, dict(exited, status="UNKNOWN")), "UNKNOWN")
+        for change in ({"waitStatus": 256}, {"status": "FAIL"}, {"fflags": 0x80000000}, {"pid": 12}):
+            self.assertEqual(reader.guardian_survival_result(row, raw, nonce,
+                             dict(exited, kernelTermination=termination | change)), "UNKNOWN")
+        self.assertEqual(verdict(dict(row, responsibleAfter=-1)), "UNKNOWN")
+        negative = dict(row, status="UNKNOWN", exactOriginalRetained=False, geometryReturned=False,
+                        firstPostReadNS=0, secondPostReadNS=0, postAX=[0]*4, postCG=[0]*4, sampleCode=-1)
+        self.assertEqual(verdict(negative), "UNKNOWN")  # No correlated live read or documented denial.
+        self.assertEqual(verdict(dict(negative, postExitAXTrusted=False)), "FAIL")
+        self.assertEqual(verdict(dict(negative, postExitAXTrusted=False, postAX=frame)), "UNKNOWN")
+        self.assertEqual(verdict(dict(negative, sampleCode=2)), "FAIL")
+        self.assertEqual(verdict(dict(negative, sampleCode=2, inputStable=False)), "UNKNOWN")
+        self.assertEqual(verdict(dict(row, status="UNKNOWN", geometryReturned=False,
+                                      postAX=[41, 60, 220, 143], postCG=[41, 60, 220, 143])), "FAIL")
 
     def test_own_canary_receipt_requires_exact_operations_original_scope_and_no_external_write(self):
         ops = ("create", "hide", "return", "destroy")
