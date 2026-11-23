@@ -2,6 +2,8 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+`19505ea` 已加固真实窗口的写前交接。Guardian 在首次移窗前持久记录自己和 Host 的进程出生代、目标窗口、原始几何和桌面归属。Host 提交前复读该记录。恢复时按显示器 UUID 核对完整拓扑，跨屏残条和显示器布局变化会中止写入。隔离回归通过，实体多屏和停放后实际恢复仍待验收。正在运行的日常 `bec6cb2` 仅提供权限和预览统计，缺少可认证的一次性画面观察入口。[分项收据与上游来源核对](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json) · [原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation-logs.zip)
+
 **Guardian Survival 已通过隔离签名 Host 的实机验收。** 在 26A428、ARM64、SIP 开启的普通桌面上，内核确认 Host 78729 退出。Guardian 78748 随后以自己的权限身份，通过原有 AX 对象连续两次读到窗口 81949，窗口身份、AX 与 WindowServer 几何、原生桌面 4 全部一致。签名夹具和两个测试进程均已退出，两处临时目录已清理。日常 5.22（90）的进程出生代、权限、配置及窗口恢复记录前后一致。[完整实机收据](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/session.json) · [清理回执](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/cleanup.json)
 
 **正式 Corner 执行器的同窗读取通过，单窗口退场仍未执行。** 在另一次独立登记中，Rust 和签名窗口所属应用均连续两次确认窗口 81791 的位置、尺寸和原生归属。开发 Host 的停放前检查返回 `unsupported`，原因码 21 对应屏幕录制未授权。该测试包仅支持只读交接。真实停放、鼠标及键盘隔离、实际恢复、侧栏 A→B→C→A 和 10/50 次均为 **NOT_RUN**。生产切换保持关闭。[产品读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/session-host.json) · [分项资格](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/qualification.json)

@@ -141,6 +141,10 @@ uint32_t np_corner_park_access(void) {
     if (np_corner_secure_input()) return SECURE;
     return np_stage_mouse_held() ? BUTTON_HELD : OK;
 }
+static int compareDisplayUUID(const void *lhs, const void *rhs) {
+    const NCDisplay *a = lhs, *b = rhs;
+    return memcmp(a->uuid, b->uuid, sizeof(a->uuid));
+}
 uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count) {
     @autoreleasepool {
         uint32_t n = 0;
@@ -172,6 +176,12 @@ uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count)
             memcpy(row->uuid, &bytes, 16);
             CFRelease(u);
         }
+        // NSScreen may enumerate the same hardware in a different order when focus changes.
+        qsort(rows, *count, sizeof(*rows), compareDisplayUUID);
+        uint8_t zero[16] = {0};
+        for (uint32_t i = 0; i < *count; i++)
+            if (!memcmp(rows[i].uuid, zero, sizeof(zero)) || (i && !compareDisplayUUID(&rows[i-1], &rows[i])))
+                return DISPLAY_CHANGED;
         return OK;
     }
 }

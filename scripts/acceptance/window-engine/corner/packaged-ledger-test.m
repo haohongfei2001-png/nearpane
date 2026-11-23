@@ -48,8 +48,24 @@ static void inspectEnvelopeChecks(void) {
     request[@"nativeID"] = @(-1);
     assert(!diagnosticEnvelope(request, 112));
 }
+static void displayScopeChecks(void) {
+    Session s = {.displayCount = 2};
+    s.displays[0] = (NCDisplay){.uuid={1}, .frame={-100, 0, 100, 100}, .visible={-100, 5, 100, 95}};
+    s.displays[1] = (NCDisplay){.uuid={2}, .frame={0, 0, 100, 100}, .visible={0, 5, 100, 95}};
+    NCDisplay current[2]; memcpy(current, s.displays, sizeof(current));
+    assert(sameDisplays(s.displays, 2, current, 2));
+    assert(!sameDisplays(s.displays, 2, current, 1));
+    assert(frameOnScopedDisplay(&s, (NCFrame){-40, 10, 40, 30}, current[0].uuid));
+    assert(!frameOnScopedDisplay(&s, (NCFrame){-38, 10, 40, 30}, current[0].uuid));
+    assert(!frameOnScopedDisplay(&s, (NCFrame){100, 20, 40, 30}, current[1].uuid));
+    current[1].visible.x += 1;
+    assert(!sameDisplays(s.displays, 2, current, 2));
+    current[1] = s.displays[1]; current[1].uuid[0] = 3;
+    assert(!sameDisplays(s.displays, 2, current, 2));
+}
 int main(void) {
     @autoreleasepool {
+        displayScopeChecks();
         inspectEnvelopeChecks();
         char scratch[] = "/private/tmp/nearpane-guardian-ledger.XXXXXXXX";
         assert(mkdtemp(scratch));

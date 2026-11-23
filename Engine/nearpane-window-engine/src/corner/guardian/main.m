@@ -14,7 +14,8 @@
 typedef struct {
     NCGuardianEntry pre, sealed;
     NCMember member;
-    NCDisplay display;
+    NCDisplay display, displays[32];
+    uint32_t displayCount;
     void *held;
     int dir, ledger, kqueue;
 #ifndef NP_CORNER_FIXTURE
@@ -125,11 +126,44 @@ static BOOL journal(Session *s, BOOL sealed) {
     return !sealed || (pread(s->ledger, &q, len, (off_t)len) == (ssize_t)len && !memcmp(&q, &s->sealed, len));
 #endif
 }
+static CGRect displayRect(NCFrame f) { return CGRectMake(f.x, f.y, f.w, f.h); }
+
+// An adjoining display may be at a negative origin. Only positive-area intersections count.
+static BOOL frameOnScopedDisplay(Session *s, NCFrame frame, const uint8_t id[16]) {
+    BOOL found = NO;
+    for (uint32_t i = 0; i < s->displayCount; i++) {
+        NCDisplay d = s->displays[i];
+        BOOL intersects = !CGRectIsEmpty(CGRectIntersection(displayRect(d.frame), displayRect(frame)));
+        if (!memcmp(d.uuid, id, 16)) {
+            if (found || !intersects) return NO;
+            found = YES;
+        } else if (intersects) return NO;
+    }
+    return found;
+}
+static BOOL captureDisplays(Session *s, const uint8_t id[16], NCFrame original) {
+    if (np_corner_displays(s->displays, 32, &s->displayCount) ||
+        !frameOnScopedDisplay(s, original, id)) return NO;
+    for (uint32_t i = 0; i < s->displayCount; i++) {
+        if (memcmp(s->displays[i].uuid, id, 16)) continue;
+        s->display = s->displays[i];
+        return !CGRectIsEmpty(CGRectIntersection(displayRect(s->display.visible), displayRect(original)));
+    }
+    return NO;
+}
+static BOOL sameDisplays(const NCDisplay *baseline, uint32_t count, const NCDisplay *now, uint32_t currentCount) {
+    if (!count || count != currentCount || count > 32) return NO;
+    // Both lists were canonicalized by the same WindowServer reader used by Rust.
+    for (uint32_t i = 0; i < count; i++)
+        if (memcmp(baseline[i].uuid, now[i].uuid, 16) ||
+            !CGRectEqualToRect(displayRect(baseline[i].frame), displayRect(now[i].frame)) ||
+            !CGRectEqualToRect(displayRect(baseline[i].visible), displayRect(now[i].visible))) return NO;
+    return YES;
+}
 static BOOL displayIs(Session *s) {
-    NCDisplay d = {0};
+    NCDisplay now[32];
     uint32_t count = 0;
-    return np_corner_displays(&d, 1, &count) == 0 && count == 1 && !memcmp(d.uuid, s->display.uuid, 16) &&
-           closeFrame(d.frame, s->display.frame) && closeFrame(d.visible, s->display.visible);
+    return !np_corner_displays(now, 32, &count) && sameDisplays(s->displays, s->displayCount, now, count);
 }
 static BOOL stable(Session *s, NCFrame frame) {
     NCSample sample = {0};
@@ -242,9 +276,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->member = (NCMember){.pid = r.pid, .window = r.window, .birth = r.birth, .native = r.native_id};
     memcpy(s->member.space, r.native_space, 16);
     memcpy(s->member.display, r.display, 16);
-    uint32_t n = 0;
-    need(!np_corner_displays(&s->display, 1, &n) && n == 1 && !memcmp(s->display.uuid, r.display, 16),
-         @"originalDisplayUnconfirmed");
+    need(captureDisplays(s, r.display, convert(r.frame)), @"originalDisplayUnconfirmed");
     receipt[@"guardianOwnAccessibilityAtPrepare"] = @(AXIsProcessTrusted());
     need([receipt[@"guardianOwnAccessibilityAtPrepare"] isEqual:@YES], @"guardianIndependentAccessibilityUnavailable");
     s->held = np_corner_retain_window(&s->member);
@@ -302,7 +334,8 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     NCFrame parked = convert(s->sealed.result.frame);
     CGRect d = CGRectMake(s->display.frame.x, s->display.frame.y, s->display.frame.w, s->display.frame.h);
     CGRect slit = CGRectIntersection(d, CGRectMake(parked.x, parked.y, parked.w, parked.h));
-    need(!CGRectIsEmpty(slit) && CGRectGetWidth(slit) <= 8 && !closeFrame(parked, convert(r.frame)) &&
+    need(frameOnScopedDisplay(s, parked, r.display) && !CGRectIsEmpty(slit) && CGRectGetWidth(slit) <= 8 &&
+             !closeFrame(parked, convert(r.frame)) &&
              closeFrame((NCFrame){r.frame.x, r.frame.y, parked.w, parked.h}, convert(r.frame)) &&
              stable(s, parked) && displayIs(s),
          @"liveParkedPostimageUnavailable");
