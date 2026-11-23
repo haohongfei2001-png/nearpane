@@ -90,15 +90,23 @@ pub(super) struct PatchMember {
 unsafe extern "C" {
     fn np_corner_patch_session() -> *mut c_void;
     fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
+    fn np_corner_patch_verified(session: *mut c_void, member: *const PatchMember) -> bool;
+    fn np_corner_patch_source_available(display: *const u8) -> bool;
     fn np_corner_patch_end(session: *mut c_void);
 }
 pub(super) struct PatchSession(std::ptr::NonNull<c_void>);
 impl PatchSession {
+    pub fn source_available(display: &[u8; 16]) -> bool {
+        unsafe { np_corner_patch_source_available(display.as_ptr()) }
+    }
     pub fn new() -> Option<Self> {
         std::ptr::NonNull::new(unsafe { np_corner_patch_session() }).map(Self)
     }
     pub fn publish(&self, members: &[PatchMember]) {
         unsafe { np_corner_patch_publish(self.0.as_ptr(), members.as_ptr(), members.len() as u32) }
+    }
+    pub fn verified(&self, member: Member, frame: Rect) -> bool {
+        unsafe { np_corner_patch_verified(self.0.as_ptr(), &PatchMember { member, frame }) }
     }
 }
 impl Drop for PatchSession {

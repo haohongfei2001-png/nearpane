@@ -35,6 +35,8 @@ const USER_CHANGED: u32 = 43;
 const POSTCONDITION: u32 = 44;
 const OWNERSHIP_UNKNOWN: u32 = 45;
 const NEED_INDEPENDENT_READ: u32 = 46;
+const PICTURE_UNCONFIRMED: u32 = 47;
+const PICTURE_SOURCE_UNAVAILABLE: u32 = 48;
 
 struct Owned {
     key: Key,
@@ -244,6 +246,13 @@ impl Corner {
             }
             let id = health_member(r)?;
             native::park_access()?;
+            for held in self.owned.values() {
+                if let Some(frame) = held.parked
+                    && !self.patch.as_ref().is_some_and(|patch| patch.verified(held.id, frame))
+                {
+                    return Err(PICTURE_UNCONFIRMED);
+                }
+            }
             let input = native::inputs();
             let layout = native::displays()?;
             let retained = id
@@ -334,18 +343,13 @@ impl Corner {
                     && native::displays()
                         .is_ok_and(|d| d == o.displays && hidden(s.cg, &d, id.display, o.corner)) =>
             {
-                out.flags |= c::HIDDEN;
-                if let Some(t) = &self.tap {
-                    match t.health() {
-                        Ok(()) => out.flags |= c::INPUT_SAFE,
-                        Err(e) => {
-                            out.detail = e;
-                            out.status = c::UNKNOWN;
-                        }
-                    }
-                } else {
+                let input = self.tap.as_ref().ok_or(tap::UNAVAILABLE).and_then(Tap::health);
+                let covered = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
+                if let Err(reason) = verified_isolation(input, covered) {
                     out.status = c::UNKNOWN;
-                    out.detail = tap::UNAVAILABLE;
+                    out.detail = reason;
+                } else {
+                    out.flags |= c::HIDDEN | c::INPUT_SAFE;
                 }
             }
             Some(_) => {
@@ -372,6 +376,9 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNSUPPORTED, e, None, false),
         };
+        if !native::PatchSession::source_available(&id.display) {
+            return self.result(c::UNSUPPORTED, PICTURE_SOURCE_UNAVAILABLE, None, false);
+        }
         let sample = match native::sample(&id) {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
@@ -435,10 +442,27 @@ impl Corner {
                 {
                     if previous.is_some_and(|p| same(p, s.cg)) {
                         self.owned.get_mut(&id.window).unwrap().parked = Some(s.cg);
-                        return match self.refresh(false) {
-                            Ok(()) => self.read(r),
-                            Err(why) => self.result(c::UNKNOWN, why, Some(s), true),
-                        };
+                        if let Err(why) = self.refresh(false) {
+                            return self.result(c::UNKNOWN, why, Some(s), true);
+                        }
+                        // Image decoding and panel ordering happen on different queues.
+                        // Wait for the compositor witness, without issuing a second AX setter.
+                        let until = Instant::now() + Duration::from_millis(500);
+                        loop {
+                            if let Err(status) = control.guard() {
+                                return self.result(status, PICTURE_UNCONFIRMED, Some(s), true);
+                            }
+                            let read = self.read(r);
+                            if read.detail != PICTURE_UNCONFIRMED || Instant::now() >= until {
+                                return read;
+                            }
+                            std::thread::sleep(Duration::from_millis(15));
+                            if self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(100)) {
+                                if let Err(why) = self.refresh(false) {
+                                    return self.result(c::UNKNOWN, why, Some(s), true);
+                                }
+                            }
+                        }
                     }
                     previous = Some(s.cg);
                 } else {
@@ -539,6 +563,10 @@ impl Corner {
         )
     }
 }
+fn verified_isolation(input: Result<(), u32>, picture: bool) -> Result<(), u32> {
+    input?;
+    picture.then_some(()).ok_or(PICTURE_UNCONFIRMED)
+}
 impl WindowEngine for Corner {
     fn execute(&mut self, r: &Request, control: &Control) -> Outcome {
         if let Err(status) = control.guard() {
@@ -579,6 +607,13 @@ impl WindowEngine for Corner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn neither_a_visible_patch_nor_an_input_shield_alone_confirms_isolation() {
+        assert_eq!(verified_isolation(Ok(()), false), Err(PICTURE_UNCONFIRMED));
+        assert_eq!(verified_isolation(Err(tap::UNAVAILABLE), true), Err(tap::UNAVAILABLE));
+        assert_eq!(verified_isolation(Err(tap::STALE), false), Err(tap::STALE));
+        assert_eq!(verified_isolation(Ok(()), true), Ok(()));
+    }
     fn display(id: u8, x: f64, y: f64) -> Display {
         Display {
             id: [id; 16],

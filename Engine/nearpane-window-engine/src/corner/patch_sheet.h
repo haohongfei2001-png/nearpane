@@ -13,4 +13,6 @@ bool np_corner_patch_order(const NCListed *, uint32_t length, const uint32_t *, 
 uint32_t np_corner_patch_visible(const uint32_t *ids, uint32_t count, const uint8_t display[16], NCFrame frame);
 void *np_corner_patch_session(void);
 void np_corner_patch_publish(void *session, const NCParkedPatchMember *members, uint32_t count);
+bool np_corner_patch_verified(void *session, const NCParkedPatchMember *member);
+bool np_corner_patch_source_available(const uint8_t display[16]);
 void np_corner_patch_end(void *session);

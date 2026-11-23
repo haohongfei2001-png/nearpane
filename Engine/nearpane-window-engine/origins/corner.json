@@ -51,7 +51,7 @@
     "local": "src/corner/worker.rs",
     "upstream": "src/platform/controller/corner/patch.rs",
     "blob": "bfc1164d02f31e89fcfe25b69ab7038daeec7177",
-    "modifications": "Publish confirmed parked member footprints after the input shield is healthy. Tie the lifetime of optional per-display patches to the existing worker and its retained window ownership."
+    "modifications": "Bind per-display patches to the worker's retained members. Require a fresh AppKit and WindowServer layer observation of the same member and footprint as well as a healthy input shield before returning hidden."
   },
   {
     "local": "src/corner/tap.rs",

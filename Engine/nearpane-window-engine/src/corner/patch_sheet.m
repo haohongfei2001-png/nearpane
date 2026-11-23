@@ -95,6 +95,35 @@ static NSURL *staticWallpaper(NSScreen *screen, struct stat *st) {
     return [NSURL fileURLWithPath:file];
 }
 
+bool np_corner_patch_source_available(const uint8_t display[16]) {
+    if (!display) return false;
+    NSData *expected = [NSData dataWithBytes:display length:16];
+    __block BOOL available = NO;
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    void (^read)(void) = ^{
+        for (NSScreen *screen in NSScreen.screens) {
+            CGDirectDisplayID d = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+            CFUUIDRef uuid = CGDisplayCreateUUIDFromDisplayID(d);
+            if (!uuid) continue;
+            CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuid);
+            CFRelease(uuid);
+            if (memcmp(&bytes, expected.bytes, 16)) continue;
+            struct stat st = {};
+            available = CGDisplayIsActive(d) && !CGDisplayIsInMirrorSet(d) && staticWallpaper(screen, &st) != nil &&
+                        [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen] != nil;
+            break;
+        }
+        dispatch_semaphore_signal(done);
+    };
+    if (NSThread.isMainThread) {
+        read();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), read);
+        if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 200 * NSEC_PER_MSEC))) return false;
+    }
+    return available;
+}
+
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
                             BOOL planned) {
     NCListed *rows = calloc(2048, sizeof(*rows));
@@ -161,8 +190,8 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
 
 @interface NCPatchSession : NSObject {
   @public
-    NSData *latest;
-    uint64_t validUntil;
+    NSData *latest, *verifiedMembers;
+    uint64_t validUntil, verifiedAt;
     BOOL stopped, scheduled;
 }
 @property(nonatomic, strong) NSMutableDictionary<NSData *, NCPatchSheet *> *sheets;
@@ -182,7 +211,8 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         return !stopped && latest == packet && clock_gettime_nsec_np(CLOCK_UPTIME_RAW) < validUntil;
     }
 }
-- (BOOL)show:(NSData *)group key:(NSData *)key packet:(NSData *)packet {
+- (BOOL)show:(NSData *)group key:(NSData *)key packet:(NSData *)packet verified:(BOOL *)verified {
+    *verified = NO;
     uint32_t count = (uint32_t)(group.length / sizeof(NCParkedPatchMember));
     if (!count || count > 64)
         return NO;
@@ -277,8 +307,10 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     panel.verifiedFrame = frame;
     panel.displayIdentity = key;
     if (panel.visible && panel.onActiveSpace && sheet.anchor &&
-        targetOrder(members, count, frame, number, NO) == sheet.anchor)
-        return YES;
+        targetOrder(members, count, frame, number, NO) == sheet.anchor) {
+        *verified = !panel.keyWindow && !panel.mainWindow && panel.ignoresMouseEvents;
+        return *verified;
+    }
     if (panel.visible)
         [panel orderOut:nil];
     uint32_t anchor = targetOrder(members, count, frame, number, YES);
@@ -286,8 +318,9 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         return NO;
     [panel orderWindow:NSWindowAbove relativeTo:anchor];
     sheet.anchor = anchor;
-    return panel.visible && panel.onActiveSpace && [self current:packet] &&
-           targetOrder(members, count, frame, number, NO) == anchor;
+    *verified = panel.visible && panel.onActiveSpace && !panel.keyWindow && !panel.mainWindow &&
+                panel.ignoresMouseEvents && [self current:packet] && targetOrder(members, count, frame, number, NO) == anchor;
+    return *verified;
 }
 - (void)update {
     NSData *packet;
@@ -309,14 +342,25 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     for (NSData *key in self.sheets.allKeys)
         if (!groups[key])
             [self withdraw:key];
+    NSMutableData *confirmed = [NSMutableData data];
+    uint64_t observed = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
     for (NSData *key in groups) {
         @try {
-            if ([self show:groups[key] key:key packet:packet])
+            BOOL visible = NO;
+            if ([self show:groups[key] key:key packet:packet verified:&visible]) {
+                if (visible) [confirmed appendData:groups[key]];
                 continue;
+            }
         } @catch (NSException *error) {
             (void)error;
         }
         [self withdraw:key];
+    }
+    @synchronized(self) {
+        if (!stopped && latest == packet) {
+            verifiedMembers = [confirmed copy];
+            verifiedAt = observed;
+        }
     }
     if (!groups.count) {
         [self.timer invalidate];
@@ -346,6 +390,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
                           return;
                       @synchronized(session) {
                           session->latest = nil;
+                          session->verifiedMembers = nil;
                           session->validUntil = 0;
                       }
                       [session update];
@@ -373,6 +418,7 @@ void np_corner_patch_publish(void *owner, const NCParkedPatchMember *members, ui
             s->validUntil = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + 450000000;
             if (same)
                 return;
+            s->verifiedMembers = nil;
             s->latest = packet;
             if (s->scheduled)
                 return;
@@ -383,6 +429,19 @@ void np_corner_patch_publish(void *owner, const NCParkedPatchMember *members, ui
         });
     }
 }
+bool np_corner_patch_verified(void *owner, const NCParkedPatchMember *member) {
+    if (!owner || !member) return false;
+    NCPatchSession *s = (__bridge NCPatchSession *)owner;
+    @synchronized(s) {
+        uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+        if (s->stopped || !s->latest || now >= s->validUntil || now - s->verifiedAt >= 450000000)
+            return false;
+        const NCParkedPatchMember *rows = s->verifiedMembers.bytes;
+        for (size_t i = 0; i < s->verifiedMembers.length / sizeof(*rows); ++i)
+            if (!memcmp(&rows[i], member, sizeof(*rows))) return true;
+        return false;
+    }
+}
 void np_corner_patch_end(void *owner) {
     if (!owner)
         return;
@@ -390,6 +449,7 @@ void np_corner_patch_end(void *owner) {
     @synchronized(s) {
         s->stopped = YES;
         s->latest = nil;
+        s->verifiedMembers = nil;
     }
     dispatch_async(dispatch_get_main_queue(), ^{
       [s update];
