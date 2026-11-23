@@ -1,43 +1,64 @@
 import Darwin
 import Foundation
 
-/// Read through the directory descriptor held since R. A previous job, receipt alias or partial
-/// publication cannot establish that this particular live Guardian surrendered its reference.
-struct CornerWithdrawalReceipt: Decodable {
-    struct Proof: Decodable {
-        let intent, transaction, group, member, generation, lifetime, display, space: UUID
-        let epoch, native, birth, hostBirth, guardianBirth: UInt64
-        let pid, hostPID: Int32
-        let window: UInt32
-        let frame: [Double]
-        let originalReadbacks: Int
+/// Shared binding for the live Guardian's prepared and withdrawn records. A disk record never grants a writer.
+struct CornerGuardianOriginalProof: Decodable, Equatable {
+    let intent, transaction, group, member, generation, lifetime, display, space: UUID
+    let epoch, native, birth, hostBirth, guardianBirth: UInt64
+    let pid, hostPID: Int32
+    let window: UInt32
+    let frame: [Double]
+    let originalReadbacks: Int
+
+    func matches(_ request: NativeStageEngineRequest, epoch: UInt64, host: Int32, hostBirth: UInt64, childBirth: UInt64) -> Bool {
+        guard let original = request.frame, let target = request.window, hostBirth > 0, childBirth > 0 else { return false }
+        return request.backend == 1 && request.operation == 3 && self.epoch == epoch && originalReadbacks == 2 &&
+            guardianBirth == childBirth && hostPID == host && self.hostBirth == hostBirth &&
+            intent == request.intent && group == request.group && member == request.member && generation == request.generation &&
+            lifetime == request.lifetime && display == request.scope?.display && space == request.scope?.nativeSpace &&
+            native == request.nativeID && pid == target.pid && window == target.number && birth == target.birth &&
+            frame == [original.x, original.y, original.width, original.height]
     }
+}
+
+struct CornerPreparedReceipt: Decodable, Equatable {
+    let schema: Int, status: String, guardianPID: Int32, original: CornerGuardianOriginalProof
+
+    func matches(_ request: NativeStageEngineRequest, epoch: UInt64, host: Int32, hostBirth: UInt64,
+                 child: Int32, childBirth: UInt64) -> Bool {
+        schema == 1 && status == "PREPARED" && guardianPID == child &&
+            original.matches(request, epoch: epoch, host: host, hostBirth: hostBirth, childBirth: childBirth)
+    }
+
+    static func read(in directory: Int32) -> Self? { CornerGuardianRecord.prepared.read(Self.self, in: directory) }
+}
+
+struct CornerWithdrawalReceipt: Decodable {
     let schema, issued: Int
     let guardianPID: Int32
     let status: String
     let retainedBeforePark, committedPostimage, originalPipeEOF, kernelHostExit: Bool
-    let withdrawal: Proof
+    let withdrawal: CornerGuardianOriginalProof
 
     func matches(_ r: NativeStageEngineRequest, epoch: UInt64, host: Int32, hostBirth: UInt64,
                  child: Int32, childBirth: UInt64) -> Bool {
-        let p = withdrawal
-        guard let frame = r.frame, let window = r.window, hostBirth > 0, childBirth > 0 else { return false }
-        return schema == 1 && status == "WITHDRAWN_BEFORE_SUBMISSION" && issued == 0 &&
-            retainedBeforePark && !committedPostimage && !originalPipeEOF && !kernelHostExit &&
-            guardianPID == child && p.guardianBirth == childBirth && p.hostPID == host && p.hostBirth == hostBirth &&
-            r.backend == 1 && r.operation == 3 && p.epoch == epoch && p.originalReadbacks == 2 &&
-            p.intent == r.intent && p.group == r.group && p.member == r.member && p.generation == r.generation &&
-            p.lifetime == r.lifetime && p.display == r.scope?.display && p.space == r.scope?.nativeSpace &&
-            p.native == r.nativeID && p.pid == window.pid && p.window == window.number && p.birth == window.birth &&
-            p.frame == [frame.x, frame.y, frame.width, frame.height]
+        schema == 1 && status == "WITHDRAWN_BEFORE_SUBMISSION" && issued == 0 &&
+            retainedBeforePark && !committedPostimage && !originalPipeEOF && !kernelHostExit && guardianPID == child &&
+            withdrawal.matches(r, epoch: epoch, host: host, hostBirth: hostBirth, childBirth: childBirth)
     }
 
-    static func read(in directory: Int32) -> Self? {
+    static func read(in directory: Int32) -> Self? { CornerGuardianRecord.final.read(Self.self, in: directory) }
+}
+
+/// Read through the exact directory descriptor opened before launching this Guardian.
+private enum CornerGuardianRecord: String {
+    case prepared = "guardian-prepared.json", final = "guardian-receipt.json"
+
+    func read<T: Decodable>(_ type: T.Type, in directory: Int32) -> T? {
         var job = stat()
         guard fstat(directory, &job) == 0, job.st_uid == getuid(), job.st_mode & S_IFMT == S_IFDIR,
               job.st_mode & 0o777 == 0o700 else { return nil }
-        let name = "guardian-receipt.json"
-        let fd = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
+        let fd = openat(directory, rawValue, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
         guard fd >= 0 else { return nil }
         defer { close(fd) }
         var file = stat()
@@ -46,11 +67,11 @@ struct CornerWithdrawalReceipt: Decodable {
         var bytes = Data(count: Int(file.st_size))
         let length = bytes.withUnsafeMutableBytes { pread(fd, $0.baseAddress, $0.count, 0) }
         var current = stat()
-        guard length == file.st_size, fstatat(directory, name, &current, AT_SYMLINK_NOFOLLOW) == 0,
+        guard length == file.st_size, fstatat(directory, rawValue, &current, AT_SYMLINK_NOFOLLOW) == 0,
               current.st_ino == file.st_ino, current.st_dev == file.st_dev, current.st_nlink == 1,
               current.st_mode == file.st_mode, current.st_size == file.st_size,
               current.st_mtimespec.tv_sec == file.st_mtimespec.tv_sec,
               current.st_mtimespec.tv_nsec == file.st_mtimespec.tv_nsec else { return nil }
-        return try? JSONDecoder().decode(Self.self, from: bytes)
+        return try? JSONDecoder().decode(type, from: bytes)
     }
 }

@@ -147,6 +147,12 @@ int main(void) {
         NSDictionary *withdrawn = @{@"status": @"WITHDRAWN_BEFORE_SUBMISSION", @"issued": @0};
         int jobFD = open(job.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
         char reply;
+        NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid())};
+        assert(persistJobRecord(jobFD, YES, prepared));
+        assert([productFile(jobFD, "guardian-prepared.json") isEqual:prepared]);
+        assert(!persistJobRecord(jobFD, YES, @{@"status": @"OTHER"}));
+        assert([productFile(jobFD, "guardian-prepared.json") isEqual:prepared]);
+        assert(!productFile(jobFD, "guardian-receipt.json"));
         assert(!publishReceipt(-1, withdrawn, replies[1]));
         assert(!publishReceipt(-1, @{@"status": @"PASS"}, replies[1]));
         assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);

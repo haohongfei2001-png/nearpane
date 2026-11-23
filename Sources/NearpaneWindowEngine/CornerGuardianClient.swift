@@ -15,6 +15,7 @@ import Security
         var result: NativeStageEngineReceipt?
         var sealed = false
         var withdrawing = false
+        var preparation: CornerPreparedReceipt?
         var preparedAt: UInt64?
         var confirmedAt: UInt64?
         var guardianBirth: UInt64?
@@ -125,9 +126,14 @@ import Security
         do {
             guard let launchedBirth, launchedBirth > 0, process.isRunning else { throw Failure.unavailable }
             try await exchange(data, ack: 82, lease: lease)
-            guard process.isRunning, Self.childGeneration(process.processIdentifier) == launchedBirth else {
+            guard let hostBirth = Self.generation(getpid(), parent: nil),
+                  let prepared = CornerPreparedReceipt.read(in: heldDirectory.fileDescriptor),
+                  prepared.matches(r, epoch: epoch, host: getpid(), hostBirth: hostBirth,
+                                   child: process.processIdentifier, childBirth: launchedBirth),
+                  process.isRunning, Self.childGeneration(process.processIdentifier) == launchedBirth else {
                 throw Failure.changedLease
             }
+            lease.preparation = prepared
             lease.guardianBirth = launchedBirth
             lease.preparedAt = DispatchTime.now().uptimeNanoseconds
         }
@@ -144,6 +150,7 @@ import Security
         guard r.backend == 1, r.operation == 3, let w = r.window, let l = leases[w], same(l.original, r),
               l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
               l.epoch == epoch, l.preparedAt != nil, !l.withdrawing, !l.sealed, l.result == nil,
+              let proof = l.preparation, CornerPreparedReceipt.read(in: l.directory.fileDescriptor) == proof,
               let birth = l.guardianBirth, l.process.isRunning,
               Self.childGeneration(l.process.processIdentifier) == birth else { throw Failure.pendingRecovery }
         return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth)
@@ -208,6 +215,7 @@ import Security
         l.withdrawing = true
         try await exchange(data, ack: 87, lease: l)
         guard let receipt = CornerWithdrawalReceipt.read(in: l.directory.fileDescriptor),
+              let prepared = l.preparation, receipt.withdrawal == prepared.original,
               receipt.matches(r, epoch: epoch, host: getpid(), hostBirth: hostBirth,
                               child: l.process.processIdentifier, childBirth: childBirth) else { return false }
         try? l.writer.close()

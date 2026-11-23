@@ -43,6 +43,29 @@ static BOOL fileOK(int fd, BOOL dir) {
            (dir ? S_ISDIR(st.st_mode) && (st.st_mode & 0777) == 0700
                 : S_ISREG(st.st_mode) && st.st_nlink == 1 && (st.st_mode & 0777) == 0600);
 }
+// The receipt names are fixed by this binary. Only publish a complete, private record once.
+static BOOL persistJobRecord(int directory, BOOL prepared, NSDictionary *record) {
+    if (directory < 0 || !fileOK(directory, YES)) return NO;
+    const char *name = prepared ? "guardian-prepared.json" : "guardian-receipt.json";
+    const char *pending = prepared ? "guardian-prepared.pending" : "guardian-receipt.pending";
+    NSData *data = [NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys error:NULL];
+    if (!data.length || data.length > 16384) return NO;
+    int fd = openat(directory, pending, O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (fd < 0) return NO;
+    size_t written = 0;
+    while (written < data.length) {
+        ssize_t n = write(fd, (const char *)data.bytes + written, data.length - written);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) break;
+        written += (size_t)n;
+    }
+    BOOL durable = written == data.length && fsync(fd) == 0;
+    if (close(fd) || !durable || renameatx_np(directory, pending, directory, name, RENAME_EXCL)) {
+        unlinkat(directory, pending, 0);
+        return NO;
+    }
+    return fsync(directory) == 0;
+}
 static BOOL readPacket(int fd, void *raw, size_t length) {
     size_t n = 0;
     double end = NSProcessInfo.processInfo.systemUptime + 8.;
@@ -68,6 +91,24 @@ static BOOL displayIs(Session *s);
 static BOOL stable(Session *s, NCFrame frame);
 #include "packaged.h"
 #include "inspect.h"
+static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
+    NPRequest r = s->pre.lease;
+    return @{
+        @"intent": [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString,
+        @"transaction": wal[@"pending"][@"intent"], @"epoch": @(r.epoch),
+        @"group": [[NSUUID alloc] initWithUUIDBytes:r.group].UUIDString,
+        @"member": [[NSUUID alloc] initWithUUIDBytes:r.member].UUIDString,
+        @"generation": [[NSUUID alloc] initWithUUIDBytes:r.generation].UUIDString,
+        @"lifetime": [[NSUUID alloc] initWithUUIDBytes:r.lifetime].UUIDString,
+        @"display": [[NSUUID alloc] initWithUUIDBytes:r.display].UUIDString,
+        @"space": [[NSUUID alloc] initWithUUIDBytes:r.native_space].UUIDString,
+        @"native": @(r.native_id), @"pid": @(r.pid), @"birth": @(r.birth), @"window": @(r.window),
+        @"frame": @[@(r.frame.x), @(r.frame.y), @(r.frame.width), @(r.frame.height)],
+        @"hostPID": @(s->pre.host), @"hostBirth": @(s->pre.host_birth),
+        @"guardianBirth": @(ncg_birth(getpid(), NULL)), @"originalReadbacks": @2
+    };
+}
+
 #endif
 static BOOL journal(Session *s, BOOL sealed) {
 #ifndef NP_CORNER_FIXTURE
@@ -210,6 +251,14 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(s->held && stable(s, convert(r.frame)), @"originalAXReferenceOrFrameNotConfirmed");
     s->facts.retained_before_park = true;
     s->facts.unspent = true;
+#ifndef NP_CORNER_FIXTURE
+    NSDictionary *before = withdrawableJournal(s);
+    usleep(25000);
+    need(withdrawalWitness(s, before), @"secondOriginalWindowOrPendingJournalUnavailable");
+    NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()),
+                               @"original": originalProof(s, before)};
+    need(persistJobRecord(s->dir, YES, prepared), @"couldNotPersistOriginalGuardianResponsibility");
+#endif
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
     BOOL afterCommittedEOF = NO;
 #ifdef NP_CORNER_FIXTURE
@@ -225,20 +274,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         need(withdrawalWitness(s, wal), @"originalPreparedWindowOrWALUnavailable");
         usleep(25000);
         need(withdrawalWitness(s, wal), @"secondOriginalPreparedWindowOrWALUnavailable");
-        receipt[@"withdrawal"] = @{
-            @"intent": [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString,
-            @"transaction": wal[@"pending"][@"intent"], @"epoch": @(r.epoch),
-            @"group": [[NSUUID alloc] initWithUUIDBytes:r.group].UUIDString,
-            @"member": [[NSUUID alloc] initWithUUIDBytes:r.member].UUIDString,
-            @"generation": [[NSUUID alloc] initWithUUIDBytes:r.generation].UUIDString,
-            @"lifetime": [[NSUUID alloc] initWithUUIDBytes:r.lifetime].UUIDString,
-            @"display": [[NSUUID alloc] initWithUUIDBytes:r.display].UUIDString,
-            @"space": [[NSUUID alloc] initWithUUIDBytes:r.native_space].UUIDString,
-            @"native": @(r.native_id), @"pid": @(r.pid), @"birth": @(r.birth), @"window": @(r.window),
-            @"frame": @[@(r.frame.x), @(r.frame.y), @(r.frame.width), @(r.frame.height)],
-            @"hostPID": @(s->pre.host), @"hostBirth": @(s->pre.host_birth),
-            @"guardianBirth": @(ncg_birth(getpid(), NULL)), @"originalReadbacks": @2
-        };
+        receipt[@"withdrawal"] = originalProof(s, wal);
         receipt[@"status"] = @"WITHDRAWN_BEFORE_SUBMISSION";
         return;
     }
@@ -370,13 +406,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 }
 // The parent cannot settle a pending entry from a pipe byte preceding durable evidence.
 static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
-    if (dir < 0 || !fileOK(dir, YES)) return NO;
-    int fd = openat(dir, "guardian-receipt.json", O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
-    if (fd < 0) return NO;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:receipt options:NSJSONWritingSortedKeys error:NULL];
-    BOOL durable = data.length && write(fd, data.bytes, data.length) == (ssize_t)data.length && fsync(fd) == 0;
-    close(fd);
-    if (!durable || fsync(dir)) return NO;
+    if (!persistJobRecord(dir, NO, receipt)) return NO;
     char ack;
     if ([receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"]) ack = 'W';
     else if ([receipt[@"status"] isEqual:@"PASS"] && [receipt[@"reason"] isEqual:@"liveHostReleasedRestoredOwnership"] &&

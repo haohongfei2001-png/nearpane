@@ -73,6 +73,20 @@ struct CornerWithdrawalTests {
         }
     }
 
+    @Test func preparedResponsibilityBelongsToTheSameWindowAndBothLiveGenerations() throws {
+        let (request, withdrawal) = envelope()
+        let original = try #require(withdrawal["withdrawal"] as? [String: Any])
+        let data = try JSONSerialization.data(withJSONObject: ["schema": 1, "status": "PREPARED", "guardianPID": 41,
+                                                               "original": original] as [String: Any])
+        let prepared = try JSONDecoder().decode(CornerPreparedReceipt.self, from: data)
+        #expect(prepared.matches(request, epoch: 1, host: 32, hostBirth: 81, child: 41, childBirth: 91))
+        #expect(!prepared.matches(request, epoch: 1, host: 32, hostBirth: 82, child: 41, childBirth: 91))
+        #expect(!prepared.matches(request, epoch: 1, host: 32, hostBirth: 81, child: 41, childBirth: 92))
+        let final = try JSONDecoder().decode(CornerWithdrawalReceipt.self, from: JSONSerialization.data(withJSONObject: withdrawal))
+        #expect(final.withdrawal == prepared.original)
+        #expect((try? JSONDecoder().decode(CornerWithdrawalReceipt.self, from: data)) == nil)
+    }
+
     @Test func receiptReadRejectsMissingAliasedSharedOrTruncatedEvidence() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false,
