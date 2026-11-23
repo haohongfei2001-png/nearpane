@@ -116,15 +116,36 @@ import Security
         let launchedBirth = Self.childGeneration(process.processIdentifier)
         leases[w] = lease
         do {
+            guard let launchedBirth, launchedBirth > 0, process.isRunning else { throw Failure.unavailable }
             try await exchange(data, ack: 82, lease: lease)
-            if Self.childGeneration(process.processIdentifier) == launchedBirth { lease.guardianBirth = launchedBirth }
+            guard process.isRunning, Self.childGeneration(process.processIdentifier) == launchedBirth else {
+                throw Failure.changedLease
+            }
+            lease.guardianBirth = launchedBirth
             lease.preparedAt = DispatchTime.now().uptimeNanoseconds
         }
         catch {
             // prepare has not returned to the Host. No engine write can have been submitted for this intent.
             try? lease.writer.close()
+            try? lease.reader.close()
             leases.removeValue(forKey: w)
             throw error
+        }
+    }
+
+    func preparedPeer(for r: NativeStageEngineRequest, epoch: UInt64) throws -> CornerGuardianPeer {
+        guard r.backend == 1, r.operation == 3, let w = r.window, let l = leases[w], same(l.original, r),
+              l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
+              l.epoch == epoch, l.preparedAt != nil, !l.withdrawing, !l.sealed, l.result == nil,
+              let birth = l.guardianBirth, l.process.isRunning,
+              Self.childGeneration(l.process.processIdentifier) == birth else { throw Failure.pendingRecovery }
+        return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth)
+    }
+
+    func checkLiveOwners() throws {
+        for lease in leases.values {
+            guard let birth = lease.guardianBirth, lease.process.isRunning,
+                  Self.childGeneration(lease.process.processIdentifier) == birth else { throw Failure.pendingRecovery }
         }
     }
 
@@ -145,6 +166,7 @@ import Security
             "native": raw.nativeID, "status": raw.status, "flags": raw.flags, "owned": raw.owned,
             "frame": Self.frame(raw.frame), "verified": Self.frame(verifiedFrame)])
         try await exchange(data, ack: 80, lease: l)
+        try checkLiveOwners()
         l.confirmedAt = DispatchTime.now().uptimeNanoseconds
         l.sealed = true
     }
@@ -186,7 +208,8 @@ import Security
         var b = proc_bsdinfo()
         let size = Int32(MemoryLayout.size(ofValue: b))
         guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &b, size) == size, b.pbi_pid == UInt32(pid),
-              parent.map({ b.pbi_ppid == UInt32($0) }) != false, b.pbi_uid == getuid() else { return nil }
+              parent.map({ b.pbi_ppid == UInt32($0) }) != false, b.pbi_uid == getuid(),
+              b.pbi_start_tvsec > 0 else { return nil }
         return b.pbi_start_tvsec * 1_000_000 + b.pbi_start_tvusec
     }
 

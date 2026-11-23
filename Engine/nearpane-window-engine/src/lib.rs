@@ -191,6 +191,25 @@ pub unsafe extern "C" fn np_engine_submit(
     })
 }
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_submit_guarded_corner_hide(
+    handle: u64,
+    request: *const Request,
+    child: i32,
+    birth: u64,
+    out: *mut u64,
+) -> u32 {
+    boundary(|| {
+        output(out)?;
+        unsafe {
+            out.write(0);
+            header(request)?;
+        }
+        let id = find(handle)?.submit_corner_hide(unsafe { request.read() }, child, birth)?;
+        unsafe { out.write(id) };
+        Ok(())
+    })
+}
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_fence_unsubmitted_corner_hide(
     handle: u64,
     request: *const Request,
@@ -290,6 +309,12 @@ mod tests {
             ..Default::default()
         };
         let mut ticket = 0;
+        let mut refused = 99;
+        assert_eq!(
+            unsafe { np_engine_submit_guarded_corner_hide(h, &r, 42, 1, &mut refused) },
+            INVALID
+        );
+        assert_eq!(refused, 0);
         assert_eq!(unsafe { np_engine_submit(h, &r, &mut ticket) }, OK);
         assert_eq!(np_engine_destroy(h), BUSY);
         let mut receipt = Receipt::default();

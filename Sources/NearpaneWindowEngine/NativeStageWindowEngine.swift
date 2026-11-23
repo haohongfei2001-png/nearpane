@@ -27,6 +27,11 @@ public struct NativeStageEngineReceipt: Sendable {
 }
 public enum NativeStageEngineError: Error { case transport(UInt32), correlation }
 
+struct CornerGuardianPeer: Sendable {
+    let pid: Int32
+    let birth: UInt64
+}
+
 /// Submission copies PODs immediately. Revocation is safe from the main actor even
 /// when another actor is waiting on an Accessibility call. Rust retains no Swift objects.
 public actor NativeStageWindowEngine {
@@ -98,10 +103,20 @@ public actor NativeStageWindowEngine {
     /// that epoch again on admission and immediately before each authorized system write.
     public func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
                        expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
+        try await submit(input, timeoutMilliseconds: timeoutMilliseconds, expectedEpoch: expectedEpoch, guardian: nil)
+    }
+
+    func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
+                expectedEpoch: UInt64?, guardian: CornerGuardianPeer?) async throws -> NativeStageEngineReceipt {
         try Task.checkCancellation()
         let epoch = try expectedEpoch ?? qualifiedEpoch ?? currentEpoch()
         var request = Self.encode(input, timeout: timeoutMilliseconds, epoch: epoch), ticket: UInt64 = 0
-        let submitStatus = np_engine_submit(handle, &request, &ticket)
+        let submitStatus: UInt32
+        if let guardian {
+            submitStatus = np_engine_submit_guarded_corner_hide(handle, &request, guardian.pid, guardian.birth, &ticket)
+        } else {
+            submitStatus = np_engine_submit(handle, &request, &ticket)
+        }
         guard submitStatus == NP_OK else { throw NativeStageEngineError.transport(submitStatus) }
         let accepted = ticket, usedEpoch = request.epoch
         return try await withTaskCancellationHandler {

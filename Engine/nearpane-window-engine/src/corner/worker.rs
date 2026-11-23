@@ -623,6 +623,7 @@ mod tests {
             write: false,
             spaces_route: None,
             corner_input_check: false,
+            guardian: None,
         };
         let receipt = Corner::default().health(&Request::default(), &c);
         assert_eq!((receipt.status, receipt.flags), (c::UNKNOWN, 0));
@@ -693,6 +694,7 @@ mod tests {
             write: true,
             spaces_route: None,
             corner_input_check: false,
+            guardian: None,
         };
         let r = Request {
             pid: 9,

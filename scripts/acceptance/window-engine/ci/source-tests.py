@@ -115,6 +115,8 @@ def main():
         "product-guardian-build",
         "guardian-exit-build",
         "guardian-exit",
+        "guardian-peer-build",
+        "guardian-peer",
         "corner-witness-build",
         "corner-witness",
         "interactive-fixture-build",
@@ -195,6 +197,11 @@ def main():
                 "-I", CRATE / "src/corner", ACCEPTANCE / "corner/guardian-exit-test.m",
                 "-framework", "Foundation", "-framework", "Security", "-o", exit_watch]):
             run("guardian-exit", [exit_watch], lambda log: {"readback": json.loads(log)})
+        peer = work / "guardian-peer"
+        if run("guardian-peer-build", ["xcrun", "clang", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror",
+                "-I", CRATE / "src/corner", ACCEPTANCE / "corner/guardian-peer-test.m",
+                "-framework", "Foundation", "-framework", "Security", "-o", peer]):
+            run("guardian-peer", [peer], lambda log: {"readback": json.loads(log)})
         witness = work / "corner-witness"
         if run("corner-witness-build", ["xcrun", "clang", "-fobjc-arc", "-Wall", "-Wextra", "-Werror",
                 "-I", CRATE / "src/corner", ACCEPTANCE / "corner/patch-input-test.m",

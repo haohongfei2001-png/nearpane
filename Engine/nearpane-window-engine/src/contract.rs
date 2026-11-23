@@ -5,6 +5,10 @@ use std::sync::{
 };
 use std::time::Instant;
 
+#[path = "corner/guardian/peer.rs"]
+mod guardian_peer;
+pub(crate) use guardian_peer::GuardianPeer;
+
 pub const ABI: u32 = 1;
 pub const CORNER: u32 = 1;
 pub const SPACES: u32 = 2;
@@ -170,6 +174,7 @@ pub struct Control {
     pub(crate) write: bool,
     pub(crate) spaces_route: Option<u32>,
     pub(crate) corner_input_check: bool,
+    pub(crate) guardian: Option<Arc<GuardianPeer>>,
 }
 impl Control {
     pub fn guard(&self) -> Result<(), u32> {
@@ -184,7 +189,7 @@ impl Control {
         }
     }
     pub fn may_write(&self) -> bool {
-        self.write && self.guard().is_ok()
+        self.write && self.guard().is_ok() && self.guardian.as_ref().is_none_or(|peer| peer.live())
     }
     pub fn approved_spaces_route(&self) -> Option<u32> {
         self.spaces_route.filter(|_| self.may_write())

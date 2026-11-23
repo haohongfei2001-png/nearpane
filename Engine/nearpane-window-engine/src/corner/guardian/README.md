@@ -4,6 +4,8 @@ The signed development Host can create a Guardian only for a reviewed Corner bac
 
 ## Packaged helper
 
+For a production HIDE the Host correlates the prepare reply with the original intent, frame, epoch and direct child generation. Rust verifies the live helper's signed image against the installed helper and registers a kernel watch on that child. The AX setter rechecks the watch. An exit or exec during a possible write leaves the result unresolved. An open, idle Host pipe keeps an acknowledged Guardian waiting. Packet framing retains its deadline once the command starts.
+
 From the repository root run `scripts/acceptance/window-engine/corner/build-guardian.sh OUTPUT_EXECUTABLE PRODUCT_RUST_STATIC_ARCHIVE`. Package the result as `/Applications/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian`. Its identifier is `com.holdsnow.nearpane.alpha.corner-guardian`. Both it and `Contents/MacOS/NearpaneHost` require Developer ID team `ZB9D4T66QB` and their fixed identifiers. The helper checks running and on-disk code at their canonical paths. The product build uses the reviewed evidence list in the same Rust archive as the Host.
 
 The Swift client starts `NearpaneCornerGuardian --watch JOB_DIRECTORY` with inherited stdin and stdout. The per-intent directory is created under the coordinator's active, exclusively leased profile at `Nearpane/.corner-guardians/<hide intent UUID>`. There is no socket, PID lookup endpoint, CLI registration or background daemon. Process death loses all retained AX references.

@@ -1,6 +1,7 @@
 // Isolated signed helper. Its only setter restores one pre-retained ordinary window after
 // the authenticated writer's kernel exit. Cold recovery from a serialized PID is impossible.
 #import "identity.h"
+#import "peer-watch.h"
 #include "protocol.h"
 #import <AppKit/AppKit.h>
 #include <fcntl.h>
@@ -49,9 +50,12 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
         if (time <= 0)
             return NO;
         struct pollfd p = {.fd = fd, .events = POLLIN};
-        if (poll(&p, 1, time) <= 0)
+        int ready = poll(&p, 1, time);
+        if (ready < 0 && errno == EINTR) continue;
+        if (ready <= 0)
             return NO;
         ssize_t got = read(fd, (char *)raw + n, length - n);
+        if (got < 0 && errno == EINTR) continue;
         if (got <= 0)
             return NO;
         n += (size_t)got;
@@ -214,6 +218,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
              journal(s, YES),
          @"committedPostimageOrIntentMissing");
 #else
+    need(ncg_wait_for_host_message(STDIN_FILENO), @"hostClosedBeforeSealOrWithdrawal");
     NSDictionary *message = productMessage();
     if ([message[@"phase"] isEqual:@"withdrawUnsubmitted"]) {
         need(withdrawalMessage(s, message), @"withdrawalIntentOrEpochChanged");

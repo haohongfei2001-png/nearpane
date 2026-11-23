@@ -202,6 +202,9 @@ impl State {
         if let Err(e) = control.guard() {
             result.status = if may_enter { UNKNOWN } else { e };
         }
+        if may_enter && control.guardian.as_ref().is_some_and(|peer| !peer.live()) {
+            result.status = UNKNOWN;
+        }
         if may_enter {
             result = self.record_write(&r, result);
         }
@@ -215,6 +218,7 @@ struct Job {
     r: Request,
     began: Instant,
     cancelled: Arc<AtomicBool>,
+    guardian: Option<Arc<GuardianPeer>>,
 }
 pub struct Session {
     tx: mpsc::SyncSender<Job>,
@@ -308,6 +312,19 @@ impl Session {
         })
     }
     pub fn submit(&self, r: Request) -> Result<u64, u32> {
+        self.enqueue(r, None)
+    }
+    pub fn submit_corner_hide(&self, r: Request, child: i32, birth: u64) -> Result<u64, u32> {
+        if !r.valid() || r.backend != CORNER || r.operation != HIDE || child <= 1 || birth == 0 {
+            return Err(INVALID);
+        }
+        if lock(&self.state).corner_hides.is_none() || r.epoch != ACQUISITION_EPOCH {
+            return Err(INCOMPATIBLE);
+        }
+        let peer = GuardianPeer::open(child, birth).ok_or(INCOMPATIBLE)?;
+        self.enqueue(r, Some(Arc::new(peer)))
+    }
+    fn enqueue(&self, r: Request, guardian: Option<Arc<GuardianPeer>>) -> Result<u64, u32> {
         if !r.valid() || r.epoch != self.epoch.load(Ordering::Acquire) {
             return Err(INVALID);
         }
@@ -340,6 +357,7 @@ impl Session {
             r,
             began,
             cancelled,
+            guardian,
         }) {
             s.tickets.remove(&id);
             return Err(match error {
@@ -434,7 +452,10 @@ fn process(
         expected: r.epoch,
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
-        write: r.writes() && (config.allows(&r) || qualified_write(qualified, &r)),
+        write: r.writes()
+            && (config.allows(&r) || qualified_write(qualified, &r))
+            && !(qualified.is_some() && r.operation == HIDE && job.guardian.is_none()),
+        guardian: job.guardian,
         spaces_route: None, // Product handles have no native Space migration route.
         corner_input_check: r.operation == HEALTH
             && r.backend == CORNER
@@ -523,6 +544,39 @@ mod tests {
             ..Default::default()
         };
         (session, rx, r)
+    }
+    #[test]
+    fn qualified_hide_without_a_guardian_never_enters_the_backend() {
+        let (session, rx, request) = idle_corner_lane();
+        assert_eq!(session.submit_corner_hide(request, 0, 1), Err(INVALID));
+        assert_eq!(session.submit_corner_hide(request, 42, 0), Err(INVALID));
+        assert_eq!(
+            session.submit_corner_hide(request, std::process::id() as i32, 1),
+            Err(INCOMPATIBLE)
+        );
+        let id = session.submit(request).unwrap();
+        let read_only = Config {
+            size: 48,
+            version: ABI,
+            mode: 0,
+            process_count: 0,
+            processes: [Process::default(); 2],
+        };
+        let grant = Some(crate::Grant {
+            backend: CORNER,
+            evidence: [1; 16],
+        });
+        process(
+            &read_only,
+            grant,
+            &session.state,
+            &session.epoch,
+            &mut Backends::new(),
+            rx.recv().unwrap(),
+        );
+        assert_eq!(session.poll(id).unwrap().status, UNSUPPORTED);
+        let state = lock(&session.state);
+        assert!(state.owner.is_none() && state.unresolved.is_empty());
     }
     #[test]
     fn withdrawal_and_ticket_admission_have_one_winner() {
@@ -844,6 +898,7 @@ mod tests {
             write: true,
             spaces_route: None,
             corner_input_check: false,
+            guardian: None,
         };
         let visible = Outcome {
             status: PASS,

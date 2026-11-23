@@ -54,7 +54,9 @@ import NearpaneCore
         guard operation != 5 || restoring else { throw StageSwitchError.ownership }
         let epoch = try commandEpoch(owner, restoring: restoring)
         let command = request(operation,owner:owner,c)
-        let receipt = try await engine.submit(command, expectedEpoch: epoch)
+        if operation == 6 { try guardian.checkLiveOwners() }
+        let peer = operation == 3 ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
+        let receipt = try await engine.submit(command, expectedEpoch: epoch, guardian: peer)
         if c.action == .hide, operation == 3 || operation == 2 { try guardian.observe(command,receipt:receipt) }
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
         return .init(status:receipt.status,flags:receipt.flags,intent:receipt.intent,nativeID:receipt.nativeID,frame:receipt.frame)
@@ -69,6 +71,7 @@ import NearpaneCore
     }
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
         let epoch = try commandEpoch(owner)
+        try guardian.checkLiveOwners()
         let r = try await engine.submit(.init(backend:UInt32(NP_CORNER),operation:6,intent:intent), expectedEpoch: epoch)
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
         return .init(status:r.status,flags:r.flags,intent:r.intent,nativeID:r.nativeID,frame:r.frame)

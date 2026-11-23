@@ -622,3 +622,22 @@ int np_corner_same_window(const NCMember *m, void *retained) {
 
 #include "host_scope.inc"
 #include "guardian/observe.inc"
+#include "guardian/peer-watch.h"
+
+int np_corner_open_guardian_peer(pid_t child, uint64_t generation) {
+    @autoreleasepool {
+        int queue = ncg_open_child_watch(child, generation);
+        if (queue < 0) return -1;
+        NSString *path = @"/Applications/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian";
+        NSString *rule = @"anchor apple generic and identifier \"com.holdsnow.nearpane.alpha.corner-guardian\" and "
+            @"certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists "
+            @"and certificate leaf[subject.OU] = \"ZB9D4T66QB\"";
+        if (ncg_rule_hash(child, path, rule).length && ncg_child_watch_live(queue, child, generation)) return queue;
+        close(queue);
+        return -1;
+    }
+}
+
+bool np_corner_guardian_peer_live(int queue, pid_t child, uint64_t generation) {
+    return ncg_child_watch_live(queue, child, generation);
+}
