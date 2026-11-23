@@ -1,0 +1,95 @@
+{
+  "keychainServiceMetadata": {
+    "allowedAuthenticationUI": false,
+    "appleService": "com.apple.gke.notary.tool",
+    "requestedSecretData": false,
+    "rows": [
+      {
+        "matchedField": "service",
+        "matchingToolItems": 0,
+        "metadataNamingNearpane": 0,
+        "osStatus": -25300,
+        "store": "defaultSearchList"
+      },
+      {
+        "matchedField": "label",
+        "matchingToolItems": 0,
+        "metadataNamingNearpane": 0,
+        "osStatus": -25300,
+        "store": "defaultSearchList"
+      },
+      {
+        "matchedField": "service",
+        "matchingToolItems": 0,
+        "metadataNamingNearpane": 0,
+        "osStatus": -25300,
+        "store": "dataProtectionIncludingSynchronized"
+      },
+      {
+        "matchedField": "label",
+        "matchingToolItems": 0,
+        "metadataNamingNearpane": 0,
+        "osStatus": -25300,
+        "store": "dataProtectionIncludingSynchronized"
+      }
+    ]
+  },
+  "projectDiscovery": {
+    "observedUTC": "2026-11-23T05:28:43.481208+00:00",
+    "projectProfileVariableNamesPresent": [],
+    "loginProfileVariableNamesPresent": [],
+    "credentialVariableNamesPresent": [],
+    "standardPrivateKeyFilenameCounts": {
+      ".appstoreconnect/private_keys": 0,
+      ".private_keys": 0,
+      "private_keys": 0
+    },
+    "repoVisibleNotarySecretNameCount": 0,
+    "repoSecretMetadataQueryExit": 0,
+    "secretBytesRequested": false
+  },
+  "repositoryMetadata": {
+    "utc": "2026-11-23T05:36:38.445423+00:00",
+    "environmentsQueryExit": 0,
+    "environmentCount": 1,
+    "repoVariables": {
+      "queryExit": 0,
+      "matchingNames": 0
+    },
+    "environments": [
+      {
+        "secrets": {
+          "queryExit": 0,
+          "matchingNames": 0
+        },
+        "variables": {
+          "queryExit": 0,
+          "matchingNames": 0
+        }
+      }
+    ],
+    "returnedFields": "names only, retained as counts"
+  },
+  "profileVerification": {
+    "utc": "2026-11-23T05:35:30.757157+00:00",
+    "selectedProductAlias": "Nearpane-Notary",
+    "numberOfReleaseTrees": 3,
+    "shellStartupFilesCheckedForProfileDeclarations": 1,
+    "otherAliasCount": 0,
+    "appleNotarytoolReadOnlyProbes": [
+      {
+        "source": [
+          "selectedForNearpane"
+        ],
+        "isSelectedProductAlias": true,
+        "exit": 69,
+        "status": "PROFILE_NOT_FOUND",
+        "appleDiagnostic": "No Keychain password item found for profile"
+      }
+    ],
+    "storedSecretBytes": 0,
+    "uploadedArchives": 0,
+    "disclosedSubmissionHistory": false
+  },
+  "scope": "Active local project, Apple generic notary service in the default keychain search list and data-protection store, conventional development configuration, and names visible in the Nearpane repository. Undisclosed custom profiles and key locations are unverified."
+}
