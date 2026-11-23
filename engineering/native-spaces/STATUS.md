@@ -2,6 +2,8 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+**屏内真实归位 PASS。** 在 26A428 / ARM64 / SIP 开启的实体机上，源码 `d621e0f` 的隔离 Host 15712 正常退出，Guardian 15739 在内核退出与原管道 EOF 后执行一次受保护的 AX 归位。签名夹具窗口 82959 从 x=649 回到 x=625，y=407、尺寸 220×143。AX、WindowServer 和窗口所属应用读回一致，原生桌面仍为 4。夹具、Guardian 和临时资料已清理，日常 Host、权限、配置和旧恢复日志前后一致。该窗平移期间一直在屏内；角落画面遮挡、实际输入隔离、异常中断恢复和整组切换仍为 **NOT_RUN**。[实机与原始读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [退出和清理](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/cleanup.json)
+
 独立签名的验收观察器在 26A428 上读取到自身录屏授权。该次读取发生在枚举窗口前，采集帧数为零。隔离包新增一次限定在普通显示区域内的恢复入口，签名夹具自行将一扇后台测试窗平移 24 点，Guardian 仅可在确证父进程退出后将该窗归位。原只读协议和发行包均没有这项写入入口。[观察器本机授权](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visual-observer.json)
 
 `19505ea` 已加固真实窗口的写前交接。Guardian 在首次移窗前持久记录自己和 Host 的进程出生代、目标窗口、原始几何和桌面归属。Host 提交前复读该记录。恢复时按显示器 UUID 核对完整拓扑，跨屏残条和显示器布局变化会中止写入。隔离回归通过，实体多屏和停放后实际恢复仍待验收。正在运行的日常 `bec6cb2` 仅提供权限和预览统计，缺少可认证的一次性画面观察入口。[分项收据与上游来源核对](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json) · [原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation-logs.zip)

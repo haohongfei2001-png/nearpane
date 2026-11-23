@@ -1,0 +1,430 @@
+{
+  "schema": 2,
+  "scope": "visibleFixtureDisplacementAndGuardedReturn",
+  "osBuild": "26A428",
+  "observedUTC": "2026-11-23T14:28:42.819367+00:00",
+  "runnerSource": "d621e0f88dfa993896b326342e18cfe102484f32",
+  "status": "PASS",
+  "scopeWindowWrites": 1,
+  "scopeSpaceWrites": 0,
+  "scopePostedInput": 0,
+  "requestedSpacesCycle": false,
+  "requestedOwnCanary": false,
+  "requestedGuardianSurvival": false,
+  "visibleRecoveryRequested": true,
+  "internalGuardianSurvival": false,
+  "cornerReadbackRequested": false,
+  "permissionPrompts": 0,
+  "thirdPartyMembershipRoundTrip": "NOT_RUN",
+  "singleWindowHideRestore": "NOT_RUN",
+  "productionQualified": false,
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.host",
+    "CDHash": "23ac5806a58caf446c71b26ed417eb894322bdbf",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "readOnlyGuardianProtocol": 1,
+    "visibleFixtureRecoveryProtocol": 1,
+    "version": "0.2.0",
+    "build": "1",
+    "source": "d621e0f88dfa993896b326342e18cfe102484f32",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "multipleInstancesProhibited": false
+  },
+  "challenge": "430c0ebb-c4a0-4778-9357-ca5b948464cb",
+  "hostReadback": "session-host.json",
+  "hostObservationStarted": true,
+  "admissionChecks": {
+    "ordinaryDesktop": "PASS",
+    "singleDisplayConsole": "PASS",
+    "targetSystem": "PASS",
+    "hostAccessibility": "PASS",
+    "originalFocus": "PASS",
+    "quietHID": "PASS",
+    "guardianAccessibility": "PASS",
+    "guardianResponsibility": "PASS"
+  },
+  "fixture": {
+    "Identifier": "com.holdsnow.nearpane.engine-fixture.a",
+    "CDHash": "2106916da6536ed5384c7143a412f300a7dc3b57",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "fixtureSourceSHA256": "3d4c0ab0438024f04758efafe007e37559054bd4cbd18ebedee314070d06a681",
+  "fixtureLaunchRequested": true,
+  "ownerStart": {
+    "active": false,
+    "alpha": 1,
+    "birth": 1795444129151692,
+    "deadlineUptime": 503829.72899258335,
+    "ignoresMouseEvents": false,
+    "key": false,
+    "main": false,
+    "onActiveSpace": true,
+    "ordinaryWindow": true,
+    "pid": 15732,
+    "regularApplication": 1,
+    "sameFront": 1,
+    "startedUptime": 503809.72899258335,
+    "visible": true,
+    "window": 82959
+  },
+  "fixtureAdmission": "registeredSignedBackgroundWindow",
+  "ownerEnd": {
+    "active": false,
+    "alpha": 1,
+    "birth": 1795444129151692,
+    "closed": 1,
+    "deadlineUptime": 503829.72899258335,
+    "ignoresMouseEvents": false,
+    "key": false,
+    "main": false,
+    "onActiveSpace": true,
+    "ordinaryWindow": true,
+    "pid": 15732,
+    "regularApplication": 1,
+    "sameFront": 1,
+    "startedUptime": 503809.72899258335,
+    "stopSeen": true,
+    "visible": true,
+    "window": 82959
+  },
+  "launchExit": 0,
+  "ownerPreflight": {
+    "exactBundleDirectory": true,
+    "expectedBundleID": true,
+    "pid": 15732
+  },
+  "ownerSession": {
+    "background": true,
+    "regular": true,
+    "singleScreen": true
+  },
+  "ownerPublication": {
+    "first": {
+      "frame": [
+        625,
+        407,
+        220,
+        143
+      ],
+      "pid": 15732,
+      "window": 82959
+    },
+    "firstUptime": 503809.81284958334,
+    "second": {
+      "frame": [
+        625,
+        407,
+        220,
+        143
+      ],
+      "pid": 15732,
+      "window": 82959
+    },
+    "secondUptime": 503809.8596238334
+  },
+  "fixtureDisplaced": {
+    "frame": [
+      649,
+      407,
+      220,
+      143
+    ],
+    "pid": 15732,
+    "window": 82959
+  },
+  "fixtureRestored": {
+    "frame": [
+      625,
+      407,
+      220,
+      143
+    ],
+    "pid": 15732,
+    "window": 82959
+  },
+  "visibleGuardianReceipt": {
+    "challenge": "uuid-1",
+    "childBirth": 1795444130676404,
+    "childHash": "4608e555362a32d0e620fccf76c3b8a2fb64e2bf",
+    "childPID": 15739,
+    "displaced": [
+      649,
+      407,
+      220,
+      143
+    ],
+    "displacedReads": 2,
+    "display": "uuid-2",
+    "fixtureHash": "2106916da6536ed5384c7143a412f300a7dc3b57",
+    "frontBirth": 1795151346365238,
+    "frontPID": 63480,
+    "hostBirth": 1795444127090173,
+    "hostHash": "23ac5806a58caf446c71b26ed417eb894322bdbf",
+    "hostPID": 15712,
+    "issued": 1,
+    "kernelExit": true,
+    "nativeID": 4,
+    "original": [
+      625,
+      407,
+      220,
+      143
+    ],
+    "originalPipeEOF": true,
+    "parked": false,
+    "postReads": [
+      {
+        "ax": [
+          625,
+          407,
+          220,
+          143
+        ],
+        "axTrusted": 1,
+        "cg": [
+          625,
+          407,
+          220,
+          143
+        ],
+        "cgOwner": 1,
+        "generation": 1,
+        "membershipAndAXCode": 0,
+        "membershipAttempted": 1,
+        "onScreen": 1,
+        "sameRetained": 1,
+        "signature": 1,
+        "uptimeNS": 503810751090916
+      },
+      {
+        "ax": [
+          625,
+          407,
+          220,
+          143
+        ],
+        "axTrusted": 1,
+        "cg": [
+          625,
+          407,
+          220,
+          143
+        ],
+        "cgOwner": 1,
+        "generation": 1,
+        "membershipAndAXCode": 0,
+        "membershipAttempted": 1,
+        "onScreen": 1,
+        "sameRetained": 1,
+        "signature": 1,
+        "uptimeNS": 503810793502958
+      }
+    ],
+    "responsibleAfter": 15739,
+    "sampleCode": 0,
+    "schema": 1,
+    "scope": "visibleFixtureGeometryAcrossHostExit",
+    "scopeSpaceWrites": 0,
+    "setterCode": 0,
+    "space": "uuid-3",
+    "status": "PASS",
+    "window": {
+      "birth": 1795444129151692,
+      "number": 82959,
+      "pid": 15732
+    }
+  },
+  "visibleGuardianPrepare": {
+    "challenge": "uuid-1",
+    "displaced": [
+      649,
+      407,
+      220,
+      143
+    ],
+    "display": "uuid-2",
+    "fixtureHash": "2106916da6536ed5384c7143a412f300a7dc3b57",
+    "guardianBirth": 1795444130676404,
+    "guardianHash": "4608e555362a32d0e620fccf76c3b8a2fb64e2bf",
+    "guardianPID": 15739,
+    "hostBirth": 1795444127090173,
+    "hostHash": "23ac5806a58caf446c71b26ed417eb894322bdbf",
+    "hostPID": 15712,
+    "nativeID": 4,
+    "original": [
+      625,
+      407,
+      220,
+      143
+    ],
+    "schema": 1,
+    "scope": "restoreOneVisibleSignedFixture",
+    "space": "uuid-3",
+    "window": {
+      "birth": 1795444129151692,
+      "number": 82959,
+      "pid": 15732
+    }
+  },
+  "ownedProcessExited": true,
+  "ownerClosed": true,
+  "hostLaunchRequested": true,
+  "preexistingSameID": [],
+  "postExitGuardian": {
+    "status": "PASS",
+    "readerExited": true,
+    "raw": {
+      "challenge": "uuid-1",
+      "childBirth": 1795444130676404,
+      "childHash": "4608e555362a32d0e620fccf76c3b8a2fb64e2bf",
+      "childPID": 15739,
+      "displaced": [
+        649,
+        407,
+        220,
+        143
+      ],
+      "displacedReads": 2,
+      "display": "uuid-2",
+      "fixtureHash": "2106916da6536ed5384c7143a412f300a7dc3b57",
+      "frontBirth": 1795151346365238,
+      "frontPID": 63480,
+      "hostBirth": 1795444127090173,
+      "hostHash": "23ac5806a58caf446c71b26ed417eb894322bdbf",
+      "hostPID": 15712,
+      "issued": 1,
+      "kernelExit": true,
+      "nativeID": 4,
+      "original": [
+        625,
+        407,
+        220,
+        143
+      ],
+      "originalPipeEOF": true,
+      "parked": false,
+      "postReads": [
+        {
+          "ax": [
+            625,
+            407,
+            220,
+            143
+          ],
+          "axTrusted": 1,
+          "cg": [
+            625,
+            407,
+            220,
+            143
+          ],
+          "cgOwner": 1,
+          "generation": 1,
+          "membershipAndAXCode": 0,
+          "membershipAttempted": 1,
+          "onScreen": 1,
+          "sameRetained": 1,
+          "signature": 1,
+          "uptimeNS": 503810751090916
+        },
+        {
+          "ax": [
+            625,
+            407,
+            220,
+            143
+          ],
+          "axTrusted": 1,
+          "cg": [
+            625,
+            407,
+            220,
+            143
+          ],
+          "cgOwner": 1,
+          "generation": 1,
+          "membershipAndAXCode": 0,
+          "membershipAttempted": 1,
+          "onScreen": 1,
+          "sameRetained": 1,
+          "signature": 1,
+          "uptimeNS": 503810793502958
+        }
+      ],
+      "responsibleAfter": 15739,
+      "sampleCode": 0,
+      "schema": 1,
+      "scope": "visibleFixtureGeometryAcrossHostExit",
+      "scopeSpaceWrites": 0,
+      "setterCode": 0,
+      "space": "uuid-3",
+      "status": "PASS",
+      "window": {
+        "birth": 1795444129151692,
+        "number": 82959,
+        "pid": 15732
+      }
+    },
+    "receiptSHA256": "e88f4c58f683ca78dcaf18db7ea7f92b3f70af47fc8181b22812454b22618563",
+    "hostExit": {
+      "status": "PASS",
+      "sameIdentifierRunning": 0,
+      "pid": 15712,
+      "birth": 1795444127090173,
+      "kernelTermination": {
+        "pid": 15712,
+        "fflags": 2214592512,
+        "waitStatus": 0,
+        "status": "PASS"
+      }
+    }
+  },
+  "rawHostSHA256": "3ef7c703b9f566cb3d510ffc7cce6d244f1c9d7a009dfeee1babb1ab2df49f3e",
+  "hostExit": {
+    "status": "PASS",
+    "sameIdentifierRunning": 0,
+    "pid": 15712,
+    "birth": 1795444127090173
+  },
+  "subject": {
+    "atDailyInstallPath": false,
+    "birth": 1795444127090173,
+    "build": "1",
+    "cdhash": "23ac5806a58caf446c71b26ed417eb894322bdbf",
+    "identifier": "com.holdsnow.nearpane.host",
+    "kernelExecutable": "/tmp/nearpane-stage-engine-dev.7kZkAx7o/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 15712,
+    "source": "d621e0f88dfa993896b326342e18cfe102484f32",
+    "sourceState": "clean",
+    "teamIdentifier": "ZB9D4T66QB",
+    "version": "0.2.0"
+  },
+  "permissions": {
+    "accessibility": true,
+    "listenEvent": true,
+    "postEvent": true,
+    "screenCapture": false
+  },
+  "hostPermissionPhase": "registered",
+  "reason": "visibleFixtureAfterHostExitAndIndependentOwnerRead",
+  "membershipStatus": "PASS",
+  "guardianReadback": {
+    "status": "BLOCKED",
+    "reason": "independentGuardianGrantUnconfirmed",
+    "childExit": null,
+    "park": "NOT_RUN",
+    "mayPark": false,
+    "crashRecovery": "NOT_RUN",
+    "temporaryRetention": "ORIGINAL_OBJECT_READ_DURING_PARENT_GRANT"
+  },
+  "fixtureSelfMoves": 1,
+  "probeResources": {
+    "candidateExit": "PASS",
+    "registeredWindowExit": "PASS",
+    "backendCleanup": "NOT_RUN",
+    "clear": true
+  },
+  "probeResourcesClear": true,
+  "safeToRollback": true
+}
