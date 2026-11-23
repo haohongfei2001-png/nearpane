@@ -2,9 +2,11 @@
 //! worker owns all AX/WindowServer queries. A lost observation revokes this tap generation.
 use super::geometry::Point;
 use super::sliver::{Button, Press, PressGate, Seen, Shield};
+use std::cell::RefCell;
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, Receiver, SyncSender};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -75,7 +77,6 @@ fn press_decision(
 }
 
 struct Shared {
-    current: Mutex<Option<Publication>>,
     on: AtomicBool,
     stop: AtomicBool,
     busy: AtomicBool,
@@ -94,10 +95,23 @@ impl Shared {
 }
 struct TapThread {
     shared: Arc<Shared>,
+    current: Arc<Publication>,
+    updates: Receiver<Update>,
     gates: [PressGate; 32],
+}
+type Update = (Arc<Publication>, SyncSender<()>);
+impl TapThread {
+    fn install_pending(&mut self) {
+        if let Ok((publication, installed)) = self.updates.try_recv() {
+            self.current = publication;
+            let _ = installed.try_send(());
+        }
+    }
 }
 pub(super) struct Tap {
     shared: Arc<Shared>,
+    current: RefCell<Arc<Publication>>,
+    updates: SyncSender<Update>,
 }
 type Decide = extern "C" fn(*mut c_void, u32, f64, f64, i64, i64, i64) -> i32;
 type State = extern "C" fn(*mut c_void) -> u32;
@@ -138,6 +152,7 @@ extern "C" fn decide(
 ) -> i32 {
     // The callback, controls and health notifications all run on this port's single CFRunLoop.
     let t = unsafe { &mut *raw.cast::<TapThread>() };
+    t.install_pending();
     let Some((slot, e)) = event(kind, number) else {
         t.shared.revoke(UNAVAILABLE);
         return 0;
@@ -148,11 +163,7 @@ extern "C" fn decide(
         if !s.on.load(Ordering::Acquire) || (lost != 0 && !can_protect_existing(lost)) {
             return false;
         }
-        let Ok(p) = s.current.try_lock() else {
-            s.revoke(CHANGING);
-            return false;
-        };
-        let Some(p) = p.as_ref() else { return false };
+        let p = &t.current;
         let at = Point::new(x, y);
         let now = Instant::now();
         if lost != 0 {
@@ -177,7 +188,9 @@ extern "C" fn decide(
     swallow as i32
 }
 extern "C" fn state(raw: *mut c_void) -> u32 {
-    let s = unsafe { &(*raw.cast::<TapThread>()).shared };
+    let thread = unsafe { &mut *raw.cast::<TapThread>() };
+    thread.install_pending();
+    let s = &thread.shared;
     let reason = s.lost.load(Ordering::Acquire);
     let wanted = s.on.load(Ordering::Acquire) && (reason == 0 || can_protect_existing(reason));
     wanted as u32
@@ -202,30 +215,32 @@ extern "C" fn status(raw: *mut c_void, code: u32) {
     }
 }
 impl Tap {
-    pub fn start(initial: Publication) -> Result<Self, u32> {
+    fn pair(initial: Publication) -> (Self, TapThread) {
+        let (updates, incoming) = mpsc::sync_channel(1);
+        let initial = Arc::new(initial);
         let shared = Arc::new(Shared {
-            current: Mutex::new(Some(initial)),
             on: AtomicBool::new(true),
             stop: AtomicBool::new(false),
             busy: AtomicBool::new(false),
             ready: AtomicBool::new(false),
             lost: AtomicU32::new(0),
         });
-        let worker = Arc::clone(&shared);
+        let thread = TapThread {
+            shared: shared.clone(), current: initial.clone(), updates: incoming, gates: [PressGate::new(); 32],
+        };
+        (Self { shared, current: RefCell::new(initial), updates }, thread)
+    }
+    pub fn start(initial: Publication) -> Result<Self, u32> {
+        let (tap, mut local) = Self::pair(initial);
         thread::Builder::new()
             .name("nearpane.corner-input".into())
             .spawn(move || {
-                let mut local = TapThread {
-                    shared: worker,
-                    gates: [PressGate::new(); 32],
-                };
                 unsafe {
                     np_corner_tap_run((&mut local as *mut TapThread).cast(), decide, state, status)
                 };
                 local.shared.ready.store(false, Ordering::Release);
             })
             .map_err(|_| UNAVAILABLE)?;
-        let tap = Self { shared };
         let end = Instant::now() + Duration::from_millis(600);
         while !tap.shared.ready.load(Ordering::Acquire)
             && tap.shared.lost.load(Ordering::Acquire) == 0
@@ -236,6 +251,20 @@ impl Tap {
         tap.health()?;
         Ok(tap)
     }
+    fn install(&self, publication: Publication) -> Result<(), u32> {
+        // A single worker publishes. Only the tap's own run loop can acknowledge this
+        // snapshot. The callback can always finish a gesture using its installed snapshot.
+        let publication = Arc::new(publication);
+        let (installed, receipt) = mpsc::sync_channel(1);
+        if self.updates.try_send((publication.clone(), installed)).is_err()
+            || receipt.recv_timeout(Duration::from_millis(100)).is_err()
+        {
+            self.shared.revoke(CHANGING);
+            return Err(CHANGING);
+        }
+        self.current.replace(publication);
+        Ok(())
+    }
     pub fn publish(&self, new: Publication) -> Result<(), u32> {
         // A replacement cannot retroactively cover a gap in native Z-order observations.
         if let Err(reason) = self.health() {
@@ -243,17 +272,13 @@ impl Tap {
                 && !new.changing
                 && new.seen.fresh(Instant::now()).is_some()
             {
-                let mut current = self.shared.current.lock().map_err(|_| UNAVAILABLE)?;
-                if current
-                    .as_ref()
-                    .is_some_and(|old| new.shield.parked.is_subset(&old.shield.parked))
-                {
-                    *current = Some(new);
+                if new.shield.parked.is_subset(&self.current.borrow().shield.parked) {
+                    self.install(new)?;
                 }
             }
             return Err(reason);
         }
-        *self.shared.current.lock().map_err(|_| UNAVAILABLE)? = Some(new);
+        self.install(new)?;
         self.health()
     }
     pub fn revoke(&self, why: u32) {
@@ -267,11 +292,7 @@ impl Tap {
         if !self.shared.ready.load(Ordering::Acquire) {
             return Err(UNAVAILABLE);
         }
-        let p = self.shared.current.lock().map_err(|_| UNAVAILABLE)?;
-        if p.as_ref()
-            .and_then(|p| p.seen.fresh(Instant::now()))
-            .is_none()
-        {
+        if self.current.borrow().seen.fresh(Instant::now()).is_none() {
             self.shared.revoke(STALE);
             return Err(STALE);
         }
@@ -392,18 +413,9 @@ mod tests {
             p.seen
                 .windows
                 .insert(if peer_in_front { 0 } else { 1 }, peer);
-            let shared = Arc::new(Shared {
-                current: Mutex::new(Some(p)),
-                on: AtomicBool::new(true),
-                stop: AtomicBool::new(false),
-                busy: AtomicBool::new(false),
-                ready: AtomicBool::new(true),
-                lost: AtomicU32::new(0),
-            });
-            let mut handler = TapThread {
-                shared: shared.clone(),
-                gates: [PressGate::new(); 32],
-            };
+            let (port, mut handler) = Tap::pair(p);
+            let shared = handler.shared.clone();
+            shared.ready.store(true, Ordering::Release);
             let raw = (&mut handler as *mut TapThread).cast();
             assert_eq!(decide(raw, 1, 95., 97., 0, actual_id, actual_pid), expected);
             assert_eq!(shared.lost.load(Ordering::Acquire), RECEIVER_DISAGREES);
@@ -418,27 +430,20 @@ mod tests {
             assert_eq!(decide(raw, 2, 1., 1., 0, 0, 0), 1);
             assert_eq!(decide(raw, 1, 95., 97., 0, 10, 45), 0);
             assert_eq!(decide(raw, 2, 95., 97., 0, 10, 45), 0);
-            let port = Tap {
-                shared: shared.clone(),
-            };
-            assert_eq!(
-                port.publish(publication(Instant::now(), false)),
-                Err(RECEIVER_DISAGREES)
-            );
+            thread::scope(|scope| {
+                let receiver = &mut handler;
+                scope.spawn(move || {
+                    let thread = receiver;
+                    let (next, ack) = thread.updates.recv_timeout(Duration::from_secs(1)).unwrap();
+                    thread.current = next;
+                    ack.try_send(()).unwrap();
+                });
+                assert_eq!(port.publish(publication(Instant::now(), false)), Err(RECEIVER_DISAGREES));
+            });
             let mut outsider = publication(Instant::now(), false);
             outsider.shield.parked.insert(11);
             assert_eq!(port.publish(outsider), Err(RECEIVER_DISAGREES));
-            assert!(
-                !shared
-                    .current
-                    .lock()
-                    .unwrap()
-                    .as_ref()
-                    .unwrap()
-                    .shield
-                    .parked
-                    .contains(&11)
-            );
+            assert!(!port.current.borrow().shield.parked.contains(&11));
             status(raw, 4);
             assert_eq!(state(raw) & 1, 0);
             assert_eq!(port.health(), Err(SECURE_INPUT));
@@ -472,18 +477,9 @@ mod tests {
     #[test]
     fn forced_port_disable_discards_the_button_latch_and_cannot_be_healed_by_republication() {
         for (code, reason) in [(2, UNAVAILABLE), (3, TIMED_OUT), (4, SECURE_INPUT)] {
-            let shared = Arc::new(Shared {
-                current: Mutex::new(Some(publication(Instant::now(), false))),
-                on: AtomicBool::new(true),
-                stop: AtomicBool::new(false),
-                busy: AtomicBool::new(false),
-                ready: AtomicBool::new(true),
-                lost: AtomicU32::new(0),
-            });
-            let mut handler = TapThread {
-                shared: shared.clone(),
-                gates: [PressGate::new(); 32],
-            };
+            let (port, mut handler) = Tap::pair(publication(Instant::now(), false));
+            let shared = handler.shared.clone();
+            shared.ready.store(true, Ordering::Release);
             let raw = (&mut handler as *mut TapThread).cast();
             assert_eq!(decide(raw, 1, 95., 97., 0, 0, 0), 1);
             assert!(shared.busy.load(Ordering::Acquire));
@@ -491,10 +487,41 @@ mod tests {
             assert!(!shared.busy.load(Ordering::Acquire));
             assert_eq!(decide(raw, 6, 95., 97., 0, 0, 0), 0);
             assert_eq!(
-                Tap { shared }.publish(publication(Instant::now(), false)),
+                port.publish(publication(Instant::now(), false)),
                 Err(reason)
             );
         }
+    }
+    #[test]
+    fn publication_during_a_parked_press_preserves_its_drag_and_up_and_passes_the_sibling() {
+        let (port, mut handler) = Tap::pair(publication(Instant::now(), false));
+        handler.shared.ready.store(true, Ordering::Release);
+        let raw = (&mut handler as *mut TapThread).cast();
+        assert_eq!(decide(raw, 1, 95., 97., 0, 9, 44), 1);
+        let mut next = publication(Instant::now(), false);
+        next.seen.windows.insert(0, Listed { id: 10, ..next.seen.windows[0] });
+        let (ack, received) = mpsc::sync_channel(1);
+        port.updates.try_send((Arc::new(next), ack)).unwrap();
+        assert_eq!(received.try_recv(), Err(mpsc::TryRecvError::Empty));
+        // The first subsequent event installs the new Z-order. The other button and
+        // the remainder of the already swallowed press keep independent receivers.
+        assert_eq!(decide(raw, 3, 95., 97., 1, 10, 44), 0);
+        assert_eq!(received.try_recv(), Ok(()));
+        assert_eq!(decide(raw, 6, 5., 5., 0, 10, 44), 1);
+        assert_eq!(decide(raw, 7, 95., 97., 1, 9, 44), 0);
+        assert_eq!(decide(raw, 2, 5., 5., 0, 10, 44), 1);
+        assert_eq!(decide(raw, 4, 95., 97., 1, 10, 44), 0);
+        assert_eq!(port.health(), Ok(()));
+    }
+    #[test]
+    fn missing_tap_acknowledgement_cannot_arm_a_move() {
+        let (port, _unresponsive) = Tap::pair(publication(Instant::now(), false));
+        port.shared.ready.store(true, Ordering::Release);
+        let mut next = publication(Instant::now(), true);
+        next.shield.parked.insert(11);
+        assert_eq!(port.publish(next), Err(CHANGING));
+        assert_eq!(port.health(), Err(CHANGING));
+        assert!(!port.current.borrow().shield.parked.contains(&11));
     }
     #[test]
     fn independent_additional_mouse_buttons_keep_their_own_drag_and_up() {

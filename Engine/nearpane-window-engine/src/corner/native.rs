@@ -64,7 +64,7 @@ unsafe extern "C" {
     fn np_corner_retain_window(id: *const Member) -> *mut c_void;
     fn np_corner_same_window(id: *const Member, retained: *mut c_void) -> i32;
     fn np_corner_inputs(output: *mut u32);
-    fn np_corner_input_access() -> u32;
+    fn np_corner_park_access() -> u32;
     fn np_corner_signed_fingerprint(pid: i32, birth: u64, digest: *mut u8) -> i32;
     #[cfg(feature = "isolated-fixtures")]
     fn np_is_enrolled_fixture(pid: i32, birth: u64) -> bool;
@@ -74,6 +74,7 @@ unsafe extern "C" {
         retained: *mut c_void,
         before: Rect,
         target: Rect,
+        purpose: u32,
         guard: extern "C" fn(*mut c_void) -> u32,
         context: *mut c_void,
         issued: *mut u32,
@@ -108,8 +109,8 @@ pub(super) fn inputs() -> Inputs {
     unsafe { np_corner_inputs(state.as_mut_ptr()) };
     state
 }
-pub(super) fn input_access() -> Result<(), u32> {
-    let code = unsafe { np_corner_input_access() };
+pub(super) fn park_access() -> Result<(), u32> {
+    let code = unsafe { np_corner_park_access() };
     if code == 0 { Ok(()) } else { Err(code) }
 }
 fn fingerprint(member: &Member) -> Option<[u8; 32]> {
@@ -202,6 +203,11 @@ impl Drop for Reference {
     }
 }
 
+pub(super) enum Move<'a> {
+    Park(&'a super::tap::Tap),
+    Restore,
+}
+
 pub(super) fn position(
     id: &Member,
     reference: &Reference,
@@ -209,7 +215,7 @@ pub(super) fn position(
     target: Rect,
     control: &Control,
     input: Inputs,
-    tap: Option<&super::tap::Tap>,
+    purpose: Move<'_>,
 ) -> (u32, bool) {
     struct Grant<'a> {
         control: &'a Control,
@@ -227,6 +233,10 @@ pub(super) fn position(
             && grant.tap.is_none_or(|tap| tap.health().is_ok())
             && inputs() == grant.input) as u32
     }
+    let (op, tap) = match purpose {
+        Move::Park(tap) => (1, Some(tap)),
+        Move::Restore => (2, None),
+    };
     let mut context = Grant {
         control,
         id,
@@ -241,6 +251,7 @@ pub(super) fn position(
             reference.0.as_ptr(),
             before,
             target,
+            op,
             admitted,
             (&mut context as *mut Grant).cast(),
             &mut issued,

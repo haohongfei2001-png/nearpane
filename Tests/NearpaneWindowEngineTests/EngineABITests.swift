@@ -38,6 +38,22 @@ struct EngineABITests {
         #expect(await engine.close())
     }
 
+    @Test func cornerParkPreflightObservesOnlyTheCallingProcess() async throws {
+        let engine = try #require(NativeStageWindowEngine())
+        let intent = UUID()
+        let access = try await engine.submit(.init(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_PARK_ACCESS), intent: intent))
+        #expect(access.intent == intent && access.flags == 0 && access.owned == 0 && access.nativeID == 0)
+        #expect((access.status == NP_PASS && access.detail == 0) || (access.status == NP_UNSUPPORTED && access.detail != 0))
+        for request in [
+            NativeStageEngineRequest(backend: UInt32(NP_SPACES), operation: UInt32(NP_CORNER_PARK_ACCESS), intent: intent),
+            NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_PARK_ACCESS), intent: intent,
+                                     window: .init(pid: 42, birth: 73, number: 93))
+        ] {
+            await #expect(throws: NativeStageEngineError.self) { try await engine.submit(request) }
+        }
+        #expect(await engine.close())
+    }
+
     @Test func delayedSubmissionCannotAdoptTheEpochThatReplacedItsAuthorization() async throws {
         let engine = try #require(NativeStageWindowEngine())
         let approved = try engine.currentEpoch()

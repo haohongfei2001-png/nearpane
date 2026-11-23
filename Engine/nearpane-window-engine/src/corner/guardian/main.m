@@ -322,7 +322,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 #endif
     need(authorize(s), @"restoreFactsIncomplete");
     uint32_t issued = 0;
-    uint32_t why = np_corner_position(&s->member, s->held, parked, convert(r.frame), authorize, s, &issued);
+    uint32_t why = np_corner_position(&s->member, s->held, parked, convert(r.frame), NC_RESTORE, authorize, s, &issued);
     s->facts.unspent = false;
     receipt[@"issued"] = @(issued);
     receipt[@"setterResult"] = @(why);

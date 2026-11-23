@@ -9,6 +9,7 @@
 #import <math.h>
 #import <unistd.h>
 #import "macos.h"
+#import "../../include/nearpane_window_engine.h"
 #import "mouse_event.h"
 #define NP_CORNER_WITNESS_IMPL 1
 #import "gesture_witness.h"
@@ -17,7 +18,7 @@
 
 enum {
     OK = 0,
-    NO_AX = 1,
+    NO_AX = NP_CORNER_MISSING_AX,
     LOST_PROCESS = 2,
     NO_WINDOW = 3,
     AX_SCOPE = 4,
@@ -35,7 +36,9 @@ enum {
     SETTER = 16,
     CHANGED_FRAME = 17,
     BUTTON_HELD = 18,
-    NO_LISTEN = 19
+    NO_LISTEN = NP_CORNER_MISSING_LISTEN,
+    NO_POST = NP_CORNER_MISSING_POST,
+    NO_CAPTURE = NP_CORNER_MISSING_CAPTURE
 };
 static NCFrame frame(CGRect r) { return (NCFrame){r.origin.x, r.origin.y, r.size.width, r.size.height}; }
 static BOOL valid(NCFrame f) {
@@ -130,10 +133,11 @@ void np_corner_inputs(uint32_t counters[13]) {
         counters[n] = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, e[n]);
 }
 int np_corner_secure_input(void) { return IsSecureEventInputEnabled() != 0; }
-uint32_t np_corner_input_access(void) {
-    if (!AXIsProcessTrusted() || !CGPreflightPostEventAccess())
-        return NO_AX;
+uint32_t np_corner_park_access(void) {
+    if (!AXIsProcessTrusted()) return NO_AX;
     if (!CGPreflightListenEventAccess()) return NO_LISTEN;
+    if (!CGPreflightPostEventAccess()) return NO_POST;
+    if (!CGPreflightScreenCaptureAccess()) return NO_CAPTURE;
     if (np_corner_secure_input()) return SECURE;
     return np_stage_mouse_held() ? BUTTON_HELD : OK;
 }
@@ -480,11 +484,12 @@ uint32_t np_corner_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NC
         return OK;
     }
 }
-uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, NCFrame desired, NCGuard allow,
+uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, NCFrame desired, uint32_t purpose, NCGuard allow,
                             void *context, uint32_t *issued) {
     @autoreleasepool {
         *issued = 0;
-        if (!valid(desired) || !same((NCFrame){before.x, before.y, desired.w, desired.h}, before))
+        if ((purpose != NC_PARK && purpose != NC_RESTORE) || !valid(desired) ||
+            !same((NCFrame){before.x, before.y, desired.w, desired.h}, before))
             return CHANGED_FRAME;
         NCDock dock = {0};
         uint32_t why = dockAndOwnership(&dock);
@@ -510,6 +515,12 @@ uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, N
         if (!allow(context)) {
             CFRelease(value);
             return NEW_INTENT;
+        }
+        // A guarded restore remains possible after capture is revoked. A new park
+        // checks the actual execution principal immediately before issuing the setter.
+        if (purpose == NC_PARK && (why = np_corner_park_access()) != OK) {
+            CFRelease(value);
+            return why;
         }
         if (np_stage_mouse_held()) {
             CFRelease(value);

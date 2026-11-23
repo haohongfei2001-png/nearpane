@@ -243,7 +243,7 @@ impl Corner {
                 return Err(NEED_INDEPENDENT_READ);
             }
             let id = health_member(r)?;
-            native::input_access()?;
+            native::park_access()?;
             let input = native::inputs();
             let layout = native::displays()?;
             let retained = id
@@ -287,7 +287,7 @@ impl Corner {
             if initial_dock != second.shield.dock || layout != native::displays()? {
                 return Err(USER_CHANGED);
             }
-            native::input_access()?;
+            native::park_access()?;
             if input != native::inputs() || !control.may_check_corner_input() {
                 return Err(USER_CHANGED);
             }
@@ -357,6 +357,9 @@ impl Corner {
     }
     fn hide(&mut self, r: &Request, control: &Control) -> Outcome {
         let input = native::inputs();
+        if let Err(why) = native::park_access() {
+            return self.result(c::UNSUPPORTED, why, None, false);
+        }
         if self.owned.contains_key(&r.window) || self.owned.len() >= 32 {
             return self.result(c::FAIL, IDENTITY, None, true);
         }
@@ -399,6 +402,10 @@ impl Corner {
             let _ = self.refresh(false);
             return self.result(c::UNKNOWN, e, None, false);
         }
+        let Some(tap) = self.tap.as_ref() else {
+            self.owned.remove(&id.window);
+            return self.result(c::UNKNOWN, tap::UNAVAILABLE, None, false);
+        };
         let o = &self.owned[&id.window];
         let (reason, issued) = native::position(
             &id,
@@ -407,7 +414,7 @@ impl Corner {
             target,
             control,
             input,
-            self.tap.as_ref(),
+            native::Move::Park(tap),
         );
         if !issued {
             self.owned.remove(&id.window);
@@ -484,7 +491,7 @@ impl Corner {
                     let _ = t.publish(Publication { changing: true, ..p });
                 }
             }
-            let (why, issued) = native::position(&id, &o.reference, s.cg, o.original, control, input, None);
+            let (why, issued) = native::position(&id, &o.reference, s.cg, o.original, control, input, native::Move::Restore);
             if !issued {
                 return self.result(control.guard().err().unwrap_or(c::UNKNOWN), why, None, true);
             }
@@ -541,6 +548,10 @@ impl WindowEngine for Corner {
             return Outcome::new(c::FAIL);
         }
         match r.operation {
+            c::CORNER_PARK_ACCESS => match native::park_access() {
+                Ok(()) => self.result(c::PASS, 0, None, false),
+                Err(why) => self.result(c::UNSUPPORTED, why, None, false),
+            },
             c::PROBE => match native::displays().and_then(|_| native::zorder()) {
                 Ok(_) => self.result(c::PASS, NEED_INDEPENDENT_READ, None, false),
                 Err(e) => self.result(c::UNKNOWN, e, None, false),

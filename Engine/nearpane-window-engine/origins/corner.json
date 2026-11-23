@@ -63,13 +63,13 @@
     "local": "src/corner/tap.rs",
     "upstream": "src/platform/tap_switch.rs",
     "blob": "f78f57fd77470c678a5806f22ae9126320c91bfa",
-    "modifications": "Retain a swallowed gesture through its release when the shield stands down."
+    "modifications": "Retain a swallowed gesture through its release when the shield stands down. Hand immutable observations to the event run loop through a bounded channel and require its acknowledgement before allowing a position change."
   },
   {
     "local": "src/corner/macos.m",
     "upstream": "src/platform/corner/sliver_tap.rs",
     "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
-    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types. Read button, recipient window and owner fields without retaining events. Refuse position writes while a button is held."
+    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types. Read button, recipient window and owner fields without retaining events. Refuse position writes while a button is held and check the four Host grants immediately before a park."
   },
   {
     "local": "src/corner/macos.m",

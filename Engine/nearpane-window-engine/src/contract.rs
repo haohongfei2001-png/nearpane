@@ -21,6 +21,7 @@ pub const HEALTH: u32 = 6;
 pub const TRIAL: u32 = 7;
 pub const LAUNCH: u32 = 8;
 pub const CLEAN_LAUNCH: u32 = 9;
+pub const CORNER_PARK_ACCESS: u32 = 10;
 pub const PASS: u32 = 0;
 pub const FAIL: u32 = 1;
 pub const UNKNOWN: u32 = 2;
@@ -113,7 +114,7 @@ impl Request {
     }
     pub fn valid(&self) -> bool {
         if !matches!(self.backend, CORNER | SPACES)
-            || !(PROBE..=CLEAN_LAUNCH).contains(&self.operation)
+            || !(PROBE..=CORNER_PARK_ACCESS).contains(&self.operation)
             || self.intent == [0; 16]
             || self.epoch == 0
             || !(1..=10_000).contains(&self.timeout_ms)
@@ -128,8 +129,9 @@ impl Request {
         if matches!(self.operation, PROBE | HEALTH) {
             return true;
         }
-        if matches!(self.operation, LAUNCH | CLEAN_LAUNCH) {
-            return self.backend == SPACES
+        if matches!(self.operation, LAUNCH | CLEAN_LAUNCH | CORNER_PARK_ACCESS) {
+            let backend = if self.operation == CORNER_PARK_ACCESS { CORNER } else { SPACES };
+            return self.backend == backend
                 && self.flags == 0
                 && self.pid == 0
                 && self.window == 0
