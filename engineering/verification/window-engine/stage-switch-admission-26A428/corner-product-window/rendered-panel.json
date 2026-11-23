@@ -1,0 +1,129 @@
+{
+  "scope": "Rendered product Corner panel in signed QA process below ordinary application windows",
+  "status": "PASS",
+  "hardware": "arm64",
+  "build": "26A428",
+  "signedObserver": {
+    "identifier": "net.example.nearpane.p2-observer",
+    "team": "ZB9D4T66QB",
+    "cdhash": "245240bdecff1565b6178b0ae41efebec44bbc52",
+    "pid": 68761
+  },
+  "measurement": {
+    "after": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "before": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "challenge": "3D6259F9-093F-4A6F-889B-C03CE6B04C8A",
+    "closeReads": [
+      {
+        "observed": 1,
+        "onscreen": true,
+        "timeNS": 514059880078166
+      },
+      {
+        "observed": 1,
+        "onscreen": false,
+        "timeNS": 514059918360625
+      },
+      {
+        "observed": 1,
+        "onscreen": false,
+        "timeNS": 514059946713333
+      }
+    ],
+    "foregroundPID": 63480,
+    "inputEvents": 0,
+    "material": {
+      "challenge": "3D6259F9-093F-4A6F-889B-C03CE6B04C8A",
+      "elapsedNS": 304307042,
+      "flags": 0,
+      "nativeDetail": 50,
+      "nativeStatus": 0,
+      "owned": 0,
+      "shadowFootprint": [
+        1384,
+        780,
+        86,
+        176
+      ],
+      "status": "PASS",
+      "transport": 0
+    },
+    "nativeSpaceWrites": 0,
+    "observerPID": 68761,
+    "panelGone": true,
+    "panelID": 84616,
+    "productionQualified": false,
+    "sameForegroundProcess": true,
+    "samples": [
+      {
+        "endedNS": 514059049973708,
+        "startedNS": 514058396208625,
+        "status": "PASS"
+      },
+      {
+        "endedNS": 514059879479041,
+        "startedNS": 514059137082833,
+        "status": "PASS"
+      }
+    ],
+    "scope": "ownNonactivatingMaterialPanel",
+    "singleWindowIsolation": "NOT_RUN",
+    "status": "PASS",
+    "storedFrames": 0,
+    "thirdPartyWindowWrites": 0
+  },
+  "captureElapsedMS": [
+    653.765,
+    742.396
+  ],
+  "comparison": "Apple-signed wallpaper display surface and the exact owner panel in independent positive window filters. Entire 86 x 176 point region at 2x in sRGB, every pixel opaque, tolerance 1 per channel. No other surfaces or raw images retained.",
+  "priorAttempt": {
+    "status": "UNKNOWN",
+    "observerCDHash": "95ba70efa8060fb48539f88a4cf4ad763abbe2a8",
+    "windowID": 84613,
+    "reason": "single close read immediately after orderOut/close",
+    "laterIndependentReads": {
+      "reads": [
+        {
+          "timeNS": 513997144491541,
+          "windowRows": 0
+        },
+        {
+          "timeNS": 513997183646750,
+          "windowRows": 0
+        }
+      ],
+      "windowID": 84613
+    }
+  },
+  "regression": {
+    "rust": 115,
+    "corner": 74,
+    "swiftPassed": 806,
+    "swiftSkipped": 3,
+    "swiftFailures": 0,
+    "sandboxInvocation": "Observed unsupportedImage under the restricted runner and interrupted the waiting test helper. Full normal isolated AppKit run separately archived."
+  },
+  "singleThirdPartyPark": "NOT_RUN",
+  "mouseOrKeyInjection": 0,
+  "R4GroupCycle": "NOT_RUN",
+  "productionQualified": false,
+  "rawArchiveSHA256": "39562943b3d9c6b6875556043ed83e469bc5b26cb886eb782d48ca2def40d0c0",
+  "files": {
+    "first.json": "40923f03cfe7f14990a2aa23faffd795478f8f7c4c39b503f3515016acd2788e",
+    "first-exit.json": "20cd587e83ae8fb55426a8cd94f573b30b8925f7e09416f027316d0dd497f5a8",
+    "paired.json": "0f5ae62d49354766f996e063f4e54e030a1b58fd92e5a8c5e7a8dec8943a6dd4",
+    "product.xunit.xml": "d5ae0287e410a5e549ecc0cdf1cbb685c4f28ddcefaaf1ad1e782a1464feffb5",
+    "rust.log": "1ac5ad3a62e3be4d59c06c1077105d87587677c6b21b70c6f7d5e36a797ba34d",
+    "corner.log": "0e1a0618f0f462b0960e7437f66c641b133b2e62e89f458f8e4f05c0cbd69800",
+    "sandbox-early.log": "109c435191203dee67c7b95cfdd74fd40127b53b926972bcac01908e8e48f851"
+  }
+}

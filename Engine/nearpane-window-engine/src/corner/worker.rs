@@ -474,23 +474,25 @@ impl Corner {
                         if let Err(why) = self.refresh(None) {
                             return self.interrupted_park(r, why);
                         }
-                        // Image decoding and panel ordering happen on different queues.
-                        // Wait for the compositor witness, without issuing a second AX setter.
-                        let until = Instant::now() + Duration::from_millis(500);
+                        // The compositor samples the wallpaper and the actual sheet. Its pieces
+                        // can finish after 500ms on 26A428. Stop immediately on user intent or
+                        // lost input protection; waiting never issues another window write.
+                        let until = Instant::now() + Duration::from_millis(1500);
                         loop {
                             if !control.may_write() {
                                 return self.interrupted_park(r, POSTCONDITION);
                             }
-                            let read = self.read(r);
-                            if read.detail != PICTURE_UNCONFIRMED || Instant::now() >= until {
-                                return read;
-                            }
-                            std::thread::sleep(Duration::from_millis(15));
-                            if control.may_write() && self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(100)) {
+                            if self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(80)) {
                                 if let Err(why) = self.refresh(None) {
                                     return self.interrupted_park(r, why);
                                 }
                             }
+                            let picture = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
+                            let input_ready = self.tap.as_ref().is_some_and(|t| t.health().is_ok());
+                            if picture || !input_ready || self.patch.is_none() || Instant::now() >= until {
+                                return self.read(r);
+                            }
+                            std::thread::sleep(Duration::from_millis(15));
                         }
                     }
                     previous = Some(s.cg);

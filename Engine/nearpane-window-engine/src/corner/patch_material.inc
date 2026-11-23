@@ -59,14 +59,39 @@ static NSArray *stillWallpaperWindow(CGRect frame) {
     return found ? @[ @(pid), @(bsd.pbi_start_tvsec * 1000000ULL + bsd.pbi_start_tvusec), found ] : nil;
 }
 
+// The positive window list and exact display-relative source rectangle exclude unrelated pixels.
+static void captureCornerSurface(SCDisplay *screenSource, SCWindow *window, CGRect region,
+                                 void (^completion)(CGImageRef, CGFloat)) API_AVAILABLE(macos(14.2));
+static void captureCornerSurface(SCDisplay *screenSource, SCWindow *window, CGRect region,
+                                 void (^completion)(CGImageRef, CGFloat)) {
+    CGRect frame = screenSource.frame;
+    if (!screenSource || !window || !CGRectContainsRect(frame, region) || CGRectIsEmpty(region)) {
+        completion(NULL, 0); return;
+    }
+    SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:screenSource includingWindows:@[window]];
+    filter.includeMenuBar = NO;
+    CGFloat scale = filter.pointPixelScale;
+    CGFloat width = region.size.width * scale, height = region.size.height * scale;
+    if (!(scale >= 1 && scale <= 4 && width == floor(width) && height == floor(height) && width * height <= 1048576)) {
+        completion(NULL, 0); return;
+    }
+    SCStreamConfiguration *config = [SCStreamConfiguration new];
+    config.sourceRect = CGRectOffset(region, -frame.origin.x, -frame.origin.y);
+    config.width = (size_t)width; config.height = (size_t)height;
+    config.destinationRect = CGRectMake(0, 0, width, height);
+    config.backgroundColor = CGColorGetConstantColor(kCGColorClear);
+    config.showsCursor = NO; config.preservesAspectRatio = NO; config.scalesToFit = YES;
+    [SCScreenshotManager captureImageWithFilter:filter configuration:config completionHandler:^(CGImageRef image, NSError *issue) {
+        completion(!issue && stillIsOpaque(image, config.width, config.height) ? image : NULL, scale);
+    }];
+}
+
 // Instance ownership belongs to a single NCPatchSession. Accessed on the AppKit main queue.
 @interface NCCornerStill : NSObject
 @property(nonatomic) NCMember home;
 @property(nonatomic) CGDirectDisplayID display;
 @property(nonatomic) CGRect displayFrame, region;
 @property(nonatomic, strong) NSArray *wallpaper;
-@property(nonatomic, strong) NSURL *asset;
-@property(nonatomic, strong) NSDictionary *options;
 @property(nonatomic, strong) id pixels;
 @property(nonatomic) CGFloat scale;
 @property(nonatomic) NSTimeInterval started, sampled;
@@ -75,12 +100,10 @@ static NSArray *stillWallpaperWindow(CGRect frame) {
 
 @implementation NCCornerStill
 - (BOOL)sourceCurrent:(NSScreen *)screen home:(const NCMember *)home {
-    struct stat st;
     return home->native == _home.native && !memcmp(home->space, _home.space, 16) && !memcmp(home->display, _home.display, 16) &&
         CGPreflightScreenCaptureAccess() && [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue] == _display &&
         CGDisplayIsActive(_display) && !CGDisplayIsInMirrorSet(_display) && CGRectEqualToRect(CGDisplayBounds(_display), _displayFrame) &&
-        [staticWallpaper(screen, &st) isEqual:_asset] &&
-        [[NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen] isEqual:_options] && stillOrdinaryHome(home);
+        stillOrdinaryHome(home);
 }
 - (BOOL)readyFor:(CGRect)rect {
     return _pixels && NSProcessInfo.processInfo.systemUptime - _sampled < 10 && CGRectContainsRect(_region, rect);
@@ -122,22 +145,9 @@ static NSArray *stillWallpaperWindow(CGRect frame) {
                     CGRectEqualToRect(w.frame, frame)) window = w;
         }
         if (!screenSource || !window) { finish(nil, 0); return; }
-        SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:screenSource includingWindows:@[window]];
-        filter.includeMenuBar = NO;
-        CGFloat scale = filter.pointPixelScale;
-        CGFloat width = region.size.width * scale, height = region.size.height * scale;
-        if (!(scale >= 1 && scale <= 4 && width == floor(width) && height == floor(height) && width * height <= 1048576)) {
-            finish(nil, 0); return;
-        }
-        SCStreamConfiguration *config = [SCStreamConfiguration new];
-        config.sourceRect = CGRectOffset(region, -frame.origin.x, -frame.origin.y);
-        config.width = (size_t)width; config.height = (size_t)height;
-        config.destinationRect = CGRectMake(0, 0, width, height);
-        config.backgroundColor = CGColorGetConstantColor(kCGColorClear);
-        config.showsCursor = NO; config.preservesAspectRatio = NO; config.scalesToFit = YES;
-        [SCScreenshotManager captureImageWithFilter:filter configuration:config completionHandler:^(CGImageRef image, NSError *issue) {
-            finish(!issue && stillIsOpaque(image, config.width, config.height) ? (__bridge id)image : nil, scale);
-        }];
+        captureCornerSurface(screenSource, window, region, ^(CGImageRef image, CGFloat scale) {
+            finish((__bridge id)image, scale);
+        });
     }];
 }
 - (CGImageRef)copyCrop:(CGRect)rect CF_RETURNS_RETAINED {

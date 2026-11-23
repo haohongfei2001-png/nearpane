@@ -1,5 +1,11 @@
 # Nearpane 当前工程状态
 
+## 2026-11-24 · 正式遮挡面板的实际画面
+
+在目标实体机普通桌面 4 上，签名观察器使用正式引擎创建一个非激活面板，置于普通窗口下方。WindowServer 为面板 84616 和 Apple 壁纸分别提供画面，连续两次对比整块 86×176 点区域，所有像素均不透明，各通道相差不超过 1。关窗后第一次系统读回仍能看见面板，随后连续两次确认消失。前台进程与原生桌面均保持一致。第一次只检查一次清理的总结果保留为 **UNKNOWN**，随后独立确认当时的窗号已消失。[实机记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/rendered-panel.json) · [原始收据及完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/rendered-panel-raw.zip)
+
+引擎在承认角落遮挡前，现须核对真实壁纸与实际面板的逐像素结果，并持续核对窗口层级、显示器、桌面及输入保护。已去掉仅凭本地文件推定当前壁纸的路径。本机两次画面对比分别耗时 654 与 742 毫秒；这只测量可见性验证，工作集合切换延迟仍待实测。隔离 Host 的录屏权限仍缺失。真实第三方窗口退场和输入隔离继续 **BLOCKED**，正式侧栏循环及 10/50 次稳定性继续 **NOT_RUN**。
+
 ## 2026-11-24 · 保持其他停放窗口的画面和输入保护
 
 正式引擎恢复一扇窗口时，会继续遮住其他已核实的停放窗口。只有正在移动的窗口所在显示器的角落会进入输入归属重新确认。Rust 双后端回归 115 项及 Corner 定向 74 项通过。多屏实体切换尚未执行。[回归原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/sibling-protection-regression.zip)

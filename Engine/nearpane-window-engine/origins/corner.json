@@ -45,7 +45,7 @@
     "local": "src/corner/patch_sheet.m",
     "upstream": "src/ui/corner_patch.rs",
     "blob": "ca8cfc370677549227fa57d3dc8c96675a581edb",
-    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering relative to the uppermost held window to AppKit. Decode sealed static assets off the main queue. Withdraw on an unverifiable source, topology, order or expired publication."
+    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering relative to the uppermost held window to AppKit. Use only observed wallpaper pixels and compare the compositor output for the exact local sheet with the live wallpaper. Withdraw on an unverifiable topology, order or expired publication."
   },
   {
     "local": "src/corner/patch_material.inc",

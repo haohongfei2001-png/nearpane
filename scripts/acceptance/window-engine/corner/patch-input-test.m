@@ -38,10 +38,16 @@ static void pixels(NSString *path) {
     CGContextRef context = CGBitmapContextCreate(rgba, 8, 4, 8, 32, srgb, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
     CGImageRef image = CGBitmapContextCreateImage(context);
     assert(stillIsOpaque(image, 8, 4) && !stillIsOpaque(image, 4, 8));
+    assert(cornerPixelsMatch(image, image));
+    CGImageRef left = CGImageCreateWithImageInRect(image, CGRectMake(0,0,4,4));
+    CGImageRef right = CGImageCreateWithImageInRect(image, CGRectMake(4,0,4,4));
+    assert(!cornerPixelsMatch(left, right) && !cornerPixelsMatch(image, left));
+    CGImageRelease(left);
+    CGImageRelease(right);
     uint8_t almostOpaque[4] = {0, 0, 0, 254};
     CGContextRef translucent = CGBitmapContextCreate(almostOpaque, 1, 1, 8, 4, srgb, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
     CGImageRef partial = CGBitmapContextCreateImage(translucent);
-    assert(!stillIsOpaque(partial, 1, 1));
+    assert(!stillIsOpaque(partial, 1, 1) && !cornerPixelsMatch(partial, partial));
     CGImageRelease(partial);
     CGContextRelease(translucent);
     NSURL *url = [NSURL fileURLWithPath:path];

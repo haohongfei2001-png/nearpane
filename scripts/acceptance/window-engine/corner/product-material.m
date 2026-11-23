@@ -5,6 +5,7 @@
 #import "nearpane_window_engine.h"
 #import "nearpane_host_scope.h"
 #import "scope_binding.h"
+#import "patch_sheet.h"
 
 static NSDictionary *ordinaryDisplay(void) {
     CGDirectDisplayID active[2]; uint32_t n = 0;
@@ -54,7 +55,7 @@ static NSDictionary *observe(uint64_t handle, NSDictionary *home, NSUUID *nonce)
         record[@"shadowFootprint"] = @[@(receipt.frame.x), @(receipt.frame.y), @(receipt.frame.width), @(receipt.frame.height)];
         if (receipt.status == NP_PASS && receipt.native_id == request.native_id &&
             !memcmp(receipt.intent,request.intent,16) && receipt.epoch == request.epoch && !receipt.flags && !receipt.owned &&
-            (receipt.detail == NP_CORNER_MATERIAL_SEALED_FILE || receipt.detail == NP_CORNER_MATERIAL_WALLPAPER_SURFACE) &&
+            receipt.detail == NP_CORNER_MATERIAL_WALLPAPER_SURFACE &&
             receipt.frame.width > 0 && receipt.frame.height > 0) record[@"status"] = @"PASS";
         if (receipt.status == NP_UNSUPPORTED) record[@"status"] = @"BLOCKED";
     }
@@ -85,5 +86,96 @@ CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
     record[@"handleClosed"] = @(closed == NP_OK);
     NSDictionary *after = ordinaryDisplay(); if (after) record[@"after"] = after;
     if (closed != NP_OK || ![home isEqual:after]) record[@"status"] = @"UNKNOWN";
+    return CFBridgingRetain(record);
+}
+
+// This exercises the actual panel factory and pixel check with one owned panel below
+// ordinary windows. There is no target AX object, input tap, write permit or parked window.
+CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText) {
+    NSMutableDictionary *record = [@{@"scope":@"ownNonactivatingMaterialPanel",@"status":@"BLOCKED",
+        @"thirdPartyWindowWrites":@0,@"inputEvents":@0,@"nativeSpaceWrites":@0,@"storedFrames":@0,
+        @"singleWindowIsolation":@"NOT_RUN",@"productionQualified":@NO} mutableCopy];
+    NSUUID *nonce = [[NSUUID alloc] initWithUUIDString:(__bridge NSString *)nonceText];
+    NSDictionary *home = ordinaryDisplay();
+    NSRunningApplication *front = NSWorkspace.sharedWorkspace.frontmostApplication;
+    if (NSThread.isMainThread || !nonce || !home || !front || !CGPreflightScreenCaptureAccess())
+        return CFBridgingRetain(record);
+    record[@"challenge"] = nonce.UUIDString;
+    record[@"before"] = home;
+    record[@"foregroundPID"] = @(front.processIdentifier);
+    record[@"observerPID"] = @(getpid());
+    NPConfig config = {.size=sizeof(NPConfig), .version=NP_ENGINE_ABI, .mode=NP_HOST};
+    uint64_t handle = 0;
+    if (np_engine_create(&config, &handle) != NP_OK) return CFBridgingRetain(record);
+    NSDictionary *geometry = observe(handle, home, nonce);
+    record[@"material"] = geometry;
+    if (np_engine_destroy(handle) != NP_OK || ![geometry[@"status"] isEqual:@"PASS"]) return CFBridgingRetain(record);
+    NSArray *a = geometry[@"shadowFootprint"];
+    NCFrame area = {[a[0] doubleValue],[a[1] doubleValue],[a[2] doubleValue],[a[3] doubleValue]};
+    NCMember subject = {.native=[home[@"native"] unsignedLongLongValue]};
+    [nc_uuid(home[@"display"]) getUUIDBytes:subject.display];
+    [nc_uuid(home[@"space"]) getUUIDBytes:subject.space];
+    void *store = np_corner_patch_material();
+    if (!store) return CFBridgingRetain(record);
+    uint32_t material = np_corner_patch_prepare_source(store, &subject, area, true);
+    __block NSPanel *panel = nil;
+    if (material == NP_CORNER_MATERIAL_WALLPAPER_SURFACE) dispatch_sync(dispatch_get_main_queue(), ^{
+        if (![front isEqual:NSWorkspace.sharedWorkspace.frontmostApplication] || ![ordinaryDisplay() isEqual:home]) return;
+        panel = np_corner_material_panel(store, &subject, area);
+        panel.level = CGWindowLevelForKey(kCGDesktopWindowLevelKey) + 1;
+        [panel orderBack:nil];
+        [panel displayIfNeeded];
+    });
+    np_corner_patch_material_end(store);
+    if (!panel) return CFBridgingRetain(record);
+    __block CGWindowID number = 0;
+    dispatch_sync(dispatch_get_main_queue(), ^{ number = (CGWindowID)panel.windowNumber; });
+    record[@"panelID"] = @(number);
+    NSMutableArray *samples = [NSMutableArray array];
+    for (unsigned i = 0; i < 2; i++) {
+        usleep(80000);
+        dispatch_semaphore_t done = dispatch_semaphore_create(0);
+        __block NCCornerPicture result = NCCornerPictureUnavailable;
+        uint64_t began = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            np_corner_compare_panel(panel, subject, area, ^(NCCornerPicture outcome) {
+                result = outcome;
+                dispatch_semaphore_signal(done);
+            });
+        });
+        BOOL returned = !dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC));
+        NSString *status = !returned || result == NCCornerPictureUnavailable ? @"UNKNOWN" :
+                           result == NCCornerPictureMatch ? @"PASS" : @"FAIL";
+        [samples addObject:@{@"status":status, @"startedNS":@(began), @"endedNS":@(clock_gettime_nsec_np(CLOCK_UPTIME_RAW))}];
+        if (![status isEqual:@"PASS"]) break;
+    }
+    record[@"samples"] = samples;
+    record[@"status"] = [samples.lastObject objectForKey:@"status"];
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [panel orderOut:nil];
+        [panel close];
+    });
+    NSMutableArray *closeReads = [NSMutableArray array];
+    unsigned absent = 0;
+    for (unsigned attempt = 0; attempt < 30 && absent < 2; attempt++) {
+        NSArray *list = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID));
+        BOOL visible = NO;
+        for (NSDictionary *w in list) {
+            if ([w[(id)kCGWindowNumber] unsignedIntValue] == number && [w[(id)kCGWindowOwnerPID] intValue] == getpid()) {
+                visible = YES; break;
+            }
+        }
+        absent = list && !visible ? absent + 1 : 0;
+        [closeReads addObject:@{@"timeNS":@(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)),
+                                @"observed":@(list != nil),@"onscreen":@(visible)}];
+        if (absent < 2) usleep(25000);
+    }
+    BOOL removed = absent == 2;
+    record[@"closeReads"] = closeReads;
+    record[@"panelGone"] = @(removed);
+    record[@"sameForegroundProcess"] = @([front isEqual:NSWorkspace.sharedWorkspace.frontmostApplication]);
+    NSDictionary *after = ordinaryDisplay();
+    if (after) record[@"after"] = after;
+    if (!removed || ![record[@"sameForegroundProcess"] boolValue] || ![after isEqual:home]) record[@"status"] = @"UNKNOWN";
     return CFBridgingRetain(record);
 }
