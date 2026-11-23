@@ -1,8 +1,21 @@
 # Nearpane 当前工程状态
 
-## 2026-11-23 · 产品能力与交付范围
+## 2026-11-23 · R4 工作集合切换与 Guardian
 
-审计从 PR `e44d028`、应用源码 `d81329d` 和 5.22（90）候选开始。本轮产品源码为 `0e66086`。A 表示可保留交付的已验证操作，适用的安装版本和环境随项注明。B 有独立产品价值，继续开发并补齐对应入口验收。C 缺少目标系统的安全证据，当前生产调度为 **NO-GO**。整包公开发行仍需单独验收。下列成本为相对工程量。
+5.22（90）产品源码为 `0ea2bd0`。Corner 生产调度保持 **NO-GO**。本轮完成侧栏选择、窗口所有权及执行器的修复。该源码的 GitHub 窗口引擎与原生协议检查均已通过。正式 Host 退出后的原窗口 AX 双读仍为 **NOT_RUN**。[机器总表](../verification/window-engine/stage-switch-admission-26A428/result.json) · [GitHub CI 回执](../verification/window-engine/stage-switch-admission-26A428/github-ci.json)
+
+| 范围 | 结果与证据 |
+| --- | --- |
+| 侧栏连续选择与活动组提交 | **PASS，隔离事务测试。** 用户改选时，旧事务停止发起动作。已确认的窗口变化、旁窗和焦点通过两次新读取后，同一执行器可以保留已有租约，交给最新选择继续。未知写入、单个成员失去租约、焦点显示器改变或几何漂移，都会阻止提交活动组。[66 项定向回归](../verification/window-engine/stage-switch-admission-26A428/scope-xunit.xml) |
+| Guardian 写入前检查 | **PASS，进程与管道实测。** Host 把准备回执绑定到确切意图及子进程出生代。Rust 核对运行中的签名映像，并在 AX 设置位置前检查内核通知。26A428 上的一次性子进程在同 PID、同出生代执行新映像时被识别，正常退出也撤销资格。Host 静默 9 秒后，管道仍接受第一条指令。[内核原始收据](../verification/window-engine/stage-switch-admission-26A428/guardian-kernel.json) |
+| 构建与回归 | 隔离开发包已构建，Swift 798 项通过、3 项条件跳过，Rust 109 项通过，C ABI 链接和调用通过。开发包保留工程调试标识 0.2.0（1）。独立 Host 映像和 Guardian 验签通过，完整开发包缺少资源签封。沙箱内 4 个归档日志用例失败，开放所需系统服务后同组 11 项通过。[完整 Swift 回归](../verification/window-engine/stage-switch-admission-26A428/full-xunit.xml) · [原始日志](../verification/window-engine/stage-switch-admission-26A428/local-source-checks.zip) |
+| 正式 Host 与单窗 | **准入 BLOCKED。** 标准路径中运行的 5.22（90）为 `bec6cb2`，缺少 Survival 协议。已有带协议正式签名包的哈希与此前被系统拒绝的包相同。最近一次实机准入的两次读数都是全屏，本轮未重新采集桌面。仓库登记的自托管 runner 为 0。[本轮安装与环境核对](../verification/window-engine/stage-switch-admission-26A428/physical-admission.json) · [上次正式包及桌面收据](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) |
+
+下一次物理验收从已获系统准入的签名 Host 和可安全交还焦点的普通桌面开始。先验证 Host 退出后 Guardian 独立双读同一签名夹具窗口，再验证持久恢复责任。真实单窗输入与还原、侧栏 A→B→C→A、10/50 次和 Apple 同机性能对照均为 **NOT_RUN**。历史最小化和遮罩穿透的 **FAIL** 继续保留。
+
+## 2026-11-23 · 前次产品能力与交付范围
+
+该次审计从 PR `e44d028`、应用源码 `d81329d` 和 5.22（90）候选开始，验收到产品源码 `0e66086`。A 表示可保留交付的已验证操作，适用的安装版本和环境随项注明。B 有独立产品价值，继续开发并补齐对应入口验收。C 缺少目标系统的安全证据，生产调度为 **NO-GO**。整包公开发行仍需单独验收。下列成本为相对工程量。
 
 | 层级与操作 | 产品入口、用户价值与证据范围 | 后续投入与风险 |
 | --- | --- | --- |

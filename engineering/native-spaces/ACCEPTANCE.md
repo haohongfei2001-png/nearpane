@@ -20,6 +20,8 @@
 3. 原生归属、次序、窗口集合、前台收件人及所有旁窗必须在每个阶段与基线相符。原所有者归还目标后双读几何、身份、焦点和资源，核对零遗留租约。
 4. 单窗实机资格只开启隔离的整组验收。单次、10 次、50 次、生命周期及同机性能依次出具独立收据。通用生产能力以完整产品合同为准。
 
+连续点选时，在准备回执后、可见性操作已发出后及活动组写盘前分别插入下一次侧栏选择。确认旧请求停止派发，只在同一所有者完成窗口、旁窗、焦点和几何的独立读回后交接已确认的效果。改变一个成员的租约、旁窗几何或焦点所在显示器，须保留待核实责任。分别记录最后一个有效选择的键盘收件窗口、原组还原的布局，以及活动组实际写入的时刻。[事务与内核收据](../verification/window-engine/stage-switch-admission-26A428/result.json)
+
 [权威产品状态](STATUS.md) · [技术裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [归档的原生 Spaces / Mission Control 专项合同](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/native-spaces/ACCEPTANCE.md)
 
 正式 Host 支持 `guardian-survival` 只读诊断。监督器以 `--desktop-receipt` 接受新鲜的普通桌面、原焦点及 HID 观察。它在同一 Host 的挑战应答前向内核登记 NOTE_EXIT 和 NOTE_EXITSTATUS，要求原进程代际消失且退出码为 0。Guardian 保留签名夹具的原 AX 引用，在 Host 退出后双读同一窗口、几何和原生归属，以原子重命名交付只读 JSON。监督器独立核对收据、夹具与 Guardian 退出以及日常 Host 和配置。明确的退出后权限拒绝、采样错误或已证实的几何变化为 FAIL，读数矛盾或不全为 UNKNOWN。此单项 PASS 只表示跨进程退出的读取能力。恢复租约、真实停放、输入隔离和还原分别验收。
