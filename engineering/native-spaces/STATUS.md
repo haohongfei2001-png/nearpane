@@ -1,5 +1,11 @@
 # Nearpane 当前工程状态
 
+## 2026-11-24 · 保持其他停放窗口的画面和输入保护
+
+正式引擎恢复一扇窗口时，会继续遮住其他已核实的停放窗口。只有正在移动的窗口所在显示器的角落会进入输入归属重新确认。Rust 双后端回归 115 项及 Corner 定向 74 项通过。多屏实体切换尚未执行。[回归原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/sibling-protection-regression.zip)
+
+在 26A428 上独立比较实际壁纸与系统默认 HEIC 的居中填满结果，连续两帧各 60,544 个不透明像素中，只有 6 个的各颜色通道均相差不超过 1。该文件作为本机角落替代画面为 **FAIL**。签名观察器只在规定的壁纸区域内计数。5.22（90）源码 `0c16a9d` 的本地签名候选完成 14 项可执行签名和压缩包还原校验，原安装保留。[实机逐帧结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/sealed-default-comparison.json) · [候选指纹](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-0c16a9d.json)
+
 ## 2026-11-24 · 同一扇窗口的独立画面读回
 
 在 26A428 的普通桌面 4 上，隔离 Host 59465 和已授权的签名观察器 59461 通过本地连接相互验签，共同定位到测试窗 84451。观察器只采集该窗自己的内容，两次均识别出 16/16 条一次性标记。跨进程传递的是计数和时间戳。第一次采用后台视图绘制时，两次结果均为 0/16；在窗口所属应用内确认绘制次数为零后，夹具改为主动提交自己的图层。三次运行均核对了日常 Host 的身份、权限和配置。第二次提前退出，原始关窗回执仍为 UNKNOWN，后续读回已确认该进程退出且属于它的系统窗口数为零。[实机结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels.json) · [原始收据及回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels-raw.zip)

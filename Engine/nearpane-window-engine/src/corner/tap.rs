@@ -1,6 +1,6 @@
 //! A head-inserted session filter. The callback sees immutable numeric geometry; the WM
 //! worker owns all AX/WindowServer queries. A lost observation revokes this tap generation.
-use super::geometry::Point;
+use super::geometry::{Point, Rect};
 use super::sliver::{Button, Press, PressGate, Seen, Shield};
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -20,7 +20,7 @@ pub(super) const RECEIVER_DISAGREES: u32 = 35;
 pub(super) struct Publication {
     pub shield: Shield,
     pub seen: Seen,
-    pub changing: bool,
+    pub changing_zone: Option<Rect>,
 }
 
 /// Only a complete CG observation is actionable. Any press in the dynamically changing park zone
@@ -29,7 +29,7 @@ fn hit(p: &Publication, at: Point, now: Instant, pid: i32) -> Result<bool, u32> 
     if !p.shield.may_hit(at) {
         return Ok(false);
     }
-    if p.changing {
+    if p.changing_zone.is_some_and(|zone| zone.contains(at)) {
         return Err(CHANGING);
     }
     let rows = p.seen.fresh(now).ok_or(STALE)?;
@@ -269,7 +269,7 @@ impl Tap {
         // A replacement cannot retroactively cover a gap in native Z-order observations.
         if let Err(reason) = self.health() {
             if can_protect_existing(reason)
-                && !new.changing
+                && new.changing_zone.is_none()
                 && new.seen.fresh(Instant::now()).is_some()
             {
                 if new.shield.parked.is_subset(&self.current.borrow().shield.parked) {
@@ -332,8 +332,21 @@ mod tests {
                     alpha: 1.,
                 }],
             },
-            changing,
+            changing_zone: changing.then(|| Rect::new(70., 60., 30., 40.)),
         }
+    }
+    #[test]
+    fn moving_on_one_display_keeps_a_parked_sibling_on_the_other_display_protected() {
+        let now = Instant::now();
+        let mut p = publication(now, true);
+        let second = Rect::new(-130., 60., 30., 40.);
+        p.shield.zones.push(second);
+        p.shield.parked.insert(12);
+        p.seen.windows.push(Listed { id: 12, pid: 44, bounds: second, layer: 0, alpha: 1. });
+        assert_eq!(press_decision(&p, Point::new(-110., 90.), now, 0, 0), (true, None));
+        assert_eq!(press_decision(&p, Point::new(-110., 90.), now, 12, 44), (true, None));
+        assert_eq!(press_decision(&p, Point::new(95., 97.), now, 9, 44), (true, Some(CHANGING)));
+        assert_eq!(press_decision(&p, Point::new(5., 5.), now, 0, 0), (false, None));
     }
     #[test]
     fn uncertain_recipient_revokes_only_an_at_risk_down() {

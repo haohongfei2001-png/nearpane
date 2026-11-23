@@ -166,12 +166,13 @@ impl Corner {
         }
         v
     }
-    fn publication(&self, preparing: bool) -> Result<Publication, u32> {
+    fn publication(&self, moving: Option<u32>) -> Result<Publication, u32> {
         let started = Instant::now();
         let layout = native::displays()?;
         let (list, dock) = native::zorder()?;
         let mut ids = HashSet::new();
         let mut zones = Vec::new();
+        let mut changing_zone = None;
         for o in self.owned.values() {
             if layout != o.displays || !o.reference.matches(&o.id) {
                 return Err(IDENTITY);
@@ -190,15 +191,17 @@ impl Corner {
                 if !same(parked, q.cg) || !hidden(q.cg, &layout, o.id.display, corner) {
                     return Err(USER_CHANGED);
                 }
-            } else if !preparing || !same(q.cg, o.original) {
+            } else if moving != Some(o.id.window) || !same(q.cg, o.original) {
                 return Err(OWNERSHIP_UNKNOWN);
             }
             ids.insert(o.id.window);
             let zone = sliver::corner_zone(display.frame, display.visible, corner);
+            if moving == Some(o.id.window) { changing_zone = Some(zone); }
             if !zones.contains(&zone) {
                 zones.push(zone);
             }
         }
+        if moving.is_some() && changing_zone.is_none() { return Err(IDENTITY); }
         let seen = sliver::Seen {
             at: started,
             windows: sliver::near_zones(list, &zones),
@@ -214,20 +217,17 @@ impl Corner {
                 dock,
             },
             seen,
-            changing: preparing,
+            changing_zone,
         })
     }
-    fn refresh(&mut self, changing: bool) -> Result<(), u32> {
+    fn refresh(&mut self, moving: Option<u32>) -> Result<(), u32> {
         if self.owned.is_empty() {
             self.patch.take();
             self.tap.take();
             self.last_refresh = None;
             return Ok(());
         }
-        if changing {
-            self.patch.take();
-        }
-        let current = self.publication(changing).inspect_err(|why| {
+        let current = self.publication(moving).inspect_err(|why| {
             self.patch.take();
             if let Some(t) = &self.tap {
                 t.revoke(*why)
@@ -238,16 +238,26 @@ impl Corner {
             None => self.tap = Some(Tap::start(current)?),
         }
         self.last_refresh = Some(Instant::now());
-        if !changing {
-            // Only a proven parked footprint with a healthy, published input shield
-            // may supply a visual. The sheet has no write authority over the member.
-            let mut members: Vec<_> = self.owned.values().filter_map(|owned| owned.parked.map(|frame|
-                native::PatchMember { member: owned.id, frame })).collect();
-            members.sort_by_key(|m| m.member.window);
-            if self.patch.is_none() { self.patch = self.material.as_ref().and_then(native::PatchSession::new); }
-            if let Some(patch) = &self.patch { patch.publish(&members); }
-        }
+        self.publish_stationary_patches(None);
         Ok(())
+    }
+    fn publish_stationary_patches(&mut self, moving: Option<u32>) {
+        // publication() just rechecked all enrolled AX objects and the complete order.
+        // An incoming window has no measured footprint yet. Removing or adding one
+        // member must leave the sheets of its already parked siblings in place.
+        let mut members: Vec<_> = self.owned.values()
+            .filter(|o| Some(o.id.window) != moving)
+            .filter_map(|o| o.parked.map(|frame| native::PatchMember { member: o.id, frame }))
+            .collect();
+        if members.is_empty() {
+            self.patch.take();
+            return;
+        }
+        members.sort_by_key(|m| m.member.window);
+        if self.patch.is_none() {
+            self.patch = self.material.as_ref().and_then(native::PatchSession::new);
+        }
+        if let Some(sheet) = &self.patch { sheet.publish(&members); }
     }
     /// Startup checks an empty-recipient real tap. A per-command check additionally binds the
     /// nominated window across both reads. Neither check grants authority to set an AX attribute.
@@ -285,7 +295,7 @@ impl Corner {
                     Ok((Reference::acquire(&id)?, first.cg))
                 })
                 .transpose()?;
-            let first = self.publication(false)?;
+            let first = self.publication(None)?;
             let initial_dock = first.shield.dock.clone();
             let temporary;
             let port = match &self.tap {
@@ -299,7 +309,7 @@ impl Corner {
                 }
                 None => return Err(tap::UNAVAILABLE),
             };
-            let second = self.publication(false)?;
+            let second = self.publication(None)?;
             if let (Some(id), Some((reference, before))) = (id, retained) {
                 if !reference.matches(&id) || !same(native::sample(&id)?.cg, before) {
                     return Err(USER_CHANGED);
@@ -422,9 +432,9 @@ impl Corner {
                 corner,
             },
         );
-        if let Err(e) = self.refresh(true) {
+        if let Err(e) = self.refresh(Some(id.window)) {
             self.owned.remove(&id.window);
-            let _ = self.refresh(false);
+            let _ = self.refresh(None);
             return self.result(c::UNKNOWN, e, None, false);
         }
         let Some(tap) = self.tap.as_ref() else {
@@ -443,7 +453,7 @@ impl Corner {
         );
         if !issued {
             self.owned.remove(&id.window);
-            let _ = self.refresh(false);
+            let _ = self.refresh(None);
             return self.result(control.guard().err().unwrap_or(c::UNKNOWN), reason, None, false);
         }
         // A setter timeout or a later cancellation cannot undo its effect. Finish the
@@ -461,7 +471,7 @@ impl Corner {
                         if !control.may_write() {
                             return self.interrupted_park(r, POSTCONDITION);
                         }
-                        if let Err(why) = self.refresh(false) {
+                        if let Err(why) = self.refresh(None) {
                             return self.interrupted_park(r, why);
                         }
                         // Image decoding and panel ordering happen on different queues.
@@ -477,7 +487,7 @@ impl Corner {
                             }
                             std::thread::sleep(Duration::from_millis(15));
                             if control.may_write() && self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(100)) {
-                                if let Err(why) = self.refresh(false) {
+                                if let Err(why) = self.refresh(None) {
                                     return self.interrupted_park(r, why);
                                 }
                             }
@@ -527,19 +537,21 @@ impl Corner {
             if !o.parked.is_some_and(|p| same(p, s.cg)) || !hidden(s.cg, &layout, id.display, o.corner) {
                 return self.result(c::UNKNOWN, USER_CHANGED, Some(s), true);
             }
-            self.patch.take();
-            // Mark the moving receiver uncertain before dispatch; keep other parked ownership until readback.
-            if let Ok(p) = self.publication(false) {
-                if let Some(t) = &self.tap {
-                    let _ = t.publish(Publication { changing: true, ..p });
-                }
-            }
+            // Return this member. Previously measured siblings keep their verified sheets,
+            // including those on another display. An invalid shield retires stale imagery.
+            let shield = self.publication(Some(id.window)).and_then(|p| {
+                self.tap.as_ref().ok_or(tap::UNAVAILABLE)?.publish(p)
+            });
+            if shield.is_ok() { self.publish_stationary_patches(Some(id.window)); }
+            else { self.patch.take(); }
+            let o = &self.owned[&id.window];
             let (why, issued) = native::position(&id, &o.reference, s.cg, o.original, control, input, native::Move::Restore);
             if !issued {
                 return self.result(control.guard().err().unwrap_or(c::UNKNOWN), why, None, true);
             }
             remaining_reason = why;
         }
+        let o = &self.owned[&id.window];
         let mut first = false;
         for _ in 0..12 {
             if let Err(status) = control.guard() {
@@ -555,7 +567,7 @@ impl Corner {
                         let mut result = self.result(c::PASS, 0, Some(after), false);
                         result.flags |= c::VISIBLE;
                         result.native_id = id.native;
-                        if let Err(reason) = self.refresh(false) {
+                        if let Err(reason) = self.refresh(None) {
                             result.status = c::UNKNOWN;
                             result.detail = reason;
                         }
@@ -632,7 +644,7 @@ impl WindowEngine for Corner {
                 .is_none_or(|t| t.elapsed() >= Duration::from_millis(80))
         {
             self.last_refresh = Some(Instant::now());
-            let _ = self.refresh(false);
+            let _ = self.refresh(None);
         }
     }
 }

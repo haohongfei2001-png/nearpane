@@ -215,6 +215,17 @@ struct Sidebar {
 }
 
 #if NP_PRODUCT_CORNER_MATERIAL
+if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "compare-sealed-corner",
+   let nonce = UUID(uuidString: CommandLine.arguments[2]) {
+    Task { @MainActor in
+        let row = await SealedCornerComparison.run(nonce)
+        guard let data = try? JSONSerialization.data(withJSONObject:row,options:.sortedKeys) else { exit(3) }
+        print(String(decoding:data,as:UTF8.self))
+        exit(row["status"] as? String == "PASS" ? 0 : 2)
+    }
+    RunLoop.main.run()
+    exit(3)
+}
 if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "corner-fixture-witness",
    let nonce = UUID(uuidString: CommandLine.arguments[2]) {
     Task {

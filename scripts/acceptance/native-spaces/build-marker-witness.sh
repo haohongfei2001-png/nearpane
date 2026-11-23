@@ -44,7 +44,7 @@ if [[ $# -gt 2 ]]; then
         -c scripts/acceptance/window-engine/corner/product-material.m -o "$work/product-material.o"
     product_link=(-D NP_PRODUCT_CORNER_MATERIAL -Xcc -DNP_PRODUCT_CORNER_MATERIAL "$work/product-material.o" "$archive" \
         -framework ApplicationServices -framework Security -framework ImageIO -framework ScreenCaptureKit -framework Carbon)
-    observer_sources+=(Sources/NearpaneHost/StageFixtureVisualLink.swift scripts/acceptance/window-engine/corner/fixture-pixels.swift)
+    observer_sources+=(Sources/NearpaneHost/StageFixtureVisualLink.swift scripts/acceptance/window-engine/corner/fixture-pixels.swift "$src/sealed-corner-comparison.swift")
 fi
 xcrun swiftc -D NATIVE_CONTRACT "${flags[@]}" -module-cache-path "$work/cache" -Xcc -I -Xcc "$inc" -import-objc-header "$src/contract_members.h" \
     "${observer_sources[@]}" "$work/reader.o" "$work/members.o" ${product_link[@]+"${product_link[@]}"} -framework ColorSync -o "$kit/observe"
