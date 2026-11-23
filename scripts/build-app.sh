@@ -118,7 +118,19 @@ else
     local module="$1" bundle_name="$2"
     local input="$binary_dir/Nearpane_$module.bundle" dest="$resources/$bundle_name.bundle/Contents"
     mkdir -p "$dest/Resources"
-    cp -R "$input/." "$dest/Resources/"
+    if (( internal_survival )); then
+      # The flat SwiftPM wrapper is a build directory. Copy its contents, with their
+      # metadata, into the new bundle's Resources. A quarantined wrapper is ineligible.
+      local attributes
+      attributes="$(/usr/bin/xattr "$input")"
+      if /usr/bin/grep -Fxq com.apple.quarantine <<< "$attributes"; then
+        echo "Quarantined resource input requires normal system assessment" >&2
+        return 1
+      fi
+      /usr/bin/find "$input" -mindepth 1 -maxdepth 1 -exec /bin/cp -pR '{}' "$dest/Resources/" \;
+    else
+      cp -R "$input/." "$dest/Resources/"
+    fi
     /usr/bin/plutil -create xml1 "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundlePackageType -string BNDL "$dest/Info.plist"
     /usr/bin/plutil -insert CFBundleIdentifier -string "com.holdsnow.nearpane.resources.$module" "$dest/Info.plist"

@@ -146,7 +146,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         let helper = root.appendingPathComponent("Contents/Helpers/NearpaneCornerGuardian")
         let id = "com.holdsnow.nearpane.host"
         guard survival, bundle.bundleIdentifier == id, root.lastPathComponent == "Nearpane.app",
-              directory.deletingLastPathComponent().path == "/private/tmp",
+              directory.deletingLastPathComponent().path == URL(fileURLWithPath: "/private/tmp").resolvingSymlinksInPath().path,
               directory.lastPathComponent.hasPrefix("nearpane-stage-engine-dev."),
               bundle.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") as? Int == 1,
               host.resolvingSymlinksInPath().path == host.path, helper.resolvingSymlinksInPath().path == helper.path,
