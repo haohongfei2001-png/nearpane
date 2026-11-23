@@ -3,6 +3,9 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor private final class EngineFixture: StageEngineWindowWitness, StageEngineTransport {
+    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, owner: StageEngineOwner) throws {
+        guard scope == self.scope && nativeID == 22 else { throw StageSwitchError.unavailable }
+    }
     func mayManage(_ state: StageWindowState) -> Bool { true }
     let scope = StageGroupScope(display:UUID(),nativeSpace:UUID()), epoch = UUID()
     let displayArea = SurfaceRect(width:1200,height:950)

@@ -82,6 +82,15 @@ fn scoped(list: &[Display], id: [u8; 16]) -> Result<(&Display, park::Corner), u3
     }
     Ok((here, choice.corner))
 }
+
+fn drawable_corner(list: &[Display], id: [u8; 16]) -> Result<(&Display, park::Corner), u32> {
+    let (display, corner) = scoped(list, id)?;
+    let zone = sliver::corner_zone(display.frame, display.visible, corner);
+    if !native::PatchSession::source_available(&id, zone) {
+        return Err(PICTURE_SOURCE_UNAVAILABLE);
+    }
+    Ok((display, corner))
+}
 fn hidden(frame: Rect, list: &[Display], id: [u8; 16], corner: park::Corner) -> bool {
     let Some(display) = list.iter().find(|d| d.id == id) else {
         return false;
@@ -376,14 +385,10 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        let (display, corner) = match scoped(&layout, id.display) {
+        let (display, corner) = match drawable_corner(&layout, id.display) {
             Ok(v) => v,
             Err(e) => return self.result(c::UNSUPPORTED, e, None, false),
         };
-        let zone = sliver::corner_zone(display.frame, display.visible, corner);
-        if !native::PatchSession::source_available(&id.display, zone) {
-            return self.result(c::UNSUPPORTED, PICTURE_SOURCE_UNAVAILABLE, None, false);
-        }
         let sample = match native::sample(&id) {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
@@ -585,6 +590,16 @@ impl WindowEngine for Corner {
                 Ok(()) => self.result(c::PASS, 0, None, false),
                 Err(why) => self.result(c::UNSUPPORTED, why, None, false),
             },
+            c::CORNER_DISPLAY_MATERIAL => {
+                let eligible = native::park_access().and_then(|_| {
+                    let layout = native::displays()?;
+                    drawable_corner(&layout, r.display).map(|_| ())
+                });
+                match eligible {
+                    Ok(()) => self.result(c::PASS, 0, None, false),
+                    Err(why) => self.result(c::UNSUPPORTED, why, None, false),
+                }
+            }
             c::PROBE => match native::displays().and_then(|_| native::zorder()) {
                 Ok(_) => self.result(c::PASS, NEED_INDEPENDENT_READ, None, false),
                 Err(e) => self.result(c::UNKNOWN, e, None, false),
@@ -612,6 +627,20 @@ impl WindowEngine for Corner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn display_material_preflight_has_no_window_or_write_authority() {
+        let scope = Request {
+            backend: c::CORNER, operation: c::CORNER_DISPLAY_MATERIAL, intent: [1; 16],
+            display: [2; 16], native_space: [3; 16], native_id: 4, epoch: 1, timeout_ms: 500,
+            ..Request::default()
+        };
+        assert!(scope.valid() && !scope.writes());
+        assert!(!Request { window: 1, ..scope }.valid());
+        assert!(!Request { group: [7; 16], ..scope }.valid());
+        assert!(!Request { native_id: 0, ..scope }.valid());
+        assert!(!Request { display: [0; 16], ..scope }.valid());
+        assert!(!Request { backend: c::SPACES, ..scope }.valid());
+    }
     #[test]
     fn neither_a_visible_patch_nor_an_input_shield_alone_confirms_isolation() {
         assert_eq!(verified_isolation(Ok(()), false), Err(PICTURE_UNCONFIRMED));

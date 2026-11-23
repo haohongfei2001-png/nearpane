@@ -47,6 +47,7 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     func dispatch(_ command: StageWindowCommand) async throws
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
     func prepareBackend(_ sample: StageWindowSample) async throws
+    func checkRetirementSurface(_ sample: StageWindowSample) async throws
     func read(_ scope: StageGroupScope) async throws -> StageWindowSample
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws
 }
@@ -60,6 +61,7 @@ public struct StageWindowCommand: Equatable, Sendable {
 public extension StageWindowSession {
     func mayManage(_ state: StageWindowState) -> Bool { true }
     func prepareBackend(_ sample: StageWindowSample) async throws {}
+    func checkRetirementSurface(_ sample: StageWindowSample) async throws { throw StageSwitchError.unavailable }
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
     var engineOwner: StageEngineOwner? { nil }
     func dispatch(_ c: StageWindowCommand) async throws {
@@ -324,6 +326,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let intent = UUID(), owner = session.engineOwner
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
         if let owner {
+            // An unavailable corner is known before showing another member or transferring the keyboard.
+            if members.contains(where: { !targets.contains($0.windowHint) && held[$0.windowHint] == nil }) {
+                try await session.checkRetirementSurface(first)
+                try requireCurrentIntent()
+            }
             // Record the worker before preparing it. A failed health check cannot imply a window was hidden.
             try update {
                 $0.owner = owner

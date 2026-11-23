@@ -17,6 +17,10 @@ import Testing
     var foreignFocusScope: StageGroupScope?
     var writes = [(StageWindowAction, NativeSpaceWindow)]()
     var excluded = Set<NativeSpaceWindow>()
+    var retirementSurfaceAvailable = true
+    func checkRetirementSurface(_ sample: StageWindowSample) throws {
+        guard retirementSurfaceAvailable else { throw StageSwitchError.unavailable }
+    }
     func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
     var afterWrite: (() throws -> Void)?
     var beforeRead: (() -> Void)?
@@ -53,6 +57,18 @@ import Testing
             if n == 1 { runtime.focus = id }
         }
         return (profile, store, try StageGroupCoordinator(store: store, profile: profile), runtime, store.groups(in: runtime.scope))
+    }
+
+    @Test func unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let directory = store.directory, windows = session.windows, focus = session.focus
+        session.retirementSurfaceAvailable = false
+        await #expect(throws: StageSwitchError.unavailable) {
+            try await coordinator.activate(groups[1].id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.writes.isEmpty && focus == session.focus && windows == session.windows)
+        #expect(directory == store.directory && !coordinator.hasWindowAuthority && !coordinator.requiresRecovery)
     }
 
     @Test func engineActionsSeeThePrivateCommittedIntentOnDisk() async throws {

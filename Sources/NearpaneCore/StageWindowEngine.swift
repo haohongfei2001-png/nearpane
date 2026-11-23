@@ -41,6 +41,7 @@ package struct StageEngineReply {
 @MainActor package protocol StageEngineTransport: AnyObject {
     func submit(_ operation: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) async throws -> StageEngineReply
     func start(_ owner: StageEngineOwner, nativeID: UInt64) async throws
+    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, owner: StageEngineOwner) async throws
     func prepareHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws
     /// True only after this worker excluded the HIDE ticket permanently and its prepared Guardian
     /// acknowledged its durable, independently witnessed withdrawal for this exact intent.
@@ -111,6 +112,12 @@ struct UnsubmittedCornerHide: Error {
             try await checkHealth()
         } catch { stopAfterBackendFailure(current: intentIsCurrent()); throw error }
         guard intentIsCurrent() else { throw newerSelectionWaiting() ? StageSwitchError.superseded : .interrupted }
+    }
+
+    public func checkRetirementSurface(_ sample: StageWindowSample) async throws {
+        guard let native = sample.nativeID, native > 0, sample.generation == owner.generation,
+              qualifiedHiddenState == .parked, intentIsCurrent() else { throw StageSwitchError.unavailable }
+        try await transport.checkRetirementSurface(sample.scope, nativeID: native, owner: owner)
     }
 
     private func stopAfterBackendFailure(current: Bool) {

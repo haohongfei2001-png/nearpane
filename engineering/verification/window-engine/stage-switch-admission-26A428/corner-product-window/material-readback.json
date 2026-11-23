@@ -67,6 +67,13 @@
     "windowWrites": 0
   },
   "offline": {
+    "groupRetirementPreflight": {
+      "swiftCommand": "scripts/test.sh --filter 'StageGroupCoordinatorTests|StageWindowEngineTests'",
+      "swiftTestsPassed": 41,
+      "rustTestPassed": "corner::worker::tests::display_material_preflight_has_no_window_or_write_authority",
+      "unavailableMaterialRegression": "original focus, all window states and directory preserved; no dispatch, ownership or pending journal",
+      "realGroupSwitch": "NOT_RUN"
+    },
     "staticlibBuild": "PASS",
     "cornerTests": 72,
     "cropAndEventRegression": "PASS",
