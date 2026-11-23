@@ -308,7 +308,6 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         usleep(25000);
         need(originalReleaseWitness(s), @"secondReleasedOriginalNotConfirmed");
         receipt[@"liveReleaseOriginalFrameReadbacks"] = @2;
-        need(write(STDOUT_FILENO, "D", 1) == 1, @"disarmReplyUnavailable");
         receipt[@"status"] = @"PASS";
         receipt[@"reason"] = @"liveHostReleasedRestoredOwnership";
         return;
@@ -371,14 +370,21 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 }
 // The parent cannot settle a pending entry from a pipe byte preceding durable evidence.
 static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
-    BOOL withdrawn = [receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"];
-    if (dir < 0 || !fileOK(dir, YES)) return !withdrawn;
+    if (dir < 0 || !fileOK(dir, YES)) return NO;
     int fd = openat(dir, "guardian-receipt.json", O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
     if (fd < 0) return NO;
     NSData *data = [NSJSONSerialization dataWithJSONObject:receipt options:NSJSONWritingSortedKeys error:NULL];
     BOOL durable = data.length && write(fd, data.bytes, data.length) == (ssize_t)data.length && fsync(fd) == 0;
     close(fd);
-    return durable && (!withdrawn || (!fsync(dir) && write(reply, "W", 1) == 1));
+    if (!durable || fsync(dir)) return NO;
+    char ack;
+    if ([receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"]) ack = 'W';
+    else if ([receipt[@"status"] isEqual:@"PASS"] && [receipt[@"reason"] isEqual:@"liveHostReleasedRestoredOwnership"] &&
+             [receipt[@"liveReleaseOriginalFrameReadbacks"] isEqual:@2]) ack = 'D';
+    else return YES;
+    ssize_t count;
+    do { count = write(reply, &ack, 1); } while (count < 0 && errno == EINTR);
+    return count == 1;
 }
 int main(int argc, const char **argv) {
     @autoreleasepool {

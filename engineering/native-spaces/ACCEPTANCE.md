@@ -4,7 +4,7 @@
 
 | 验证对象 | 最小条件与可得结论 |
 | --- | --- |
-| 内部只读生存性 | 公证票据不是 AX 读取或内核退出观察的参数。正常获系统准入的内部签名 Host 可在隔离 GUI、私有资料和受控窗口中验证子进程行为。按实际签名、权限责任和系统 build 记账。更换签名、父进程或会话所得结果只适用于那个主体。曾运行的开发 Host 只证明退出前读取；当前带新协议的正式包被系统拒绝，维持原判。[签名开发 Host](../verification/window-engine/target-26A428/signed-development-host.json) · [正式包回执](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) |
+| 内部只读生存性 | 公证票据不是 AX 读取或内核退出观察的参数。正常获系统准入的内部签名 Host 可在隔离 GUI、私有资料和受控窗口中验证子进程行为。按实际签名、权限责任和系统 build 记账。更换签名、父进程或会话所得结果只适用于那个主体。26A428 上，内部签名 Host `1b03f10` 已完成退出后原窗口的双读。标准安装版另行验收，既有系统拒绝记录保留。[退出后实机记录](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/session.json) · [签名开发 Host](../verification/window-engine/target-26A428/signed-development-host.json) · [正式包回执](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) |
 | 本机正式 Host 只读交接 | 读取既有 AX 引用在技术上无需普通桌面。现有监督器还要退出唯一日常 Host，创建普通夹具、证明同桌面归属并将前台焦点交还。因此该入口在退出前要求普通 Space、原焦点及静止 HID 双读。保留该约束。若未来已有系统接纳的内部镜像和专用会话，可复用同一 Guardian 协议验证只读交接，自行记录真实主体；正式 Host 的权限结论仍须由其自身给出。[监督器](../../scripts/acceptance/window-engine/host/run-installed-stage.py) · [Host 登记](../../Sources/NearpaneHost/StageEnginePackageProbe.swift) |
 | 真实窗口写入 | 只读双读 PASS 之后，先证实指定 Guardian 在正常退出和异常中断时能取得且履行持久恢复责任。再限一扇签名普通应用窗，核对画面、按下/拖动/释放、键盘落点、同应用旁窗、另一应用、Dock、原生归属和精确恢复。任一安全项 FAIL 或 UNKNOWN 即停止派发，保存原始结果并处理已有责任。只读生存不能证明可写。 |
 | 正式分发 | 用将交付的包验证公证、装订、系统策略、干净安装、升级与回退。此门槛独立于产品源码开发、离屏交互测试和原有可用功能。 |

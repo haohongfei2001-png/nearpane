@@ -55,6 +55,29 @@ import Testing
         return (profile, store, try StageGroupCoordinator(store: store, profile: profile), runtime, store.groups(in: runtime.scope))
     }
 
+    @Test func engineActionsSeeThePrivateCommittedIntentOnDisk() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        var inspected = 0
+        session.afterWrite = {
+            let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+            #expect((attributes[.posixPermissions] as? NSNumber)?.uint16Value == 0o600)
+            let disk = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+            let entry = try #require(disk.pending?.entries.last)
+            let issued = try #require(session.writes.last)
+            #expect(entry.intent != nil && entry.before.window == issued.1 && entry.action == issued.0 && entry.after == nil)
+            inspected += 1
+        }
+        defer { session.afterWrite = nil }
+        try await coordinator.activate(groups[1].id, member: nil, in: session.scope, consent: true, session: session)
+        #expect(inspected == session.writes.count && inspected > 0)
+        let reopened = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(!reopened.requiresRecovery && reopened.retainedOwner == coordinator.retainedOwner)
+        let files = try FileManager.default.contentsOfDirectory(atPath: profile.path)
+        #expect(!files.contains(where: { $0.hasPrefix(".stage-visibility-") }))
+    }
+
     @Test func threeGroupsRequireConsentFocusOwnershipAndFullReadback() async throws {
         let (p, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: p) }

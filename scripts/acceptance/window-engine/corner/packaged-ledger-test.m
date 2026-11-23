@@ -148,12 +148,23 @@ int main(void) {
         int jobFD = open(job.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
         char reply;
         assert(!publishReceipt(-1, withdrawn, replies[1]));
+        assert(!publishReceipt(-1, @{@"status": @"PASS"}, replies[1]));
         assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);
         assert(publishReceipt(jobFD, withdrawn, replies[1]));
         assert(read(replies[0], &reply, 1) == 1 && reply == 'W');
         assert([productFile(jobFD, "guardian-receipt.json") isEqual:withdrawn]);
         assert(!publishReceipt(jobFD, withdrawn, replies[1]));
         assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);
+        NSDictionary *released = @{@"status": @"PASS", @"reason": @"liveHostReleasedRestoredOwnership",
+                                   @"liveReleaseOriginalFrameReadbacks": @2};
+        assert(!publishReceipt(jobFD, released, replies[1]));
+        assert(read(replies[0], &reply, 1) == -1 && errno == EAGAIN);
+        assert(mkdirat(jobFD, "released", 0700) == 0);
+        int releasedFD = openat(jobFD, "released", O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        assert(publishReceipt(releasedFD, released, replies[1]));
+        assert(read(replies[0], &reply, 1) == 1 && reply == 'D');
+        assert([productFile(releasedFD, "guardian-receipt.json") isEqual:released]);
+        close(releasedFD);
         close(jobFD);
         close(replies[0]);
         close(replies[1]);

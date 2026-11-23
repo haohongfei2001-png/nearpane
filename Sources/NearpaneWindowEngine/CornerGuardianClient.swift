@@ -64,6 +64,7 @@ import Security
         var info = stat()
         guard lstat(dir.path, &info) == 0, info.st_uid == getuid(), info.st_mode & S_IFMT == S_IFDIR,
               info.st_mode & 0o777 == 0o700 else { throw Failure.unavailable }
+        try ProfileLease.syncDirectory(profile)
         return dir
     }
 
@@ -99,8 +100,10 @@ import Security
               let member = r.member, let lifetime = r.lifetime, let generation = r.generation,
               let scope = r.scope, let original = r.frame, r.nativeID > 0,
               leases[w] == nil, leases.count < 32, Self.signedHelper() else { throw Failure.unavailable }
-        let directory = try groupDirectory().appendingPathComponent(r.intent.uuidString.lowercased(), isDirectory: true)
+        let parent = try groupDirectory()
+        let directory = parent.appendingPathComponent(r.intent.uuidString.lowercased(), isDirectory: true)
         guard mkdir(directory.path, 0o700) == 0 else { throw Failure.pendingRecovery }
+        try ProfileLease.syncDirectory(parent)
         let fd = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard fd >= 0 else { throw Failure.unavailable }
         let heldDirectory = FileHandle(fileDescriptor: fd, closeOnDealloc: true)

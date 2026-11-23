@@ -34,6 +34,15 @@ public final class ProfileLease {
         guard url.standardizedFileURL.path == url.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }
     }
 
+    package static func syncDirectory(_ url: URL) throws {
+        let fd = open(url.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard fd >= 0 else { throw CocoaError(.fileWriteUnknown) }
+        defer { Darwin.close(fd) }
+        var result: Int32
+        repeat { result = fsync(fd) } while result == -1 && errno == EINTR
+        guard result == 0 else { throw CocoaError(.fileWriteUnknown) }
+    }
+
     public func activeGeneration() throws -> URL {
         guard !FileManager.default.fileExists(atPath: root.appendingPathComponent("transaction.json").path) else {
             throw CocoaError(.fileReadCorruptFile)

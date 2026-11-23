@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Independent AX and WindowServer readback. An adapter must withhold a sample when the two
@@ -136,6 +137,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
 
     private let store: StageGroupStore, file: URL
     private var ledger = Ledger(), bytes: Data?
+    private var journalCommitUnconfirmed = false
     private var busy = false
     private var epoch = UUID()
 
@@ -171,7 +173,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
     }
 
-    public var requiresRecovery: Bool { ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
+    public var requiresRecovery: Bool { journalCommitUnconfirmed || ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
     /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
     public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner) -> Bool {
@@ -206,12 +208,28 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
 
     private func save(_ next: Ledger) throws {
+        guard !journalCommitUnconfirmed else { throw StageSwitchError.recoveryRequired }
         try ProfileLease.checkPath(file)
         guard try disk() == bytes else { throw StageSwitchError.recoveryRequired }
-        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let directory = file.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(next)
-        try data.write(to: file, options: .atomic)
+        let temporary = directory.appendingPathComponent(".stage-visibility-\(UUID().uuidString).tmp")
+        let fd = open(temporary.path, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard fd >= 0 else { throw CocoaError(.fileWriteUnknown) }
+        let output = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        defer { try? output.close(); unlink(temporary.path) }
+        try output.write(contentsOf: data)
+        try output.synchronize()
+        guard try disk() == bytes else { throw StageSwitchError.recoveryRequired }
+        guard rename(temporary.path, file.path) == 0 else { throw CocoaError(.fileWriteUnknown) }
+        // No new window action may depend on this journal until its directory entry is durable.
+        journalCommitUnconfirmed = true
+        try ProfileLease.syncDirectory(directory)
+        if bytes == nil { try ProfileLease.syncDirectory(directory.deletingLastPathComponent()) }
+        guard try disk() == data else { throw StageSwitchError.recoveryRequired }
         bytes = data; ledger = next
+        journalCommitUnconfirmed = false
     }
 
     private func update(_ edit: (inout Ledger) -> Void) throws {
@@ -454,6 +472,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
             try store.commitActivity(group, preferred: preferred.id, in: scope, expected: directory, verifiedLayouts: verifiedLayouts)
             try update { $0.pending = nil }
         } catch {
+            guard !journalCommitUnconfirmed else { throw StageSwitchError.recoveryRequired }
             if ledger.pending?.entries.isEmpty == true { try update { $0.pending = nil } }
             else if (error as? StageSwitchError) == .superseded, let pending = ledger.pending {
                 // Keep the same executor and its sealed leases. Only retire a fully observed prefix.
@@ -493,6 +512,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
 
     private func compensate(_ session: StageWindowSession, token: UUID, current: @MainActor () -> Bool = { true }) async throws {
+        guard !journalCommitUnconfirmed else { throw StageSwitchError.recoveryRequired }
         guard let t = ledger.pending else { return }
         guard t.owner == session.engineOwner, ledger.owner == session.engineOwner, (ledger.releases ?? []).isEmpty,
               let hidden = session.qualifiedHiddenState, t.entries.allSatisfy({ $0.after != nil && $0.guardianPending != true })
@@ -589,6 +609,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
     /// a modified/reused window becomes an instruction to the replacement backend.
     public func releaseOwned(_ session: StageWindowSession) async throws {
         guard !busy else { throw StageSwitchError.busy }
+        guard !journalCommitUnconfirmed else { throw StageSwitchError.recoveryRequired }
         guard let owner = session.engineOwner, ledger.owner == owner else { throw StageSwitchError.ownership }
         busy = true; defer { busy = false }
         let token = epoch, touched = Set(ledger.pending?.entries.filter { $0.after == nil }.map { $0.before.window } ?? [])
@@ -672,7 +693,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
 
     func confirmReleased(_ owner: StageEngineOwner) throws {
-        guard !busy, ledger.pending == nil, ledger.owned.isEmpty, (ledger.releases ?? []).isEmpty else {
+        guard !busy, !requiresRecovery, ledger.owned.isEmpty else {
             throw StageSwitchError.recoveryRequired
         }
         guard let stamped = ledger.owner else { return }
