@@ -214,6 +214,13 @@ struct Sidebar {
     }
 }
 
+// Inspect this observer's normal authorization before enumerating any windows or capturing pixels.
+if CommandLine.arguments.dropFirst().elementsEqual(["visual-access"]) {
+    let report: [String: Any] = ["pid": getpid(), "screenCapturePreflight": CGPreflightScreenCaptureAccess(),
+                                 "uptimeNS": DispatchTime.now().uptimeNanoseconds, "framesCaptured": 0]
+    print(String(decoding: try JSONSerialization.data(withJSONObject: report, options: .sortedKeys), as: UTF8.self))
+    exit(0)
+}
 #if P2_DOCUMENT_FIXTURE
 if CommandLine.arguments.dropFirst().elementsEqual(["p2-stage-surface"]) {
     let data = FileHandle.standardInput.readData(ofLength: 8193)
