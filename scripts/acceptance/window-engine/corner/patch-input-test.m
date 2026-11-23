@@ -54,6 +54,22 @@ static void pixels(NSString *path) {
     assert(!memcmp(actual, &rgba[(2 * 8 + 6) * 4], 4));
     assert(!cropWallpaper(url, stretch, display, (NCFrame){7, 21, 1, 1}));
     assert(!cropWallpaper(url, @{}, display, (NCFrame){-2, 22, 1, 1}));
+    BOOL fill = NO;
+    CGImageSourceRef admitted = drawableWallpaper(url, stretch, &fill);
+    assert(admitted && !fill);
+    CFRelease(admitted);
+    assert(!drawableWallpaper(url, @{}, &fill));
+    NSURL *animated = [url URLByAppendingPathExtension:@"gif"];
+    CGImageDestinationRef multi = CGImageDestinationCreateWithURL((__bridge CFURLRef)animated,
+                                                                 CFSTR("com.compuserve.gif"), 2, NULL);
+    assert(multi);
+    CGImageDestinationAddImage(multi, image, NULL);
+    CGImageDestinationAddImage(multi, image, NULL);
+    assert(CGImageDestinationFinalize(multi));
+    CFRelease(multi);
+    assert(!drawableWallpaper(animated, stretch, &fill));
+    assert(!cropWallpaper(animated, stretch, display, (NCFrame){-2,22,1,1}));
+    assert([[NSFileManager defaultManager] removeItemAtURL:animated error:NULL]);
     CGImageRelease(crop);
     CGImageRelease(image);
     CGContextRelease(check);

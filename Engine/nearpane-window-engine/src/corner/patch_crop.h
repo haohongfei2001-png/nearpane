@@ -3,28 +3,36 @@
 #import <ImageIO/ImageIO.h>
 #include "macos.h"
 
+// Preflight and rendering must agree on the same source. ImageIO metadata does not decode any pixels.
+static CGImageSourceRef drawableWallpaper(NSURL *url, NSDictionary *options, BOOL *fill) CF_RETURNS_RETAINED;
+static CGImageSourceRef drawableWallpaper(NSURL *url, NSDictionary *options, BOOL *fill) {
+    *fill = [options[NSWorkspaceDesktopImageScalingKey] isEqual:@(NSImageScaleProportionallyUpOrDown)] &&
+            [options[NSWorkspaceDesktopImageAllowClippingKey] isEqual:@YES];
+    if (!url || (!*fill && ![options[NSWorkspaceDesktopImageScalingKey] isEqual:@(NSImageScaleAxesIndependently)]))
+        return NULL;
+    NSDictionary *metadataOnly = @{(__bridge NSString *)kCGImageSourceShouldCache: @NO};
+    CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, (__bridge CFDictionaryRef)metadataOnly);
+    if (!source) return NULL;
+    NSDictionary *meta = nil;
+    if (CGImageSourceGetCount(source) == 1)
+        meta = CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, (__bridge CFDictionaryRef)metadataOnly));
+    double width = [meta[(__bridge NSString *)kCGImagePropertyPixelWidth] doubleValue];
+    double height = [meta[(__bridge NSString *)kCGImagePropertyPixelHeight] doubleValue];
+    NSNumber *orientation = meta[(__bridge NSString *)kCGImagePropertyOrientation];
+    if (width > 0 && height > 0 && width * height <= 42000000 && (!orientation || [orientation isEqual:@1]))
+        return source;
+    CFRelease(source);
+    return NULL;
+}
+
 static CGImageRef cropWallpaper(NSURL *url, NSDictionary *options, NCFrame display,
                                 NCFrame frame) CF_RETURNS_RETAINED;
 static CGImageRef cropWallpaper(NSURL *url, NSDictionary *options, NCFrame display, NCFrame frame) {
-    BOOL stretch = [options[NSWorkspaceDesktopImageScalingKey] isEqual:@(NSImageScaleAxesIndependently)];
-    BOOL fill = [options[NSWorkspaceDesktopImageScalingKey] isEqual:@(NSImageScaleProportionallyUpOrDown)] &&
-                [options[NSWorkspaceDesktopImageAllowClippingKey] isEqual:@YES];
-    if (!stretch && !fill)
-        return NULL;
-    CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
-    if (!source)
-        return NULL;
+    BOOL fill = NO;
+    CGImageSourceRef source = drawableWallpaper(url, options, &fill);
+    if (!source) return NULL;
     CGImageRef crop = NULL, image = NULL;
     @try {
-        if (CGImageSourceGetCount(source) != 1)
-            return NULL;
-        NSDictionary *meta = CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(source, 0, NULL));
-        NSNumber *w = meta[(__bridge NSString *)kCGImagePropertyPixelWidth],
-                 *h = meta[(__bridge NSString *)kCGImagePropertyPixelHeight],
-                 *orientation = meta[(__bridge NSString *)kCGImagePropertyOrientation];
-        if (!w || !h || !w.unsignedLongLongValue || !h.unsignedLongLongValue ||
-            w.doubleValue * h.doubleValue > 42000000 || (orientation && ![orientation isEqual:@1]))
-            return NULL;
         NSDictionary *decode = @{(__bridge NSString *)kCGImageSourceShouldCacheImmediately : @YES};
         image = CGImageSourceCreateImageAtIndex(source, 0, (__bridge CFDictionaryRef)decode);
         if (!image)

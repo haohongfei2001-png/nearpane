@@ -1,0 +1,25 @@
+{
+  "displays": [
+    {
+      "active": 1,
+      "builtIn": 1,
+      "hasImageOptions": 1,
+      "mirrored": 0,
+      "selectedURLIsFile": true,
+      "sourceAcceptedByCorner": false,
+      "underSealedWallpaperSourceRoots": false
+    }
+  ],
+  "scope": "installedDesktopReadOnlyProductCornerSource",
+  "screenshots": 0,
+  "windowsCreated": 0,
+  "windowWrites": 0,
+  "targetBuild": "26A428",
+  "supportedInputRegression": {
+    "scope": "offscreenOwnPNGAndUnpostedQuartzEvents",
+    "status": "PASS",
+    "systemInputPosted": 0,
+    "windowsOrdered": 0
+  },
+  "scopeOfConclusion": "Current Corner image provider only. The selected wallpaper URL was classified without recording its path or opening that file."
+}

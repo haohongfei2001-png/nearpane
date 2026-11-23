@@ -98,7 +98,8 @@ static NSURL *staticWallpaper(NSScreen *screen, struct stat *st) {
 bool np_corner_patch_source_available(const uint8_t display[16]) {
     if (!display) return false;
     NSData *expected = [NSData dataWithBytes:display length:16];
-    __block BOOL available = NO;
+    __block NSURL *url = nil;
+    __block NSDictionary *options = nil;
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     void (^read)(void) = ^{
         for (NSScreen *screen in NSScreen.screens) {
@@ -109,8 +110,10 @@ bool np_corner_patch_source_available(const uint8_t display[16]) {
             CFRelease(uuid);
             if (memcmp(&bytes, expected.bytes, 16)) continue;
             struct stat st = {};
-            available = CGDisplayIsActive(d) && !CGDisplayIsInMirrorSet(d) && staticWallpaper(screen, &st) != nil &&
-                        [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen] != nil;
+            if (CGDisplayIsActive(d) && !CGDisplayIsInMirrorSet(d)) {
+                url = staticWallpaper(screen, &st);
+                options = [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen];
+            }
             break;
         }
         dispatch_semaphore_signal(done);
@@ -121,7 +124,20 @@ bool np_corner_patch_source_available(const uint8_t display[16]) {
         dispatch_async(dispatch_get_main_queue(), read);
         if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 200 * NSEC_PER_MSEC))) return false;
     }
-    return available;
+    // The caller is normally the Rust worker. Do not decode a wallpaper or stall the main queue.
+    if (!url || !options) return false;
+    static NSCache<NSArray *, NSNumber *> *known;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ known = [NSCache new]; known.countLimit = 8; });
+    // staticWallpaper admits only sealed, immutable system files. A change in scaling is a new source.
+    NSArray *key = @[url, options];
+    if ([known objectForKey:key]) return true;
+    BOOL fill;
+    CGImageSourceRef source = drawableWallpaper(url, options, &fill);
+    if (!source) return false;
+    CFRelease(source);
+    [known setObject:@YES forKey:key];
+    return true;
 }
 
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
