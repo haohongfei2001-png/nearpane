@@ -1,0 +1,25 @@
+{
+  "scope": "temporary internal packages generated in these two runs only",
+  "recordedUTC": "2026-11-23T13:32:01.150444+00:00",
+  "status": "PASS",
+  "dailyInstallTouched": false,
+  "currentPassingReadOnlyHostPreserved": true,
+  "builds": [
+    {
+      "source": "18b5b11be2f81fc5b2d05f3a5fd20469aa0ca1d4",
+      "state": "modified",
+      "sealStatus": "BLOCKED",
+      "status": "ARCHIVED",
+      "contentVerified": true,
+      "archiveSHA256": "baa717a7e69712db4248109e2189ece52ffd943c4eaf3ba26d50ce7082781774"
+    },
+    {
+      "source": "a66754142cc0cc69e3c1a4b3c51ab749ed0e4082",
+      "state": "clean",
+      "sealStatus": "PASS",
+      "status": "ARCHIVED",
+      "contentVerified": true,
+      "archiveSHA256": "f87dff2a912ef67d979a23bae6c15c450389623aa862240b089c755e017da8de"
+    }
+  ]
+}

@@ -80,7 +80,58 @@
           }
         ]
       }
-    ]
+    ],
+    "durableRecoveryJournal": {
+      "source": "c5c112365df2f7d601ed5d9469b3ff30d2156aaa",
+      "scope": "isolated profile file IO, normal-path coordinator and packaged helper; no WindowServer writes",
+      "swiftPassed": 800,
+      "swiftSkipped": 3,
+      "swiftFailed": 0,
+      "cornerOfflineRust": 72,
+      "packagedLedgerAndReceiptAcknowledgement": "PASS",
+      "guardianProductBuild": {
+        "architecture": "arm64",
+        "sha256": "fc28f1d4ab2c2873738da3f15c5e71fb1d4e9c6ebcbeb5fd155fa5e94ef8b17c"
+      },
+      "actualWindowRecovery": "NOT_RUN",
+      "productionQualified": false,
+      "CI": [
+        {
+          "headSha": "c5c112365df2f7d601ed5d9469b3ff30d2156aaa",
+          "name": "StageGroup window engine",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45184265264",
+          "jobs": [
+            {
+              "name": "Rust, Swift and production C ABI",
+              "conclusion": "success"
+            },
+            {
+              "name": "Read-only hosted desktop preflight",
+              "conclusion": "skipped"
+            }
+          ]
+        },
+        {
+          "headSha": "c5c112365df2f7d601ed5d9469b3ff30d2156aaa",
+          "name": "Nearpane native 5.22 protocol",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45184265064",
+          "jobs": [
+            {
+              "name": "protocol",
+              "conclusion": "success"
+            },
+            {
+              "name": "Desktop files on macOS 27",
+              "conclusion": "skipped"
+            }
+          ]
+        }
+      ]
+    }
   },
   "dailyPreserved": true,
   "fixtureCleanup": [

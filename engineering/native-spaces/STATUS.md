@@ -8,6 +8,8 @@
 
 产品修复涵盖鼠标按下与窗口清单更新并发、遮罩尚未出现在窗口合成器时过早报告隐藏，以及主程序在窗口所有权落盘后、收到恢复确认前退出。`1b03f10` 的内核退出与管道回归通过，完整 Swift 回归 799 项通过、3 项跳过。沙箱内首次完整回归失败，原始日志已保留。下一项实机门槛是验证对实际停放窗口的持久恢复责任。[内核交接](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-park-ack.json) · [离线回归与失败原文](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/local-regressions.zip) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45181410863)
 
+`c5c1123` 将写前日志、恢复进程的责任目录和最终回执同步到磁盘。主程序在日志持久化前不会继续窗口操作，恢复进程在最终回执持久化后才确认归还。隔离资料上的完整 Swift 回归为 800 项通过、3 项跳过；恢复实际停放过的窗口仍为 **NOT_RUN**。[窗口事务与归还验证](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/qualification.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45184265264) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45184265064)
+
 上一轮仅观察到普通桌面从 6 切至 4，期间 HID 计数未变。夹具未启动。随后到达的同一 nonce 日常 Host 权限记录另存，整次运行仍按原收据保留 **UNKNOWN**。[原始运行](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/result.json) · [延迟到达的系统日志](../verification/window-engine/guardian-survival-26A428/internal-host/04-space-change/delayed-permission-event.json)
 
 ## 2026-11-23 · 隔离签名 Host 与 Guardian 实机验收
