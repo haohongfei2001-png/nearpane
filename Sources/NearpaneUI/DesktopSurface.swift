@@ -191,10 +191,11 @@ struct DesktopSurface: View {
         let description = pictures.isEmpty ? "暂无历史画面" : "历史画面 " + String(pictures.count) + "/" + String(held.count)
         return Button {
             let input = NativeSelectionPermit.inputCounters()
+            let epoch = navigation.ownershipEpoch
             navigation.submit(stage:true) { token in
                 try await feed.stageEngine.chooseHeld(held,in:feed,current:{
                     canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-                })
+                }, newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
             }
         } label: {
             VStack(spacing:0) {
@@ -252,6 +253,7 @@ struct DesktopSurface: View {
             return
         }
         let input = NativeSelectionPermit.inputCounters()
+        let epoch = navigation.ownershipEpoch
         navigation.submit(stage:true) { token in
             let valid: @MainActor () -> Bool = {
                 canNavigate && navigation.isCurrent(token) && feed.stillGroups(member, in: group, appearance: lifetime) &&
@@ -260,7 +262,8 @@ struct DesktopSurface: View {
             guard valid() else { throw StageSwitchError.interrupted }
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
-            let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid)
+            let handled = try await feed.stageEngine.groupChoice(group,member:member,in:feed,snapshot:fresh,current:valid,
+                newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
             if !handled && valid() {
                 try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }
             }

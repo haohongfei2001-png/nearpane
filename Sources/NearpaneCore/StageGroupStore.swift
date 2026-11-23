@@ -308,23 +308,31 @@ public struct StageGroupWindow: Sendable {
     /// Called only by the coordinator once a whole-transaction independent readback is complete.
     func commitActivity(_ group: UUID, preferred: UUID, in scope: StageGroupScope,
                         expected: StageGroupDirectory, verifiedLayouts: [UUID: SurfaceRect] = [:]) throws {
+        try saveObservedActivity((group, preferred), in: scope, expected: expected, verifiedLayouts: verifiedLayouts)
+    }
+
+    /// A verified partial switch may preserve departing frames without publishing an active group.
+    func saveObservedActivity(_ active: (group: UUID, member: UUID)?, in scope: StageGroupScope,
+                              expected: StageGroupDirectory, verifiedLayouts: [UUID: SurfaceRect]) throws {
         guard directory.hasSameWindowGroups(as: expected, in: scope) else { throw StageGroupError.changedFile }
         var next = directory
-        guard let d = next.displays.firstIndex(where: { $0.id == scope.display }),
-              let g = next.displays[d].groups.firstIndex(where: { $0.id == group && $0.nativeSpace == scope.nativeSpace }),
-              next.displays[d].groups[g].needsReorganization != true,
-              next.displays[d].groups[g].members.contains(where: { $0.id == preferred }) else { throw StageGroupError.staleBinding }
+        guard let d = next.displays.firstIndex(where: { $0.id == scope.display }) else { throw StageGroupError.staleBinding }
+        if let active {
+            guard let g = next.displays[d].groups.firstIndex(where: { $0.id == active.group && $0.nativeSpace == scope.nativeSpace }),
+                  next.displays[d].groups[g].needsReorganization != true,
+                  next.displays[d].groups[g].members.contains(where: { $0.id == active.member }) else { throw StageGroupError.staleBinding }
+            next.displays[d].groups[g].selectedMember = active.member
+        }
         let local = groups(in: scope).flatMap(\.members)
         guard Set(verifiedLayouts.keys).isSubset(of: Set(local.map(\.id))),
               verifiedLayouts.values.allSatisfy(StageGroupWindow.validFrame) else { throw StageGroupError.staleBinding }
         for index in next.displays[d].groups.indices where next.displays[d].groups[index].nativeSpace == scope.nativeSpace {
-            next.displays[d].groups[index].verifiedActive = index == g ? true : nil
+            next.displays[d].groups[index].verifiedActive = next.displays[d].groups[index].id == active?.group ? true : nil
             for member in next.displays[d].groups[index].members.indices {
                 let id = next.displays[d].groups[index].members[member].id
                 if let layout = verifiedLayouts[id] { next.displays[d].groups[index].members[member].layout = layout }
             }
         }
-        next.displays[d].groups[g].selectedMember = preferred
         try commit(next)
     }
 

@@ -307,7 +307,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func groupChoice(_ group: UUID, member: NativeSidebarMember, in feed: CurrentDesktopWindows,
-                     snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool) async throws -> Bool {
+                     snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
+                     newerChoice: @escaping @MainActor () -> Bool = { false }) async throws -> Bool {
         guard routesGroupChoice else { return false }
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
@@ -358,10 +359,14 @@ import NearpaneOrdinaryWindowRuntime
         do {
             witness?.preparePictures(leavingFor:group)
             defer { witness?.endPicturePreparation() }
-            try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted)
+            try await engine.activate(group,member:saved.id,in:scope,consent:true,current:permitted,
+                                      newerChoice: { environmentCurrent() && newerChoice() })
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
             return true
+        } catch StageSwitchError.superseded {
+            projectHeld(feed.groups, in: scope)
+            throw StageSwitchError.superseded
         } catch {
             if engine.coordinator.requiresRecovery || engine.session?.qualifiedHiddenState == nil {
                 recoveryRequested = true
@@ -468,7 +473,8 @@ import NearpaneOrdinaryWindowRuntime
 
     /// The row represents an explicitly owned, independently read group. Its pixel stream and drag source
     /// remain absent while hidden. Recheck the whole roster before the existing coordinator can dispatch.
-    func chooseHeld(_ held: HeldGroup, in feed: CurrentDesktopWindows, current: @escaping @MainActor () -> Bool) async throws {
+    func chooseHeld(_ held: HeldGroup, in feed: CurrentDesktopWindows, current: @escaping @MainActor () -> Bool,
+                    newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
         await heldRefresh?.value
         guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
               heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
@@ -478,6 +484,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         let token = revision
         let observed = try await session.read(held.scope)
+        if !current() && newerChoice() { throw StageSwitchError.superseded }
         guard current(), observed.windows[held.state.window] == held.state,
               engine.coordinator.confirmsHidden(group:held.id,member:held.member,state:held.state,scope:held.scope,owner:held.owner) else {
             freeze(); throw StageSwitchError.ownership
@@ -485,9 +492,13 @@ import NearpaneOrdinaryWindowRuntime
         do {
             witness?.preparePictures(leavingFor:held.id)
             defer { witness?.endPicturePreparation() }
-            try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current)
+            try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current,
+                                      newerChoice: { self.revision == token && newerChoice() })
             projectHeld(feed.groups,in:held.scope)
             await armArrivals(in: feed, revision: token)
+        } catch StageSwitchError.superseded {
+            projectHeld(feed.groups, in: held.scope)
+            throw StageSwitchError.superseded
         } catch {
             freeze(); ordinaryContextObserved()
             throw error

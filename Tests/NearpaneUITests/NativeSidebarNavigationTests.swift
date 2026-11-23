@@ -192,6 +192,26 @@ import Testing
         #expect(effects == ["move", "latest"])
     }
 
+    @Test func onlyANewerGroupChoiceInTheOriginalOwnershipEpochMayTakeOver() async throws {
+        let router = NativeSidebarNavigation(), epoch = router.ownershipEpoch
+        var original: UUID?, resume: CheckedContinuation<Void, Never>?
+        router.submit(stage: true) { token in
+            original = token
+            await withCheckedContinuation { resume = $0 }
+        }
+        while resume == nil { await Task.yield() }
+        defer { resume?.resume() }
+        let token = try #require(original)
+        router.submit(selection: false) { _ in }
+        #expect(!router.hasQueuedGroupChoice(after: token, in: epoch))
+        router.submit(stage: true) { _ in }
+        #expect(router.hasQueuedGroupChoice(after: token, in: epoch))
+        router.setDispatchAvailable(false)
+        router.setDispatchAvailable(true)
+        router.submit(stage: true) { _ in }
+        #expect(!router.hasQueuedGroupChoice(after: token, in: epoch))
+    }
+
     @Test func subsequentSelectionCannotDiscardQueuedMove() async {
         let router = NativeSidebarNavigation()
         var resume: CheckedContinuation<Void, Never>?, effects = [String]()

@@ -72,6 +72,7 @@ struct UnsubmittedCornerHide: Error {
     public var isFrozen: Bool { frozen }
     private var enrolledLifetimes: [NativeSpaceWindow: UUID]?
     var intentIsCurrent: @MainActor () -> Bool = { false }
+    fileprivate var newerSelectionWaiting: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
     public var qualifiedHiddenState: StageWindowState.Visibility? {
         !closed && !frozen && owner.backend == .corner && witness.permits(owner,restoring:false) ? .parked : nil
@@ -108,8 +109,8 @@ struct UnsubmittedCornerHide: Error {
         do {
             try await transport.start(owner,nativeID:native)
             try await checkHealth()
-            guard intentIsCurrent() else { throw StageSwitchError.interrupted }
         } catch { stopAfterBackendFailure(current: intentIsCurrent()); throw error }
+        guard intentIsCurrent() else { throw newerSelectionWaiting() ? StageSwitchError.superseded : .interrupted }
     }
 
     private func stopAfterBackendFailure(current: Bool) {
@@ -134,9 +135,10 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func dispatch(_ c: StageWindowCommand) async throws {
-        func eligible() -> Bool {
-            owner.backend == .corner && !closed && mayManage(c.before) &&
-            (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
+        func eligible(settling: Bool = false) -> Bool {
+            let ownsIntent = intentIsCurrent() || (settling && newerSelectionWaiting())
+            return owner.backend == .corner && !closed && mayManage(c.before) &&
+            (c.restoring ? c.action == .show && (recovering || (!frozen && ownsIntent)) : !frozen && ownsIntent) && witness.permits(owner,restoring:c.restoring)
         }
         guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
         if c.restoring {
@@ -192,20 +194,20 @@ struct UnsubmittedCornerHide: Error {
                 } catch {
                     guard c.restoreFrame == nil,
                           (try? await transport.withdrawUnsubmittedHide(c, owner: owner)) == true else { throw error }
-                    freeze()
+                    if yieldedFocus != nil || !newerSelectionWaiting() { freeze() }
                     throw UnsubmittedCornerHide(owner: owner, command: c, yieldedFocus: yieldedFocus)
                 }
             }
             let sent = try await transport.submit(c.restoring ? 5 : hiding ? 3 : 4,owner:owner,c)
-            guard eligible(), sent.verifies(c.intent,0) else { freeze(); throw StageSwitchError.incomplete }
+            guard eligible(settling: true), sent.verifies(c.intent,0) else { freeze(); throw StageSwitchError.incomplete }
             let readback = try await transport.submit(2,owner:owner,c)
             let mask: UInt32 = 4 | 8 | 32 | (hiding ? 2 | 128 | 16 : 1)
-            guard eligible(), readback.verifies(c.intent,mask), readback.flags & (hiding ? 1 : 2) == 0,
+            guard eligible(settling: true), readback.verifies(c.intent,mask), readback.flags & (hiding ? 1 : 2) == 0,
                   readback.nativeID == pre.nativeID
             else { freeze(); throw StageSwitchError.incomplete }
             witness.expectVisibility(c,nativeID:readback.nativeID,frame:readback.frame)
             let independentlyRead = try await read(c.scope)
-            guard eligible(), independentlyRead.generation == pre.generation, independentlyRead.nativeID == pre.nativeID,
+            guard eligible(settling: true), independentlyRead.generation == pre.generation, independentlyRead.nativeID == pre.nativeID,
                   independentlyRead.sequence > pre.sequence, let result = independentlyRead.windows[c.before.window],
                   result.lifetime == c.before.lifetime, let measured = readback.frame,
                   [measured.x,measured.y,measured.width,measured.height].allSatisfy(\.isFinite),
@@ -326,14 +328,16 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func activate(_ group: UUID, member: UUID, in scope: StageGroupScope, consent: Bool,
-                         current: @escaping @MainActor () -> Bool) async throws {
+                         current: @escaping @MainActor () -> Bool,
+                         newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
         guard !busy, !releaseRequested else { throw StageSwitchError.busy }
         guard let session, session.qualifiedHiddenState != nil, current() else { throw StageSwitchError.unavailable }
         let token = revision; busy = true; session.intentIsCurrent = current
-        defer { busy = false; session.intentIsCurrent = { false } }
+        session.newerSelectionWaiting = { self.revision == token && !Task.isCancelled && newerChoice() }
+        defer { busy = false; session.intentIsCurrent = { false }; session.newerSelectionWaiting = { false } }
         do {
             try await coordinator.activate(group, member: member, in: scope, consent: consent, session: session,
-                                          current: { token == self.revision && current() })
+                                          current: { token == self.revision && current() }, newerChoice: session.newerSelectionWaiting)
             guard token == revision, current() else { throw StageSwitchError.interrupted }
         } catch {
             if session.qualifiedHiddenState == nil || coordinator.requiresRecovery { invalidate() }

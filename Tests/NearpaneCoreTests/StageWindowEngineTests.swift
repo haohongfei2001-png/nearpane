@@ -16,6 +16,7 @@ import Testing
     enum Withdrawal: Sendable { case confirmed, denied, lostReply }
     var withdrawal: Withdrawal = .denied
     var afterPrepare: ((StageWindowCommand) -> Void)?
+    var afterVisibilityWrite: (() -> Void)?
     var prepareReplyLost = false, nextReadFails = false
     var withdrawalAttempts = [StageWindowCommand](), withdrawn = Set<UUID>()
     var visibleAfterMutation = [Int]()
@@ -57,6 +58,7 @@ import Testing
         default: throw StageSwitchError.unavailable
         }
         visibleAfterMutation.append(windows.values.filter { $0.visibility == .visible }.count)
+        afterVisibilityWrite?()
         return .init(status:0,flags:0,intent:c.intent,nativeID:22)
     }
     func start(_ owner: StageEngineOwner,nativeID: UInt64) async throws { guard canStart && nativeID == 22 else { throw StageSwitchError.incomplete } }
@@ -167,6 +169,81 @@ import Testing
     }
     private func activate(_ group: StageGroupDirectory.Group, _ engine: StageWindowEngineController, _ f: EngineFixture) async throws {
         try await engine.activate(group.id,member:group.members[0].id,in:f.scope,consent:true,current:{true})
+    }
+
+    @Test(arguments: [false, true]) func aNewerGroupCanReuseOnlyIndependentlySettledWork(_ afterHide: Bool) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let target = groups[1], latest = groups[2]
+        let departing = groups[0].members[0]
+        f.windows[departing.windowHint]?.frame.x += 27
+        let original = try #require(f.windows[departing.windowHint])
+        let bystanders = f.windows.filter { $0.key.number > 3 }
+        var queued = false
+        f.withdrawal = .confirmed
+        if afterHide { f.afterVisibilityWrite = { queued = true } }
+        else { f.afterPrepare = { _ in queued = true } }
+        await #expect(throws: StageSwitchError.superseded) {
+            try await engine.activate(target.id, member: target.members[0].id, in: f.scope, consent: true,
+                                      current: { !queued }, newerChoice: { queued })
+        }
+        #expect(f.revokes == 0 && !engine.coordinator.requiresRecovery)
+        #expect(store.activeGroup(in: f.scope) == nil && f.ordinaryEffects == [.focus])
+        let pending = try readJournal(profile)
+        #expect(pending.pending == nil && pending.owned.count == (afterHide ? 1 : 0))
+        if afterHide {
+            #expect(f.prepared == f.confirmed && f.effects.count == 1)
+            #expect(StageGroupStore(profile: profile).groups(in: f.scope)[0].members[0].layout ==
+                    StageGroupWindow.relativeFrame(original.frame, in: f.displayArea))
+        } else {
+            #expect(f.effects.isEmpty && f.withdrawn == f.prepared && f.withdrawn.count == 1)
+        }
+        f.afterVisibilityWrite = nil
+        f.afterPrepare = nil
+        try await activate(latest, engine, f)
+        #expect(f.focus == latest.members[0].windowHint && store.activeGroup(in: f.scope) == latest.id)
+        try await activate(groups[0], engine, f)
+        #expect(f.windows[departing.windowHint] == original && f.windows.filter { $0.key.number > 3 } == bystanders)
+    }
+
+    @Test func aQueuedClickCannotDischargeAnUnknownHide() async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        var queued = false
+        f.afterVisibilityWrite = { queued = true }
+        f.badReadback = groups[0].members[0].windowHint.number
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(groups[1].id, member: groups[1].members[0].id, in: f.scope, consent: true,
+                                      current: { !queued }, newerChoice: { queued })
+        }
+        #expect(queued && engine.coordinator.requiresRecovery && engine.session?.isFrozen == true)
+        #expect(f.effects.count == 1 && store.activeGroup(in: f.scope) == nil)
+        let entry = try #require(readJournal(profile).pending?.entries.last)
+        #expect(entry.action == .hide && entry.after == nil)
+    }
+
+    @Test func aBystanderChangeDuringHandoffRetainsTheSealedLease() async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let bystander = try #require(f.windows.keys.first { $0.number == 4 })
+        var queued = false, observations = 0
+        f.afterVisibilityWrite = { queued = true }
+        f.beforeRead = { [unowned f] in
+            if queued && !f.confirmed.isEmpty {
+                observations += 1
+                if observations == 2 { f.windows[bystander]?.frame.x += 15 }
+            }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: groups[1].members[0].id, in: f.scope, consent: true,
+                                      current: { !queued }, newerChoice: { queued })
+        }
+        #expect(observations == 2 && engine.coordinator.requiresRecovery && f.effects.count == 1)
+        let journal = try readJournal(profile)
+        #expect(journal.pending != nil && journal.owned.count == 1 && store.activeGroup(in: f.scope) == nil)
     }
 
     @Test(arguments: [false, true]) func withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_ hasEarlierFocus: Bool) async throws {

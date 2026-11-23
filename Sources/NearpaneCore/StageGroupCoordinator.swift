@@ -67,7 +67,7 @@ public extension StageWindowSession {
 }
 
 public enum StageSwitchError: LocalizedError, Equatable {
-    case busy, unavailable, interrupted, incomplete, ownership, recoveryRequired
+    case busy, unavailable, interrupted, incomplete, ownership, recoveryRequired, superseded
 
     public var errorDescription: String? {
         switch self {
@@ -77,6 +77,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         case .incomplete: return "尚未核对完整的窗口组状态。"
         case .ownership: return "窗口归属已变化，请重新选择。"
         case .recoveryRequired: return "上一次窗口操作仍有待确认的恢复记录。"
+        case .superseded: return "已收到新的工作集合选择。"
         }
     }
 }
@@ -218,10 +219,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
 
     private func recordWithdrawal(_ proof: UnsubmittedCornerHide, command: StageWindowCommand, transaction: UUID,
-                                  target: UUID, owner: StageEngineOwner?) throws {
+                                  target: UUID, owner: StageEngineOwner?, yieldingToChoice: Bool) throws {
         // A failed admission yields the current switch. Earlier actions stay recorded for their
         // original owner; no focus or geometry compensation runs against a possible new user intent.
-        invalidate()
+        if !yieldingToChoice { invalidate() }
         guard proof.command == command, owner == proof.owner, proof.owner.backend == .corner,
               command.generation == proof.owner.generation, command.action == .hide, !command.restoring,
               command.before.visibility == .visible, command.restoreFrame == nil, let nativeID = command.nativeID,
@@ -254,7 +255,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
     /// first enrollment the actual focused window must belong to a participating group.
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope,
                          consent: Bool, session: StageWindowSession,
-                         current: @MainActor () -> Bool = { true }) async throws {
+                         current: @MainActor () -> Bool = { true },
+                         newerChoice: @MainActor () -> Bool = { false }) async throws {
         guard !busy else { throw StageSwitchError.busy }
         guard !requiresRecovery, ledger.owner == nil || ledger.owner == session.engineOwner,
               ledger.owned.allSatisfy({ $0.owner == session.engineOwner }) else { throw StageSwitchError.recoveryRequired }
@@ -266,7 +268,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
         defer { busy = false }
         let token = epoch, directory = store.directory
         func requireCurrentIntent() throws {
-            guard epoch == token, current(), !Task.isCancelled else { throw StageSwitchError.interrupted }
+            guard epoch == token, !Task.isCancelled else { throw StageSwitchError.interrupted }
+            if !current() { throw newerChoice() ? StageSwitchError.superseded : .interrupted }
         }
         try requireCurrentIntent()
         var first = try await session.read(scope)
@@ -358,8 +361,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
             do { try await session.dispatch(command) }
             catch let proof as UnsubmittedCornerHide {
-                try recordWithdrawal(proof, command: command, transaction: intent, target: group, owner: session.engineOwner)
-                throw StageSwitchError.interrupted
+                let yielding = epoch == token && !Task.isCancelled && proof.yieldedFocus == nil &&
+                    !current() && newerChoice() && session.qualifiedHiddenState == mechanism
+                try recordWithdrawal(proof, command: command, transaction: intent, target: group,
+                                     owner: session.engineOwner, yieldingToChoice: yielding)
+                throw yielding ? StageSwitchError.superseded : .interrupted
             }
             var firstAfter: StageWindowState?
             for _ in 0..<2 {
@@ -442,7 +448,28 @@ public enum StageSwitchError: LocalizedError, Equatable {
             try update { $0.pending = nil }
         } catch {
             if ledger.pending?.entries.isEmpty == true { try update { $0.pending = nil } }
-            else if epoch == token, current(), !Task.isCancelled, ledger.pending?.verifiedDirectoryCommit == false {
+            else if (error as? StageSwitchError) == .superseded, let pending = ledger.pending {
+                // Keep the same executor and its sealed leases. Only retire a fully observed prefix.
+                guard pending.intent == intent, !pending.verifiedDirectoryCommit,
+                      pending.entries.allSatisfy({ $0.after != nil && $0.guardianPending != true && $0.undoIntent == nil }),
+                      (ledger.releases ?? []).isEmpty else { throw StageSwitchError.recoveryRequired }
+                let expected = last
+                for _ in 0..<2 {
+                    let next = try await read()
+                    guard newerChoice(), !Task.isCancelled, next.focus == expected.focus,
+                          next.windows == expected.windows else { throw StageSwitchError.recoveryRequired }
+                    last = next
+                }
+                var layouts = [UUID: SurfaceRect]()
+                for entry in pending.entries where entry.action == .hide {
+                    guard let member = entry.member, let frame = StageGroupWindow.relativeFrame(entry.before.frame, in: first.workArea),
+                          ledger.owned.contains(where: { $0.owner == owner && $0.scope == scope && $0.member == member &&
+                              $0.original == entry.before && $0.hidden == entry.after }) else { throw StageSwitchError.recoveryRequired }
+                    layouts[member] = frame
+                }
+                try store.saveObservedActivity(nil, in: scope, expected: directory, verifiedLayouts: layouts)
+                try update { $0.pending = nil }
+            } else if epoch == token, current(), !Task.isCancelled, ledger.pending?.verifiedDirectoryCommit == false {
                 // A revoked generation or a may-have-issued entry cannot be rolled back by inference.
                 _ = try? await compensate(session, token: token, current: current)
             }
