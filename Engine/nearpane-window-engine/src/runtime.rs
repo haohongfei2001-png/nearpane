@@ -21,6 +21,8 @@ pub const NO_TICKET: u32 = 6;
 pub const INTERNAL: u32 = 7;
 const LIMIT: usize = 32;
 const ACQUISITION_EPOCH: u64 = 1;
+const CORNER_READBACK_GRACE: Duration = Duration::from_millis(500);
+const INTERRUPTED_CORNER_PARK: u32 = 51;
 
 fn qualified_write(grant: Option<crate::Grant>, r: &Request) -> bool {
     if r.backend != CORNER || !grant.is_some_and(|g| g.backend == CORNER) {
@@ -83,6 +85,7 @@ struct Ticket {
     request: Request,
     began: Instant,
     may_have_dispatched: bool,
+    readback_until: Option<Instant>,
 }
 #[derive(Hash, Eq, PartialEq)]
 struct Lease {
@@ -199,11 +202,15 @@ impl State {
         self.running = None;
         // Poll can already have consumed a timeout or a revoked ticket. Serialize the final
         // epoch/deadline check with that terminal publication and the ownership update.
-        if let Err(e) = control.guard() {
-            result.status = if may_enter { UNKNOWN } else { e };
-        }
-        if may_enter && control.guardian.as_ref().is_some_and(|peer| !peer.live()) {
-            result.status = UNKNOWN;
+        let interrupted = control.guard().err();
+        let lost_guardian = may_enter && control.guardian.as_ref().is_some_and(|peer| !peer.live());
+        if interrupted.is_some() || lost_guardian {
+            if may_enter && r.backend == CORNER && r.operation == HIDE {
+                let reason = if result.detail == 0 { INTERRUPTED_CORNER_PARK } else { result.detail };
+                result = result.only_for_corner_recovery(r.native_id, reason);
+            } else {
+                result.status = if may_enter { UNKNOWN } else { interrupted.unwrap_or(UNKNOWN) };
+            }
         }
         if may_enter {
             result = self.record_write(&r, result);
@@ -350,6 +357,7 @@ impl Session {
                 request: r,
                 began,
                 may_have_dispatched: false,
+                readback_until: None,
             },
         );
         if let Err(error) = self.tx.try_send(Job {
@@ -390,7 +398,8 @@ impl Session {
     }
     pub fn poll(&self, id: u64) -> Result<Receipt, u32> {
         let mut s = lock(&self.state);
-        let t = s.tickets.get(&id).ok_or(NO_TICKET)?;
+        let active_corner = s.running == Some(id) && s.corner_hides.is_some();
+        let t = s.tickets.get_mut(&id).ok_or(NO_TICKET)?;
         let r = if let Some(r) = t.result {
             r
         } else {
@@ -402,6 +411,16 @@ impl Session {
                 return Err(PENDING);
             }
             t.cancelled.store(true, Ordering::Release);
+            if active_corner && t.may_have_dispatched && request.backend == CORNER && request.operation == HIDE {
+                // Revoke new effects immediately. Give the in-flight AX setter a bounded
+                // interval to return its measured postimage to the original Guardian.
+                let now = Instant::now();
+                let deadline = t.began + Duration::from_millis(request.timeout_ms.into());
+                let until = t.readback_until.get_or_insert(now.min(deadline) + CORNER_READBACK_GRACE);
+                if now < *until {
+                    return Err(PENDING);
+                }
+            }
             let status = if t.may_have_dispatched {
                 UNKNOWN
             } else if revoked {
@@ -847,6 +866,61 @@ mod tests {
         }
     }
 
+    #[test]
+    fn a_revoked_inflight_park_delivers_only_an_exact_recovery_frame() {
+        let (session, rx, r) = idle_corner_lane();
+        let id = session.submit(r).unwrap();
+        let job = rx.recv().unwrap();
+        {
+            let mut s = lock(&session.state);
+            s.running = Some(id);
+            s.tickets.get_mut(&id).unwrap().may_have_dispatched = true;
+        }
+        session.cancel(id).unwrap();
+        assert!(matches!(session.poll(id), Err(PENDING)));
+        let control = Control {
+            epoch: session.epoch.clone(), expected: r.epoch, cancelled: job.cancelled,
+            deadline: Instant::now() + Duration::from_secs(1), write: true,
+            spaces_route: None, corner_input_check: false, guardian: None,
+        };
+        assert!(!control.may_write());
+        let identity = AX_VALID | CG_VALID | MEMBERSHIP_VALID | OWNED;
+        let measured = Outcome {
+            status: PASS, flags: identity | HIDDEN | INPUT_SAFE, owned: 1, native_id: r.native_id,
+            frame: Rect { x: 1399., y: 850., ..r.frame }, ..Default::default()
+        };
+        lock(&session.state).finish_job(id, r, &control, true, measured, Duration::ZERO);
+        let receipt = session.poll(id).unwrap();
+        assert_eq!(receipt.status, UNKNOWN);
+        assert_eq!(receipt.flags, identity | CORNER_RECOVERY_FRAME);
+        assert_eq!((receipt.native_id, receipt.frame), (r.native_id, measured.frame));
+        assert_eq!(session.close(), Err(BUSY));
+        for stale in [
+            Outcome { native_id: r.native_id + 1, ..measured },
+            Outcome { flags: measured.flags & !MEMBERSHIP_VALID, ..measured },
+            Outcome { flags: measured.flags | VISIBLE, ..measured },
+            Outcome { frame: Rect::default(), ..measured },
+            Outcome { owned: 0, ..measured },
+        ] {
+            let late = stale.only_for_corner_recovery(r.native_id, INTERRUPTED_CORNER_PARK);
+            assert_eq!((late.status, late.flags, late.native_id, late.frame), (UNKNOWN, OWNED, 0, Rect::default()));
+        }
+    }
+    #[test]
+    fn a_stalled_corner_setter_releases_its_ticket_but_keeps_ownership_after_the_grace() {
+        let (session, _rx, r) = idle_corner_lane();
+        let id = session.submit(r).unwrap();
+        let mut s = lock(&session.state);
+        s.running = Some(id);
+        let ticket = s.tickets.get_mut(&id).unwrap();
+        ticket.may_have_dispatched = true;
+        ticket.began = Instant::now() - Duration::from_millis(r.timeout_ms.into()) - CORNER_READBACK_GRACE;
+        drop(s);
+        let receipt = session.poll(id).unwrap();
+        assert_eq!((receipt.status, receipt.flags), (UNKNOWN, 0));
+        assert!(matches!(session.poll(id), Err(NO_TICKET)));
+        assert_eq!(session.close(), Err(BUSY));
+    }
     #[test]
     fn a_late_visible_callback_cannot_retire_ownership_after_poll_returned_unknown() {
         let (tx, _rx) = mpsc::sync_channel(LIMIT);

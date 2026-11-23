@@ -224,6 +224,18 @@ impl Outcome {
             ..Self::default()
         }
     }
+
+    /// A late read may identify what the Guardian can independently restore. It cannot
+    /// certify isolation after the intent that requested the park has been withdrawn.
+    pub fn only_for_corner_recovery(self, home: u64, reason: u32) -> Self {
+        let identity = AX_VALID | CG_VALID | MEMBERSHIP_VALID | OWNED;
+        let measured = (self.status == UNKNOWN && self.flags == identity | CORNER_RECOVERY_FRAME)
+            || (self.status == PASS && self.flags == identity | HIDDEN | INPUT_SAFE);
+        if measured && (1..=32).contains(&self.owned) && home != 0 && self.native_id == home && self.frame.valid() {
+            return Self { status: UNKNOWN, detail: reason, flags: identity | CORNER_RECOVERY_FRAME, ..self };
+        }
+        Self { status: UNKNOWN, detail: reason, flags: self.flags & OWNED, owned: self.owned, ..Default::default() }
+    }
 }
 pub trait WindowEngine {
     fn execute(&mut self, request: &Request, control: &Control) -> Outcome;

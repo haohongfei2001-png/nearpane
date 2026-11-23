@@ -53,7 +53,10 @@ typedef struct {
 } NPReceipt;
 /* Nonzero opaque handles and tickets never alias a previous instance. Poll once
  * for a terminal receipt, including cancellation. Revoke invalidates the epoch
- * before the next OS side effect. A revoked qualified handle may restore its prior
+ * before the next OS side effect. A dispatched Corner hide may stay pending for
+ * up to 500 ms after cancellation is observed or its deadline expires to measure
+ * a recovery-only postimage. It cannot report successful isolation after revocation.
+ * A revoked qualified handle may restore its prior
  * ownership or clean up its launch canary. New hide/show/launch work requires
  * release and a fresh qualified handle. Destroy refuses pending tickets/owned windows. */
 uint32_t np_engine_version(void);

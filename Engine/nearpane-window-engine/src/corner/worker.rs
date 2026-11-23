@@ -375,6 +375,11 @@ impl Corner {
         };
         out
     }
+    fn interrupted_park(&mut self, r: &Request, reason: u32) -> Outcome {
+        // read() rechecks the retained AX object, membership, topology and the measured
+        // postimage. A revoked intent may report a restoration target, never a hidden window.
+        self.read(r).only_for_corner_recovery(r.native_id, reason)
+    }
     fn hide(&mut self, r: &Request, control: &Control) -> Outcome {
         let input = native::inputs();
         if let Err(why) = native::park_access() {
@@ -441,12 +446,10 @@ impl Corner {
             let _ = self.refresh(false);
             return self.result(control.guard().err().unwrap_or(c::UNKNOWN), reason, None, false);
         }
-        // A setter timeout is already an issued effect; never resubmit. Read independently.
+        // A setter timeout or a later cancellation cannot undo its effect. Finish the
+        // bounded read-only measurement even if the user has already selected another group.
         let mut previous = None;
         for _ in 0..12 {
-            if let Err(status) = control.guard() {
-                return self.result(status, reason, None, true);
-            }
             if let Ok(s) = native::sample(&id) {
                 let o = &self.owned[&id.window];
                 if o.reference.matches(&id)
@@ -455,24 +458,27 @@ impl Corner {
                 {
                     if previous.is_some_and(|p| same(p, s.cg)) {
                         self.owned.get_mut(&id.window).unwrap().parked = Some(s.cg);
+                        if !control.may_write() {
+                            return self.interrupted_park(r, POSTCONDITION);
+                        }
                         if let Err(why) = self.refresh(false) {
-                            return self.result(c::UNKNOWN, why, Some(s), true);
+                            return self.interrupted_park(r, why);
                         }
                         // Image decoding and panel ordering happen on different queues.
                         // Wait for the compositor witness, without issuing a second AX setter.
                         let until = Instant::now() + Duration::from_millis(500);
                         loop {
-                            if let Err(status) = control.guard() {
-                                return self.result(status, PICTURE_UNCONFIRMED, Some(s), true);
+                            if !control.may_write() {
+                                return self.interrupted_park(r, POSTCONDITION);
                             }
                             let read = self.read(r);
                             if read.detail != PICTURE_UNCONFIRMED || Instant::now() >= until {
                                 return read;
                             }
                             std::thread::sleep(Duration::from_millis(15));
-                            if self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(100)) {
+                            if control.may_write() && self.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_millis(100)) {
                                 if let Err(why) = self.refresh(false) {
-                                    return self.result(c::UNKNOWN, why, Some(s), true);
+                                    return self.interrupted_park(r, why);
                                 }
                             }
                         }

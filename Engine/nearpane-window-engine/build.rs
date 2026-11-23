@@ -67,6 +67,18 @@ fn main() {
         println!("cargo:rustc-link-search=native={}", out.display());
         println!("cargo:rustc-link-lib=static=np_apple");
     }
+    if env::var_os("CARGO_FEATURE_CORNER").is_some() {
+        // clang normally links its availability-check runtime for the 14.2 capture API.
+        // Standalone Rust executables use -nodefaultlibs, so pass the selected SDK's
+        // archive to their final link. Swift links the static library in the usual way.
+        let selected = Command::new("xcrun")
+            .args(["--sdk", "macosx", "clang", "--print-file-name=libclang_rt.osx.a"])
+            .output().expect("find Apple compiler runtime");
+        assert!(selected.status.success(), "Apple compiler runtime lookup failed");
+        let path = PathBuf::from(std::str::from_utf8(&selected.stdout).expect("compiler runtime path").trim());
+        assert!(path.is_absolute() && path.is_file(), "Apple compiler runtime unavailable");
+        println!("cargo:rustc-link-arg={}", path.display());
+    }
     for name in [
         "CoreFoundation",
         "CoreGraphics",
