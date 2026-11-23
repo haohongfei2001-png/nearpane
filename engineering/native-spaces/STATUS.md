@@ -1,4 +1,14 @@
-# 当前安装与专项状态
+# Nearpane 当前工程状态
+
+## 2026-11-23 · 同桌面窗口可见性
+
+这是 PR #15 的实施状态入口。StageGroup 使用自己的 UUID；产品只读观察原生桌面。临时 Spaces 迁移已退出生产候选。Rust Corner 等待符合本产品边界的物理证据，当前生产写入 **NO-GO**。[产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [可见性裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [复用范围](../research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md) · [晋级顺序](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
+
+在 macOS 27.0（26A428）、SIP 开启的实体机上，普通桌面 4、原 AX 焦点、显示器与 HID 双读一致，过程中 Mission Control 展示为零。正式安装 Host 在同一普通桌面成功核实签名夹具窗 71381 的原 AX 对象、窗口所属进程代际、AX/CG 几何和双向原生归属。签名 Guardian 两次报告有效 AX 权限，系统返回的责任进程均为原 Host 19042，Guardian 自身为 19051。此次没有建立能在 Host 退出后恢复窗口的租约，停放、手势隔离及崩溃恢复为 **NOT_RUN**。这扇夹具窗为透明、忽略鼠标的普通应用窗口。诊断已退出，夹具已关闭，唯一日常 Host 正常返回，配置指纹一致、四项权限有效、零活动租约。[正式 Host 和 Guardian 原始读回](../verification/window-engine/same-desktop-provider-26A428/corner-readback-host.json) · [清理与普通 Host 返回](../verification/window-engine/same-desktop-provider-26A428/corner-readback-session.json)
+
+### 历史阶段记录
+
+以下条目记录对应日期和源码的结论，当前实施以上述裁决为准。
 
 ## 2026-11-23 · 三扇真实交互窗口与正式 Host
 

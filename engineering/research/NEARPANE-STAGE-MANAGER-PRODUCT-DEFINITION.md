@@ -1,5 +1,14 @@
 # Nearpane 的调度组产品定义
 
+Nearpane 是集成在 macOS 桌面边缘的工作空间侧栏。Saytile 语音输入、Riftlet 截图暂存、窗口预览和用户自己的工作组共用 R4 侧栏。窗口调度的验收单位是一次真实工作集合的切换。
+
+本文件确定产品责任。技术条款按以下顺序解释，执行进展统一记入[工程状态](../native-spaces/STATUS.md)。
+
+1. 本产品定义。
+2. [窗口可见性最终架构](NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md)。
+3. [Rust 复用裁决](NEARPANE-STAGE-MANAGER-REUSE-DECISION.md)。
+4. [实施与晋级顺序](NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)。
+
 ## 5.22 窗口隔离合同
 
 每块物理屏在每个可确认的原生普通桌面内维护自己的目录。普通文档窗默认各占一组，多窗组合占一张卡。Sheet、Popover、辅助面板和用户已最小化的窗口不参加初次退场。首次调度须由用户明确启用，并从实际接收键盘的窗口所在组开始。切组结束时仅目标组成员留在工作区，原组布局与文档状态可恢复。停放窗口仍能收到鼠标、未管理窗口改变或 Dock 随后台组数增加窗口图块，都会影响机制准入。
@@ -16,7 +25,7 @@
 | --- | --- | --- |
 | Display | 内屏和每块外屏各有组列表、上次确认的活动组及布局 | 使用物理显示器 UUID。位置、主屏次序或缩放改变时重新计算本屏工作区。镜像或身份不明时暂停写入。 |
 | StageGroup | 一个集合一张卡。单窗使用窗口画面，多窗按真实矩形与前后顺序合成一张卡 | Nearpane 自己分配组 UUID。每组归属一块显示器；同一活窗最多属于一个组。原生桌面数量、窗口数量与组数量可以不同。 |
-| Window | 同一应用的两个文档可分属不同组；可精确选到组内一扇窗 | 关联具体的进程代际、CG 窗号和窗口存活见证。应用名、标题、图标、进程置前均不足以证明选中了该窗。 |
+| Window | 同一应用的两个文档可分属不同组；可精确选到组内一扇窗 | 关联具体的进程代际、CG 窗号和窗口存活见证。逐窗绑定 PID、进程出生代、CGWindowID、原 AX 对象和实时存活见证。输入标记由目标文档独立确认。 |
 
 ## 系统责任
 
@@ -26,7 +35,7 @@
 | 在允许的当前普通桌面显示可执行的调度组。已有原图可以作为有明确状态的历史预览。 | 用户切换桌面后系统发出通知。Nearpane 只重读当前显示器、窗口归属和布局，撤销旧点击与拖动。 |
 | 用户启用系统台前调度时交还窗口调度，语音、截图等独立模块依其设置继续工作。 | 台前调度开关、Dock 和 WindowManager 全局设置均由系统及用户管理。 |
 
-Apple 说明台前调度支持跨应用编组、组内摆放与重叠，切回组时成员共同显示，并说明“显示器具有单独的空间”与系统台前调度可用性相关。官方资料没有给出可供第三方持久化的系统组身份或组与 Space 的一一映射。Nearpane 以自己的成员记录保存用户意图，以新鲜的系统读数决定该刻能作用于哪些真实窗。手势、全屏、原生分屏保持原来的系统入口。 [Apple 台前调度指南](https://support.apple.com/en-ie/guide/mac-help/mchl534ba392/27/mac/27) · [AppKit 显示器 Spaces 设置](https://developer.apple.com/documentation/appkit/nsscreen/screenshaveseparatespaces)
+Apple 说明台前调度支持跨应用编组、组内摆放与重叠，切回组时成员共同显示，并说明“显示器具有单独的空间”与系统台前调度可用性相关。官方资料没有给出可供第三方持久化的系统组身份或组与 Space 的一一映射。原生 Space 的归属、次序和生命周期由 Apple 管理。Nearpane 对它们只有读取权限。原生桌面变化使原操作失效，已有组 UUID 和用户布局继续保存在显示器目录。Nearpane 以自己的成员记录保存用户意图，以新鲜的系统读数决定该刻能作用于哪些真实窗。手势、全屏、原生分屏保持原来的系统入口。 [Apple 台前调度指南](https://support.apple.com/en-ie/guide/mac-help/mchl534ba392/27/mac/27) · [AppKit 显示器 Spaces 设置](https://developer.apple.com/documentation/appkit/nsscreen/screenshaveseparatespaces)
 
 ## 用户操作及结果
 
@@ -37,4 +46,4 @@ Apple 说明台前调度支持跨应用编组、组内摆放与重叠，切回�
 5. 组中任何必需成员在其他原生 Space、显示器断开、全屏、身份待定或权限不可用时，保留组定义，暂停整组操作。在用户通过系统入口返回且重新核验后恢复资格。另屏、未纳管窗口和同应用的兄弟窗都应保留原状。
 6. 退出、锁定、睡眠、系统接管、手动移动/最小化、关闭文档或应用重启时，撤销过期意图。恢复只针对 Nearpane 自己已记录、能再次唯一确认且仍处于预期状态的改变。
 
-发布证明采用正式安装的 Host、隔离测试资料及独立系统读回。单张缩略图变化、应用前台 PID、单窗最小化或旧候选的成功次数均不能代替新版本的完整切组。 [架构与差异审查](NEARPANE-STAGE-GROUP-ARCHITECTURE.md) · [分阶段实施计划](NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)
+发布证明采用正式安装的 Host、隔离测试资料及独立系统读回。单张缩略图变化、应用前台 PID、单窗最小化或旧候选的成功次数均不能代替新版本的完整切组。 [架构与差异审查](NEARPANE-STAGE-GROUP-ARCHITECTURE.md) · [当前实施计划](NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)

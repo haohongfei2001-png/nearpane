@@ -1,66 +1,15 @@
 # Nearpane 调度组正式验收合同
 
-## 5.22（90）正式 Host 的交互窗口单次往返
+## 同桌面窗口操作
 
-`run-installed-stage.py` 的 `interactive-roster` 在标准安装路径登记两款签名应用的三扇普通窗口。`interactive-spaces` 额外要求与同一正式 Host、进程代际和 HID 绑定的本次 Mission Control P0 收据。监督器在正常退出 Host 前核对用户会话、配置、恢复责任及两款夹具的固定 CDHash。两个入口均使用 `--kit`、`--p0-receipt` 和新的 `--result-dir`。私有夹具由 `scripts/acceptance/window-engine/corner/interactive/build.py build` 生成。单次试验以唯一 nonce 为单位。
+正式生产流程沿用 Display → StageGroup → Window。原生桌面只读。单窗实验必须以同一授权 Host、物理显示器、普通 Space、可交还的原 AX/CG 焦点及无新 HID 输入连续双读开始。全部夹具另需逐窗核验正反向归属和原几何。这里只被动观察系统是否正在接管。Mission Control 的展示、桌面条及收起属于独立系统兼容项。历史临时 Spaces 迁移单独保留为研究。
 
-1. 对目标、同应用旁窗和独立应用旁观窗分别登记进程代际、CGWindowID、原 AX 对象、几何、窗口生命周期和双向原生归属。三窗登记、PID 投递对照和真实 WindowServer 输入分别出具结果。
-2. 正式 Host 的自有面板首先完成往返和清理。随后仅目标窗口进入临时 Space。停放和返回各做两次独立读回，另外两窗须保留原归属和几何。
-3. 停放时让已登记的旁观窗接收完整鼠标手势及键盘标记。接收应用的队列、内容视图与唯一文档相互印证，同时核验目标及兄弟窗的零收件。返回后改由目标窗接收并验证，复查 Dock、原活动桌面、原焦点、光标与三窗清理。
-4. 所有权进入写前日志后，Host 中断或收据超时均保留恢复责任。引擎依据原有权属尝试一次迁回，两个夹具等待同一 nonce 的持久清理确认。观察不全记 UNKNOWN，确认投递到错误窗记 FAIL。独立重读归档并核对每项派发，才可报告整个交互试验通过。
-5. Corner 须另取得正式 Guardian 的恢复租约，独立完成停放、命中、崩溃恢复和清理。侧栏整组切换及稳定性测试以已取得生产资格的后端为前置条件。
+1. 用已注册的两款签名应用记录目标、同应用兄弟和另一应用窗口的独立身份、文档、显示器、焦点、布局及 Dock。
+2. Guardian 持有确切对象，恢复责任持久化并获确认后，仅停放目标窗。正式 Host、独立观察器及夹具从 AX、WindowServer、画面、鼠标完整手势及键盘文档响应核对实际隔离。
+3. 原生归属、次序、窗口集合、前台收件人及所有旁窗必须在每个阶段与基线相符。原所有者归还目标后双读几何、身份、焦点和资源，核对零遗留租约。
+4. 单窗实机资格只开启隔离的整组验收。单次、10 次、50 次、生命周期及同机性能依次出具独立收据。通用生产能力以完整产品合同为准。
 
-[本轮实机与隔离环境收据](../verification/window-engine/interactive-round-26A428/STATUS.md)
-
-## PR #15 普通桌面准入顺序
-
-每个 Host 遥测阶段留存实际请求和响应的单调时间、进程出生代、读取来源、退出状态及每次尝试。只有同一正式 Host 的四个实际阶段依次为 0、1、0、0，且收起时原 AX 对象和 CGWindowID 连续两读相同，才允许监督器退出日常 Host。系统通知表示通知送达，发起方须由同次系统请求记录单独证明。[夜间分项证据](../verification/window-engine/overnight-20261122/STATUS.md)
-
-1. **完整 P0 在本轮 Spaces 写入试验的任何夹具或临时 Space 创建前执行。** 使用未锁定的 26A428 实体登录会话、SIP 开启和唯一标准安装 Host。先双读普通桌面、实际前台应用、进程出生代、保留的 AXFocusedWindow 和可见零层 CGWindowID。由 Apple 展示和收起一次 Mission Control。比较所有 HID 计数，新增输入即停止新操作。
-2. 同一次展示内，用签名 Dock 应用根和 SystemWide 根读取两轮有界全局坐标。在系统根确认签名 Apple WindowManager 的桌面条对象，保留角色、标识、父子关系、原始几何和每点错误码。验证每个可见按钮都有独立的顶层命中，并在同一扫描线上得到一致的横向顺序。单独核对原生桌面清单。截图和录屏只辅助定位时序。
-3. 收起后连续两次核对同一个原 AX 对象、原进程代际与 CGWindowID。收到终态 Host 遥测回复后，再核对 Dock 总览已收起、原 AX 焦点、原生清单和 HID。收据中的单调时钟须证明终次焦点和输入读回覆盖了该回复。缺少、倒序或过期的读数使 P1 保持 BLOCKED。原生全屏的补充读数只适用于该环境。
-4. **P1 只接受当前常规 Host 新鲜、完整的普通桌面 P0 凭据。** 由原 `run-installed-stage.py spaces` 核验签名、权限、配置和恢复责任，正常退出并确认旧进程结束，再用原安装包启动一次性诊断角色。复用自有面板前置检查及 nonce 签名窗口登记。迁回后需要独立 AX/CG 几何、精确前台焦点、Dock、两方向 membership、有序桌面清单、持久化归档和清理收据。普通 Host 回归后比对配置。一个后端的单窗口资格通过后，才可使用该后端进行整组、10/50 次或性能测试。Corner 的独立只读诊断另走下述入口。
-
-**按操作区分准入。** 日常 Host 的被动读回不要求展示 Mission Control。`--observe-only` 保留原 AX 对象，在同一普通桌面上两次确认实际焦点、进程代际、物理显示器、Space、输入和签名 Host。独立的 `corner-readback` 只使用该新鲜收据登记受控夹具、验证归属，不能取得停放或生产资格。Spaces 入口要求完整 P0，并核对各阶段带时间戳的实际 Dock 读数。过期缓存不可作为该阶段的新读数。
-
-**分开登记归属往返与输入隔离。** 外部独立观察器在登记前先绑定夹具的签名、窗口、进程出生代和原始桌面，用 Rust 写前日志的单调时间划分原位、停放和还原区间。每个区间均需两次正反向归属一致。过快而未采到停放属于 UNKNOWN。透明且忽略鼠标的窗口只可取得 `thirdPartyMembershipRoundTrip`；`singleWindowHideRestore` 需要普通交互窗口、真实下压/拖动/释放与键盘接收者、同应用旁窗、焦点、Dock、原始几何和清理的独立实测。[本轮准入与源代码收据](../verification/window-engine/product-integration-20261123/STATUS.md)
-
-普通交互双窗的首轮观察使用标准路径的正式 Host、一次性 nonce 和同 Team 签名的空白测试应用。Host 开窗前须保存可交还的原焦点，两次确认两扇窗带标题栏的完整区域均为空；开窗后由 AX、WindowServer 和测试应用分别读回窗口身份、归属和几何。收据须注明输入投递路径。定向到测试 PID 的鼠标和键盘事件只证明应用队列及内容视图收到了对应标记。实际键盘焦点与屏幕坐标下的系统鼠标命中须在后端隔离往返中另行验证，且旁窗应保持可用。[Host 与夹具](../../scripts/acceptance/window-engine/host/interactive-pair.py) · [已执行的离线验证](../verification/window-engine/product-integration-20261123/interactive-host-offline.json)
-
-以下历史合同与回执保留。早期从自有面板开始的顺序适用于当次记录。当前准入使用上述顺序。[当前实机回执](../verification/window-engine/p0-p1-admission-26A428/RESULTS.md)
-
-
-## 单窗口实测与独立证据
-
-在当前已授权的实体登录会话验收。Launch Services 只登记标准安装路径，唯一运行的 Host 必须与最新签名候选的进程代、可执行文件、Team ID、CDHash、源码和 Rust ABI 一致。Spaces 首次写入只限正式 Host 的透明自有面板。面板创建、双向归属、归还、关闭和临时 Space 销毁须有同一次运行的持久化记录。观察器将记录关联到系统启动代、Host 进程代及显示器，并逐项比较前后四次桌面清单。清理后，在同一普通桌面检查一次 Apple Mission Control。展示前两次核对实际前台普通应用、AX 焦点对象、可见零层 CGWindowID 和静止输入。两次读回可见桌面条，关闭后再核对原来的精确焦点。以上均通过才开放登记的签名外部窗口试验。
-
-Corner 首次闭环只停放一扇已交付 Guardian 恢复责任的签名窗。对裸露边缘及调整尺寸边缘分别核对按下、实际拖动、释放的拦截决定和每扇夹具窗的接收结果。同应用旁窗必须收到三段带同一标记的正向输入。两次读回原始几何、焦点、原生归属和 Dock，核对 Guardian 解除租约。夹具控制器、离屏输入和正式 Host 分项出具收据。两后端的单窗、生产资格、A→B→C→A 及 10/50 次各自登记。[本轮实现及机器收据](../verification/window-engine/single-window-witnesses/RESULTS.md)
-
-### 独立开发与窗口所有权
-
-使用临时资料验证同应用两窗位于不同组、已保留成员所在的整个组保持原状、其余组可以切换。旧布局与引擎的并发写入必须争用同一窗口身份的文件锁。遇到无法解释的所有权时保留日志并拒绝调度。日常资料的原位安装门槛独立于以上开发与 CI。[窗口所有权回归](../verification/window-engine/stage-product/ownership.xml)
-
-整组卡和组内成员分别验收。整组入口必须核对全部成员的可见性、布局、旁窗和唯一键盘接收者，环境未取得资格时应报告不可用。已确认写入之间或最终读回期间发生外部激活时，须保留新焦点。窗口交还后核对两次原始清单。原生 Space、自有资源或 Guardian 有不确定结果时必须保留责任。[整组入口](../verification/window-engine/stage-product/group-action.xml) · [焦点](../verification/window-engine/stage-product/focus.xml) · [中断和交还](../verification/window-engine/stage-product/interrupted-release.xml)
-
-托管 GUI 生命周期测试使用两个签名普通应用。一个带两扇窗口的应用作为旁窗，另一个在退出后重新通过 Launch Services 打开。分别检查旧进程代际与窗口两次缺席、另一应用两窗的几何和组、重开后的新单窗组，以及夹具退出和资料清理。[独立 WindowServer 收据](../verification/window-engine/stage-product/hosted-44908847991/stage-group-lifecycle.json)
-
-## 首次实体机单窗门槛
-
-升级前验证并保留旧包、配置和恢复资料的独立副本。历史 OrdinaryWindowManager 记录可在逐窗锁和会话锁内按当前状态归档，前提是进程代与窗口身份匹配、几何连续两读稳定，上次写入已经完成且没有未决租约。保留原始字节，确认配置及活动 profile 摘要一致。仍在执行的写入、无法确认的所有权或未交还的租约均保留给原所有者。正常退出旧 Host 后须确认原进程代已结束，核对启动清单为空，再原子交换标准路径。新版自行回读四项现有权限，完成操作后恢复同一版常规 Host。回滚包离线保留。需要回滚时，先核对每一笔可确认所有权及清理状态。[单版本升级与恢复收据](../verification/window-engine/single-version-26A428/RESULTS.md)
-
-每个后端分别记录 `BUILD_PASS`、`ABI_PASS`、`HOST_PERMISSION_PASS`、`TARGET_SCOPE_PASS`、`SINGLE_WINDOW_HIDE_RESTORE_PASS`、`PRODUCTION_QUALIFIED`。结果同时注明 Host 的签名标识、CDHash、源码 SHA、实际启动路径、PID、进程出生代和系统 build。辅助功能、输入监听与事件投递分别读取。启动探针和离线回归各有自己的收据。
-
-1. 在 macOS 27.0（26A428）、SIP 开启的物理登录会话内，由同一个真实 Host 连续两次读取物理显示器、当前桌面清单、直接活动 ID、普通桌面类型、UUID 及签名夹具窗口的正反向归属。记录两读间的 AppKit Space 变更通知。全屏类型 4、缺 UUID、会话切换、没有登记窗口或两向归属无法互证都阻止窗口写入。
-2. Corner 使用一扇签名普通窗口，记录初始几何与焦点、停放、真实鼠标按下/拖动/释放的接收者、旁窗与 Dock、还原后两次 AX/WindowServer 读回。分开验证 Host 的在场写入权和原 Guardian 的恢复资格。一次失败即停止。
-3. Spaces 先在同一 Host 用自有透明非激活面板验证创建临时 Space、移入、还原、关闭面板、销毁临时 Space 和清单还原。通过后才进行一扇第三方窗的移入与还原，每步核对独立正反向归属。
-   独立面板入口应在创建第三方夹具前运行。保留全量清单中的每次出现，以及同一显示器上用户可见的桌面顺序。迁回后先核实面板在 AppKit 和 WindowServer 中均已关闭，再销毁已确认空置的临时 Space。为用户可见的 Mission Control、兄弟窗、键盘落点和 Dock 单独出具实机收据。 [运行入口](../../scripts/acceptance/window-engine/spaces/README.md)
-4. GitHub CI 必跑 Rust、Swift 和生产 C ABI；可选托管只读报告独立保存。该环境缺少普通桌面时记录 `BLOCKED`。两后端的正式单窗和后续整组验收均要求指定物理环境。[本次原始收据](../verification/window-engine/first-window-26A428/)
-
-## Rust Window Engine 的验收入口
-
-两个后端共用同一份正式 Host 合同。按单次 A→B→C→A、10 次、50 次顺序验证整组。三项均通过后，在同一台实体 Mac 上按每方向至少 100 个有效样本与 Apple 台前调度配对，最后才进入 1000 次压力验收。单窗夹具、静态库回归、成功的系统调用和隔离开发 Host 的权限预检各自单列。任何输入安全失败或清理状态未知均阻止晋级。 [门槛与原始收据](../verification/window-engine/RESULTS.md) · [性能合同](../research/NEARPANE-STAGEGROUP-PERFORMANCE-STANDARD.md)
-
-Corner 和 Spaces 按后端、系统 build 和显示器环境各自保存资格。某个后端一旦通过自己的单窗和清理门槛，即可在隔离验收中继续该后端的组级合同。生产启用须有该后端全部必需项目的实体机收据。运行中原执行器先恢复可确认的窗口并证明资源归零，此后其他已获资格的执行器才可接手。
+[权威产品状态](STATUS.md) · [技术裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [归档的原生 Spaces / Mission Control 专项合同](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/native-spaces/ACCEPTANCE.md)
 
 ## 当前单次隔离门槛
 
@@ -86,6 +35,6 @@ Corner 和 Spaces 按后端、系统 build 和显示器环境各自保存资格�
 
 **PASS** 仅适用于注明的主体和场景。**FAIL** 为已证实违反合同。**UNKNOWN** 为可能已投递或读回不足。**BLOCKED** 为先决条件缺失。**NOT_RUN** 为未执行。对可能发生的写入先核对持久状态；不重复投递。单元测试、托管 WindowServer 及干净包静态验签分别计账。
 
-旧 S01–S03 的原生切换、D01 的跨 Space 迁窗、Dock 合成手势资格与原生菜单均为 **OUT_OF_SCOPE**。历次实机成绩、源码和失败回执仍可追溯。[历史合同](ARCHIVED-NATIVE-SPACES-ACCEPTANCE.md) · [工程状态](STATUS.md) · [阶段门槛与回滚](../research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)
+旧 S01–S03 的原生切换、D01 的跨 Space 迁窗、Dock 合成手势资格与原生菜单均为 **OUT_OF_SCOPE**。历次实机成绩、源码和失败回执仍可追溯。[历史合同](ARCHIVED-NATIVE-SPACES-ACCEPTANCE.md) · [工程状态](STATUS.md) · [阶段门槛与回滚](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
 
 首批独立读回已覆盖同屏跨应用目录与单窗公开 AX 退场/还原。在正式生产侧栏提交并复核整组活动状态之前，SG1 保持未通过。 [首批机器收据](../verification/stage-groups/5.22-90/results.json)
