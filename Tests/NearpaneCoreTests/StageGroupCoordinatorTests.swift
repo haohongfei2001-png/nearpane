@@ -14,6 +14,7 @@ import Testing
     let scope = StageGroupScope(display: UUID(), nativeSpace: UUID())
     let work = SurfaceRect(width: 900, height: 700)
     var windows = [NativeSpaceWindow: StageWindowState](), focus: NativeSpaceWindow?
+    var foreignFocusScope: StageGroupScope?
     var writes = [(StageWindowAction, NativeSpaceWindow)]()
     var excluded = Set<NativeSpaceWindow>()
     func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
@@ -22,7 +23,8 @@ import Testing
     func read(_ scope: StageGroupScope) throws -> StageWindowSample {
         sequence += 1
         beforeRead?()
-        return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work, windows: windows, focus: focus, nativeID: 4)
+        return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work,
+                     windows: windows, focus: focus, nativeID: 4, foreignFocusScope: foreignFocusScope)
     }
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) throws {
         guard before == windows[before.window], self.generation == generation, self.scope == scope else { throw StageSwitchError.interrupted }
@@ -189,6 +191,30 @@ import Testing
             try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
         }
         #expect(runtime.writes.map(\.0) == [.focus] && store.activeGroup(in: runtime.scope) == nil && engine.requiresRecovery)
+    }
+
+    @Test func lossOfAnIndividualWindowLeaseStopsEvenWhenItsGeometryIsUnchanged() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let target = groups[1].members[0].windowHint
+        runtime.afterWrite = { [unowned runtime] in runtime.excluded.insert(target) }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && engine.requiresRecovery && store.activeGroup(in: runtime.scope) == nil)
+    }
+
+    @Test func changedDisplayOfFocusCannotPassTheBackendStartReadback() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let other = StageGroupScope(display: UUID(), nativeSpace: UUID())
+        runtime.beforeRead = { [unowned runtime] in
+            if runtime.sequence == 2 { runtime.foreignFocusScope = other }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty && !engine.requiresRecovery && store.activeGroup(in: runtime.scope) == nil)
     }
 
     @Test func movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed() async throws {

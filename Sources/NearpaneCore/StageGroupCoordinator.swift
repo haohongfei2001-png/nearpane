@@ -318,7 +318,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard epoch == token, session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
                   postLaunch.scope == scope, postLaunch.generation == first.generation, postLaunch.sequence > first.sequence,
                   postLaunch.nativeID == first.nativeID, postLaunch.workArea == first.workArea,
-                  postLaunch.windows == first.windows, postLaunch.focus == first.focus else { throw StageSwitchError.interrupted }
+                  postLaunch.windows == first.windows, postLaunch.focus == first.focus,
+                  postLaunch.foreignFocusScope == first.foreignFocusScope else { throw StageSwitchError.interrupted }
             first = postLaunch
         }
         try update {
@@ -341,6 +342,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   next.scope == scope, next.generation == first.generation, next.workArea == first.workArea,
                   next.sequence > last.sequence, next.windows.keys == first.windows.keys,
                   next.windows.allSatisfy({ $0.key == $0.value.window && $0.value.lifetime == first.windows[$0.key]?.lifetime }),
+                  members.allSatisfy({ member in
+                      guard let state = next.windows[member.windowHint] else { return false }
+                      return session.mayManage(state) && store.isBound(member, to: state.lifetime)
+                  }),
                   otherIDs.allSatisfy({ next.windows[$0] == first.windows[$0] }) else { throw StageSwitchError.interrupted }
             return next
         }
@@ -350,7 +355,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
             let pre = try await read()
             try requireCurrentIntent()
             try requireFocus(pre, last.focus)
-            guard pre.windows == last.windows, let before = pre.windows[id] else { throw StageSwitchError.interrupted }
+            guard pre.foreignFocusScope == last.foreignFocusScope, pre.windows == last.windows,
+                  let before = pre.windows[id] else { throw StageSwitchError.interrupted }
             last = pre
             let primitive = UUID()
             guard let member = members.first(where: { $0.windowHint == id }),
@@ -371,7 +377,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
             for _ in 0..<2 {
                 let post = try await read()
                 try requireFocus(post, action == .focus ? id : pre.focus)
-                guard let value = post.windows[id], check(value, post),
+                guard post.foreignFocusScope == (action == .focus ? nil : pre.foreignFocusScope),
+                      let value = post.windows[id], check(value, post),
                       firstAfter == nil || firstAfter == value,
                       action != .focus || value == before,
                       pre.windows.keys.filter({ $0 != id }).allSatisfy({ post.windows[$0] == pre.windows[$0] }) else {
@@ -440,7 +447,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 let next = try await read()
                 try requireCurrentIntent()
                 try requireFocus(next, preferred.windowHint)
-                guard next.windows == last.windows, complete(next) else { throw StageSwitchError.incomplete }
+                guard next.foreignFocusScope == nil, next.windows == last.windows, complete(next) else { throw StageSwitchError.incomplete }
                 last = next
             }
             try update { $0.pending?.verifiedDirectoryCommit = true }
@@ -456,7 +463,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 let expected = last
                 for _ in 0..<2 {
                     let next = try await read()
-                    guard newerChoice(), !Task.isCancelled, next.focus == expected.focus,
+                    guard newerChoice(), !Task.isCancelled, next.focus == expected.focus, next.foreignFocusScope == expected.foreignFocusScope,
                           next.windows == expected.windows else { throw StageSwitchError.recoveryRequired }
                     last = next
                 }
