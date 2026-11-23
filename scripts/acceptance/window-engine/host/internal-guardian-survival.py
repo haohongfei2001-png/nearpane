@@ -7,8 +7,10 @@ import importlib
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
+import uuid
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / 'native-spaces'))
@@ -64,6 +66,38 @@ def daily(path):
         raise ValueError('daily Host, actual permissions or configuration unconfirmed')
     return dict(pid=req['pid'], birth=req['birth'], cdhash=req['cdhash'], image=measured['installed'],
                 permissions=measured['permissions'], config=config, ownership=ownership())
+
+
+def collect_closed_fixture(out, session, result):
+    """Keep the original bytes in the private receipt directory and retire both nonce rendezvous."""
+    post = session.get('postExitGuardian') or {}
+    if not (result.get('dailyPreserved') and result.get('status') == 'PASS' and session['probeResources']['clear']
+            and session.get('ownedProcessExited') and session.get('ownerClosed') and post.get('readerExited')
+            and post.get('status') == 'PASS' and session.get('hostExit', {}).get('status') == 'PASS'):
+        raise ValueError('fixture, Guardian or Host exit has not been independently confirmed')
+    nonce = str(uuid.UUID(session['challenge']))
+    paths = [Path('/private/tmp') / (prefix + nonce) for prefix in ('nearpane-host-scope.', 'nearpane-membership.')]
+    for path in [out, *paths]:
+        info = path.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('fixture evidence directory identity changed')
+    if not (paths[0] / 'response.json').is_file() or not (paths[1] / 'guardian-receipt.json').is_file():
+        raise ValueError('fixture terminal receipts unavailable')
+    raw = (paths[0] / 'response.json').read_bytes()
+    raw_hash = hashlib.sha256(raw).hexdigest()
+    intended = json.loads(raw).get('abruptVisibleExitCode')
+    if (raw_hash != session['rawHostSHA256'] or
+            intended != (os.EX_TEMPFAIL if session.get('abruptVisibleExitRequested') else None)):
+        raise ValueError('signed Host declaration or raw response digest changed')
+    archive = out / 'closed-fixture'
+    archive.mkdir(mode=0o700, exist_ok=False)
+    for path in paths:
+        path.rename(archive / path.name)
+    return dict(scope='private fixture rendezvous after independently witnessed process exit', challenge=nonce,
+                hostExit=post['hostExit'], guardianExited=True, fixtureProcessExited=True,
+                originalWindowRecovered='PASS', directoryRemoved=[not p.exists() for p in paths],
+                privateOriginals=archive.name, rawHostSHA256=raw_hash, hostAbruptExitDeclaration=intended,
+                dailyImagePermissionsConfigurationAndOwnershipUnchanged=True)
 
 
 def main():
@@ -126,6 +160,12 @@ def main():
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
             result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if a.visible_recovery:
+            if result['status'] == 'PASS':
+                try:
+                    cleanup = collect_closed_fixture(out, session, result)
+                    save(out / 'cleanup.json', cleanup)
+                except (OSError, ValueError, KeyError) as error:
+                    result.update(status='UNKNOWN', preservationError=str(error)[:320])
             result['abruptExitVisibleReturn' if a.abrupt_visible_exit else 'normalExitVisibleReturn'] = result['status']
         elif result.get('postExitRead') in ('PASS', 'FAIL', 'UNKNOWN'):
             result['guardianSurvival'] = result['status']

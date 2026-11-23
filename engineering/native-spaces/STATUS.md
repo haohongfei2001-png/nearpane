@@ -1,5 +1,9 @@
 # Nearpane 当前工程状态
 
+## 2026-11-24 · Host 中断后的真实窗口归位
+
+**PASS，限屏内归位。** 在 26A428、ARM64、SIP 开启的普通桌面 4 上，隔离 Host `8c5ddf8` 向 Guardian 交接后直接退出，跳过 Host 的清理。内核对同一 PID 50655 返回 `NOTE_EXIT | NOTE_EXITSTATUS` 和原始状态 19200（退出码 75）。Guardian 50674 随后只写入一次，把签名夹具窗口 84388 从 (649, 407) 送回 (625, 407)，尺寸 220×143。两次独立 AX / WindowServer 读回和夹具自己的 AppKit 读回一致。日常 Host 的身份、权限、配置和已有恢复记录指纹相同。已归档该次夹具的原始文件并移除两个临时会合目录。角落退场、退场后输入隔离及 R4 整组循环仍待实测。[实机读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [内核退出和清理](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/cleanup.json)
+
 ## 2026-11-23 · 真实窗口与恢复责任
 
 正式 Rust 引擎已在实体机的普通桌面 4 验证包括阴影的 **86×176 点完整材质区域**。同一个无窗口写权限的句柄首次用时 359.2 毫秒，复用用时 34.2 毫秒，两次都返回 Apple 壁纸窗口合成来源。运行者为持有自身录屏授权的签名观察器。实际窗口遮挡、键鼠接收者和整组切换仍为 **NOT_RUN**。每次停放前，执行 Host 继续核验自己的权限和 Guardian 的恢复责任。[两次读回与签名](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json) · [离线回归与原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-regression.zip)
