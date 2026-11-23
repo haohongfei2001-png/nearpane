@@ -40,24 +40,39 @@ enum CornerFixturePixels {
               frame.width == 220, (110...160).contains(frame.height), Link.birth(r.pid) == r.birth else { throw Link.Fault.frame }
         return frame
     }
-    /// A tiny stripe of the registered fixture's own window. No composite desktop image is requested.
-    private static func stripes(_ image: CGImage, session: UUID) throws -> Int {
+    /// Single-window capture has its own coordinate system. Crop the middle of the
+    /// returned fixture surface locally, independent of display origin or backing scale.
+    private static func stripes(_ surface: CGImage, session: UUID) throws -> Link.Sample {
         let w = 160, h = 8
         var rgba = [UInt8](repeating:0,count:w*h*4)
-        guard image.width == w, image.height == h, let color = CGColorSpace(name:CGColorSpace.sRGB) else { throw Link.Fault.frame }
+        guard surface.width == 220, (110...160).contains(surface.height),
+              let image = surface.cropping(to:CGRect(x:0,y:surface.height/2 - h/2,width:surface.width,height:h)),
+              let color = CGColorSpace(name:CGColorSpace.sRGB) else { throw Link.Fault.frame }
         let bits = withUnsafeBytes(of: session.uuid) { Array($0.prefix(2)) }
         return try rgba.withUnsafeMutableBytes { pixels in
             guard let context = CGContext(data:pixels.baseAddress,width:w,height:h,bitsPerComponent:8,bytesPerRow:w*4,
                 space:color,bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else { throw Link.Fault.frame }
             context.setBlendMode(.copy)
+            context.interpolationQuality = .none
             context.draw(image,in:CGRect(x:0,y:0,width:w,height:h))
-            return (0..<16).filter { index in
+            var matched = 0, greenCells = 0, magentaCells = 0, opaqueCells = 0
+            for index in 0..<16 {
                 let green = bits[index / 8] & (1 << (index % 8)) != 0
-                return (3...4).allSatisfy { y in (4...5).allSatisfy { dx in
+                var allGreen = true, allMagenta = true, allOpaque = true
+                for y in 3...4 { for dx in 4...5 {
                     let p = 4 * (y*w+index*10+dx), r = pixels[p], g = pixels[p+1], b = pixels[p+2]
-                    return pixels[p+3] == 255 && (green ? (g > 170 && r < 80 && b < 90) : (r > 165 && g < 75 && b > 160))
+                    allOpaque = allOpaque && pixels[p+3] == 255
+                    allGreen = allGreen && g > 170 && r < 80 && b < 90
+                    allMagenta = allMagenta && r > 165 && g < 75 && b > 160
                 } }
-            }.count
+                guard allOpaque else { continue }
+                opaqueCells += 1
+                if allGreen { greenCells += 1 }
+                if allMagenta { magentaCells += 1 }
+                if green ? allGreen : allMagenta { matched += 1 }
+            }
+            return .init(time:DispatchTime.now().uptimeNanoseconds, matchingStripes:matched,
+                         opaqueCells:opaqueCells, greenCells:greenCells, magentaCells:magentaCells)
         }
     }
     @MainActor private static func sample(_ r: Link.Request) async -> Link.Reply {
@@ -74,8 +89,7 @@ enum CornerFixturePixels {
             guard exact.count == 1, let window = exact.first else { throw Link.Fault.frame }
             let filter = SCContentFilter(desktopIndependentWindow:window)
             let cfg = SCStreamConfiguration()
-            cfg.sourceRect = CGRect(x:0,y:floor(frame.height/2)-4,width:frame.width,height:8)
-            cfg.width = 160; cfg.height = 8; cfg.showsCursor = false
+            cfg.width = Int(frame.width); cfg.height = Int(frame.height); cfg.showsCursor = false
             cfg.ignoreShadowsSingleWindow = true; cfg.ignoreGlobalClipSingleWindow = true
             cfg.scalesToFit = true; cfg.preservesAspectRatio = false
             for index in 0..<2 {
@@ -83,7 +97,7 @@ enum CornerFixturePixels {
                 guard try listed(r) == frame else { throw Link.Fault.stale }
                 let frameImage = try await SCScreenshotManager.captureImage(contentFilter:filter,configuration:cfg)
                 guard try listed(r) == frame else { throw Link.Fault.stale }
-                samples.append(.init(time:DispatchTime.now().uptimeNanoseconds,matchingStripes:try stripes(frameImage,session:r.session)))
+                samples.append(try stripes(frameImage,session:r.session))
             }
             return samples.allSatisfy { $0.matchingStripes == 16 } ? reply("PASS","registeredFixturePixelsTwice") : reply("FAIL","fixtureMarkerMismatch")
         } catch { return reply("UNKNOWN",(error as? Link.Fault)?.rawValue ?? "captureUnavailable") }

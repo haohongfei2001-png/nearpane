@@ -1,5 +1,13 @@
 # Nearpane 当前工程状态
 
+## 2026-11-24 · 同一扇窗口的独立画面读回
+
+在 26A428 的普通桌面 4 上，隔离 Host 59465 和已授权的签名观察器 59461 通过本地连接相互验签，共同定位到测试窗 84451。观察器只采集该窗自己的内容，两次均识别出 16/16 条一次性标记。跨进程传递的是计数和时间戳。第一次采用后台视图绘制时，两次结果均为 0/16；在窗口所属应用内确认绘制次数为零后，夹具改为主动提交自己的图层。三次运行均核对了日常 Host 的身份、权限和配置。第二次提前退出，原始关窗回执仍为 UNKNOWN，后续读回已确认该进程退出且属于它的系统窗口数为零。[实机结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels.json) · [原始收据及回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels-raw.zip)
+
+**当前边界**　隔离 Host 自身的录屏读数为 false，正式 Rust 停放预检返回详情 21。独立观察器取得的是单窗内容。实际角落遮挡、退场后的鼠标及键盘收件、正式侧栏 A→B→C→A 和 10/50 次仍为 **NOT_RUN**。生产窗口写入保持关闭。
+
+引擎现在会在用户改选或停放超时时撤销写入权。已经发出的移动最多保留 500 毫秒供只读测量把精确位置交回 Guardian。窗口身份、原生归属或位置不完整时，保留待恢复责任。源码 `d3db323` 的 Rust 整库 86 项与 Corner 定向 73 项通过。
+
 ## 2026-11-24 · Host 中断后的真实窗口归位
 
 R4 工作集合现在保留用户自己最小化的组成员。点击整组时，焦点可落到仍能交互的同组窗口；明确点名字的单窗仍须精确命中。协调器持续核对受保护窗口，用户通过 Dock 恢复非活动窗口会撤销活动集合的判断。历史组合只绘制离开时独立可见的成员。本机完整源码回归 805 项执行通过、3 项跳过，包含同应用双窗和相互矛盾的画面读数。整组实机切换仍为 **NOT_RUN**。[完整 xUnit 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/protected-worksets-xunit.zip)

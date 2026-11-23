@@ -15,6 +15,7 @@ enum StageFixtureVisualLink {
     }
     struct Sample: Codable, Sendable {
         let time: UInt64, matchingStripes: Int
+        var opaqueCells: Int?, greenCells: Int?, magentaCells: Int?
     }
     struct Reply: Codable, Sendable {
         let request: Request, observerPID: Int32, screenAccess: Bool

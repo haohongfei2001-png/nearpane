@@ -118,24 +118,26 @@ static BOOL fixtureCanMove(NSDictionary *row, NSUUID *nonce, NSWindow *w, uint64
 #endif
 #endif
 #ifdef NP_FIXTURE_VISUAL_WINDOW
-@interface NPMembershipStripes : NSView
-@property(nonatomic, strong) NSUUID *nonce;
-@end
-@implementation NPMembershipStripes
-- (BOOL)isOpaque { return YES; }
-- (void)drawRect:(NSRect)dirty {
-    (void)dirty;
-    uuid_t bytes; [self.nonce getUUIDBytes:bytes];
+#import <QuartzCore/QuartzCore.h>
+// AppKit may defer drawRect: indefinitely for a window ordered behind other apps.
+// Publish immutable fixture-owned content to the compositor without activating it.
+static CGImageRef fixtureMarker(NSUUID *nonce) CF_RETURNS_RETAINED {
+    uuid_t bytes;
+    [nonce getUUIDBytes:bytes];
+    CGColorSpaceRef color = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    if (!color) return NULL;
+    CGContextRef ctx = CGBitmapContextCreate(NULL, 16, 1, 8, 64, color, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
+    CGColorSpaceRelease(color);
+    if (!ctx) return NULL;
     for (int i = 0; i < 16; i++) {
-        BOOL green = bytes[i / 8] & (1 << (i % 8));
-        [(green ? [NSColor colorWithSRGBRed:.05 green:.92 blue:.12 alpha:1] :
-                  [NSColor colorWithSRGBRed:.92 green:.05 blue:.88 alpha:1]) setFill];
-        CGFloat left = floor(NSWidth(self.bounds) * i / 16);
-        CGFloat right = floor(NSWidth(self.bounds) * (i + 1) / 16);
-        NSRectFill(NSMakeRect(left, 0, right - left, NSHeight(self.bounds)));
+        BOOL green = (bytes[i / 8] & (1u << (i % 8))) != 0;
+        CGContextSetRGBFillColor(ctx, green ? .05 : .92, green ? .92 : .05, green ? .12 : .88, 1);
+        CGContextFillRect(ctx, CGRectMake(i, 0, 1, 1));
     }
+    CGImageRef image = CGBitmapContextCreateImage(ctx);
+    CGContextRelease(ctx);
+    return image;
 }
-@end
 #endif
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
@@ -207,14 +209,17 @@ int main(int argc, const char *argv[]) {
 #ifdef NP_SURVIVAL_WINDOW
         w.alphaValue = survival ? 1 : 0;
         w.ignoresMouseEvents = !survival;
-        if (survival) w.contentView = [NSTextField labelWithString:@"Nearpane Guardian verification"];
 #ifdef NP_FIXTURE_VISUAL_WINDOW
+        NSView *marker = nil;
         if (survival && !strcmp(argv[3], "--ordinary-window")) {
-            NPMembershipStripes *view = [[NPMembershipStripes alloc] initWithFrame:w.contentView.bounds];
-            view.nonce = id;
-            w.contentView = view;
-        }
+            marker = [[NSView alloc] initWithFrame:w.contentView.bounds];
+            marker.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            marker.layer = [CALayer layer];
+            marker.wantsLayer = YES;
+            w.contentView = marker;
+        } else
 #endif
+        if (survival) w.contentView = [NSTextField labelWithString:@"Nearpane Guardian verification"];
 #else
         w.alphaValue = 0;
         w.ignoresMouseEvents = YES;
@@ -222,6 +227,26 @@ int main(int argc, const char *argv[]) {
         w.hasShadow = NO;
         w.animationBehavior = NSWindowAnimationBehaviorNone;
         [w orderBack:nil];
+#ifdef NP_FIXTURE_VISUAL_WINDOW
+        BOOL markerPublished = NO;
+        if (marker) {
+            [w.contentView layoutSubtreeIfNeeded];
+            CGImageRef image = fixtureMarker(id);
+            if (image) {
+                [CATransaction begin];
+                [CATransaction setDisableActions:YES];
+                marker.layer.magnificationFilter = kCAFilterNearest;
+                marker.layer.contentsGravity = kCAGravityResize;
+                marker.layer.contents = (__bridge NSObject *)image;
+                [CATransaction commit];
+                [CATransaction flush];
+                markerPublished = marker.layer.contents == (__bridge NSObject *)image;
+                CGImageRelease(image);
+            }
+            emit(dir, "owner-drawing.json", @{@"layerPublished":@(markerPublished),
+                @"width":@(NSWidth(marker.bounds)), @"height":@(NSHeight(marker.bounds))});
+        }
+#endif
         NSInteger window = w.windowNumber;
         double started = NSProcessInfo.processInfo.systemUptime, deadline = started + (cycle ? 75 : 20);
         NSDictionary * (^read)(void) = ^NSDictionary * {

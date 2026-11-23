@@ -206,7 +206,7 @@ def prepare_fixture(work, report):
         "-mmacosx-version-min=26.0",
         *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") or report.get("cornerReadbackRequested") or report.get("visibleRecoveryRequested") else []),
         *(["-DNP_VISIBLE_RECOVERY_WINDOW=1", "-framework", "Security"] if report.get("visibleRecoveryRequested") else []),
-        *(["-DNP_FIXTURE_VISUAL_WINDOW=1"] if report.get("fixturePixelWitnessRequested") else []),
+        *(["-DNP_FIXTURE_VISUAL_WINDOW=1", "-framework", "QuartzCore"] if report.get("fixturePixelWitnessRequested") else []),
         HERE / "membership-window.m",
         "-framework",
         "AppKit",
@@ -279,6 +279,14 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         try:
             first = read_when_ready(work / "owner-start.json", process, time.monotonic() + 5)
             report["ownerStart"] = first
+            if report.get("fixturePixelWitnessRequested"):
+                drawing = read_when_ready(work / "owner-drawing.json", process, time.monotonic() + 1)
+                report["ownerDrawing"] = drawing
+                if (not isinstance(drawing, dict) or drawing.get("layerPublished") is not True
+                        or drawing.get("width") != 220 or drawing.get("height", 0) < 80):
+                    report["fixtureAdmission"] = "ownerMarkerSurfaceUnavailable"
+                    yield None
+                    return
             if not eligible(first, survival):
                 report["fixtureAdmission"] = "backgroundOrdinaryFixtureDidNotEnroll"
                 yield None
