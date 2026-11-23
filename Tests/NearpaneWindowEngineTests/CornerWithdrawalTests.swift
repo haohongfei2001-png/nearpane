@@ -41,6 +41,35 @@ struct CornerWithdrawalTests {
                     "kernelHostExit": false, "withdrawal": proof])
     }
 
+    @Test func guardianCanClaimAMeasuredFrameWithoutCertifyingIsolation() throws {
+        let (request, envelope) = envelope()
+        let original = try #require(envelope["withdrawal"] as? [String: Any])
+        let preparedData = try JSONSerialization.data(withJSONObject: ["schema": 1, "status": "PREPARED",
+            "guardianPID": 41, "original": original] as [String: Any])
+        let prepared = try JSONDecoder().decode(CornerPreparedReceipt.self, from: preparedData)
+        let flags = UInt32(NP_AX_VALID | NP_CG_VALID | NP_MEMBERSHIP_VALID | NP_OWNED | NP_CORNER_RECOVERY_FRAME)
+        let frame = SurfaceRect(x: 899, y: 682, width: 300, height: 160)
+        func result(_ bits: UInt32, status: UInt32 = UInt32(NP_UNKNOWN)) -> NativeStageEngineReceipt {
+            .init(status: status, flags: bits, detail: 47, owned: 1, nativeID: 9, epoch: 1, frame: frame, intent: request.intent)
+        }
+        var record: [String: Any] = ["schema": 1, "status": "RECOVERY_FRAME_ONLY", "guardianPID": 41,
+            "original": original, "postimage": [899,682,300,160], "engineStatus": NP_UNKNOWN, "engineFlags": flags]
+        func matches(_ receipt: NativeStageEngineReceipt) throws -> Bool {
+            let data = try JSONSerialization.data(withJSONObject: record)
+            return try JSONDecoder().decode(CornerMeasuredFrameReceipt.self, from: data).matches(receipt, prepared: prepared)
+        }
+        #expect(try matches(result(flags)))
+        #expect(try !matches(result(flags | UInt32(NP_HIDDEN | NP_INPUT_SAFE))))
+        #expect(try !matches(result(flags, status: UInt32(NP_PASS))))
+        record["postimage"] = [899,681,300,160]
+        #expect(try !matches(result(flags)))
+        record["postimage"] = [899,682,300,160]
+        var changed = original
+        changed["transaction"] = UUID().uuidString
+        record["original"] = changed
+        #expect(try !matches(result(flags)))
+    }
+
     @Test func withdrawalRequiresBothProcessLifetimesExactWindowAndTwoReadbacks() throws {
         let (r, original) = envelope()
         func matches(_ data: [String: Any]) throws -> Bool {

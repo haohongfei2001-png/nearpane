@@ -348,6 +348,10 @@ impl Corner {
                 if let Err(reason) = verified_isolation(input, covered) {
                     out.status = c::UNKNOWN;
                     out.detail = reason;
+                    // The identical postimage was sampled twice after the setter, and sampled
+                    // again above on the retained AX object. An exit Guardian may verify
+                    // this frame for restoration without certifying the visual or input result.
+                    out.flags |= c::CORNER_RECOVERY_FRAME;
                 } else {
                     out.flags |= c::HIDDEN | c::INPUT_SAFE;
                 }

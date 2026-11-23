@@ -57,9 +57,10 @@ static inline int ncg_next_host_packet(int fd) {
 // Called only after the signed Host's park receipt, matching committed WAL
 // and two postimage observations. A lost reply alone never authorizes a restore.
 typedef enum { NCG_ACK_ERROR, NCG_ACK_SENT, NCG_ACK_CLOSED } NCGSealAck;
-static inline NCGSealAck ncg_ack_committed_park(int fd) {
+static inline NCGSealAck ncg_ack_park_witness(int fd, char acknowledgement) {
     ssize_t count;
-    do { count = write(fd, "P", 1); } while (count < 0 && errno == EINTR);
+    do { count = write(fd, &acknowledgement, 1); } while (count < 0 && errno == EINTR);
     if (count == 1) return NCG_ACK_SENT;
     return count < 0 && errno == EPIPE ? NCG_ACK_CLOSED : NCG_ACK_ERROR;
 }
+static inline NCGSealAck ncg_ack_committed_park(int fd) { return ncg_ack_park_witness(fd, 'P'); }

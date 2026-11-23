@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import NearpaneCore
 import Security
+import CNearpaneWindowEngine
 
 /// One live, independently signed recovery witness per outstanding Corner hide.
 /// A restarted client never turns persisted window numbers into an actionable lease.
@@ -14,6 +15,7 @@ import Security
         let writer, reader, directory: FileHandle
         var result: NativeStageEngineReceipt?
         var sealed = false
+        var recoveryFrameOnly = false
         var withdrawing = false
         var preparation: CornerPreparedReceipt?
         var preparedAt: UInt64?
@@ -172,9 +174,20 @@ import Security
         guard r.operation == 3 else { return }
         guard let w = r.window, let l = leases[w], same(l.original, r), r.intent == l.original.intent,
               !l.sealed, !l.withdrawing, l.result == nil, receipt.intent == r.intent, receipt.epoch == l.epoch,
-              receipt.status == 0, receipt.owned > 0, receipt.nativeID == r.nativeID, receipt.flags & 191 == 190 else {
+              receipt.owned > 0, receipt.nativeID == r.nativeID else {
             throw Failure.pendingRecovery
         }
+        if CornerMeasuredFrameReceipt.isMeasurement(receipt) {
+            l.result = receipt
+            try await exchange(try packet(motionFields("observeRecoveryFrame", receipt)), ack: 77, lease: l)
+            guard let prepared = l.preparation, let observed = CornerMeasuredFrameReceipt.read(in: l.directory.fileDescriptor),
+                  observed.matches(receipt, prepared: prepared) else { throw Failure.pendingRecovery }
+            try checkLiveOwners()
+            l.recoveryFrameOnly = true
+            return
+        }
+        guard receipt.status == NP_PASS, receipt.flags & 191 == 190,
+              receipt.flags & UInt32(NP_CORNER_RECOVERY_FRAME) == 0 else { throw Failure.pendingRecovery }
         l.result = receipt
         try await exchange(try packet(motionFields("observePark", receipt)), ack: 79, lease: l)
         try checkLiveOwners()
@@ -182,7 +195,8 @@ import Security
 
     func confirm(_ r: NativeStageEngineRequest, verifiedFrame: SurfaceRect) async throws {
         guard let w = r.window, let l = leases[w], same(l.original, r), l.original.intent == r.intent,
-              !l.sealed, !l.withdrawing, let raw = l.result, zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
+              !l.sealed, !l.withdrawing, !l.recoveryFrameOnly, let raw = l.result, raw.status == NP_PASS,
+              zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
         var fields = motionFields("confirm", raw)
         fields["verified"] = Self.frame(verifiedFrame)
         let data = try packet(fields)
@@ -250,6 +264,7 @@ import Security
         let generation = l.guardianBirth
         let same = generation != nil && l.process.isRunning && childGeneration(child) == generation
         var result = CornerGuardianFixtureReport.Handoff(state: l.sealed ? "SEALED_ACKNOWLEDGED" :
+            l.recoveryFrameOnly ? "RECOVERY_FRAME_ACKNOWLEDGED" :
             l.preparedAt != nil ? "PREPARED_ACKNOWLEDGED" : "AWAITING_PREPARE_ACK")
         result.guardianPID = child
         result.guardianBirth = generation

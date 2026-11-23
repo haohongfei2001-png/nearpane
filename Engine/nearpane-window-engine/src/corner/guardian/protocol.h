@@ -4,7 +4,7 @@
 #include "nearpane_window_engine.h"
 #include <stdbool.h>
 #include <string.h>
-enum { NCG_PREPARE = 1, NCG_CONFIRMED = 2 };
+enum { NCG_PREPARE = 1, NCG_CONFIRMED = 2, NCG_RECOVERY_FRAME = 3 };
 typedef struct {
     uint32_t version, phase;
     int32_t host;
@@ -31,8 +31,15 @@ static inline bool ncg_correlates(const NCGuardianEntry *prepared, const NCGuard
            !memcmp(&prepared->lease, &sealed->lease, sizeof(prepared->lease)) &&
            !memcmp(prepared->hid, sealed->hid, sizeof(prepared->hid)) && r->size == sizeof(*r) &&
            r->version == 1 && r->status == NP_PASS && r->epoch == prepared->lease.epoch &&
-           r->native_id == prepared->lease.native_id && (r->flags & (flags | NP_VISIBLE)) == flags &&
+           r->native_id == prepared->lease.native_id && (r->flags & (flags | NP_VISIBLE | NP_CORNER_RECOVERY_FRAME)) == flags &&
            !memcmp(r->intent, prepared->lease.intent, 16);
+}
+// A measured position may be recovered even when input or the picture was never qualified.
+static inline bool ncg_recovery_frame(const NCGuardianEntry *prepared, const NPReceipt *r) {
+    return prepared->phase == NCG_PREPARE && r->size == sizeof(*r) && r->version == NP_ENGINE_ABI &&
+           r->status == NP_UNKNOWN && r->owned > 0 && r->owned <= 32 && r->epoch == prepared->lease.epoch &&
+           r->native_id == prepared->lease.native_id && !memcmp(r->intent, prepared->lease.intent, 16) &&
+           r->flags == (NP_CORNER_RECOVERY_FRAME | NP_OWNED | NP_MEMBERSHIP_VALID | NP_AX_VALID | NP_CG_VALID);
 }
 typedef struct {
     bool retained_before_park, parked_confirmed, eof, kernel_parent_exit, parent_generation_gone;

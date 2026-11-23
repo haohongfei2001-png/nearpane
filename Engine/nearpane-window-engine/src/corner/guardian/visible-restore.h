@@ -15,21 +15,6 @@ typedef struct {
 static uint32_t mouseMotion(void) {
     return CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
 }
-static AXUIElementRef visibleFocusedWindow(pid_t pid) {
-    AXUIElementRef app = AXUIElementCreateApplication(pid);
-    CFTypeRef window = NULL;
-    if (app) {
-        AXUIElementSetMessagingTimeout(app, .15);
-        AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, &window);
-        CFRelease(app);
-    }
-    if (!window)
-        return NULL;
-    if (CFGetTypeID(window) == AXUIElementGetTypeID())
-        return (AXUIElementRef)window;
-    CFRelease(window);
-    return NULL;
-}
 static BOOL visibleContinuity(VisibleReturn *t) {
     uint32_t hid[13];
     np_corner_inputs(hid);
@@ -37,7 +22,7 @@ static BOOL visibleContinuity(VisibleReturn *t) {
         NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != t->front ||
         ncg_birth(t->front, NULL) != t->frontBirth || !displayIs(&t->window))
         return NO;
-    AXUIElementRef current = visibleFocusedWindow(t->front);
+    AXUIElementRef current = guardianFocusedWindow(t->front);
     BOOL same = current && CFEqual(t->focus, current);
     if (current)
         CFRelease(current);
@@ -136,7 +121,7 @@ static int recoverVisibleFixture(NSDictionary *m, const NPGuardianFixtureObserva
         t.frontBirth = ncg_birth(t.front, NULL);
         need(t.front > 1 && t.front != s->member.pid && t.front != parent && t.frontBirth,
              @"ordinaryForegroundUnavailable");
-        t.focus = visibleFocusedWindow(t.front);
+        t.focus = guardianFocusedWindow(t.front);
         np_corner_inputs(t.hid);
         t.motion = mouseMotion();
         s->kqueue = ncg_watch_exit(parent, parentBirth);
@@ -167,7 +152,7 @@ static int recoverVisibleFixture(NSDictionary *m, const NPGuardianFixtureObserva
             @"space" : m[@"space"]
         };
         t.prepared = responsibility;
-        need(persistJobRecord(s->dir, YES, responsibility), @"durableVisibleResponsibilityUnavailable");
+        need(persistJobRecord(s->dir, NCPrepared, responsibility), @"durableVisibleResponsibilityUnavailable");
         unsigned reads = 0;
         for (unsigned i = 0; i < 35 && reads < 2; i++) {
             need(visibleContinuity(&t) && getppid() == parent && ncg_birth(parent, NULL) == parentBirth,
@@ -225,7 +210,7 @@ static int recoverVisibleFixture(NSDictionary *m, const NPGuardianFixtureObserva
         CFRelease(t.focus);
     if (s->kqueue >= 0)
         close(s->kqueue);
-    BOOL saved = s->dir >= 0 && persistJobRecord(s->dir, NO, receipt);
+    BOOL saved = s->dir >= 0 && persistJobRecord(s->dir, NCFinal, receipt);
     if (s->dir >= 0)
         close(s->dir);
     if (!armed)

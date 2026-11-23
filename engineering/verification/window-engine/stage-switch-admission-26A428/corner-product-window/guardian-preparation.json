@@ -159,5 +159,20 @@
   "ten": "NOT_RUN",
   "fifty": "NOT_RUN",
   "productionQualified": false,
-  "logsSHA256": "18884ca6b7bcb80b54e2129783ae38c95ea43216fb43787cecbfd89835f0668d"
+  "logsSHA256": "18884ca6b7bcb80b54e2129783ae38c95ea43216fb43787cecbfd89835f0668d",
+  "recoveryAfterUnqualifiedPark": {
+    "scope": "production protocol and exact pending ledger; no WindowServer park attempted",
+    "cornerRustCases": 72,
+    "signedPackageLedgerRegression": "PASS",
+    "swiftCases": [
+      "preparedResponsibilityBelongsToTheSameWindowAndBothLiveGenerations()",
+      "guardianCanClaimAMeasuredFrameWithoutCertifyingIsolation()",
+      "ordinaryABIHandleCannotPublishANoTicketWitness()",
+      "withdrawalRequiresBothProcessLifetimesExactWindowAndTwoReadbacks()",
+      "receiptReadRejectsMissingAliasedSharedOrTruncatedEvidence()"
+    ],
+    "productionHide": "NOT_RUN",
+    "realRecoveryAfterPartialCornerHide": "NOT_RUN",
+    "activeGroupCommitted": false
+  }
 }

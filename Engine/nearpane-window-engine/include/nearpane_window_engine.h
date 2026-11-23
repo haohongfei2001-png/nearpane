@@ -21,7 +21,9 @@ enum { NP_CORNER_MISSING_AX = 1, NP_CORNER_MISSING_LISTEN = 19,
 enum { NP_PASS = 0, NP_FAIL, NP_UNKNOWN, NP_UNSUPPORTED, NP_TIMEOUT, NP_CANCELLED };
 enum { NP_VISIBLE = 1, NP_HIDDEN = 2, NP_AX_VALID = 4, NP_CG_VALID = 8,
        NP_INPUT_SAFE = 16, NP_MEMBERSHIP_VALID = 32, NP_HEALTHY = 64, NP_OWNED = 128,
-       NP_PROBE_RESTORED = 256, NP_PROBE_CLOSED = 512, NP_PROBE_SPACE_DESTROYED = 1024 };
+       NP_PROBE_RESTORED = 256, NP_PROBE_CLOSED = 512, NP_PROBE_SPACE_DESTROYED = 1024,
+       /* Retained Corner postimage only. Never authorizes product activity or input isolation. */
+       NP_CORNER_RECOVERY_FRAME = 2048 };
 /* Transport status is separate from the observed result. */
 enum { NP_OK = 0, NP_INVALID = 1, NP_INCOMPATIBLE = 2, NP_CLOSED = 3, NP_BUSY = 4,
        NP_PENDING = 5, NP_NO_TICKET = 6, NP_INTERNAL = 7 };

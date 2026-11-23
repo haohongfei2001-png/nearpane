@@ -75,7 +75,7 @@ int main(void) {
                  *gen = NSUUID.UUID.UUIDString.lowercaseString;
         NSString *profile =
             [root stringByAppendingPathComponent:[NSString stringWithFormat:@"generations/%@/Nearpane", gen]];
-        NSString *journal = @"stage-visibility-v1.json";
+        NSString *ledgerFile = @"stage-visibility-v1.json";
         Session s = {
             .dir = -1, .ledger = -1, .kqueue = -1, .profile = -1, .root = -1, .writer = -1, .serializer = -1};
         NPRequest *r = &s.pre.lease;
@@ -155,7 +155,7 @@ int main(void) {
                @"owner" : owner,
                @"pending" : pending,
                @"owned" : @[]} mutableCopy];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(productJournal(&s, NO, NO));
         assert(!productJournal(&s, YES, NO));
         int replies[2];
@@ -164,9 +164,9 @@ int main(void) {
         int jobFD = open(job.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
         char reply;
         NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid())};
-        assert(persistJobRecord(jobFD, YES, prepared));
+        assert(persistJobRecord(jobFD, NCPrepared, prepared));
         assert([productFile(jobFD, "guardian-prepared.json") isEqual:prepared]);
-        assert(!persistJobRecord(jobFD, YES, @{@"status": @"OTHER"}));
+        assert(!persistJobRecord(jobFD, NCPrepared, @{@"status": @"OTHER"}));
         assert([productFile(jobFD, "guardian-prepared.json") isEqual:prepared]);
         assert(!productFile(jobFD, "guardian-receipt.json"));
         assert(!publishReceipt(-1, withdrawn, replies[1]));
@@ -200,20 +200,20 @@ int main(void) {
         assert(!withdrawalWitness(&s, ledger));  // no previously retained real window
         for (NSString *key in @[@"after", @"guardianPending", @"undoIntent"]) {
             entry[key] = [key isEqual:@"after"] ? parked : (id)@YES;
-            put(profile, journal, ledger);
+            put(profile, ledgerFile, ledger);
             assert(!withdrawableJournal(&s));
             [entry removeObjectForKey:key];
         }
         NSString *transaction = pending[@"intent"];
         pending[@"intent"] = NSUUID.UUID.UUIDString;
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(!withdrawableJournal(&s));
         pending[@"intent"] = transaction;
         pending[@"entries"] = @[entry, @{@"intent": NSUUID.UUID.UUIDString}];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(!withdrawableJournal(&s));
         pending[@"entries"] = @[entry];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         s.pre.lease.birth++;
         assert(!productJournal(&s, NO, NO));
         s.pre.lease.birth--;
@@ -227,6 +227,48 @@ int main(void) {
         s.pre.phase = NCG_PREPARE;
         NSMutableDictionary *motion = [@{@"phase": @"observePark", @"intent": intent, @"epoch": @1,
             @"native": @4, @"owned": @1, @"flags": @190, @"status": @0, @"frame": park} mutableCopy];
+        NSMutableDictionary *measured = [motion mutableCopy];
+        measured[@"phase"] = @"observeRecoveryFrame";
+        measured[@"status"] = @(NP_UNKNOWN);
+        const unsigned frameFlags = NP_OWNED | NP_MEMBERSHIP_VALID | NP_AX_VALID | NP_CG_VALID | NP_CORNER_RECOVERY_FRAME;
+        measured[@"flags"] = @(frameFlags);
+        assert(!productParkReceipt(&s, measured, NO)); // Legacy or different member.
+        entry[@"group"] = group;
+        entry[@"member"] = member;
+        put(profile, ledgerFile, ledger);
+        assert(productParkReceipt(&s, measured, NO) && !productSeal(&s, measured));
+        assert(!productJournal(&s, YES, NO));
+        for (NSNumber *invalid in @[@(frameFlags | NP_INPUT_SAFE), @(frameFlags | NP_HIDDEN), @(frameFlags & ~NP_CG_VALID),
+                                     @(UINT64_C(0x100000000) + frameFlags)]) {
+            measured[@"flags"] = invalid;
+            assert(!productParkReceipt(&s, measured, NO));
+        }
+        measured[@"flags"] = @(frameFlags);
+        measured[@"status"] = @(NP_PASS);
+        assert(!productParkReceipt(&s, measured, NO));
+        measured[@"status"] = @(NP_UNKNOWN);
+        assert(productParkReceipt(&s, measured, NO));
+        assert(mkdirat(s.profile, "recovery-frame-test", 0700) == 0);
+        s.dir = openat(s.profile, "recovery-frame-test", O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        assert(s.dir >= 0 && !recoveryFrameRecord(&s));
+        NSDictionary *bound = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()),
+                                @"original": originalProof(&s, ledger)};
+        assert(persistJobRecord(s.dir, NCPrepared, bound));
+        NSDictionary *measuredRecord = recoveryFrameRecord(&s);
+        assert(measuredRecord && persistJobRecord(s.dir, NCRecoveryFrame, measuredRecord));
+        assert(!persistJobRecord(s.dir, NCRecoveryFrame, measuredRecord));
+        s.recoveryOnly = s.recoveryFramePublished = YES;
+        assert(journal(&s, YES));
+        entry[@"member"] = NSUUID.UUID.UUIDString;
+        put(profile, ledgerFile, ledger);
+        assert(!journal(&s, YES));
+        entry[@"member"] = member;
+        put(profile, ledgerFile, ledger);
+        s.sealed.result.frame.x += 1;
+        assert(!journal(&s, YES));
+        s.recoveryOnly = s.recoveryFramePublished = NO;
+        close(s.dir);
+        s.dir = -1;
         motion[@"flags"] = @191;
         assert(!productParkReceipt(&s, motion, NO));
         motion[@"flags"] = @190;
@@ -244,7 +286,7 @@ int main(void) {
             @"hidden" : parked
         };
         ledger[@"owned"] = @[ owned ];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(productJournal(&s, YES, NO));
         motion[@"phase"] = @"confirm";
         motion[@"verified"] = park;
@@ -262,7 +304,7 @@ int main(void) {
         assert(!productJournal(&s, YES, YES));
         assert(!ledgerAfterRemovingOnlyThisMember(ledger, r));
         [ledger removeObjectForKey:@"pending"];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(productJournal(&s, YES, NO));
         NSDictionary *other = @{@"hidden" : @{@"window" : @{@"pid" : @377, @"birth" : @48435, @"number" : @410}}};
         NSMutableDictionary *multiple = [ledger mutableCopy];
@@ -276,11 +318,11 @@ int main(void) {
         multiple[@"owned"] = @[ other ];
         assert(!ledgerAfterRemovingOnlyThisMember(multiple, r));
         ledger[@"releases"] = @[ @{@"owned" : owned, @"intent" : NSUUID.UUID.UUIDString} ];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(!productJournal(&s, YES, NO));
         [ledger removeObjectForKey:@"releases"];
         ledger[@"owned"] = @[];
-        put(profile, journal, ledger);
+        put(profile, ledgerFile, ledger);
         assert(productJournal(&s, YES, YES));
         assert(!productJournal(&s, YES, NO));
         put(

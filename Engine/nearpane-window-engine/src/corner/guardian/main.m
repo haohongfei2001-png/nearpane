@@ -21,6 +21,11 @@ typedef struct {
 #ifndef NP_CORNER_FIXTURE
     int profile, root, writer, serializer;
     BOOL serializedRecovery;
+    BOOL recoveryFramePublished;
+    uint32_t preparedPointerMotion;
+    pid_t preparedFrontPID;
+    uint64_t preparedFrontBirth;
+    AXUIElementRef preparedFocus;
     void *profileID;
     __unsafe_unretained NSString *hostHash;
     __unsafe_unretained NSData *hostDigest;
@@ -29,6 +34,7 @@ typedef struct {
     uint32_t takeoverInput[13];
 #endif
     NCRecoveryFacts facts;
+    BOOL recoveryOnly;
     BOOL takeoverChecked;
     __unsafe_unretained NSData *hash;
     __unsafe_unretained NSString *kit;
@@ -45,10 +51,16 @@ static BOOL fileOK(int fd, BOOL dir) {
                 : S_ISREG(st.st_mode) && st.st_nlink == 1 && (st.st_mode & 0777) == 0600);
 }
 // The receipt names are fixed by this binary. Only publish a complete, private record once.
-static BOOL persistJobRecord(int directory, BOOL prepared, NSDictionary *record) {
+typedef NS_ENUM(NSUInteger, NCJobRecord) { NCFinal, NCPrepared, NCRecoveryFrame };
+static BOOL persistJobRecord(int directory, NCJobRecord kind, NSDictionary *record) {
     if (directory < 0 || !fileOK(directory, YES)) return NO;
-    const char *name = prepared ? "guardian-prepared.json" : "guardian-receipt.json";
-    const char *pending = prepared ? "guardian-prepared.pending" : "guardian-receipt.pending";
+    const char *name, *pending;
+    switch (kind) {
+    case NCPrepared: name = "guardian-prepared.json"; pending = "guardian-prepared.pending"; break;
+    case NCFinal: name = "guardian-receipt.json"; pending = "guardian-receipt.pending"; break;
+    case NCRecoveryFrame: name = "guardian-observed.json"; pending = "guardian-observed.pending"; break;
+    default: return NO;
+    }
     NSData *data = [NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys error:NULL];
     if (!data.length || data.length > 16384) return NO;
     int fd = openat(directory, pending, O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC | O_NOFOLLOW, 0600);
@@ -88,6 +100,28 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
     return YES;
 }
 #ifndef NP_CORNER_FIXTURE
+static AXUIElementRef guardianFocusedWindow(pid_t pid) {
+    if (pid <= 1) return NULL;
+    AXUIElementRef app = AXUIElementCreateApplication(pid);
+    CFTypeRef window = NULL;
+    if (app) {
+        AXUIElementSetMessagingTimeout(app, .15);
+        AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, &window);
+        CFRelease(app);
+    }
+    if (window && CFGetTypeID(window) == AXUIElementGetTypeID()) return (AXUIElementRef)window;
+    if (window) CFRelease(window);
+    return NULL;
+}
+static BOOL originalFocusUnchanged(Session *s) {
+    if (!s->held || !s->preparedFocus || !s->preparedFrontBirth || CFEqual(s->preparedFocus, s->held) ||
+        NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != s->preparedFrontPID ||
+        ncg_birth(s->preparedFrontPID, NULL) != s->preparedFrontBirth) return NO;
+    AXUIElementRef now = guardianFocusedWindow(s->preparedFrontPID);
+    BOOL same = now && CFEqual(now, s->preparedFocus);
+    if (now) CFRelease(now);
+    return same;
+}
 static BOOL displayIs(Session *s);
 static BOOL stable(Session *s, NCFrame frame);
 static BOOL captureDisplays(Session *s, const uint8_t id[16], NCFrame original);
@@ -113,9 +147,24 @@ static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
     };
 }
 
+static NSDictionary *recoveryFrameRecord(Session *s) {
+    NSDictionary *wal = pendingFrameJournal(s);
+    if (!wal) return nil;
+    NSDictionary *original = originalProof(s, wal);
+    NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()), @"original": original};
+    if (![prepared isEqual:productFile(s->dir, "guardian-prepared.json")]) return nil;
+    NPRect frame = s->sealed.result.frame;
+    return @{@"schema": @1, @"status": @"RECOVERY_FRAME_ONLY", @"guardianPID": @(getpid()),
+             @"original": original, @"postimage": @[@(frame.x), @(frame.y), @(frame.width), @(frame.height)],
+             @"engineStatus": @(s->sealed.result.status), @"engineFlags": @(s->sealed.result.flags)};
+}
 #endif
 static BOOL journal(Session *s, BOOL sealed) {
 #ifndef NP_CORNER_FIXTURE
+    if (s->recoveryOnly) {
+        NSDictionary *proof = recoveryFrameRecord(s);
+        return proof && (!s->recoveryFramePublished || [proof isEqual:productFile(s->dir, "guardian-observed.json")]);
+    }
     return productJournal(s, sealed, NO);
 #else
     struct stat st, same;
@@ -204,6 +253,11 @@ static uint32_t authorize(void *ptr) {
     s->facts.current_signature = [s->hash isEqual:ncg_fixture_hash(s->member.pid, s->kit)];
 #else
     s->facts.inputs_unchanged = !memcmp(hid, s->takeoverInput, sizeof(hid));
+    if (s->recoveryOnly)
+        s->facts.inputs_unchanged = s->facts.inputs_unchanged && s->recoveryFramePublished &&
+            !memcmp(hid, s->pre.hid, sizeof(hid)) && s->preparedPointerMotion ==
+                CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved) &&
+            originalFocusUnchanged(s);
     uint8_t digest[32] = {0};
     s->facts.current_signature = np_corner_signed_fingerprint(s->member.pid, s->member.birth, digest) &&
                                  [s->hash isEqual:[NSData dataWithBytes:digest length:sizeof(digest)]];
@@ -292,10 +346,14 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(withdrawalWitness(s, before), @"secondOriginalWindowOrPendingJournalUnavailable");
     NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()),
                                @"original": originalProof(s, before)};
-    need(persistJobRecord(s->dir, YES, prepared), @"couldNotPersistOriginalGuardianResponsibility");
+    need(persistJobRecord(s->dir, NCPrepared, prepared), @"couldNotPersistOriginalGuardianResponsibility");
+    s->preparedPointerMotion = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
+    s->preparedFrontPID = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
+    s->preparedFrontBirth = ncg_birth(s->preparedFrontPID, NULL);
+    s->preparedFocus = guardianFocusedWindow(s->preparedFrontPID);
 #endif
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
-    BOOL afterCommittedEOF = NO;
+    BOOL hostEOFBeforeConfirmation = NO;
 #ifdef NP_CORNER_FIXTURE
     need(readPacket(STDIN_FILENO, &s->sealed, sizeof(s->sealed)) && ncg_correlates(&s->pre, &s->sealed) &&
              journal(s, YES),
@@ -313,19 +371,25 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         receipt[@"status"] = @"WITHDRAWN_BEFORE_SUBMISSION";
         return;
     }
-    if ([message[@"phase"] isEqual:@"observePark"]) {
+    if ([message[@"phase"] isEqual:@"observeRecoveryFrame"]) {
+        need(productParkReceipt(s, message, NO) && originalFocusUnchanged(s), @"measuredRecoveryFrameNotBoundToPendingIntentOrFocus");
+        s->recoveryOnly = YES;
+    } else if ([message[@"phase"] isEqual:@"observePark"]) {
         need(productParkReceipt(s, message, NO) && displayIs(s) && stable(s, convert(s->sealed.result.frame)),
              @"originalEnginePostimageUnavailable");
         NPReceipt original = s->sealed.result;
-        need(write(STDOUT_FILENO, "O", 1) == 1, @"enginePostimageAckUnavailable");
+        need(ncg_ack_park_witness(STDOUT_FILENO, 'O') != NCG_ACK_ERROR, @"enginePostimageAckUnavailable");
         receipt[@"enginePostimageWitnessed"] = @YES;
         int next = ncg_next_host_packet(STDIN_FILENO);
         need(next >= 0, @"hostConfirmationChannelUnavailable");
         if (next == 0) {
-            // The exact signed Host supplied the engine result while alive. The coordinator
-            // must also have independently verified it and committed this member to its WAL.
-            need(productJournal(s, YES, NO), @"hostExitedBeforeIndependentOwnershipCommit");
-            afterCommittedEOF = YES;
+            hostEOFBeforeConfirmation = YES;
+            if (!productJournal(s, YES, NO)) {
+                // The signed worker reported its physical result, but the product did not
+                // commit this member. Only the exact pending primitive can authorize return.
+                need(recoveryFrameRecord(s) && originalFocusUnchanged(s), @"hostExitedWithUnboundPostimage");
+                s->recoveryOnly = YES;
+            }
         } else {
             need(productSeal(s, productMessage()) && ncg_same_park_receipt(&original, &s->sealed.result),
                  @"confirmationDiffersFromOriginalEngineReceipt");
@@ -345,7 +409,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     usleep(25000);
     need(stable(s, parked) && journal(s, YES),
          @"secondParkedPostimageUnavailable");
-    if (afterCommittedEOF || getppid() != s->pre.host || ncg_birth(s->pre.host, NULL) != s->pre.host_birth) {
+    if (hostEOFBeforeConfirmation || getppid() != s->pre.host || ncg_birth(s->pre.host, NULL) != s->pre.host_birth) {
         s->facts.kernel_parent_exit = ncg_saw_exit(s->kqueue, s->pre.host, s->pre.host_birth, 2000);
         need(s->facts.kernel_parent_exit, @"originalHostChangedDuringPostimage");
     }
@@ -358,10 +422,21 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     receipt[@"intent"] = [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString;
     receipt[@"preimage"] = @[ @(r.frame.x), @(r.frame.y), @(r.frame.width), @(r.frame.height) ];
     receipt[@"postimage"] = @[ @(parked.x), @(parked.y), @(parked.w), @(parked.h) ];
-    NCGSealAck ack = afterCommittedEOF ? NCG_ACK_CLOSED : ncg_ack_committed_park(STDOUT_FILENO);
+    NCGSealAck ack;
+#ifndef NP_CORNER_FIXTURE
+    if (s->recoveryOnly) {
+        NSDictionary *record = recoveryFrameRecord(s);
+        need(record && persistJobRecord(s->dir, NCRecoveryFrame, record), @"recoveryPostimagePersistenceFailed");
+        s->recoveryFramePublished = YES;
+        need(journal(s, YES), @"durableRecoveryFrameOrIntentChanged");
+        ack = hostEOFBeforeConfirmation ? NCG_ACK_CLOSED : ncg_ack_park_witness(STDOUT_FILENO, 'M');
+    } else
+#endif
+    { ack = hostEOFBeforeConfirmation ? NCG_ACK_CLOSED : ncg_ack_committed_park(STDOUT_FILENO); }
     need(ack != NCG_ACK_ERROR, @"sealAckUnavailable");
-    receipt[@"sealAckDelivered"] = @(ack == NCG_ACK_SENT);
-    receipt[@"ownershipCommittedBeforeHostEOF"] = @(afterCommittedEOF);
+    receipt[@"sealAckDelivered"] = @(!s->recoveryOnly && ack == NCG_ACK_SENT);
+    if (s->recoveryOnly) receipt[@"recoveryFrameAckDelivered"] = @(ack == NCG_ACK_SENT);
+    receipt[@"ownershipCommittedBeforeHostEOF"] = @(hostEOFBeforeConfirmation && !s->recoveryOnly);
     struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
     char extra;
 #ifdef NP_CORNER_FIXTURE
@@ -375,7 +450,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 #endif
     ssize_t got = read(STDIN_FILENO, &extra, 1);
     if (got == 1 && extra == 'D') {
-        need(originalReleaseWitness(s), @"journalAndReleasedOriginalNotConfirmed");
+        need(!s->recoveryOnly && originalReleaseWitness(s), @"journalAndReleasedOriginalNotConfirmed");
         receipt[@"liveReleaseOriginalFrameReadbacks"] = @1;
         usleep(25000);
         need(originalReleaseWitness(s), @"secondReleasedOriginalNotConfirmed");
@@ -387,7 +462,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(got == 0, @"unexpectedHostCommand");
 #ifndef NP_CORNER_FIXTURE
     np_corner_inputs(s->takeoverInput);
-    if (ack == NCG_ACK_CLOSED || s->facts.kernel_parent_exit)
+    if (s->recoveryOnly || ack == NCG_ACK_CLOSED || s->facts.kernel_parent_exit)
         need(!memcmp(s->takeoverInput, s->sealed.hid, sizeof(s->takeoverInput)), @"inputChangedDuringSealHandoff");
 #endif
     s->facts.eof = true;
@@ -442,7 +517,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
 }
 // The parent cannot settle a pending entry from a pipe byte preceding durable evidence.
 static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
-    if (!persistJobRecord(dir, NO, receipt)) return NO;
+    if (!persistJobRecord(dir, NCFinal, receipt)) return NO;
     char ack;
     if ([receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"]) ack = 'W';
     else if ([receipt[@"status"] isEqual:@"PASS"] && [receipt[@"reason"] isEqual:@"liveHostReleasedRestoredOwnership"] &&
@@ -492,7 +567,8 @@ int main(int argc, const char **argv) {
         r[@"guardianPID"] = @(getpid());
         r[@"guardianOwnAccessibilityBeforeWrite"] = s.takeoverChecked ? @(s.facts.guardian_own_ax) : NSNull.null;
         r[@"retainedBeforePark"] = @(s.facts.retained_before_park);
-        r[@"committedPostimage"] = @(s.facts.parked_confirmed);
+        r[@"committedPostimage"] = @(!s.recoveryOnly && s.facts.parked_confirmed);
+        r[@"unqualifiedPostimageObserved"] = @(s.recoveryOnly && s.facts.parked_confirmed);
         r[@"originalPipeEOF"] = @(s.facts.eof);
         r[@"kernelHostExit"] = @(s.facts.kernel_parent_exit);
         r[@"originalHostGone"] = @(s.facts.parent_generation_gone);
@@ -512,6 +588,7 @@ int main(int argc, const char **argv) {
         if (s.dir >= 0)
             close(s.dir);
 #ifndef NP_CORNER_FIXTURE
+        if (s.preparedFocus) CFRelease(s.preparedFocus);
         if (s.profile >= 0)
             close(s.profile);
         if (s.root >= 0)

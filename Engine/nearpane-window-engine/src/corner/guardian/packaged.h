@@ -239,6 +239,12 @@ static NSDictionary *withdrawableJournal(Session *s) {
         last[@"after"] || last[@"undoIntent"] || last[@"guardianPending"]) return nil;
     return l;
 }
+// The group and member were persisted on this very primitive. Old or superseded
+// intents cannot acquire window ownership from a saved geometry record.
+static NSDictionary *pendingFrameJournal(Session *s) {
+    NSDictionary *wal = withdrawableJournal(s), *last = [wal[@"pending"][@"entries"] lastObject];
+    return uuidField(last[@"group"], s->pre.lease.group) && uuidField(last[@"member"], s->pre.lease.member) ? wal : nil;
+}
 static BOOL withdrawalMessage(Session *s, NSDictionary *m) {
     return [m[@"phase"] isEqual:@"withdrawUnsubmitted"] && uuidField(m[@"intent"], s->pre.lease.intent) &&
            number(m[@"epoch"]) && [m[@"epoch"] isEqual:@(s->pre.lease.epoch)];
@@ -297,12 +303,13 @@ static BOOL productPrepare(Session *s, NSDictionary *m, NSString *folder) {
 }
 static BOOL productParkReceipt(Session *s, NSDictionary *m, BOOL confirm) {
     s->sealed = s->pre;
-    s->sealed.phase = NCG_CONFIRMED;
+    BOOL geometryOnly = !confirm && [m[@"phase"] isEqual:@"observeRecoveryFrame"];
+    s->sealed.phase = geometryOnly ? NCG_RECOVERY_FRAME : NCG_CONFIRMED;
     NPReceipt *r = &s->sealed.result;
     NPRect independently;
     r->size = sizeof(*r);
     r->version = 1;
-    if (![m[@"phase"] isEqual:(confirm ? @"confirm" : @"observePark")] || !decodeUUID(m[@"intent"], r->intent) ||
+    if ((!geometryOnly && ![m[@"phase"] isEqual:(confirm ? @"confirm" : @"observePark")]) || !decodeUUID(m[@"intent"], r->intent) ||
         !productFrame(m[@"frame"], &r->frame) || (confirm && (!productFrame(m[@"verified"], &independently) ||
         !closeFrame(convert(r->frame), convert(independently)))))
         return NO;
@@ -314,7 +321,14 @@ static BOOL productParkReceipt(Session *s, NSDictionary *m, BOOL confirm) {
     r->flags = [m[@"flags"] unsignedIntValue];
     r->status = [m[@"status"] unsignedIntValue];
     r->owned = [m[@"owned"] unsignedIntValue];
+    // Reject values that would truncate into a valid receipt.
+    if (![m[@"epoch"] isEqual:@(r->epoch)] || ![m[@"native"] isEqual:@(r->native_id)] ||
+        ![m[@"flags"] isEqual:@(r->flags)] || ![m[@"status"] isEqual:@(r->status)] ||
+        ![m[@"owned"] isEqual:@(r->owned)]) return NO;
     np_corner_inputs(s->sealed.hid);
+    if (geometryOnly)
+        return ncg_recovery_frame(&s->pre, r) && pendingFrameJournal(s) &&
+               !memcmp(s->pre.hid, s->sealed.hid, sizeof(s->pre.hid));
     return r->owned > 0 && ncg_correlates(&s->pre, &s->sealed) &&
            (confirm ? productJournal(s, YES, NO) : withdrawableJournal(s) != nil);
 }

@@ -2,6 +2,8 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+Corner 已能把“已测到窗口到达角落，但画面或输入验证失败”单独交给 Guardian。后者独立双读、持久化实际位置，Host 继续将切换标记为 UNKNOWN。只有原 Host 退出，而且窗口、焦点、输入、桌面及两份持久化记录仍一致时，Guardian 才可归位。该分支已通过定向源码回归，真实角落归位待验。[恢复责任与测试结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json)
+
 对实体机的进一步读回确认，系统壁纸别名解析到密封系统卷中的单帧图片。引擎现按 AppKit 的默认等比适应模式核算实际覆盖范围。该机屏幕中心的 8 点方块在图片内，右下角的 8 点方块在图片外。独立签名观察器仅采样 Apple 壁纸窗口，两次各有 56/64 个不透明像素。此次未移动窗口或保存像素，角落的合成画面仍为 **BLOCKED**。[源文件、裁切和两次实机采样](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json)
 
 Corner 在移动窗口之前会用实际渲染器的规则检查壁纸缩放、图像尺寸、朝向和帧数。目标机当前内置屏的系统壁纸 URL 位于原有两处只读资源目录以外，该来源返回不支持。本次没有打开该文件或采集用户画面。[目标机来源和隔离回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/corner-picture-source.json)

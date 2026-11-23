@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import CNearpaneWindowEngine
 
 /// Shared binding for the live Guardian's prepared and withdrawn records. A disk record never grants a writer.
 struct CornerGuardianOriginalProof: Decodable, Equatable {
@@ -50,9 +51,31 @@ struct CornerWithdrawalReceipt: Decodable {
     static func read(in directory: Int32) -> Self? { CornerGuardianRecord.final.read(Self.self, in: directory) }
 }
 
+struct CornerMeasuredFrameReceipt: Decodable {
+    let schema: Int, status: String, guardianPID: Int32
+    let original: CornerGuardianOriginalProof, postimage: [Double]
+    let engineStatus, engineFlags: UInt32
+
+    static func isMeasurement(_ raw: NativeStageEngineReceipt) -> Bool {
+        let flags = UInt32(NP_AX_VALID | NP_CG_VALID | NP_MEMBERSHIP_VALID | NP_OWNED | NP_CORNER_RECOVERY_FRAME)
+        return raw.status == NP_UNKNOWN && (1...32).contains(raw.owned) && raw.flags == flags
+    }
+
+    func matches(_ raw: NativeStageEngineReceipt, prepared: CornerPreparedReceipt) -> Bool {
+        let frame = raw.frame
+        return Self.isMeasurement(raw) && schema == 1 && status == "RECOVERY_FRAME_ONLY" && guardianPID == prepared.guardianPID &&
+            original == prepared.original && raw.intent == original.intent && raw.epoch == original.epoch &&
+            raw.nativeID == original.native && raw.status == engineStatus && raw.flags == engineFlags &&
+            postimage == [frame.x, frame.y, frame.width, frame.height] && postimage.allSatisfy(\.isFinite) &&
+            frame.width > 0 && frame.height > 0
+    }
+
+    static func read(in directory: Int32) -> Self? { CornerGuardianRecord.observed.read(Self.self, in: directory) }
+}
+
 /// Read through the exact directory descriptor opened before launching this Guardian.
 private enum CornerGuardianRecord: String {
-    case prepared = "guardian-prepared.json", final = "guardian-receipt.json"
+    case prepared = "guardian-prepared.json", observed = "guardian-observed.json", final = "guardian-receipt.json"
 
     func read<T: Decodable>(_ type: T.Type, in directory: Int32) -> T? {
         var job = stat()

@@ -39,6 +39,7 @@ pub const OWNED: u32 = 128;
 pub const PROBE_RESTORED: u32 = 256;
 pub const PROBE_CLOSED: u32 = 512;
 pub const PROBE_SPACE_DESTROYED: u32 = 1024;
+pub const CORNER_RECOVERY_FRAME: u32 = 2048;
 pub const PROBE_CLEAN_FLAGS: u32 = PROBE_RESTORED | PROBE_CLOSED | PROBE_SPACE_DESTROYED;
 pub const TRIAL_CLASSIC: u32 = 1 << 16;
 #[repr(C)]
