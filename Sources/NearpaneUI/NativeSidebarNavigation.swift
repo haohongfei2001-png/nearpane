@@ -195,7 +195,8 @@ struct CrossSpaceFocusContinuity {
         Task {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
-                guard dispatchAvailable, job.epoch == ownershipEpoch, job.stage || !stageOwnsWindowDispatch() else { continue }
+                guard dispatchAvailable, job.epoch == ownershipEpoch, !job.selection || isCurrent(job.token),
+                      job.stage || !stageOwnsWindowDispatch() else { continue }
                 if let confirmDispatch {
                     guard await confirmDispatch(), dispatchAvailable, job.epoch == ownershipEpoch,
                           !job.selection || isCurrent(job.token), job.stage || !stageOwnsWindowDispatch() else { continue }

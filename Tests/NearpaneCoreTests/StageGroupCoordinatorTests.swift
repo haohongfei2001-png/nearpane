@@ -143,6 +143,70 @@ import Testing
         #expect(!engine.requiresRecovery)
     }
 
+    @Test func supersededLastReadCannotPublishLayoutAndNextSelectionCanProceed() async throws {
+        let (p, _, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0], member = a.members[0]
+        try await engine.activate(a.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        runtime.windows[member.windowHint]?.frame.x += 48
+        runtime.writes.removeAll()
+        let original = StageGroupStore(profile: p).groups(in: runtime.scope)
+        var reads = 0
+        runtime.beforeRead = { reads += 1 }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(a.id, member: nil, in: runtime.scope, consent: true, session: runtime,
+                                      current: { reads < 5 })
+        }
+        #expect(reads == 5 && runtime.writes.isEmpty && !engine.requiresRecovery)
+        #expect(StageGroupStore(profile: p).groups(in: runtime.scope) == original)
+        runtime.beforeRead = nil
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(StageGroupStore(profile: p).activeGroup(in: runtime.scope) == groups[2].id)
+    }
+
+    @Test func supersededAfterFocusDoesNotHideOrRefocusUnasked() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        var current = true
+        runtime.afterWrite = { current = false }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime,
+                                      current: { current })
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && runtime.focus == groups[1].members[0].windowHint)
+        #expect(store.activeGroup(in: runtime.scope) == nil)
+        #expect(try StageGroupCoordinator(store: store, profile: p).requiresRecovery)
+    }
+
+    @Test func focusCannotTakeOwnershipOfUserGeometry() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let target = groups[1].members[0].windowHint
+        runtime.afterWrite = { [unowned runtime] in
+            if runtime.writes.last?.0 == .focus { runtime.windows[target]?.frame.x += 30 }
+        }
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && store.activeGroup(in: runtime.scope) == nil && engine.requiresRecovery)
+    }
+
+    @Test func movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        var postHideReads = 0
+        runtime.beforeRead = { [unowned runtime] in
+            if let (action, window) = runtime.writes.last, action == .hide {
+                postHideReads += 1
+                if postHideReads == 2 { runtime.windows[window]?.frame.y += 12 }
+            }
+        }
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.hide] && store.activeGroup(in: runtime.scope) == nil && engine.requiresRecovery)
+    }
+
     @Test func focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch() async throws {
         let (p, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: p) }

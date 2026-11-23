@@ -332,7 +332,8 @@ struct UnsubmittedCornerHide: Error {
         let token = revision; busy = true; session.intentIsCurrent = current
         defer { busy = false; session.intentIsCurrent = { false } }
         do {
-            try await coordinator.activate(group,member:member,in:scope,consent:consent,session:session)
+            try await coordinator.activate(group, member: member, in: scope, consent: consent, session: session,
+                                          current: { token == self.revision && current() })
             guard token == revision, current() else { throw StageSwitchError.interrupted }
         } catch {
             if session.qualifiedHiddenState == nil || coordinator.requiresRecovery { invalidate() }

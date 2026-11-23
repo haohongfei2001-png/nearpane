@@ -179,6 +179,19 @@ import Testing
         for _ in 0..<100 where effects.count < 2 { await Task.yield() }
         #expect(effects == ["switch", "latest"])
     }
+    @Test func interveningQueuedMoveCannotResurrectAnOlderStageSelection() async {
+        let router = NativeSidebarNavigation()
+        var resume: CheckedContinuation<Void, Never>?, effects = [String]()
+        router.submit(selection: false) { _ in await withCheckedContinuation { resume = $0 } }
+        while resume == nil { await Task.yield() }
+        router.submit(stage: true) { _ in effects.append("old") }
+        router.submit(selection: false) { _ in effects.append("move") }
+        router.submit(stage: true) { _ in effects.append("latest") }
+        resume?.resume()
+        for _ in 0..<100 where effects.last != "latest" { await Task.yield() }
+        #expect(effects == ["move", "latest"])
+    }
+
     @Test func subsequentSelectionCannotDiscardQueuedMove() async {
         let router = NativeSidebarNavigation()
         var resume: CheckedContinuation<Void, Never>?, effects = [String]()

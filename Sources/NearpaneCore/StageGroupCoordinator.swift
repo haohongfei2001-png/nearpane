@@ -253,7 +253,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
     /// The caller obtains consent from an explicit first-use confirmation before entering. On
     /// first enrollment the actual focused window must belong to a participating group.
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope,
-                         consent: Bool, session: StageWindowSession) async throws {
+                         consent: Bool, session: StageWindowSession,
+                         current: @MainActor () -> Bool = { true }) async throws {
         guard !busy else { throw StageSwitchError.busy }
         guard !requiresRecovery, ledger.owner == nil || ledger.owner == session.engineOwner,
               ledger.owned.allSatisfy({ $0.owner == session.engineOwner }) else { throw StageSwitchError.recoveryRequired }
@@ -264,7 +265,12 @@ public enum StageSwitchError: LocalizedError, Equatable {
         busy = true
         defer { busy = false }
         let token = epoch, directory = store.directory
+        func requireCurrentIntent() throws {
+            guard epoch == token, current(), !Task.isCancelled else { throw StageSwitchError.interrupted }
+        }
+        try requireCurrentIntent()
         var first = try await session.read(scope)
+        try requireCurrentIntent()
         let groups = store.participatingGroups(in: scope) { key in
             guard let state = first.windows[key], session.mayManage(state) else { return nil }
             return state.lifetime
@@ -303,7 +309,9 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
             }
             try await session.prepareBackend(first)
+            try requireCurrentIntent()
             let postLaunch = try await session.read(scope)
+            try requireCurrentIntent()
             guard epoch == token, session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
                   postLaunch.scope == scope, postLaunch.generation == first.generation, postLaunch.sequence > first.sequence,
                   postLaunch.nativeID == first.nativeID, postLaunch.workArea == first.workArea,
@@ -335,7 +343,9 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
         func perform(_ action: StageWindowAction, id: NativeSpaceWindow,
                      check: (StageWindowState, StageWindowSample) -> Bool) async throws {
+            try requireCurrentIntent()
             let pre = try await read()
+            try requireCurrentIntent()
             try requireFocus(pre, last.focus)
             guard pre.windows == last.windows, let before = pre.windows[id] else { throw StageSwitchError.interrupted }
             last = pre
@@ -351,13 +361,17 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 try recordWithdrawal(proof, command: command, transaction: intent, target: group, owner: session.engineOwner)
                 throw StageSwitchError.interrupted
             }
+            var firstAfter: StageWindowState?
             for _ in 0..<2 {
                 let post = try await read()
                 try requireFocus(post, action == .focus ? id : pre.focus)
                 guard let value = post.windows[id], check(value, post),
+                      firstAfter == nil || firstAfter == value,
+                      action != .focus || value == before,
                       pre.windows.keys.filter({ $0 != id }).allSatisfy({ post.windows[$0] == pre.windows[$0] }) else {
                     throw StageSwitchError.incomplete
                 }
+                firstAfter = value
                 last = post
             }
             let confirmed = last.windows[id]!
@@ -416,18 +430,21 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     }
             }
             for _ in 0..<3 {
-                last = try await read()
-                try requireFocus(last, preferred.windowHint)
-                guard complete(last) else { throw StageSwitchError.incomplete }
+                try requireCurrentIntent()
+                let next = try await read()
+                try requireCurrentIntent()
+                try requireFocus(next, preferred.windowHint)
+                guard next.windows == last.windows, complete(next) else { throw StageSwitchError.incomplete }
+                last = next
             }
             try update { $0.pending?.verifiedDirectoryCommit = true }
             try store.commitActivity(group, preferred: preferred.id, in: scope, expected: directory, verifiedLayouts: verifiedLayouts)
             try update { $0.pending = nil }
         } catch {
             if ledger.pending?.entries.isEmpty == true { try update { $0.pending = nil } }
-            else if epoch == token, ledger.pending?.verifiedDirectoryCommit == false {
+            else if epoch == token, current(), !Task.isCancelled, ledger.pending?.verifiedDirectoryCommit == false {
                 // A revoked generation or a may-have-issued entry cannot be rolled back by inference.
-                _ = try? await compensate(session, token: token)
+                _ = try? await compensate(session, token: token, current: current)
             }
             throw error
         }
@@ -441,7 +458,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         try await compensate(session, token: epoch)
     }
 
-    private func compensate(_ session: StageWindowSession, token: UUID) async throws {
+    private func compensate(_ session: StageWindowSession, token: UUID, current: @MainActor () -> Bool = { true }) async throws {
         guard let t = ledger.pending else { return }
         guard t.owner == session.engineOwner, ledger.owner == session.engineOwner, (ledger.releases ?? []).isEmpty,
               let hidden = session.qualifiedHiddenState, t.entries.allSatisfy({ $0.after != nil && $0.guardianPending != true })
@@ -453,7 +470,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var expectedFocus = t.entries.last(where: { $0.action == .focus })?.before.window ?? t.originalFocus
         func verified(_ expected: [NativeSpaceWindow: StageWindowState]) async throws -> StageWindowSample {
             let s = try await session.read(t.scope)
-            guard token == epoch, s.generation == t.generation, s.scope == t.scope, s.nativeID == t.nativeID, session.engineOwner == t.owner,
+            guard token == epoch, current(), !Task.isCancelled, s.generation == t.generation, s.scope == t.scope, s.nativeID == t.nativeID, session.engineOwner == t.owner,
                   session.qualifiedHiddenState == hidden, previousSequence.map({ s.sequence > $0 }) != false,
                   s.windows == expected, s.focus == expectedFocus else { throw StageSwitchError.recoveryRequired }
             previousSequence = s.sequence
