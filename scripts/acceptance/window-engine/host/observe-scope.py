@@ -34,6 +34,8 @@ def identity(app):
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     command("/usr/bin/codesign", "--verify", "--strict", "--deep", app)
     fields = dict(re.findall(r"^(CDHash|Identifier|TeamIdentifier)=(.+)$", command("/usr/bin/codesign", "-dvvv", app), re.M))
+    if "NearpaneReadOnlyGuardianProtocol" in info:
+        fields["readOnlyGuardianProtocol"] = info["NearpaneReadOnlyGuardianProtocol"]
     return dict(fields, version=info["CFBundleShortVersionString"], build=info["CFBundleVersion"],
                 source=info.get("NearpaneStageEngineSourceRevision") or info.get("NearpaneSourceRevision"),
                 sourceState=info.get("NearpaneStageEngineSourceState"), engineABI=info.get("NearpaneStageEngineABI"),
@@ -57,7 +59,7 @@ def public_scope(raw):
 
 def public_observation(observation):
     # One token table for the whole Host response. Both samplers use the same physical identities.
-    result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "canaryMissionControl", "guardianFixture", "guardianIndependent",
+    result = public_scope({key: observation[key] for key in ("spaceScope", "postCanarySpaceScope", "canaryMissionControl", "guardianFixture", "guardianIndependent", "survivalContinuity",
                                                             "installedSpacesFixtureCycle","installedSpacesCanary") if key in observation})
     # This nonce is issued by the runner for one invocation. Only restore the
     # verified field itself; a display or Space UUID elsewhere must stay redacted.
@@ -73,6 +75,15 @@ def public_observation(observation):
 
 
 CHECKS = {"accessibility", "listenEvent", "postEvent", "screenCapture"}
+
+
+def internal_survival_image(app, image):
+    parent = app.parent
+    return (image.get("Identifier") == "com.holdsnow.nearpane.host" and image.get("TeamIdentifier") == "ZB9D4T66QB"
+            and image.get("readOnlyGuardianProtocol") == 1 and image.get("sourceState") == "clean"
+            and image.get("engineABI") == 1 and app.name == "Nearpane.app" and app.resolve(strict=True) == app
+            and parent.parent == Path("/private/tmp") and parent.name.startswith("nearpane-stage-engine-dev.")
+            and parent.stat().st_uid == os.getuid() and stat.S_IMODE(parent.stat().st_mode) == 0o700)
 
 
 @contextmanager
@@ -244,7 +255,7 @@ def guardian_survival_result(row, host, nonce, exited):
             and type(termination.get("fflags")) is int
             and termination["fflags"] & EXIT_STATUS_FLAGS == EXIT_STATUS_FLAGS
             and all(evidence.get(k) and row.get(k) == evidence[k] for k in ("window", "fixtureHash", "nativeID", "display", "space"))
-            and row.get("schema") == 1 and row.get("scope") == "readOnlyOriginalObjectAcrossHostExit"
+            and row.get("schema") in (1, 2) and row.get("scope") == "readOnlyOriginalObjectAcrossHostExit"
             and row.get("mayPark") is False and all(type(row.get(k)) is int and row[k] == 0 for k in ("windowWrites", "spaceWrites"))):
         return "UNKNOWN"
     # A signed, correlated negative measurement is different from a lost or contradictory receipt.
@@ -275,7 +286,15 @@ def guardian_survival_result(row, host, nonce, exited):
     if (row.get("status") == "UNKNOWN" and row.get("geometryReturned") is False and not returned
             and row.get("postExitAXTrusted") is True and row.get("exactOriginalRetained") is True and timing and frames and sampled):
         return "FAIL"
-    valid = row.get("status") == "PASS" and all(row.get(k) is True for k in flags) and sampled and timing and frames and returned
+    samples = row.get("postReads")
+    complete = (row["schema"] == 2 and isinstance(samples, list) and len(samples) == 2 and all(
+        isinstance(s, dict) and type(s.get("uptimeNS")) is int and s["uptimeNS"] == row.get(key)
+        and all(type(s.get(k)) is int and s[k] == 1 for k in
+                ("signature", "generation", "cgOwner", "onScreen", "axTrusted", "membershipAttempted", "sameRetained"))
+        and type(s.get("membershipAndAXCode")) is int and s["membershipAndAXCode"] == 0
+        and s.get("ax") == row["originalAX"] and s.get("cg") == row["originalCG"]
+        for s, key in zip(samples, ("firstPostReadNS", "secondPostReadNS"))))
+    valid = row.get("status") == "PASS" and all(row.get(k) is True for k in flags) and sampled and timing and frames and returned and complete
     return "PASS" if valid else "UNKNOWN"
 
 
@@ -307,7 +326,8 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
     try:
         if ((expected_image is not None and image != expected_image) or (spaces_cycle and (app != DAILY or not enroll))
                 or (own_canary and (app != DAILY or expected_image is None or registration or enroll or spaces_cycle))
-                or (guardian_survival and (app != DAILY or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
+                or (guardian_survival and ((app != DAILY and not internal_survival_image(app, image))
+                    or expected_image is None or not enroll or spaces_cycle or own_canary or registration))):
             result["reason"] = "pinnedImageOrRegisteredSessionUnavailable"
             return result
         if image["engineABI"] != 1 or image["sourceState"] != "clean":
@@ -353,9 +373,7 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                     try:
                         arm_exit_status(queue, launch["pid"])
                     except OSError as error:
-                        result.update(reason="hostNormalExitObserverUnavailable", kernelError=error.errno,
-                                      postExitGuardian={"status": "BLOCKED", "childStarted": False, "readerExited": True})
-                        return result
+                        result["kernelObserverError"] = error.errno
                 publish(directory, "launched")
                 pre = None
                 if enroll:
@@ -364,6 +382,12 @@ def observe(app, challenge, directory, output, registration=None, enroll=None, e
                     validate(pre, challenge, image, launch, app, result["osBuild"], result["os"], result["sip"])
                     result["preflight"] = dict(subject=pre["subject"], permissions=pre["permissions"], system=pre["system"],
                                                rawSHA256=digest, **public_observation(pre))
+                    if "guardianPrincipal" in pre:
+                        result["preflight"]["guardianPrincipal"] = pre["guardianPrincipal"]
+                    if "kernelObserverError" in result:
+                        result["reason"] = "hostNormalExitObserverUnavailable"
+                        result["postExitGuardian"] = {"status": "BLOCKED", "childStarted": False, "readerExited": True}
+                        return result
                 with (enroll(pre) if enroll else nullcontext()) as registration_data:
                     if enroll:
                         if not registration_data:

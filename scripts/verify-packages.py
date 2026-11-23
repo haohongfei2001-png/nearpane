@@ -70,7 +70,12 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox, *, exec
     guardian = contents / "Helpers/NearpaneCornerGuardian"
     if guardian.resolve() != guardian or digest(guardian) != plist.get("NearpaneCornerGuardianSHA256"):
         raise ValueError("Unexpected Corner recovery helper")
-    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", '-R=identifier "com.holdsnow.nearpane.alpha.corner-guardian"',
+    guardian_id = "com.holdsnow.nearpane.alpha.corner-guardian"
+    if "NearpaneReadOnlyGuardianProtocol" in plist:
+        if plist["CFBundleIdentifier"] != "com.holdsnow.nearpane.host" or plist["NearpaneReadOnlyGuardianProtocol"] != 1:
+            raise ValueError("Read-only development Guardian in an unexpected package")
+        guardian_id = "com.holdsnow.nearpane.host.corner-guardian"
+    subprocess.run(["/usr/bin/codesign", "--verify", "--strict", f'-R=identifier "{guardian_id}"',
                     str(guardian)], check=True)
     if b"com.holdsnow.nearpane.engine-guardian.fixture" in guardian.read_bytes():
         raise ValueError("Packaged recovery helper includes a fixture identity")

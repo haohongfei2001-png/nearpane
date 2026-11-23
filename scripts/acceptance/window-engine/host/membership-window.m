@@ -24,7 +24,12 @@ static BOOL stopped(int dir) {
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         BOOL cycle = argc == 4 && !strcmp(argv[3], "--enrolled-spaces-cycle");
+#ifdef NP_SURVIVAL_WINDOW
+        BOOL survival = argc == 4 && !strcmp(argv[3], "--guardian-survival");
+        if ((!cycle && !survival && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
+#else
         if ((!cycle && argc != 3) || strcmp(argv[1], "--read-membership") || getuid() == 0 || getuid() != geteuid())
+#endif
             return 2;
         NSUUID *id = [[NSUUID alloc] initWithUUIDString:@(argv[2])];
         if (!id)
@@ -75,12 +80,18 @@ int main(int argc, const char *argv[]) {
                                                   NSWindowStyleMaskResizable
                                           backing:NSBackingStoreBuffered
                                             defer:YES];
-        // These two properties prevent covering the user's pixels or accepting their clicks. This fixture
-        // proves membership only.
+        // Survival uses an ordinary opaque window ordered behind the foreground app.
+        // The older membership experiment retains its transparent, mouse-inert fixture.
         w.releasedWhenClosed = NO;
         w.title = @"Nearpane membership fixture";
+#ifdef NP_SURVIVAL_WINDOW
+        w.alphaValue = survival ? 1 : 0;
+        w.ignoresMouseEvents = !survival;
+        if (survival) w.contentView = [NSTextField labelWithString:@"Nearpane Guardian verification"];
+#else
         w.alphaValue = 0;
         w.ignoresMouseEvents = YES;
+#endif
         w.hasShadow = NO;
         w.animationBehavior = NSWindowAnimationBehaviorNone;
         [w orderBack:nil];

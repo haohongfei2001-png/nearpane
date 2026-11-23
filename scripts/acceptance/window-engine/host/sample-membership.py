@@ -45,7 +45,7 @@ def read_when_ready(path, process, deadline):
     return None
 
 
-def eligible(row):
+def eligible(row, survival=False):
     return (
         row
         and row["regularApplication"]
@@ -55,8 +55,8 @@ def eligible(row):
         and row["window"] > 0
         and row["sameFront"]
         and not any(row[k] for k in ("active", "key", "main"))
-        and row["alpha"] == 0
-        and row["ignoresMouseEvents"]
+        and row["alpha"] == (1 if survival else 0)
+        and row["ignoresMouseEvents"] is (not survival)
     )
 
 
@@ -156,6 +156,7 @@ def prepare_fixture(work, report):
         "-Wextra",
         "-Werror",
         "-mmacosx-version-min=26.0",
+        *(["-DNP_SURVIVAL_WINDOW=1"] if report.get("requestedGuardianSurvival") else []),
         HERE / "membership-window.m",
         "-framework",
         "AppKit",
@@ -197,17 +198,33 @@ def registered_window(pre, challenge, work, fixture, exe, digest, report, reader
         report["fixtureAdmission"] = "HostScopeOrOwnAuthorizationUnavailable"
         yield None
         return
+    internal = report.get("internalGuardianSurvival") is True
+    principal = pre.get("guardianPrincipal", {})
+    if internal and (principal.get("accessibility") is not True or principal.get("responsiblePID") not in
+                     (principal.get("pid"), pre["subject"]["pid"])):
+        report["fixtureAdmission"] = "guardianPrincipalNotAdmitted"
+        yield None
+        return
+    survival = report.get("requestedGuardianSurvival") is True
+    if survival:
+        guard = pre.get("survivalContinuity", {})
+        if guard.get("inputQuiet") is not True or guard.get("currentFocus", {}).get("sameOriginalAX") is not True:
+            report["fixtureAdmission"] = "foregroundOrHIDChanged"
+            yield None
+            return
     first = None
     with (work / "launch.log").open("xb") as log:
         args = ["/usr/bin/open", "-g", "-W", "-a", fixture, "--args", "--read-membership", challenge]
         if report["requestedSpacesCycle"]:
             args.append("--enrolled-spaces-cycle")
+        elif survival:
+            args.append("--guardian-survival")
         report["fixtureLaunchRequested"] = True
         process = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT)
         try:
             first = read_when_ready(work / "owner-start.json", process, time.monotonic() + 5)
             report["ownerStart"] = first
-            if not eligible(first):
+            if not eligible(first, survival):
                 report["fixtureAdmission"] = "backgroundOrdinaryFixtureDidNotEnroll"
                 yield None
             else:
@@ -583,7 +600,12 @@ def run(a, report):
                 != "System Integrity Protection status: enabled."):
             report.update(status="BLOCKED", reason="targetMacUnavailable")
             return
-        admitted = legacy_matches(json.loads(a.preflight.read_bytes()), image)
+        if getattr(a, "internal_survival", False):
+            admitted = (scope_reader.internal_survival_image(app, image) and os.uname().machine == "arm64"
+                        and scope_reader.command("sw_vers", "-productVersion").strip() == "27.0"
+                        and a.expected_source == image["source"] and a.expected_cdhash == image["CDHash"])
+        else:
+            admitted = legacy_matches(json.loads(a.preflight.read_bytes()), image)
     if not admitted:
         report.update(status="BLOCKED", reason="installedImageOrPriorHostReceiptMismatch")
         return
@@ -672,7 +694,7 @@ def run(a, report):
     if not valid:
         report.update(status=member.get("status") if member.get("status") in {"FAIL","BLOCKED"} else "UNKNOWN",
                       reason="scopeOrMembershipIncomplete")
-    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd")):
+    elif not report.get("ownerClosed") or not eligible(report.get("ownerEnd"), getattr(a, "guardian_survival", False)):
         report.update(status="UNKNOWN", reason="owningWindowOrFocusChangedBeforeCleanup")
     else:
         report.update(status="PASS", reason="oneHostOwnerAndTwoDirectionalHostReads")
@@ -734,6 +756,7 @@ def main():
     p.add_argument("preflight", type=Path, nargs="?", help="existing Host receipt for legacy comparison mode")
     p.add_argument("out", type=Path)
     p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
+    p.add_argument("--internal-survival", action="store_true", help="use the sealed read-only development pair while the daily Host remains running")
     p.add_argument("--installed", action="store_true", help="bind the standard installed Alpha using the supplied release fingerprints")
     p.add_argument("--expected-source")
     p.add_argument("--expected-cdhash")
@@ -744,12 +767,14 @@ def main():
     mode.add_argument("--own-spaces-canary", action="store_true", help="cycle only the installed Host's own panel, without preparing a fixture")
     mode.add_argument("--enrolled-spaces-cycle", action="store_true", help="also request the separately scoped installed fixture operation")
     a = p.parse_args()
-    if a.installed == bool(a.preflight) or (a.installed and not (a.expected_source and a.expected_cdhash)):
-        p.error("provide either a prior Host receipt or --installed with expected source and CDHash")
+    if (sum((a.installed, a.internal_survival, bool(a.preflight))) != 1 or
+            ((a.installed or a.internal_survival) and not (a.expected_source and a.expected_cdhash)) or
+            (a.internal_survival and not a.guardian_survival)):
+        p.error("choose one pinned installed/internal Host or a prior read-only receipt")
     if (a.enrolled_spaces_cycle or a.own_spaces_canary or a.preflight_only) and not a.installed:
         p.error("formal Host qualification requires --installed")
-    if a.guardian_survival and (not a.installed or a.own_spaces_canary or a.enrolled_spaces_cycle or a.preflight_only):
-        p.error("Guardian continuation requires an installed read-only fixture session")
+    if a.guardian_survival and (not (a.installed or a.internal_survival) or a.own_spaces_canary or a.enrolled_spaces_cycle or a.preflight_only):
+        p.error("Guardian continuation requires a pinned read-only fixture session")
     with a.out.open("x"):
         pass
     report = dict(
@@ -765,6 +790,7 @@ def main():
         requestedSpacesCycle=a.enrolled_spaces_cycle,
         requestedOwnCanary=a.own_spaces_canary,
         requestedGuardianSurvival=a.guardian_survival,
+        internalGuardianSurvival=a.internal_survival,
         permissionPrompts=0,
         thirdPartyMembershipRoundTrip="NOT_RUN",
         singleWindowHideRestore="NOT_RUN",

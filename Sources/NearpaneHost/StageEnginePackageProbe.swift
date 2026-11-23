@@ -134,19 +134,44 @@ enum StageEnginePackageProbe {
             }
             var fixture = initialFixture
             var preflight: [String: Any]?
+            var survivalContinuity: (() -> [String: Any])?
             if ownSpacesCanary {
                 guard channel != nil, !awaitRegistration, !enrolledSpacesCycle, fixture == nil else { return 2 }
                 preflight = try await observation(nil)
             }
             if awaitRegistration {
                 guard initialFixture == nil, let channel else { return 2 }
-                let first = try await observation(nil)
+                let wantsSurvival = try channel.exists(.guardianSurvival)
+                if wantsSurvival {
+                    let input = StageCanaryOverview.hid()
+                    let focus = StageCanaryOverview.beginFocusObservation(checkOverview: false)
+                    survivalContinuity = {
+                        let current = StageCanaryOverview.hid()
+                        return ["firstFocus": focus.first, "currentFocus": focus.finish(), "firstHID": input,
+                                "currentHID": current, "inputQuiet": input == current && StageCanaryOverview.inputAvailable()]
+                    }
+                }
+                var first = try await observation(nil)
+                #if DEBUG
+                if bundle.bundleIdentifier == "com.holdsnow.nearpane.host",
+                   bundle.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") as? Int == 1,
+                   wantsSurvival {
+                    do {
+                        let packet = try await CornerGuardianIndependentProbe.internalPrincipal(challenge)
+                        first["guardianPrincipal"] = try JSONSerialization.jsonObject(with: packet)
+                    } catch {
+                        first["guardianPrincipal"] = ["status": "UNKNOWN", "reason": String(describing: error)]
+                    }
+                }
+                #endif
+                first["survivalContinuity"] = survivalContinuity?()
                 preflight = first
                 try channel.finish(JSONSerialization.data(withJSONObject: first, options: [.sortedKeys]) + Data([10]), preflight: true)
                 try await channel.wait(for: .registration, seconds: 14)
                 fixture = try enrolledFixture(channel)
             }
             var report = try await observation(fixture)
+            report["survivalContinuity"] = survivalContinuity?()
             if ownSpacesCanary || enrolledSpacesCycle {
                 guard let channel else { return 2 }
                 let key = ownSpacesCanary ? "installedSpacesCanary" : "installedSpacesFixtureCycle"
@@ -185,7 +210,10 @@ enum StageEnginePackageProbe {
                 let guardian = CornerGuardianFixtureReport.sample(pid: fixture.pid, birth: fixture.birth, number: fixture.number,
                     executable: fixture.executable, cdhash: fixture.cdhash, scope: ordinary, nativeID: native)
                 report["guardianFixture"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(guardian))
-                let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil
+                let continuity = report["survivalContinuity"] as? [String: Any]
+                let originalFocus = continuity?["currentFocus"] as? [String: Any]
+                let survival = try channel?.exists(.guardianSurvival) == true && awaitRegistration && ordinary != nil &&
+                    continuity?["inputQuiet"] as? Bool == true && originalFocus?["sameOriginalAX"] as? Bool == true
                 let independent = await CornerGuardianIndependentProbe.sample(host: guardian, executable: fixture.executable,
                     observeParentExit: survival ? challenge : nil)
                 report["guardianIndependent"] = try JSONSerialization.jsonObject(with: JSONEncoder().encode(independent))

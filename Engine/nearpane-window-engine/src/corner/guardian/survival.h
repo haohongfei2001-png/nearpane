@@ -1,6 +1,13 @@
 // Read-only continuation of an authenticated fixture inspection. No WAL, restore callback or setter.
 #include "exit-watch.h"
+#import "retained-observation.h"
 static NSArray *survivalFrame(NPGuardianRect f) { return @[@(f.x), @(f.y), @(f.width), @(f.height)]; }
+static NSDictionary *survivalRead(const NPGuardianFixtureRead *r) {
+    return @{@"uptimeNS":@(r->uptime_ns), @"signature":@(r->signature), @"generation":@(r->kernel_generation),
+             @"cgOwner":@(r->cg_owner), @"onScreen":@(r->cg_onscreen), @"axTrusted":@(r->ax_trusted),
+             @"membershipAttempted":@(r->native_sample_attempted), @"membershipAndAXCode":@(r->native_sample_code),
+             @"sameRetained":@(r->same_retained), @"ax":survivalFrame(r->ax), @"cg":survivalFrame(r->cg)};
+}
 static BOOL survivalProof(const NPGuardianFixtureObservation *r) {
     return r->signatures_closed && r->same_geometry && r->held_in_caller && r->released &&
            r->first.uptime_ns < r->second.uptime_ns && r->first.ax_trusted && r->second.ax_trusted &&
@@ -37,19 +44,21 @@ static int observeAfterParentExit(NSDictionary *m, const NPGuardianFixtureObserv
         BOOL access = AXIsProcessTrusted(), exact = NO;
         int sampled = -1;
         if (exited && access && np_corner_same_window(&member, held)) {
-            sampled = np_guardian_observe_fixture(member.pid, member.birth, member.window,
+            sampled = ncg_observe_retained(member.pid, member.birth, member.window,
                 (__bridge CFStringRef)m[@"executable"], (__bridge CFStringRef)m[@"fixtureHash"], member.native,
-                (__bridge CFStringRef)m[@"display"], (__bridge CFStringRef)m[@"space"], &post);
+                (__bridge CFStringRef)m[@"display"], (__bridge CFStringRef)m[@"space"], held, &post);
             exact = sampled == 0 && survivalProof(&post) && np_corner_same_window(&member, held);
         }
         np_corner_inputs(lastInput);
         BOOL stableInput = !memcmp(input, lastInput, sizeof(input)) && !np_corner_secure_input();
-        BOOL geometry = exact && [survivalFrame(pre->second.ax) isEqual:survivalFrame(post.second.ax)] &&
+        BOOL geometry = exact && [survivalFrame(pre->second.ax) isEqual:survivalFrame(post.first.ax)] &&
+                        [survivalFrame(pre->second.cg) isEqual:survivalFrame(post.first.cg)] &&
+                        [survivalFrame(pre->second.ax) isEqual:survivalFrame(post.second.ax)] &&
                         [survivalFrame(pre->second.cg) isEqual:survivalFrame(post.second.cg)];
         np_corner_release_window(held);
         held = NULL;
         NSDictionary *receipt = @{
-            @"schema": @1, @"challenge": m[@"challenge"], @"hostPID": @(parent), @"hostBirth": @(parentBirth),
+            @"schema": @2, @"challenge": m[@"challenge"], @"hostPID": @(parent), @"hostBirth": @(parentBirth),
             @"hostHash": m[@"hostHash"], @"childPID": m[@"childPID"], @"childBirth": m[@"childBirth"],
             @"childHash": m[@"childHash"], @"window": w, @"fixtureHash": m[@"fixtureHash"],
             @"display": m[@"display"], @"space": m[@"space"], @"nativeID": m[@"nativeID"],
@@ -59,6 +68,7 @@ static int observeAfterParentExit(NSDictionary *m, const NPGuardianFixtureObserv
             @"originalReleased": @YES, @"firstPostReadNS": @(post.first.uptime_ns), @"secondPostReadNS": @(post.second.uptime_ns),
             @"originalAX": survivalFrame(pre->second.ax), @"originalCG": survivalFrame(pre->second.cg),
             @"postAX": survivalFrame(post.second.ax), @"postCG": survivalFrame(post.second.cg),
+            @"postReads": @[survivalRead(&post.first), survivalRead(&post.second)],
             @"status": exited && exact && geometry && stableInput ? @"PASS" : @"UNKNOWN",
             @"scope": @"readOnlyOriginalObjectAcrossHostExit", @"windowWrites": @0, @"spaceWrites": @0, @"mayPark": @NO
         };

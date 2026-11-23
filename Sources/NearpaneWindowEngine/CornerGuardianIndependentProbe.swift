@@ -1,4 +1,5 @@
 import CNearpaneWindowEngine
+import CryptoKit
 import Darwin
 import Foundation
 import NearpaneCore
@@ -134,6 +135,72 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         return "UNKNOWN"
     }
 
+    @MainActor private static func inspectionImages(survival: Bool) -> (host: URL, helper: URL)? {
+        if CornerGuardianClient.signedHelper(), let host = Bundle.main.executableURL {
+            return (host.resolvingSymlinksInPath(), CornerGuardianClient.helper)
+        }
+        #if DEBUG
+        let bundle = Bundle.main, root = bundle.bundleURL.resolvingSymlinksInPath()
+        let directory = root.deletingLastPathComponent()
+        let host = root.appendingPathComponent("Contents/MacOS/NearpaneHost")
+        let helper = root.appendingPathComponent("Contents/Helpers/NearpaneCornerGuardian")
+        let id = "com.holdsnow.nearpane.host"
+        guard survival, bundle.bundleIdentifier == id, root.lastPathComponent == "Nearpane.app",
+              directory.deletingLastPathComponent().path == "/private/tmp",
+              directory.lastPathComponent.hasPrefix("nearpane-stage-engine-dev."),
+              bundle.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") as? Int == 1,
+              host.resolvingSymlinksInPath().path == host.path, helper.resolvingSymlinksInPath().path == helper.path,
+              CornerGuardianClient.verifiedCode(at: root, identifier: id),
+              CornerGuardianClient.verifiedCode(at: helper, identifier: id + ".corner-guardian"),
+              let pinned = bundle.object(forInfoDictionaryKey: "NearpaneCornerGuardianSHA256") as? String,
+              let data = try? Data(contentsOf: helper, options: .mappedIfSafe),
+              SHA256.hash(data: data).map({ String(format: "%02x", $0) }).joined() == pinned else { return nil }
+        return (host, helper)
+        #else
+        return nil
+        #endif
+    }
+
+    #if DEBUG
+    /// Measures the signed child's own nonprompt AX preflight. No fixture, lease or post-exit inference.
+    @MainActor package static func internalPrincipal(_ nonce: UUID) async throws -> Data {
+        guard Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.host", let images = inspectionImages(survival: true)
+        else { throw Failure.hostGenerationOrCanonicalPathChanged }
+        return try await Task.detached {
+            let host = try OrdinaryProcessImage.read(getpid()), hostHash = try digest(getpid())
+            guard host.executable.path == images.host.path else { throw Failure.hostGenerationOrCanonicalPathChanged }
+            let task = Process(), input = Pipe(), output = Pipe()
+            task.executableURL = images.helper
+            task.arguments = ["--inspect-survival-principal", nonce.uuidString]
+            task.environment = [:]
+            task.standardInput = input
+            task.standardOutput = output
+            task.standardError = FileHandle.nullDevice
+            let writer = input.fileHandleForWriting, reader = output.fileHandleForReading
+            defer { try? writer.close(); try? reader.close() }
+            guard fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1) == 0 else { throw Failure.boundedPipeFailure }
+            try task.run()
+            let pid = task.processIdentifier
+            let packet = try readLine(reader.fileDescriptor, until: DispatchTime.now().uptimeNanoseconds + 3_000_000_000)
+            let child = try OrdinaryProcessImage.read(pid)
+            guard let row = try JSONSerialization.jsonObject(with: packet) as? [String: Any],
+                  row["challenge"] as? String == nonce.uuidString, row["pid"] as? Int32 == pid,
+                  row["birth"] as? UInt64 == child.launch, CornerGuardianClient.childGeneration(pid) == child.launch,
+                  child.executable.path == images.helper.path, row["cdhash"] as? String == (try digest(pid)),
+                  row["hostPID"] as? Int32 == getpid(), row["hostBirth"] as? UInt64 == host.launch,
+                  row["hostHash"] as? String == hostHash, row["accessibility"] is Bool,
+                  row["identifier"] as? String == "com.holdsnow.nearpane.host.corner-guardian"
+            else { throw Failure.signedChildGenerationUnavailable }
+            try writer.write(contentsOf: Data("Q".utf8))
+            let deadline = DispatchTime.now().uptimeNanoseconds + 2_000_000_000
+            while task.isRunning && DispatchTime.now().uptimeNanoseconds < deadline { usleep(5_000) }
+            guard !task.isRunning, task.terminationReason == .exit, task.terminationStatus == 0
+            else { throw Failure.childExitUnconfirmed }
+            return packet
+        }.value
+    }
+    #endif
+
     @MainActor package static func sample(host: CornerGuardianFixtureReport, executable: URL, observeParentExit: UUID? = nil) async -> Self {
         let handoff = host.handoff.state
         guard host.hostPID == getpid(), let birth = host.hostBirth, let window = host.registered,
@@ -142,7 +209,7 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
             return .init(status: "BLOCKED", reason: "hostDidNotConfirmExactlyOneRegisteredFixtureWindow",
                          childExit: nil, evidence: nil, host: host)
         }
-        guard CornerGuardianClient.signedHelper() else {
+        guard let images = inspectionImages(survival: observeParentExit != nil) else {
             return .init(status: "BLOCKED", reason: "installedSignedGuardianOrCanonicalParentUnavailable",
                          childExit: nil, evidence: nil, host: host)
         }
@@ -150,7 +217,8 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
         return await Task.detached {
             do {
                 let (evidence, armed) = try exchange(window: window, executable: executable, fixtureHash: hash, hostBirth: birth,
-                                            scope: ordinary, native: native, registeredFrame: host.samples.last?.cg, observeParentExit: observeParentExit)
+                                            scope: ordinary, native: native, registeredFrame: host.samples.last?.cg,
+                                            observeParentExit: observeParentExit, images: images)
                 let reason: String
                 if evidence.effectiveAccessibility == "DENIED_TO_CALLING_PROCESS" {
                     reason = "guardianAccessibilityDenied"
@@ -175,11 +243,12 @@ package struct CornerGuardianIndependentProbe: Encodable, Sendable {
     }
 
     private static func exchange(window: NativeSpaceWindow, executable: URL, fixtureHash: String, hostBirth: UInt64,
-                                 scope: StageGroupScope?, native: UInt64?, registeredFrame: SurfaceRect?, observeParentExit: UUID?) throws -> (Evidence, Bool) {
-        let helper = CornerGuardianClient.helper, pid = getpid()
+                                 scope: StageGroupScope?, native: UInt64?, registeredFrame: SurfaceRect?, observeParentExit: UUID?,
+                                 images: (host: URL, helper: URL)) throws -> (Evidence, Bool) {
+        let helper = images.helper, pid = getpid()
         let image = try OrdinaryProcessImage.read(pid)
         let hostHash = try digest(pid)
-        guard image.executable.path == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+        guard image.executable.path == images.host.path,
               image.launch == hostBirth else { throw Failure.hostGenerationOrCanonicalPathChanged }
         let process = Process(), input = Pipe(), output = Pipe()
         process.executableURL = helper

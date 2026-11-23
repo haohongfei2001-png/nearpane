@@ -42,10 +42,14 @@ import Security
         guard Bundle.main.bundleURL.standardizedFileURL.path == "/Applications/Nearpane.app",
               Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha",
               helper.resolvingSymlinksInPath().path == helper.path else { return false }
+        return verifiedCode(at: helper, identifier: identifier)
+    }
+
+    nonisolated static func verifiedCode(at url: URL, identifier: String) -> Bool {
         let rule = "anchor apple generic and identifier \"\(identifier)\" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"ZB9D4T66QB\""
         var requirement: SecRequirement?, code: SecStaticCode?
         return SecRequirementCreateWithString(rule as CFString, [], &requirement) == errSecSuccess &&
-            SecStaticCodeCreateWithPath(helper as CFURL, [], &code) == errSecSuccess &&
+            SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess &&
             code.map { SecStaticCodeCheckValidity($0, SecCSFlags(rawValue: kSecCSStrictValidate), requirement) == errSecSuccess } == true
     }
 

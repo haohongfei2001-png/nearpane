@@ -102,15 +102,21 @@ class InstalledScopeTests(unittest.TestCase):
         raw = {"subject": a, "guardianIndependent": dict(postExitWatchArmed=True, mayPark=False, evidence=subject)}
         termination = dict(pid=8, status="PASS", fflags=reader.EXIT_STATUS_FLAGS, waitStatus=0)
         exited = dict(status="PASS", pid=8, birth=102, kernelTermination=termination)
-        row = dict(scope, schema=1, challenge=nonce, hostPID=8, hostBirth=102, hostHash=digest,
+        row = dict(scope, schema=2, challenge=nonce, hostPID=8, hostBirth=102, hostHash=digest,
                    childPID=12, childBirth=109, childHash=revision, mayPark=False, windowWrites=0, spaceWrites=0,
                    scope="readOnlyOriginalObjectAcrossHostExit", kernelExit=True, postExitAXTrusted=True,
                    exactOriginalRetained=True, geometryReturned=True, inputStable=True, originalReleased=True,
                    status="PASS", sampleCode=0, responsibleBefore=8, responsibleAfter=12,
                    firstPostReadNS=208, secondPostReadNS=332,
                    originalAX=frame, originalCG=frame, postAX=frame, postCG=frame)
+        read = dict(signature=1, generation=1, cgOwner=1, onScreen=1, axTrusted=1, membershipAttempted=1,
+                    membershipAndAXCode=0, sameRetained=1, ax=frame, cg=frame)
+        row["postReads"] = [dict(read, uptimeNS=n) for n in (208, 332)]
         verdict = lambda value: reader.guardian_survival_result(value, raw, nonce, exited)
         self.assertEqual(verdict(row), "PASS")
+        self.assertEqual(verdict(dict(row, schema=1)), "UNKNOWN")
+        for changed in (dict(sameRetained=0), dict(ax=[41,60,220,143]), dict(membershipAttempted=0), dict(uptimeNS=332)):
+            self.assertEqual(verdict(dict(row, postReads=[dict(row["postReads"][0], **changed), row["postReads"][1]])), "UNKNOWN")
         for key in ("kernelExit", "postExitAXTrusted", "exactOriginalRetained", "inputStable", "originalReleased", "geometryReturned"):
             self.assertEqual(verdict({**row, key: False}), "UNKNOWN")
         for delta in ({"childBirth": 12}, {"challenge": str(uuid.uuid4())}, {"sampleCode": 19}, {"firstPostReadNS": 155},

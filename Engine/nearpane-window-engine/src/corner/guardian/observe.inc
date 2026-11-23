@@ -1,5 +1,5 @@
 // The caller is the Host running the one-fixture read-only command; this is never a recovery grant.
-#import "../../../include/nearpane_guardian_observation.h"
+#import "retained-observation.h"
 #import "identity.h"
 #import <time.h>
 static BOOL ncg_registered_fixture(const NCMember *m, NSString *path, NSString *expectedHash) {
@@ -63,10 +63,15 @@ static void ncg_fixture_read(NPGuardianFixtureRead *s, NCMember *m, NSString *pa
     if (first)
         *held = (void *)CFBridgingRetain(actual);
     s->same_retained = *held && CFEqual(*held, (__bridge CFTypeRef)actual) && np_corner_same_window(m, *held);
+    NCFrame fromHeld = {0};
+    if (s->same_retained) {
+        s->same_retained = pointSize((AXUIElementRef)*held, &fromHeld) && same(fromHeld, sample.cg);
+        s->ax = ncg_measure_frame(fromHeld);
+    }
 }
-int32_t np_guardian_observe_fixture(int32_t pid, uint64_t start, uint32_t window, CFStringRef executable,
-                                    CFStringRef cdhash, uint64_t native, CFStringRef display, CFStringRef space,
-                                    NPGuardianFixtureObservation *out) {
+int32_t ncg_observe_retained(int32_t pid, uint64_t start, uint32_t window, CFStringRef executable,
+                             CFStringRef cdhash, uint64_t native, CFStringRef display, CFStringRef space,
+                             CFTypeRef original, NPGuardianFixtureObservation *out) {
     @autoreleasepool {
         if (out->size != sizeof(*out) || out->version != 1)
             return 1;
@@ -80,8 +85,8 @@ int32_t np_guardian_observe_fixture(int32_t pid, uint64_t start, uint32_t window
         BOOL hasScope = native > 0 && d && sp;
         [d getUUIDBytes:m.display];
         [sp getUUIDBytes:m.space];
-        void *held = NULL;
-        ncg_fixture_read(&out->first, &m, path, hash, hasScope, &held, YES);
+        void *held = original ? (void *)CFRetain(original) : NULL;
+        ncg_fixture_read(&out->first, &m, path, hash, hasScope, &held, original == NULL);
         if (out->first.signature) {
             usleep(25000);
             ncg_fixture_read(&out->second, &m, path, hash, hasScope, &held, NO);
@@ -106,4 +111,10 @@ int32_t np_guardian_observe_fixture(int32_t pid, uint64_t start, uint32_t window
             same((NCFrame){a.x, a.y, a.width, a.height}, (NCFrame){b.x, b.y, b.width, b.height});
         return 0;
     }
+}
+
+int32_t np_guardian_observe_fixture(int32_t pid, uint64_t start, uint32_t window, CFStringRef executable,
+                                    CFStringRef cdhash, uint64_t native, CFStringRef display, CFStringRef space,
+                                    NPGuardianFixtureObservation *out) {
+    return ncg_observe_retained(pid, start, window, executable, cdhash, native, display, space, NULL, out);
 }

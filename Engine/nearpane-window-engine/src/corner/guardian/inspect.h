@@ -54,15 +54,49 @@ static BOOL diagnosticEnvelope(NSDictionary *m, uint64_t now) {
            [m[@"nativeID"] isEqual:@([m[@"nativeID"] unsignedLongLongValue])];
 }
 #include "survival.h"
-static int inspectRegisteredFixture(BOOL watchExit) {
+static int inspectRegisteredFixture(BOOL watchExit, NSUUID *principal) {
     if (!diagnosticPipes())
         return 2;
     pid_t parent = getppid(), own = getpid(), actualParent = 0;
     uint64_t hostBirth = ncg_birth(parent, NULL), childBirth = ncg_birth(own, &actualParent);
-    NSString *hostHash = diagnosticHash(signedProduct(parent, hostExe, @"com.holdsnow.nearpane.alpha"));
-    NSString *childHash = diagnosticHash(signedProduct(own, guardianExe, @"com.holdsnow.nearpane.alpha.corner-guardian"));
+#ifdef NP_INTERNAL_SURVIVAL
+    // Fixed siblings in this process's own signed bundle. Neither path nor signer comes from IPC.
+    char image[PROC_PIDPATHINFO_MAXSIZE], physical[PATH_MAX];
+    if (!watchExit || proc_pidpath(own, image, sizeof(image)) <= 0 || !realpath(image, physical)) return 3;
+    NSString *childPath = @(physical), *parentID = @"com.holdsnow.nearpane.host";
+    NSString *bundle = childPath.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
+    NSString *directory = bundle.stringByDeletingLastPathComponent;
+    struct stat st;
+    if (![bundle.lastPathComponent isEqual:@"Nearpane.app"] ||
+        ![directory.stringByDeletingLastPathComponent isEqual:@"/private/tmp"] ||
+        ![directory.lastPathComponent hasPrefix:@"nearpane-stage-engine-dev."] ||
+        lstat(directory.fileSystemRepresentation, &st) || !S_ISDIR(st.st_mode) || st.st_uid != geteuid() ||
+        (st.st_mode & 0777) != 0700 ||
+        ![childPath isEqual:[bundle stringByAppendingPathComponent:@"Contents/Helpers/NearpaneCornerGuardian"]]) return 3;
+    NSString *parentPath = [bundle stringByAppendingPathComponent:@"Contents/MacOS/NearpaneHost"];
+#else
+    NSString *parentPath = hostExe, *childPath = guardianExe, *parentID = @"com.holdsnow.nearpane.alpha";
+#endif
+    NSString *childID = [parentID stringByAppendingString:@".corner-guardian"];
+    NSString *hostHash = diagnosticHash(signedProduct(parent, parentPath, parentID));
+    NSString *childHash = diagnosticHash(signedProduct(own, childPath, childID));
     if (!hostBirth || !childBirth || actualParent != parent || !hostHash || !childHash)
         return 3;
+#ifdef NP_INTERNAL_SURVIVAL
+    if (principal) {
+        NSDictionary *row = @{@"challenge":principal.UUIDString, @"pid":@(own), @"birth":@(childBirth),
+            @"cdhash":childHash, @"hostPID":@(parent), @"hostBirth":@(hostBirth), @"hostHash":hostHash,
+            @"identifier":childID, @"responsiblePID":@(diagnosticResponsible()), @"accessibility":@(AXIsProcessTrusted())};
+        NSData *data = [NSJSONSerialization dataWithJSONObject:row options:NSJSONWritingSortedKeys error:NULL];
+        if (!data.length || write(STDOUT_FILENO, data.bytes, data.length) != (ssize_t)data.length ||
+            write(STDOUT_FILENO, "\n", 1) != 1) return 4;
+        struct pollfd ack = {.fd=STDIN_FILENO, .events=POLLIN};
+        char byte = 0;
+        return poll(&ack, 1, 3000) == 1 && read(STDIN_FILENO, &byte, 1) == 1 && byte == 'Q' ? 0 : 4;
+    }
+#else
+    (void)principal;
+#endif
     NSDictionary *m = productMessage(), *w = m[@"window"];
     uint64_t started = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
     if (!diagnosticEnvelope(m, started) || ![m[@"hostPID"] isEqual:@(parent)] || ![m[@"hostBirth"] isEqual:@(hostBirth)] ||
@@ -87,8 +121,8 @@ static int inspectRegisteredFixture(BOOL watchExit) {
     uint64_t ended = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
     if (!diagnosticEnvelope(m, ended) || getppid() != parent || ncg_birth(parent, NULL) != hostBirth ||
         ncg_birth(own, &actualParent) != childBirth || actualParent != parent ||
-        ![hostHash isEqual:diagnosticHash(signedProduct(parent, hostExe, @"com.holdsnow.nearpane.alpha"))] ||
-        ![childHash isEqual:diagnosticHash(signedProduct(own, guardianExe, @"com.holdsnow.nearpane.alpha.corner-guardian"))])
+        ![hostHash isEqual:diagnosticHash(signedProduct(parent, parentPath, parentID))] ||
+        ![childHash isEqual:diagnosticHash(signedProduct(own, childPath, childID))])
         return 3;
     NSMutableDictionary *reply = [@{
         @"schema" : @1, @"challenge" : m[@"challenge"], @"hostPID" : @(parent), @"hostBirth" : @(hostBirth),

@@ -363,9 +363,17 @@ int main(int argc, const char **argv) {
         (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
 #ifndef NP_CORNER_FIXTURE
         if (argc == 2 && !strcmp(argv[1], "--inspect-registered-fixture"))
-            return inspectRegisteredFixture(NO);
+            return inspectRegisteredFixture(NO, nil);
         if (argc == 2 && !strcmp(argv[1], "--inspect-fixture-after-host-exit"))
-            return inspectRegisteredFixture(YES);
+            return inspectRegisteredFixture(YES, nil);
+#endif
+#ifdef NP_INTERNAL_SURVIVAL
+        // This development executable cannot own, park, or restore windows.
+        if (argc == 3 && !strcmp(argv[1], "--inspect-survival-principal")) {
+            NSUUID *nonce = [[NSUUID alloc] initWithUUIDString:@(argv[2])];
+            if (nonce) return inspectRegisteredFixture(YES, nonce);
+        }
+        return 2;
 #endif
         if (argc != 3)
             return 2;

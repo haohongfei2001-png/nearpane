@@ -125,17 +125,18 @@ import Security
     }
 
     /// Retain the original AX object across unrelated read-only samples; a recycled CG number is insufficient.
-    static func beginFocusObservation() -> (first: [String:Any], finish: () -> [String:Any]) {
+    static func beginFocusObservation(checkOverview: Bool = true) -> (first: [String:Any], finish: () -> [String:Any]) {
         var evidence: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
         do {
             guard AXIsProcessTrusted() else { throw Refusal("observerAccessibilityUnavailable") }
-            guard try root(signedDock()) == nil else { throw Refusal("overviewAlreadyPresented") }
+            if checkOverview, try root(signedDock()) != nil { throw Refusal("overviewAlreadyPresented") }
             let original = try focus(&evidence)
             return (evidence, {
                 var row: [String:Any] = ["uptime":ProcessInfo.processInfo.systemUptime]
                 do {
                     let current = try focus(&row)
-                    guard try root(signedDock()) == nil, current == original else { throw Refusal("originalWindowChanged") }
+                    if checkOverview, try root(signedDock()) != nil { throw Refusal("overviewAlreadyPresented") }
+                    guard current == original else { throw Refusal("originalWindowChanged") }
                     row["sameOriginalAX"] = true
                 } catch { row["reason"] = (error as? Refusal)?.reason ?? "systemIdentityUnavailable" }
                 return row
