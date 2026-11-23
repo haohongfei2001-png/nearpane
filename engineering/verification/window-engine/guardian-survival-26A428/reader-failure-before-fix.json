@@ -1,0 +1,13 @@
+{
+  "status": "FAIL",
+  "scope": "local reader and signed Guardian wire-format regression only",
+  "source": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+  "recordedUTC": "2026-11-23T05:05:35.443737+00:00",
+  "readerSHA256": "207df321de0951262e70045a2ee40c1caa9fa9c048bac7b288ca29c9c7668509",
+  "fileMode": "0600",
+  "completion": "atomicRename",
+  "newlinePresent": false,
+  "reader": "missing Host guardian-post-exit.json",
+  "postExitWindowReads": 0,
+  "windowWrites": 0
+}

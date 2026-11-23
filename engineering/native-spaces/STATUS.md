@@ -4,6 +4,16 @@
 
 **生产窗口调度为 NO-GO。** 5.22（90）源码 `d81329d` 使用 Display → StageGroup → Window。侧栏按物理屏和当前普通桌面读出工作组。Rust Corner 仍需在目标系统证明完整的单窗恢复与输入隔离。原生 Spaces 仅供产品只读观察，临时迁移保留在研究入口。四份裁决按产品定义、可见性边界、Rust 复用范围、实施顺序解释。[产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [可见性裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [Rust 复用](../research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md) · [晋级顺序](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
 
+### Guardian Survival 实机准入
+
+**BLOCKED，退出后的窗口读取为 NOT_RUN。** 11 月 23 日 12:55（北京时间），26A428 实体机连续两次读到原生全屏 type 4，原 AX 焦点和 14 项 HID 计数稳定。监督器在发出退出请求前停止。日常 Host `bec6cb2` 是唯一登记、运行的实例，PID 19081、出生代和配置指纹保持一致，四项权限自读通过，活动租约为零。夹具和 Guardian 均未启动，目标窗口与退出后 AX 样本为空。Guardian 是否需要独立 AX 授权仍为 **UNKNOWN**。持久恢复租约和首次单窗隐藏均未获准入。[本轮总收据与时间线](../verification/window-engine/guardian-survival-26A428/result.json) · [原始桌面双读](../verification/window-engine/guardian-survival-26A428/desktop-readback.json) · [日常 Host 权限](../verification/window-engine/guardian-survival-26A428/installed-host-permissions.json) · [清理核对](../verification/window-engine/guardian-survival-26A428/cleanup.json)
+
+候选 Host 与 Guardian 均含所需协议，CDHash 分别为 `819a44400baf353f9484442505c2a684b768b95d`、`8e2aba5a640ec94d2bef9d731ad6c4735a296225`，与日常版的指定签名要求逐项互验通过。Gatekeeper 返回 **Unnotarized Developer ID**，系统分发检查报告 **Notary Ticket Missing**。当前钥匙串中指定 Apple 服务的无提示元数据查询、项目环境和仓库可见配置未找到可用的 Nearpane 公证身份。准备工具现已将 Guardian 纳入 14 项完整清单并核验签名内的 SHA-256。相同 ZIP 与日常包的私有副本已完成未启动的交换和回退。Apple 上传次数为零。[候选、Guardian 与系统策略](../verification/window-engine/guardian-survival-26A428/images-and-gatekeeper.json) · [凭据检查范围](../verification/window-engine/guardian-survival-26A428/notary-credential-scope.json) · [私有包回退](../verification/window-engine/guardian-survival-26A428/private-package-rollback.json)
+
+监督器 `575c12c` 修复了已完整交付的 Guardian JSON 因缺少末尾换行而被报超时的问题。它在同一代 Host 的挑战应答前向内核登记退出状态，只有退出码为 0 才能通过正常退出检查。17 项读取及监督器测试、11 项私有包测试在本机通过。该调整保留了已验签候选的原始字节。[修复前的超时](../verification/window-engine/guardian-survival-26A428/reader-failure-before-fix.json) · [本机定向测试](../verification/window-engine/guardian-survival-26A428/local-regressions.json)
+
+### 工作组与工具进度
+
 | 对用户有影响的能力 | 本轮结果 |
 | --- | --- |
 | 本屏工作组和预览 | 正式侧栏可以依据当前显示器、普通桌面和新鲜的窗口见证建立组目录。缺少可写 Provider 时仍可读取已确认的成员。修复并发刷新在等待主线程期间耗尽 AX 读取预算、遗漏兄弟窗口的问题。 |
@@ -20,7 +30,7 @@
 
 完整串行 Swift 回归共 787 项，784 项通过、3 项按环境条件跳过。全量并发时，语音冷启动和布局过期读回各失败一次。两项共同定向运行及完整串行运行均通过，高并发可靠性仍为 **UNKNOWN**。45 项监督器测试通过。托管构建 26A434 的 21 项引擎检查通过，含 108 项 Rust 测试、119 项 Swift 测试以及生产 C ABI。[回归及原始失败](../verification/window-engine/same-desktop-provider-26A428/regression.json) · [引擎收据](../verification/window-engine/same-desktop-provider-26A428/hosted-engine.json) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514956) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514974)
 
-**下一项实机验收**是在具备新协议、获系统准入的标准路径 Host 和可交还焦点的普通桌面，运行一次 `guardian-survival`。先核实守护进程在 Host 正常退出后仍能读取原 AX 对象，再验写前租约、单目标输入隔离与原位恢复。此路径使用隔离测试资料。[同桌面验收合同](ACCEPTANCE.md)
+**下一项实机验收**需要同一签名候选按正常安全流程获准、成为标准路径的唯一 Host，且物理显示器已回到普通桌面。届时用 `guardian-survival` 执行一次退出后的原 AX 对象双读，并验证日常环境恢复。随后才能判断是否进入持久恢复租约阶段。[同桌面验收合同](ACCEPTANCE.md)
 
 ### 历史阶段记录
 
