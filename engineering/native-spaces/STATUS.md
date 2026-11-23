@@ -2,7 +2,7 @@
 
 ## 2026-11-23 · 产品能力与交付范围
 
-审计基线为 PR `e44d028`，应用源码 `d81329d`，版本 5.22（90）。A 表示可保留交付的已验证操作，适用的安装版本和环境随项注明。B 有独立产品价值，继续开发并补齐对应入口验收。C 缺少目标系统的安全证据，当前生产调度为 **NO-GO**。整包公开发行仍需单独验收。下列成本为相对工程量。
+审计从 PR `e44d028`、应用源码 `d81329d` 和 5.22（90）候选开始。本轮产品源码为 `0e66086`。A 表示可保留交付的已验证操作，适用的安装版本和环境随项注明。B 有独立产品价值，继续开发并补齐对应入口验收。C 缺少目标系统的安全证据，当前生产调度为 **NO-GO**。整包公开发行仍需单独验收。下列成本为相对工程量。
 
 | 层级与操作 | 产品入口、用户价值与证据范围 | 后续投入与风险 |
 | --- | --- | --- |
@@ -14,6 +14,14 @@
 | B · 原位翻译、单词本 | Services 回调和收件已验证，英中翻译包缺失，正式原位气泡与来源焦点仍待验；既有词条可独立使用。系统词典的固定词仅做过离屏取词。[服务验收](../verification/native-spaces/5.22-p4/installed-d81c458/README.md) · [词典实验](../verification/window-engine/product-integration-20261123/final-dictionary.json) | 低成本优先改善查阅；中成本补原位呈现。避免将旧译文或词典释义记成新的翻译结果。 |
 | B · 桌面图标、常驻工具、首次使用与更新 | 点击空白墙纸显示图标有托管桌面实测。时钟、备忘、待办、主题、全屏工具及偏好可配置。更新通道有状态页和忙碌延后逻辑，干净安装和正式更新待 P6。[桌面图标](../verification/stage-groups/5.22-90/desktop-items/RESULTS.md) · [随包操作说明](../../docs/ALPHA-HELP.md) | 设置低，物理多屏及正式分发高。先完善能直接操作的入口，保留正式发行门槛。 |
 | C · 整组退场、激活和恢复 | Swift 目录、事务及 Rust/C ABI 已接入，生产资格清单为空。旧 Corner 穿透，Guardian 退出后双读 NOT_RUN；持久租约、单窗隔离、A→B→C→A 及 10/50 次均未准入。原生 Spaces 迁移退出产品范围。[隔离失败](../verification/stage-groups/5.22-90/isolation/qualification/summary.json) · [最后一次实机收据](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) | 高。只接受下列单窗门槛的新证据，再决定后续投入。[有限验收合同](ACCEPTANCE.md#corner-的单窗口可行性边界) |
+
+### 本轮产品交付
+
+- **组合卡选窗**　点击组名可选取任意当前成员，包括被同应用另一扇窗口完全遮住的成员。提交操作时复核进程、窗号、窗口代际和所属组。当前候选的卡片空白区没有整组切换操作。源码 `4b27abd` 的 45 项定向测试通过，本轮新菜单在正式侧栏中的键盘落点待验。[选窗回归](../verification/product-value-5.22/group-tests.xml)
+- **查找和复用词条**　设置里的单词本支持搜索原文和译文。系统翻译模型不可用时，只有当前资料中原文、语言方向和答案均可确定的已存记录才可用于反馈。26A428 上，隔离请求实际经历了收件、缺少模型和命中已存译文，重开后没有新增词条。该请求没有唤起原位气泡。工具与宿主回归 21 项通过，受限进程先前的 9 项截图读取错误单独保留。[回读时间线](../verification/product-value-5.22/saved-word.log) · [测试与失败收据](../verification/product-value-5.22/result.json)
+- **开发包与内嵌模块**　干净源码 `0e66086` 的 arm64 开发包完成 Rust ABI 1 和 37 项资源校验。开发包采用工程调试身份，日常安装沿用原包。内嵌 Saytile 0.20（533）和 Riftlet 1.0.7（53）均有锁定来源。复核时，Saytile #49 后续五笔提交没有修改 `Sources/`，Riftlet #122 后续的适配器改动用于本地测试页面。三项原生 CI 通过。[构建与 CI](../verification/product-value-5.22/result.json) · [Saytile 差异](https://github.com/haohongfei2001-png/saytile/compare/7c0df4728b113c17297a0cded20472de4ffc3337...9ab5ae9bb0a02b122189cc46ba44ab824bbd42eb) · [Riftlet 差异](https://github.com/haohongfei2001-png/Riftlet/compare/b20cefbf94e78ed89643cc27fa95af91bd140960...a9a1c03c9bd0b0d834cc6f9a4f99492cbfa12db2)
+
+下一项产品验收使用两扇同应用重叠测试窗口，从正式侧栏组名选择被遮挡的成员并核对唯一输入标记。单词本另用隔离资料，从设置搜索到已存译文，再核对原位气泡及来源焦点。两项均可独立于 Corner 排期。
 
 ### Guardian Survival 实机准入
 

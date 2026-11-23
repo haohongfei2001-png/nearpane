@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="21" failures="0" skipped="0" time="1.917537083">
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="failingVoiceStoreCanRetryWithoutTakingDownConnectedTray()" time="0.025047291" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="standaloneVoiceTextAndDefaultsStayOutsideTheHostStore()" time="0.021728375" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="liveReaderChildCannotKeepIsolatedDomainWriterLocksAfterClose()" time="0.458023208" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="sharedHostKeepsDomainDataSeparateAndRestoresOnlyDurableState()" time="0.068099792" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia()" time="0.200083166" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="foldedAndExpandedPanelPreservesExistingDomainSessionAndQueue()" time="0.132759958" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="desktopReaderFailureDoesNotInterruptRealIsolatedVoiceAndTray()" time="0.069751333" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="repeatedHostAndDomainShutdownReleaseFixtureDescriptorsAndBothLocks()" time="0.261604833" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="realHiddenPanelCanMountBothDomainsAndReflowWithoutOrderingFront()" time="0.499479333" />
+    <testcase classname="NearpaneUITests.IntegratedHostTests" name="residentDisplayLossAndReturnRetainTheLiveStoreWatcherAndUnsentQueue()" time="0.156553166" />
+    <testcase classname="NearpaneUITests.TranslationHandoffTests" name="coldHostConsumesRecoveredRequestWithActualInstalledFrameworkAndNoPanel()" time="0.013964042" />
+    <testcase classname="NearpaneUITests.TranslationHandoffTests" name="wordCommitIsIdempotentVersionedAndReadsLegacy()" time="0.001676" />
+    <testcase classname="NearpaneUITests.TranslationHandoffTests" name="wordbookSearchReadsBothColumnsAfterRestartAndPreservesTheProfile()" time="0.001101792" />
+    <testcase classname="NearpaneUITests.TranslationHandoffTests" name="durableHandoffSurvivesRestartAndStaysInItsGeneration()" time="0.00471675" />
+    <testcase classname="NearpaneUITests.TranslationHandoffTests" name="aSavedAnswerRequiresExactTextDirectionAndAgreement()" time="0.001478125" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="hostAtRecordedCallbackIsNeverItsOwnSource()" time="3.675e-05" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="sameAppWithAnotherFieldWindowProcessGenerationOrRangeCannotReuseAnOrigin()" time="5.175e-05" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="genericPointerFeedbackRequiresTheSameLiveContextAndNeverAuthenticatesACaller()" time="6.2667e-05" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="onlyTheDirectSameUserPeerOfThisProviderQualifies()" time="3.9917e-05" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="privateFoundationDispatchIdentifiesItsActualExportAndRejectsTheSameProcess()" time="0.00019175" />
+    <testcase classname="NearpaneUITests.TranslationSelectionOriginTests" name="fallbackRequiresAPointerInTheBoundWindowAndFiniteCoordinates()" time="2.7209e-05" />
+  </testsuite>
+</testsuites>

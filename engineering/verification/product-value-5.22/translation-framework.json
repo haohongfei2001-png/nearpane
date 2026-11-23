@@ -1,0 +1,14 @@
+{
+  "framework" : "Apple.Translation",
+  "installedServicesEntryAndPanel" : "NOT_RUN",
+  "languagePair" : [
+    "en",
+    "zh-Hans"
+  ],
+  "model" : "supported, not installed",
+  "privateTextLogged" : false,
+  "resultSHA256" : null,
+  "savedLookupRequest" : "2C33DFB9-2766-4863-A3BF-50A1C62550EE",
+  "sourceSHA256" : "92b6dfdd5fdd2e93b3f95e792c54652cc733e612d0f8e96dbbbc32b9ea5bc84a",
+  "wordReopened" : false
+}

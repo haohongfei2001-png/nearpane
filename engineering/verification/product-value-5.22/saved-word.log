@@ -1,0 +1,6 @@
+Timestamp               Ty Process[PID:TID]
+2026-11-23 15:20:59.027 Df swiftpm-testing-helper[55337:11cee4f] [com.holdsnow.nearpane.alpha:LocalToolStage] toolStage id=2C33DFB9-2766-4863-A3BF-50A1C62550EE stage=hostReceived hash=92b6dfdd5fdd2e93b3f95e792c54652cc733e612d0f8e96dbbbc32b9ea5bc84a uptime=478138.744925
+2026-11-23 15:20:59.027 Df swiftpm-testing-helper[55337:11cee4f] [com.holdsnow.nearpane.alpha:LocalToolStage] toolStage id=2C33DFB9-2766-4863-A3BF-50A1C62550EE stage=panelUnavailable hash=- uptime=478138.744947
+2026-11-23 15:20:59.029 Df swiftpm-testing-helper[55337:11cee4f] [com.holdsnow.nearpane.alpha:LocalToolStage] toolStage id=2C33DFB9-2766-4863-A3BF-50A1C62550EE stage=modelMissing hash=- uptime=478138.747824
+2026-11-23 15:20:59.029 Df swiftpm-testing-helper[55337:11cee4f] [com.holdsnow.nearpane.alpha:LocalToolStage] toolStage id=2C33DFB9-2766-4863-A3BF-50A1C62550EE stage=savedWordMatched hash=- uptime=478138.747848
+2026-11-23 15:20:59.029 Df swiftpm-testing-helper[55337:11cee4f] [com.holdsnow.nearpane.alpha:LocalToolStage] toolStage id=2C33DFB9-2766-4863-A3BF-50A1C62550EE stage=panelUnavailable hash=- uptime=478138.747853
