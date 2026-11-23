@@ -1,14 +1,25 @@
 # Nearpane 当前工程状态
 
-## 2026-11-23 · 同桌面窗口调度
+## 2026-11-23 · 产品能力与交付范围
 
-**生产窗口调度为 NO-GO。** 5.22（90）源码 `d81329d` 使用 Display → StageGroup → Window。侧栏按物理屏和当前普通桌面读出工作组。Rust Corner 仍需在目标系统证明完整的单窗恢复与输入隔离。原生 Spaces 仅供产品只读观察，临时迁移保留在研究入口。四份裁决按产品定义、可见性边界、Rust 复用范围、实施顺序解释。[产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [可见性裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [Rust 复用](../research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md) · [晋级顺序](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
+审计基线为 PR `e44d028`，应用源码 `d81329d`，版本 5.22（90）。A 表示可保留交付的已验证操作，适用的安装版本和环境随项注明。B 有独立产品价值，继续开发并补齐对应入口验收。C 缺少目标系统的安全证据，当前生产调度为 **NO-GO**。整包公开发行仍需单独验收。下列成本为相对工程量。
+
+| 层级与操作 | 产品入口、用户价值与证据范围 | 后续投入与风险 |
+| --- | --- | --- |
+| A · R4 侧栏显隐、本屏真实预览 | 菜单显隐并自动恢复。正式 5.22 候选上，两窗 48/48 次画面更新，五应用 30/30 张卡对应正确，隐藏一分钟无活动抓屏流。[逐帧实测](../verification/native-spaces/5.22-90-active-display-previews/RESULTS.md) · [菜单与恢复](../verification/native-spaces/5.22-90-installed-contract/RESULTS.md) | 低成本保留。失去窗口身份或录屏权限须撤回画面。与 Apple 同负载的速度尚无结论。 |
+| A · 精确选一窗、同屏双窗布局 | 正式候选 `d81c458` 的目标编辑器输入 10/10。`f7997a7` 的左右拖放及跨应用并排有 AX 和 WindowServer 读回。[输入落点](../verification/native-spaces/5.22-90-active-display-previews/same-space-focus/registered-document-runs/09/summary.json) · [分屏](../verification/native-spaces/5.22-90-sidebar-pair/RESULTS.md) | 中。保留逐窗许可和身份复核，组合入口的新交互需按版本验证。 |
+| A · 本地资料、设置及档案 | 语音手记、截图历史、侧栏工具选择与排序均有产品入口。旧签名 Host 的隔离档案和主题页已渲染；5.22 的截图收录、原字节重开和停止期间排空有领域测试。安装版可重开已有词条。[档案与设置](../verification/P5.12-UNIFIED-ARCHIVES-AND-SETTINGS.md) · [内嵌模块](../verification/embedded-tools/5.22-90/2026-11-23/results.json) · [词本重开](../verification/native-spaces/5.22-p4/installed-9ba33eb/seeded-wordbook.json) | 低。交付本地资料读写，按当前包复核设置、首次使用和权限说明。 |
+| B · 工作组目录、命名、成员与历史图 | 一张卡片可组合多扇窗口，同应用窗口各自有身份。两款签名应用在隔离 WindowServer 上重开后仍为 2+1。组合图可显示已核验的历史画面；当前安装版的多屏、重连、崩溃还原待证。[目录与生命周期](../verification/window-engine/same-desktop-provider-26A428/hosted-fixtures/stage-group-lifecycle.json) · [组合画面](../verification/window-engine/product-integration-20261123/history-preview/receipt.json) | 中，优先。单窗选择与目录编辑可独立交付。过期卡片及复用窗号会造成错选。 |
+| B · Saytile 语音、Riftlet 截图附加 | 托盘捕获、档案和草稿附加有正式入口。较早安装候选三句物理语音取得两份准确最终稿，第三句 UNKNOWN。当前内嵌版六份首尾音频回读和两款浏览器的 18 个隔离草稿通过，已登录网站的真实草稿仍 BLOCKED。[安装工具实测](../verification/native-spaces/5.22-90-installed-contract/RESULTS.md) · [锁定的实现与成绩](../verification/embedded-tools/5.22-90/2026-11-23/results.json) | 中，继续。物理收音与真实识别、已授权草稿的真实附加分别验收，保留零发送。 |
+| B · 原位翻译、单词本 | Services 回调和收件已验证，英中翻译包缺失，正式原位气泡与来源焦点仍待验；既有词条可独立使用。系统词典的固定词仅做过离屏取词。[服务验收](../verification/native-spaces/5.22-p4/installed-d81c458/README.md) · [词典实验](../verification/window-engine/product-integration-20261123/final-dictionary.json) | 低成本优先改善查阅；中成本补原位呈现。避免将旧译文或词典释义记成新的翻译结果。 |
+| B · 桌面图标、常驻工具、首次使用与更新 | 点击空白墙纸显示图标有托管桌面实测。时钟、备忘、待办、主题、全屏工具及偏好可配置。更新通道有状态页和忙碌延后逻辑，干净安装和正式更新待 P6。[桌面图标](../verification/stage-groups/5.22-90/desktop-items/RESULTS.md) · [随包操作说明](../../docs/ALPHA-HELP.md) | 设置低，物理多屏及正式分发高。先完善能直接操作的入口，保留正式发行门槛。 |
+| C · 整组退场、激活和恢复 | Swift 目录、事务及 Rust/C ABI 已接入，生产资格清单为空。旧 Corner 穿透，Guardian 退出后双读 NOT_RUN；持久租约、单窗隔离、A→B→C→A 及 10/50 次均未准入。原生 Spaces 迁移退出产品范围。[隔离失败](../verification/stage-groups/5.22-90/isolation/qualification/summary.json) · [最后一次实机收据](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) | 高。只接受下列单窗门槛的新证据，再决定后续投入。[有限验收合同](ACCEPTANCE.md#corner-的单窗口可行性边界) |
 
 ### Guardian Survival 实机准入
 
 **最新实机结论为 BLOCKED，Guardian Survival 为 NOT_RUN。** 11 月 23 日 13:29（北京时间），26A428 实体机两次读到全屏，当前原生 Space ID 为 5794，普通桌面 UUID 未取得。两次 AX 读回均为前台 PID 49381 的同一对象，CGWindowID 为 71941，14 项 HID 计数一致。标准路径中唯一的日常 Host 仍为 `bec6cb2`，PID 19081，四项权限均由该进程自读为允许。配置指纹一致，活动租约和测试进程均为零。Host 继续运行，内核退出记录和退出后窗口读回均为空。Guardian 的独立 AX 权限仍为 UNKNOWN，持久恢复租约和首次单窗隐藏均未获准入。[最新实机收据](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) · [桌面双读](../verification/window-engine/guardian-survival-26A428/admission-1329/desktop.json) · [日常 Host 与租约](../verification/window-engine/guardian-survival-26A428/admission-1329/daily-host.json)
 
-复核的候选仍是 `d81329d` 的原始签名 ZIP。Apple 的 `stapler` 按 Host CDHash 查询已签发票据，返回 `Record not found`（65）。Gatekeeper 返回 `Unnotarized Developer ID`（3）。本机可见的开发配置和该仓库未提供可用的公证身份，Apple 的 `notarytool` 对选定名称 `Nearpane-Notary` 返回 `No Keychain password item found for profile`（69）。本轮公证提交和安装尝试均为零。在本机配置团队公证凭据、候选通过系统策略并取得普通桌面双读后，方可执行一次退出后的实机验收。[Apple 票据和系统评估](../verification/window-engine/guardian-survival-26A428/admission-1329/gatekeeper.json) · [公证 Profile 检查范围](../verification/window-engine/guardian-survival-26A428/admission-1329/notary-profile.json)
+复核的候选仍是 `d81329d` 的原始签名 ZIP。Apple 的 `stapler` 按 Host CDHash 查询已签发票据，返回 `Record not found`（65）。Gatekeeper 返回 `Unnotarized Developer ID`（3）。本机可见的开发配置和该仓库未提供可用的公证身份，Apple 的 `notarytool` 对选定名称 `Nearpane-Notary` 返回 `No Keychain password item found for profile`（69）。本轮公证提交和安装尝试均为零。此次标准路径换装在系统准入处停止，后续按下述内部诊断与发行边界处理。[Apple 票据和系统评估](../verification/window-engine/guardian-survival-26A428/admission-1329/gatekeeper.json) · [公证 Profile 检查范围](../verification/window-engine/guardian-survival-26A428/admission-1329/notary-profile.json)
 
 此前 12:55 的监督器也在发出退出请求前因全屏停止。[12:55 收据与时间线](../verification/window-engine/guardian-survival-26A428/result.json) · [原始桌面双读](../verification/window-engine/guardian-survival-26A428/desktop-readback.json) · [日常 Host 权限](../verification/window-engine/guardian-survival-26A428/installed-host-permissions.json) · [清理核对](../verification/window-engine/guardian-survival-26A428/cleanup.json)
 
@@ -34,7 +45,7 @@
 
 完整串行 Swift 回归共 787 项，784 项通过、3 项按环境条件跳过。全量并发时，语音冷启动和布局过期读回各失败一次。两项共同定向运行及完整串行运行均通过，高并发可靠性仍为 **UNKNOWN**。45 项监督器测试通过。托管构建 26A434 的 21 项引擎检查通过，含 108 项 Rust 测试、119 项 Swift 测试以及生产 C ABI。[回归及原始失败](../verification/window-engine/same-desktop-provider-26A428/regression.json) · [引擎收据](../verification/window-engine/same-desktop-provider-26A428/hosted-engine.json) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514956) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514974)
 
-**下一项实机验收**需要同一签名候选按正常安全流程获准、成为标准路径的唯一 Host，且物理显示器已回到普通桌面。届时用 `guardian-survival` 执行一次退出后的原 AX 对象双读，并验证日常环境恢复。随后才能判断是否进入持久恢复租约阶段。[同桌面验收合同](ACCEPTANCE.md)
+**Corner 暂停在单窗口门槛。** 生产调度保持关闭。只有出现系统正常接纳的新测试 Host 或可恢复的隔离 GUI 环境，才评估下一次只读诊断。公证排入正式发行阶段，产品主线继续。[分发、只读与写入的验收边界](ACCEPTANCE.md#corner-的单窗口可行性边界)
 
 ### 历史阶段记录
 
