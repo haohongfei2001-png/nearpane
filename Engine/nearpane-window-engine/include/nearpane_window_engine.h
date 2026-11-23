@@ -15,9 +15,9 @@ extern "C" {
 enum { NP_ENGINE_ABI = 1, NP_CORNER = 1, NP_SPACES = 2 };
 enum { NP_PROBE = 1, NP_READBACK, NP_HIDE, NP_SHOW, NP_RESTORE, NP_HEALTH, NP_TRIAL,
        NP_LAUNCH, NP_CLEAN_LAUNCH, NP_CORNER_PARK_ACCESS, NP_CORNER_DISPLAY_MATERIAL };
-/* DISPLAY_MATERIAL reads the caller's permissions and the selected display's
- * renderable corner. Supply display, native_space and native_id from the Host
- * scope, without a window identity. It returns no membership or visibility flags. */
+/* DISPLAY_MATERIAL returns the complete shadow footprint, native ID and the
+ * verified source in detail. It cannot acquire visibility, input or window rights. */
+enum { NP_CORNER_MATERIAL_SEALED_FILE = 49, NP_CORNER_MATERIAL_WALLPAPER_SURFACE = 50 };
 /* Read-only eligibility of the calling Host. No window, tap or write authority. */
 enum { NP_CORNER_MISSING_AX = 1, NP_CORNER_MISSING_LISTEN = 19,
        NP_CORNER_MISSING_POST = 20, NP_CORNER_MISSING_CAPTURE = 21 };

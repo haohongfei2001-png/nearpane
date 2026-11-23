@@ -75,6 +75,7 @@ fn main() {
         "ApplicationServices",
         "Carbon",
         "ImageIO",
+        "ScreenCaptureKit",
         "Security",
     ] {
         println!("cargo:rustc-link-lib=framework={name}");

@@ -2,15 +2,17 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+正式 Rust 引擎已在实体机的普通桌面 4 验证包括阴影的 **86×176 点完整材质区域**。同一个无窗口写权限的句柄首次用时 359.2 毫秒，复用用时 34.2 毫秒，两次都返回 Apple 壁纸窗口合成来源。运行者为持有自身录屏授权的签名观察器。实际窗口遮挡、键鼠接收者和整组切换仍为 **NOT_RUN**。每次停放前，执行 Host 继续核验自己的权限和 Guardian 的恢复责任。[两次读回与签名](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json) · [离线回归与原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-regression.zip)
+
 在同一块实体屏幕上，上游的显示器正向窗口过滤方式取得了两帧完整的壁纸样本。过滤器仅包含经签名核验的 Apple 壁纸窗口，8×8 点在本机对应 16×16 像素，两次 256/256 像素均完全不透明。完整遮挡区域和退场窗口输入仍待验。`3384cf1` 的 5.22（90）ARM64 开发候选已打包，14 个可执行组件及整包签封已核对。[原始画面计数](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json) · [候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate.json)
 
 切换时如有窗口需要退场，协调器现在会先核对该显示器的角落是否可用，再恢复目标窗口或移交键盘焦点。定向 Swift 回归 41 项通过。Rust 测试确认这次预检不接受窗口写入参数。目标机右下角的实机画面证据仍不足，整组切换未执行。[预检与实机画面记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json)
 
 Corner 已能把“已测到窗口到达角落，但画面或输入验证失败”单独交给 Guardian。后者独立双读、持久化实际位置，Host 继续将切换标记为 UNKNOWN。只有原 Host 退出，而且窗口、焦点、输入、桌面及两份持久化记录仍一致时，Guardian 才可归位。该分支已通过定向源码回归，真实角落归位待验。[恢复责任与测试结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json)
 
-对实体机的进一步读回确认，系统壁纸别名解析到密封系统卷中的单帧图片。引擎现按 AppKit 的默认等比适应模式核算实际覆盖范围。该机屏幕中心的 8 点方块在图片内，右下角的 8 点方块在图片外。独立签名观察器仅采样 Apple 壁纸窗口，两次各有 56/64 个不透明像素。此次未移动窗口或保存像素，角落的合成画面仍为 **BLOCKED**。[源文件、裁切和两次实机采样](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json)
+对实体机的进一步读回确认，系统壁纸别名解析到密封系统卷中的单帧图片。引擎现按 AppKit 的默认等比适应模式核算实际覆盖范围。该机屏幕中心的 8 点方块在图片内，右下角的 8 点方块在图片外。独立签名观察器仅采样 Apple 壁纸窗口，两次各有 56/64 个不透明像素。这次单窗取图保留为 **BLOCKED**。之后的显示器合成实测见本节首条。[源文件、裁切和两次实机采样](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json)
 
-Corner 在移动窗口之前会用实际渲染器的规则检查壁纸缩放、图像尺寸、朝向和帧数。目标机当前内置屏的系统壁纸 URL 位于原有两处只读资源目录以外，该来源返回不支持。本次没有打开该文件或采集用户画面。[目标机来源和隔离回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/corner-picture-source.json)
+Corner 在移动窗口之前会用实际渲染器的规则检查壁纸缩放、图像尺寸、朝向和帧数。首次检查时，内置屏的系统壁纸 URL 位于原先两处只读资源目录以外，旧的来源检查返回不支持。本次没有打开该文件或采集用户画面。[目标机来源和隔离回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/corner-picture-source.json)
 
 **屏内真实归位 PASS。** 在 26A428 / ARM64 / SIP 开启的实体机上，源码 `d621e0f` 的隔离 Host 15712 正常退出，Guardian 15739 在内核退出与原管道 EOF 后执行一次受保护的 AX 归位。签名夹具窗口 82959 从 x=649 回到 x=625，y=407、尺寸 220×143。AX、WindowServer 和窗口所属应用读回一致，原生桌面仍为 4。夹具、Guardian 和临时资料已清理，日常 Host、权限、配置和旧恢复日志前后一致。该窗平移期间一直在屏内；角落画面遮挡、实际输入隔离、异常中断恢复和整组切换仍为 **NOT_RUN**。[实机与原始读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [退出和清理](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/cleanup.json)
 

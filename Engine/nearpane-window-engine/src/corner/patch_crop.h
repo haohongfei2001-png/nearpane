@@ -74,3 +74,17 @@ static CGImageRef cropWallpaper(NSURL *url, NSDictionary *options, NCFrame displ
     return crop;
 }
 
+
+static inline BOOL stillIsOpaque(CGImageRef image, size_t w, size_t h) {
+    if (!image || !w || !h || w > 32768 || h > 32768 || w * h > 1048576 ||
+        CGImageGetWidth(image) != w || CGImageGetHeight(image) != h) return NO;
+    NSMutableData *alpha = [NSMutableData dataWithLength:w * h];
+    CGContextRef context = CGBitmapContextCreate(alpha.mutableBytes, w, h, 8, w, NULL, (CGBitmapInfo)kCGImageAlphaOnly);
+    if (!context) return NO;
+    CGContextSetBlendMode(context, kCGBlendModeCopy);
+    CGContextDrawImage(context, CGRectMake(0, 0, w, h), image);
+    CGContextRelease(context);
+    const uint8_t *pixels = alpha.bytes;
+    for (size_t i = 0; i < alpha.length; i++) if (pixels[i] != 255) return NO;
+    return YES;
+}

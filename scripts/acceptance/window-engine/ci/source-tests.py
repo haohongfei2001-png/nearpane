@@ -25,6 +25,7 @@ FRAMEWORKS = (
     "Security",
     "Carbon",
     "ImageIO",
+    "ScreenCaptureKit",
 )
 
 

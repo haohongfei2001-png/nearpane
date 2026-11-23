@@ -16,5 +16,5 @@ xcrun swiftc "$src/recovery-window.swift" -o "$work/recovery-window"
 xcrun swiftc -parse-as-library -target arm64-apple-macos26.0 -I "$debug/Modules" -module-cache-path .build/clang-cache \
     -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" \
     -I Engine/nearpane-window-engine/include "$debug"/{NearpaneCore,NearpaneUI,NearpaneWindowEngine,NearpaneOrdinaryWindowRuntime,WindowGeometryCore}.build/*.swift.o \
-    "$archive" -lobjc -framework Carbon -framework Security -framework ApplicationServices -framework ImageIO \
+    "$archive" -lobjc -framework Carbon -framework Security -framework ApplicationServices -framework ImageIO -framework ScreenCaptureKit \
     "$src/keep-stable-layout.swift" -o "$work/keep-stable-layout"

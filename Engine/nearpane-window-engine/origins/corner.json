@@ -48,6 +48,12 @@
     "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering relative to the uppermost held window to AppKit. Decode sealed static assets off the main queue. Withdraw on an unverifiable source, topology, order or expired publication."
   },
   {
+    "local": "src/corner/patch_material.inc",
+    "upstream": "src/platform/capture.rs",
+    "blob": "07d9acb5dfef2cbb1a5a29e5c99510085134aa3a",
+    "modifications": "Adapt the positive display-window filter, native pixel scale, clear background and crop. Admit only the Apple-signed wallpaper surface of the current ordinary desktop, check every alpha and hold only the scoped corner image in executor memory."
+  },
+  {
     "local": "src/corner/worker.rs",
     "upstream": "src/platform/controller/corner/patch.rs",
     "blob": "bfc1164d02f31e89fcfe25b69ab7038daeec7177",

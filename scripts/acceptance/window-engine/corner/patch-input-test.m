@@ -37,6 +37,13 @@ static void pixels(NSString *path) {
     CGColorSpaceRef srgb = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
     CGContextRef context = CGBitmapContextCreate(rgba, 8, 4, 8, 32, srgb, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
     CGImageRef image = CGBitmapContextCreateImage(context);
+    assert(stillIsOpaque(image, 8, 4) && !stillIsOpaque(image, 4, 8));
+    uint8_t almostOpaque[4] = {0, 0, 0, 254};
+    CGContextRef translucent = CGBitmapContextCreate(almostOpaque, 1, 1, 8, 4, srgb, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
+    CGImageRef partial = CGBitmapContextCreateImage(translucent);
+    assert(!stillIsOpaque(partial, 1, 1));
+    CGImageRelease(partial);
+    CGContextRelease(translucent);
     NSURL *url = [NSURL fileURLWithPath:path];
     CGImageDestinationRef out =
         CGImageDestinationCreateWithURL((__bridge CFURLRef)url, CFSTR("public.png"), 1, NULL);

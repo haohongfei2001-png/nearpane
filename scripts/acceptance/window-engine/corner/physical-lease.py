@@ -94,7 +94,7 @@ def build(output):
                 }))
                 libs = [target / "release/libnearpane_window_engine.a"] if src == "controller.m" else []
                 frameworks = [argument for f in ("AppKit", "ApplicationServices", "Foundation", "Security",
-                                                   "Carbon", "ImageIO", "CoreGraphics", "CoreFoundation") for argument in ("-framework", f)]
+                                                   "Carbon", "ImageIO", "ScreenCaptureKit", "CoreGraphics", "CoreFoundation") for argument in ("-framework", f)]
                 log.write(command("/usr/bin/xcrun", "clang", "-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror", "-I", ENGINE / "include",
                                   "-I", ENGINE / "src/corner", HERE / "single" / src, *libs,
                                   *frameworks, "-o", app / "Contents/MacOS" / exe))

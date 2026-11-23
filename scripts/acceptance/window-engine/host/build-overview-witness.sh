@@ -14,7 +14,7 @@ fi
 common=(-parse-as-library -package-name nearpane -target "$(uname -m)-apple-macos26.0" -I "$debug/Modules" -module-cache-path "$build_root/clang-cache" \
     -Xcc "-fmodule-map-file=$PWD/$debug/CReadOnlySpaces.build/module.modulemap" "$debug/CReadOnlySpaces.build/ReadOnlySpaces.c.o" \
     -I Engine/nearpane-window-engine/include "$debug"/{NearpaneCore,NearpaneOrdinaryWindowRuntime,WindowGeometryCore}.build/*.swift.o \
-    "$archive" -lobjc -framework Carbon -framework Security -framework ImageIO \
+    "$archive" -lobjc -framework Carbon -framework Security -framework ImageIO -framework ScreenCaptureKit \
     Sources/NearpaneHost/{StageEngineHostScope,StageScopeReply,StageOverviewHitTest,StageOverviewFocusTrace,StageCanaryOverview}.swift)
 xcrun swiftc "${common[@]}" "$src/overview-media.swift" "$src/finish-presented.swift" -o "$work/finish-presented"
 xcrun swiftc "${common[@]}" "$src/fixture-readback.swift" -o "$work/fixture-readback"

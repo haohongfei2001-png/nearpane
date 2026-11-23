@@ -45,7 +45,7 @@ def main():
                         "-I", build / "Modules", "-I", root/"Engine/nearpane-window-engine/include",
                         "-Xcc", "-fmodule-map-file=" + str(build / "CReadOnlySpaces.build/module.modulemap"),
                         source, *objects, archive, "-lobjc", "-framework", "Carbon", "-framework", "Security",
-                        "-framework", "ApplicationServices", "-o", binary], check=True)
+                        "-framework", "ApplicationServices", "-framework", "ScreenCaptureKit", "-o", binary], check=True)
         subprocess.run(["codesign", "--force", "--sign", "-", app], check=True, capture_output=True)
         subprocess.run(["codesign", "--verify", "--strict", app], check=True)
         if subprocess.check_output([binary, "--verify-link"], text=True).strip() != "0.16":

@@ -3,7 +3,7 @@
 use super::{
     geometry::Rect,
     native::{self, Display, Member, Reference, Sample},
-    park, sliver,
+    park, patch, sliver,
     tap::{self, Publication, Tap},
 };
 use crate::contract::{self as c, Control, Outcome, Request, WindowEngine};
@@ -54,6 +54,7 @@ pub struct Corner {
     owned: HashMap<u32, Owned>,
     tap: Option<Tap>,
     patch: Option<native::PatchSession>,
+    material: Option<native::PatchMaterial>,
     last_refresh: Option<Instant>,
 }
 fn same(a: Rect, b: Rect) -> bool {
@@ -83,14 +84,6 @@ fn scoped(list: &[Display], id: [u8; 16]) -> Result<(&Display, park::Corner), u3
     Ok((here, choice.corner))
 }
 
-fn drawable_corner(list: &[Display], id: [u8; 16]) -> Result<(&Display, park::Corner), u32> {
-    let (display, corner) = scoped(list, id)?;
-    let zone = sliver::corner_zone(display.frame, display.visible, corner);
-    if !native::PatchSession::source_available(&id, zone) {
-        return Err(PICTURE_SOURCE_UNAVAILABLE);
-    }
-    Ok((display, corner))
-}
 fn hidden(frame: Rect, list: &[Display], id: [u8; 16], corner: park::Corner) -> bool {
     let Some(display) = list.iter().find(|d| d.id == id) else {
         return false;
@@ -150,6 +143,16 @@ fn health_member(r: &Request) -> Result<Option<Member>, u32> {
 }
 
 impl Corner {
+    fn drawable_corner<'a>(&mut self, list: &'a [Display], home: &Member, prepare: bool) -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
+        let (display, corner) = scoped(list, home.display)?;
+        let zone = sliver::corner_zone(display.frame, display.visible, corner);
+        let footprint = patch::patch_rect(&[zone], display.frame, patch::DEFAULT_REACH).ok_or(BAD_LAYOUT)?;
+        if self.material.is_none() { self.material = native::PatchMaterial::new(); }
+        let material = self.material.as_ref().ok_or(PICTURE_SOURCE_UNAVAILABLE)?;
+        let source = material.source(home, footprint, prepare);
+        if source == 0 { return Err(PICTURE_SOURCE_UNAVAILABLE); }
+        Ok((display, corner, footprint, source))
+    }
     fn result(&self, status: u32, detail: u32, sample: Option<Sample>, owned: bool) -> Outcome {
         let mut v = Outcome::new(status);
         v.detail = detail;
@@ -241,7 +244,7 @@ impl Corner {
             let mut members: Vec<_> = self.owned.values().filter_map(|owned| owned.parked.map(|frame|
                 native::PatchMember { member: owned.id, frame })).collect();
             members.sort_by_key(|m| m.member.window);
-            if self.patch.is_none() { self.patch = native::PatchSession::new(); }
+            if self.patch.is_none() { self.patch = self.material.as_ref().and_then(native::PatchSession::new); }
             if let Some(patch) = &self.patch { patch.publish(&members); }
         }
         Ok(())
@@ -385,7 +388,7 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        let (display, corner) = match drawable_corner(&layout, id.display) {
+        let (display, corner, _, _) = match self.drawable_corner(&layout, &id, false) {
             Ok(v) => v,
             Err(e) => return self.result(c::UNSUPPORTED, e, None, false),
         };
@@ -591,12 +594,16 @@ impl WindowEngine for Corner {
                 Err(why) => self.result(c::UNSUPPORTED, why, None, false),
             },
             c::CORNER_DISPLAY_MATERIAL => {
-                let eligible = native::park_access().and_then(|_| {
-                    let layout = native::displays()?;
-                    drawable_corner(&layout, r.display).map(|_| ())
+                let eligible = native::displays().and_then(|layout| {
+                    self.drawable_corner(&layout, &Member::from(r), true).map(|(_, _, frame, source)| (frame, source))
                 });
                 match eligible {
-                    Ok(()) => self.result(c::PASS, 0, None, false),
+                    Ok((frame, source)) => {
+                        let mut result = self.result(c::PASS, source, None, false);
+                        result.native_id = r.native_id;
+                        result.frame = abi(frame);
+                        result
+                    }
                     Err(why) => self.result(c::UNSUPPORTED, why, None, false),
                 }
             }

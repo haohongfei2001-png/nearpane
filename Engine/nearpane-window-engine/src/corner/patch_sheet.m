@@ -1,5 +1,6 @@
 // Per-display click-through corner sheet. Pinned upstream provenance is in origins/corner.json.
 #import "patch_sheet.h"
+#import "../../include/nearpane_window_engine.h"
 #import <ColorSync/ColorSync.h>
 #import "patch_crop.h"
 #import <libproc.h>
@@ -95,6 +96,8 @@ static NSURL *staticWallpaper(NSScreen *screen, struct stat *st) {
         return nil;
     return [NSURL fileURLWithPath:file];
 }
+
+#include "patch_material.inc"
 
 bool np_corner_patch_source_available(const uint8_t display[16], NCFrame zone) {
     if (!display) return false;
@@ -207,6 +210,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
 @interface NCPatchSheet : NSObject
 @property(nonatomic, strong) NCWallpaperPanel *panel;
 @property(nonatomic, strong) NSArray *source;
+@property(nonatomic, strong) id materialImage;
 @property(nonatomic) uint32_t anchor;
 @end
 @implementation NCPatchSheet
@@ -219,6 +223,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     BOOL stopped, scheduled;
 }
 @property(nonatomic, strong) NSMutableDictionary<NSData *, NCPatchSheet *> *sheets;
+@property(nonatomic, strong) NSMutableDictionary<NSData *, NCCornerStill *> *materials;
 @property(nonatomic, strong) NSTimer *timer;
 @property(nonatomic, strong) id spaceObserver;
 @end
@@ -284,6 +289,18 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         [NSValue valueWithRect:f], @(members[0].member.native),
         [NSData dataWithBytes:members[0].member.space length:16]
     ];
+    NCCornerStill *still = self.materials[key];
+    if (still && (![still sourceCurrent:screen home:&members[0].member] || ![still readyFor:patchRect(frame)] ||
+                  ![stillWallpaperWindow(raw) isEqual:still.wallpaper])) {
+        [self.materials removeObjectForKey:key];
+        return NO;
+    }
+    if (@available(macOS 14.2, *)) {
+        if (still && !still.pending && NSProcessInfo.processInfo.systemUptime - still.sampled > 5) {
+            [still refresh:screen completion:^(BOOL fresh) { (void)fresh; }];
+        }
+    }
+    if (still) source = [source arrayByAddingObject:still];
     NCPatchSheet *sheet = self.sheets[key];
     if (sheet && ![sheet.source isEqual:source]) {
         [self withdraw:key];
@@ -298,26 +315,41 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         sheet = [NCPatchSheet new];
         sheet.source = source;
         self.sheets[key] = sheet;
-        __weak NCPatchSession *weak = self;
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-          CGImageRef crop = cropWallpaper(url, options, d, frame);
-          dispatch_async(dispatch_get_main_queue(), ^{
-            NCPatchSession *session = weak;
-            if (crop && session.sheets[key] == sheet && [session current:packet]) {
-                sheet.panel = patchPanel(f, crop);
-                [session update];
-            } else if (session.sheets[key] == sheet && ![session current:packet]) {
-                [session withdraw:key];
-            }
-            if (crop)
-                CGImageRelease(crop);
-          });
-        });
-        return YES;
+        if (still) {
+            CGImageRef crop = [still copyCrop:patchRect(frame)];
+            if (!crop) return NO;
+            sheet.panel = patchPanel(f, crop);
+            CGImageRelease(crop);
+            if (!sheet.panel) return NO;
+            sheet.materialImage = still.pixels;
+        } else {
+            __weak NCPatchSession *weak = self;
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                CGImageRef crop = cropWallpaper(url, options, d, frame);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NCPatchSession *session = weak;
+                    if (crop && session.sheets[key] == sheet && [session current:packet]) {
+                        sheet.panel = patchPanel(f, crop);
+                        [session update];
+                    } else if (session.sheets[key] == sheet && ![session current:packet]) {
+                        [session withdraw:key];
+                    }
+                    if (crop) CGImageRelease(crop);
+                });
+            });
+            return YES;
+        }
     }
     if (!sheet.panel)
         return YES;
     NCWallpaperPanel *panel = sheet.panel;
+    if (still && sheet.materialImage != still.pixels) {
+        CGImageRef crop = [still copyCrop:patchRect(frame)];
+        if (!crop) return NO;
+        ((NSImageView *)panel.contentView).image = [[NSImage alloc] initWithCGImage:crop size:f.size];
+        CGImageRelease(crop);
+        sheet.materialImage = still.pixels;
+    }
     if (panel.windowNumber <= 0 || panel.windowNumber > UINT32_MAX || panel.isKeyWindow || panel.isMainWindow ||
         !panel.ignoresMouseEvents)
         return NO;
@@ -422,8 +454,69 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     }
 }
 @end
-void *np_corner_patch_session(void) {
+void *np_corner_patch_material(void) {
+    return (__bridge_retained void *)[NSMutableDictionary dictionary];
+}
+void np_corner_patch_material_end(void *material) {
+    if (material) CFRelease(material);
+}
+uint32_t np_corner_patch_prepare_source(void *material, const NCMember *requested, NCFrame footprint, bool prepare) {
+    if (!material || !requested || !requested->native || NSThread.isMainThread || !stillOrdinaryHome(requested)) return false;
+    if (np_corner_patch_source_available(requested->display, footprint)) return NP_CORNER_MATERIAL_SEALED_FILE;
+    if (!CGPreflightScreenCaptureAccess()) return false;
+    if (@available(macOS 14.2, *)) {
+        NSMutableDictionary *store = (__bridge NSMutableDictionary *)material;
+        NCMember home = {.native = requested->native};
+        memcpy(home.space, requested->space, 16); memcpy(home.display, requested->display, 16);
+        CGRect region = patchRect(footprint);
+        if (CGRectIsEmpty(region) || !CGRectEqualToRect(region, CGRectIntegral(region)) || region.size.width > 128) return false;
+        __block BOOL ready = NO;
+        dispatch_semaphore_t done = dispatch_semaphore_create(0);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            void (^finish)(BOOL) = ^(BOOL ok) { ready = ok; dispatch_semaphore_signal(done); };
+            NSData *key = [NSData dataWithBytes:home.display length:16];
+            for (NSScreen *screen in NSScreen.screens) {
+                CGDirectDisplayID d = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+                CFUUIDRef uuid = CGDisplayCreateUUIDFromDisplayID(d);
+                if (!uuid) continue;
+                CFUUIDBytes bytes = CFUUIDGetUUIDBytes(uuid);
+                CFRelease(uuid);
+                if (memcmp(home.display, &bytes, 16)) continue;
+                CGRect frame = CGDisplayBounds(d);
+                if (!CGRectContainsRect(frame, region) || (CGRectGetMinX(region) != CGRectGetMinX(frame) &&
+                    CGRectGetMaxX(region) != CGRectGetMaxX(frame))) break;
+                NCCornerStill *existing = store[key];
+                if (existing && [existing sourceCurrent:screen home:&home] && [existing readyFor:region] &&
+                    NSProcessInfo.processInfo.systemUptime - existing.sampled < 7 &&
+                    [stillWallpaperWindow(frame) isEqual:existing.wallpaper]) { finish(YES); return; }
+                if (!prepare || (existing.pending && NSProcessInfo.processInfo.systemUptime - existing.started <= 3)) break;
+                struct stat st;
+                NSURL *url = staticWallpaper(screen, &st);
+                NSDictionary *options = [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen];
+                NCWallpaperGeometry geometry = {};
+                CGImageSourceRef file = drawableWallpaper(url, options, &geometry);
+                if (!file || (!existing && store.count >= 8)) { if (file) CFRelease(file); break; }
+                CFRelease(file);
+                NCCornerStill *still = [NCCornerStill new];
+                still.home = home; still.display = d; still.region = region; still.displayFrame = frame;
+                still.asset = url; still.options = options; store[key] = still;
+                [still refresh:screen completion:^(BOOL ok) {
+                    if (store[key] == still && !ok) [store removeObjectForKey:key];
+                    finish(ok && store[key] == still);
+                }];
+                return;
+            }
+            finish(NO);
+        });
+        if (!dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, prepare ? 3200 * NSEC_PER_MSEC : 250 * NSEC_PER_MSEC)) && ready)
+            return NP_CORNER_MATERIAL_WALLPAPER_SURFACE;
+    }
+    return false;
+}
+void *np_corner_patch_session(void *material) {
+    if (!material) return NULL;
     NCPatchSession *s = [NCPatchSession new];
+    s.materials = (__bridge NSMutableDictionary *)material;
     s.sheets = [NSMutableDictionary dictionary];
     return (void *)CFBridgingRetain(s);
 }

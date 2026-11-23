@@ -88,19 +88,30 @@ pub(super) struct PatchMember {
     pub frame: Rect,
 }
 unsafe extern "C" {
-    fn np_corner_patch_session() -> *mut c_void;
+    fn np_corner_patch_material() -> *mut c_void;
+    fn np_corner_patch_material_end(material: *mut c_void);
+    fn np_corner_patch_session(material: *mut c_void) -> *mut c_void;
     fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
     fn np_corner_patch_verified(session: *mut c_void, member: *const PatchMember) -> bool;
-    fn np_corner_patch_source_available(display: *const u8, zone: Rect) -> bool;
+    fn np_corner_patch_prepare_source(session: *mut c_void, home: *const Member, footprint: Rect, prepare: bool) -> u32;
     fn np_corner_patch_end(session: *mut c_void);
+}
+pub(super) struct PatchMaterial(std::ptr::NonNull<c_void>);
+impl PatchMaterial {
+    pub fn new() -> Option<Self> {
+        std::ptr::NonNull::new(unsafe { np_corner_patch_material() }).map(Self)
+    }
+    pub fn source(&self, home: &Member, footprint: Rect, prepare: bool) -> u32 {
+        unsafe { np_corner_patch_prepare_source(self.0.as_ptr(), home, footprint, prepare) }
+    }
+}
+impl Drop for PatchMaterial {
+    fn drop(&mut self) { unsafe { np_corner_patch_material_end(self.0.as_ptr()) } }
 }
 pub(super) struct PatchSession(std::ptr::NonNull<c_void>);
 impl PatchSession {
-    pub fn source_available(display: &[u8; 16], zone: Rect) -> bool {
-        unsafe { np_corner_patch_source_available(display.as_ptr(), zone) }
-    }
-    pub fn new() -> Option<Self> {
-        std::ptr::NonNull::new(unsafe { np_corner_patch_session() }).map(Self)
+    pub fn new(material: &PatchMaterial) -> Option<Self> {
+        std::ptr::NonNull::new(unsafe { np_corner_patch_session(material.0.as_ptr()) }).map(Self)
     }
     pub fn publish(&self, members: &[PatchMember]) {
         unsafe { np_corner_patch_publish(self.0.as_ptr(), members.as_ptr(), members.len() as u32) }

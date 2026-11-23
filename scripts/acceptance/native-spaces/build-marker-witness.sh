@@ -35,8 +35,18 @@ if [[ "$flavor" != marker ]]; then
     fi
     fixture_sources+=("$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")
 fi
+product_link=()
+if [[ $# -gt 2 ]]; then
+    [[ $# == 3 && "$flavor" == --window-switch && "$3" == --product-corner-material ]]
+    engine_dir=Engine/nearpane-window-engine
+    archive=$(bash scripts/build-window-engine.sh)
+    xcrun clang -fobjc-arc -Wextra -Wall -Werror -I "$engine_dir/include" -I "$engine_dir/src/corner" \
+        -c scripts/acceptance/window-engine/corner/product-material.m -o "$work/product-material.o"
+    product_link=(-D NP_PRODUCT_CORNER_MATERIAL -Xcc -DNP_PRODUCT_CORNER_MATERIAL "$work/product-material.o" "$archive" \
+        -framework ApplicationServices -framework Security -framework ImageIO -framework ScreenCaptureKit -framework Carbon)
+fi
 xcrun swiftc -D NATIVE_CONTRACT "${flags[@]}" -module-cache-path "$work/cache" -Xcc -I -Xcc "$inc" -import-objc-header "$src/contract_members.h" \
-    "${observer_sources[@]}" "$work/reader.o" "$work/members.o" -framework ColorSync -o "$kit/observe"
+    "${observer_sources[@]}" "$work/reader.o" "$work/members.o" ${product_link[@]+"${product_link[@]}"} -framework ColorSync -o "$kit/observe"
 app="$kit/Field Notes.app"
 mkdir -p "$app/Contents/MacOS"
 cp "$src/fixture.plist" "$app/Contents/Info.plist"
