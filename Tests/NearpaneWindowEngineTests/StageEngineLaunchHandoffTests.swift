@@ -10,7 +10,7 @@ struct StageEngineLaunchHandoffTests {
     @Test func successfulLaunchRequiresIndependentRestorationClosureAndSlotRemovalOnThisHomeEpoch() {
         let flags: UInt32 = 64 | 8 | 32 | 256 | 512 | 1024
         func valid(_ r: NativeStageEngineReceipt) -> Bool {
-            LinkedStageEngineTransport.launchConfirmed(r,expectedEpoch:8,observedEpoch:8,expectedHome:6)
+            SpacesResearchReceipt.launchConfirmed(r,expectedEpoch:8,observedEpoch:8,expectedHome:6)
         }
         #expect(valid(receipt(flags)))
         for flag: UInt32 in [64,8,32,256,512,1024] { #expect(!valid(receipt(flags & ~flag))) }
@@ -18,13 +18,13 @@ struct StageEngineLaunchHandoffTests {
         #expect(!valid(receipt(flags|128)))
         #expect(!valid(receipt(flags,owned:1)))
         #expect(!valid(receipt(flags,home:7)))
-        #expect(!LinkedStageEngineTransport.launchConfirmed(receipt(flags),expectedEpoch:8,observedEpoch:9,expectedHome:6))
+        #expect(!SpacesResearchReceipt.launchConfirmed(receipt(flags),expectedEpoch:8,observedEpoch:9,expectedHome:6))
     }
     @Test func cleanupIsIndependentFromHealthAndDoesNotAuthorizeNewWrites() {
         let flags: UInt32 = 32 | 256 | 512 | 1024
-        #expect(LinkedStageEngineTransport.cleanupConfirmed(receipt(flags),observedEpoch:8))
-        #expect(!LinkedStageEngineTransport.launchConfirmed(receipt(flags),expectedEpoch:8,observedEpoch:8,expectedHome:6))
-        for flag: UInt32 in [32,256,512,1024] { #expect(!LinkedStageEngineTransport.cleanupConfirmed(receipt(flags & ~flag),observedEpoch:8)) }
-        #expect(!LinkedStageEngineTransport.cleanupConfirmed(receipt(flags,owned:1),observedEpoch:8))
+        #expect(SpacesResearchReceipt.cleanupConfirmed(receipt(flags),observedEpoch:8))
+        #expect(!SpacesResearchReceipt.launchConfirmed(receipt(flags),expectedEpoch:8,observedEpoch:8,expectedHome:6))
+        for flag: UInt32 in [32,256,512,1024] { #expect(!SpacesResearchReceipt.cleanupConfirmed(receipt(flags & ~flag),observedEpoch:8)) }
+        #expect(!SpacesResearchReceipt.cleanupConfirmed(receipt(flags,owned:1),observedEpoch:8))
     }
 }

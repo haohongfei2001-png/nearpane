@@ -257,8 +257,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
         guard !busy else { throw StageSwitchError.busy }
         guard !requiresRecovery, ledger.owner == nil || ledger.owner == session.engineOwner,
               ledger.owned.allSatisfy({ $0.owner == session.engineOwner }) else { throw StageSwitchError.recoveryRequired }
-        guard consent, let mechanism = session.qualifiedHiddenState, [.parked,.minimized,.stageSpace].contains(mechanism),
-              session.engineOwner.map({ $0.backend == .corner ? mechanism == .parked : mechanism == .stageSpace }) != false else {
+        guard consent, let mechanism = session.qualifiedHiddenState, mechanism == .parked,
+              session.engineOwner?.backend == .corner else {
             throw StageSwitchError.unavailable
         }
         busy = true
@@ -297,8 +297,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let intent = UUID(), owner = session.engineOwner
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
         if let owner {
-            // A launch probe can own its own temporary window/Space before any business-window action exists.
-            // Persist the worker authority first; a failed probe is not a may-have-issued hide of a user window.
+            // Record the worker before preparing it. A failed health check cannot imply a window was hidden.
             try update {
                 $0.owner = owner
                 if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
@@ -395,7 +394,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 guard let observed = last.windows[m.windowHint], observed.visibility == .visible,
                       let layout = StageGroupWindow.relativeFrame(observed.frame, in: first.workArea) else { throw StageSwitchError.incomplete }
                 try await perform(.hide, id: m.windowHint) { value, _ in value.visibility == mechanism &&
-                    (mechanism != .stageSpace || (value.hiddenSpaceID ?? 0) > 0 && value.hiddenSpaceID != first.nativeID) }
+                    value.hiddenSpaceID == nil }
                 verifiedLayouts[m.id] = layout
             }
             for m in target.members {

@@ -79,21 +79,28 @@ import NearpaneOrdinaryWindowRuntime
         if session.qualifiedHiddenState == nil || selected?.evidence != session.owner.evidence { freeze() }
     }
 
-    /// Only a physically qualified Stage environment gets this projection. The signed reader's
-    /// original permission receipt remains the source for the ordinary sidebar and other clients.
+    /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
     func updateGroupProjection(_ raw: DesktopSnapshot) {
         groupProjection = nil
-        guard !Self.shipped.isEmpty, !admissions.isEmpty, raw.native?.catalogComplete == true,
-              raw.native?.stageManagerEnabled == false, let environment = StageWindowEngineAttestation.installedEnvironment(raw),
-              engine?.preferredRecord(admissions, in: environment) != nil,
-              let access = try? StageHostAccess(expectedCDHash: environment.hostCDHash) else { return }
-        groupProjection = Self.projectGroups(raw) { try access.currentSurface($0, home: $1) }
+        guard Self.needsDirectoryRead(raw), let measure = try? StageHostAccess.directoryReader() else { return }
+        groupProjection = Self.projectGroups(raw, measure: measure)
+    }
+
+    static func needsDirectoryRead(_ raw: DesktopSnapshot) -> Bool {
+        guard raw.native?.population == .workWindows, raw.native?.catalogComplete == true,
+              raw.native?.stageManagerEnabled == false, raw.native?.windowLimitReached == false else { return false }
+        return raw.windows.contains { window in
+            guard let m = window.metadata, m.isOnscreen == true, m.fullScreen != true, m.minimized != true,
+                  let home = raw.scopes.first(where: { $0.displayID == window.displayID })?.records.first(where: \.isCurrent),
+                  home.ordinaryUUID != nil, window.membership == .known(recordIDs: [home.id]),
+                  DesktopWindowKey(window) != nil else { return false }
+            return raw.native?.accessibility == .denied || (m.overviewOrdinaryRole != false && (m.overviewOrdinaryRole == nil || m.minimized == nil))
+        }
     }
 
     static func projectGroups(_ raw: DesktopSnapshot,
         measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) -> DesktopSnapshot? {
-        guard raw.native?.population == .workWindows, raw.native?.catalogComplete == true,
-              raw.native?.stageManagerEnabled == false, raw.native?.windowLimitReached == false else { return nil }
+        guard needsDirectoryRead(raw) else { return nil }
         let deadline = ProcessInfo.processInfo.systemUptime + 1
         var copy = raw, confirmed = false
         for i in raw.windows.indices {
@@ -101,9 +108,13 @@ import NearpaneOrdinaryWindowRuntime
             guard let record = raw.scopes.first(where: { $0.displayID == w.displayID })?.records.first(where: \.isCurrent),
                   let uuid = record.ordinaryUUID, w.membership == .known(recordIDs: [record.id]),
                   let key = DesktopWindowKey(w), var m = w.metadata else { continue }
+            // Preserve observations made by an independently authorized reader.
+            if raw.native?.accessibility != .denied && (m.overviewOrdinaryRole == false || (m.overviewOrdinaryRole == true && m.minimized != nil)) { continue }
+            // With a denied reader, clear all its role fields before upgrading the projection to partial.
+            let visibleCandidate = m.isOnscreen == true && m.fullScreen != true && m.minimized != true
             m.overviewOrdinaryRole = nil
             m.minimized = nil
-            if ProcessInfo.processInfo.systemUptime < deadline {
+            if visibleCandidate && ProcessInfo.processInfo.systemUptime < deadline {
                 do {
                     let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
                     if let s = try measure(member, .init(display: w.displayID, record: record.id, uuid: uuid)) {
@@ -118,6 +129,7 @@ import NearpaneOrdinaryWindowRuntime
             }
             copy.windows[i].metadata = m
         }
+        guard confirmed || raw.native?.accessibility == .denied else { return nil }
         copy.native?.accessibility = confirmed ? .partial : .denied
         return copy
     }

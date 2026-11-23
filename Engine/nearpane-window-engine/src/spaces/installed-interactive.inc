@@ -1,5 +1,5 @@
 // Enrollment of two reviewed ordinary applications for the installed diagnostic Host.
-#import "installed-interactive-pins.h"
+#import "../../include/nearpane_interactive_fixture_pins.h"
 static NSString *const interactiveOwnerID = @"com.holdsnow.nearpane.stage-interactive-fixture";
 static NSString *const interactiveOtherID = @"com.holdsnow.nearpane.stage-interactive-bystander";
 static NSString *const interactiveOwnerHash = @NP_INTERACTIVE_OWNER_CDHASH;

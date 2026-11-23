@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime, timezone
 import importlib
 import json
+import mmap
 from pathlib import Path
 import subprocess
 import sys
@@ -29,22 +30,34 @@ def summarize_trial(name, trial):
     return result
 
 
+def advertises_interactive_entry(executable, name):
+    # These exact command-line literals are shared by the signed Host and launch-scope.
+    # This check can veto an obsolete image. Only the signed socket handshake can enroll a window.
+    option = b"--interactive-spaces-cycle" if name == "interactive-spaces" else b"--interactive-window-pair"
+    with executable.open("rb") as file:
+        with mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as image:
+            return image.find(option) >= 0
+
+
 def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
     result_dir = result_dir or work
     mac = install.Mac()
     previous = json.loads((work / "08-upgrade.json").read_bytes())
     require(previous["status"] == "PASS" and previous["stage"] == "running", "An admitted installed version is required")
     expected = previous["installed"]
+    writes = name in {"spaces", "interactive-spaces"}
+    admission_stage = "p0RequiredBeforeQuit" if writes else "ordinaryDesktopRequiredBeforeQuit"
+    update("checkingAdmission", missionControlPresentationRequired=writes,
+           scopeOfEvidence="nativeSpacesResearch" if writes else "sameDesktopFixtureReadOnly")
     try:
         observation, digest = overview_admission.load_receipt(p0_receipt)
     except (OSError, ValueError) as error:
-        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason=str(error), quitRequests=0)
+        update(admission_stage, qualification="BLOCKED", admissionReason=str(error), quitRequests=0)
         return
-    writes = name in {"spaces", "interactive-spaces"}
     interactive = name in {"interactive-spaces", "interactive-roster"}
     if writes and observation.get("status") != "PASS":
-        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Status=observation.get("status"),
-               p0Reason=observation.get("reason"), p0SHA256=digest, quitRequests=0)
+        update(admission_stage, qualification="BLOCKED", observationStatus=observation.get("status"),
+               admissionReason=observation.get("reason"), observationSHA256=digest, quitRequests=0)
         return
     current = mac.inspect(mac.canonical, expected)
     require(current == expected, "Installed image changed after admission")
@@ -54,13 +67,21 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
     birth = generation[1] * 1_000_000 + generation[2]
     qualifies = overview_admission.qualifies if writes else overview_admission.qualifies_read_only
     if not qualifies(observation, current, pid, birth):
-        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalEvidenceOrHostBindingIncomplete",
-               p0SHA256=digest, quitRequests=0)
+        update(admission_stage, qualification="BLOCKED", admissionReason="physicalEvidenceOrHostBindingIncomplete",
+               observationSHA256=digest, quitRequests=0)
         return
     if interactive:
         pair_runner = importlib.import_module("interactive-pair")
         require(kit is not None, "signedInteractiveFixtureKitRequired")
-        pair_runner.reviewed_owners(kit)
+        owners = pair_runner.reviewed_owners(kit)
+        advertised = advertises_interactive_entry(mac.canonical / "Contents/MacOS/NearpaneHost", name)
+        update("interactiveImagePreflight", installedImage=current, registeredFixtureImages=owners,
+               interactiveEntryAdvertised=advertised, operatingPID=pid, operatingBirth=birth, observationSHA256=digest)
+        if not advertised:
+            update("interactiveEntryUnavailableBeforeQuit", qualification="BLOCKED",
+                   admissionReason="installedImageLacksInteractiveProtocol", quitRequests=0,
+                   windowsCreated=0, windowWrites=0, spaceWrites=0)
+            return
     permissions = cycle.backup.permissions.sample()
     install.persist(result_dir / (name + "-before-permissions.json"), permissions)
     require(permissions["status"] == "PASS" and permissions["installed"]["CDHash"] == current["cdhash"]
@@ -76,8 +97,8 @@ def run(work, name, update, result_dir=None, p0_receipt=None, kit=None):
     expected_hid = observation["measurement"]["hidAfter"] if writes else observation["hidAfterPassiveRead"]
     hid = overview_admission.current_hid()
     if hid["pressed"] or hid["secure"] or hid["counts"] != expected_hid or not qualifies(observation, current, stamp[0], birth):
-        update("p0RequiredBeforeQuit", qualification="BLOCKED", p0Reason="physicalInputOrAdmissionChangedBeforeQuit",
-               p0SHA256=digest, preQuitInput=hid, quitRequests=0)
+        update(admission_stage, qualification="BLOCKED", admissionReason="physicalInputOrAdmissionChangedBeforeQuit",
+               observationSHA256=digest, preQuitInput=hid, quitRequests=0)
         return
     update("requestNormalQuit", previous=stamp, configurationBefore=mac.config(), beforeQuitRecovery=before)
     mac.quit(stamp)
@@ -135,9 +156,13 @@ def main():
     p.add_argument("work", type=Path)
     p.add_argument("scope", choices=["spaces", "corner-readback", "interactive-roster", "interactive-spaces"])
     p.add_argument("--kit", type=Path, help="reviewed two-application signed fixture kit for the interactive paths")
-    p.add_argument("--p0-receipt", type=Path, help="private observation of the running regular Host before any trial")
+    observation = p.add_mutually_exclusive_group()
+    observation.add_argument("--desktop-receipt", type=Path, help="fresh passive ordinary desktop, original focus and HID observation")
+    observation.add_argument("--p0-receipt", type=Path, help="Mission Control evidence for the native Spaces research paths; legacy alias for passive reads")
     p.add_argument("--result-dir", type=Path, help="fresh private directory for this stage's receipts")
     args = p.parse_args()
+    if args.desktop_receipt is not None and args.scope in {"spaces", "interactive-spaces"}:
+        p.error("native Spaces research requires its own Mission Control evidence")
     install.owned_dir(args.work)
     directory = args.result_dir or args.work
     install.owned_dir(directory)
@@ -153,8 +178,8 @@ def main():
 
     try:
         with install.free_lock(install.Mac.root / "supervisor.lock"):
-            run(args.work, args.scope, update, result_dir=directory, p0_receipt=args.p0_receipt, kit=args.kit)
-        if record.get("stage") == "p0RequiredBeforeQuit":
+            run(args.work, args.scope, update, result_dir=directory, p0_receipt=args.desktop_receipt or args.p0_receipt, kit=args.kit)
+        if record.get("stage") in {"p0RequiredBeforeQuit", "ordinaryDesktopRequiredBeforeQuit", "interactiveEntryUnavailableBeforeQuit"}:
             record["status"] = "BLOCKED"
         elif record.get("stage") == "regularHostRunning":
             verdict = record.get("membershipReadback", record.get("qualification", "UNKNOWN"))

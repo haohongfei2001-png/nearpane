@@ -45,7 +45,7 @@ def signed_image(image, revision, pin):
 def reviewed_owners(kit):
     """Match both signed executable images to the exact pins compiled into the native admission."""
     fixture.private(kit)
-    header = (ROOT / "Engine/nearpane-window-engine/src/spaces/installed-interactive-pins.h").read_text()
+    header = (ROOT / "Engine/nearpane-window-engine/include/nearpane_interactive_fixture_pins.h").read_text()
     pins = dict(re.findall(r'^#define NP_INTERACTIVE_(OWNER|BYSTANDER)_CDHASH "([0-9a-f]{40})"$', header, re.M))
     actual = {"OWNER": fixture.verify(kit / fixture.APP)["cdhash"],
               "BYSTANDER": fixture.verify(kit / fixture.BYSTANDER_APP)["cdhash"]}

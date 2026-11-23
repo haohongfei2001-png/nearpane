@@ -39,6 +39,15 @@ enum StageWindowEngineAttestation {
         return String(decoding:storage.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)),as:UTF8.self)
     }
 
+    static func currentPermissions() -> Set<StageVisibilityPermission> {
+        var permissions = Set<StageVisibilityPermission>()
+        if AXIsProcessTrusted() { permissions.insert(.accessibility) }
+        if CGPreflightListenEventAccess() { permissions.insert(.listenEvent) }
+        if CGPreflightPostEventAccess() { permissions.insert(.postEvent) }
+        if CGPreflightScreenCaptureAccess() { permissions.insert(.screenCapture) }
+        return permissions
+    }
+
     @MainActor static func installedEnvironment(_ snapshot: DesktopSnapshot) -> StageEngineEnvironment? {
         guard Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app",
               let revision = Bundle.main.object(forInfoDictionaryKey:"NearpaneSourceRevision") as? String,
@@ -67,6 +76,6 @@ enum StageWindowEngineAttestation {
         guard parts.count == snapshot.displays.count, Set(parts).count == parts.count, !parts.isEmpty else { return nil }
         let topology = SHA256.hash(data:Data(parts.sorted().joined(separator:"|").utf8)).map { String(format:"%02x",$0) }.joined()
         return .init(osBuild:build,engineRevision:revision,hostCDHash:image.map { String(format:"%02x",$0) }.joined(),
-                     hardware:hardware,topology:topology,windowClass:"ordinary-standard",sipEnabled:true)
+                     hardware:hardware,topology:topology,windowClass:"ordinary-standard",sipEnabled:true,permissions:currentPermissions())
     }
 }

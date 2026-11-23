@@ -39,11 +39,11 @@ import NearpaneOrdinaryWindowRuntime
         guard generation == departure.generation, scope == departure.scope, departures[departure.group] == departure,
               let binding = bindings[window], mayManage(member.before), binding.lifetime == member.before.lifetime,
               let held = lastStates[window], held.lifetime == binding.lifetime, let claim = claims[window],
-              held.visibility == .parked || held.visibility == .stageSpace, let home,
+              held.visibility == .parked, let home,
               let actual = try? binding.monitor.observation(home:home), actual.id.pid == window.pid,
               actual.id.number == window.number, actual.id.launch == window.birth, !actual.minimized,
               actual.frame == held.frame, actual.membership == claim.member else { return false }
-        return held.visibility == .parked ? actual.membership == departure.nativeID : held.hiddenSpaceID == actual.membership
+        return actual.membership == departure.nativeID
     }
     private struct ArrivalWatch {
         let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow
@@ -93,26 +93,10 @@ import NearpaneOrdinaryWindowRuntime
     func beginRelease() { releaseInput = NativeSelectionPermit.inputCounters() }
 
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool {
-        owner.generation == generation && self.owner.map { $0 == owner.backend } != false &&
+        owner.backend == .corner && owner.generation == generation && self.owner.map { $0 == owner.backend } != false &&
             (restoring ? restoreAvailable() && releaseInput.map({ $0 == NativeSelectionPermit.inputCounters() }) != false : available()) && WindowContentPreview.sessionAvailable() &&
-            !StageManagerPreference.ownsWindowDispatch && AXIsProcessTrusted()
-    }
-
-    /// The only permissible extra native record is a new backend-owned, noncurrent slot of this exact
-    /// display. Reordering, removing or replacing any preexisting desktop still invalidates the writer.
-    static func topology(_ actual: [ManagedDisplayScope], matches baseline: [ManagedDisplayScope],
-                         allowing claimed: Set<UInt64>, on display: String) -> Bool {
-        let slots = Set(claimed.map(String.init))
-        guard !slots.contains("0"), slots.isDisjoint(with:baseline.flatMap(\.records).map(\.id)) else { return false }
-        var found = Set<String>()
-        let stripped = actual.map { scope in
-            ManagedDisplayScope(id:scope.id,displayID:scope.displayID,records:scope.records.filter { record in
-                guard slots.contains(record.id), scope.displayID == display, !record.isCurrent, record.fullscreenUUID == nil,
-                      found.insert(record.id).inserted else { return true }
-                return false
-            })
-        }
-        return stripped == baseline
+            !StageManagerPreference.ownsWindowDispatch && AXIsProcessTrusted() &&
+            (restoring || WindowVisibilityProvider.corner.requiredPermissions.isSubset(of: StageWindowEngineAttestation.currentPermissions()))
     }
 
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess) throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
@@ -121,7 +105,7 @@ import NearpaneOrdinaryWindowRuntime
               let catalog = NativeSpaceCatalog(snapshot,displayID:display,now:.now,uptime:ProcessInfo.processInfo.systemUptime),
               catalog.current.ordinaryUUID == scope.nativeSpace else { throw StageSwitchError.incomplete }
         let keys = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { key in
-            // An already retained standard window can be unlisted after our Corner/Spaces action.
+            // An already retained standard window can be unlisted after our same-desktop action.
             // Its original AX object and current physical state are still verified in the binding loop.
             if bindings[key] != nil { return true }
             return try access.role(of: key)
@@ -185,8 +169,7 @@ import NearpaneOrdinaryWindowRuntime
         hostAccess = access
         let (opening,keys) = try roster(first, access: access)
         let initial = enrolledTopology ?? first.scopes
-        let slots = Set(claims.values.filter { $0.backend == .spaces }.map(\.member))
-        guard Self.topology(first.scopes,matches:initial,allowing:slots,on:display) else { throw StageSwitchError.interrupted }
+        guard first.scopes == initial else { throw StageSwitchError.interrupted }
         guard !keys.isEmpty, keys.count <= 64, let native = UInt64(opening.current.id), native > 0, let usable = opening.display.usable
         else { throw StageSwitchError.incomplete }
         let desktop = OrdinaryDesktopIdentity(display:display,record:opening.current.id,uuid:scope.nativeSpace)
@@ -218,7 +201,7 @@ import NearpaneOrdinaryWindowRuntime
             // A confirmed parked sliver can be below the presentation reader's ordinary size cutoff.
             // Its still-retained AX object, actual CG frame and bidirectional home membership were read above.
             states[key] = .init(window:key,lifetime:b.lifetime,frame:observed.frame,visibility:state,
-                                hiddenSpaceID:state == .stageSpace ? observed.membership : nil)
+                                hiddenSpaceID:nil)
             focuses.append(observed.focus)
         }
         guard let last = await feed.readAfterAction(), let closing = try? roster(last, access: access), closing.1 == keys,
@@ -324,10 +307,7 @@ import NearpaneOrdinaryWindowRuntime
         func bounds(_ d: DisplayObservation) -> CGRect { .init(x:d.frame.x,y:d.frame.y,width:d.frame.width,height:d.frame.height) }
         if let claim {
             guard !o.minimized, claim.member == o.membership, claim.frame == o.frame else { throw StageSwitchError.ownership }
-            if claim.backend == .spaces {
-                guard o.membership != home, !o.onscreen else { throw StageSwitchError.incomplete }
-                return .stageSpace
-            }
+            guard claim.backend == .corner else { throw StageSwitchError.ownership }
             let exposed = bounds(display).intersection(rect)
             // Independent upper bound for the physical remainder. Rust additionally verifies the actual corner
             // shield/zone and the live input tap; its classification alone cannot qualify this geometry.

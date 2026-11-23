@@ -123,18 +123,16 @@ fn create_session(config: Config, qualified: Option<Grant>) -> Result<u64, u32> 
 struct Grant {
     backend: u32,
     evidence: [u8; 16],
-    spaces_route: Option<u32>,
 }
 const REVIEWED: &[Grant] = &[];
 fn reviewed(backend: u32, evidence: [u8; 16]) -> Option<Grant> {
-    REVIEWED.iter().copied().find(|g| {
-        g.backend == backend
-            && g.evidence == evidence
-            && matches!(
-                (g.backend, g.spaces_route),
-                (CORNER, None) | (SPACES, Some(1 | 2))
-            )
-    })
+    if backend != CORNER || evidence == [0; 16] {
+        return None;
+    }
+    REVIEWED
+        .iter()
+        .copied()
+        .find(|g| g.backend == CORNER && g.evidence == evidence)
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn np_engine_evidence_is_reviewed(backend: u32, evidence: *const u8) -> bool {

@@ -43,7 +43,7 @@ import Testing
         #expect(try read(sample(normal,4,visible:true)) == .visible)
         #expect(try read(sample(normal,4,visible:false,minimized:true)) == .minimized)
         #expect(try read(hidden,corner) == .parked)
-        #expect(try read(inSlot,slot) == .stageSpace)
+        #expect(throws: StageSwitchError.self) { try read(inSlot,slot) }
         #expect(throws:StageSwitchError.self) { try read(hidden) }
         #expect(throws:StageSwitchError.self) { try read(inSlot) }
         #expect(throws:StageSwitchError.self) { try read(sample(normal,99,visible:true),slot) }
@@ -51,19 +51,6 @@ import Testing
         #expect(throws:StageSwitchError.self) { try read(sample(normal,4,visible:true),.init(backend:.corner,frame:normal,member:4)) }
         let across = SurfaceRect(x:1198,y:-345,width:495,height:350)
         #expect(throws:StageSwitchError.self) { try read(sample(across,4,visible:true),.init(backend:.corner,frame:across,member:4)) }
-    }
-    @Test func onlyNewNoncurrentIndependentlyOwnedRecordMayVaryDuringASwitch() {
-        let a = SpaceRecord(id:"1",isCurrent:true,ordinaryUUID:UUID())
-        let b = SpaceRecord(id:"2",isCurrent:false,ordinaryUUID:UUID())
-        let slot = SpaceRecord(id:"55",isCurrent:false,ordinaryUUID:UUID())
-        let screen = { (rows:[SpaceRecord]) in ManagedDisplayScope(id:"ds",displayID:"A",records:rows) }
-        let base = [screen([a,b])]
-        #expect(StageWindowEngineWitness.topology([screen([a,slot,b])],matches:base,allowing:[55],on:"A"))
-        #expect(StageWindowEngineWitness.topology(base,matches:base,allowing:[55],on:"A"))
-        #expect(!StageWindowEngineWitness.topology(base,matches:base,allowing:[2],on:"A"))
-        #expect(!StageWindowEngineWitness.topology([screen([b,slot,a])],matches:base,allowing:[55],on:"A"))
-        #expect(!StageWindowEngineWitness.topology([screen([a,slot])],matches:base,allowing:[55],on:"A"))
-        #expect(!StageWindowEngineWitness.topology([screen([a,b,slot])],matches:base,allowing:[],on:"A"))
     }
     @Test func shutdownReturnsFalseForUnresolvedJournalAndTrueForNewIsolatedProfile() async throws {
         let p = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)

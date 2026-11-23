@@ -74,7 +74,7 @@ struct UnsubmittedCornerHide: Error {
     var intentIsCurrent: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
     public var qualifiedHiddenState: StageWindowState.Visibility? {
-        !closed && !frozen && witness.permits(owner,restoring:false) ? (owner.backend == .corner ? .parked : .stageSpace) : nil
+        !closed && !frozen && owner.backend == .corner && witness.permits(owner,restoring:false) ? .parked : nil
     }
     package init(owner: StageEngineOwner, witness: any StageEngineWindowWitness, transport: any StageEngineTransport) {
         self.owner = owner; self.witness = witness; self.transport = transport
@@ -90,7 +90,7 @@ struct UnsubmittedCornerHide: Error {
                   let f = state.frame
                   return id == state.window && id.pid > 1 && id.birth > 0 && id.number > 0 && f.width > 0 && f.height > 0 &&
                       [f.x,f.y,f.width,f.height].allSatisfy(\.isFinite) &&
-                      (state.visibility == .stageSpace ? (state.hiddenSpaceID ?? 0) > 0 && state.hiddenSpaceID != sample.nativeID : state.hiddenSpaceID == nil)
+                      state.visibility != .stageSpace && state.hiddenSpaceID == nil
               }) else { throw StageSwitchError.incomplete }
         // Fresh inventory can grow while this owner is observing. Its existing write lease cannot.
         if enrolledLifetimes == nil, !frozen, witness.permits(owner, restoring: false) {
@@ -122,7 +122,7 @@ struct UnsubmittedCornerHide: Error {
         guard qualifiedHiddenState != nil else { throw StageSwitchError.unavailable }
         do {
             let health = try await transport.health(owner,intent:intent)
-            guard qualifiedHiddenState != nil, health.verifies(intent,64 | (owner.backend == .corner ? 16 : 0)) else {
+            guard qualifiedHiddenState != nil, health.verifies(intent,64 | 16) else {
                 throw StageSwitchError.unavailable
             }
         } catch { stopAfterBackendFailure(current: true); throw error }
@@ -135,12 +135,12 @@ struct UnsubmittedCornerHide: Error {
 
     public func dispatch(_ c: StageWindowCommand) async throws {
         func eligible() -> Bool {
-            !closed && mayManage(c.before) &&
+            owner.backend == .corner && !closed && mayManage(c.before) &&
             (c.restoring ? c.action == .show && (recovering || (!frozen && intentIsCurrent())) : !frozen && intentIsCurrent()) && witness.permits(owner,restoring:c.restoring)
         }
         guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
         if c.restoring {
-            guard c.action == .show, c.restoreFrame != nil, c.before.visibility == (owner.backend == .corner ? .parked : .stageSpace)
+            guard c.action == .show, c.restoreFrame != nil, c.before.visibility == .parked
             else { throw StageSwitchError.ownership }
         }
         let pre = try await read(c.scope)
@@ -152,12 +152,11 @@ struct UnsubmittedCornerHide: Error {
         if !c.restoring {
             do {
                 let health = try await transport.submit(6,owner:owner,c)
-                guard eligible(), health.verifies(c.intent,64 | (owner.backend == .corner ? 16 : 0)) else {
+                guard eligible(), health.verifies(c.intent,64 | 16) else {
                     throw StageSwitchError.unavailable
                 }
             } catch { stopAfterBackendFailure(current: eligible()); throw error }
-            // A newly qualified Spaces handle may just have completed its own canary. Confirm that its
-            // cleanup really returned the user roster, current Space and focus before the first real write.
+            // Recheck the home, roster and original focus after the worker health observation.
             let checked = try await read(c.scope)
             guard eligible(), checked.sequence > pre.sequence, checked.generation == pre.generation,
                   checked.nativeID == pre.nativeID, checked.windows == pre.windows, checked.focus == pre.focus,
@@ -175,7 +174,7 @@ struct UnsubmittedCornerHide: Error {
             if hiding {
                 guard c.before.visibility == .visible else { throw StageSwitchError.ownership }
             } else {
-                guard c.restoreFrame != nil, c.before.visibility == (owner.backend == .corner ? .parked : .stageSpace) else {
+                guard c.restoreFrame != nil, c.before.visibility == .parked else {
                     throw StageSwitchError.ownership
                 }
             }
@@ -200,9 +199,9 @@ struct UnsubmittedCornerHide: Error {
             let sent = try await transport.submit(c.restoring ? 5 : hiding ? 3 : 4,owner:owner,c)
             guard eligible(), sent.verifies(c.intent,0) else { freeze(); throw StageSwitchError.incomplete }
             let readback = try await transport.submit(2,owner:owner,c)
-            let mask: UInt32 = 4 | 8 | (hiding ? 2 | 128 : 1) | (owner.backend == .spaces ? 32 : hiding ? 16 : 0)
+            let mask: UInt32 = 4 | 8 | 32 | (hiding ? 2 | 128 | 16 : 1)
             guard eligible(), readback.verifies(c.intent,mask), readback.flags & (hiding ? 1 : 2) == 0,
-                  owner.backend != .spaces || (hiding ? readback.nativeID != 0 && readback.nativeID != pre.nativeID : readback.nativeID == pre.nativeID)
+                  readback.nativeID == pre.nativeID
             else { freeze(); throw StageSwitchError.incomplete }
             witness.expectVisibility(c,nativeID:readback.nativeID,frame:readback.frame)
             let independentlyRead = try await read(c.scope)
@@ -212,7 +211,7 @@ struct UnsubmittedCornerHide: Error {
                   [measured.x,measured.y,measured.width,measured.height].allSatisfy(\.isFinite),
                   abs(measured.x-result.frame.x) <= 1, abs(measured.y-result.frame.y) <= 1,
                   abs(measured.width-result.frame.width) <= 1, abs(measured.height-result.frame.height) <= 1,
-                  !hiding || owner.backend != .spaces || result.hiddenSpaceID == readback.nativeID else {
+                  result.hiddenSpaceID == nil else {
                 freeze(); throw StageSwitchError.incomplete
             }
         }
@@ -247,7 +246,7 @@ struct UnsubmittedCornerHide: Error {
     public func preferredRecord(_ records: [StageEngineQualification], in environment: StageEngineEnvironment) -> StageEngineQualification? {
         var unavailable = failedEvidence
         if let session, session.backendFailed { unavailable.insert(session.owner.evidence) }
-        return StageEngineQualification.choose(records, in: environment, retaining: session?.owner.backend, excluding: unavailable)
+        return StageEngineQualification.choose(records, in: environment, excluding: unavailable)
     }
     public var canObserve: Bool { !busy && !releaseRequested && session?.qualifiedHiddenState != nil }
     public var canAttemptOwnedRelease: Bool { !busy && session?.canAttemptRelease == true }

@@ -1,4 +1,5 @@
 import AppKit
+import Security
 import NearpaneCore
 
 /// This route has no command-line or IPC entrance. A fixture, helper or differently signed
@@ -23,6 +24,21 @@ import NearpaneCore
                   executable: before.executable.path, expected: expectedCDHash, actual: digest),
               try OrdinaryProcessImage.read(getpid()) == before, AXIsProcessTrusted() else { throw StageSwitchError.unavailable }
         self.image = before; self.digest = digest
+    }
+
+    private static let signedDirectoryReader: Bool = {
+        let clause = #"anchor apple generic and identifier "com.holdsnow.nearpane.alpha" and certificate leaf[subject.OU] = "ZB9D4T66QB" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"#
+        var code: SecCode?, requirement: SecRequirement?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
+              SecRequirementCreateWithString(clause as CFString, [], &requirement) == errSecSuccess, let requirement else { return false }
+        return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
+    }()
+
+    /// Expose only a read closure. Possessing the canonical Host's AX permission cannot mint a writer.
+    package static func directoryReader() throws -> (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
+        guard signedDirectoryReader else { throw StageSwitchError.unavailable }
+        let access = try StageHostAccess(expectedCDHash: signing())
+        return { window, home in try access.currentSurface(window, home: home) }
     }
 
     func check() throws {

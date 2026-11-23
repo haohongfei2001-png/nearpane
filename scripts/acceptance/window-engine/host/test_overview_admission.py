@@ -60,6 +60,15 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(corner["qualification"],"NOT_RUN")
         self.assertEqual(stage.summarize_trial("spaces",trial)["qualification"],"BLOCKED")
 
+    def test_obsolete_host_never_advertises_interactive_session_or_research_neighbor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            exe = Path(folder) / "NearpaneHost"
+            exe.write_bytes(b"--registered-window")
+            self.assertFalse(stage.advertises_interactive_entry(exe, "interactive-roster"))
+            exe.write_bytes(b"--interactive-window-pair")
+            self.assertTrue(stage.advertises_interactive_entry(exe, "interactive-roster"))
+            self.assertFalse(stage.advertises_interactive_entry(exe, "interactive-spaces"))
+
     def test_passive_read_admits_fixture_readback_only_without_prior_spaces_trial(self):
         r = receipt()
         focus = dict(uptime=100., workspacePID=8, birth=25, cgWindowID=41)

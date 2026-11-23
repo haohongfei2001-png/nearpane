@@ -126,3 +126,20 @@ public actor NativeStageWindowEngine {
         } onCancel: { [handle] in _ = np_engine_cancel(handle, accepted) }
     }
 }
+
+/// Receipt checks for the nonce-bound native Spaces research trial.
+enum SpacesResearchReceipt {
+    static func launchConfirmed(_ receipt: NativeStageEngineReceipt, expectedEpoch: UInt64, observedEpoch: UInt64,
+                                            expectedHome: UInt64?) -> Bool {
+        let required: UInt32 = 64 | 8 | 32 | 256 | 512 | 1024
+        return expectedEpoch > 0 && receipt.epoch == expectedEpoch && expectedEpoch == observedEpoch && receipt.status == 0 &&
+            receipt.flags & required == required && receipt.flags & (128 | 2) == 0 && receipt.owned == 0 &&
+            receipt.nativeID > 0 && expectedHome.map { $0 == receipt.nativeID } != false
+    }
+
+    static func cleanupConfirmed(_ receipt: NativeStageEngineReceipt, observedEpoch: UInt64) -> Bool {
+        let cleared: UInt32 = 256 | 512 | 1024 | 32
+        return receipt.status == 0 && receipt.owned == 0 && receipt.epoch > 0 && receipt.epoch == observedEpoch &&
+            receipt.flags & cleared == cleared && receipt.flags & (128 | 2) == 0
+    }
+}

@@ -4,7 +4,13 @@ import Testing
 
 @MainActor private final class Session: StageWindowSession {
     var generation = UUID(), sequence: UInt64 = 0
-    var qualifiedHiddenState: StageWindowState.Visibility? = .minimized
+    var qualifiedHiddenState: StageWindowState.Visibility? = .parked
+    let evidence = UUID()
+    var engineOwner: StageEngineOwner? {
+        let env = StageEngineEnvironment(osBuild:"26A428", engineRevision:String(repeating:"1",count:40), hostCDHash:String(repeating:"2",count:40),
+            hardware:"test", topology:"test", windowClass:"ordinary-standard", sipEnabled:true)
+        return .init(qualification:.init(backend:.corner, environment:env, evidence:evidence, checks:[:]), generation:generation)
+    }
     let scope = StageGroupScope(display: UUID(), nativeSpace: UUID())
     let work = SurfaceRect(width: 900, height: 700)
     var windows = [NativeSpaceWindow: StageWindowState](), focus: NativeSpaceWindow?
@@ -16,13 +22,13 @@ import Testing
     func read(_ scope: StageGroupScope) throws -> StageWindowSample {
         sequence += 1
         beforeRead?()
-        return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work, windows: windows, focus: focus)
+        return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work, windows: windows, focus: focus, nativeID: 4)
     }
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) throws {
         guard before == windows[before.window], self.generation == generation, self.scope == scope else { throw StageSwitchError.interrupted }
         writes.append((action, before.window))
         switch action {
-        case .hide: windows[before.window]?.visibility = .minimized
+        case .hide: windows[before.window]?.visibility = .parked
         case .show: windows[before.window]?.visibility = .visible
         case .place(let r): windows[before.window]?.frame = r
         case .focus: focus = before.window
@@ -60,7 +66,7 @@ import Testing
             try await engine.activate(groups[i].id, member: nil, in: runtime.scope, consent: true, session: runtime)
             let id = groups[i].members[0].windowHint
             #expect(runtime.focus == id && runtime.windows[id]?.visibility == .visible)
-            #expect(runtime.windows.filter { $0.key != id && $0.key.number <= 3 }.values.allSatisfy { $0.visibility == .minimized })
+            #expect(runtime.windows.filter { $0.key != id && $0.key.number <= 3 }.values.allSatisfy { $0.visibility == .parked })
             #expect(runtime.windows.filter { $0.key.number >= 4 } == untouched)
             #expect(store.activeGroup(in: runtime.scope) == groups[i].id)
         }
@@ -176,7 +182,7 @@ import Testing
         #expect(saved.focusMember()?.id == b.id && saved.focusMember(requested: UUID()) == nil)
         try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
         #expect(runtime.focus == b.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
-                runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .minimized)
+                runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .parked)
     }
 
     @Test(arguments: [1, 3]) func userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_ boundary: Int) async throws {

@@ -6,11 +6,13 @@ public enum StageWindowBackend: String, Codable, CaseIterable, Sendable { case c
 /// OS build, window class, resolution, refresh rate or topology needs its own qualification.
 public struct StageEngineEnvironment: Equatable, Codable, Sendable {
     public let osBuild, engineRevision, hostCDHash, hardware, topology, windowClass: String
+    public let permissions: Set<StageVisibilityPermission>?
     public let sipEnabled: Bool
     public init(osBuild: String, engineRevision: String, hostCDHash: String, hardware: String,
-                topology: String, windowClass: String, sipEnabled: Bool) {
+                topology: String, windowClass: String, sipEnabled: Bool, permissions: Set<StageVisibilityPermission>? = nil) {
         self.osBuild = osBuild; self.engineRevision = engineRevision; self.hostCDHash = hostCDHash
         self.hardware = hardware; self.topology = topology; self.windowClass = windowClass; self.sipEnabled = sipEnabled
+        self.permissions = permissions
     }
     var complete: Bool {
         !osBuild.isEmpty && !hardware.isEmpty && !topology.isEmpty && !windowClass.isEmpty && sipEnabled &&
@@ -27,6 +29,8 @@ public enum StageEngineCheck: String, Codable, CaseIterable, Hashable, Sendable 
     case eventTapRevocation, inputPermissionsAndSecureInput
     case exactSIPBuild, validatedRoute, memberMembershipEachWay, applicationReactivation, modalPanels
     case allMissionControlEntrances, exposeFullscreenSplitView, physicalMultiDisplay, loginRecovery, skyLightLoss
+    case nativeMembershipAndOrderUnchanged, independentVisualIsolation, exactAXGeometryReturned
+    case guardianDurableHandoff, guardianRecoversAfterHostExit, realPointerAndDocumentReceivers
     public static func required(for backend: StageWindowBackend) -> Set<Self> {
         let common: Set<Self> = [.independentlyObserved,.twoAppsThreeWindows,.sameAppSiblings,.unmanagedBystanders,
             .preminimizedAndDockUnchanged,.exactKeyboardReceiver,.nativeTakeovers,.topologyChanges,
@@ -34,7 +38,7 @@ public enum StageEngineCheck: String, Codable, CaseIterable, Hashable, Sendable 
             .signedHostExactKeyboard,.pairedApplePerformance,.hundredPerDirection,.thousandTransitions,
             .sixtyAndHighRefresh,.physicalDisplayConfigurations,.boundedResourceUseAndRecovery]
         switch backend {
-        case .corner: return common.union([.cornerGeometryAndClamp,.sliverAndBorders,.completeMouseSequences,
+        case .corner: return common.union(WindowVisibilityProvider.corner.singleWindowChecks).union([.cornerGeometryAndClamp,.sliverAndBorders,.completeMouseSequences,
             .systemSurfacesClickable,.freshZOrderAndMarker,.eventTapRevocation,.inputPermissionsAndSecureInput])
         case .spaces: return common.union([.exactSIPBuild,.validatedRoute,.memberMembershipEachWay,.applicationReactivation,
             .modalPanels,.allMissionControlEntrances,.exposeFullscreenSplitView,.physicalMultiDisplay,.loginRecovery,.skyLightLoss])
@@ -43,6 +47,50 @@ public enum StageEngineCheck: String, Codable, CaseIterable, Hashable, Sendable 
 }
 
 public enum StageEngineFinding: String, Codable, Sendable { case pass, fail, unknown, notRun, blocked }
+
+/// A permission observation belongs to the signed canonical Host. Older receipts decode with no observation.
+public enum StageVisibilityPermission: String, Codable, CaseIterable, Sendable {
+    case accessibility, listenEvent, postEvent, screenCapture
+}
+
+/// Only mechanisms which keep the native desktop membership and roster intact belong to this API.
+/// StageWindowBackend also describes archived receipts and the separately scoped research ABI.
+public enum WindowVisibilityProvider: Sendable {
+    case corner
+
+    public enum Stage: Sendable { case isolatedGroupTrial, production }
+    public enum Admission: Equatable, Sendable {
+        case supported, unsupported
+    }
+    public var assessedBuilds: Set<String> { ["26A428"] }
+    public var requiredPermissions: Set<StageVisibilityPermission> { Set(StageVisibilityPermission.allCases) }
+    public var singleWindowChecks: Set<StageEngineCheck> {
+        [.independentlyObserved, .exactSIPBuild, .twoAppsThreeWindows, .sameAppSiblings, .unmanagedBystanders,
+         .preminimizedAndDockUnchanged, .exactKeyboardReceiver, .nativeMembershipAndOrderUnchanged,
+         .independentVisualIsolation, .exactAXGeometryReturned, .guardianDurableHandoff, .guardianRecoversAfterHostExit,
+         .realPointerAndDocumentReceivers, .cornerGeometryAndClamp, .sliverAndBorders, .completeMouseSequences,
+         .systemSurfacesClickable, .freshZOrderAndMarker, .eventTapRevocation, .inputPermissionsAndSecureInput,
+         .normalQuitRecovery, .crashRecovery]
+    }
+
+    /// The isolated result is a progression decision; it never creates a product transport or write grant.
+    public static func admission(for record: StageEngineQualification, in live: StageEngineEnvironment, stage: Stage) -> Admission {
+        let provider = Self.corner
+        guard record.backend == .corner, record.environment == live, live.complete,
+              provider.assessedBuilds.contains(live.osBuild), live.windowClass == "ordinary-standard",
+              let actual = live.permissions, provider.requiredPermissions.isSubset(of: actual),
+              provider.singleWindowChecks.allSatisfy({ record.checks[$0] == .pass }) else { return .unsupported }
+        switch stage {
+        case .isolatedGroupTrial:
+            return record.checks.values.contains(.fail) ? .unsupported : .supported
+        case .production:
+            guard record.comparison?.passesAbsoluteLimits == true,
+                  StageEngineCheck.required(for: .corner).allSatisfy({ record.checks[$0] == .pass }),
+                  record.checks.values.allSatisfy({ $0 == .pass }) else { return .unsupported }
+            return .supported
+        }
+    }
+}
 
 /// Same-device independent measurements. Keep each tail so a faster median cannot conceal a regression.
 public struct StageEngineComparison: Codable, Equatable, Sendable {
@@ -93,21 +141,7 @@ public struct StageEngineComparison: Codable, Equatable, Sendable {
             settled.p95 <= 250 && longestSettling <= 500 && frameGapP99 <= 50 && droppedFramePercent <= 1 &&
             idleCPU <= 1 && burstCPU <= 20 && memoryMB <= 100
     }
-    func matchesBenchmark(_ peer: Self) -> Bool {
-        guard let a = reference, let b = peer.reference, comparable, peer.comparable, protocolDigest == peer.protocolDigest,
-              a.nominalInterval == b.nominalInterval, a.appleInteractiveP95 == b.appleInteractiveP95,
-              a.appleFirstFrameP95 == b.appleFirstFrameP95 else { return false }
-        return true
-    }
-    func dominates(_ peer: Self) -> Bool {
-        guard matchesBenchmark(peer), let a = reference, let b = peer.reference else { return false }
-        let pairs = zip(values + [a.frameGapP95,a.longestGap,a.recoverySeconds],peer.values + [b.frameGapP95,b.longestGap,b.recoverySeconds])
-        return pairs.allSatisfy { $0 <= $1 } && pairs.contains { $0 < $1 }
-    }
-    var startupOrder: [Double] {
-        let recovery = reference.map { [$0.frameGapP95, $0.longestGap, $0.recoverySeconds] } ?? []
-        return [interactive.p99, firstFrame.p95, settled.p95, frameGapP99, droppedFramePercent] + values + recovery
-    }
+
 }
 
 /// Supplied only by a trusted capability source (never decoded from a profile preference or a UI argument).
@@ -119,38 +153,17 @@ public struct StageEngineQualification: Codable, Equatable, Sendable {
         self.backend = backend; self.environment = environment; self.evidence = evidence
         self.checks = checks; self.comparison = comparison; self.spacesBaseline = spacesBaseline
     }
-    private var completePhysical: Bool {
-        environment.complete && comparison?.passesAbsoluteLimits == true && StageEngineCheck.required(for:backend).allSatisfy { checks[$0] == .pass } &&
-            !checks.values.contains { $0 != .pass }
+    public func admits(_ live: StageEngineEnvironment) -> Bool {
+        WindowVisibilityProvider.admission(for: self, in: live, stage: .production) == .supported
     }
-    public func admits(_ live: StageEngineEnvironment, reviewed: [Self] = []) -> Bool {
-        guard completePhysical, environment == live else { return false }
-        if backend != .spaces || live.osBuild == "26A428" { return true }
-        guard let spacesBaseline else { return false }
-        let match = reviewed.filter { $0.evidence == spacesBaseline }
-        return match.count == 1 && match[0].backend == .spaces && match[0].environment.osBuild == "26A428" &&
-            match[0].environment.engineRevision == live.engineRevision && match[0].environment.windowClass == live.windowClass &&
-            match[0].completePhysical
+
+    public static func choose(_ records: [Self], in live: StageEngineEnvironment, excluding unavailable: Set<UUID> = []) -> Self? {
+        let candidates = records.filter { $0.backend == .corner && $0.environment == live }
+        guard candidates.count == 1, let candidate = candidates.first, !unavailable.contains(candidate.evidence),
+              candidate.admits(live) else { return nil }
+        return candidate
     }
-    public static func choose(_ records: [Self], in live: StageEngineEnvironment,
-                              retaining owner: StageWindowBackend? = nil, excluding unavailable: Set<UUID> = []) -> Self? {
-        let matching = records.filter { $0.environment == live }
-        let byBackend = Dictionary(grouping: matching, by: \.backend)
-        let reviewed = records.filter { !unavailable.contains($0.evidence) }
-        let eligible = matching.filter { byBackend[$0.backend]?.count == 1 && !unavailable.contains($0.evidence) && $0.admits(live,reviewed:reviewed) }
-        if eligible.count == 1 { return eligible[0] }
-        guard eligible.count == 2 else { return nil }
-        let a = eligible[0], b = eligible[1]
-        let current = eligible.first { $0.backend == owner }
-        guard let lhs = a.comparison, let rhs = b.comparison, lhs.matchesBenchmark(rhs), a.evidence != b.evidence else { return current }
-        if lhs.dominates(rhs) { return a }
-        if rhs.dominates(lhs) { return b }
-        if let current { return current }
-        if lhs.startupOrder.lexicographicallyPrecedes(rhs.startupOrder) { return a }
-        if rhs.startupOrder.lexicographicallyPrecedes(lhs.startupOrder) { return b }
-        // Identical measured product quality. Keep startup deterministic across catalog ordering.
-        return a.evidence.uuidString < b.evidence.uuidString ? a : b
-    }
+
 }
 
 /// A generation issued by the Rust worker for this exact environment. The durable stamp is a lookup key only.

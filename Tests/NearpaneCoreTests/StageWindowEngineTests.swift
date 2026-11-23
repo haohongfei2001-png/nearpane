@@ -93,7 +93,7 @@ import Testing
 
 @Suite @MainActor struct StageWindowEngineTests {
     let environment = StageEngineEnvironment(osBuild:"26A428",engineRevision:String(repeating:"a",count:40),
-        hostCDHash:String(repeating:"1",count:40),hardware:"fixture",topology:"physical-fixture",windowClass:"ordinary",sipEnabled:true)
+        hostCDHash:String(repeating:"1",count:40),hardware:"fixture",topology:"physical-fixture",windowClass:"ordinary-standard",sipEnabled:true,permissions:Set(StageVisibilityPermission.allCases))
     private func qualification(_ backend: StageWindowBackend, _ comparison: StageEngineComparison? = nil) -> StageEngineQualification {
         .init(backend:backend,environment:environment,evidence:UUID(),
               checks:Dictionary(uniqueKeysWithValues:StageEngineCheck.required(for:backend).map { ($0,.pass) }),comparison:comparison ?? metrics(6))
@@ -105,45 +105,42 @@ import Testing
               idleCPU:1,burstCPU:2,windowServerCPU:2,replaydCPU:1,memoryMB:memory,
               reference:.init(appleFirstFrameP95:55,appleInteractiveP95:75,nominalInterval:16.7,frameGapP95:5,longestGap:18,recoverySeconds:1))
     }
-    @Test func selectionUsesCompletePhysicalEvidenceAndNoBackendOrder() {
-        let a=qualification(.corner,metrics(8)), b=qualification(.spaces,metrics(5))
-        #expect(StageEngineQualification.choose([a,b],in:environment)==b)
-        #expect(StageEngineQualification.choose([b,a],in:environment)==b)
-        let fast=qualification(.corner,metrics(3))
-        #expect(StageEngineQualification.choose([b,fast],in:environment)==fast)
-        #expect(StageEngineQualification.choose([qualification(.corner,metrics(3,inputTail:75)),b],in:environment)==b)
-        let mixed=qualification(.corner,metrics(3,memory:15))
-        #expect(StageEngineQualification.choose([mixed,b],in:environment)==mixed)
-        #expect(StageEngineQualification.choose([mixed,b],in:environment,retaining:.spaces)==b)
-        let tied = qualification(.corner,metrics(5))
-        let selected = StageEngineQualification.choose([tied,b],in:environment)
-        #expect(selected != nil && selected == StageEngineQualification.choose([b,tied],in:environment))
-        #expect(StageEngineQualification.choose([qualification(.spaces,metrics(3,sample:99)),a],in:environment)==a)
-        #expect(StageEngineQualification.choose([.init(backend:.spaces,environment:environment,evidence:b.evidence,checks:b.checks)],in:environment)==nil)
-        #expect(StageEngineQualification.choose([qualification(.corner,metrics(275))],in:environment)==nil)
-        for missing in [StageEngineFinding.unknown,.fail,.notRun,.blocked] {
-            var checks=b.checks;checks[.sameAppSiblings]=missing
-            let unsafe=StageEngineQualification(backend:.spaces,environment:environment,evidence:UUID(),checks:checks,comparison:metrics(1))
-            #expect(StageEngineQualification.choose([unsafe,a],in:environment)==a)
-        }
-        let changed=StageEngineEnvironment(osBuild:"27B000",engineRevision:environment.engineRevision,hostCDHash:environment.hostCDHash,
-            hardware:environment.hardware,topology:"next",windowClass:"ordinary",sipEnabled:true)
-        #expect(StageEngineQualification.choose([a,b],in:changed)==nil)
-        #expect(StageEngineQualification.choose([],in:environment)==nil)
+    @Test func productNeverSelectsNativeSpacesEvenWithEveryFindingAndBetterTiming() {
+        let corner = qualification(.corner), spaces = qualification(.spaces, metrics(1))
+        #expect(StageEngineQualification.choose([spaces], in: environment) == nil)
+        #expect(StageEngineQualification.choose([spaces, corner], in: environment) == corner)
+        #expect(StageEngineQualification.choose([corner, spaces], in: environment, excluding: [corner.evidence]) == nil)
+        #expect(StageEngineQualification.choose([corner, qualification(.corner)], in: environment) == nil)
+        #expect(!qualification(.corner, metrics(275)).admits(environment))
+        #expect(WindowVisibilityProvider.admission(for: spaces, in: environment, stage: .isolatedGroupTrial) == .unsupported)
     }
 
-    @Test func otherSupportedBuildNeedsItsOwnEvidenceAndSameEngineSIPBaseline() {
-        let base = qualification(.spaces), e = base.environment
-        let live = StageEngineEnvironment(osBuild:"26B501",engineRevision:e.engineRevision,hostCDHash:e.hostCDHash,
-            hardware:e.hardware,topology:e.topology,windowClass:e.windowClass,sipEnabled:true)
-        let separate = StageEngineQualification(backend:.spaces,environment:live,evidence:UUID(),checks:base.checks,comparison:base.comparison,spacesBaseline:base.evidence)
-        #expect(StageEngineQualification.choose([separate],in:live) == nil)
-        #expect(StageEngineQualification.choose([base],in:live) == nil)
-        #expect(StageEngineQualification.choose([separate,base],in:live) == separate)
-        var unknownChecks = base.checks
-        unknownChecks[.exactSIPBuild] = .unknown
-        let failed = StageEngineQualification(backend:.spaces,environment:e,evidence:base.evidence,checks:unknownChecks,comparison:base.comparison)
-        #expect(StageEngineQualification.choose([separate,failed],in:live) == nil)
+    @Test func isolatedSingleWindowProofNeverEnablesShippingAndMissingEvidenceNeverAdmitsAGroup() throws {
+        let approved = qualification(.corner)
+        var checks = Dictionary(uniqueKeysWithValues: WindowVisibilityProvider.corner.singleWindowChecks.map { ($0, StageEngineFinding.pass) })
+        func record(_ e: StageEngineEnvironment) -> StageEngineQualification {
+            .init(backend: .corner, environment: e, evidence: approved.evidence, checks: checks)
+        }
+        #expect(WindowVisibilityProvider.admission(for: record(environment), in: environment, stage: .isolatedGroupTrial) == .supported)
+        #expect(!record(environment).admits(environment))
+        for key in WindowVisibilityProvider.corner.singleWindowChecks {
+            for outcome in [StageEngineFinding.unknown, .notRun, .blocked, .fail] {
+                checks[key] = outcome
+                #expect(WindowVisibilityProvider.admission(for: record(environment), in: environment, stage: .isolatedGroupTrial) == .unsupported)
+            }
+            checks[key] = .pass
+        }
+        for permission in StageVisibilityPermission.allCases {
+            let e = StageEngineEnvironment(osBuild:environment.osBuild, engineRevision:environment.engineRevision,
+                hostCDHash:environment.hostCDHash, hardware:environment.hardware, topology:environment.topology,
+                windowClass:environment.windowClass, sipEnabled:true, permissions:WindowVisibilityProvider.corner.requiredPermissions.subtracting([permission]))
+            #expect(WindowVisibilityProvider.admission(for: record(e), in:e, stage:.isolatedGroupTrial) == .unsupported)
+        }
+        var json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(environment)) as? [String:Any])
+        json.removeValue(forKey: "permissions")
+        let legacy = try JSONDecoder().decode(StageEngineEnvironment.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(legacy.permissions == nil)
+        #expect(WindowVisibilityProvider.admission(for: record(legacy), in:legacy, stage:.isolatedGroupTrial) == .unsupported)
     }
 
     private func setup(_ count: Int = 3) throws -> (URL, StageGroupStore, StageWindowEngineController, EngineFixture, [StageGroupDirectory.Group]) {
@@ -299,7 +296,7 @@ import Testing
         let (p,store,engine,f,groups)=try setup()
         defer {try? FileManager.default.removeItem(at:p)}
         let originals=f.windows
-        let old=qualification(.spaces), next=qualification(.corner)
+        let old=qualification(.corner), next=qualification(.corner)
         try await bind(engine,f,old)
         for i in [0,1,2,0] {try await activate(groups[i],engine,f)}
         #expect(f.focus == groups[0].members[0].windowHint)
@@ -320,7 +317,7 @@ import Testing
     @Test func unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose() async throws {
         let (p, _, engine, original, groups) = try setup()
         defer { try? FileManager.default.removeItem(at: p) }
-        let fast = qualification(.spaces, metrics(3)), spare = qualification(.corner, metrics(7))
+        let fast = qualification(.corner, metrics(3)), spare = qualification(.spaces, metrics(7))
         let records = [fast, spare]
         let before = original.windows
         try await bind(engine, original, fast)
@@ -330,7 +327,7 @@ import Testing
         await #expect(throws: StageSwitchError.unavailable) { try await session.checkHealth() }
         #expect(session.backendFailed)
         #expect(engine.preferredRecord([fast], in: environment) == nil)
-        #expect(engine.preferredRecord(records, in: environment) == spare)
+        #expect(engine.preferredRecord(records, in: environment) == nil)
         original.zeroLeases = false
         var allocations = 0
         await #expect(throws: StageSwitchError.recoveryRequired) {
@@ -338,15 +335,13 @@ import Testing
         }
         #expect(allocations == 0 && engine.session === session && original.windows == before)
         original.zeroLeases = true
-        let fresh = EngineFixture()
-        let ok = try await engine.configure(for: environment, records: records, exclusive: { true }) { q in
-            #expect(original.closes == 1 && q == spare)
+        let ok = try await engine.configure(for: environment, records: records, exclusive: { true }) { _ in
             allocations += 1
-            return StageEngineSession(owner: .init(qualification: q, generation: fresh.epoch), witness: fresh, transport: fresh)
+            return nil
         }
-        #expect(ok && allocations == 1 && fresh.effects.isEmpty)
+        #expect(!ok && allocations == 0 && original.closes == 1 && engine.session == nil)
         try await engine.release()
-        #expect(engine.preferredRecord(records, in: environment) == spare)
+        #expect(engine.preferredRecord(records, in: environment) == nil)
     }
 
     @Test func externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend() async throws {
@@ -466,7 +461,7 @@ import Testing
     @Test func takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement() async throws {
         let (p,_,engine,f,groups) = try setup()
         defer { try? FileManager.default.removeItem(at:p) }
-        try await bind(engine,f,qualification(.spaces))
+        try await bind(engine,f,qualification(.corner))
         try await activate(groups[0],engine,f)
         f.beforeCloseRead = { [weak engine] in engine?.invalidate() }
         var replacement = false
@@ -495,11 +490,11 @@ import Testing
         #expect(!other && f.effects.filter { $0.0 == 3 }.count == 1)
     }
 
-    @Test func uncertainStartupOwnsOnlyItsCanaryAndCannotHandOffBeforeItsWorkerCloses() async throws {
+    @Test func uncertainStartupRetainsOriginalWorkerUntilItCanClose() async throws {
         let (p,store,engine,f,groups) = try setup()
         defer { try? FileManager.default.removeItem(at:p) }
         f.canStart = false; f.zeroLeases = false
-        try await bind(engine,f,qualification(.spaces))
+        try await bind(engine,f,qualification(.corner))
         await #expect(throws:StageSwitchError.incomplete) { try await activate(groups[0],engine,f) }
         let old = try StageGroupCoordinator(store:store,profile:p)
         #expect(old.retainedOwner == engine.session?.owner && old.hasWindowAuthority && !old.requiresRecovery)
@@ -517,7 +512,7 @@ import Testing
         let (p,_,engine,f,groups) = try setup(2)
         defer { try? FileManager.default.removeItem(at:p) }
         f.windows = f.windows.filter { $0.key.number <= 2 }
-        try await bind(engine,f,qualification(.spaces))
+        try await bind(engine,f,qualification(.corner))
         for i in [0,1,0] { try await activate(groups[i],engine,f) }
         #expect(f.effects.map { $0.0 } == [3,4,3,4,3])
         #expect(f.visibleAfterMutation == [1,2,1,2,1])

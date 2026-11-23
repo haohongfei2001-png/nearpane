@@ -23,14 +23,12 @@ const LIMIT: usize = 32;
 const ACQUISITION_EPOCH: u64 = 1;
 
 fn qualified_write(grant: Option<crate::Grant>, r: &Request) -> bool {
-    if !grant.is_some_and(|g| g.backend == r.backend) {
+    if r.backend != CORNER || !grant.is_some_and(|g| g.backend == CORNER) {
         return false;
     }
     match r.operation {
         HIDE | SHOW => r.epoch == ACQUISITION_EPOCH,
-        LAUNCH => r.backend == SPACES && r.epoch == ACQUISITION_EPOCH,
         RESTORE => true,
-        CLEAN_LAUNCH => r.backend == SPACES,
         _ => false,
     }
 }
@@ -437,7 +435,7 @@ fn process(
         cancelled: job.cancelled,
         deadline: job.began + Duration::from_millis(r.timeout_ms as u64),
         write: r.writes() && (config.allows(&r) || qualified_write(qualified, &r)),
-        spaces_route: qualified.and_then(|g| g.spaces_route),
+        spaces_route: None, // Product handles have no native Space migration route.
         corner_input_check: r.operation == HEALTH
             && r.backend == CORNER
             && ((r.epoch == ACQUISITION_EPOCH && qualified.is_some_and(|g| g.backend == CORNER))
@@ -763,7 +761,6 @@ mod tests {
             let grant = Some(crate::Grant {
                 backend,
                 evidence: [1; 16],
-                spaces_route: (backend == SPACES).then_some(1),
             });
             for operation in [HIDE, SHOW, LAUNCH, RESTORE, CLEAN_LAUNCH, TRIAL] {
                 let r = Request {
@@ -772,10 +769,9 @@ mod tests {
                     epoch: ACQUISITION_EPOCH,
                     ..Default::default()
                 };
-                let spaces_only = matches!(operation, LAUNCH | CLEAN_LAUNCH);
                 assert_eq!(
                     qualified_write(grant, &r),
-                    operation != TRIAL && (!spaces_only || backend == SPACES)
+                    backend == CORNER && matches!(operation, HIDE | SHOW | RESTORE)
                 );
                 let next = Request {
                     epoch: ACQUISITION_EPOCH + 1,
@@ -783,7 +779,7 @@ mod tests {
                 };
                 assert_eq!(
                     qualified_write(grant, &next),
-                    operation == RESTORE || operation == CLEAN_LAUNCH && backend == SPACES
+                    backend == CORNER && operation == RESTORE
                 );
                 assert!(!qualified_write(None, &next));
                 assert!(!qualified_write(

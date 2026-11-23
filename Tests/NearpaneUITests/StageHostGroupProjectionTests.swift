@@ -50,6 +50,21 @@ import NearpaneCore
         #expect(copy.windows[3] == raw.windows[3])
     }
 
+    @Test func directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows() throws {
+        var raw = snapshot([window(8), window(9)])
+        raw.native?.accessibility = .partial
+        raw.windows[0].metadata?.overviewOrdinaryRole = true
+        raw.windows[0].metadata?.minimized = false
+        let projection = try #require(StageWindowEngineHost.projectGroups(raw) { key, _ in
+            #expect(key.number == 9)
+            return seen(9)
+        })
+        #expect(projection.windows[0] == raw.windows[0])
+        #expect(projection.windows.allSatisfy(projection.isCurrentDesktopWindow))
+        #expect(!StageWindowEngineHost.needsDirectoryRead(projection))
+        #expect(raw.windows[1].metadata?.overviewOrdinaryRole == nil)
+    }
+
     @Test func foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() throws {
         let raw = snapshot([window(8)])
         for mismatch in [seen(9), seen(8, birth: 3500), seen(8, member: 5), seen(8, bounds: .init(width: 30, height: 30))] {

@@ -104,10 +104,10 @@ jobs:
           fi
           "$openssl_bin/openssl" version | grep '^OpenSSL 3\.'
           echo "$openssl_bin" >> "$GITHUB_PATH"
-      - name: Compare enrolled three-group window isolation on a disposable desktop
+      - name: Verify wallpaper and desktop item behavior on a disposable desktop
         run: |
           swift build --target NearpaneSpaceAction
-          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-comparison "$RUNNER_TEMP/stage-group-isolation"
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-desktop-behavior "$RUNNER_TEMP/stage-group-isolation"
           cat "$RUNNER_TEMP/stage-group-isolation/summary.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve full window observations and screen recordings
         if: ${{ !cancelled() }}

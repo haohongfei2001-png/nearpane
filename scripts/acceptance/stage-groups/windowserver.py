@@ -67,7 +67,7 @@ def preserve_delivery_media(binary, root, receipt, result):
     return media
 
 
-def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_only=False):
+def run(build, receipt, comparison=None, lifecycle_only=False, methods=()):
     with tempfile.TemporaryDirectory(prefix="nearpane-group-fixture.") as tmp:
         root = Path(tmp).resolve()
         targets = {"NearpaneCore.build", "WindowGeometryCore.build", "CReadOnlySpaces.build"}
@@ -89,7 +89,7 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
                         *inputs, "-o", binary], check=True)
         if comparison:
             from comparison import run_comparison
-            run_comparison(binary, comparison, desktop_items_only=desktop_items_only)
+            run_comparison(binary, comparison, methods)
             return
         if receipt is None:
             return
@@ -155,10 +155,7 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
                     result["deliveryMedia"] = preserve_delivery_media(binary, root, receipt, result["interactiveDelivery"])
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     result["deliveryMedia"] = {"screen": "UNKNOWN", "video": "UNKNOWN", "reason": type(error).__name__}
-                probe = subprocess.run([binary, "visibility", root], capture_output=True, text=True, timeout=24)
-                observed = root / "visibility.json"
-                result["singleWindowVisibility"] = (json.loads(observed.read_bytes()) if observed.exists() else
-                    {"status": "UNKNOWN", "reason": probe.stderr[-300:] or "missingVisibilityReceipt"})
+                result["singleWindowVisibility"] = {"status": "NOT_RUN", "reason": "archivedAXMinimizedOutsideProduct"}
         finally:
             (root / "stop").touch()
             result["fixtureProcessesExited"] = all([proc.wait(timeout=12) == 0 for proc in processes])
@@ -170,13 +167,10 @@ def run(build, receipt, comparison=None, lifecycle_only=False, desktop_items_onl
             result["profileRemoved"] = not profile.exists()
             receipt.write_text(json.dumps(result, indent=2) + "\n")
             print(json.dumps(result, sort_keys=True))
-        qualification = result.get("singleWindowVisibility", {}).get("status", "NOT_RUN")
-        print("Directory and exact fixture geometry:", result["status"], "| Public single-window AX qualification:", qualification)
+        print("Directory and exact fixture geometry:", result["status"])
         delivery = result.get("interactiveDelivery", {}).get("status")
         if delivery in {"FAIL", "UNKNOWN"}:
             raise SystemExit("Isolated three-window receiver verification: " + delivery)
-        if qualification in ("FAIL", "UNKNOWN"):
-            print("::warning::Single-window visibility qualification recorded " + qualification)
         if result["status"] not in ("PASS", "BLOCKED") or result.get("processLifecycle", {}).get("status") in ("FAIL", "UNKNOWN"):
             raise SystemExit(1)
 
@@ -188,14 +182,20 @@ if __name__ == "__main__":
     mode.add_argument("--compile-only", action="store_true")
     mode.add_argument("--hosted-receipt", type=Path)
     mode.add_argument("--hosted-lifecycle", type=Path)
-    mode.add_argument("--hosted-comparison", type=Path)
+    mode.add_argument("--hosted-comparison", type=Path, help="archived visibility research on an isolated runner")
+    mode.add_argument("--hosted-desktop-behavior", type=Path)
     mode.add_argument("--hosted-desktop-items", type=Path)
     args = cli.parse_args()
-    comparison = args.hosted_comparison or args.hosted_desktop_items
+    comparison = args.hosted_comparison or args.hosted_desktop_items or args.hosted_desktop_behavior
+    methods = ("wallpaper", "desktop-items")
+    if args.hosted_comparison:
+        methods = ("minimize", "corner", *methods)
+    elif args.hosted_desktop_items:
+        methods = ("desktop-items",)
     destination = args.hosted_receipt or args.hosted_lifecycle or comparison
     if destination:
         keys = ("GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS")
         if [os.getenv(k) for k in keys] != ["true", "github-hosted", "macOS"] or destination.exists():
             cli.error("Live tests require a disposable hosted Mac and a new receipt")
     run(args.build.resolve(strict=True), args.hosted_receipt or args.hosted_lifecycle, comparison,
-        lifecycle_only=args.hosted_lifecycle is not None, desktop_items_only=args.hosted_desktop_items is not None)
+        lifecycle_only=args.hosted_lifecycle is not None, methods=methods)
