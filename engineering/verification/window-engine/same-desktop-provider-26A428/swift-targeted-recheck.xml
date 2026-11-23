@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="2" failures="0" skipped="0" time="0.352328041">
+    <testcase classname="NearpaneUITests.OrdinaryWindowManagerTests" name="twoVerifiedAXPlacementsCannotCommitAGroupWithStaleCatalogGeometry()" time="0.120751167" />
+    <testcase classname="NearpaneVoiceTests.PCMPipelineTests" name="coldCaptureWaitsForActualPCMAndAcceptsSilentInput()" time="0.351881292" />
+  </testsuite>
+</testsuites>

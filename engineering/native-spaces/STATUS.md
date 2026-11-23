@@ -1,10 +1,26 @@
 # Nearpane 当前工程状态
 
-## 2026-11-23 · 同桌面窗口可见性
+## 2026-11-23 · 同桌面窗口调度
 
-这是 PR #15 的实施状态入口。StageGroup 使用自己的 UUID；产品只读观察原生桌面。临时 Spaces 迁移已退出生产候选。Rust Corner 等待符合本产品边界的物理证据，当前生产写入 **NO-GO**。[产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [可见性裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [复用范围](../research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md) · [晋级顺序](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
+**生产窗口调度为 NO-GO。** 5.22（90）源码 `d81329d` 使用 Display → StageGroup → Window。侧栏按物理屏和当前普通桌面读出工作组。Rust Corner 仍需在目标系统证明完整的单窗恢复与输入隔离。原生 Spaces 仅供产品只读观察，临时迁移保留在研究入口。四份裁决按产品定义、可见性边界、Rust 复用范围、实施顺序解释。[产品定义](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [可见性裁决](../research/NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [Rust 复用](../research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md) · [晋级顺序](../research/NEARPANE-STAGE-MANAGER-CODEX-INTEGRATION-PLAN.md)
 
-在 macOS 27.0（26A428）、SIP 开启的实体机上，普通桌面 4、原 AX 焦点、显示器与 HID 双读一致，过程中 Mission Control 展示为零。正式安装 Host 在同一普通桌面成功核实签名夹具窗 71381 的原 AX 对象、窗口所属进程代际、AX/CG 几何和双向原生归属。签名 Guardian 两次报告有效 AX 权限，系统返回的责任进程均为原 Host 19042，Guardian 自身为 19051。此次没有建立能在 Host 退出后恢复窗口的租约，停放、手势隔离及崩溃恢复为 **NOT_RUN**。这扇夹具窗为透明、忽略鼠标的普通应用窗口。诊断已退出，夹具已关闭，唯一日常 Host 正常返回，配置指纹一致、四项权限有效、零活动租约。[正式 Host 和 Guardian 原始读回](../verification/window-engine/same-desktop-provider-26A428/corner-readback-host.json) · [清理与普通 Host 返回](../verification/window-engine/same-desktop-provider-26A428/corner-readback-session.json)
+| 对用户有影响的能力 | 本轮结果 |
+| --- | --- |
+| 本屏工作组和预览 | 正式侧栏可以依据当前显示器、普通桌面和新鲜的窗口见证建立组目录。缺少可写 Provider 时仍可读取已确认的成员。修复并发刷新在等待主线程期间耗尽 AX 读取预算、遗漏兄弟窗口的问题。 |
+| 正式 Host 识别第三方窗口 | **PASS，只读。** 在 27.0（26A428）、SIP 开启的实体机上，普通桌面 4、显示器、原前台 AX 窗口和 14 项 HID 计数双读一致。正式安装 Host 对签名夹具窗 71381 两次核对原 AX 对象、进程出生代、AX/CG 几何和双向原生归属。夹具透明且忽略鼠标。 |
+| 两款签名应用的真实交互 | 签名与审定镜像 **PASS**。准备登记目标、同应用兄弟和跨应用旁窗时，实体机连续两次读到原生全屏。监督器在退出日常 Host 之前返回 **BLOCKED**。该次夹具启动、窗口和 Space 写入均为零。 |
+| Guardian 恢复责任 | 子进程两次报告 AX 可用，系统两次将权限责任归给当时的 Host 19042。Guardian 19051 尚未在 Host 退出后证明原窗口仍可恢复。新代码允许持有原 AX 引用直至内核确认 Host 正常退出，再双读身份、几何和归属。本机内核退出检测 **PASS**，正式 Host 退出后的 AX 读回 **NOT_RUN**，可持久履约的恢复租约 **BLOCKED**。 |
+| 单窗与整组 | 受保护停放、画面隔离、完整鼠标按下/拖动/释放、键盘收件和原位恢复均为 **NOT_RUN**。A→B→C→A、10/50 次及同机 Apple Stage Manager 性能对照均为 **NOT_RUN**。AXMinimized 与旧角落遮罩的真实失败继续保留。 |
+
+[逐项机器收据](../verification/window-engine/same-desktop-provider-26A428/qualification.json) · [正式 Host 与 Guardian 读回](../verification/window-engine/same-desktop-provider-26A428/corner-readback-host.json) · [交互窗实机准入](../verification/window-engine/same-desktop-provider-26A428/interactive-supervisor.json) · [内核退出检测](../verification/window-engine/same-desktop-provider-26A428/guardian-kernel-exit.json) · [历史隔离失败](../verification/stage-groups/5.22-90/isolation/qualification/summary.json)
+
+私有 arm64 工程包的 14 个可执行文件及 46 项资源通过校验，Host CDHash 为 `819a44400baf353f9484442505c2a684b768b95d`，Rust ABI 为 1。Gatekeeper 返回 **FAIL / Unnotarized Developer ID**。日常运行的仍为原安装 `bec6cb2`，PID 19081。配置和资料指纹与验收前一致，活动租约为零。一次权限查询未得到答复，保留为 **UNKNOWN**。随后同一 Host 在带随机标识的签名日志中自读四项权限均为允许。[签名与 Gatekeeper](../verification/window-engine/same-desktop-provider-26A428/signed-engineering-build.json) · [清理及恢复](../verification/window-engine/same-desktop-provider-26A428/corner-readback-session.json) · [最终权限收据](../verification/window-engine/same-desktop-provider-26A428/terminal-permissions.json)
+
+同一源码的两项 GitHub 原生 CI 通过。托管 macOS 26.7.2（25G332）的两款普通应用共有三扇可见窗。两个独立读取进程重开后均得到相同的两组，分别含 2 扇和 1 扇窗。鼠标按下、拖动、释放及键盘标记全部由目标 96 接收并写入隔离文档，另两窗 97、95 收件和写入均为零。重新启动一个应用后，原组和两扇旁窗保持，替代窗口加入新的单窗组。该环境的原生归属为 **UNKNOWN**，单窗停放及整组切换为 **NOT_RUN**。[窗口与输入收据](../verification/window-engine/same-desktop-provider-26A428/hosted-fixtures/stage-group-windowserver.json) · [截图](../verification/window-engine/same-desktop-provider-26A428/hosted-fixtures/three-windows.png) · [录屏](../verification/window-engine/same-desktop-provider-26A428/hosted-fixtures/real-input.mov) · [重开与窗口代际](../verification/window-engine/same-desktop-provider-26A428/hosted-fixtures/stage-group-lifecycle.json)
+
+完整串行 Swift 回归共 787 项，784 项通过、3 项按环境条件跳过。全量并发时，语音冷启动和布局过期读回各失败一次。两项共同定向运行及完整串行运行均通过，高并发可靠性仍为 **UNKNOWN**。45 项监督器测试通过。托管构建 26A434 的 21 项引擎检查通过，含 108 项 Rust 测试、119 项 Swift 测试以及生产 C ABI。[回归及原始失败](../verification/window-engine/same-desktop-provider-26A428/regression.json) · [引擎收据](../verification/window-engine/same-desktop-provider-26A428/hosted-engine.json) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514956) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45102514974)
+
+**下一项实机验收**是在具备新协议、获系统准入的标准路径 Host 和可交还焦点的普通桌面，运行一次 `guardian-survival`。先核实守护进程在 Host 正常退出后仍能读取原 AX 对象，再验写前租约、单目标输入隔离与原位恢复。此路径使用隔离测试资料。[同桌面验收合同](ACCEPTANCE.md)
 
 ### 历史阶段记录
 
