@@ -57,7 +57,7 @@ import NearpaneCore
         if operation == 6 { try guardian.checkLiveOwners() }
         let peer = operation == 3 ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
         let receipt = try await engine.submit(command, expectedEpoch: epoch, guardian: peer)
-        if c.action == .hide, operation == 3 || operation == 2 { try guardian.observe(command,receipt:receipt) }
+        if c.action == .hide, operation == 3 { try await guardian.observe(command,receipt:receipt) }
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
         return .init(status:receipt.status,flags:receipt.flags,intent:receipt.intent,nativeID:receipt.nativeID,frame:receipt.frame)
     }

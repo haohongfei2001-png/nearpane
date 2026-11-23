@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <sys/event.h>
+#include <sys/ioctl.h>
 #include <sys/proc.h>
 
 static inline BOOL ncg_live_child(pid_t child, uint64_t birth) {
@@ -40,4 +41,25 @@ static inline BOOL ncg_wait_for_host_message(int fd) {
     int rc;
     do { rc = poll(&p, 1, -1); } while (rc < 0 && errno == EINTR);
     return rc == 1 && (p.revents & POLLIN) && !(p.revents & (POLLERR | POLLNVAL));
+}
+
+// Only a clean EOF before a packet starts can resume a committed handoff. A
+// truncated frame, malformed message or failed poll is never treated as EOF.
+static inline int ncg_next_host_packet(int fd) {
+    struct pollfd p = {.fd = fd, .events = POLLIN};
+    int rc, bytes = 0;
+    do { rc = poll(&p, 1, -1); } while (rc < 0 && errno == EINTR);
+    if (rc != 1 || p.revents & (POLLERR | POLLNVAL) || ioctl(fd, FIONREAD, &bytes)) return -1;
+    if (bytes > 0) return 1;
+    return (p.revents & POLLHUP) ? 0 : -1;
+}
+
+// Called only after the signed Host's park receipt, matching committed WAL
+// and two postimage observations. A lost reply alone never authorizes a restore.
+typedef enum { NCG_ACK_ERROR, NCG_ACK_SENT, NCG_ACK_CLOSED } NCGSealAck;
+static inline NCGSealAck ncg_ack_committed_park(int fd) {
+    ssize_t count;
+    do { count = write(fd, "P", 1); } while (count < 0 && errno == EINTR);
+    if (count == 1) return NCG_ACK_SENT;
+    return count < 0 && errno == EPIPE ? NCG_ACK_CLOSED : NCG_ACK_ERROR;
 }

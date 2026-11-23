@@ -14,6 +14,14 @@ typedef struct {
     NPReceipt result;
     uint32_t hid[13];
 } NCGuardianEntry;
+// Only compare the fields carried by both Host messages. Elapsed time is local telemetry.
+static inline bool ncg_same_park_receipt(const NPReceipt *a, const NPReceipt *b) {
+    return a->size == b->size && a->version == b->version && a->status == b->status &&
+           a->flags == b->flags && a->owned == b->owned && a->native_id == b->native_id &&
+           a->epoch == b->epoch && !memcmp(a->intent, b->intent, sizeof(a->intent)) &&
+           a->frame.x == b->frame.x && a->frame.y == b->frame.y &&
+           a->frame.width == b->frame.width && a->frame.height == b->frame.height;
+}
 static inline bool ncg_correlates(const NCGuardianEntry *prepared, const NCGuardianEntry *sealed) {
     const NPReceipt *r = &sealed->result;
     const unsigned flags = NP_HIDDEN | NP_AX_VALID | NP_CG_VALID | NP_INPUT_SAFE | NP_MEMBERSHIP_VALID | NP_OWNED;
@@ -23,7 +31,7 @@ static inline bool ncg_correlates(const NCGuardianEntry *prepared, const NCGuard
            !memcmp(&prepared->lease, &sealed->lease, sizeof(prepared->lease)) &&
            !memcmp(prepared->hid, sealed->hid, sizeof(prepared->hid)) && r->size == sizeof(*r) &&
            r->version == 1 && r->status == NP_PASS && r->epoch == prepared->lease.epoch &&
-           r->native_id == prepared->lease.native_id && (r->flags & flags) == flags &&
+           r->native_id == prepared->lease.native_id && (r->flags & (flags | NP_VISIBLE)) == flags &&
            !memcmp(r->intent, prepared->lease.intent, 16);
 }
 typedef struct {

@@ -295,16 +295,16 @@ static BOOL productPrepare(Session *s, NSDictionary *m, NSString *folder) {
     np_corner_inputs(p->hid);
     return productJournal(s, NO, NO);
 }
-static BOOL productSeal(Session *s, NSDictionary *m) {
+static BOOL productParkReceipt(Session *s, NSDictionary *m, BOOL confirm) {
     s->sealed = s->pre;
     s->sealed.phase = NCG_CONFIRMED;
     NPReceipt *r = &s->sealed.result;
     NPRect independently;
     r->size = sizeof(*r);
     r->version = 1;
-    if (![m[@"phase"] isEqual:@"confirm"] || !decodeUUID(m[@"intent"], r->intent) ||
-        !productFrame(m[@"frame"], &r->frame) || !productFrame(m[@"verified"], &independently) ||
-        !closeFrame(convert(r->frame), convert(independently)))
+    if (![m[@"phase"] isEqual:(confirm ? @"confirm" : @"observePark")] || !decodeUUID(m[@"intent"], r->intent) ||
+        !productFrame(m[@"frame"], &r->frame) || (confirm && (!productFrame(m[@"verified"], &independently) ||
+        !closeFrame(convert(r->frame), convert(independently)))))
         return NO;
     for (NSString *key in @[ @"status", @"flags", @"epoch", @"native", @"owned" ])
         if (!number(m[key]))
@@ -315,7 +315,11 @@ static BOOL productSeal(Session *s, NSDictionary *m) {
     r->status = [m[@"status"] unsignedIntValue];
     r->owned = [m[@"owned"] unsignedIntValue];
     np_corner_inputs(s->sealed.hid);
-    return r->owned > 0 && ncg_correlates(&s->pre, &s->sealed) && productJournal(s, YES, NO);
+    return r->owned > 0 && ncg_correlates(&s->pre, &s->sealed) &&
+           (confirm ? productJournal(s, YES, NO) : withdrawableJournal(s) != nil);
+}
+static BOOL productSeal(Session *s, NSDictionary *m) {
+    return productParkReceipt(s, m, YES);
 }
 
 // After a genuine Host exit the active profile stays protected by its writer lock and our

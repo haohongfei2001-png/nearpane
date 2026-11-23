@@ -1,6 +1,7 @@
 // Isolated signed helper. Its only setter restores one pre-retained ordinary window after
 // the authenticated writer's kernel exit. Cold recovery from a serialized PID is impossible.
 #import "identity.h"
+#import "exit-watch.h"
 #import "peer-watch.h"
 #include "protocol.h"
 #import <AppKit/AppKit.h>
@@ -194,11 +195,8 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     NSData *__attribute__((objc_precise_lifetime)) owner = [NSData dataWithBytes:digest length:sizeof(digest)];
     s->hash = owner;
 #endif
-    s->kqueue = kqueue();
-    struct kevent change;
-    EV_SET(&change, (uintptr_t)s->pre.host, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_EXIT, 0, NULL);
-    need(s->kqueue >= 0 && kevent(s->kqueue, &change, 1, NULL, 0, NULL) == 0 &&
-             s->pre.host_birth == ncg_birth(getppid(), NULL),
+    s->kqueue = ncg_watch_exit(s->pre.host, s->pre.host_birth);
+    need(s->kqueue >= 0 && getppid() == s->pre.host && s->pre.host_birth == ncg_birth(s->pre.host, NULL),
          @"cannotWatchOriginalHostExit");
     s->member = (NCMember){.pid = r.pid, .window = r.window, .birth = r.birth, .native = r.native_id};
     memcpy(s->member.space, r.native_space, 16);
@@ -213,6 +211,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->facts.retained_before_park = true;
     s->facts.unspent = true;
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
+    BOOL afterCommittedEOF = NO;
 #ifdef NP_CORNER_FIXTURE
     need(readPacket(STDIN_FILENO, &s->sealed, sizeof(s->sealed)) && ncg_correlates(&s->pre, &s->sealed) &&
              journal(s, YES),
@@ -243,7 +242,26 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         receipt[@"status"] = @"WITHDRAWN_BEFORE_SUBMISSION";
         return;
     }
-    need(productSeal(s, message), @"independentCommittedProductOwnershipUnavailable");
+    if ([message[@"phase"] isEqual:@"observePark"]) {
+        need(productParkReceipt(s, message, NO) && displayIs(s) && stable(s, convert(s->sealed.result.frame)),
+             @"originalEnginePostimageUnavailable");
+        NPReceipt original = s->sealed.result;
+        need(write(STDOUT_FILENO, "O", 1) == 1, @"enginePostimageAckUnavailable");
+        receipt[@"enginePostimageWitnessed"] = @YES;
+        int next = ncg_next_host_packet(STDIN_FILENO);
+        need(next >= 0, @"hostConfirmationChannelUnavailable");
+        if (next == 0) {
+            // The exact signed Host supplied the engine result while alive. The coordinator
+            // must also have independently verified it and committed this member to its WAL.
+            need(productJournal(s, YES, NO), @"hostExitedBeforeIndependentOwnershipCommit");
+            afterCommittedEOF = YES;
+        } else {
+            need(productSeal(s, productMessage()) && ncg_same_park_receipt(&original, &s->sealed.result),
+                 @"confirmationDiffersFromOriginalEngineReceipt");
+        }
+    } else {
+        need(productSeal(s, message), @"independentCommittedProductOwnershipUnavailable");
+    }
 #endif
     NCFrame parked = convert(s->sealed.result.frame);
     CGRect d = CGRectMake(s->display.frame.x, s->display.frame.y, s->display.frame.w, s->display.frame.h);
@@ -253,8 +271,12 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
              stable(s, parked) && displayIs(s),
          @"liveParkedPostimageUnavailable");
     usleep(25000);
-    need(stable(s, parked) && journal(s, YES) && ncg_birth(getppid(), NULL) == s->pre.host_birth,
+    need(stable(s, parked) && journal(s, YES),
          @"secondParkedPostimageUnavailable");
+    if (afterCommittedEOF || getppid() != s->pre.host || ncg_birth(s->pre.host, NULL) != s->pre.host_birth) {
+        s->facts.kernel_parent_exit = ncg_saw_exit(s->kqueue, s->pre.host, s->pre.host_birth, 2000);
+        need(s->facts.kernel_parent_exit, @"originalHostChangedDuringPostimage");
+    }
     s->facts.parked_confirmed = true;
     receipt[@"trustedHostPID"] = @(s->pre.host);
     receipt[@"trustedHostBirth"] = @(s->pre.host_birth);
@@ -264,7 +286,10 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     receipt[@"intent"] = [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString;
     receipt[@"preimage"] = @[ @(r.frame.x), @(r.frame.y), @(r.frame.width), @(r.frame.height) ];
     receipt[@"postimage"] = @[ @(parked.x), @(parked.y), @(parked.w), @(parked.h) ];
-    need(write(STDOUT_FILENO, "P", 1) == 1, @"sealAckUnavailable");
+    NCGSealAck ack = afterCommittedEOF ? NCG_ACK_CLOSED : ncg_ack_committed_park(STDOUT_FILENO);
+    need(ack != NCG_ACK_ERROR, @"sealAckUnavailable");
+    receipt[@"sealAckDelivered"] = @(ack == NCG_ACK_SENT);
+    receipt[@"ownershipCommittedBeforeHostEOF"] = @(afterCommittedEOF);
     struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
     char extra;
 #ifdef NP_CORNER_FIXTURE
@@ -291,16 +316,13 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     need(got == 0, @"unexpectedHostCommand");
 #ifndef NP_CORNER_FIXTURE
     np_corner_inputs(s->takeoverInput);
+    if (ack == NCG_ACK_CLOSED || s->facts.kernel_parent_exit)
+        need(!memcmp(s->takeoverInput, s->sealed.hid, sizeof(s->takeoverInput)), @"inputChangedDuringSealHandoff");
 #endif
     s->facts.eof = true;
-    struct kevent event;
-    struct timespec wait = {2, 0};
-    need(kevent(s->kqueue, NULL, 0, &event, 1, &wait) == 1 && event.filter == EVFILT_PROC &&
-             event.ident == (uintptr_t)s->pre.host && (event.fflags & NOTE_EXIT) && !(event.flags & EV_ERROR),
-         @"kernelDidNotConfirmOriginalHostExit");
-    s->facts.kernel_parent_exit = true;
-    for (unsigned i = 0; i < 100 && ncg_birth(s->pre.host, NULL) == s->pre.host_birth; i++)
-        usleep(10000);
+    if (!s->facts.kernel_parent_exit)
+        s->facts.kernel_parent_exit = ncg_saw_exit(s->kqueue, s->pre.host, s->pre.host_birth, 2000);
+    need(s->facts.kernel_parent_exit, @"kernelDidNotConfirmOriginalHostExit");
 #ifndef NP_CORNER_FIXTURE
     // Never race a newly launched Host. This lock is also the CAS boundary for checking the active generation.
     need(flock(s->writer, LOCK_SH | LOCK_NB) == 0 && activeProfile(s), @"newHostOwnsProfile");
@@ -360,7 +382,7 @@ static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
 }
 int main(int argc, const char **argv) {
     @autoreleasepool {
-        (void)fcntl(STDOUT_FILENO, F_SETNOSIGPIPE, 1);
+        if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return 2;
 #ifndef NP_CORNER_FIXTURE
         if (argc == 2 && !strcmp(argv[1], "--inspect-registered-fixture"))
             return inspectRegisteredFixture(NO, nil);

@@ -153,22 +153,29 @@ import Security
         }
     }
 
-    func observe(_ r: NativeStageEngineRequest, receipt: NativeStageEngineReceipt) throws {
+    private func motionFields(_ phase: String, _ raw: NativeStageEngineReceipt) -> [String: Any] {
+        ["phase": phase, "intent": raw.intent.uuidString, "epoch": raw.epoch, "native": raw.nativeID,
+         "status": raw.status, "flags": raw.flags, "owned": raw.owned, "frame": Self.frame(raw.frame)]
+    }
+
+    func observe(_ r: NativeStageEngineRequest, receipt: NativeStageEngineReceipt) async throws {
         guard r.operation == 3 else { return }
         guard let w = r.window, let l = leases[w], same(l.original, r), r.intent == l.original.intent,
               !l.sealed, !l.withdrawing, l.result == nil, receipt.intent == r.intent, receipt.epoch == l.epoch,
-              receipt.status == 0, receipt.nativeID == r.nativeID, receipt.flags & 190 == 190 else {
+              receipt.status == 0, receipt.owned > 0, receipt.nativeID == r.nativeID, receipt.flags & 191 == 190 else {
             throw Failure.pendingRecovery
         }
         l.result = receipt
+        try await exchange(try packet(motionFields("observePark", receipt)), ack: 79, lease: l)
+        try checkLiveOwners()
     }
 
     func confirm(_ r: NativeStageEngineRequest, verifiedFrame: SurfaceRect) async throws {
         guard let w = r.window, let l = leases[w], same(l.original, r), l.original.intent == r.intent,
               !l.sealed, !l.withdrawing, let raw = l.result, zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
-        let data = try packet(["phase": "confirm", "intent": raw.intent.uuidString, "epoch": raw.epoch,
-            "native": raw.nativeID, "status": raw.status, "flags": raw.flags, "owned": raw.owned,
-            "frame": Self.frame(raw.frame), "verified": Self.frame(verifiedFrame)])
+        var fields = motionFields("confirm", raw)
+        fields["verified"] = Self.frame(verifiedFrame)
+        let data = try packet(fields)
         try await exchange(data, ack: 80, lease: l)
         try checkLiveOwners()
         l.confirmedAt = DispatchTime.now().uptimeNanoseconds

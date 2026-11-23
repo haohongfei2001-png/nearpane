@@ -1,9 +1,12 @@
 // Exercises the shipping ledger parser in a newly created disposable directory, without a
 // native application, WindowServer, signing identity, real profile or AX call.
 #define main ncg_unused_product_main
+#define np_corner_inputs deterministic_test_inputs
 #import "guardian/main.m"
 #undef main
+#undef np_corner_inputs
 #include <assert.h>
+void deterministic_test_inputs(uint32_t counters[13]) { memset(counters, 0, 13 * sizeof(*counters)); }
 static uint8_t accepted[16];
 bool np_engine_evidence_is_reviewed(uint32_t backend, const uint8_t *evidence) {
     return backend == NP_CORNER && !memcmp(accepted, evidence, 16);
@@ -187,6 +190,16 @@ int main(void) {
         accepted[0] ^= 1;
         assert(!productJournal(&s, NO, NO));
         accepted[0] ^= 1;
+        s.pre.version = 1;
+        s.pre.phase = NCG_PREPARE;
+        NSMutableDictionary *motion = [@{@"phase": @"observePark", @"intent": intent, @"epoch": @1,
+            @"native": @4, @"owned": @1, @"flags": @190, @"status": @0, @"frame": park} mutableCopy];
+        motion[@"flags"] = @191;
+        assert(!productParkReceipt(&s, motion, NO));
+        motion[@"flags"] = @190;
+        assert(productParkReceipt(&s, motion, NO));
+        assert(!productJournal(&s, YES, NO)); // A received engine packet alone cannot authorize an orphan restore.
+        NPReceipt observedBeforeCommit = s.sealed.result;
         entry[@"after"] = parked;
         NSDictionary *owned = @{
             @"group" : group,
@@ -200,6 +213,18 @@ int main(void) {
         ledger[@"owned"] = @[ owned ];
         put(profile, journal, ledger);
         assert(productJournal(&s, YES, NO));
+        motion[@"phase"] = @"confirm";
+        motion[@"verified"] = park;
+        assert(productSeal(&s, motion) && ncg_same_park_receipt(&observedBeforeCommit, &s.sealed.result));
+        observedBeforeCommit.frame.x += 1;
+        assert(!ncg_same_park_receipt(&observedBeforeCommit, &s.sealed.result));
+        observedBeforeCommit = s.sealed.result;
+        observedBeforeCommit.native_id++;
+        assert(!ncg_same_park_receipt(&observedBeforeCommit, &s.sealed.result));
+        motion[@"verified"] = src;
+        assert(!productSeal(&s, motion));
+        motion[@"verified"] = park;
+        assert(productSeal(&s, motion));
         assert(!withdrawableJournal(&s));
         assert(!productJournal(&s, YES, YES));
         assert(!ledgerAfterRemovingOnlyThisMember(ledger, r));
