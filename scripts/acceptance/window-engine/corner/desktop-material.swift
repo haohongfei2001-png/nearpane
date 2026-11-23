@@ -67,8 +67,8 @@ import Security
     }
 
     /// No call accepts an application, window, arbitrary crop or output file. No pixel bytes leave this process.
-    static func sample(nonce: UUID) async -> [String: Any] {
-        var result: [String: Any] = ["challenge": nonce.uuidString, "scope": "appleWallpaperWindowOnly",
+    static func sample(nonce: UUID, displayComposite: Bool) async -> [String: Any] {
+        var result: [String: Any] = ["challenge": nonce.uuidString, "scope": displayComposite ? "positiveDisplayFilterAppleWallpaperOnly" : "appleWallpaperWindowOnly",
                                      "productionQualified": false, "windowWrites": 0, "storedFrames": 0]
         do {
             let bound = try surface()
@@ -81,41 +81,57 @@ import Security
                 $0.windowID == bound.number && $0.owningApplication?.processID == bound.pid && $0.frame == bound.frame
             }
             guard matches.count == 1, let window = matches.first else { throw Missing.shareableWallpaper }
-            let filter = SCContentFilter(desktopIndependentWindow: window)
-            let bounds = filter.contentRect
-            guard bounds.width == bound.frame.width, bounds.height == bound.frame.height, try surface() == bound else {
+            let filter: SCContentFilter
+            let side: Int
+            if displayComposite {
+                guard let display = inventory.displays.first(where: { $0.displayID == bound.display && $0.frame == bound.frame })
+                else { throw Missing.display }
+                // Upstream capture.rs uses a positive window list and an explicit clear background.
+                // This witness admits just the sealed Apple wallpaper surface. Never substitute a full-screen filter.
+                filter = SCContentFilter(display: display, including: [window])
+                filter.includeMenuBar = false
+                let scale = CGFloat(filter.pointPixelScale)
+                guard scale.isFinite, (1...4).contains(scale), (scale * 8).rounded() == scale * 8 else { throw Missing.display }
+                side = Int(scale * 8)
+            } else {
+                filter = SCContentFilter(desktopIndependentWindow: window)
+                side = 8
+            }
+            guard filter.contentRect.size == bound.frame.size, try surface() == bound else {
                 throw Missing.sourceChanged
             }
             var times: [UInt64] = []
             var opaqueCounts: [Int] = []
             for _ in 0..<2 {
                 let options = SCStreamConfiguration()
-                options.width = 8
-                options.height = 8
-                options.sourceRect = CGRect(x: bounds.maxX - 8, y: bounds.maxY - 8, width: 8, height: 8)
-                options.destinationRect = CGRect(x: 0, y: 0, width: 8, height: 8)
+                options.width = side
+                options.height = side
+                options.sourceRect = CGRect(x: bound.frame.width - 8, y: bound.frame.height - 8, width: 8, height: 8)
+                options.destinationRect = CGRect(x: 0, y: 0, width: side, height: side)
+                options.backgroundColor = CGColor.clear
                 options.preservesAspectRatio = false
                 options.scalesToFit = true
                 options.showsCursor = false
                 options.ignoreShadowsSingleWindow = true
                 options.ignoreGlobalClipSingleWindow = true
                 let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: options)
-                guard image.width == 8, image.height == 8, try surface() == bound else { throw Missing.sourceChanged }
-                var rgba = [UInt8](repeating: 0, count: 8 * 8 * 4)
+                guard image.width == side, image.height == side, try surface() == bound else { throw Missing.sourceChanged }
+                var rgba = [UInt8](repeating: 0, count: side * side * 4)
                 let count = rgba.withUnsafeMutableBytes { buf -> Int in
                     guard let color = CGColorSpace(name: CGColorSpace.sRGB),
-                          let context = CGContext(data: buf.baseAddress, width: 8, height: 8, bitsPerComponent: 8,
-                                                  bytesPerRow: 32, space: color, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+                          let context = CGContext(data: buf.baseAddress, width: side, height: side, bitsPerComponent: 8,
+                                                  bytesPerRow: side * 4, space: color, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
                     else { return -1 }
-                    context.draw(image, in: CGRect(x: 0, y: 0, width: 8, height: 8))
+                    context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
                     return stride(from: 3, to: buf.count, by: 4).filter { buf[$0] == 255 }.count
                 }
                 opaqueCounts.append(count)
                 times.append(DispatchTime.now().uptimeNanoseconds)
             }
             result["observationsNS"] = times
-            result["opaquePixelsOf64"] = opaqueCounts
-            guard opaqueCounts == [64,64] else { throw Missing.sampleUnavailable }
+            result["sampledPixelCount"] = side * side
+            result[displayComposite ? "opaquePixels" : "opaquePixelsOf64"] = opaqueCounts
+            guard opaqueCounts == [side * side, side * side] else { throw Missing.sampleUnavailable }
             result["status"] = "PASS"
         } catch {
             result["status"] = error is Missing ? "BLOCKED" : "UNKNOWN"

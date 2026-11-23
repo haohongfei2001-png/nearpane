@@ -2,6 +2,8 @@
 
 ## 2026-11-23 · 真实窗口与恢复责任
 
+在同一块实体屏幕上，上游的显示器正向窗口过滤方式取得了两帧完整的壁纸样本。过滤器仅包含经签名核验的 Apple 壁纸窗口，8×8 点在本机对应 16×16 像素，两次 256/256 像素均完全不透明。完整遮挡区域和退场窗口输入仍待验。`3384cf1` 的 5.22（90）ARM64 开发候选已打包，14 个可执行组件及整包签封已核对。[原始画面计数](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json) · [候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate.json)
+
 切换时如有窗口需要退场，协调器现在会先核对该显示器的角落是否可用，再恢复目标窗口或移交键盘焦点。定向 Swift 回归 41 项通过。Rust 测试确认这次预检不接受窗口写入参数。目标机右下角的实机画面证据仍不足，整组切换未执行。[预检与实机画面记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/material-readback.json)
 
 Corner 已能把“已测到窗口到达角落，但画面或输入验证失败”单独交给 Guardian。后者独立双读、持久化实际位置，Host 继续将切换标记为 UNKNOWN。只有原 Host 退出，而且窗口、焦点、输入、桌面及两份持久化记录仍一致时，Guardian 才可归位。该分支已通过定向源码回归，真实角落归位待验。[恢复责任与测试结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-preparation.json)

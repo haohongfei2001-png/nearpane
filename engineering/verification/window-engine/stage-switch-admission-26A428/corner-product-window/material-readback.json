@@ -79,5 +79,26 @@
     "cropAndEventRegression": "PASS",
     "osInputPosted": 0
   },
-  "conclusion": "The configured Apple system alias resolves to a sealed, single-frame source. Default proportional fit covers the center but not this corner. Explicit capture of only the Apple wallpaper window produced 56 of 64 fully opaque pixels twice. Neither observation establishes the composited desktop behind a parked window."
+  "conclusion": "Window-only raster was partially transparent. The positive display filter containing only the same Apple wallpaper window yielded two fully opaque 16 by 16 device-pixel crops. The full shadow footprint and actual window occlusion still need independent verification.",
+  "positiveDisplayWindowSamples": {
+    "challenge": "5C7FA3A7-7F42-41BF-8A04-391A1E39760F",
+    "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "observationsNS": [
+      507653731226500,
+      507654250106916
+    ],
+    "opaquePixels": [
+      256,
+      256
+    ],
+    "productionQualified": false,
+    "sampledPixelCount": 256,
+    "scope": "positiveDisplayFilterAppleWallpaperOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "PASS",
+    "storedFrames": 0,
+    "windowWrites": 0
+  }
 }

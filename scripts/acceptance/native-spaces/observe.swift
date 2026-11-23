@@ -215,10 +215,10 @@ struct Sidebar {
 }
 
 #if P2_WINDOW_MOTION
-if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "corner-desktop-material",
+if CommandLine.arguments.count == 3, ["corner-desktop-material", "corner-display-material"].contains(CommandLine.arguments[1]),
    let nonce = UUID(uuidString: CommandLine.arguments[2]) {
     Task { @MainActor in
-        let row = await CornerDesktopMaterial.sample(nonce: nonce)
+        let row = await CornerDesktopMaterial.sample(nonce: nonce, displayComposite: CommandLine.arguments[1] == "corner-display-material")
         guard let data = try? JSONSerialization.data(withJSONObject: row, options: .sortedKeys) else { exit(3) }
         print(String(decoding: data, as: UTF8.self))
         exit(row["status"] as? String == "PASS" ? 0 : 2)
