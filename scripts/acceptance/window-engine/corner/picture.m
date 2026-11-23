@@ -187,9 +187,11 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
         NSDictionary *options = [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen];
         NSNumber *scaling = options[NSWorkspaceDesktopImageScalingKey],
                  *clipping = options[NSWorkspaceDesktopImageAllowClippingKey];
-        BOOL stretch = [scaling isEqual:@(NSImageScaleAxesIndependently)],
-             fill = [scaling isEqual:@(NSImageScaleProportionallyUpOrDown)] && [clipping isEqual:@YES];
-        requirePatch(stretch || fill, @"exactWallpaperPlacementNotExposed");
+        BOOL stretch = [scaling isEqual:@(NSImageScaleAxesIndependently)];
+        BOOL proportional = !scaling || [scaling isEqual:@(NSImageScaleProportionallyUpOrDown)];
+        requirePatch(options && (stretch || (proportional && (!clipping || [clipping isEqual:@YES] ||
+                                                               [clipping isEqual:@NO]))),
+                     @"exactWallpaperPlacementNotExposed");
         NCSample sa = {}, sb = {};
         NCFrame frame = {};
         requirePatch(readWindow(a, &sa) && (!b || readWindow(b, &sb)), @"enrolledWindowReadbackUnavailable");
@@ -206,8 +208,8 @@ NSDictionary *nc_fixture_picture(const NPRequest *a, const NPRequest *b) {
         requirePatch(wallpaper != NULL, @"requestedAppleWallpaperDecodeUnavailable");
         double iw = CGImageGetWidth(wallpaper), ih = CGImageGetHeight(wallpaper), sx = d.frame.w / iw,
                sy = d.frame.h / ih;
-        if (fill)
-            sx = sy = MAX(sx, sy);
+        if (proportional)
+            sx = sy = clipping.boolValue ? MAX(sx, sy) : MIN(sx, sy);
         CGRect sourceRect =
             CGRectMake((frame.x - d.frame.x - (d.frame.w - iw * sx) / 2) / sx,
                        (frame.y - d.frame.y - (d.frame.h - ih * sy) / 2) / sy, frame.w / sx, frame.h / sy);

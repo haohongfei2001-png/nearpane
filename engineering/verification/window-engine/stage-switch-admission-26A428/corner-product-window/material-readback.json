@@ -1,0 +1,76 @@
+{
+  "targetBuild": "26A428",
+  "status": "BLOCKED",
+  "scope": "opaque wallpaper material at an 8 by 8 point lower-right display corner",
+  "releaseQualified": false,
+  "nativeSpacesWritten": 0,
+  "resourceMetadata": [
+    {
+      "appleAsset": "/System/Library/Wallpapers/.default/DefaultAerial.heic",
+      "clip": null,
+      "frames": 1,
+      "primaryImage": 0,
+      "resolvedWithinSystemLibrary": 1,
+      "scale": null,
+      "sealedSystemFile": true
+    }
+  ],
+  "productionCrop": {
+    "displays": [
+      {
+        "active": 1,
+        "builtIn": 1,
+        "center8ptInImage": true,
+        "corner8ptInImage": false,
+        "hasImageOptions": 1,
+        "mirrored": 0,
+        "selectedURLIsFile": true,
+        "underSealedWallpaperSourceRoots": false
+      }
+    ],
+    "scope": "installedDesktopReadOnlyProductCornerSource",
+    "screenshots": 0,
+    "windowsCreated": 0,
+    "windowWrites": 0
+  },
+  "firstWindowSample": {
+    "challenge": "F4EB7EAC-28CA-4FC1-8350-963502F5807B",
+    "productionQualified": false,
+    "reason": "sampleUnavailable",
+    "scope": "appleWallpaperWindowOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "BLOCKED",
+    "storedFrames": 0,
+    "windowWrites": 0
+  },
+  "explicitOutputWindowSamples": {
+    "challenge": "35914EEF-49F8-499E-9A21-49107D48C17A",
+    "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "observationsNS": [
+      505443709810875,
+      505445330322333
+    ],
+    "opaquePixelsOf64": [
+      56,
+      56
+    ],
+    "productionQualified": false,
+    "reason": "sampleUnavailable",
+    "scope": "appleWallpaperWindowOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "BLOCKED",
+    "storedFrames": 0,
+    "windowWrites": 0
+  },
+  "offline": {
+    "staticlibBuild": "PASS",
+    "cornerTests": 72,
+    "cropAndEventRegression": "PASS",
+    "osInputPosted": 0
+  },
+  "conclusion": "The configured Apple system alias resolves to a sealed, single-frame source. Default proportional fit covers the center but not this corner. Explicit capture of only the Apple wallpaper window produced 56 of 64 fully opaque pixels twice. Neither observation establishes the composited desktop behind a parked window."
+}

@@ -77,10 +77,11 @@ static NSURL *staticWallpaper(NSScreen *screen, struct stat *st) {
     if (!url.isFileURL)
         return nil;
     NSArray *roots = @[ @"/System/Library/Desktop Pictures/", @"/System/Library/Wallpapers/" ];
-    NSString *raw = url.path;
-    if (![raw hasPrefix:roots[0]] && ![raw hasPrefix:roots[1]])
-        return nil;
-    NSString *file = raw.stringByResolvingSymlinksInPath;
+    // NSWorkspace can return Apple's system alias for the sealed default wallpaper.
+    // Resolve metadata under /System only. ImageIO receives only a canonical, sealed resource.
+    char resolved[PATH_MAX];
+    if (![url.path hasPrefix:@"/System/"] || !realpath(url.fileSystemRepresentation, resolved)) return nil;
+    NSString *file = [NSFileManager.defaultManager stringWithFileSystemRepresentation:resolved length:strlen(resolved)];
     if (![file hasPrefix:roots[0]] && ![file hasPrefix:roots[1]])
         return nil;
     struct stat system = {0};
@@ -95,11 +96,12 @@ static NSURL *staticWallpaper(NSScreen *screen, struct stat *st) {
     return [NSURL fileURLWithPath:file];
 }
 
-bool np_corner_patch_source_available(const uint8_t display[16]) {
+bool np_corner_patch_source_available(const uint8_t display[16], NCFrame zone) {
     if (!display) return false;
     NSData *expected = [NSData dataWithBytes:display length:16];
     __block NSURL *url = nil;
     __block NSDictionary *options = nil;
+    __block NCFrame frame = {};
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     void (^read)(void) = ^{
         for (NSScreen *screen in NSScreen.screens) {
@@ -111,6 +113,8 @@ bool np_corner_patch_source_available(const uint8_t display[16]) {
             if (memcmp(&bytes, expected.bytes, 16)) continue;
             struct stat st = {};
             if (CGDisplayIsActive(d) && !CGDisplayIsInMirrorSet(d)) {
+                CGRect bounds = CGDisplayBounds(d);
+                frame = (NCFrame){bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height};
                 url = staticWallpaper(screen, &st);
                 options = [NSWorkspace.sharedWorkspace desktopImageOptionsForScreen:screen];
             }
@@ -126,18 +130,22 @@ bool np_corner_patch_source_available(const uint8_t display[16]) {
     }
     // The caller is normally the Rust worker. Do not decode a wallpaper or stall the main queue.
     if (!url || !options) return false;
-    static NSCache<NSArray *, NSNumber *> *known;
+    static NSCache<NSArray *, NSValue *> *known;
     static dispatch_once_t once;
     dispatch_once(&once, ^{ known = [NSCache new]; known.countLimit = 8; });
     // staticWallpaper admits only sealed, immutable system files. A change in scaling is a new source.
     NSArray *key = @[url, options];
-    if ([known objectForKey:key]) return true;
-    BOOL fill;
-    CGImageSourceRef source = drawableWallpaper(url, options, &fill);
-    if (!source) return false;
-    CFRelease(source);
-    [known setObject:@YES forKey:key];
-    return true;
+    NCWallpaperGeometry geometry = {};
+    NSValue *cached = [known objectForKey:key];
+    if (cached) [cached getValue:&geometry size:sizeof(geometry)];
+    else {
+        CGImageSourceRef source = drawableWallpaper(url, options, &geometry);
+        if (!source) return false;
+        CFRelease(source);
+        [known setObject:[NSValue value:&geometry withObjCType:@encode(NCWallpaperGeometry)] forKey:key];
+    }
+    CGRect area;
+    return wallpaperCropArea(geometry, frame, zone, &area);
 }
 
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,

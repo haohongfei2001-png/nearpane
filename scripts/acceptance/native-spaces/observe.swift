@@ -214,6 +214,19 @@ struct Sidebar {
     }
 }
 
+#if P2_WINDOW_MOTION
+if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "corner-desktop-material",
+   let nonce = UUID(uuidString: CommandLine.arguments[2]) {
+    Task { @MainActor in
+        let row = await CornerDesktopMaterial.sample(nonce: nonce)
+        guard let data = try? JSONSerialization.data(withJSONObject: row, options: .sortedKeys) else { exit(3) }
+        print(String(decoding: data, as: UTF8.self))
+        exit(row["status"] as? String == "PASS" ? 0 : 2)
+    }
+    RunLoop.main.run()
+    exit(3)
+}
+#endif
 // Inspect this observer's normal authorization before enumerating any windows or capturing pixels.
 if CommandLine.arguments.dropFirst().elementsEqual(["visual-access"]) {
     let report: [String: Any] = ["pid": getpid(), "screenCapturePreflight": CGPreflightScreenCaptureAccess(),

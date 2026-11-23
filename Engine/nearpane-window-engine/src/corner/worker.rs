@@ -376,7 +376,8 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNSUPPORTED, e, None, false),
         };
-        if !native::PatchSession::source_available(&id.display) {
+        let zone = sliver::corner_zone(display.frame, display.visible, corner);
+        if !native::PatchSession::source_available(&id.display, zone) {
             return self.result(c::UNSUPPORTED, PICTURE_SOURCE_UNAVAILABLE, None, false);
         }
         let sample = match native::sample(&id) {

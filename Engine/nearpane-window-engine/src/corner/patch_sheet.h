@@ -14,5 +14,5 @@ uint32_t np_corner_patch_visible(const uint32_t *ids, uint32_t count, const uint
 void *np_corner_patch_session(void);
 void np_corner_patch_publish(void *session, const NCParkedPatchMember *members, uint32_t count);
 bool np_corner_patch_verified(void *session, const NCParkedPatchMember *member);
-bool np_corner_patch_source_available(const uint8_t display[16]);
+bool np_corner_patch_source_available(const uint8_t display[16], NCFrame zone);
 void np_corner_patch_end(void *session);

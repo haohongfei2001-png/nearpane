@@ -30,7 +30,7 @@ if [[ "$flavor" != marker ]]; then
         fixture_sources+=("$src/pair-pointer-palette.swift")
         if [[ "$flavor" == --window-switch ]]; then
             flags+=(-D P2_WINDOW_MOTION)
-            observer_sources+=("$src/pair-switch-pixels.swift")
+            observer_sources+=("$src/pair-switch-pixels.swift" scripts/acceptance/window-engine/corner/desktop-material.swift)
         fi
     fi
     fixture_sources+=("$src/p2-keypad.swift" "$src/p2-document-files.swift" "$src/p2-document-physical.swift")

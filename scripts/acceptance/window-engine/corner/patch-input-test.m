@@ -53,12 +53,23 @@ static void pixels(NSString *path) {
     CGContextDrawImage(check, CGRectMake(0, 0, 1, 1), crop);
     assert(!memcmp(actual, &rgba[(2 * 8 + 6) * 4], 4));
     assert(!cropWallpaper(url, stretch, display, (NCFrame){7, 21, 1, 1}));
-    assert(!cropWallpaper(url, @{}, display, (NCFrame){-2, 22, 1, 1}));
-    BOOL fill = NO;
-    CGImageSourceRef admitted = drawableWallpaper(url, stretch, &fill);
-    assert(admitted && !fill);
+    CGImageRef defaults = cropWallpaper(url, @{}, display, (NCFrame){-2,22,1,1});
+    assert(defaults);
+    CGImageRelease(defaults);
+    NCWallpaperGeometry geometry;
+    CGImageSourceRef admitted = drawableWallpaper(url, stretch, &geometry);
+    assert(admitted && geometry.scale == NCWallpaperStretch);
     CFRelease(admitted);
-    assert(!drawableWallpaper(url, @{}, &fill));
+    NCFrame square = {-8,20,8,8}, bottom = {-8,27,1,1}, center = {-2,24,1,1};
+    CGRect area = {};
+    admitted = drawableWallpaper(url, @{}, &geometry);
+    assert(admitted && geometry.scale == NCWallpaperFit && wallpaperCropArea(geometry,square,center,&area));
+    assert(!wallpaperCropArea(geometry,square,bottom,&area) && !cropWallpaper(url,@{},square,bottom));
+    CFRelease(admitted);
+    admitted = drawableWallpaper(url, @{NSWorkspaceDesktopImageAllowClippingKey:@YES}, &geometry);
+    assert(admitted && geometry.scale == NCWallpaperFill && wallpaperCropArea(geometry,square,bottom,&area));
+    CFRelease(admitted);
+    assert(!drawableWallpaper(url, @{NSWorkspaceDesktopImageScalingKey:@(NSImageScaleNone)}, &geometry));
     NSURL *animated = [url URLByAppendingPathExtension:@"gif"];
     CGImageDestinationRef multi = CGImageDestinationCreateWithURL((__bridge CFURLRef)animated,
                                                                  CFSTR("com.compuserve.gif"), 2, NULL);
@@ -67,7 +78,7 @@ static void pixels(NSString *path) {
     CGImageDestinationAddImage(multi, image, NULL);
     assert(CGImageDestinationFinalize(multi));
     CFRelease(multi);
-    assert(!drawableWallpaper(animated, stretch, &fill));
+    assert(!drawableWallpaper(animated, stretch, &geometry));
     assert(!cropWallpaper(animated, stretch, display, (NCFrame){-2,22,1,1}));
     assert([[NSFileManager defaultManager] removeItemAtURL:animated error:NULL]);
     CGImageRelease(crop);
