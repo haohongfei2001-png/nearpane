@@ -63,7 +63,7 @@
     "local": "src/corner/tap.rs",
     "upstream": "src/platform/corner/sliver_tap.rs",
     "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
-    "modifications": "Move filtering to a session-owned thread and immutable published geometry. Compare available Quartz recipient fields to current CG observations. After a disagreement keep only corroborated existing recipients protected during recovery. Timeout or secure input ends the generation."
+    "modifications": "Use a session-owned tap with immutable observations. Preserve the complete gesture of an explicit nonmember or a different process when its window number contradicts the resize band. Yield on a confirmed stationary member outside its expected zone. Protect corroborated existing recipients during recovery."
   },
   {
     "local": "src/corner/tap.rs",

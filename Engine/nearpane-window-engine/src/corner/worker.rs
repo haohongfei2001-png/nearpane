@@ -265,7 +265,7 @@ impl Corner {
         let (list, dock) = native::zorder()?;
         let mut ids = HashSet::new();
         let mut zones = Vec::new();
-        let mut changing_zone = None;
+        let mut moving_window = None;
         for o in self.owned.values() {
             if layout != o.displays || !o.reference.matches(&o.id) {
                 return Err(IDENTITY);
@@ -290,12 +290,12 @@ impl Corner {
             }
             ids.insert(o.id.window);
             let zone = sliver::corner_zone(display.frame, display.visible, corner);
-            if moving == Some(o.id.window) { changing_zone = Some(zone); }
+            if moving == Some(o.id.window) { moving_window = Some((o.id.window, zone)); }
             if !zones.contains(&zone) {
                 zones.push(zone);
             }
         }
-        if moving.is_some() && changing_zone.is_none() { return Err(IDENTITY); }
+        if moving.is_some() && moving_window.is_none() { return Err(IDENTITY); }
         let seen = sliver::Seen {
             at: started,
             windows: sliver::near_zones(list, &zones),
@@ -311,7 +311,7 @@ impl Corner {
                 dock,
             },
             seen,
-            changing_zone,
+            moving_window,
         })
     }
     fn refresh(&mut self, moving: Option<u32>) -> Result<(), u32> {

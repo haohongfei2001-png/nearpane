@@ -26,7 +26,7 @@ const PICTURE_CHANGED: u32 = 55;
 pub(super) struct Publication {
     pub shield: Shield,
     pub seen: Seen,
-    pub changing_zone: Option<Rect>,
+    pub moving_window: Option<(u32, Rect)>,
 }
 
 /// Only a complete CG observation is actionable. Any press in the dynamically changing park zone
@@ -35,19 +35,19 @@ fn hit(p: &Publication, at: Point, now: Instant, pid: i32) -> Result<bool, u32> 
     if !p.shield.may_hit(at) {
         return Ok(false);
     }
-    if p.changing_zone.is_some_and(|zone| zone.contains(at)) {
+    if p.moving_window.is_some_and(|(_, zone)| zone.contains(at)) {
         return Err(CHANGING);
     }
     let rows = p.seen.fresh(now).ok_or(STALE)?;
     Ok(p.shield.hits(rows, at, pid).is_some())
 }
 
-fn observed_recipient(p: &Publication, now: Instant, window: u32, pid: i32) -> Option<bool> {
+fn observed_owner(p: &Publication, now: Instant, window: u32) -> Option<i32> {
     p.seen
         .fresh(now)?
         .iter()
-        .find(|r| r.id == window && r.pid == pid && r.alpha > 0.)
-        .map(|r| p.shield.parked.contains(&r.id))
+        .find(|r| r.id == window && r.alpha > 0.)
+        .map(|r| r.pid)
 }
 
 fn can_protect_existing(reason: u32) -> bool {
@@ -64,23 +64,37 @@ fn press_decision(
     window: i64,
     owner: i64,
 ) -> (bool, Option<u32>) {
+    let recipient = u32::try_from(window).ok().zip(i32::try_from(owner).ok()).filter(|(_, pid)| *pid >= 0);
     if !p.shield.may_hit(at) {
-        return (false, None);
+        // A window may have been returned or moved by the user since publication.
+        // Preserve its out-of-zone press and revoke the claim if Quartz identifies
+        // that very stationary window. Never trap mouse events on another desktop.
+        let outside = recipient.is_some_and(|(id, pid)| {
+            pid > 0 && p.shield.on && p.shield.parked.contains(&id) && p.moving_window.map(|(moving, _)| moving) != Some(id) &&
+                observed_owner(p, now, id) == Some(pid)
+        });
+        return (false, outside.then_some(RECEIVER_DISAGREES));
     }
     let predicted = hit(p, at, now, -1);
-    let (Ok(id), Ok(pid)) = (u32::try_from(window), i32::try_from(owner)) else {
-        return (predicted.unwrap_or(false), Some(RECEIVER_DISAGREES));
-    };
-    if id == 0 || pid == 0 {
-        return (predicted.unwrap_or(false), predicted.err());
-    }
+    let Some((id, pid)) = recipient else { return (false, Some(RECEIVER_DISAGREES)); };
+    let parked = p.shield.parked.contains(&id);
     // A new ordinary window can appear above a parked sibling between CG snapshots.
-    // Its positive Quartz window number never enrolled in this shield. Preserve that
-    // window's complete gesture even if the previous geometry still predicts a sliver.
-    if !p.shield.parked.contains(&id) && predicted != Ok(false) {
+    // Its explicit window number remains outside the lease even when the session-head
+    // event does not carry a process ID.
+    if id > 0 && !parked && predicted != Ok(false) {
         return (false, Some(predicted.err().unwrap_or(RECEIVER_DISAGREES)));
     }
-    let actual = observed_recipient(p, now, id, pid);
+    if id == 0 || pid == 0 {
+        if parked && predicted == Ok(false) {
+            return (false, Some(RECEIVER_DISAGREES));
+        }
+        return (predicted.unwrap_or(false), predicted.err());
+    }
+    let seen_pid = observed_owner(p, now, id);
+    if parked && seen_pid.is_some_and(|seen| seen != pid) {
+        return (false, Some(RECEIVER_DISAGREES));
+    }
+    let actual = (seen_pid == Some(pid)).then_some(parked);
     match (predicted, actual) {
         (Ok(expected), Some(receiver)) if expected == receiver => (receiver, None),
         (Ok(expected), receiver) => (receiver.unwrap_or(expected), Some(RECEIVER_DISAGREES)),
@@ -202,7 +216,7 @@ extern "C" fn decide(
             return id > 0
                 && pid > 0
                 && p.shield.may_hit(at)
-                && observed_recipient(p, now, id, pid) == Some(true);
+                && p.shield.parked.contains(&id) && observed_owner(p, now, id) == Some(pid);
         }
         let (swallow, reason) = press_decision(p, at, now, window, owner);
         if let Some(reason) = reason {
@@ -299,7 +313,7 @@ impl Tap {
         // A replacement cannot retroactively cover a gap in native Z-order observations.
         if let Err(reason) = self.health() {
             if can_protect_existing(reason)
-                && new.changing_zone.is_none()
+                && new.moving_window.is_none()
                 && new.seen.fresh(Instant::now()).is_some()
             {
                 if new.shield.parked.is_subset(&self.current.borrow().shield.parked) {
@@ -362,7 +376,7 @@ mod tests {
                     alpha: 1.,
                 }],
             },
-            changing_zone: changing.then(|| Rect::new(70., 60., 30., 40.)),
+            moving_window: changing.then(|| (9, Rect::new(70., 60., 30., 40.))),
         }
     }
     #[test]
@@ -441,6 +455,15 @@ mod tests {
             assert_eq!(result, 1);
             assert_eq!(fields, [kind as i64, 11, 13, 0, 91, 44]);
         }
+        let (tap, mut handler) = Tap::pair(publication(Instant::now(), false));
+        tap.shared.ready.store(true, Ordering::Release);
+        let raw = (&mut handler as *mut TapThread).cast();
+        for (kind, window, pid) in [(1, 400, 0), (6, 9, 44), (2, 9, 44)] {
+            assert_eq!(unsafe {
+                np_fixture_corner_unposted_mouse(raw, decide, kind, 95., 97., window, pid)
+            }, 0);
+        }
+        assert_eq!(tap.health(), Err(RECEIVER_DISAGREES));
     }
     #[test]
     fn confirmed_receiver_disagreement_latches_the_whole_gesture_and_revokes_health() {
@@ -516,7 +539,7 @@ mod tests {
         assert_eq!(press_decision(&p, at, now, 9, 44), (true, None));
         assert_eq!(
             press_decision(&p, at, now, 9, 45),
-            (true, Some(RECEIVER_DISAGREES))
+            (false, Some(RECEIVER_DISAGREES))
         );
         assert_eq!(
             press_decision(&p, Point::new(4., 4.), now, 9, 45),
@@ -530,6 +553,30 @@ mod tests {
             press_decision(&p, at, now + SEEN_FRESH + Duration::from_millis(1), 9, 44),
             (false, Some(STALE))
         );
+    }
+    #[test]
+    fn explicit_bystander_keeps_its_gesture_even_without_a_target_pid() {
+        for owner in [0, -1, 44] {
+            let (tap, mut handler) = Tap::pair(publication(Instant::now(), false));
+            tap.shared.ready.store(true, Ordering::Release);
+            let raw = (&mut handler as *mut TapThread).cast();
+            assert_eq!(decide(raw, 1, 95., 97., 0, 400, owner), 0);
+            assert_eq!(tap.health(), Err(RECEIVER_DISAGREES));
+            assert_eq!(decide(raw, 6, 95., 97., 0, 9, 44), 0);
+            assert_eq!(decide(raw, 2, 95., 97., 0, 9, 44), 0);
+        }
+    }
+    #[test]
+    fn out_of_zone_receiver_disagrees_only_for_a_confirmed_stationary_window() {
+        let now = Instant::now();
+        let outside = Point::new(10., 10.);
+        let mut p = publication(now, true);
+        assert_eq!(press_decision(&p, outside, now, 9, 44), (false, None));
+        p.shield.parked.insert(12);
+        p.seen.windows.push(Listed { id: 12, ..p.seen.windows[0] });
+        assert_eq!(press_decision(&p, outside, now, 12, 44), (false, Some(RECEIVER_DISAGREES)));
+        assert_eq!(press_decision(&p, outside, now, 12, 45), (false, None));
+        assert_eq!(press_decision(&p, outside, now, 400, 44), (false, None));
     }
     #[test]
     fn surface_takeover_preserves_the_gesture_and_never_rearms_the_same_owner() {
