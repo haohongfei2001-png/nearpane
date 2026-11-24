@@ -199,7 +199,7 @@ import Testing
         #expect(!group.containsOriginal(member,in:snapshot(3,stage:true),appearance:member.appearance))
         #expect(!host.routesGroupChoice && !host.holdsDispatch)
     }
-    @Test func heldPixelsExpireAndRejectReusedIdentityWrongSpaceAndLostPermission() throws {
+    @Test func heldPixelsOutliveTheCaptureButRejectReusedIdentityWrongSpaceAndLostPermission() throws {
         let group = try #require(departure()), m = try #require(group.members.first), saved = try still(m,in:group)
         let cache = Cache(maxCount:2,maxBytes:400_000)
         let cost = try #require(PreviewPixelBudget.charge(saved.capture.image))
@@ -208,7 +208,7 @@ import Testing
             DesktopWindowGallery.heldPixels(m,departure:group,snapshot:snapshot,cache:cache,appearance:appearance,now:time) { _ in grant }
         }
         #expect(pixels(snapshot(3)) === saved.capture.image)
-        #expect(pixels(snapshot(3),at:160) == nil && pixels(snapshot(3),at:99) == nil)
+        #expect(pixels(snapshot(3),at:3700) === saved.capture.image && pixels(snapshot(3),at:99) == nil)
         #expect(pixels(snapshot(3),appearance:UUID()) == nil && pixels(snapshot(3),grant:false) == nil)
         #expect(pixels(snapshot(3,scope:.init(display:scope.display,nativeSpace:UUID()))) == nil)
         #expect(pixels(snapshot(3,scope:.init(display:UUID(),nativeSpace:scope.nativeSpace))) == nil)
@@ -224,6 +224,30 @@ import Testing
         let f = try #require(group.members.last)
         cache.store(try still(f,in:group),for:.current(f.key),cost:cost)
         #expect(cache.count == 2 && cache.bytes == cost*2 && cache.peek(.current(m.key)) != nil && pixels(snapshot(3)) == nil)
+    }
+
+    @Test func coveredDisplayRetainsBothGroupMembersWhileOnlyTheirHomeDesktopCanDrawThem() throws {
+        let group = try #require(departure())
+        let cache = Cache()
+        let gallery = DesktopWindowGallery(permitsWindow: { _ in true }, cache: cache, lifetime: { _ in nil })
+        let home = snapshot(3), away = snapshot(4,scope:.init(display:scope.display,nativeSpace:UUID()))
+        for member in group.members {
+            let saved = try still(member,in:group)
+            cache.store(saved,for:.observed(member.key),cost:try #require(PreviewPixelBudget.charge(saved.capture.image)))
+        }
+        func frames(_ inventory: DesktopSnapshot) -> [CGImage] {
+            group.members.compactMap { member in
+                DesktopWindowGallery.heldPixels(member,departure:group,snapshot:inventory,cache:cache,appearance:member.appearance,
+                                                now:3700,observed:true) { _ in true }
+            }
+        }
+        let original = group.members.compactMap { cache.peek(.observed($0.key))?.capture.image }
+        gallery.clear(display:scope.display.uuidString,keepingCardFrames:true)
+        #expect(frames(away).isEmpty)
+        let returned = frames(home)
+        #expect(returned.count == 2 && zip(original,returned).allSatisfy { $0 === $1 })
+        gallery.clear(display:scope.display.uuidString)
+        #expect(cache.count == 0 && frames(home).isEmpty)
     }
 
     @Test func productionGroupPictureRendersTheTwoStoredMembersInTheirActualOverlappingSlots() throws {

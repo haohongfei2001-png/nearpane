@@ -254,7 +254,7 @@ struct DesktopWindowTarget: Equatable {
         func matchesDeparture(_ member: StageGroupDeparture.Member, _ group: StageGroupDeparture,
                               now: TimeInterval, appearance: UUID?) -> Bool {
             departure == group.stamp(for:member) && group.members.contains(member) && lifetime == member.appearance &&
-                (appearance == nil || appearance == lifetime) && now >= time && now - time < 60 &&
+                (appearance == nil || appearance == lifetime) && now >= time &&
                 target.key == member.key && target.session == group.session && target.topology == group.topology &&
                 UUID(uuidString:target.display) == group.scope.display && target.desktopUUID == group.scope.nativeSpace &&
                 target.overviewSpace == String(group.nativeID) && target.membership == .known(recordIDs:[String(group.nativeID)]) &&
@@ -397,15 +397,14 @@ struct DesktopWindowTarget: Equatable {
             live.cancel()
         }
         if let display {
-            observedGroups = observedGroups.filter { $0.value.scope.display.uuidString.caseInsensitiveCompare(display) != .orderedSame }
             recentInventory[display] = nil; lastObservation[display] = nil
             operations.removeValue(forKey: display)
             changes.removeValue(forKey: display)?.finish()
-            stills.remove { slot, still in
-                if case .current = slot, keepingCardFrames { return false }
-                return still.target.display == display
+            if !keepingCardFrames {
+                observedGroups = observedGroups.filter { $0.value.scope.display.uuidString.caseInsensitiveCompare(display) != .orderedSame }
+                stills.remove { _, still in still.target.display == display }
+                sizes = sizes.filter { $0.value.target.display != display }
             }
-            if !keepingCardFrames { sizes = sizes.filter { $0.value.target.display != display } }
         } else {
             observedGroups.removeAll(); recentInventory.removeAll(); lastObservation.removeAll()
             generation &+= 1
@@ -540,7 +539,6 @@ struct DesktopWindowTarget: Equatable {
             let key = member.key
             let slot = observed ? StillSlot.observed(key) : .held(key)
             let previous = stills.peek(slot)
-            if previous?.departure != departure.stamp(for:member) { stills.remove(slot) }
             guard permitsWindow(key), lifetime(key) == member.appearance, let row = snapshot.windows.first(where: { DesktopWindowKey($0) == key }),
                   let target = DesktopWindowTarget.preview(row, in:snapshot), target.publiclyVisible, target.frame == member.before.frame,
                   visible[target.display]?.contains(key) == true,
@@ -581,7 +579,10 @@ struct DesktopWindowTarget: Equatable {
         guard permitted, permitsWindow(key), snapshot.nativeIsFresh(now:.now,uptime:now),
               WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
         return Self.heldPixels(member, departure:departure, snapshot:snapshot, cache:stills, appearance:lifetime(key), now:now) { still in
-            still.signedOwner?.stillSigned(as:key) == true && confirmOwner() && still.target.sharedSurface(visible:false, matchFrame:false)
+            guard still.signedOwner?.stillSigned(as:key) == true && confirmOwner() else { return false }
+            let access = still.target.lastFrameAccess()
+            if access == .surfaceMismatch || access == .sharingDenied { discardRevokedPictures(key) }
+            return access == .allowed
         }
     }
 
@@ -600,21 +601,25 @@ struct DesktopWindowTarget: Equatable {
         guard permitted, permitsWindow(key), let group = observedGroups[id], let member = group.members.first(where:{ $0.key == key }),
               snapshot.nativeIsFresh(now:.now,uptime:now), snapshot.native?.catalogComplete == true,
               WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
-        guard group.containsOriginal(member,in:snapshot,appearance:lifetime(key)) else { return nil }
-        return Self.heldPixels(member,departure:group,snapshot:snapshot,cache:stills,appearance:lifetime(key),now:now,observed:true) { still in
-            let eligible = still.signedOwner?.stillSigned(as:key) == true && still.original?.matches(key) == true &&
-                still.target.sharedSurface(visible:false,matchFrame:false)
-            if !eligible {
-                // Evict the original on revocation after this SwiftUI update. A newly enrolled
-                // window or a newer independently checked frame may already occupy this key.
-                Task { [weak self] in
-                    guard let self, let saved = self.stills.peek(.observed(key)), saved.original === still.original,
-                          saved.time == still.time, saved.departure == still.departure else { return }
-                    self.stills.remove(.observed(key))
-                }
-            }
-            return eligible
+        guard group.matches(snapshot), let saved = stills.peek(.observed(key)), saved.departure == group.stamp(for:member) else { return nil }
+        let appearance = observedAppearance(for: member, in: saved)
+        guard group.containsOriginal(member,in:snapshot,appearance:appearance) else { return nil }
+        return Self.heldPixels(member,departure:group,snapshot:snapshot,cache:stills,appearance:appearance,now:now,observed:true) { still in
+            let access = still.target.lastFrameAccess()
+            if access == .surfaceMismatch || access == .sharingDenied { discardRevokedPictures(key) }
+            return access == .allowed && still.signedOwner?.stillSigned(as:key) == true && still.original?.matches(key) == true
         }
+    }
+
+    // The roster gives a returning window a new appearance. Only the retained AX
+    // object and the same signed process can link it to this historical picture.
+    private func observedAppearance(for member: StageGroupDeparture.Member, in still: Still) -> UUID? {
+        let current = lifetime(member.key)
+        guard let current, current != member.appearance,
+              still.original?.matches(member.key, appearance: current, ownerUnchanged: {
+                  still.signedOwner?.stillSigned(as:member.key) == true
+              }) == true else { return current }
+        return member.appearance
     }
 
     private func observePictures(on display: String, snapshot: DesktopSnapshot?, now: TimeInterval,
@@ -629,16 +634,21 @@ struct DesktopWindowTarget: Equatable {
         let old = recentInventory[display]
         if let snapshot, let old, old.snapshot.sessionID == snapshot.sessionID, old.snapshot.revision == snapshot.revision,
            snapshot.nativeIsFresh(now:.now,uptime:now) { return }
-        guard let snapshot, snapshot.nativeIsFresh(now:.now,uptime:now), let directory = groups(snapshot) else {
+        guard let snapshot, snapshot.nativeIsFresh(now:.now,uptime:now), snapshot.native?.catalogComplete == true,
+              snapshot.topologyConsistent, let directory = groups(snapshot) else {
             recentInventory[display] = nil
-            for id in existing.keys { observedGroups[id] = nil }
-            stills.remove { slot, value in if case .observed = slot { return value.target.display == display }; return false }
             return
         }
         var currentAppearances = [DesktopWindowKey: UUID]()
         for key in directory.lifetimes.keys { currentAppearances[key] = lifetime(key) }
         recentInventory[display] = .init(snapshot:snapshot,lifetimes:directory.lifetimes,appearances:currentAppearances)
         for (id, group) in existing {
+            if group.scope != directory.scope {
+                if !group.members.contains(where: { stills.peek(.observed($0.key))?.departure == group.stamp(for:$0) }) {
+                    observedGroups[id] = nil
+                }
+                continue
+            }
             let entry = directory.groups.first { $0.id == id }
             let current = entry.map { $0.needsReorganization != true &&
                 Set($0.members.map(\.id)) == Set(group.members.map(\.id)) } == true
@@ -646,8 +656,10 @@ struct DesktopWindowTarget: Equatable {
             for member in group.members {
                 let slot = StillSlot.observed(member.key)
                 guard let still = stills.peek(slot), still.departure == group.stamp(for:member) else { continue }
-                if current, group.containsOriginal(member,in:snapshot,appearance:lifetime(member.key)),
-                   now >= still.time, now - still.time < 60 { remaining = true }
+                // A returning original may not answer AX during this inventory.
+                // Retain on matching membership. Drawing still requires the original AX object.
+                if current, group.containsOriginal(member,in:snapshot,appearance:nil),
+                   now >= still.time { remaining = true }
                 else { stills.remove(slot) }
             }
             if !remaining { observedGroups[id] = nil }
@@ -663,7 +675,6 @@ struct DesktopWindowTarget: Equatable {
             let held = prior.flatMap { $0.sameLayout(as:next) ? $0 : nil } ?? next
             let saved = remember(held,in:snapshot,observed:true)
             if saved, prior != held { observedGroups[group.id] = held }
-            else if !saved, prior != nil, prior != held { observedGroups[group.id] = nil }
         }
     }
 
@@ -737,22 +748,17 @@ struct DesktopWindowTarget: Equatable {
             let owners = Dictionary(grouping: sample?.windows.compactMap(DesktopWindowKey.init) ?? [], by: \.number)
             stills.remove { slot, still in
                 guard still.target.display == display else { return false }
-                guard case let .current(key) = slot else {
-                    guard let sample, sample.sessionID == still.target.session, sample.topologyFingerprint == still.target.topology,
-                          sample.native?.stageManagerEnabled == false, now >= still.time, now - still.time < 60,
-                          let scope = sample.scopes.first(where: { $0.displayID == display }) else { return true }
-                    let current = scope.records.filter(\.isCurrent)
-                    return current.count != 1 || current[0].ordinaryUUID != still.target.desktopUUID
-                }
+                let key = still.target.key
                 guard permitsWindow(key) else { return true }
                 guard let sample else { return false }
                 guard sample.sessionID == still.target.session, still.target.matchesScreen(screen) else { return true }
-                if still.use == .previous, let target = active[key] {
+                if owners[key.number]?.contains(where: { $0 != key }) == true { return true }
+                if case .current = slot, still.use == .previous, let target = active[key] {
                     return !still.canRetainPrevious(target, lifetime: lifetime(key), now: now)
                 }
-                // An off-desktop window can be absent for the whole visit. Only positive
-                // conflicting evidence retires its pixels here. The common LRU bounds memory.
-                return owners[key.number]?.contains(where: { $0 != key }) == true
+                // The owner remains on its home desktop while the user visits
+                // another. Every history lookup separately verifies that home scope.
+                return false
             }
             for (key, measurement) in sizes where measurement.target.display == display && !stills.contains(.current(key)) {
                 sizes.removeValue(forKey: key)
