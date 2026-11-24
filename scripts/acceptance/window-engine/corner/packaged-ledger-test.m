@@ -64,6 +64,41 @@ static void displayScopeChecks(void) {
     current[1] = s.displays[1]; current[1].uuid[0] = 3;
     assert(!sameDisplays(s.displays, 2, current, 2));
 }
+static void expectPrepareRefusal(Session *s, NSDictionary *wal, NSString *reason) {
+    int reply[2];
+    assert(pipe(reply) == 0 && fcntl(reply[0], F_SETFL, O_NONBLOCK) == 0);
+    @try {
+        acknowledgePreparedRecovery(s, wal, reply[1]);
+        assert(0 && "an unverified focus released a park");
+    } @catch (NSException *exception) {
+        assert([exception.reason isEqual:reason]);
+    }
+    char byte;
+    assert(read(reply[0], &byte, 1) == -1 && errno == EAGAIN);
+    assert(!productFile(s->dir, "guardian-prepared.json"));
+    close(reply[0]);
+    close(reply[1]);
+}
+static void selectedWorksetFocusChecks(int jobFD) {
+    Session s = {.dir = jobFD, .member = {.pid = 377, .window = 409, .birth = 48435},
+                 .preparedFrontPID = 377, .preparedFrontBirth = 48435, .preparedFocusNumber = 410};
+    NSDictionary *sibling = @{@"pending": @{@"preferred": @{@"pid": @377, @"birth": @48435, @"number": @410}}};
+    assert(focusMatchesSelection(&s, sibling));
+    expectPrepareRefusal(&s, @{}, @"guardianFocusDoesNotMatchSelectedWorksetWindow");
+    expectPrepareRefusal(&s, sibling, @"selectedFocusOrInputChangedBeforePrepare");
+    assert(np_corner_drawn_window_number(NULL, s.preparedFrontPID) == 0);
+    s.preparedFocusNumber = 409;
+    expectPrepareRefusal(&s, @{@"pending": @{@"preferred": @{@"pid": @377, @"birth": @48435, @"number": @409}}},
+                         @"guardianFocusDoesNotMatchSelectedWorksetWindow");
+    s.preparedFocusNumber = 411;
+    expectPrepareRefusal(&s, sibling, @"guardianFocusDoesNotMatchSelectedWorksetWindow");
+    s.preparedFocusNumber = 410;
+    s.preparedFrontBirth++;
+    expectPrepareRefusal(&s, sibling, @"guardianFocusDoesNotMatchSelectedWorksetWindow");
+    s.preparedFrontPID = 378;
+    assert(focusMatchesSelection(&s, @{@"pending": @{@"preferred": @{@"pid": @378, @"birth": @48436, @"number": @410}}}));
+    puts("{\"scope\":\"guardianPrepareFocus\",\"refusedCases\":5,\"prepareAckBytes\":0,\"preparedRecords\":0,\"windowWrites\":0}");
+}
 int main(void) {
     @autoreleasepool {
         displayScopeChecks();
@@ -165,6 +200,8 @@ int main(void) {
         assert(pipe(replies) == 0 && fcntl(replies[0], F_SETFL, O_NONBLOCK) == 0);
         NSDictionary *withdrawn = @{@"status": @"WITHDRAWN_BEFORE_SUBMISSION", @"issued": @0};
         int jobFD = open(job.fileSystemRepresentation, O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        assert(jobFD >= 0);
+        selectedWorksetFocusChecks(jobFD);
         char reply;
         NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid())};
         assert(persistJobRecord(jobFD, NCPrepared, prepared));

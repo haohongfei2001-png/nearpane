@@ -344,6 +344,14 @@ static BOOL liveCG(const NCMember *m, NCSample *s) {
     s->onscreen = [row[(__bridge NSString *)kCGWindowIsOnscreen] isEqual:@YES];
     return valid(s->cg);
 }
+uint32_t np_corner_drawn_window_number(const void *retained, int32_t pid) {
+    AXUIElementRef window = (AXUIElementRef)retained;
+    uint32_t number = 0;
+    if (!window || pid <= 1 || !owned(window, pid) || !numberOf(window, &number)) return 0;
+    NCMember member = {.pid = pid, .window = number};
+    NCSample sample = {};
+    return liveCG(&member, &sample) && sample.onscreen ? number : 0;
+}
 static uint32_t readMember(const NCMember *m, id *window, NCSample *state) {
     if (!AXIsProcessTrusted())
         return NO_AX;

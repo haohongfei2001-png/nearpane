@@ -25,6 +25,7 @@ typedef struct {
     uint32_t preparedPointerMotion;
     pid_t preparedFrontPID;
     uint64_t preparedFrontBirth;
+    uint32_t preparedFocusNumber;
     AXUIElementRef preparedFocus;
     void *profileID;
     __unsafe_unretained NSString *hostHash;
@@ -102,11 +103,15 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
 #ifndef NP_CORNER_FIXTURE
 #import "../focused_window.h"
 static BOOL originalFocusUnchanged(Session *s) {
-    if (!s->held || !s->preparedFocus || !s->preparedFrontBirth || CFEqual(s->preparedFocus, s->held) ||
+    if (!s->held || !s->preparedFocus || !s->preparedFrontBirth || !s->preparedFocusNumber ||
+        s->preparedFocusNumber == s->member.window || CFEqual(s->preparedFocus, s->held) ||
         NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != s->preparedFrontPID ||
         ncg_birth(s->preparedFrontPID, NULL) != s->preparedFrontBirth) return NO;
     AXUIElementRef now = cornerFocusedWindow(s->preparedFrontPID);
-    BOOL same = now && CFEqual(now, s->preparedFocus);
+    BOOL same = now && CFEqual(now, s->preparedFocus) &&
+        np_corner_drawn_window_number(now, s->preparedFrontPID) == s->preparedFocusNumber &&
+        NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier == s->preparedFrontPID &&
+        ncg_birth(s->preparedFrontPID, NULL) == s->preparedFrontBirth;
     if (now) CFRelease(now);
     return same;
 }
@@ -118,6 +123,18 @@ static CGRect displayRect(NCFrame f);
 static void need(BOOL yes, NSString *why);
 #include "packaged.h"
 #include "inspect.h"
+static BOOL focusMatchesSelection(Session *s, NSDictionary *wal) {
+    NPRequest focused = {.pid = s->preparedFrontPID, .birth = s->preparedFrontBirth, .window = s->preparedFocusNumber};
+    return focused.pid > 1 && focused.birth && focused.window && focused.window != s->member.window &&
+        sameWindow(wal[@"pending"][@"preferred"], &focused);
+}
+static BOOL prepareFocusUnchanged(Session *s) {
+    if (!originalFocusUnchanged(s)) return NO;
+    uint32_t inputs[13];
+    np_corner_inputs(inputs);
+    return !memcmp(inputs, s->pre.hid, sizeof(inputs)) && s->preparedPointerMotion ==
+        CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
+}
 static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
     NPRequest r = s->pre.lease;
     return @{
@@ -134,6 +151,19 @@ static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
         @"hostPID": @(s->pre.host), @"hostBirth": @(s->pre.host_birth),
         @"guardianBirth": @(ncg_birth(getpid(), NULL)), @"originalReadbacks": @2
     };
+}
+
+// The Host can submit a move as soon as it reads R. Keep both the durable handoff and
+// the last live focus check on this side of that byte.
+static NSDictionary *acknowledgePreparedRecovery(Session *s, NSDictionary *before, int writer) {
+    need(focusMatchesSelection(s, before), @"guardianFocusDoesNotMatchSelectedWorksetWindow");
+    need(prepareFocusUnchanged(s), @"selectedFocusOrInputChangedBeforePrepare");
+    NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()),
+                               @"original": originalProof(s, before)};
+    need(persistJobRecord(s->dir, NCPrepared, prepared), @"couldNotPersistOriginalGuardianResponsibility");
+    need([before isEqual:withdrawableJournal(s)] && prepareFocusUnchanged(s), @"selectedFocusOrIntentChangedBeforeAck");
+    need(write(writer, "R", 1) == 1, @"prepareAckUnavailable");
+    return prepared;
 }
 
 static NSDictionary *recoveryFrameRecord(Session *s) {
@@ -346,17 +376,17 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->facts.unspent = true;
 #ifndef NP_CORNER_FIXTURE
     NSDictionary *before = withdrawableJournal(s);
-    usleep(25000);
-    need(withdrawalWitness(s, before), @"secondOriginalWindowOrPendingJournalUnavailable");
-    NSDictionary *prepared = @{@"schema": @1, @"status": @"PREPARED", @"guardianPID": @(getpid()),
-                               @"original": originalProof(s, before)};
-    need(persistJobRecord(s->dir, NCPrepared, prepared), @"couldNotPersistOriginalGuardianResponsibility");
     s->preparedPointerMotion = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
     s->preparedFrontPID = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
     s->preparedFrontBirth = ncg_birth(s->preparedFrontPID, NULL);
     s->preparedFocus = cornerFocusedWindow(s->preparedFrontPID);
-#endif
+    s->preparedFocusNumber = np_corner_drawn_window_number(s->preparedFocus, s->preparedFrontPID);
+    usleep(25000);
+    need(withdrawalWitness(s, before), @"secondOriginalWindowOrPendingJournalUnavailable");
+    NSDictionary *prepared = acknowledgePreparedRecovery(s, before, STDOUT_FILENO);
+#else
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
+#endif
     BOOL hostEOFBeforeConfirmation = NO;
 #ifdef NP_CORNER_FIXTURE
     need(readPacket(STDIN_FILENO, &s->sealed, sizeof(s->sealed)) && ncg_correlates(&s->pre, &s->sealed) &&
