@@ -4,6 +4,7 @@ import Foundation
 /// Independent AX and WindowServer readback. An adapter must withhold a sample when the two
 /// disagree or when it cannot enumerate the bystanders in this display's ordinary desktop.
 public struct StageWindowState: Codable, Equatable, Sendable {
+    public static let maximumParkedExtent = 256.0
     public let window: NativeSpaceWindow
     public let lifetime: UUID
     public var frame: SurfaceRect
@@ -47,7 +48,7 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     func dispatch(_ command: StageWindowCommand) async throws
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
     func prepareBackend(_ sample: StageWindowSample) async throws
-    func checkRetirementSurface(_ sample: StageWindowSample) async throws
+    func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws
     func read(_ scope: StageGroupScope) async throws -> StageWindowSample
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws
 }
@@ -61,7 +62,7 @@ public struct StageWindowCommand: Equatable, Sendable {
 public extension StageWindowSession {
     func mayManage(_ state: StageWindowState) -> Bool { true }
     func prepareBackend(_ sample: StageWindowSample) async throws {}
-    func checkRetirementSurface(_ sample: StageWindowSample) async throws { throw StageSwitchError.unavailable }
+    func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws { throw StageSwitchError.unavailable }
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
     var engineOwner: StageEngineOwner? { nil }
     func dispatch(_ c: StageWindowCommand) async throws {
@@ -368,8 +369,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
         if let owner {
             // An unavailable corner is known before showing another member or transferring the keyboard.
-            if members.contains(where: { !targets.contains($0.windowHint) && held[$0.windowHint] == nil }) {
-                try await session.checkRetirementSurface(first)
+            let outgoing = first.windows.values.filter { ids.contains($0.window) && !targets.contains($0.window) && held[$0.window] == nil }
+            if !outgoing.isEmpty {
+                guard outgoing.allSatisfy({ $0.frame.height.isFinite && $0.frame.height > 0 }) else { throw StageSwitchError.incomplete }
+                let bottomOnly = outgoing.contains { $0.frame.height > StageWindowState.maximumParkedExtent }
+                try await session.checkRetirementSurface(first, bottomOnly: bottomOnly)
                 try requireCurrentIntent()
             }
             // Record the worker before preparing it. A failed health check cannot imply a window was hidden.

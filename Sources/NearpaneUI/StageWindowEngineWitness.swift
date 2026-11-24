@@ -323,7 +323,8 @@ import NearpaneOrdinaryWindowRuntime
             // Independent upper bound for the physical remainder. Rust additionally verifies the actual corner
             // shield/zone and the live input tap; its classification alone cannot qualify this geometry.
             guard o.membership == home, !exposed.isEmpty, min(exposed.width,exposed.height) <= 8,
-                  max(exposed.width,exposed.height) <= 256, displays.allSatisfy({ $0.id == display.id || bounds($0).intersection(rect).isEmpty })
+                  max(exposed.width,exposed.height) <= StageWindowState.maximumParkedExtent,
+                  displays.allSatisfy({ $0.id == display.id || bounds($0).intersection(rect).isEmpty })
             else { throw StageSwitchError.incomplete }
             return .parked
         }

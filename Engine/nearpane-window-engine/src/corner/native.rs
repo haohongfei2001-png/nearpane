@@ -94,13 +94,17 @@ unsafe extern "C" {
     fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
     fn np_corner_patch_verified(session: *mut c_void, member: *const PatchMember) -> bool;
     fn np_corner_patch_prepare_source(session: *mut c_void, home: *const Member, footprint: Rect, prepare: bool) -> u32;
-    fn np_corner_patch_site(home: *const Member, footprint: Rect) -> u32;
+    fn np_corner_patch_sites(home: *const Member, footprints: *const Rect, count: u32,
+                             first_is_alternate: bool, reasons: *mut u32) -> u32;
     fn np_corner_patch_end(session: *mut c_void);
 }
 pub(super) struct PatchMaterial(std::ptr::NonNull<c_void>);
-pub(super) fn check_patch_site(home: &Member, footprint: Rect) -> Result<(), u32> {
-    match unsafe { np_corner_patch_site(home, footprint) } {
-        0 => Ok(()),
+pub(super) fn check_patch_sites(home: &Member, footprints: &[Rect], first_is_alternate: bool) -> Result<Vec<u32>, u32> {
+    let mut reasons = vec![0; footprints.len()];
+    match unsafe {
+        np_corner_patch_sites(home, footprints.as_ptr(), footprints.len() as u32, first_is_alternate, reasons.as_mut_ptr())
+    } {
+        0 => Ok(reasons),
         reason => Err(reason),
     }
 }

@@ -14,7 +14,7 @@ import Testing
         calls += 1; throw StageSwitchError.unavailable
     }
     func start(_ owner: StageEngineOwner, nativeID: UInt64) async throws { calls += 1 }
-    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, owner: StageEngineOwner) throws {
+    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, bottomOnly: Bool, owner: StageEngineOwner) throws {
         calls += 1
         throw StageSwitchError.unavailable
     }

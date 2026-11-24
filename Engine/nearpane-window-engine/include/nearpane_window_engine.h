@@ -36,7 +36,7 @@ enum { NP_VISIBLE = 1, NP_HIDDEN = 2, NP_AX_VALID = 4, NP_CG_VALID = 8,
 enum { NP_OK = 0, NP_INVALID = 1, NP_INCOMPATIBLE = 2, NP_CLOSED = 3, NP_BUSY = 4,
        NP_PENDING = 5, NP_NO_TICKET = 6, NP_INTERNAL = 7 };
 enum { NP_HOST = 0, NP_ISOLATED_FIXTURE = 1 };
-enum { NP_TRIAL_CLASSIC = 1u << 16 };
+enum { NP_TRIAL_CLASSIC = 1u << 16, NP_CORNER_BOTTOM_SITES_ONLY = 1u << 17 };
 typedef struct { double x, y, width, height; } NPRect;
 typedef struct { int32_t pid; uint32_t reserved; uint64_t birth; } NPProcess;
 typedef struct {

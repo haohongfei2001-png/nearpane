@@ -9,14 +9,16 @@ public struct NativeStageEngineRequest: Sendable {
     public let scope: StageGroupScope?
     public let window: NativeSpaceWindow?
     public let nativeID: UInt64
+    public let bottomSitesOnly: Bool
     public let frame, target: SurfaceRect?
     public init(backend: UInt32, operation: UInt32, intent: UUID, group: UUID? = nil,
                 scope: StageGroupScope? = nil, member: UUID? = nil, lifetime: UUID? = nil,
                 generation: UUID? = nil, window: NativeSpaceWindow? = nil, nativeID: UInt64 = 0,
-                frame: SurfaceRect? = nil, target: SurfaceRect? = nil) {
+                frame: SurfaceRect? = nil, target: SurfaceRect? = nil, bottomSitesOnly: Bool = false) {
         self.backend = backend; self.operation = operation; self.intent = intent; self.group = group
         self.scope = scope; self.member = member; self.lifetime = lifetime; self.generation = generation
         self.window = window; self.nativeID = nativeID; self.frame = frame; self.target = target
+        self.bottomSitesOnly = bottomSitesOnly
     }
 }
 public struct NativeStageEngineReceipt: Sendable {
@@ -80,6 +82,7 @@ public actor NativeStageWindowEngine {
         var request = NPRequest()
         request.size = UInt32(MemoryLayout<NPRequest>.size); request.version = UInt32(NP_ENGINE_ABI)
         request.backend = input.backend; request.operation = input.operation; request.timeout_ms = timeout
+        if input.bottomSitesOnly { request.flags = UInt32(NP_CORNER_BOTTOM_SITES_ONLY) }
         request.epoch = epoch
         request.intent = input.intent.uuid
         if let id = input.group { request.group = id.uuid }

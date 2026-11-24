@@ -13,7 +13,8 @@ bool np_corner_patch_order(const NCListed *, uint32_t length, const uint32_t *, 
 uint32_t np_corner_patch_visible(const uint32_t *ids, uint32_t count, const uint8_t display[16], NCFrame frame);
 void *np_corner_patch_material(void);
 void np_corner_patch_material_end(void *material);
-uint32_t np_corner_patch_site(const NCMember *home, NCFrame footprint);
+uint32_t np_corner_patch_sites(const NCMember *home, const NCFrame *footprints, uint32_t count,
+                               bool firstIsAlternate, uint32_t *reasons);
 // Owner-process only. These functions neither order a panel nor modify a third-party window.
 NSPanel *np_corner_material_panel(void *material, const NCMember *home, NCFrame footprint);
 typedef NS_ENUM(uint32_t, NCCornerPicture) {

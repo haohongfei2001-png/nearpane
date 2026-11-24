@@ -56,10 +56,33 @@ struct Owned {
     corner: park::Corner,
 }
 
+impl Owned {
+    fn within_product_extent(&self, frame: Rect) -> bool {
+        self.displays.iter().find(|d| d.id == self.id.display)
+            .and_then(|d| d.frame.intersect(&frame))
+            .is_some_and(|r| r.w <= park::PARK_SLIVER && r.h <= park::PARK_SLIVER_LENGTH)
+    }
+}
+
+struct PreparedSite {
+    epoch: u64,
+    native: u64,
+    space: [u8; 16],
+    displays: Vec<Display>,
+    corner: park::Corner,
+}
+
+impl PreparedSite {
+    fn matches(&self, home: &Member, displays: &[Display], epoch: u64) -> bool {
+        self.epoch == epoch && self.space == home.space && self.native == home.native && self.displays == displays
+    }
+}
+
 /// The default is idle. No tap, native operation, or screen read is started at construction.
 #[derive(Default)]
 pub struct Corner {
     owned: HashMap<u32, Owned>,
+    prepared: HashMap<[u8; 16], PreparedSite>,
     tap: Option<Tap>,
     patch: Option<native::PatchSession>,
     material: Option<native::PatchMaterial>,
@@ -92,6 +115,28 @@ fn scoped(list: &[Display], id: [u8; 16]) -> Result<(&Display, park::Corner), u3
     Ok((here, choice.corner))
 }
 
+fn candidate_sites(display: &Display, layout: &[Display], pinned: Option<park::Corner>, bottom_only: bool)
+    -> Result<Vec<(park::Corner, Rect)>, u32> {
+    let mut sites = Vec::new();
+    for corner in park::Corner::ALL {
+        if pinned.is_some_and(|fixed| fixed != corner) || (bottom_only && !corner.bottom()) { continue; }
+        let reach = park::corner_reach(display.frame, display.visible, corner);
+        if layout.iter().any(|other| other.id != display.id && reach.intersect(&other.frame).is_some()) { continue; }
+        let zone = sliver::corner_zone(display.frame, display.visible, corner);
+        let area = patch::patch_rect(&[zone], display.frame, patch::DEFAULT_REACH).ok_or(BAD_LAYOUT)?;
+        sites.push((corner, area));
+    }
+    if sites.is_empty() { return Err(BAD_LAYOUT); }
+    Ok(sites)
+}
+
+fn first_clear_site(sites: &[(park::Corner, Rect)], reasons: &[u32]) -> Result<(park::Corner, Rect), u32> {
+    if sites.is_empty() || sites.len() != reasons.len() { return Err(SITE_UNAVAILABLE); }
+    // These are the only confirmed physical obstructions. Incomplete observations cannot select another corner.
+    if reasons.iter().any(|why| !matches!(why, 0 | 52..=54)) { return Err(SITE_UNAVAILABLE); }
+    reasons.iter().position(|reason| *reason == 0).map(|i| sites[i]).ok_or(reasons[0])
+}
+
 fn hidden(frame: Rect, list: &[Display], id: [u8; 16], corner: park::Corner) -> bool {
     let Some(display) = list.iter().find(|d| d.id == id) else {
         return false;
@@ -110,13 +155,13 @@ fn hidden(frame: Rect, list: &[Display], id: [u8; 16], corner: park::Corner) -> 
     slit.w <= park::PARK_SLIVER
         && sliver::corner_zone(display.frame, display.visible, corner).contains_rect(&slit)
 }
-fn origin_safe(old: Rect, displays: &[Display], id: [u8; 16], corner: park::Corner) -> bool {
+fn origin_safe(old: Rect, displays: &[Display], id: [u8; 16]) -> bool {
     let Some(screen) = displays.iter().find(|d| d.id == id) else {
         return false;
     };
     !old.is_degenerate()
         && old.intersect(&screen.visible).is_some()
-        && !park::is_parked_in_at(old, screen.frame, screen.visible, corner)
+        && !park::Corner::ALL.into_iter().any(|corner| park::is_parked_in_at(old, screen.frame, screen.visible, corner))
         && displays
             .iter()
             .filter(|d| d.id != id)
@@ -151,15 +196,52 @@ fn health_member(r: &Request) -> Result<Option<Member>, u32> {
 }
 
 impl Corner {
-    fn drawable_corner<'a>(&mut self, list: &'a [Display], home: &Member, usage: SurfaceUse) -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
-        let (display, corner) = scoped(list, home.display)?;
-        let zone = sliver::corner_zone(display.frame, display.visible, corner);
-        let footprint = patch::patch_rect(&[zone], display.frame, patch::DEFAULT_REACH).ok_or(BAD_LAYOUT)?;
-        if usage != SurfaceUse::ObserveMaterial { native::check_patch_site(home, footprint)?; }
+    fn drawable_corner<'a>(&mut self, list: &'a [Display], request: &Request, usage: SurfaceUse)
+        -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
+        let home = Member::from(request);
+        let epoch = request.epoch;
+        let (display, preferred) = scoped(list, home.display)?;
+        self.prepared.retain(|id, _| list.iter().any(|d| d.id == *id));
+        let mut held = None;
+        for member in self.owned.values().filter(|o| o.id.display == home.display) {
+            if member.displays != list || member.id.native != home.native || member.id.space != home.space ||
+                held.is_some_and(|corner| corner != member.corner) { return Err(OWNERSHIP_UNKNOWN); }
+            held = Some(member.corner);
+        }
+        let prepared = self.prepared.get(&home.display).filter(|p| p.matches(&home, list, epoch)).map(|p| p.corner);
+        let pinned = match usage {
+            SurfaceUse::PrepareRetirement => {
+                self.prepared.remove(&home.display);
+                held
+            }
+            SurfaceUse::RecheckBeforeMove => {
+                let corner = prepared.ok_or(SITE_UNAVAILABLE)?;
+                if held.is_some_and(|c| c != corner) { return Err(OWNERSHIP_UNKNOWN); }
+                Some(corner)
+            }
+            SurfaceUse::ObserveMaterial => held.or(prepared).or(Some(preferred)),
+        };
+        // At a top edge macOS leaves the full window height on the side. Check the entire
+        // outgoing set in preflight and this window again before handing it to AX.
+        let bottom_only = request.flags == c::CORNER_BOTTOM_SITES_ONLY ||
+            (usage == SurfaceUse::RecheckBeforeMove && request.frame.height > park::PARK_SLIVER_LENGTH);
+        let sites = candidate_sites(display, list, pinned, bottom_only)?;
+        let (corner, footprint) = if usage == SurfaceUse::ObserveMaterial {
+            sites[0]
+        } else {
+            let areas: Vec<_> = sites.iter().map(|site| site.1).collect();
+            let reasons = native::check_patch_sites(&home, &areas, sites[0].0 != preferred)?;
+            first_clear_site(&sites, &reasons)?
+        };
         if self.material.is_none() { self.material = native::PatchMaterial::new(); }
         let material = self.material.as_ref().ok_or(PICTURE_SOURCE_UNAVAILABLE)?;
-        let source = material.source(home, footprint, usage != SurfaceUse::RecheckBeforeMove);
+        let source = material.source(&home, footprint, usage != SurfaceUse::RecheckBeforeMove);
         if source == 0 { return Err(PICTURE_SOURCE_UNAVAILABLE); }
+        if usage != SurfaceUse::RecheckBeforeMove {
+            self.prepared.insert(home.display, PreparedSite {
+                epoch, native: home.native, space: home.space, displays: list.to_vec(), corner,
+            });
+        }
         Ok((display, corner, footprint, source))
     }
     fn result(&self, status: u32, detail: u32, sample: Option<Sample>, owned: bool) -> Outcome {
@@ -187,7 +269,8 @@ impl Corner {
                 return Err(IDENTITY);
             }
             let q = native::sample(&o.id)?;
-            let (display, corner) = scoped(&layout, o.id.display)?;
+            let display = layout.iter().find(|d| d.id == o.id.display).ok_or(BAD_LAYOUT)?;
+            let corner = o.corner;
             let matches: Vec<_> = list.iter().filter(|w| w.id == o.id.window).collect();
             if matches.len() != 1
                 || matches[0].pid != o.id.pid
@@ -278,10 +361,11 @@ impl Corner {
             let id = health_member(r)?;
             native::park_access()?;
             for held in self.owned.values() {
-                if let Some(frame) = held.parked
-                    && !self.patch.as_ref().is_some_and(|patch| patch.verified(held.id, frame))
-                {
-                    return Err(PICTURE_UNCONFIRMED);
+                if let Some(frame) = held.parked {
+                    if !held.within_product_extent(frame) { return Err(POSTCONDITION); }
+                    if !self.patch.as_ref().is_some_and(|patch| patch.verified(held.id, frame)) {
+                        return Err(PICTURE_UNCONFIRMED);
+                    }
                 }
             }
             let input = native::inputs();
@@ -359,8 +443,7 @@ impl Corner {
             None => {
                 if same(s.cg, rect(r.frame))
                     && native::displays().is_ok_and(|d| {
-                        scoped(&d, id.display)
-                            .is_ok_and(|(_, corner)| origin_safe(s.cg, &d, id.display, corner))
+                        scoped(&d, id.display).is_ok() && origin_safe(s.cg, &d, id.display)
                     })
                 {
                     out.flags |= c::VISIBLE;
@@ -376,7 +459,12 @@ impl Corner {
             {
                 let input = self.tap.as_ref().ok_or(tap::UNAVAILABLE).and_then(Tap::health);
                 let covered = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
-                if let Err(reason) = verified_isolation(input, covered) {
+                let proof = if o.within_product_extent(s.cg) {
+                    verified_isolation(input, covered)
+                } else {
+                    Err(POSTCONDITION)
+                };
+                if let Err(reason) = proof {
                     out.status = c::UNKNOWN;
                     out.detail = reason;
                     // The identical postimage was sampled twice after the setter, and sampled
@@ -412,7 +500,7 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        let (display, corner, _, _) = match self.drawable_corner(&layout, &id, SurfaceUse::RecheckBeforeMove) {
+        let (display, corner, _, _) = match self.drawable_corner(&layout, r, SurfaceUse::RecheckBeforeMove) {
             Ok(v) => v,
             Err(e) => return self.result(if e == SITE_UNAVAILABLE { c::UNKNOWN } else { c::UNSUPPORTED }, e, None, false),
         };
@@ -420,7 +508,7 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        if !same(sample.cg, rect(r.frame)) || !origin_safe(sample.cg, &layout, id.display, corner) {
+        if !same(sample.cg, rect(r.frame)) || !origin_safe(sample.cg, &layout, id.display) {
             return self.result(c::FAIL, USER_CHANGED, Some(sample), false);
         }
         let reference = match Reference::acquire(&id) {
@@ -629,7 +717,7 @@ impl WindowEngine for Corner {
                     SurfaceUse::ObserveMaterial
                 };
                 let eligible = native::displays().and_then(|layout| {
-                    self.drawable_corner(&layout, &Member::from(r), usage)
+                    self.drawable_corner(&layout, r, usage)
                         .map(|(_, _, frame, source)| (frame, source))
                 });
                 match eligible {
@@ -684,6 +772,10 @@ mod tests {
             assert!(!Request { native_id: 0, ..scope }.valid());
             assert!(!Request { display: [0; 16], ..scope }.valid());
             assert!(!Request { backend: c::SPACES, ..scope }.valid());
+            let restricted = Request { flags: c::CORNER_BOTTOM_SITES_ONLY, ..scope };
+            assert_eq!(restricted.valid(), operation == c::CORNER_RETIREMENT_SURFACE);
+            assert!(!restricted.writes());
+            assert!(!Request { operation: c::HIDE, ..restricted }.valid());
         }
     }
     #[test]
@@ -724,18 +816,53 @@ mod tests {
         assert!(scoped(&[d, display(2, -1400., 0.), display(3, 1400., 0.)], d.id).is_err());
     }
     #[test]
+    fn a_local_obstacle_selects_a_clear_corner_of_the_same_display_and_never_retargets_a_lease() {
+        use park::Corner::{BottomLeft, BottomRight};
+        let a = display(1, 0., 0.);
+        let sites = candidate_sites(&a, &[a], None, false).unwrap();
+        let short_slivers = candidate_sites(&a, &[a], None, true).unwrap();
+        assert_eq!(short_slivers.len(), 2);
+        assert_eq!(first_clear_site(&short_slivers, &[54, 52]), Err(54));
+        assert_eq!(candidate_sites(&a, &[a], Some(park::Corner::TopRight), true), Err(BAD_LAYOUT));
+        assert_eq!(sites[0].0, BottomRight);
+        let (selected, left) = first_clear_site(&sites, &[54, 0, 53, 52]).unwrap();
+        assert_eq!(selected, BottomLeft);
+        assert_eq!(left.x, a.frame.x);
+        let held = candidate_sites(&a, &[a], Some(selected), true).unwrap();
+        assert_eq!(held, vec![(selected, left)]);
+        assert_eq!(first_clear_site(&held, &[53]), Err(53));
+        assert_eq!(first_clear_site(&sites, &[53; 4]), Err(53));
+        assert_eq!(first_clear_site(&sites, &[51, 0, 0, 0]), Err(SITE_UNAVAILABLE));
+        assert_eq!(first_clear_site(&sites, &[0]), Err(SITE_UNAVAILABLE));
+        let neighbour = display(2, -1400., 0.);
+        assert_eq!(candidate_sites(&a, &[a, neighbour], Some(selected), false), Err(BAD_LAYOUT));
+    }
+    #[test]
+    fn prepared_site_is_bound_to_the_ordinary_home_topology_and_owner_epoch() {
+        let a = display(1, 0., 0.);
+        let home = Member { native: 4, space: [8; 16], display: a.id, ..Default::default() };
+        let prepared = PreparedSite {
+            epoch: 7, native: home.native, space: home.space,
+            displays: vec![a], corner: park::Corner::BottomLeft,
+        };
+        assert!(prepared.matches(&home, &[a], 7));
+        assert!(!prepared.matches(&home, &[a], 8));
+        assert!(!prepared.matches(&Member { native: 5, ..home }, &[a], 7));
+        assert!(!prepared.matches(&Member { space: [9; 16], ..home }, &[a], 7));
+        assert!(!prepared.matches(&home, &[a, display(2, 1400., 0.)], 7));
+    }
+    #[test]
     fn cross_display_and_parked_restore_origins_are_never_enrolled() {
         let a = display(1, 0., 0.);
         let b = display(2, -1400., 0.);
-        let c = park::Corner::BottomRight;
-        assert!(origin_safe(Rect::new(400., 120., 600., 400.), &[a, b], a.id, c));
-        assert!(!origin_safe(Rect::new(-20., 120., 600., 400.), &[a, b], a.id, c));
-        assert!(!origin_safe(Rect::new(1399., 820., 600., 400.), &[a, b], a.id, c));
+        assert!(origin_safe(Rect::new(400., 120., 600., 400.), &[a, b], a.id));
+        assert!(!origin_safe(Rect::new(-20., 120., 600., 400.), &[a, b], a.id));
+        assert!(!origin_safe(Rect::new(1399., 820., 600., 400.), &[a, b], a.id));
+        assert!(!origin_safe(Rect::new(-599., 820., 600., 400.), &[a], a.id));
         assert!(!origin_safe(
             Rect::new(f64::NAN, 120., 600., 400.),
             &[a, b],
-            a.id,
-            c
+            a.id
         ));
     }
     #[test]

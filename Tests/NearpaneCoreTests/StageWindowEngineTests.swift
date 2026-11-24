@@ -3,7 +3,7 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor private final class EngineFixture: StageEngineWindowWitness, StageEngineTransport {
-    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, owner: StageEngineOwner) throws {
+    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, bottomOnly: Bool, owner: StageEngineOwner) throws {
         guard scope == self.scope && nativeID == 22 else { throw StageSwitchError.unavailable }
     }
     func mayManage(_ state: StageWindowState) -> Bool { true }

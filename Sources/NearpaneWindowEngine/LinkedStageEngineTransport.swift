@@ -14,7 +14,7 @@ import NearpaneCore
         _ = try commandEpoch(owner)
     }
 
-    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, owner: StageEngineOwner) async throws {
+    func checkRetirementSurface(_ scope: StageGroupScope, nativeID: UInt64, bottomOnly: Bool, owner: StageEngineOwner) async throws {
         let epoch = try commandEpoch(owner), intent = UUID()
         let permissionIntent = UUID()
         let access = try await engine.submit(.init(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_PARK_ACCESS),
@@ -22,7 +22,7 @@ import NearpaneCore
         guard access.epoch == epoch, access.intent == permissionIntent, access.status == NP_PASS, access.flags == 0
         else { throw StageSwitchError.unavailable }
         let request = NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_RETIREMENT_SURFACE),
-                                               intent: intent, scope: scope, nativeID: nativeID)
+                                               intent: intent, scope: scope, nativeID: nativeID, bottomSitesOnly: bottomOnly)
         let read = try await engine.submit(request, timeoutMilliseconds: 4_000, expectedEpoch: epoch)
         guard try engine.currentEpoch() == epoch, read.epoch == epoch, read.intent == intent,
               read.status == NP_PASS, read.detail == NP_CORNER_MATERIAL_WALLPAPER_SURFACE,

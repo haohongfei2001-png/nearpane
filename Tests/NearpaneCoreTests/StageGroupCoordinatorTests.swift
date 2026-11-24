@@ -18,7 +18,9 @@ import Testing
     var writes = [(StageWindowAction, NativeSpaceWindow)]()
     var excluded = Set<NativeSpaceWindow>()
     var retirementSurfaceAvailable = true
-    func checkRetirementSurface(_ sample: StageWindowSample) throws {
+    var checkedBottomSites = [Bool]()
+    func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) throws {
+        checkedBottomSites.append(bottomOnly)
         guard retirementSurfaceAvailable else { throw StageSwitchError.unavailable }
     }
     func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
@@ -68,7 +70,26 @@ import Testing
             try await coordinator.activate(groups[1].id, member: nil, in: session.scope, consent: true, session: session)
         }
         #expect(session.writes.isEmpty && focus == session.focus && windows == session.windows)
+        #expect(session.checkedBottomSites == [false])
         #expect(directory == store.directory && !coordinator.hasWindowAuthority && !coordinator.requiresRecovery)
+    }
+
+    @Test(arguments: [false, true]) func tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing: Bool) async throws {
+        let (profile, _, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let target = groups[1], outgoing = try #require(groups[0].members.first)
+        let tall = try #require(tallOutgoing ? outgoing : target.members.first)
+        let bystander = try #require(session.windows.keys.first { $0.number == 4 })
+        for key in [tall.windowHint, bystander] {
+            let original = try #require(session.windows[key]?.frame)
+            session.windows[key]?.frame = .init(x: original.x, y: original.y, width: original.width, height: 600)
+        }
+        session.retirementSurfaceAvailable = false
+        await #expect(throws: StageSwitchError.unavailable) {
+            try await coordinator.activate(target.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.checkedBottomSites == [tallOutgoing])
+        #expect(session.writes.isEmpty && !coordinator.hasWindowAuthority)
     }
 
     @Test func engineActionsSeeThePrivateCommittedIntentOnDisk() async throws {

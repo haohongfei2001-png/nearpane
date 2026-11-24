@@ -89,8 +89,10 @@ static BOOL ownSidebarAbove(const NCListed *row, NSScreen *screen) {
 
 // Read the potential shadow area before the coordinator changes focus and again before a hide.
 // A clear site still requires the actual measured sliver, sheet, input and ordering after the move.
-uint32_t np_corner_patch_site(const NCMember *home, NCFrame footprint) {
-    if (!home || NSThread.isMainThread || !stillOrdinaryHome(home)) return NP_CORNER_SITE_UNAVAILABLE;
+uint32_t np_corner_patch_sites(const NCMember *home, const NCFrame *footprints, uint32_t sites,
+                               bool firstIsAlternate, uint32_t *reasons) {
+    if (!home || !footprints || !reasons || !sites || sites > 4 || NSThread.isMainThread || !stillOrdinaryHome(home))
+        return NP_CORNER_SITE_UNAVAILABLE;
     NSTimeInterval began = NSProcessInfo.processInfo.systemUptime;
     NSMutableData *storage = [NSMutableData dataWithLength:2048 * sizeof(NCListed)];
     NCDock dock = {};
@@ -98,27 +100,43 @@ uint32_t np_corner_patch_site(const NCMember *home, NCFrame footprint) {
     if (np_corner_visual_zorder(storage.mutableBytes, 2048, &count, &dock) || !count)
         return NP_CORNER_SITE_UNAVAILABLE;
     NCMember scope = *home;
-    __block uint32_t reason = NP_CORNER_SITE_UNAVAILABLE;
+    // The main queue may finish after a timeout. Never retain the worker's input or output pointers.
+    NSData *requested = [NSData dataWithBytes:footprints length:sites * sizeof(*footprints)];
+    NSMutableData *results = [NSMutableData dataWithLength:sites * sizeof(*reasons)];
+    __block BOOL complete = NO;
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     dispatch_async(dispatch_get_main_queue(), ^{
         NSScreen *screen = cornerScreen(&scope);
         CGDirectDisplayID id = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
-        CGRect display = CGDisplayBounds(id), area = patchRect(footprint);
-        if (screen && !CGRectIsEmpty(area) && CGRectEqualToRect(CGRectIntegral(area), area) &&
-            CGRectContainsRect(display, area) && area.size.width <= 128 &&
-            (CGRectGetMinX(display) == CGRectGetMinX(area) || CGRectGetMaxX(display) == CGRectGetMaxX(area))) {
+        CGRect display = CGDisplayBounds(id);
+        const NCFrame *areas = requested.bytes;
+        uint32_t *siteReasons = results.mutableBytes;
+        complete = screen != nil;
+        for (uint32_t s = 0; complete && s < sites; s++) {
+            CGRect area = patchRect(areas[s]);
+            complete = !CGRectIsEmpty(area) && CGRectEqualToRect(CGRectIntegral(area), area) &&
+                CGRectContainsRect(display, area) && area.size.width <= 128 &&
+                (CGRectGetMinX(display) == CGRectGetMinX(area) || CGRectGetMaxX(display) == CGRectGetMaxX(area));
+        }
+        if (complete) {
             const NCListed *rows = storage.bytes;
             CGWindowLevel icons = CGWindowLevelForKey(kCGDesktopIconWindowLevelKey);
-            reason = 0;
-            for (uint32_t i = 0; i < count && !reason; i++)
-                reason = nc_site_layer(&rows[i], area, icons, &dock, ownSidebarAbove(&rows[i], screen), false);
+            for (uint32_t i = 0; i < count; i++) {
+                BOOL sidebar = ownSidebarAbove(&rows[i], screen);
+                for (uint32_t s = 0; s < sites; s++) {
+                    // A new alternative must be clear over its entire potential footprint.
+                    if (!siteReasons[s]) siteReasons[s] = nc_site_layer(&rows[i], patchRect(areas[s]), icons, &dock,
+                                                                         sidebar, firstIsAlternate || s != 0);
+                }
+            }
         }
         dispatch_semaphore_signal(done);
     });
     if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC)) ||
-        NSProcessInfo.processInfo.systemUptime - began >= .25 || !stillOrdinaryHome(home))
+        !complete || NSProcessInfo.processInfo.systemUptime - began >= .25 || !stillOrdinaryHome(home))
         return NP_CORNER_SITE_UNAVAILABLE;
-    return reason;
+    memcpy(reasons, results.bytes, results.length);
+    return 0;
 }
 
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
