@@ -44,7 +44,7 @@ import Testing
         // Exercise both the explicit CV attachment and VideoToolbox's fallback for this BGRA contract.
         for tag in [requested, nil] {
             let green = try sample(66, green: 186, red: 53, colorSpace: tag)
-            let image = try #require(WindowFrameStream.Frame(sample: green, received: 1, epoch: 0).image())
+            let image = try #require(WindowFrameStream.Frame(sample: green, received: 1, epoch: 0, sequence: 1).image())
             #expect(image.colorSpace?.name == CGColorSpace.sRGB)
             let card = DesktopWindowCard(label: "Field Notes", icon: nil, image: image,
                 pictureSize: CGSize(width: 32, height: 32), borderWidth: 0).frame(width: 32)
@@ -101,6 +101,34 @@ import Testing
         cache.store("new left", for: 1, cost: 8)
         #expect(left.withLock { $0 } && !right.withLock { $0 } && !layout.withLock { $0 })
         #expect(cache.peek(2) == "right")
+    }
+
+    @Test func idleCannotDisplaceTheLastChangedFrameAndUnchangedDamageDoesNotRedecode() async throws {
+        let (updates, events) = AsyncStream<WindowFrameStream.Update>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        defer { events.finish() }
+        let output = WindowFrameStream.Output(events, width: 4, height: 4)
+        var next = updates.makeAsyncIterator()
+        let first = try sample(38), changed = try sample(207)
+        // Some compositors send an empty damage list on the first complete sample.
+        output.receive(first, status: .complete, now: 1, hasDamage: false)
+        output.receive(first, status: .idle, now: 6)
+        guard case let .frame(baseline)? = await next.next() else { Issue.record("The first pixels were displaced"); return }
+        let decoded = try #require(baseline.image())
+        #expect(baseline.repeats(decoded))
+        output.published(baseline)
+        output.receive(first, status: .complete, now: 12, hasDamage: false)
+        guard case .idle(baseline.epoch)? = await next.next() else { Issue.record("Unchanged pixels were issued again"); return }
+        output.receive(changed, status: .complete, now: 14, hasDamage: true)
+        output.receive(changed, status: .idle, now: 20)
+        guard case let .frame(last)? = await next.next() else { Issue.record("A heartbeat displaced the final document edit"); return }
+        #expect(last.sequence == baseline.sequence + 1 && last.received == 14)
+        #expect(!last.repeats(decoded))
+        output.published(last)
+        output.receive(changed, status: .suspended, now: 21)
+        output.receive(first, status: .complete, now: 22, hasDamage: false)
+        guard case let .frame(resumed)? = await next.next() else { Issue.record("Resume needs a new baseline"); return }
+        #expect(resumed.epoch != last.epoch)
+        #expect(resumed.repeats(decoded))
     }
 
     @Test func budgetHandoffsServeNewCardsWithoutRepeatedlyPreemptingTheViewport() {

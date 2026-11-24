@@ -46,6 +46,7 @@ struct CurrentWindowCard: View {
     let label: String
     let badge: WindowAppBadges.Badge?
     let size: CGSize?
+    let pictureLimit: CGSize
     let target: DesktopWindowTarget?
     let key: DesktopWindowKey
     let gallery: DesktopWindowGallery?
@@ -59,15 +60,20 @@ struct CurrentWindowCard: View {
 
     var body: some View {
         let image = target.flatMap { gallery?.image(for: $0, permitted: permitted) }
-        let picked = image == nil ? selected() : nil
-        let previous = image == nil && picked == nil ? target.flatMap { gallery?.previousImage(for: $0, permitted: permitted) } ?? groupHistory?() : nil
+        let lastFrame = image == nil ? target.flatMap { gallery?.previousImage(for: $0, permitted: permitted) } : nil
+        let picked = image == nil && lastFrame == nil ? selected() : nil
+        let previous = lastFrame ?? (image == nil && picked == nil ? groupHistory?() : nil)
+        let pixels = image ?? picked ?? previous
+        let fitted = size ?? pixels.map {
+            let scale = min(pictureLimit.width / CGFloat($0.width), pictureLimit.height / CGFloat($0.height))
+            return CGSize(width: CGFloat($0.width) * scale, height: CGFloat($0.height) * scale)
+        }
         let _ = gallery?.recordCardSource(key, image != nil ? .liveImage : picked != nil ? .selectedImage : previous != nil ? .previousImage : .outline)
-        let missing = permitted && target.map { gallery?.lacksPicture($0) == true } == true
-        let caption = previous == nil ? label : "上次画面 · " + label
         let source = image != nil ? "窗口画面" : picked != nil ? "所选快照" : previous != nil ? "上次画面" : "窗口轮廓"
         Button(action: select) {
-            DesktopWindowCard(label: caption, icon: badge?.icon, image: image ?? picked ?? previous,
-                pictureSize: size, borderWidth: border, labelSize: fontSize, unavailable: missing ? "无法读取窗口画面" : nil)
+            DesktopWindowCard(label: label, icon: badge?.icon, image: pixels,
+                pictureSize: fitted, borderWidth: border, labelSize: fontSize, showsAppFallback: true)
+                .equatable()
         }
         .buttonStyle(.plain)
         .disabled(!selectable)
@@ -76,7 +82,7 @@ struct CurrentWindowCard: View {
         .accessibilityHint(selectable ? "将这扇窗口切换到前台" : "只读窗口预览")
         .accessibilityIdentifier("current-desktop-window:\(key.pid):\(key.number)")
         .accessibilityValue(describe(source))
-        .help(missing ? "系统暂未提供这扇窗口的画面" : selectable ? "切换到" + label : "只读窗口预览")
+        .help(selectable ? "切换到" + label : "只读窗口预览")
     }
 }
 
@@ -107,7 +113,7 @@ struct DesktopSplitViewCard: View {
 
     @ViewBuilder private func pane(_ window: WindowObservation, frame: SurfaceRect, scale: CGFloat) -> some View {
         if let target = DesktopWindowTarget.preview(window, in: snapshot) {
-            WindowPanePicture(gallery: gallery, target: target, permitted: permitted)
+            WindowPanePicture(gallery: gallery, target: target, permitted: permitted, icon: badges[target.key]?.icon)
                 .frame(width: frame.width * scale, height: frame.height * scale)
                 .modifier(GalleryCardExposure(gallery: gallery, target: target))
                 .accessibilityElement(children: .ignore)
@@ -123,20 +129,23 @@ struct WindowPanePicture: View {
     let gallery: DesktopWindowGallery?
     let target: DesktopWindowTarget
     let permitted: Bool
+    var icon: NSImage?
     var groupHistory: (() -> CGImage?)? = nil
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
+        let picture = gallery?.image(for: target, permitted: permitted) ?? gallery?.previousImage(for: target, permitted: permitted)
+        let history = permitted && picture == nil ? groupHistory?() : nil
         ZStack {
             Rectangle().fill(DesktopWindowCard.windowBacking(for: scheme))
-            if let image = gallery?.image(for: target, permitted: permitted) {
+            if let image = picture ?? history {
                 Image(decorative: image, scale: 1).resizable().aspectRatio(contentMode: .fit)
-            } else if permitted, let previous = groupHistory?() {
-                Image(decorative: previous, scale: 1).resizable().aspectRatio(contentMode: .fit)
-                    .overlay(alignment:.bottomLeading) { Text("历史").font(.caption2).padding(1).background(.regularMaterial) }
-                    .accessibilityLabel("历史画面")
-            } else if permitted && gallery?.lacksPicture(target) == true {
-                Text("无法读取画面").font(.caption2).lineLimit(1)
+                    .overlay(alignment: .bottomLeading) {
+                        if history != nil { Text("历史").font(.caption2).padding(1).background(.regularMaterial) }
+                    }
+            } else {
+                (icon.map(Image.init(nsImage:)) ?? Image(systemName: "macwindow"))
+                    .resizable().scaledToFit().frame(maxWidth: 24, maxHeight: 24).accessibilityHidden(true)
             }
         }.clipped()
     }

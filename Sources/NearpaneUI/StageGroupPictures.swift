@@ -5,7 +5,9 @@ import NearpaneOrdinaryWindowRuntime
 /// Read-only AX identity for an already displayed ordinary window. This object has no action methods.
 @MainActor final class StagePictureOriginal {
     private let key: DesktopWindowKey, element: AXUIElement
-    private static func exact(_ key: DesktopWindowKey) -> AXUIElement? {
+    private let forCard: Bool
+    private var verifiedAppearance: UUID?
+    private static func exact(_ key: DesktopWindowKey, forCard: Bool) -> AXUIElement? {
         guard AXIsProcessTrusted(), let list = try? windows(key.pid) else { return nil }
         let same = list.filter { number($0) == key.number }
         guard same.count == 1, let w = same.first else { return nil }
@@ -13,16 +15,30 @@ import NearpaneOrdinaryWindowRuntime
             var value: CFTypeRef?
             return AXUIElementCopyAttributeValue(w,name as CFString,&value) == .success ? value : nil
         }
-        guard value(kAXRoleAttribute) as? String == kAXWindowRole, value(kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
-              value("AXFullScreen") as? Bool == false, value(kAXModalAttribute) as? Bool == false else { return nil }
+        guard value(kAXRoleAttribute) as? String == kAXWindowRole else { return nil }
+        if !forCard {
+            guard value(kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
+                  value("AXFullScreen") as? Bool == false, value(kAXModalAttribute) as? Bool == false else { return nil }
+        }
         return w
     }
-    init?(_ key: DesktopWindowKey) {
-        guard let w = Self.exact(key) else { return nil }
+    init?(_ key: DesktopWindowKey, forCard: Bool = false) {
+        guard let w = Self.exact(key, forCard: forCard) else { return nil }
+        self.forCard = forCard
         self.key = key; element = w
     }
     func matches(_ now: DesktopWindowKey) -> Bool {
-        now == key && Self.exact(now).map { CFEqual(element,$0) } == true
+        now == key && Self.exact(now, forCard: forCard).map { CFEqual(element,$0) } == true
+    }
+
+    /// Only a fresh appearance can bridge a gap in the roster. The caller checks
+    /// current sharing and process ownership independently on every image lookup.
+    func matches(_ key: DesktopWindowKey, appearance: UUID, ownerUnchanged: () -> Bool) -> Bool {
+        guard self.key == key else { return false }
+        if verifiedAppearance == appearance { return true }
+        guard ownerUnchanged(), matches(key) else { return false }
+        verifiedAppearance = appearance
+        return true
     }
 }
 

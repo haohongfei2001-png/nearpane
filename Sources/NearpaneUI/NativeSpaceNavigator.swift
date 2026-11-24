@@ -127,11 +127,17 @@ struct NativeWindowGroupCard: View {
                     ZStack(alignment: .topLeading) {
                         ForEach(DesktopWindowRow.rows(ordered).reversed()) { row in
                             let window = row.window
-                            if let canvas, let frame = projectedFrame(window, canvas: canvas),
-                               let choice = byKey[row.id] {
-                                miniature(choice, icon: badges[window.id]?.icon,
-                                          width: frame.width * scale, height: frame.height * scale)
-                                    .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
+                            if let canvas, let frame = projectedFrame(window, canvas: canvas) {
+                                Group {
+                                    if let choice = byKey[row.id] {
+                                        miniature(choice, icon: badges[window.id]?.icon,
+                                                  width: frame.width * scale, height: frame.height * scale)
+                                    } else if feed.departingPictures != nil, let target = DesktopWindowTarget(window, in: snapshot) {
+                                        WindowPanePicture(gallery: gallery, target: target, permitted: permitted, icon: badges[window.id]?.icon)
+                                            .frame(width: frame.width * scale, height: frame.height * scale)
+                                    }
+                                }
+                                .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
                             }
                         }
                     }
@@ -217,7 +223,7 @@ struct NativeWindowGroupCard: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
                 if let target {
-                    WindowPanePicture(gallery:gallery,target:target,permitted:permitted,groupHistory:{
+                    WindowPanePicture(gallery:gallery,target:target,permitted:permitted,icon:icon,groupHistory:{
                         gallery?.observedImage(member.key,group:id,snapshot:snapshot,permitted:permitted)
                     })
                 } else if let icon, min(width, height) > 11 {

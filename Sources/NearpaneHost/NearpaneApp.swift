@@ -405,7 +405,16 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return screens.dropFirst().filter { $0.id == passiveDisplayID }
     }
 
+    private var previewScreens = [ScreenGeometry]()
+    private func physicalPreviewScreens() -> [ScreenGeometry] {
+        SystemScreens.geometry().map {
+            ScreenGeometry(id: $0.id, frame: $0.frame, visibleFrame: $0.frame,
+                           rotationDegrees: $0.rotationDegrees, backingScale: $0.backingScale)
+        }.sorted { $0.id < $1.id }
+    }
+
     private func observeDesktopSession() {
+        previewScreens = physicalPreviewScreens()
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification,
                      NSWorkspace.didDeactivateApplicationNotification,
                      NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification,
@@ -1075,7 +1084,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func screensChanged() {
         selectionService?.invalidateSelectionContext()
-        modules?.stopWindowContentPreview(reason: "screen-parameters")
+        // AppKit posts this for fullscreen menu bar / Dock work-area changes too.
+        let screens = physicalPreviewScreens()
+        modules?.stopWindowContentPreview(spaceChanged: !screens.isEmpty && screens == previewScreens, reason: "screen-parameters")
+        previewScreens = screens
         let before = desktopAvailability
         readDesktopAvailability(.sample)
         if before != desktopAvailability {

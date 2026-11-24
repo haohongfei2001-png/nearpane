@@ -30,7 +30,7 @@ struct DesktopWindowThumbnailLayout {
     }
 }
 
-struct DesktopWindowCard: View {
+struct DesktopWindowCard: View, Equatable {
     @Environment(\.colorScheme) private var scheme
     static func windowBacking(for scheme: ColorScheme) -> Color {
         Color(white: scheme == .dark ? 0.16 : 0.96)
@@ -41,8 +41,12 @@ struct DesktopWindowCard: View {
     let pictureSize: CGSize?
     var borderWidth: CGFloat = 0.8
     var labelSize: CGFloat = 10
-    var unavailable: String? = nil
-    var currentImage: (@MainActor () -> CGImage?)?
+    var showsAppFallback = false
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.image === rhs.image && lhs.icon === rhs.icon && lhs.label == rhs.label &&
+            lhs.pictureSize == rhs.pictureSize && lhs.borderWidth == rhs.borderWidth &&
+            lhs.labelSize == rhs.labelSize && lhs.showsAppFallback == rhs.showsAppFallback
+    }
 
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
@@ -58,10 +62,8 @@ struct DesktopWindowCard: View {
     @ViewBuilder private var preview: some View {
         if let size = pictureSize {
             Canvas { context, canvas in
-                let pixels: CGImage?
-                if let currentImage { pixels = currentImage() } else { pixels = image }
                 let bounds = CGRect(origin: .zero, size: canvas)
-                if let pixels {
+                if let pixels = image {
                     context.fill(Path(bounds), with: .color(Self.windowBacking(for: scheme)))
                     let fit = min(canvas.width / CGFloat(pixels.width), canvas.height / CGFloat(pixels.height))
                     let w = CGFloat(pixels.width) * fit, h = CGFloat(pixels.height) * fit
@@ -69,6 +71,11 @@ struct DesktopWindowCard: View {
                                  in: CGRect(x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, width: w, height: h))
                 } else {
                     context.fill(Path(bounds), with: .color(.primary.opacity(0.045)))
+                    if showsAppFallback {
+                        let side = min(28, canvas.width, canvas.height)
+                        context.draw(icon.map(Image.init(nsImage:)) ?? Image(systemName: "macwindow"),
+                            in: CGRect(x: (canvas.width - side) / 2, y: (canvas.height - side) / 2, width: side, height: side))
+                    }
                 }
                 let line = min(max(0, borderWidth), min(canvas.width, canvas.height) / 4)
                 if line > 0 {
@@ -77,11 +84,6 @@ struct DesktopWindowCard: View {
                 }
             }
             .frame(width: size.width, height: size.height)
-            .overlay {
-                if image == nil, let unavailable {
-                    Text(unavailable).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }

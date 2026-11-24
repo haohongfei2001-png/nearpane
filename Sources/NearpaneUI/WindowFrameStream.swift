@@ -14,12 +14,36 @@ import os
         let sample: CMSampleBuffer
         let received: TimeInterval
         let epoch: UInt64
+        let sequence: UInt64
 
-        func image() -> CGImage? {
+        func image(reusing previous: CGImage? = nil) -> CGImage? {
+            if let previous, repeats(previous) { return previous }
             guard sample.isValid, let buffer = sample.imageBuffer else { return nil }
             var image: CGImage?
             guard VTCreateCGImageFromCVPixelBuffer(buffer, options: nil, imageOut: &image) == noErr else { return nil }
             return image
+        }
+
+        /// Compare only a resumed stream's first buffer with its already-decoded card.
+        /// Padding is allocator-specific. Compare every visible BGRA byte, including alpha.
+        func repeats(_ image: CGImage) -> Bool {
+            guard sample.isValid, let buffer = sample.imageBuffer,
+                  CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA,
+                  image.width == CVPixelBufferGetWidth(buffer), image.height == CVPixelBufferGetHeight(buffer),
+                  image.bitsPerComponent == 8, image.bitsPerPixel == 32,
+                  image.bitmapInfo.intersection(.byteOrderMask) == .byteOrder32Little,
+                  image.alphaInfo == .premultipliedFirst, image.colorSpace?.name == CGColorSpace.sRGB,
+                  let data = image.dataProvider?.data, let prior = CFDataGetBytePtr(data) else { return false }
+            let rowBytes = CVPixelBufferGetBytesPerRow(buffer), visibleBytes = image.width * 4
+            guard visibleBytes <= rowBytes, visibleBytes <= image.bytesPerRow,
+                  CFDataGetLength(data) >= (image.height - 1) * image.bytesPerRow + visibleBytes,
+                  CVPixelBufferLockBaseAddress(buffer, .readOnly) == kCVReturnSuccess else { return false }
+            defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+            guard let base = CVPixelBufferGetBaseAddress(buffer) else { return false }
+            for y in 0..<image.height {
+                if memcmp(base.advanced(by: y * rowBytes), prior.advanced(by: y * image.bytesPerRow), visibleBytes) != 0 { return false }
+            }
+            return true
         }
     }
 
@@ -38,11 +62,24 @@ import os
         let events: AsyncStream<Update>.Continuation
         // Accessed only by this stream's serial sample queue.
         private var lastSignal = -Double.infinity
-        private let validity = OSAllocatedUnfairLock(initialState: UInt64(0))
-        var epoch: UInt64 { validity.withLock { $0 } }
+        private struct Delivery {
+            var epoch: UInt64 = 0
+            var issued: UInt64 = 0
+            var published: UInt64?
+        }
+        private let delivery = OSAllocatedUnfairLock(initialState: Delivery())
+        var epoch: UInt64 { delivery.withLock { $0.epoch } }
+        func published(_ frame: Frame) {
+            delivery.withLock {
+                if $0.epoch == frame.epoch { $0.published = frame.sequence }
+            }
+        }
         private let diagnostic: OutputAudit?
         private func unavailable(_ reason: PreviewPipelineAudit.Reason, now: TimeInterval? = nil) {
-            let epoch = validity.withLock { $0 &+= 1; return $0 }
+            let epoch = delivery.withLock {
+                $0 = Delivery(epoch: $0.epoch &+ 1)
+                return $0.epoch
+            }
             diagnostic?.note(reason, epoch: epoch, uptime: now)
             events.yield(.unavailable)
         }
@@ -55,20 +92,28 @@ import os
             guard sample.isValid, let rows = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false)
                     as? [[SCStreamFrameInfo: Any]], let value = rows.first?[.status] as? Int,
                   let status = SCFrameStatus(rawValue: value) else { unavailable(.invalidMetadata); return }
-            receive(sample, status: status, now: ProcessInfo.processInfo.systemUptime)
+            let dirty = rows.first?[.dirtyRects] as? NSArray
+            receive(sample, status: status, now: ProcessInfo.processInfo.systemUptime, hasDamage: dirty.map { $0.count > 0 })
         }
-        func receive(_ sample: CMSampleBuffer, status: SCFrameStatus, now: TimeInterval) {
+        func receive(_ sample: CMSampleBuffer, status: SCFrameStatus, now: TimeInterval, hasDamage: Bool? = nil) {
             switch status {
             case .complete, .started:
+                if status == .complete, hasDamage == false, delivery.withLock({ $0.published == $0.issued }) {
+                    idle(now)
+                    return
+                }
                 guard let pixel = sample.imageBuffer, CVPixelBufferGetWidth(pixel) == width,
                       CVPixelBufferGetHeight(pixel) == height else { unavailable(.invalidBuffer, now: now); return }
-                diagnostic?.note(status == .started ? .started : .complete, epoch: epoch, uptime: now)
+                let (epoch, sequence) = delivery.withLock {
+                    $0.issued &+= 1
+                    return ($0.epoch, $0.issued)
+                }
+                let frame = Frame(sample: sample, received: now, epoch: epoch, sequence: sequence)
+                diagnostic?.note(status == .started ? .started : .complete, epoch: frame.epoch, uptime: now)
                 lastSignal = now
-                events.yield(.frame(Frame(sample: sample, received: now, epoch: epoch)))
+                events.yield(.frame(frame))
             case .idle:
-                diagnostic?.note(.idle, epoch: epoch, uptime: now)
-                // The compositor reports unchanged content. Avoid waking the UI for repeated identical frames.
-                if now - lastSignal >= 3 { lastSignal = now; events.yield(.idle(epoch)) }
+                idle(now)
             case .stopped:
                 unavailable(.stopped, now: now)
                 events.finish()
@@ -76,6 +121,15 @@ import os
             case .suspended: unavailable(.suspended, now: now)
             @unknown default: unavailable(.unknownStatus, now: now)
             }
+        }
+        private func idle(_ now: TimeInterval) {
+            // The channel holds only one update. A heartbeat must never displace the
+            // final changed frame of a window that has just stopped drawing.
+            let state = delivery.withLock { $0 }
+            diagnostic?.note(.idle, epoch: state.epoch, uptime: now)
+            guard now - lastSignal >= 3, state.issued == 0 || state.published == state.issued else { return }
+            lastSignal = now
+            events.yield(.idle(state.epoch))
         }
         func stream(_ stream: SCStream, didStopWithError error: any Error) {
             unavailable(.streamError)
@@ -89,6 +143,7 @@ import os
     private let stream: SCStream
 
     var epoch: UInt64 { output.epoch }
+    func published(_ frame: Frame) { output.published(frame) }
 
     static func rate(on display: String) -> Int32 {
         let screen = NSScreen.screens.first {

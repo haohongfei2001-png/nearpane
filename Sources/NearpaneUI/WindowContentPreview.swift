@@ -103,7 +103,8 @@ struct PreviewWindowBinding: Equatable {
     init(readOverview: NativeDesktopProvider.Read? = nil, stageGroupProfile: URL? = nil, permitsGalleryWindow: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
         let feed = readOverview.map { CurrentDesktopWindows(read: $0, stageGroupProfile: stageGroupProfile) }
         currentDesktop = feed
-        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, audit: feed?.windowAudit?.previewTrace, lifetime: { key in feed?.lifetime(of: key) })
+        gallery = DesktopWindowGallery(permitsWindow: permitsGalleryWindow, audit: feed?.windowAudit?.previewTrace,
+            pictureAppearance: { feed?.pictureAppearance(of: $0) }, lifetime: { feed?.lifetime(of: $0) })
         feed?.stageGallery = gallery
     }
     private(set) var choosing = false
@@ -131,15 +132,39 @@ struct PreviewWindowBinding: Equatable {
     private(set) var operation: UUID?
     private(set) var visibleDisplays: Set<String> = []
     private(set) var visibilityGeneration: [String: UInt64] = [:]
+    private var systemCoveredDisplays = Set<String>()
+    private var preservedDisplays = Set<String>()
+
+    func setSystemCoverage(_ covered: Set<String>, eligible: Set<String>) {
+        systemCoveredDisplays = covered.intersection(eligible)
+        guard !preservedDisplays.isEmpty else { return }
+        let permitted = Self.sessionAvailable() && WindowPermissionProbe.screen.allowed() ? eligible : []
+        for id in preservedDisplays.subtracting(permitted) {
+            gallery.clear(display: id)
+            preservedDisplays.remove(id)
+        }
+    }
+
+    func invalidate(keepingDisplayedFrames: Bool, reason: String) {
+        currentDesktop?.invalidate(preservingOriginalWindows: keepingDisplayedFrames, reason: reason)
+        if !keepingDisplayedFrames {
+            gallery.clear()
+            preservedDisplays.removeAll()
+        }
+        clear()
+    }
 
     func setVisible(_ visible: Bool, on display: String) {
         guard visibleDisplays.contains(display) != visible else { return }
         visibilityGeneration[display, default: 0] &+= 1
         if visible {
+            preservedDisplays.remove(display)
             visibleDisplays.insert(display)
         } else {
             visibleDisplays.remove(display)
-            gallery.clear(display: display)
+            let keep = systemCoveredDisplays.contains(display) && Self.sessionAvailable() && WindowPermissionProbe.screen.allowed()
+            if keep { preservedDisplays.insert(display) }
+            gallery.clear(display: display, keepingCardFrames: keep)
             if active && (binding == nil || binding?.display == display) { clear() }
         }
         currentDesktop?.observe(!visibleDisplays.isEmpty)

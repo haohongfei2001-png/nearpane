@@ -15,6 +15,24 @@ import OSLog
     private let session = UUID()
     private(set) var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
+    struct DepartingPictures {
+        let snapshot: DesktopSnapshot
+        let appearances: [DesktopWindowKey: UUID]
+        let groups: [String: [NativeSpaceWindow: StageGroupDirectory.Group]]
+    }
+    private(set) var departingPictures: DepartingPictures?
+
+    private func holdDisplayedRoster() {
+        guard departingPictures == nil, panelRequested, sessionAvailable(), let snapshot,
+              snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return }
+        let groups = Dictionary(uniqueKeysWithValues: snapshot.displays.map { ($0.id, visibleGroups(in: snapshot, on: $0)) })
+        departingPictures = DepartingPictures(snapshot: snapshot, appearances: lifetimes, groups: groups)
+    }
+
+    func pictureAppearance(of key: DesktopWindowKey) -> UUID? {
+        if let departingPictures { return departingPictures.appearances[key] }
+        return lifetimes[key]
+    }
     @ObservationIgnored private var retry: Task<Void, Never>?
     @ObservationIgnored private var failures = 0
     @ObservationIgnored private var stageLifetimes = StageGroupWindowLifetimes()
@@ -200,6 +218,8 @@ import OSLog
     }
 
     func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        if preservingOriginalWindows { holdDisplayedRoster() }
+        else { departingPictures = nil }
         stageEngine.freeze()
         boundSidebarPair?.revoke(.feedInvalidated)
         windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("invalidate",
@@ -224,7 +244,7 @@ import OSLog
     func observe(_ enable: Bool) {
         windowAudit?.sample(feed: session, epoch: epoch, revision: revision)?.event("panel-observation", ["enabled": enable])
         panelRequested = enable
-        if !enable { sidebarWindows = .init() }
+        if !enable { sidebarWindows = .init(); departingPictures = nil }
         updateObservation()
     }
 
@@ -298,6 +318,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
+                if next != nil || !sessionAvailable() { departingPictures = nil }
                 stageEngine.observeEnvironment(next)
                 if next?.native?.stageManagerEnabled == false {
                     stageEngine.ordinaryContextObserved()
@@ -368,6 +389,7 @@ import OSLog
 
     func readNow() async -> DesktopSnapshot? {
         guard events != nil, sessionAvailable() else {
+            departingPictures = nil
             boundSidebarPair?.revoke(.feedInvalidated)
             lifetimes.removeAll()
             sidebarWindows = .init()
@@ -391,6 +413,8 @@ import OSLog
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
                 audit?.event("reader-rejected", ["reply": readback != nil, "sessionAvailable": self.sessionAvailable(),
                     "structurallyValid": readback?.isStructurallyValid == true])
+                if self.sessionAvailable() { self.holdDisplayedRoster() }
+                else { self.departingPictures = nil }
                 self.lifetimes.removeAll()
                 if !self.sessionAvailable() {
                     self.boundSidebarPair?.revoke(.feedInvalidated)

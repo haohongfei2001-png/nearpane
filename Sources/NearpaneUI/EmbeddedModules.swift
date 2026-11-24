@@ -38,8 +38,7 @@ public final class EmbeddedModules {
     }
     let windowPreviews: WindowContentPreview
     public func stopWindowContentPreview(spaceChanged: Bool = false, reason: String = "lifecycle") {
-        windowPreviews.currentDesktop?.invalidate(preservingOriginalWindows: spaceChanged, reason: reason)
-        windowPreviews.gallery.clear(); windowPreviews.clear()
+        windowPreviews.invalidate(keepingDisplayedFrames: spaceChanged, reason: reason)
     }
     /// Aggregate counters only. Reading this snapshot cannot request pixels or operate windows.
     public var windowPreviewMetrics: [String: NSNumber] {

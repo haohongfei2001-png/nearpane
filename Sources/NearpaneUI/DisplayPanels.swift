@@ -213,6 +213,11 @@ import NearpaneCore
                 for controller in secondary.values { controller.cancelWindowDispatchGesture() }
                 host.cancelWorkspaceGesture()
                 if let previews = pointer.windowPreviews {
+                    if !stopped && !suspended && !systemManagesWindows && !host.configuration.surfaceHidden &&
+                        host.configuration.showsWindowThumbnails {
+                        let screens = Set(host.panelContents.keys).union(previews.visibleDisplays)
+                        previews.setSystemCoverage(screens, eligible: screens)
+                    } else { previews.setSystemCoverage([], eligible: []) }
                     for id in previews.visibleDisplays { previews.setVisible(false, on: id) }
                 }
                 stopObservingClicks()
@@ -302,6 +307,19 @@ import NearpaneCore
                 content = plan.primary && hasTools && demand[plan.id]?.blocked != true ? .toolsOnly : .hidden
             } else { return plan }
             return DisplaySurfacePlan(id: plan.id, primary: plan.primary, content: content)
+        }
+        if let previews = pointer.windowPreviews {
+            let allowsPictures = !stopped && !suspended && !systemManagesWindows && !host.configuration.surfaceHidden &&
+                host.configuration.showsWindowThumbnails && !primary.captureSuppressed &&
+                prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+            let eligible = Set(plans.filter {
+                allowsPictures && host.configuration.displays[$0.id]?.spacesDismissed != true
+            }.map(\.id))
+            let covered = Set(plans.filter {
+                suppressed.contains($0.id) || demand[$0.id]?.blocked == true || !windowDispatchEligible ||
+                    (!$0.primary && $0.content == .hidden)
+            }.map(\.id))
+            previews.setSystemCoverage(covered, eligible: eligible)
         }
         host.updatePanelContents(Dictionary(uniqueKeysWithValues: plans.map { ($0.id, $0.content) }))
         // Resolve roles in the real topology even when an isolated trial may present on only one display.

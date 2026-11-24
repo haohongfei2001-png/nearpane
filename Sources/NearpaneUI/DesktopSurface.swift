@@ -24,9 +24,12 @@ struct DesktopSurface: View {
     var settings: DisplaySettings = .init()
     @ViewState private var appBadges: [DesktopWindowKey: WindowAppBadges.Badge] = [:]
     private let navigation = NativeSidebarNavigation.shared
-    private var canNavigate: Bool {
+    private var panelAvailable: Bool {
         navigation.dispatchAvailable && enabled && host.isRunning && !host.configuration.surfaceHidden &&
             display?.interactionVisible == true && display?.id == displayID && WindowContentPreview.sessionAvailable()
+    }
+    private var canNavigate: Bool {
+        panelAvailable && display?.pointer?.windowPreviews?.currentDesktop?.departingPictures == nil
     }
     @ViewState private var selectionIssue: String?
     private struct NameEdit {
@@ -45,7 +48,11 @@ struct DesktopSurface: View {
     }
 
     private var overview: DesktopSnapshot? {
-        guard var snapshot = rawOverview else { return nil }
+        rawOverview.map(project)
+    }
+
+    private func project(_ value: DesktopSnapshot) -> DesktopSnapshot {
+        var snapshot = value
         if snapshot.native?.population == .workWindows && snapshot.native?.catalogComplete == nil {
             // The general desktop reader has no catalogue role field. Its exact AX
             // standard-window witness is the only usable fallback for actual users.
@@ -82,6 +89,18 @@ struct DesktopSurface: View {
         .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
+        .task(id: GalleryRun(display: displayID, visible: display?.interactionVisible == true,
+                             permitted: picturesAllowed, generation: display?.pointer?.windowPreviews?.gallery.generation ?? 0)) {
+            WindowOverviewAccess.shared.refresh()
+            guard let displayID, picturesAllowed, let previews = display?.pointer?.windowPreviews else { return }
+            let feed = previews.currentDesktop
+            await previews.gallery.run(on: displayID, snapshot: { overview }, allowed: {
+                picturesAllowed && previews.visibleDisplays.contains(displayID)
+            }, recheck: feed.map { feed in { await feed.readNow() } }, groups: { sample in
+                guard let screen = sample.displays.first(where: { $0.id == displayID }), let area = workArea(for: screen) else { return nil }
+                return feed?.pictureGroups(in: sample, screen: screen, area: area)
+            })
+        }
         .alert("允许窗口组调度？", isPresented: Binding(get: {
             display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.scope.display.uuidString.caseInsensitiveCompare(displayID ?? "") == .orderedSame
         }, set: { _ in })) {
@@ -98,11 +117,13 @@ struct DesktopSurface: View {
     }
 
     @ViewBuilder private var roster: some View {
-        if enabled, let snapshot = overview, let native = snapshot.native,
+        let departing = display?.pointer?.windowPreviews?.currentDesktop?.departingPictures
+        if enabled, WindowContentPreview.sessionAvailable(),
+           let snapshot = departing.map({ project($0.snapshot) }) ?? overview, let native = snapshot.native,
            let screen = snapshot.displays.first(where: { $0.id == displayID }) {
             TimelineView(.periodic(from: .now, by: 2)) { _ in
-                let now = Date.now
-                let uptime = ProcessInfo.processInfo.systemUptime
+                let now = departing == nil ? Date.now : snapshot.sampledTo
+                let uptime = departing == nil ? ProcessInfo.processInfo.systemUptime : native.endedUptime
                 if snapshot.nativeIsFresh(now: now, uptime: uptime), !native.windowLimitReached {
                     let feed = display?.pointer?.windowPreviews?.currentDesktop
                     let observed = native.population == .markedFixture
@@ -145,17 +166,6 @@ struct DesktopSurface: View {
                                     }
                                 }
                             }
-                            .task(id: GalleryRun(display: screen.id, visible: display?.interactionVisible == true,
-                                permitted: picturesAllowed, generation: display?.pointer?.windowPreviews?.gallery.generation ?? 0)) {
-                                WindowOverviewAccess.shared.refresh()
-                                guard picturesAllowed, let previews = display?.pointer?.windowPreviews else { return }
-                                await previews.gallery.run(on: screen.id, snapshot: { overview }, allowed: {
-                                    picturesAllowed && previews.visibleDisplays.contains(screen.id)
-                                }, recheck: feed.map { feed in { await feed.readNow() } }, groups: { sample in
-                                    guard let work = workArea(for:screen) else { return nil }
-                                    return feed?.pictureGroups(in:sample,screen:screen,area:work)
-                                })
-                            }
                             .frame(width: innerWidth, alignment: .topLeading)
                             .padding(inset)
                         }
@@ -172,6 +182,8 @@ struct DesktopSurface: View {
                     }
                 }
             }
+            .allowsHitTesting(departing == nil)
+            .accessibilityHidden(departing != nil)
         }
     }
 
@@ -234,7 +246,7 @@ struct DesktopSurface: View {
     }
 
     private var picturesAllowed: Bool {
-        canNavigate && host.configuration.showsWindowThumbnails && WindowPermissionProbe.screen.allowed()
+        panelAvailable && host.configuration.showsWindowThumbnails && WindowPermissionProbe.screen.allowed()
     }
 
     private func workArea(for screen: DisplayObservation) -> SurfaceRect? {
@@ -338,7 +350,7 @@ struct DesktopSurface: View {
     }
 
     private struct GalleryRun: Equatable {
-        let display: String, visible: Bool, permitted: Bool, generation: UInt64
+        let display: String?, visible: Bool, permitted: Bool, generation: UInt64
     }
 
     private func windowList(_ windows: [WindowObservation], snapshot: DesktopSnapshot, screen: DisplayObservation,
@@ -360,7 +372,7 @@ struct DesktopSurface: View {
         let siblingsByApp = Dictionary(grouping: windows, by: { $0.metadata?.pid })
         let feed = previews?.currentDesktop
         let members = source.map { dest in windows.compactMap { NativeSidebarMember($0, source: dest) } } ?? []
-        let visibleGroups = feed?.visibleGroups(in: snapshot, on: screen) ?? [:]
+        let visibleGroups = feed?.departingPictures?.groups[screen.id] ?? feed?.visibleGroups(in: snapshot, on: screen) ?? [:]
         return VStack(alignment: .leading, spacing: spacing) {
             ForEach(DesktopWindowRow.rows(windows)) { row in
                 let window = row.window
@@ -372,8 +384,8 @@ struct DesktopSurface: View {
                 let target = DesktopWindowTarget(window, in: snapshot)
                 let liveTarget = DesktopWindowTarget.preview(window, in: snapshot)
                 let lifetime = target.flatMap { previews?.currentDesktop?.lifetime(of: $0.key) }
-                let pictureSize = thumbnailLayout.fittedSize(for: window, width: width,
-                    heightLimit: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5)
+                let pictureLimit = CGSize(width: width, height: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5)
+                let pictureSize = thumbnailLayout.fittedSize(for: window, width: width, heightLimit: pictureLimit.height)
                 let member = target.flatMap { _ in source.flatMap { NativeSidebarMember(window, source: $0) } }
                 let group = member?.location.flatMap { visibleGroups[$0.window] }
                 let chooseCurrent: @MainActor () -> Void = {
@@ -420,7 +432,7 @@ struct DesktopSurface: View {
                             .id(group.id)
                     }
                 } else {
-                    CurrentWindowCard(label: group?.name ?? label, badge: badge, size: pictureSize, target: liveTarget, key: row.id,
+                    CurrentWindowCard(label: group?.name ?? label, badge: badge, size: pictureSize, pictureLimit: pictureLimit, target: liveTarget, key: row.id,
                         gallery: gallery, permitted: permitted, border: settings.points(.borderWidth, in: width),
                         fontSize: labelSize, selected: { pictures && target?.present(in: overview) == true ? selectedPicture(for: target) : nil },
                         describe: { cardDescription(window, within: screen, size: pictureSize, index: row.index, source: $0) },
@@ -503,7 +515,7 @@ struct DesktopSurface: View {
     private func selectWindow(_ target: DesktopWindowTarget, snapshot: DesktopSnapshot, lifetime: UUID?,
                               member: NativeSidebarMember? = nil, group: UUID? = nil) {
         let timing = WindowFocusTiming.begin()
-        guard snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
+        guard canNavigate, snapshot.native != nil, let previews = display?.pointer?.windowPreviews else { return }
         let generation = previews.gallery.generation
         let feed = previews.currentDesktop
         let userInput = NativeSelectionPermit.inputCounters()

@@ -100,7 +100,8 @@ import Testing
         #expect(output.epoch == 2)
         continuation.finish()
         let gallery = DesktopWindowGallery(permitsWindow: { _ in true }, audit: trace, lifetime: { _ in nil })
-        let card = CurrentWindowCard(label: "fixture", badge: nil, size: .init(width: 60, height: 40), target: nil,
+        let card = CurrentWindowCard(label: "fixture", badge: nil, size: .init(width: 60, height: 40),
+            pictureLimit: .init(width: 60, height: 40), target: nil,
             key: b, gallery: gallery, permitted: true, border: 0, fontSize: 10, selected: { nil }, describe: { $0 }, select: {}, selectable: true)
         #expect(ImageRenderer(content: card.frame(width: 60)).cgImage != nil)
         let before = try records()
