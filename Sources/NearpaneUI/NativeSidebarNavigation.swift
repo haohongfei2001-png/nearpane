@@ -211,8 +211,9 @@ struct CrossSpaceFocusContinuity {
 
     func isCurrent(_ token: UUID) -> Bool { dispatchAvailable && generation == token }
 
-    func hasQueuedGroupChoice(after token: UUID, in epoch: UUID) -> Bool {
-        guard dispatchAvailable, ownershipEpoch == epoch, generation != token, let latest = pending.last else { return false }
-        return latest.token == generation && latest.epoch == epoch && latest.stage && latest.selection
+    func queuedGroupChoice(after token: UUID, in epoch: UUID) -> UUID? {
+        guard dispatchAvailable, ownershipEpoch == epoch, generation != token, let latest = pending.last,
+              latest.token == generation, latest.epoch == epoch, latest.stage, latest.selection else { return nil }
+        return latest.token
     }
 }

@@ -398,6 +398,81 @@ import Testing
         #expect(try StageGroupCoordinator(store: store, profile: p).requiresRecovery)
     }
 
+    @Test(arguments: [1, 2], [false, true])
+    func queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_ shows: Int, takeover: Bool) async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let active = groups[0]
+        func live(_ index: Int) throws -> StageGroupWindow {
+            let state = try #require(runtime.windows[groups[index].members[0].windowHint])
+            return .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(live(2), to: live(1))
+        let held = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        let first = held.members[0], last = held.members[1]
+        try await engine.activate(active.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let owner = try #require(runtime.engineOwner)
+        let bystander = try #require(runtime.windows.values.first { $0.window.number == 4 })
+        runtime.writes.removeAll()
+        var waiting = false
+        runtime.afterWrite = {
+            if runtime.writes.filter({ $0.0 == .show }).count == shows { waiting = true }
+        }
+        await #expect(throws: StageSwitchError.superseded) {
+            try await engine.activate(held.id, member: first.id, in: runtime.scope, consent: true, session: runtime,
+                                      current: { !waiting }, newerChoice: { waiting })
+        }
+        #expect(runtime.writes.map(\.0) == Array(repeating: .show, count: shows))
+        #expect(store.activeGroup(in: runtime.scope) == nil && !engine.requiresRecovery)
+        let sample = try runtime.read(runtime.scope)
+        for m in held.members {
+            let state = try #require(sample.windows[m.windowHint])
+            #expect(engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                lifetime: state.lifetime, owner: owner, observed: sample))
+            #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                lifetime: UUID(), owner: owner, observed: sample))
+        }
+        let before = runtime.writes.count
+        runtime.afterWrite = nil
+        if takeover {
+            runtime.focus = bystander.window
+            let changed = try runtime.read(runtime.scope)
+            let selected = try #require(changed.windows[last.windowHint])
+            #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: last.id, window: last.windowHint,
+                lifetime: selected.lifetime, owner: owner, observed: changed))
+            await #expect(throws: StageSwitchError.interrupted) {
+                try await engine.activate(held.id, member: last.id, in: runtime.scope, consent: true, session: runtime, resumingFrom: sample)
+            }
+            #expect(runtime.writes.count == before && runtime.focus == bystander.window)
+            return
+        }
+        var admission = sample
+        if shows == 1 {
+            var later = false
+            runtime.afterWrite = { later = runtime.writes.last?.0 == .show }
+            await #expect(throws: StageSwitchError.superseded) {
+                try await engine.activate(held.id, member: first.id, in: runtime.scope, consent: true, session: runtime,
+                    resumingFrom: admission, current: { !later }, newerChoice: { later })
+            }
+            admission = try runtime.read(runtime.scope)
+            runtime.afterWrite = nil
+            for m in held.members {
+                let state = try #require(admission.windows[m.windowHint])
+                #expect(engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                    lifetime: state.lifetime, owner: owner, observed: admission))
+            }
+        }
+        try await engine.activate(held.id, member: last.id, in: runtime.scope, consent: true, session: runtime, resumingFrom: admission)
+        #expect(store.activeGroup(in: runtime.scope) == held.id && runtime.focus == last.windowHint)
+        #expect(runtime.writes.dropFirst(before).filter { $0.0 == .show }.count == 2 - shows)
+        #expect(runtime.writes.dropFirst(before).filter { $0.0 == .focus }.map(\.1) == [last.windowHint])
+        #expect(runtime.windows[bystander.window] == bystander && runtime.windows[active.members[0].windowHint]?.visibility == .parked)
+        let terminal = try runtime.read(runtime.scope)
+        let selected = try #require(terminal.windows[last.windowHint])
+        #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: last.id, window: last.windowHint,
+            lifetime: selected.lifetime, owner: owner, observed: terminal))
+    }
+
     @Test func focusCannotTakeOwnershipOfUserGeometry() async throws {
         let (p, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: p) }

@@ -25,8 +25,17 @@ import NearpaneOrdinaryWindowRuntime
     struct HeldGroup: Equatable, Identifiable {
         let id, member: UUID, scope: StageGroupScope, state: StageWindowState, owner: StageEngineOwner, count: Int
         let departure: StageGroupDeparture?
+
+        func memberIdentity(_ stamp: StageGroupDeparture.Stamp?) -> (member: UUID, window: NativeSpaceWindow, lifetime: UUID)? {
+            guard let stamp else { return (member, state.window, state.lifetime) }
+            guard let departure, departure.group == id, departure.scope == scope, departure.generation == owner.generation,
+                  let selected = departure.members.first(where: { $0.id == stamp.member }), departure.stamp(for: selected) == stamp
+            else { return nil }
+            return (selected.id, selected.before.window, selected.before.lifetime)
+        }
     }
     private(set) var heldGroups = [HeldGroup]()
+    private var heldSuccessor: (token: UUID, card: HeldGroup)?
     @ObservationIgnored private var heldRefresh: Task<Void,Never>?
     private var lastVerifiedAt: TimeInterval = 0
     @ObservationIgnored private var watchers = [(NotificationCenter,NSObjectProtocol)]()
@@ -241,6 +250,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func freeze() {
+        heldSuccessor = nil
         needsReassessment = true
         observedCapability = nil
         groupProjection = nil
@@ -327,7 +337,8 @@ import NearpaneOrdinaryWindowRuntime
 
     func groupChoice(_ group: UUID, member: NativeSidebarMember, selection: StageSidebarSelection, in feed: CurrentDesktopWindows,
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
-                     newerChoice: @escaping @MainActor () -> Bool = { false }) async throws -> Bool {
+                     successor: @escaping @MainActor () -> UUID? = { nil }) async throws -> Bool {
+        heldSuccessor = nil
         guard routesGroupChoice else { return false }
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
@@ -382,11 +393,14 @@ import NearpaneOrdinaryWindowRuntime
             witness?.preparePictures(leavingFor:group)
             defer { witness?.endPicturePreparation() }
             try await engine.activate(group,member:selection == .member ? saved.id : nil,in:scope,consent:true,current:permitted,
-                                      newerChoice: { environmentCurrent() && newerChoice() })
+                                      newerChoice: { environmentCurrent() && successor() != nil })
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
             return true
         } catch StageSwitchError.superseded {
+            if let token = successor(), let card = heldGroups.first(where: { $0.id == group && $0.scope == scope }) {
+                heldSuccessor = (token, card)
+            }
             projectHeld(feed.groups, in: scope)
             throw StageSwitchError.superseded
         } catch {
@@ -502,44 +516,60 @@ import NearpaneOrdinaryWindowRuntime
 
     /// The row represents an explicitly owned, independently read group. Its pixel stream and drag source
     /// remain absent while hidden. Recheck the whole roster before the existing coordinator can dispatch.
-    func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, in feed: CurrentDesktopWindows,
+    func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, in feed: CurrentDesktopWindows, selectionToken: UUID,
                     current: @escaping @MainActor () -> Bool,
-                    newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
+                    successor: @escaping @MainActor () -> UUID? = { nil }) async throws {
+        let continuing = heldSuccessor?.token == selectionToken && heldSuccessor?.card == held
+        heldSuccessor = nil
         await heldRefresh?.value
         guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
-              heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
-              current(), let witness, witness.matches(held.scope) else { throw StageSwitchError.interrupted }
+              heldGroups.contains(held) || continuing, let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
+              let witness, witness.matches(held.scope) else { throw StageSwitchError.interrupted }
+        func checkSelection() throws {
+            if current() { return }
+            if let next = successor() {
+                if continuing { heldSuccessor = (next, held) }
+                throw StageSwitchError.superseded
+            }
+            throw StageSwitchError.interrupted
+        }
+        try checkSelection()
         guard try granted == consent(for: held.scope, evidence: held.owner.evidence, feed: feed) else {
             throw StageSwitchError.ownership
         }
         let token = revision
         let observed = try await session.read(held.scope)
-        if !current() && newerChoice() { throw StageSwitchError.superseded }
-        guard revision == token, engine.session === session, heldGroups.contains(held), !releasing, !terminationOwnsLane else {
+        guard revision == token, engine.session === session, !releasing, !terminationOwnsLane else {
             throw StageSwitchError.interrupted
         }
-        let selected: UUID, parked: StageWindowState
-        if let stamp {
-            guard let departure = held.departure, let (member, state) = departure.parkedMember(stamp, in: observed),
-                  witness.confirmsHistoricalMember(member, of: departure) else { throw StageSwitchError.interrupted }
-            selected = member.id
-            parked = state
+        try checkSelection()
+        guard let choice = held.memberIdentity(stamp) else { throw StageSwitchError.interrupted }
+        let stillParked = heldGroups.contains(held)
+        if stillParked {
+            let parked: StageWindowState
+            if let stamp {
+                guard let departure = held.departure, let (member, state) = departure.parkedMember(stamp, in: observed),
+                      witness.confirmsHistoricalMember(member, of: departure) else { throw StageSwitchError.interrupted }
+                parked = state
+            } else { parked = held.state }
+            guard observed.windows[parked.window] == parked,
+                  engine.coordinator.confirmsHidden(group:held.id,member:choice.member,state:parked,scope:held.scope,owner:held.owner) else {
+                freeze(); throw StageSwitchError.ownership
+            }
         } else {
-            selected = held.member
-            parked = held.state
-        }
-        guard current(), observed.windows[parked.window] == parked,
-              engine.coordinator.confirmsHidden(group:held.id,member:selected,state:parked,scope:held.scope,owner:held.owner) else {
-            freeze(); throw StageSwitchError.ownership
+            guard continuing, engine.coordinator.confirmsYieldedHeldMember(group: held.id, member: choice.member, window: choice.window,
+                lifetime: choice.lifetime, owner: held.owner, observed: observed) else { throw StageSwitchError.interrupted }
         }
         do {
             witness.preparePictures(leavingFor:held.id)
             defer { witness.endPicturePreparation() }
-            try await engine.activate(held.id,member:selected,in:held.scope,consent:true,current:current,
-                                      newerChoice: { self.revision == token && newerChoice() })
+            try await engine.activate(held.id,member:choice.member,in:held.scope,consent:true,
+                                      resumingFrom: stillParked ? nil : observed, current:current,
+                                      newerChoice: { self.revision == token && successor() != nil })
             projectHeld(feed.groups,in:held.scope)
             await armArrivals(in: feed, revision: token)
         } catch StageSwitchError.superseded {
+            if let next = successor() { heldSuccessor = (next, held) }
             projectHeld(feed.groups, in: held.scope)
             throw StageSwitchError.superseded
         } catch {

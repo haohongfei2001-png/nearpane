@@ -206,9 +206,9 @@ struct DesktopSurface: View {
             let input = NativeSelectionPermit.inputCounters()
             let epoch = navigation.ownershipEpoch
             navigation.submit(stage:true) { token in
-                try await feed.stageEngine.chooseHeld(held, member: member, in:feed,current:{
+                try await feed.stageEngine.chooseHeld(held, member: member, in:feed, selectionToken: token, current:{
                     canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-                }, newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
+                }, successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
             }
         }
         return VStack(spacing:0) {
@@ -279,7 +279,7 @@ struct DesktopSurface: View {
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
             let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,
-                newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
+                successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
             if !handled && valid() {
                 try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }
             }

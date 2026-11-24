@@ -25,6 +25,7 @@ import Testing
     var withdrawal: Withdrawal = .denied
     var loseHideTransportAfterAdmission: Bool?
     var afterPrepare: ((StageWindowCommand) -> Void)?
+    var onPrimitiveHealth: ((StageWindowCommand) -> Void)?
     var afterVisibilityWrite: (() -> Void)?
     var prepareReplyLost = false, nextReadFails = false
     var withdrawalAttempts = [StageWindowCommand](), withdrawn = Set<UUID>()
@@ -74,7 +75,9 @@ import Testing
         if [3,4,5].contains(op), withdrawn.contains(c.intent) || !writeIntents.insert(c.intent).inserted { throw StageSwitchError.ownership }
         if op == 3, loseHideTransportAfterAdmission == true { throw StageSwitchError.incomplete }
         switch op {
-        case 6: return .init(status:health ? 0 : 2,flags:health ? 64 | 16 | 32 : 0,intent:c.intent,nativeID:22)
+        case 6:
+            onPrimitiveHealth?(c)
+            return .init(status:health ? 0 : 2,flags:health ? 64 | 16 | 32 : 0,intent:c.intent,nativeID:22)
         case 3:
             effects.append((op,id)); visible[id] = c.before
             windows[id]?.visibility = owner.backend == .corner ? .parked : .stageSpace
@@ -255,6 +258,34 @@ import Testing
         #expect(f.focus == latest.members[0].windowHint && store.activeGroup(in: f.scope) == latest.id)
         try await activate(groups[0], engine, f)
         #expect(f.windows[departing.windowHint] == original && f.windows.filter { $0.key.number > 3 } == bystanders)
+    }
+
+    @Test(arguments: [false, true])
+    func newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster(_ userMovedWindow: Bool) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        var queued = false
+        f.onPrimitiveHealth = { command in
+            guard command.action == .hide && !queued else { return }
+            queued = true
+            if userMovedWindow { f.windows[command.before.window]?.frame.x += 12 }
+        }
+        let attempted = groups[1], latest = groups[2]
+        await #expect(throws: userMovedWindow ? StageSwitchError.recoveryRequired : .superseded) {
+            try await engine.activate(attempted.id, member: nil, in: f.scope, consent: true,
+                                      current: { !queued }, newerChoice: { queued })
+        }
+        #expect(queued && f.ordinaryEffects == [.focus])
+        #expect(f.prepared.isEmpty && f.writeIntents.isEmpty && f.effects.isEmpty)
+        #expect(store.activeGroup(in: f.scope) != attempted.id)
+        #expect(engine.coordinator.requiresRecovery == userMovedWindow)
+        if !userMovedWindow {
+            #expect(f.revokes == 0)
+            f.onPrimitiveHealth = nil
+            try await activate(latest, engine, f)
+            #expect(store.activeGroup(in: f.scope) == latest.id && f.focus == latest.members[0].windowHint)
+        }
     }
 
     @Test func aQueuedClickCannotDischargeAnUnknownHide() async throws {

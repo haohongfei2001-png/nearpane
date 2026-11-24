@@ -295,13 +295,16 @@ import Testing
         defer { resume?.resume() }
         let token = try #require(original)
         router.submit(selection: false) { _ in }
-        #expect(!router.hasQueuedGroupChoice(after: token, in: epoch))
+        #expect(router.queuedGroupChoice(after: token, in: epoch) == nil)
         router.submit(stage: true) { _ in }
-        #expect(router.hasQueuedGroupChoice(after: token, in: epoch))
+        let queued = try #require(router.queuedGroupChoice(after: token, in: epoch))
+        router.submit(stage: true) { _ in }
+        let last = try #require(router.queuedGroupChoice(after: token, in: epoch))
+        #expect(queued != last && !router.isCurrent(queued) && router.isCurrent(last))
         router.setDispatchAvailable(false)
         router.setDispatchAvailable(true)
         router.submit(stage: true) { _ in }
-        #expect(!router.hasQueuedGroupChoice(after: token, in: epoch))
+        #expect(router.queuedGroupChoice(after: token, in: epoch) == nil)
     }
 
     @Test func subsequentSelectionCannotDiscardQueuedMove() async {

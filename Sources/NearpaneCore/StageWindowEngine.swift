@@ -86,6 +86,16 @@ package struct CornerHideAdmissionRefused: Error {
     package init(_ cause: any Error) { self.cause = cause }
 }
 
+/// The original live session yielded before calling a window writer or preparing a Guardian.
+struct SupersededBeforeStageWrite: Error {
+    let owner: StageEngineOwner
+    let command: StageWindowCommand
+    fileprivate init(owner: StageEngineOwner, command: StageWindowCommand) {
+        self.owner = owner
+        self.command = command
+    }
+}
+
 /// Only the session that completed both sides of a Corner withdrawal can create this receipt.
 struct UnsubmittedCornerHide: Error {
     let owner: StageEngineOwner, command: StageWindowCommand, yieldedFocus: NativeSpaceWindow?
@@ -186,28 +196,40 @@ struct UnsubmittedCornerHide: Error {
             return owner.backend == .corner && !closed && mayManage(c.before) &&
             (c.restoring ? c.action == .show && (recovering || (!frozen && ownsIntent)) : !frozen && ownsIntent) && witness.permits(owner,restoring:c.restoring)
         }
-        guard eligible(), (c.nativeID ?? 0) > 0 else { throw StageSwitchError.interrupted }
+        // Only use this check before entering a writer or asking a Guardian to prepare.
+        // Once handed off, even a superseding click must settle the actual command.
+        func requireUnsentIntent() throws {
+            if eligible() { return }
+            guard !c.restoring, !Task.isCancelled, newerSelectionWaiting(), eligible(settling: true)
+            else { throw StageSwitchError.interrupted }
+            throw SupersededBeforeStageWrite(owner: owner, command: c)
+        }
+        guard (c.nativeID ?? 0) > 0, c.generation == owner.generation else { throw StageSwitchError.interrupted }
+        try requireUnsentIntent()
         if c.restoring {
             guard c.action == .show, c.restoreFrame != nil, c.before.visibility == .parked
             else { throw StageSwitchError.ownership }
         }
         let pre = try await read(c.scope)
-        guard eligible(), pre.generation == c.generation, pre.nativeID == c.nativeID,
+        guard pre.generation == c.generation, pre.nativeID == c.nativeID,
               pre.windows[c.before.window] == c.before else { throw StageSwitchError.interrupted }
+        try requireUnsentIntent()
         var lastReadSequence = pre.sequence
         // Restoration can survive a revoked event tap/failed probe; the old worker must still explicitly
         // attest its retained ownership via RESTORE. No new hide/show/place follows a lost health result.
         if !c.restoring {
             do {
                 let health = try await transport.submit(6,owner:owner,c)
-                guard eligible() else { throw StageSwitchError.unavailable }
                 try requireHealthy(health, intent: c.intent)
             } catch { stopAfterBackendFailure(current: eligible()); throw error }
+            try requireUnsentIntent()
             // Recheck the home, roster and original focus after the worker health observation.
             let checked = try await read(c.scope)
-            guard eligible(), checked.sequence > pre.sequence, checked.generation == pre.generation,
+            guard checked.sequence > pre.sequence, checked.generation == pre.generation,
                   checked.nativeID == pre.nativeID, checked.windows == pre.windows, checked.focus == pre.focus,
-                  checked.workArea == pre.workArea else { throw StageSwitchError.interrupted }
+                  checked.foreignFocusScope == pre.foreignFocusScope, checked.workArea == pre.workArea
+            else { throw StageSwitchError.interrupted }
+            try requireUnsentIntent()
             lastReadSequence = checked.sequence
         }
         switch c.action {
@@ -416,6 +438,7 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope, consent: Bool,
+                         resumingFrom: StageWindowSample? = nil,
                          current: @escaping @MainActor () -> Bool,
                          newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
         guard !busy, !releaseRequested else { throw StageSwitchError.busy }
@@ -424,7 +447,7 @@ struct UnsubmittedCornerHide: Error {
         session.newerSelectionWaiting = { self.revision == token && !Task.isCancelled && newerChoice() }
         defer { busy = false; session.intentIsCurrent = { false }; session.newerSelectionWaiting = { false } }
         do {
-            try await coordinator.activate(group, member: member, in: scope, consent: consent, session: session,
+            try await coordinator.activate(group, member: member, in: scope, consent: consent, session: session, resumingFrom: resumingFrom,
                                           current: { token == self.revision && current() }, newerChoice: session.newerSelectionWaiting)
             guard token == revision, current() else { throw StageSwitchError.interrupted }
         } catch {
