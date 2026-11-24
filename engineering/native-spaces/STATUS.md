@@ -1,5 +1,11 @@
 # Nearpane 当前工程状态
 
+### 工作集合退场后的恢复责任
+
+Host 现在从 Guardian 接受窗口前起持有对原签名进程的内核观察，直到该窗归位。PID 和出生时间相同但进程更换映像时会停止新的健康、显示和退场派发。窗口归还后，Host 须核对同一份准备记录、角落位置及两次原位读回。若应答丢失，只有原映像已正常退出并有完全匹配的持久化最终收据，才能解除责任；不确定时保留日志。
+
+26A428 实体机上，受控子进程保持 PID 和出生时间更换映像时，内核检查将其拒绝，并正确识别另一观察期间的真正退出。独立临时文件和管道复现应答端关闭，最终收据仍可读。该试验的窗口写入数为零。Corner 回归 76 项、完整 Swift 回归 809 项通过，3 项跳过。普通窗口真实角落退场、退场后的输入收件和正式侧栏整组循环仍为 **NOT_RUN**。上一源码 `e32738c` 的签名包已保留作回滚。[原始内核事件与回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-lease-lifetime.zip) · [回滚包签名指纹](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-e32738c.json)
+
 重复点击已聚焦的工作集合时，协调器会核实执行引擎健康、当前显示器与桌面、成员和旁窗、真实焦点与已保存布局。连续读回一致时保留原恢复日志，与集合目录一起原位核验。用户已手动移窗时保存新布局，核验中焦点被用户移走时立即让渡。22 项协调器回归通过。完整回归首次在命令沙箱内出现图像解码及测试文件书签错误并停滞，保留为失败。正常测试环境完整串行回归 808 项通过、3 项跳过。整组实机切换仍为 **NOT_RUN**。[针对性与完整回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/focused-workset-selection.zip)
 
 ## 实体机上的窗口遮挡与鼠标透明度

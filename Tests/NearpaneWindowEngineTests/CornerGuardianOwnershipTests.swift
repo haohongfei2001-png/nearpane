@@ -13,6 +13,7 @@ struct CornerGuardianOwnershipTests {
         h.guardianPID = 523
         h.guardianBirth = 1402
         h.sameChildGenerationNow = true
+        h.originalGuardianImageLive = true
         h.originalIntent = UUID()
         h.member = UUID()
         h.lifetime = UUID()
@@ -64,6 +65,9 @@ struct CornerGuardianOwnershipTests {
         replaced.sameChildGenerationNow = false
         let gone = Report.assess(replaced, observedFrame: parked)
         #expect(gone.reason == "survivingOriginalGuardianUnconfirmed" && gone.status == "BLOCKED")
+        replaced.sameChildGenerationNow = true
+        replaced.originalGuardianImageLive = false
+        #expect(Report.assess(replaced, observedFrame: parked).status == "BLOCKED")
         let changed = Report.assess(acknowledged(), observedFrame: original)
         #expect(changed.comparableParkedFrame == false && changed.status == "BLOCKED")
         #expect(changed.committedWALWitness == "MATCHED_AT_CONFIRM_ACK")

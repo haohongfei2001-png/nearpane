@@ -21,6 +21,21 @@ import CNearpaneWindowEngine
         var preparedAt: UInt64?
         var confirmedAt: UInt64?
         var guardianBirth: UInt64?
+        var imageWatch: FileHandle?
+        private var terminalImageState: Int32?
+        var releaseIntent: UUID?
+        var releaseAcknowledged = false
+
+        func imageState(birth: UInt64) -> Int32 {
+            if let terminalImageState { return terminalImageState }
+            guard let watch = imageWatch else { return Int32(NP_GUARDIAN_IMAGE_LOST) }
+            let state = np_corner_guardian_image_state(watch.fileDescriptor, process.processIdentifier, birth)
+            if state == NP_GUARDIAN_IMAGE_LOST || state == NP_GUARDIAN_IMAGE_EXITED {
+                terminalImageState = state
+                imageWatch = nil
+            }
+            return state
+        }
         init(_ original: NativeStageEngineRequest, epoch: UInt64, process: Process, writer: FileHandle, reader: FileHandle, directory: FileHandle) {
             self.original = original
             self.epoch = epoch
@@ -127,12 +142,15 @@ import CNearpaneWindowEngine
         leases[w] = lease
         do {
             guard let launchedBirth, launchedBirth > 0, process.isRunning else { throw Failure.unavailable }
+            let fd = np_corner_open_guardian_peer(process.processIdentifier, launchedBirth)
+            guard fd >= 0 else { throw Failure.unavailable }
+            lease.imageWatch = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
             try await exchange(data, ack: 82, lease: lease)
             guard let hostBirth = Self.generation(getpid(), parent: nil),
                   let prepared = CornerPreparedReceipt.read(in: heldDirectory.fileDescriptor),
                   prepared.matches(r, epoch: epoch, host: getpid(), hostBirth: hostBirth,
                                    child: process.processIdentifier, childBirth: launchedBirth),
-                  process.isRunning, Self.childGeneration(process.processIdentifier) == launchedBirth else {
+                  lease.imageState(birth: launchedBirth) == NP_GUARDIAN_IMAGE_LIVE else {
                 throw Failure.changedLease
             }
             lease.preparation = prepared
@@ -153,15 +171,15 @@ import CNearpaneWindowEngine
               l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
               l.epoch == epoch, l.preparedAt != nil, !l.withdrawing, !l.sealed, l.result == nil,
               let proof = l.preparation, CornerPreparedReceipt.read(in: l.directory.fileDescriptor) == proof,
-              let birth = l.guardianBirth, l.process.isRunning,
-              Self.childGeneration(l.process.processIdentifier) == birth else { throw Failure.pendingRecovery }
+              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else { throw Failure.pendingRecovery }
         return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth)
     }
 
     func checkLiveOwners() throws {
         for lease in leases.values {
-            guard let birth = lease.guardianBirth, lease.process.isRunning,
-                  Self.childGeneration(lease.process.processIdentifier) == birth else { throw Failure.pendingRecovery }
+            guard let birth = lease.guardianBirth, lease.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else {
+                throw Failure.pendingRecovery
+            }
         }
     }
 
@@ -173,6 +191,7 @@ import CNearpaneWindowEngine
     func observe(_ r: NativeStageEngineRequest, receipt: NativeStageEngineReceipt) async throws {
         guard r.operation == 3 else { return }
         guard let w = r.window, let l = leases[w], same(l.original, r), r.intent == l.original.intent,
+              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE,
               !l.sealed, !l.withdrawing, l.result == nil, receipt.intent == r.intent, receipt.epoch == l.epoch,
               receipt.owned > 0, receipt.nativeID == r.nativeID else {
             throw Failure.pendingRecovery
@@ -195,6 +214,7 @@ import CNearpaneWindowEngine
 
     func confirm(_ r: NativeStageEngineRequest, verifiedFrame: SurfaceRect) async throws {
         guard let w = r.window, let l = leases[w], same(l.original, r), l.original.intent == r.intent,
+              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE,
               !l.sealed, !l.withdrawing, !l.recoveryFrameOnly, let raw = l.result, raw.status == NP_PASS,
               zip(Self.frame(raw.frame), Self.frame(verifiedFrame)).allSatisfy({ $0.isFinite && $1.isFinite && abs($0 - $1) <= 0.75 }) else { throw Failure.pendingRecovery }
         var fields = motionFields("confirm", raw)
@@ -207,12 +227,38 @@ import CNearpaneWindowEngine
     }
 
     func disarm(_ r: NativeStageEngineRequest) async throws {
-        guard [4, 5].contains(r.operation), let w = r.window, let l = leases[w], same(l.original, r), l.sealed else {
+        guard [4, 5].contains(r.operation), let w = r.window, let l = leases[w], same(l.original, r), l.sealed,
+              let birth = l.guardianBirth, let prepared = l.preparation, let parked = l.result,
+              l.releaseIntent == nil || l.releaseIntent == r.intent else {
             throw Failure.pendingRecovery
         }
-        try await exchange(Data([68]), ack: 68, lease: l)
-        try l.writer.close()
-        try l.reader.close()
+        if l.releaseIntent == nil {
+            guard l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else { throw Failure.pendingRecovery }
+            l.releaseIntent = r.intent
+            do {
+                try await exchange(Data([68]), ack: 68, lease: l)
+                l.releaseAcknowledged = true
+            } catch {
+                // The helper may already have verified the window and fsynced its final record.
+                // Never resend a release or repeat the window operation after a lost acknowledgement.
+            }
+        }
+        var image = l.imageState(birth: birth)
+        let deadline = ContinuousClock.now.advanced(by: .milliseconds(300))
+        while !l.releaseAcknowledged || image == NP_GUARDIAN_IMAGE_UNAVAILABLE {
+            if image == NP_GUARDIAN_IMAGE_LOST || (image == NP_GUARDIAN_IMAGE_EXITED && !l.process.isRunning) ||
+                ContinuousClock.now >= deadline { break }
+            try await Task.sleep(for: .milliseconds(15))
+            image = l.imageState(birth: birth)
+        }
+        let normalExitCode = image == NP_GUARDIAN_IMAGE_EXITED && !l.process.isRunning && l.process.terminationReason == .exit
+            ? l.process.terminationStatus : nil
+        guard leases[w] === l,
+              let receipt = CornerLiveReleaseReceipt.read(in: l.directory.fileDescriptor),
+              receipt.confirms(prepared, parked: parked, image: image, acknowledged: l.releaseAcknowledged,
+                               normalExitCode: normalExitCode) else { throw Failure.pendingRecovery }
+        try? l.writer.close()
+        try? l.reader.close()
         leases.removeValue(forKey: w)
     }
 
@@ -221,8 +267,7 @@ import CNearpaneWindowEngine
         guard r.backend == 1, r.operation == 3, let w = r.window, let l = leases[w], same(l.original, r),
               l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
               l.epoch == epoch, !l.sealed, !l.withdrawing, l.result == nil, l.preparedAt != nil,
-              let childBirth = l.guardianBirth, l.process.isRunning,
-              Self.childGeneration(l.process.processIdentifier) == childBirth,
+              let childBirth = l.guardianBirth, l.imageState(birth: childBirth) == NP_GUARDIAN_IMAGE_LIVE,
               let hostBirth = Self.generation(getpid(), parent: nil) else { return false }
         let data = try packet(["phase": "withdrawUnsubmitted", "intent": r.intent.uuidString, "epoch": epoch])
         try excludeTicket()
@@ -269,6 +314,7 @@ import CNearpaneWindowEngine
         result.guardianPID = child
         result.guardianBirth = generation
         result.sameChildGenerationNow = same
+        result.originalGuardianImageLive = generation.map { l.imageState(birth: $0) == NP_GUARDIAN_IMAGE_LIVE }
         result.originalIntent = l.original.intent
         result.member = l.original.member
         result.lifetime = l.original.lifetime

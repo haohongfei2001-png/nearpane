@@ -25,6 +25,12 @@ int32_t np_guardian_observe_fixture(int32_t pid, uint64_t birth, uint32_t window
                                     CFStringRef _Nonnull executable, CFStringRef _Nonnull cdhash,
                                     uint64_t native_id, CFStringRef _Nullable display,
                                     CFStringRef _Nullable space, NPGuardianFixtureObservation *_Nonnull out);
+/* A successful open returns a caller-owned close-on-exec descriptor for the signed installed
+ * Guardian child. Its first terminal observation is final. No window authority is transferred. */
+enum { NP_GUARDIAN_IMAGE_LOST = 0, NP_GUARDIAN_IMAGE_LIVE = 1, NP_GUARDIAN_IMAGE_EXITED = 2,
+       NP_GUARDIAN_IMAGE_UNAVAILABLE = 3 };
+int32_t np_corner_open_guardian_peer(int32_t child, uint64_t birth);
+int32_t np_corner_guardian_image_state(int32_t watch, int32_t child, uint64_t birth);
 #ifdef __cplusplus
 }
 #endif

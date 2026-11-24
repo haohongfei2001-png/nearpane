@@ -1,5 +1,6 @@
 // Included after identity.h. These checks only observe the direct child and its pipe.
 #pragma once
+#include "../../../include/nearpane_guardian_observation.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -27,12 +28,21 @@ static inline int ncg_open_child_watch(pid_t child, uint64_t birth) {
     return -1;
 }
 
-// The caller permanently retires the watch after any negative result.
-static inline BOOL ncg_child_watch_live(int queue, pid_t child, uint64_t birth) {
-    if (queue < 0 || !ncg_live_child(child, birth)) return NO;
+// Registered against the signed original image. The consumer retains the first terminal result.
+static inline int ncg_child_image_state(int queue, pid_t child, uint64_t birth) {
+    if (queue < 0 || child <= 1 || !birth) return NP_GUARDIAN_IMAGE_LOST;
     struct timespec now = {0, 0};
     struct kevent event;
-    return kevent(queue, NULL, 0, &event, 1, &now) == 0;
+    int count;
+    do { count = kevent(queue, NULL, 0, &event, 1, &now); } while (count < 0 && errno == EINTR);
+    if (!count) return ncg_live_child(child, birth) ? NP_GUARDIAN_IMAGE_LIVE : NP_GUARDIAN_IMAGE_UNAVAILABLE;
+    if (count == 1 && event.ident == (uintptr_t)child && event.filter == EVFILT_PROC &&
+        !(event.flags & EV_ERROR) && !(event.fflags & NOTE_EXEC) && (event.fflags & NOTE_EXIT)) return NP_GUARDIAN_IMAGE_EXITED;
+    return NP_GUARDIAN_IMAGE_LOST;
+}
+
+static inline BOOL ncg_child_watch_live(int queue, pid_t child, uint64_t birth) {
+    return ncg_child_image_state(queue, child, birth) == NP_GUARDIAN_IMAGE_LIVE;
 }
 
 // The packet timeout starts with the first byte. EOF without a sealed postimage never authorizes recovery.

@@ -51,6 +51,34 @@ struct CornerWithdrawalReceipt: Decodable {
     static func read(in directory: Int32) -> Self? { CornerGuardianRecord.final.read(Self.self, in: directory) }
 }
 
+/// The retained Guardian validated the Host's release journal and observed the original window twice.
+struct CornerLiveReleaseReceipt: Decodable {
+    let schema, issued, liveReleaseOriginalFrameReadbacks: Int
+    let status, reason: String
+    let guardianPID: Int32
+    let retainedBeforePark, committedPostimage, originalPipeEOF, kernelHostExit: Bool
+    let original: CornerGuardianOriginalProof
+    let postimage: [Double]
+
+    func confirms(_ prepared: CornerPreparedReceipt, parked: NativeStageEngineReceipt, image: Int32,
+                  acknowledged: Bool, normalExitCode: Int32?) -> Bool {
+        guard image == NP_GUARDIAN_IMAGE_LIVE || image == NP_GUARDIAN_IMAGE_EXITED,
+              acknowledged || (image == NP_GUARDIAN_IMAGE_EXITED && (normalExitCode == 0 || normalExitCode == 4))
+        else { return false }
+        let frame = parked.frame
+        let required = UInt32(NP_HIDDEN | NP_AX_VALID | NP_CG_VALID | NP_INPUT_SAFE | NP_MEMBERSHIP_VALID | NP_OWNED)
+        return schema == 1 && status == "PASS" && reason == "liveHostReleasedRestoredOwnership" &&
+            issued == 0 && liveReleaseOriginalFrameReadbacks == 2 && retainedBeforePark && committedPostimage &&
+            !originalPipeEOF && !kernelHostExit && guardianPID == prepared.guardianPID && original == prepared.original &&
+            parked.status == NP_PASS && (1...32).contains(parked.owned) &&
+            parked.flags & (required | UInt32(NP_VISIBLE | NP_CORNER_RECOVERY_FRAME)) == required &&
+            parked.intent == original.intent && parked.epoch == original.epoch &&
+            parked.nativeID == original.native && postimage == [frame.x, frame.y, frame.width, frame.height]
+    }
+
+    static func read(in directory: Int32) -> Self? { CornerGuardianRecord.final.read(Self.self, in: directory) }
+}
+
 struct CornerMeasuredFrameReceipt: Decodable {
     let schema: Int, status: String, guardianPID: Int32
     let original: CornerGuardianOriginalProof, postimage: [Double]

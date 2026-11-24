@@ -70,7 +70,7 @@ import NearpaneCore
         guard operation != 5 || restoring else { throw StageSwitchError.ownership }
         let epoch = try commandEpoch(owner, restoring: restoring)
         let command = request(operation,owner:owner,c)
-        if operation == 6 { try guardian.checkLiveOwners() }
+        if operation == NP_HEALTH || operation == NP_HIDE || operation == NP_SHOW { try guardian.checkLiveOwners() }
         let peer = operation == 3 ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
         // A guarded hide includes the settled AX position and the asynchronous compositor comparison.
         // Cancellation and the Guardian handoff remain live during that read-only interval.

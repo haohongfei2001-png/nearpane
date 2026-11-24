@@ -455,6 +455,9 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         usleep(25000);
         need(originalReleaseWitness(s), @"secondReleasedOriginalNotConfirmed");
         receipt[@"liveReleaseOriginalFrameReadbacks"] = @2;
+#ifndef NP_CORNER_FIXTURE
+        receipt[@"original"] = prepared[@"original"];
+#endif
         receipt[@"status"] = @"PASS";
         receipt[@"reason"] = @"liveHostReleasedRestoredOwnership";
         return;

@@ -187,8 +187,15 @@ int main(void) {
         assert(read(replies[0], &reply, 1) == 1 && reply == 'D');
         assert([productFile(releasedFD, "guardian-receipt.json") isEqual:released]);
         close(releasedFD);
-        close(jobFD);
+        assert(mkdirat(jobFD, "lost-reply", 0700) == 0);
+        int noReply = openat(jobFD, "lost-reply", O_DIRECTORY | O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        assert(noReply >= 0 && fcntl(replies[1], F_SETNOSIGPIPE, 1) == 0);
         close(replies[0]);
+        assert(!publishReceipt(noReply, released, replies[1]) && errno == EPIPE);
+        assert([productFile(noReply, "guardian-receipt.json") isEqual:released]);
+        printf("{\"scope\":\"guardianReleasePublication\",\"ackDelivered\":false,\"originalRecordDurable\":true,\"windowWrites\":0}\n");
+        close(noReply);
+        close(jobFD);
         close(replies[1]);
         // Real shipping WAL reader, disposable files only. Witness/AX are deliberately not simulated.
         assert(withdrawableJournal(&s));

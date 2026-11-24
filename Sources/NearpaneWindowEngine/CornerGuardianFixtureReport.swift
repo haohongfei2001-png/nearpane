@@ -9,6 +9,7 @@ package struct CornerGuardianFixtureReport: Encodable, Sendable {
         var guardianPID: Int32?
         var guardianBirth, preparedAckUptimeNS, confirmedAckUptimeNS, epoch: UInt64?
         var sameChildGenerationNow: Bool?
+        var originalGuardianImageLive: Bool?
         var originalIntent, member, lifetime, generation: UUID?
         var original, parked: SurfaceRect?
 
@@ -128,7 +129,7 @@ package struct CornerGuardianFixtureReport: Encodable, Sendable {
             (status, reason) = ("BLOCKED", "thisHostHasNoPreparedGuardianForThisWindow")
         } else if !prepared {
             (status, reason) = ("UNKNOWN", "noAuthenticatedPrepareAckForThisLease")
-        } else if h.sameChildGenerationNow != true {
+        } else if h.sameChildGenerationNow != true || h.originalGuardianImageLive != true {
             (status, reason) = ("BLOCKED", "survivingOriginalGuardianUnconfirmed")
         } else if !committed {
             (status, reason) = ("BLOCKED", "noCommittedParkedPostimageAck")

@@ -41,6 +41,39 @@ struct CornerWithdrawalTests {
                     "kernelHostExit": false, "withdrawal": proof])
     }
 
+    @Test func releaseNeedsTheSamePreparedLeaseAndOriginalGuardianImageEvenAfterLostAck() throws {
+        let (request, withdrawal) = envelope()
+        let original = try #require(withdrawal["withdrawal"] as? [String: Any])
+        let preparedJSON: [String: Any] = ["schema": 1, "status": "PREPARED", "guardianPID": 41, "original": original]
+        let prepared = try JSONDecoder().decode(CornerPreparedReceipt.self, from: JSONSerialization.data(withJSONObject: preparedJSON))
+        let frame = SurfaceRect(x: 899, y: 680, width: 300, height: 160)
+        let parked = NativeStageEngineReceipt(status: 0, flags: 190, detail: 0, owned: 1, nativeID: 9,
+                                              epoch: 1, frame: frame, intent: request.intent)
+        let final: [String: Any] = ["schema": 1, "status": "PASS", "reason": "liveHostReleasedRestoredOwnership",
+            "issued": 0, "guardianPID": 41, "original": original, "postimage": [899, 680, 300, 160],
+            "liveReleaseOriginalFrameReadbacks": 2, "retainedBeforePark": true, "committedPostimage": true,
+            "originalPipeEOF": false, "kernelHostExit": false]
+        func confirmed(_ fields: [String: Any], _ image: Int32, ack: Bool, exit: Int32? = nil) throws -> Bool {
+            let record = try JSONDecoder().decode(CornerLiveReleaseReceipt.self, from: JSONSerialization.data(withJSONObject: fields))
+            return record.confirms(prepared, parked: parked, image: image, acknowledged: ack, normalExitCode: exit)
+        }
+        let live = Int32(NP_GUARDIAN_IMAGE_LIVE), exited = Int32(NP_GUARDIAN_IMAGE_EXITED)
+        #expect(try confirmed(final, live, ack: true))
+        #expect(try !confirmed(final, live, ack: false))
+        #expect(try confirmed(final, exited, ack: false, exit: 0))
+        #expect(try confirmed(final, exited, ack: false, exit: 4))
+        #expect(try !confirmed(final, exited, ack: false, exit: 3))
+        #expect(try !confirmed(final, Int32(NP_GUARDIAN_IMAGE_LOST), ack: true, exit: 0))
+        #expect(try !confirmed(final, Int32(NP_GUARDIAN_IMAGE_UNAVAILABLE), ack: true))
+        let changes: [String: Any] = ["issued": 1, "liveReleaseOriginalFrameReadbacks": 1, "kernelHostExit": true,
+            "guardianPID": 42, "postimage": [898, 680, 300, 160], "original": original.merging(["window": 73]) { _, new in new }]
+        for (key, value) in changes {
+            var changed = final
+            changed[key] = value
+            #expect(try !confirmed(changed, exited, ack: false, exit: 0))
+        }
+    }
+
     @Test func guardianCanClaimAMeasuredFrameWithoutCertifyingIsolation() throws {
         let (request, envelope) = envelope()
         let original = try #require(envelope["withdrawal"] as? [String: Any])

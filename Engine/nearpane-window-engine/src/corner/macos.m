@@ -667,3 +667,7 @@ int np_corner_open_guardian_peer(pid_t child, uint64_t generation) {
 bool np_corner_guardian_peer_live(int queue, pid_t child, uint64_t generation) {
     return ncg_child_watch_live(queue, child, generation);
 }
+
+int32_t np_corner_guardian_image_state(int32_t queue, int32_t child, uint64_t generation) {
+    return ncg_child_image_state(queue, child, generation);
+}

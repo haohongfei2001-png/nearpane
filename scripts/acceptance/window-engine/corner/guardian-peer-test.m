@@ -31,7 +31,8 @@ static int testPeer(const char *program) {
     int wrong = ncg_open_child_watch(child, birth + 1);
     BOOL live = ncg_child_watch_live(watch, child, birth);
     BOOL replaced = write(command[1], "X", 1) == 1 && readByte(response[0], 'E');
-    BOOL execRejected = replaced && ncg_live_child(child, birth) && !ncg_child_watch_live(watch, child, birth);
+    BOOL execRejected = replaced && ncg_live_child(child, birth) &&
+        ncg_child_image_state(watch, child, birth) == NP_GUARDIAN_IMAGE_LOST;
     BOOL execNotExit = replaced && mustNotSeeExit >= 0 && !ncg_saw_exit(mustNotSeeExit, child, birth, 2000);
     if (mustNotSeeExit >= 0) close(mustNotSeeExit);
     int next = ncg_open_child_watch(child, birth);
@@ -40,7 +41,7 @@ static int testPeer(const char *program) {
     close(command[1]);
     int status = 0;
     BOOL exited = waitpid(child, &status, 0) == child && WIFEXITED(status) && !WEXITSTATUS(status);
-    BOOL exitRejected = exited && !ncg_child_watch_live(next, child, birth);
+    BOOL exitRejected = exited && ncg_child_image_state(next, child, birth) == NP_GUARDIAN_IMAGE_EXITED;
     BOOL kernelExit = exited && ncg_saw_exit(exitWatch, child, birth, 2000);
     if (exitWatch >= 0) close(exitWatch);
     close(response[0]);
@@ -74,11 +75,11 @@ static int testPeer(const char *program) {
     BOOL badFD = ncg_ack_committed_park(-1) == NCG_ACK_ERROR;
     printf("{\"scope\":\"disposableKernelPeersOnly\",\"pid\":%d,\"birth\":%llu,\"wrongBirthRefused\":%s,"
            "\"liveBeforeExec\":%s,\"sameGenerationExecRejected\":%s,\"liveAfterRebindForTest\":%s,"
-           "\"childExitRejected\":%s,\"idleMilliseconds\":%llu,\"delayedCommandReceived\":%s,"
+           "\"originalImageExitObserved\":%s,\"childExitRejected\":%s,\"idleMilliseconds\":%llu,\"delayedCommandReceived\":%s,"
            "\"eofWithoutCommand\":%s,\"childrenReaped\":%s,\"ackDelivered\":%s,\"ackPeerClosed\":%s,"
            "\"otherAckErrorRejected\":%s,\"execIsNotExit\":%s,\"exitIndependentlyObserved\":%s,\"windowWrites\":0}\n",
            child, (unsigned long long)birth, wrong < 0 ? "true":"false", live ? "true":"false",
-           execRejected ? "true":"false", newLive ? "true":"false", exitRejected ? "true":"false",
+           execRejected ? "true":"false", newLive ? "true":"false", exitRejected ? "true":"false", exitRejected ? "true":"false",
            (unsigned long long)elapsed, delayed ? "true":"false", eof ? "true":"false", clean && exited ? "true":"false",
            delivered ? "true":"false", closed ? "true":"false", badFD ? "true":"false",
            execNotExit ? "true":"false", kernelExit ? "true":"false");
