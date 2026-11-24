@@ -2,7 +2,15 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前签名开发候选为 `d11d101`，回滚包为 `009d330`。** 现在一扇窗口首次取得缩略图或被缓存移出时，只通知它自己的卡片。26A428 实体机上，两扇受控窗口验证了回到红窗时直接复用原位图，首帧新增捕获为 0。旁窗首次出图和被移出时，红窗卡片两次均未收到刷新通知。红窗变绿后，蓝窗仍保持原色。标准安装版的三指滑动观感为 **NOT_RUN**。[实机记录、签名候选和回滚包](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.json) · [原始数据及卡片画面](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.zip)
+**当前签名开发候选为 `5bd0732`，回滚包为 `e105c1e`。** 修复前，旁窗卡片出现或离开会通知红窗重新读取预览。修复后，在同一台 26A428 Mac 上，红窗的这项通知为零。返回红窗的首帧复用了原位图，新增捕获为零。红窗变绿时，蓝窗保持蓝色，两扇夹具关闭后前台与此前一致。标准安装版的三指手势观感为 **NOT_RUN**。日常应用仍为 `bec6cb2`。[源码](https://github.com/haohongfei2001-png/nearpane/commit/5bd0732b44d6f54c67c54ca1ba74482e9450609c) · [实测及签名候选](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.json) · [前后对照与卡片图像](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.zip)
+
+Guardian 已在允许退场前核对 Swift 选中的前台窗口，并在写入恢复记录后复核焦点和输入。隔离管道回归中，缺少选窗记录、缺少实际焦点对象、焦点仍在待退场窗、选错同应用旁窗、进程换代，五种情况的可执行回执均为零。真实单窗退场和归位仍为 **BLOCKED**，侧栏整组往返及 10/50 次仍为 **NOT_RUN**。[引擎源码](https://github.com/haohongfei2001-png/nearpane/commit/e105c1eb4eaa60d29af11da231d2dbb4b287a02a) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45447195303)
+
+11 月 25 日 01:33，实体 Mac 读到普通桌面。01:35 输入已静止 13.98 秒，启动前读到的桌面已转为全屏。此后四分钟没有收到系统桌面变化通知。本次第三方窗口夹具没有启动，窗口操作为零。同源码的隔离 Host 已完成签名封装。预览定向与实机检查共 11 项通过，完整 Swift 回归 828 项通过、4 项跳过。[原始桌面读数与机器收据](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.json)
+
+GitHub 在 `5bd0732` 上的原生协议作业因没有空闲 ARM64 runner 而结束，未执行任何步骤。现有原生 CI 已纳入帧流和按窗口刷新的回归，覆盖修订为 `6828bb5`，产品源码与已签名候选一致。[首次作业记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/45448568514) · [含预览回归的 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45451855949)
+
+此前签名开发候选为 `d11d101`，回滚包为 `009d330`。一扇窗口首次取得缩略图或被缓存移出时，只通知它自己的卡片。26A428 实体机上，两扇受控窗口验证了回到红窗时直接复用原位图，首帧新增捕获为 0。旁窗首次出图和被移出时，红窗卡片两次均未收到刷新通知。红窗变绿后，蓝窗仍保持原色。[实机记录、签名候选和回滚包](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.json) · [原始数据及卡片画面](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.zip)
 
 修正了隔离验收包中旧焦点函数名导致的 Guardian 编译失败，两个构建配置均已编译。完整 Swift 回归 827 项通过、4 项跳过，预览和引擎源码 CI 通过。实体机在准备时为普通桌面，启动前已转为全屏，签名夹具未启动。单窗退场、实际输入隔离与整组往返仍待实机验证。[预览 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45442008068) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45442724977)
 
