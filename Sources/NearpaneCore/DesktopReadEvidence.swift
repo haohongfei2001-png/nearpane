@@ -9,31 +9,30 @@ public extension SurfaceRect {
 
 /// The preference describes this login's configuration, not the presentation of a particular window.
 public enum StageManagerPreference {
-    private static var value: CFPropertyList? {
-        CFPreferencesCopyAppValue("GloballyEnabled" as CFString, "com.apple.WindowManager" as CFString)
-    }
-
     /// An unset preference is the factory-off state. An unreadable stored type
     /// cannot safely give a second switcher ownership of the display.
     public static var ownsWindowDispatch: Bool {
         read() != false
     }
 
-    static func configuration(_ value: CFPropertyList?, domainReadable: Bool) -> Bool? {
-        guard let value else { return domainReadable ? false : nil }
-        return CFGetTypeID(value) == CFBooleanGetTypeID() ? value as? Bool : nil
+    static func read(effective: () -> CFPropertyList?, confirmsUnset: () -> Bool) -> Bool? {
+        if let value = effective() {
+            return CFGetTypeID(value) == CFBooleanGetTypeID() ? value as? Bool : nil
+        }
+        // The setting can appear while the two host domains are being read.
+        guard confirmsUnset(), effective() == nil else { return nil }
+        return false
     }
 
     public static func read() -> Bool? {
-        let stored = value
-        if let stored { return configuration(stored, domainReadable: true) }
-        // A clean login has no explicit GloballyEnabled value. Prove that the preference domains
-        // can be read before treating absence as the system's default-off configuration.
-        let domain = "com.apple.WindowManager" as CFString
-        let readable = [kCFPreferencesCurrentHost, kCFPreferencesAnyHost].allSatisfy {
-            CFPreferencesCopyMultiple(nil, domain, kCFPreferencesCurrentUser, $0) != nil
-        }
-        return configuration(nil, domainReadable: readable)
+        let domain = "com.apple.WindowManager" as CFString, key = "GloballyEnabled" as CFString
+        return read(effective: { CFPreferencesCopyAppValue(key, domain) }, confirmsUnset: {
+            guard !CFPreferencesAppValueIsForced(key, domain) else { return false }
+            let requested = [key] as CFArray
+            return [kCFPreferencesCurrentHost, kCFPreferencesAnyHost].allSatisfy { host in
+                CFDictionaryGetCount(CFPreferencesCopyMultiple(requested, domain, kCFPreferencesCurrentUser, host)) == 0
+            }
+        })
     }
 }
 

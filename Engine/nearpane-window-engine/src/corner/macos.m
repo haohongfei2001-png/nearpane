@@ -363,27 +363,23 @@ static BOOL appleDock(pid_t pid) {
         CFRelease(code);
     return err == errSecSuccess;
 }
-static uint32_t dockAndOwnership(NCDock *out) {
-    if (!sessionAvailable())
-        return SYSTEM_OWNS;
-    if (np_corner_secure_input())
-        return SECURE;
-    id pref =
-        CFBridgingRelease(CFPreferencesCopyAppValue(CFSTR("GloballyEnabled"), CFSTR("com.apple.WindowManager")));
-    if (pref) {
-        if (CFGetTypeID((__bridge CFTypeRef)pref) != CFBooleanGetTypeID() || ![pref isEqual:@NO])
-            return SYSTEM_OWNS;
-    } else {
-        // Same factory-off rule as NearpaneCore.StageManagerPreference: both underlying
-        // domains must actually be readable before an absent key means off.
-        for (NSString *host in
-             @[ (__bridge NSString *)kCFPreferencesCurrentHost, (__bridge NSString *)kCFPreferencesAnyHost ]) {
-            id domain = CFBridgingRelease(CFPreferencesCopyMultiple(
-                NULL, CFSTR("com.apple.WindowManager"), kCFPreferencesCurrentUser, (__bridge CFStringRef)host));
-            if (![domain isKindOfClass:NSDictionary.class])
-                return SYSTEM_OWNS;
-        }
+static BOOL stageManagerYieldsWindowDispatch(void) {
+    CFStringRef key = CFSTR("GloballyEnabled"), domain = CFSTR("com.apple.WindowManager");
+    id pref = CFBridgingRelease(CFPreferencesCopyAppValue(key, domain));
+    if (pref) return CFGetTypeID((__bridge CFTypeRef)pref) == CFBooleanGetTypeID() && [pref isEqual:@NO];
+    if (CFPreferencesAppValueIsForced(key, domain)) return NO;
+    NSArray *keys = @[(__bridge NSString *)key];
+    for (NSString *host in @[(__bridge NSString *)kCFPreferencesCurrentHost, (__bridge NSString *)kCFPreferencesAnyHost]) {
+        NSDictionary *scoped = CFBridgingRelease(CFPreferencesCopyMultiple(
+            (__bridge CFArrayRef)keys, domain, kCFPreferencesCurrentUser, (__bridge CFStringRef)host));
+        if (!scoped || scoped.count) return NO;
     }
+    return CFBridgingRelease(CFPreferencesCopyAppValue(key, domain)) == nil;
+}
+
+static uint32_t dockAndOwnership(NCDock *out) {
+    if (!sessionAvailable() || !stageManagerYieldsWindowDispatch()) return SYSTEM_OWNS;
+    if (np_corner_secure_input()) return SECURE;
     NSArray<NSRunningApplication *> *docks =
         [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.apple.dock"];
     if (docks.count != 1)
@@ -527,15 +523,25 @@ uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, N
         AXValueRef value = AXValueCreate(kAXValueTypeCGPoint, &p);
         if (!value)
             return SETTER;
-        if (!allow(context)) {
-            CFRelease(value);
-            return NEW_INTENT;
-        }
         // A guarded restore remains possible after capture is revoked. A new park
         // checks the actual execution principal immediately before issuing the setter.
         if (purpose == NC_PARK && (why = np_corner_park_access()) != OK) {
             CFRelease(value);
             return why;
+        }
+        if (!allow(context)) {
+            CFRelease(value);
+            return NEW_INTENT;
+        }
+        // Resolving the retained AX object and the Guardian can require IPC. A system
+        // takeover during those reads cancels both a park and a return, keeping its lease.
+        if (!sessionAvailable() || !stageManagerYieldsWindowDispatch()) {
+            CFRelease(value);
+            return SYSTEM_OWNS;
+        }
+        if (np_corner_secure_input()) {
+            CFRelease(value);
+            return SECURE;
         }
         if (np_stage_mouse_held()) {
             CFRelease(value);

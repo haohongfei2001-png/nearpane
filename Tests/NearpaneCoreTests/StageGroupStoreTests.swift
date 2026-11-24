@@ -109,10 +109,17 @@ import Testing
     }
 
     @Test func unknownSystemOwnershipIsDistinctFromReadableFactoryDefault() {
-        #expect(StageManagerPreference.configuration(nil, domainReadable: false) == nil)
-        #expect(StageManagerPreference.configuration(nil, domainReadable: true) == false)
-        #expect(StageManagerPreference.configuration("bad" as CFString, domainReadable: true) == nil)
-        #expect(StageManagerPreference.configuration(kCFBooleanTrue, domainReadable: true) == true)
+        #expect(StageManagerPreference.read(effective: { nil }, confirmsUnset: { false }) == nil)
+        #expect(StageManagerPreference.read(effective: { nil }, confirmsUnset: { true }) == false)
+        #expect(StageManagerPreference.read(effective: { "bad" as CFString }, confirmsUnset: { true }) == nil)
+        #expect(StageManagerPreference.read(effective: { kCFBooleanTrue }, confirmsUnset: { false }) == true)
+        #expect(StageManagerPreference.read(effective: { kCFBooleanFalse }, confirmsUnset: { false }) == false)
+        var effective: CFPropertyList?
+        let duringTakeover = StageManagerPreference.read(effective: { effective }, confirmsUnset: {
+            effective = kCFBooleanTrue
+            return true
+        })
+        #expect(duringTakeover == nil)
     }
 
     @Test func duplicateOrMissingReadbackCannotPublishAGroupOrDeleteASlot() throws {
