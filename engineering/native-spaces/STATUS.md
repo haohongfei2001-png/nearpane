@@ -2,9 +2,17 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
+当前签名开发候选为 `c055dc4`，回滚包为 `504e588`。点击组合预览的重叠处会选中前窗，点击后窗露出的部分可选中后窗。拖动时沿用相同的窗口身份和前后顺序。把成员拖出侧栏并释放到同一显示器的工作区域，可以将它移出组合。窗口换代、前后顺序不明、跨显示器释放或在菜单栏释放时会取消操作。36 项定向检查在连接实体显示器的 AppKit 测试面板中通过。完整本机 Swift 回归 818 项通过、3 项跳过，首轮受限环境中的失败已保留。两项源码 CI 通过。候选整包及 14 个可执行组件已严格验签，候选与回滚包均已用 GitHub 内部草稿下载核对 SHA-256。[候选、回滚、CI 和分项结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-c055dc4.json)
+
+**真实工作集合切换仍为 BLOCKED。** 在 26A428 实体机上，首次检查因 12 秒内有 60 次输入计数变化而在启动前停止。输入安静后，隔离签名 Host 实际启动，确认了原焦点，并连续两次读到原生全屏桌面（type 4）。随后四分钟内系统没有发出桌面改变通知。Host 自读辅助功能、输入监听和事件投递均已授权，屏幕录制未授权。已有实机证据确认独立观察器可以读取登记测试窗口的独立画面。Corner 绘制退场区域所需的壁纸画面仍由执行 Host 自己读取。本次未创建测试窗。Host 已正常退出，观察通道已清理，日常 Nearpane 在前后两次均处于停止状态，签名、配置和恢复记录指纹一致。[实机原始读数、清理、交互与回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/display-marker-and-card-input.zip)
+
+下一次实机操作是在系统自然回到普通桌面、且执行 Host 具有现有合法画面权限时，由正式执行器让一扇签名测试窗口退场，独立核实画面、完整鼠标手势、键盘收件和 Guardian 归位。登记窗口在物理显示器上的新色标核验、退场窗口恢复、正式侧栏 A→B→C→A、10/50 次和同机性能对照均为 **NOT_RUN**。
+
+### 此前的候选和真实窗口证据
+
 恢复过程中，如果窗口已经两次读回原位、Guardian 的最终回执稍后才落盘，侧栏现在会在原 Guardian 退出后处理这份回执。它重新核对窗口代际、几何、原生归属、旁窗和焦点，只读取已登记的同一次归还记录。用户已经移动窗口、回执仍缺失或还有未确认的窗口动作时保留恢复责任。已在故障注入中复现修复前窗口已归位而事务无法结束的问题；实际退场窗口上的迟到回执仍待实机验收。此次完整 Swift 回归 815 项通过、3 项跳过。[修复前失败、修复后与完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-release-after-return.zip)
 
-当前签名开发候选为 `504e588`，回滚包为 `539eb42`。两个草稿附件均已核对完整 SHA-256，14 个可执行组件通过严格验签。当前源码的两项 CI 通过，真实退场和整组仍待验收。[候选、回滚及两项 CI](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-504e588.json)
+前一签名开发候选为 `504e588`，回滚包为 `539eb42`。两个草稿附件均已核对完整 SHA-256，14 个可执行组件通过严格验签。该源码的两项 CI 通过。[候选、回滚及两项 CI](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-504e588.json)
 
 前一候选 `539eb42` 已验证侧栏成员选取和遮挡层级。本机完整 Swift 回归 814 项通过、3 项跳过，Corner 定向 83 项通过。侧栏与引擎两次源码提交触发的三项 CI 均通过；托管桌面作业跳过。ARM64 开发包及 14 个可执行组件通过严格验签。已从 GitHub 内部草稿独立下载当前候选并核对 SHA-256，上一候选 `74fc1cc` 的回滚包也已复核。日常版本继续运行。产品仍缺少一扇真实退场窗口的画面及键鼠收件证据，正式工作集合切换保持关闭。[签名、回滚和 CI 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-539eb42.json) · [WindowServer 原始读数、回归及失败记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-member-and-sheet-order.zip)
 

@@ -1,0 +1,295 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "c055dc4ba22e03b15c14564b6f067c71b467be7a",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "9efd5a23a0d7302b5fbfb8b14d5250ac0a657006",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33621824,
+  "sha256": "86941420cb8f91cf60a3a4a71ce79e9b30ac3057eca0a74aa547d452fe4c07d8",
+  "previousCandidate": "504e5883b41137b2c067821934084f5670c68f34",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "githubInternalDelivery": {
+    "draftReleaseID": 452393835,
+    "releaseStillDraft": true,
+    "publishedAt": null,
+    "releasePage": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+    "publicRelease": false,
+    "previousAssetsPreserved": true,
+    "assetCountBefore": 27,
+    "assetCountAfter": 28,
+    "items": [
+      {
+        "revision": "c055dc4ba22e03b15c14564b6f067c71b467be7a",
+        "role": "development candidate",
+        "name": "Nearpane-5.22-90-arm64-c055dc4.zip",
+        "assetID": 787003497,
+        "bytes": 33621824,
+        "sha256": "86941420cb8f91cf60a3a4a71ce79e9b30ac3057eca0a74aa547d452fe4c07d8",
+        "downloadSHA256": "86941420cb8f91cf60a3a4a71ce79e9b30ac3057eca0a74aa547d452fe4c07d8",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/787003497",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-c055dc4.zip"
+      },
+      {
+        "revision": "504e5883b41137b2c067821934084f5670c68f34",
+        "role": "rollback",
+        "name": "Nearpane-5.22-90-arm64-504e588.zip",
+        "assetID": 786816468,
+        "bytes": 33602049,
+        "sha256": "80942ad0a8a5fd1b34bd49837b1fe1c70df2840dbf75ee04d88769be21f3f843",
+        "downloadSHA256": "80942ad0a8a5fd1b34bd49837b1fe1c70df2840dbf75ee04d88769be21f3f843",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/786816468",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-504e588.zip"
+      }
+    ]
+  },
+  "sourceCI": [
+    {
+      "conclusion": "success",
+      "databaseId": 45387580056,
+      "headSha": "c055dc4ba22e03b15c14564b6f067c71b467be7a",
+      "jobs": [
+        {
+          "databaseId": 138422447860,
+          "name": "protocol",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387580056/job/138422447860"
+        },
+        {
+          "databaseId": 138422450561,
+          "name": "Desktop files on macOS 27",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387580056/job/138422450561"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387580056",
+      "workflowName": "Nearpane native 5.22 protocol"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 45387579866,
+      "headSha": "c055dc4ba22e03b15c14564b6f067c71b467be7a",
+      "jobs": [
+        {
+          "databaseId": 138422447363,
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387579866/job/138422447363"
+        },
+        {
+          "databaseId": 138424456773,
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387579866/job/138424456773"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45387579866",
+      "workflowName": "StageGroup window engine"
+    }
+  ],
+  "regression": {
+    "xunit": {
+      "host-tests.xml": {
+        "total": 10,
+        "passed": 10,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "live-cards-gui.xml": {
+        "total": 36,
+        "passed": 36,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "full-macos.xml": {
+        "total": 821,
+        "passed": 818,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 3
+      }
+    },
+    "localHarness": {
+      "tests": 19,
+      "status": "PASS"
+    },
+    "firstSandboxSuite": "FAIL",
+    "sameSourceCompleteSuite": "PASS",
+    "r4Panel": "Direct NSEvents in an offscreen nonactivating production EdgePanel with a real NSScreen. Foreground and exposed rear member, stale/rank ambiguity, drag-out and valid display release. No real third-party window moved in this regression."
+  },
+  "physical": {
+    "osBuild": "26A428",
+    "system": {
+      "build": "26A428",
+      "buildSource": "Host/sysctl kern.osversion",
+      "sip": {
+        "bits": 0,
+        "enabled": true,
+        "returnCode": 0,
+        "source": "Host/csr_get_active_config",
+        "status": "OBSERVED"
+      },
+      "version": [
+        27,
+        0,
+        0
+      ],
+      "versionSource": "Host/ProcessInfo"
+    },
+    "scope": "registered synthetic fixture read-only admission",
+    "firstPackage": {
+      "status": "UNKNOWN",
+      "reason": "expected a signed internal package receipt"
+    },
+    "prelaunchInput": {
+      "status": "BLOCKED",
+      "changes": 60,
+      "hostLaunched": false
+    },
+    "quietLaunch": {
+      "subject": {
+        "atDailyInstallPath": false,
+        "birth": 1795520228534931,
+        "build": "1",
+        "cdhash": "f687ce15c1a8774ad53d24d00bf3f898fdcc6f62",
+        "identifier": "com.holdsnow.nearpane.host",
+        "kernelExecutable": "/tmp/nearpane-stage-engine-dev.gzkSDvLp/Nearpane.app/Contents/MacOS/NearpaneHost",
+        "pid": 95195,
+        "source": "1c7a803e31545a7b59fc2addae82f41f9e9c7b30",
+        "sourceState": "clean",
+        "teamIdentifier": "ZB9D4T66QB",
+        "version": "0.2.0"
+      },
+      "permissions": {
+        "accessibility": true,
+        "listenEvent": true,
+        "postEvent": true,
+        "screenCapture": false
+      },
+      "checks": {
+        "ordinaryDesktop": "BLOCKED",
+        "singleDisplayConsole": "PASS",
+        "targetSystem": "PASS",
+        "hostAccessibility": "PASS",
+        "originalFocus": "PASS",
+        "quietHID": "PASS"
+      },
+      "activeSpaceTypeSamples": [
+        4,
+        4
+      ],
+      "exactLaunchPath": true,
+      "hostExit": {
+        "status": "PASS",
+        "sameIdentifierRunning": 0,
+        "pid": 95195,
+        "birth": 1795520228534931
+      },
+      "observer": {
+        "pid": 95190,
+        "cdhash": "ada7b35495101286fb20fba06e378a7accc4da97",
+        "exit": 2,
+        "socketRetired": true
+      },
+      "cornerParkAccess": {
+        "closed": true,
+        "detail": 21,
+        "flags": 0,
+        "owned": 0,
+        "status": 3
+      },
+      "fixtureLaunched": false,
+      "singleWindowHideRestore": "NOT_RUN"
+    },
+    "notificationObservation": {
+      "durationSeconds": 240,
+      "windowActions": 0,
+      "ordinaryOnNotification": false,
+      "method": "NSWorkspace activeSpaceDidChange",
+      "inputEvents": 0,
+      "notifications": 0
+    },
+    "dailyBeforeAfter": {
+      "state": "stopped",
+      "bundle": {
+        "Identifier": "com.holdsnow.nearpane.alpha",
+        "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+        "TeamIdentifier": "ZB9D4T66QB",
+        "version": "5.22",
+        "build": "90",
+        "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+        "engineABI": 1,
+        "hostSHA256": "488c61c412064a9894801ba6b888fb116f18aa9b005ff4b274f00bae442ef2b8"
+      },
+      "configurationAndOwnershipMatched": true,
+      "livePermissionRead": "NOT_RUN"
+    },
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "postedInput": 0,
+    "permissionPrompts": 0,
+    "cleanup": "PASS",
+    "raw": "display-marker-and-card-input.zip",
+    "rawSHA256": "34743d86096c80d36ec980b84b4d59e803112dcdff812292cb72dfe5692fe65b"
+  },
+  "qualification": {
+    "stageGroupProduct": "BLOCKED",
+    "productionWritesEnabled": false,
+    "corner": "UNQUALIFIED",
+    "registeredFixtureDisplayMarkerThisRun": "NOT_RUN",
+    "thirdPartyWindowHideRestore": "NOT_RUN",
+    "actualParkedPointerDownDragUp": "NOT_RUN",
+    "actualParkedKeyboardRecipient": "NOT_RUN",
+    "guardianRecoveryAfterParking": "NOT_RUN",
+    "sidebarABCARoundTrip": "NOT_RUN",
+    "ten": "NOT_RUN",
+    "fifty": "NOT_RUN",
+    "multiDisplayGroupSwitch": "NOT_RUN",
+    "sameMachineAppleComparison": "NOT_RUN",
+    "nativeSpaceWrites": 0
+  }
+}
