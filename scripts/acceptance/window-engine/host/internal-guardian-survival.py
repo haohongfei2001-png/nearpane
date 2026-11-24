@@ -117,22 +117,32 @@ def collect_closed_fixture(out, session, result):
                 dailyImageConfigurationAndOwnershipUnchanged=True,
                 dailyImagePermissionsConfigurationAndOwnershipUnchanged=True if result['dailyBefore']['state'] == 'running' else None)
 
-def collect_unopened_channel(out, session):
+def collect_unenrolled_channel(out, session):
     peer = session.get('fixtureVisualPeer') or {}
-    if (session.get('hostLaunchRequested') is not False or session.get('fixtureLaunchRequested')
-            or not session.get('probeResources', {}).get('clear') or type(peer.get('exit')) is not int
-            or peer.get('socketRetired') is not True):
-        raise ValueError('observer exit and absence of both Host and fixture required')
+    launched = session.get('hostLaunchRequested')
+    if (type(launched) is not bool or session.get('fixtureLaunchRequested') or
+            not session.get('probeResources', {}).get('clear') or type(peer.get('exit')) is not int or
+            peer.get('socketRetired') is not True):
+        raise ValueError('observer exit and absence of an enrolled fixture required')
+    allowed = {'corner-fixture-visual.request', 'corner-readback.request', 'launch-scope'}
+    terminal = session.get('hostExit') or {}
+    if launched:
+        host = session.get('subject') or {}
+        if (terminal.get('status') != 'PASS' or terminal.get('sameIdentifierRunning') != 0 or
+                not host.get('birth') or not host.get('pid') or
+                (terminal.get('pid'), terminal.get('birth')) != (host['pid'], host['birth'])):
+            raise ValueError('internal Host exit or generation unconfirmed')
+        allowed.update({'abort', 'launched', 'preflight.json'})
     nonce = str(uuid.UUID(session['challenge']))
     channel = Path('/private/tmp') / ('nearpane-host-scope.' + nonce)
-    destination = out / 'unopened-channel'
+    destination = out / 'unenrolled-channel'
     meta = channel.lstat()
     if (not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o700 or
             os.path.lexists(channel.parent / ('nearpane-membership.' + nonce)) or os.path.lexists(destination) or
-            set(p.name for p in channel.iterdir()) != {'corner-fixture-visual.request', 'corner-readback.request', 'launch-scope'}):
+            set(p.name for p in channel.iterdir()) != allowed):
         raise ValueError('unopened fixture channel identity or inventory changed')
     channel.rename(destination)
-    return dict(challenge=nonce, observerExit=peer['exit'], socketRetired=True, hostLaunched=False,
+    return dict(challenge=nonce, observerExit=peer['exit'], socketRetired=True, hostLaunched=launched, hostExit=terminal,
                 fixtureLaunched=False, originalChannelRemoved=not os.path.lexists(channel), privateOriginals=destination.name)
 
 
@@ -222,9 +232,9 @@ def main():
             except (OSError, ValueError, KeyError) as error:
                 result.update(status='UNKNOWN', preservationError=str(error)[:320])
         elif (a.visual_observer and result.get('dailyPreserved') and result.get('cleanup', {}).get('clear')
-              and session.get('hostLaunchRequested') is False and session.get('fixtureVisualPeer')):
+              and not session.get('fixtureLaunchRequested') and session.get('fixtureVisualPeer')):
             try:
-                save(out / 'cleanup.json', collect_unopened_channel(out, session))
+                save(out / 'cleanup.json', collect_unenrolled_channel(out, session))
             except (OSError, ValueError, KeyError) as error:
                 result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if a.visible_recovery:
