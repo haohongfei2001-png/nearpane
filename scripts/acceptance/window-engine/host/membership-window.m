@@ -139,28 +139,13 @@ static CGImageRef fixtureMarker(NSUUID *nonce) CF_RETURNS_RETAINED {
     return image;
 }
 
-// Put only the fixture into unused work area, if there is room. It will still
-// be ordered behind ordinary windows, including any that appear after this read.
-static NSRect freeMarkerContent(NSScreen *screen, NSRect original, NSWindowStyleMask style, BOOL *found) {
-    NSArray *rows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID));
-    if (!rows || !screen || NSScreen.screens.count != 1) return original;
-    CGRect native = CGDisplayBounds([screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue]);
-    NSMutableArray<NSValue *> *occupied = [NSMutableArray array];
-    for (NSDictionary *row in rows) {
-        NSNumber *layer = row[(__bridge NSString *)kCGWindowLayer];
-        NSNumber *alpha = row[(__bridge NSString *)kCGWindowAlpha];
-        if (!layer || !alpha) return original;
-        if (layer.integerValue < kCGNormalWindowLevel || alpha.doubleValue == 0) continue;
-        CGRect rect;
-        NSDictionary *value = row[(__bridge NSString *)kCGWindowBounds];
-        if (!value || !CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)value,&rect)) return original;
-        if (!CGRectIsEmpty(rect)) [occupied addObject:[NSValue valueWithRect:CGRectInset(rect,-32,-32)]];
-    }
-    NSRect available = NSInsetRect(screen.visibleFrame,8,8);
-    NSPoint pointer = NSEvent.mouseLocation;
-    NSRect avoidPointer = NSMakeRect(pointer.x-32,pointer.y-32,64,64);
-    NSRect frame = [NSWindow frameRectForContentRect:original styleMask:style];
-    if (frame.size.width > available.size.width || frame.size.height > available.size.height) return original;
+// The display observer samples eight points across the middle of the decorated
+// WindowServer frame. Its Z-order checks before and after capture remain authoritative.
+static NSRect chooseMarkerFrame(NSRect frame, NSRect available, NSRect screenFrame, CGRect native,
+                                NSRect avoidPointer, NSArray<NSValue *> *occupied, BOOL *wholeFrameClear) {
+    *wholeFrameClear = NO;
+    NSRect firstClearBand = NSZeroRect;
+    if (frame.size.width > available.size.width || frame.size.height > available.size.height) return NSZeroRect;
     for (int i=-1; i<16*12; i++) {
         NSRect candidate = frame;
         if (i >= 0) {
@@ -168,19 +153,44 @@ static NSRect freeMarkerContent(NSScreen *screen, NSRect original, NSWindowStyle
             candidate.origin.y = round(NSMinY(available) + (i/16)*(NSHeight(available)-NSHeight(frame))/11);
         }
         if (!NSContainsRect(available,candidate) || NSIntersectsRect(candidate,avoidPointer)) continue;
-        CGRect cg = CGRectMake(native.origin.x + NSMinX(candidate)-NSMinX(screen.frame),
-                               native.origin.y + NSMaxY(screen.frame)-NSMaxY(candidate),
+        CGRect cg = CGRectMake(native.origin.x + NSMinX(candidate)-NSMinX(screenFrame),
+                               native.origin.y + NSMaxY(screenFrame)-NSMaxY(candidate),
                                NSWidth(candidate),NSHeight(candidate));
-        BOOL clear = YES;
+        CGRect band = CGRectMake(CGRectGetMinX(cg), CGRectGetMinY(cg) + (NSInteger)cg.size.height/2 - 4,
+                                 cg.size.width, 8);
+        BOOL clearFrame = YES, clearBand = YES;
         for (NSValue *other in occupied) {
-            if (CGRectIntersectsRect(cg,other.rectValue)) { clear = NO; break; }
+            CGRect padded = CGRectInset(other.rectValue, -32, -32);
+            if (CGRectIntersectsRect(band, padded)) { clearBand = NO; clearFrame = NO; break; }
+            if (CGRectIntersectsRect(cg, padded)) clearFrame = NO;
         }
-        if (clear) {
-            *found = YES;
-            return [NSWindow contentRectForFrameRect:candidate styleMask:style];
-        }
+        if (clearFrame) { *wholeFrameClear = YES; return candidate; }
+        if (clearBand && NSIsEmptyRect(firstClearBand)) firstClearBand = candidate;
     }
-    return original;
+    return firstClearBand;
+}
+
+static NSRect freeMarkerFrame(NSScreen *screen, NSRect frame, BOOL *wholeFrameClear) {
+    NSArray *rows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID));
+    if (!rows || !screen || NSScreen.screens.count != 1) return NSZeroRect;
+    NSMutableArray<NSValue *> *occupied = [NSMutableArray array];
+    for (NSDictionary *row in rows) {
+        NSNumber *layer = row[(__bridge NSString *)kCGWindowLayer];
+        NSNumber *alpha = row[(__bridge NSString *)kCGWindowAlpha];
+        if (!layer || !alpha || !isfinite(alpha.doubleValue)) return NSZeroRect;
+        if (layer.integerValue < kCGNormalWindowLevel || alpha.doubleValue <= 0) continue;
+        CGRect rect;
+        NSDictionary *value = row[(__bridge NSString *)kCGWindowBounds];
+        if (!value || !CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)value,&rect)
+            || !isfinite(rect.origin.x) || !isfinite(rect.origin.y)
+            || !isfinite(rect.size.width) || !isfinite(rect.size.height)) return NSZeroRect;
+        if (!CGRectIsEmpty(rect)) [occupied addObject:[NSValue valueWithRect:rect]];
+    }
+    CGRect native = CGDisplayBounds([screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue]);
+    NSPoint pointer = NSEvent.mouseLocation;
+    NSRect avoidPointer = NSMakeRect(pointer.x-32,pointer.y-32,64,64);
+    return chooseMarkerFrame(frame, NSInsetRect(screen.visibleFrame,8,8), screen.frame, native,
+                             avoidPointer, occupied, wholeFrameClear);
 }
 #endif
 int main(int argc, const char *argv[]) {
@@ -241,11 +251,6 @@ int main(int argc, const char *argv[]) {
         NSRect screen = NSScreen.screens.firstObject.visibleFrame;
         NSRect bounds = NSMakeRect(NSMidX(screen) - 110, NSMidY(screen) - 55, 220, 110);
         NSWindowStyleMask style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
-#ifdef NP_FIXTURE_VISUAL_WINDOW
-        BOOL freeSite = NO;
-        if (survival && !strcmp(argv[3], "--ordinary-window"))
-            bounds = freeMarkerContent(NSScreen.screens.firstObject,bounds,style,&freeSite);
-#endif
         NSWindow *w =
             [[NSWindow alloc] initWithContentRect:bounds
                                         styleMask:style
@@ -259,8 +264,12 @@ int main(int argc, const char *argv[]) {
         w.alphaValue = survival ? 1 : 0;
         w.ignoresMouseEvents = !survival;
 #ifdef NP_FIXTURE_VISUAL_WINDOW
+        BOOL freeSite = NO, freeBand = NO;
         NSView *marker = nil;
         if (survival && !strcmp(argv[3], "--ordinary-window")) {
+            NSRect placement = freeMarkerFrame(NSScreen.screens.firstObject,w.frame,&freeSite);
+            freeBand = !NSIsEmptyRect(placement);
+            if (freeBand && !NSEqualPoints(w.frame.origin,placement.origin)) [w setFrameOrigin:placement.origin];
             marker = [[NSView alloc] initWithFrame:w.contentView.bounds];
             marker.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
             marker.layer = [CALayer layer];
@@ -293,6 +302,7 @@ int main(int argc, const char *argv[]) {
                 CGImageRelease(image);
             }
             emit(dir, "owner-drawing.json", @{@"layerPublished":@(markerPublished), @"unoccupiedFrameAtCreation":@(freeSite),
+                @"unoccupiedMarkerBandAtCreation":@(freeBand),
                 @"width":@(NSWidth(marker.bounds)), @"height":@(NSHeight(marker.bounds))});
         }
 #endif

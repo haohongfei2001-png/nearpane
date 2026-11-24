@@ -27,3 +27,6 @@ xcrun clang -fobjc-arc -Wall -Wextra -Werror -I "$src" -I Engine/nearpane-window
     -framework Foundation -framework ApplicationServices -framework Security -framework Carbon \
     -framework CoreGraphics -framework CoreFoundation -o "$scratch/packaged-ledger"
 "$scratch/packaged-ledger"
+xcrun clang -fobjc-arc -Wall -Wextra -Werror -mmacosx-version-min=26.0 \
+    scripts/acceptance/window-engine/host/marker-placement-test.m -framework AppKit -framework QuartzCore -o "$scratch/marker-placement"
+"$scratch/marker-placement"
