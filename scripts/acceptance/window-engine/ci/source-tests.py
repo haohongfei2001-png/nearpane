@@ -114,6 +114,7 @@ def main():
         "c-abi-link",
         "c-abi",
         "product-guardian-build",
+        "internal-visible-guardian-build",
         "guardian-exit-build",
         "guardian-exit",
         "guardian-peer-build",
@@ -233,6 +234,9 @@ def main():
             env["NEARPANE_ENGINE_ARCHIVE"] = str(archive)
             run("product-guardian-build", ["bash", ACCEPTANCE / "corner/build-guardian.sh",
                                           work / "NearpaneCornerGuardian", archive])
+            run("internal-visible-guardian-build", ["bash", ACCEPTANCE / "corner/build-guardian.sh",
+                work / "NearpaneInternalCornerGuardian", archive, "-DNP_INTERNAL_SURVIVAL=1",
+                "-DNP_INTERNAL_VISIBLE_RESTORE=1"])
             link = [part for name in FRAMEWORKS for part in ("-framework", name)]
             exe = work / "passive-c-abi"
             if run(

@@ -22,7 +22,7 @@ static BOOL visibleContinuity(VisibleReturn *t) {
         NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != t->front ||
         ncg_birth(t->front, NULL) != t->frontBirth || !displayIs(&t->window))
         return NO;
-    AXUIElementRef current = guardianFocusedWindow(t->front);
+    AXUIElementRef current = cornerFocusedWindow(t->front);
     BOOL same = current && CFEqual(t->focus, current);
     if (current)
         CFRelease(current);
@@ -121,7 +121,7 @@ static int recoverVisibleFixture(NSDictionary *m, const NPGuardianFixtureObserva
         t.frontBirth = ncg_birth(t.front, NULL);
         need(t.front > 1 && t.front != s->member.pid && t.front != parent && t.frontBirth,
              @"ordinaryForegroundUnavailable");
-        t.focus = guardianFocusedWindow(t.front);
+        t.focus = cornerFocusedWindow(t.front);
         np_corner_inputs(t.hid);
         t.motion = mouseMotion();
         s->kqueue = ncg_watch_exit(parent, parentBirth);
