@@ -334,7 +334,7 @@ struct DesktopWindowTarget: Equatable {
     // A per-display lease prevents cancelled or superseded captures from being published.
     @ObservationIgnored private var operations = [String: UUID]()
     @ObservationIgnored private var changes = [String: AsyncStream<Void>.Continuation]()
-    private var visible = [String: Set<DesktopWindowKey>]()
+    @ObservationIgnored private var visible = [String: Set<DesktopWindowKey>]()
     @ObservationIgnored private var viewport = [String: [DesktopWindowKey: Bool]]()
     @ObservationIgnored private var lastService = [DesktopWindowKey: TimeInterval]()
 
@@ -376,19 +376,28 @@ struct DesktopWindowTarget: Equatable {
         audit.record(key, .card, reason, epoch: live?.stream.epoch, sequence: live?.sequence)
     }
 
+    // A mount on another card or display must not make SwiftUI requery this card's pixels.
+    private subscript(mounted key: DesktopWindowKey, on display: String) -> Bool {
+        access(keyPath: \Self.[mounted: key, on: display])
+        return visible[display]?.contains(key) == true
+    }
+
     func setCard(_ key: DesktopWindowKey, on display: String, visible onScreen: Bool) {
         audit?.record(key, .lifecycle, onScreen ? .mounted : .unmounted)
-        if onScreen {
-            if visible[display, default: []].insert(key).inserted { changes[display]?.yield(()) }
+        let wasMounted = visible[display]?.contains(key) == true
+        if wasMounted != onScreen {
+            withMutation(keyPath: \Self.[mounted: key, on: display]) {
+                if onScreen { visible[display, default: []].insert(key) }
+                else { visible[display]?.remove(key) }
+            }
         }
-        else {
-            visible[display]?.remove(key)
+        if !onScreen {
             viewport[display]?.removeValue(forKey: key)
             lastService.removeValue(forKey: key)
-            // SwiftUI may replace the card during this update. Reconcile the final mounted
-            // set in the capture loop instead of tearing down a still-visible surface here.
-            changes[display]?.yield(())
         }
+        // SwiftUI may replace a card in the same update. Reconcile the final mounted
+        // set in the capture loop, including a disappearance reported after teardown.
+        if !onScreen || !wasMounted { changes[display]?.yield(()) }
     }
 
     func clear(display: String? = nil, keepingCardFrames: Bool = false) {
@@ -423,7 +432,7 @@ struct DesktopWindowTarget: Equatable {
             return nil
         }
         guard permitted, permitsWindow(target.key) else { return rejected(.notPermitted) }
-        guard visible[target.display]?.contains(target.key) == true else { return rejected(.notVisible) }
+        guard self[mounted: target.key, on: target.display] else { return rejected(.notVisible) }
         guard let still = stills.peek(.current(target.key)) else { return rejected(.noFrame) }
         guard let live = streams[target.key], !live.cancelled, live.sequence > 0 else { return rejected(.streamInactive) }
         guard live.publishedEpoch == live.stream.epoch else { return rejected(.streamEpochChanged) }

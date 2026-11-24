@@ -103,6 +103,22 @@ import Testing
         #expect(cache.peek(2) == "right")
     }
 
+    @Test func onlyTheObservedWindowOnItsOwnDisplayInvalidatesAMountedCard() throws {
+        let fixture = DesktopGalleryTargetTests()
+        let windows = [fixture.window(number: 22), fixture.window(number: 23)]
+        let target = try #require(DesktopWindowTarget(windows[0], in: fixture.sample(windows)))
+        let peer = try #require(DesktopWindowKey(windows[1]))
+        let gallery = DesktopWindowGallery(permitsWindow: { _ in true }, lifetime: { _ in nil })
+        let changed = OSAllocatedUnfairLock(initialState: false)
+        withObservationTracking({ _ = gallery.image(for: target, permitted: true) },
+            onChange: { changed.withLock { $0 = true } })
+        gallery.setCard(peer, on: target.display, visible: true)
+        gallery.setCard(target.key, on: "second-display", visible: true)
+        #expect(!changed.withLock { $0 })
+        gallery.setCard(target.key, on: target.display, visible: true)
+        #expect(changed.withLock { $0 })
+    }
+
     @Test func idleCannotDisplaceTheLastChangedFrameAndUnchangedDamageDoesNotRedecode() async throws {
         let (updates, events) = AsyncStream<WindowFrameStream.Update>.makeStream(bufferingPolicy: .bufferingNewest(1))
         defer { events.finish() }

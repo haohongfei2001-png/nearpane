@@ -99,6 +99,16 @@ import Testing
                 }, originalMatches: { _, _ in false }))
         }
         let red = try await capture(0, channel: 0)
+        gallery.setCard(targets[0].key, on: targets[0].display, visible: true)
+        let mountInvalidated = OSAllocatedUnfairLock(initialState: false)
+        withObservationTracking {
+            _ = gallery.image(for: targets[0], permitted: true)
+        } onChange: { mountInvalidated.withLock { $0 = true } }
+        gallery.setCard(targets[1].key, on: targets[1].display, visible: true)
+        gallery.setCard(targets[1].key, on: targets[1].display, visible: false)
+        gallery.setCard(targets[0].key, on: targets[0].display, visible: true)
+        receipt["currentCardInvalidatedByPeerMountOrRepeatedAppearance"] = mountInvalidated.withLock { $0 }
+        try #require(!mountInvalidated.withLock { $0 })
         let redInvalidated = OSAllocatedUnfairLock(initialState: false)
         let observedRed = withObservationTracking { try? read(0) } onChange: { redInvalidated.withLock { $0 = true } }
         try #require(observedRed === red)
@@ -115,6 +125,7 @@ import Testing
                 "appSharingType": panels[i].sharingType.rawValue, "frameMatches": row?.frame == target.frame]
         }
         gallery.setCard(targets[0].key, on: targets[0].display, visible: false)
+        try #require(mountInvalidated.withLock { $0 })
         gallery.clear(display: targets[0].display, keepingCardFrames: true)
         let before = starts
         let returned = try read(0), peer = try read(1)
