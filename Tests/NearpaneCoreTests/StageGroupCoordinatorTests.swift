@@ -64,6 +64,49 @@ import Testing
         return (profile, store, try StageGroupCoordinator(store: store, profile: profile), runtime, store.groups(in: runtime.scope))
     }
 
+    @Test func coldStartupReleasesOnlyADischargedDeadOwnerWithoutWindowWrites() throws {
+        let (profile, store, _, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let owner = try #require(session.engineOwner), group = groups[0], member = group.members[0]
+        let before = try #require(session.windows[member.windowHint])
+        let marker = StageGroupCoordinator.HidePrimitive(transaction: UUID(), intent: UUID(), group: group.id,
+            member: member.id, owner: owner, scope: session.scope, nativeID: 4, before: before)
+        var ledger = StageGroupCoordinator.Ledger()
+        ledger.owner = owner; ledger.activeScopes = [session.scope]
+        let hide = StageGroupCoordinator.Entry(action: .hide, before: before, intent: marker.intent,
+                                               group: group.id, member: member.id)
+        ledger.pending = .init(scope: session.scope, generation: owner.generation, target: group.id, preferred: before.window,
+            originalFocus: before.window, before: Array(session.windows.values), ownedBefore: [], entries: [hide],
+            owner: owner, intent: marker.transaction, nativeID: 4)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile)
+        try cold.finishExitedGuardianReturn { _ in false }
+        #expect(cold.retainedOwner == owner)
+        try cold.finishExitedGuardianReturn { $0 == marker }
+        #expect(!cold.hasWindowAuthority && session.writes.isEmpty)
+        #expect(try !StageGroupCoordinator(store: store, profile: profile).hasWindowAuthority)
+        let saved = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+        #expect(saved.lastGuardianReturn == marker)
+        let other = try #require(session.windows.values.first { $0.window != before.window })
+        let prior = StageGroupCoordinator.Entry(action: .focus, before: other, after: other, intent: UUID())
+        ledger.pending?.entries = [prior, hide]
+        try JSONEncoder().encode(ledger).write(to: file)
+        let withPrefix = try StageGroupCoordinator(store: store, profile: profile)
+        try withPrefix.finishExitedGuardianReturn { $0 == marker }
+        let partial = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+        #expect(partial.pending?.entries.map(\.intent) == [prior.intent] && withPrefix.requiresRecovery)
+        #expect(withPrefix.retainedOwner == owner && session.writes.isEmpty)
+        ledger.pending?.entries = [hide]
+        var parked = before; parked.visibility = .parked
+        ledger.owned = [.init(scope: session.scope, original: before, hidden: parked, owner: owner, group: group.id,
+                              member: member.id, nativeID: 4)]
+        try JSONEncoder().encode(ledger).write(to: file)
+        let alreadyClaimed = try StageGroupCoordinator(store: store, profile: profile)
+        try alreadyClaimed.finishExitedGuardianReturn { _ in Issue.record("The window already has committed ownership"); return true }
+        #expect(alreadyClaimed.retainedOwner == owner && alreadyClaimed.requiresRecovery && session.writes.isEmpty)
+    }
+
     @Test func unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() async throws {
         let (profile, store, coordinator, session, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: profile) }

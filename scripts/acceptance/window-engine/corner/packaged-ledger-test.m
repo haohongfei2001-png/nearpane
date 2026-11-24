@@ -310,9 +310,22 @@ int main(void) {
         assert(!persistJobRecord(s.dir, NCRecoveryFrame, measuredRecord));
         s.recoveryOnly = s.recoveryFramePublished = YES;
         assert(journal(&s, YES));
+        pending[@"verifiedDirectoryCommit"] = @NO;
+        put(profile, ledgerFile, ledger);
+        assert([returnedMeasuredJournal(&s) isEqual:ledger]);
+        assert([settleRestoredOwnership(&s, 2, 1) isEqual:@"ownershipRetained"]); // No kernel exit.
+        pending[@"verifiedDirectoryCommit"] = @YES;
+        put(profile, ledgerFile, ledger);
+        assert(!returnedMeasuredJournal(&s));
+        pending[@"verifiedDirectoryCommit"] = @NO;
+        put(profile, ledgerFile, ledger);
+        assert([productFile(s.profile, ledgerFile.UTF8String) isEqual:ledger]);
+        printf("{\"scope\":\"returnedMeasuredPrimitive\",\"pendingIntentRecognized\":true,\"directoryCommitRejected\":true,"
+               "\"withoutKernelExitRejected\":true,\"guardianChangedProductWAL\":false,\"windowWrites\":0}\n");
         entry[@"member"] = NSUUID.UUID.UUIDString;
         put(profile, ledgerFile, ledger);
         assert(!journal(&s, YES));
+        assert(!returnedMeasuredJournal(&s));
         entry[@"member"] = member;
         put(profile, ledgerFile, ledger);
         s.sealed.result.frame.x += 1;

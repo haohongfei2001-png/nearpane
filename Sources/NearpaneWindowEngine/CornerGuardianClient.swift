@@ -309,6 +309,11 @@ import CNearpaneWindowEngine
     }
 
     nonisolated static func childGeneration(_ pid: Int32) -> UInt64? { generation(pid, parent: getpid()) }
+    nonisolated static func generationIsGone(_ pid: Int32, birth: UInt64) -> Bool {
+        guard pid > 1, birth > 0 else { return false }
+        if let current = generation(pid, parent: nil) { return current != birth }
+        return kill(pid, 0) == -1 && errno == ESRCH
+    }
     private nonisolated static func generation(_ pid: Int32, parent: Int32?) -> UInt64? {
         guard pid > 1 else { return nil }
         var b = proc_bsdinfo()

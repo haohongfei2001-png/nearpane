@@ -82,8 +82,13 @@ def inspect(profile, support, shared, observer, current_install=None):
         for guard in folder.glob("Nearpane/.corner-guardians/*"):
             receipt = owned(guard) / "guardian-receipt.json"
             d = file_data(receipt)[0] if receipt.exists() else {}
+            returned = (d.get("durableOwnership") == "measuredReturnAwaitingCoordinator"
+                        and d.get("reason") == "unqualifiedHideReturnedAfterKernelExit"
+                        and d.get("physicalRestoration") == "PASS" and d.get("originalFrameReadbacks") == 2
+                        and d.get("issued") == 1 and d.get("kernelHostExit") is True
+                        and d.get("unqualifiedPostimageObserved") is True and d.get("committedPostimage") is False)
             settled = d.get("status") == "PASS" and (d.get("durableOwnership") == "exactCommittedOwnershipRemoved"
-                                                      or d.get("reason") == "liveHostReleasedRestoredOwnership")
+                                                      or d.get("reason") == "liveHostReleasedRestoredOwnership" or returned)
             rows.append(dict(kind="cornerGuardian", receiptPresent=bool(d), result=d.get("status"),
                              blocksExchange=not settled))
     previous = support / "Nearpane Acceptance Install/active.json"

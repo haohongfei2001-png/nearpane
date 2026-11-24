@@ -6,6 +6,48 @@ import Testing
 @testable import NearpaneWindowEngine
 
 struct CornerWithdrawalTests {
+    @Test func exitedMeasuredReturnNeedsTheSamePreparedWindowAndTerminalRecovery() throws {
+        let (request, envelope) = envelope()
+        let original = try #require(envelope["withdrawal"] as? [String: Any])
+        let first = try #require(request.frame), window = try #require(request.window)
+        let scope = try #require(request.scope)
+        let env = StageEngineEnvironment(osBuild: "26A428", engineRevision: "fixture", hostCDHash: "fixture",
+                                         hardware: "test", topology: "test", windowClass: "ordinary", sipEnabled: true)
+        let qualification = StageEngineQualification(backend: .corner, environment: env, evidence: UUID(), checks: [:])
+        let owner = StageEngineOwner(qualification: qualification, generation: try #require(request.generation))
+        func decode<T: Decodable>(_ type: T.Type, _ json: [String: Any]) throws -> T {
+            try JSONDecoder().decode(type, from: JSONSerialization.data(withJSONObject: json))
+        }
+        func object<T: Encodable>(_ value: T) throws -> Any {
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(value))
+        }
+        let row = try decode(StageGroupCoordinator.HidePrimitive.self, [
+            "transaction": original["transaction"]!, "intent": request.intent.uuidString, "group": original["group"]!,
+            "member": original["member"]!, "owner": try object(owner), "scope": try object(scope), "nativeID": request.nativeID,
+            "before": try object(StageWindowState(window: window, lifetime: try #require(request.lifetime), frame: first, visibility: .visible))])
+        let prepared = try decode(CornerPreparedReceipt.self, ["schema": 1, "status": "PREPARED", "guardianPID": 41, "original": original])
+        let landing = [899, 682, 300, 160]
+        let flags = UInt32(NP_AX_VALID | NP_CG_VALID | NP_MEMBERSHIP_VALID | NP_OWNED | NP_CORNER_RECOVERY_FRAME)
+        let measured = try decode(CornerMeasuredFrameReceipt.self, ["schema": 1, "status": "RECOVERY_FRAME_ONLY", "guardianPID": 41,
+            "original": original, "postimage": landing, "engineStatus": NP_UNKNOWN, "engineFlags": flags])
+        let final: [String: Any] = ["schema": 1, "status": "PASS", "reason": "unqualifiedHideReturnedAfterKernelExit",
+            "durableOwnership": "measuredReturnAwaitingCoordinator", "owner": try object(owner), "physicalRestoration": "PASS", "issued": 1, "originalFrameReadbacks": 2,
+            "original": original, "preimage": original["frame"]!, "postimage": landing, "guardianPID": 41,
+            "retainedBeforePark": true, "committedPostimage": false, "unqualifiedPostimageObserved": true,
+            "originalPipeEOF": true, "kernelHostExit": true, "originalHostGone": true, "serializedRecoveryWriter": true,
+            "sameRetainedWindow": true, "postimageExactBeforeWrite": true, "sameDisplay": true, "unchangedInput": true,
+            "journalExact": true, "processSignatureRechecked": true, "guardianOwnAccessibilityBeforeWrite": true]
+        func matches(_ change: [String: Any]) throws -> Bool {
+            try decode(CornerExitedReturnReceipt.self, final.merging(change) { _, new in new })
+                .matches(row, prepared: prepared, measured: measured)
+        }
+        #expect(try matches([:]))
+        for invalid: [String: Any] in [["status": "UNKNOWN"], ["guardianPID": 42], ["originalFrameReadbacks": 1],
+            ["postimage": [898,682,300,160]], ["kernelHostExit": false], ["committedPostimage": true],
+            ["original": original.merging(["birth": 55]) { _, new in new }], ["unchangedInput": false]] {
+            #expect(try !matches(invalid))
+        }
+    }
     @Test func ordinaryABIHandleCannotPublishANoTicketWitness() throws {
         var config = NPConfig(), handle: UInt64 = 0
         config.size = UInt32(MemoryLayout<NPConfig>.size)

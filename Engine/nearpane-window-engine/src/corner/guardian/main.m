@@ -124,6 +124,7 @@ static BOOL originalFocusUnchanged(Session *s) {
 }
 static BOOL displayIs(Session *s);
 static BOOL stable(Session *s, NCFrame frame);
+static BOOL journal(Session *s, BOOL sealed);
 static BOOL captureDisplays(Session *s, const uint8_t id[16], NCFrame original);
 static CGRect displayRect(NCFrame f);
 static void need(BOOL yes, NSString *why);
@@ -527,8 +528,14 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     receipt[@"reason"] = @"retainedWindowRestoredAfterKernelExitAndEOF";
 #ifndef NP_CORNER_FIXTURE
     receipt[@"physicalRestoration"] = @"PASS";
-    receipt[@"durableOwnership"] = settleCommitted(s);
-    if (![receipt[@"durableOwnership"] isEqual:@"exactCommittedOwnershipRemoved"])
+    receipt[@"durableOwnership"] = settleRestoredOwnership(s, consecutive, issued);
+    if (s->recoveryOnly) {
+        receipt[@"reason"] = @"unqualifiedHideReturnedAfterKernelExit";
+        receipt[@"original"] = prepared[@"original"];
+        receipt[@"owner"] = s->stamp;
+    }
+    NSString *expected = s->recoveryOnly ? @"measuredReturnAwaitingCoordinator" : @"exactCommittedOwnershipRemoved";
+    if (![receipt[@"durableOwnership"] isEqual:expected])
         receipt[@"status"] = @"UNKNOWN";
 #endif
 }

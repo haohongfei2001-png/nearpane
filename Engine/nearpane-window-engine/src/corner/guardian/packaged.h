@@ -366,16 +366,32 @@ static NSDictionary *ledgerAfterRemovingOnlyThisMember(NSDictionary *old, const 
     new[@"owned"] = remain;
     return new;
 }
-static NSString *settleCommitted(Session *s) {
+// An unqualified HIDE still belongs to Swift's open transaction. The Guardian
+// attests only its physical return. The next profile writer consumes that receipt.
+static NSDictionary *returnedMeasuredJournal(Session *s) {
+    if (!s->recoveryOnly || !s->recoveryFramePublished || !journal(s, YES)) return nil;
+    NSDictionary *ledger = pendingFrameJournal(s), *pending = ledger[@"pending"];
+    if (pending[@"verifiedDirectoryCommit"] != (__bridge id)kCFBooleanFalse) return nil;
+    return ledger;
+}
+static NSString *settleRestoredOwnership(Session *s, unsigned readbacks, uint32_t issued) {
     if (!s->serializedRecovery || !s->facts.kernel_parent_exit || !s->facts.parent_generation_gone ||
-        !s->facts.lifetime_exact || s->facts.unspent || !activeProfile(s))
+        !s->facts.lifetime_exact || s->facts.unspent || issued != 1 || readbacks != 2 || !activeProfile(s))
         return @"ownershipRetained";
-    NSDictionary *old = productFile(s->profile, "stage-visibility-v1.json");
-    if (!old || old[@"pending"] || [old[@"releases"] count])
-        return @"interruptedBatchRetained";
-    if (!productJournal(s, YES, NO))
-        return @"ownershipChanged";
     const NPRequest *r = &s->pre.lease;
+    if (s->recoveryOnly) {
+        NSDictionary *ledger = returnedMeasuredJournal(s);
+        uint32_t hid[13];
+        np_corner_inputs(hid);
+        if (!ledger || memcmp(hid, s->takeoverInput, sizeof(hid)) ||
+            s->preparedPointerMotion != CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved) ||
+            !originalFocusUnchanged(s) || !displayIs(s) || !stable(s, convert(r->frame)) ||
+            ![ledger isEqual:returnedMeasuredJournal(s)]) return @"ownershipRetained";
+        return @"measuredReturnAwaitingCoordinator";
+    }
+    NSDictionary *old = productFile(s->profile, "stage-visibility-v1.json");
+    if (!old || old[@"pending"] || [old[@"releases"] count]) return @"interruptedBatchRetained";
+    if (!productJournalContents(s, old, YES, NO)) return @"ownershipChanged";
     NSDictionary *new = ledgerAfterRemovingOnlyThisMember(old, r);
     if (!new)
         return @"ownershipChanged";

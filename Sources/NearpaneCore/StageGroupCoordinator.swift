@@ -129,9 +129,9 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let transaction: UUID, owner: StageEngineOwner, scope: StageGroupScope, focus: NativeSpaceWindow
         let firstSequence, secondSequence: UInt64
     }
-    struct WithdrawnHide: Codable {
-        let transaction, intent, group, member: UUID
-        let owner: StageEngineOwner, scope: StageGroupScope, nativeID: UInt64, before: StageWindowState
+    package struct HidePrimitive: Codable, Equatable {
+        package let transaction, intent, group, member: UUID
+        package let owner: StageEngineOwner, scope: StageGroupScope, nativeID: UInt64, before: StageWindowState
     }
     struct Ledger: Codable {
         var version = 1
@@ -141,7 +141,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var releases: [Release]?
         var activeScopes: [StageGroupScope]?
         var lastInterruptedRelease: InterruptedRelease?
-        var lastWithdrawnHide: WithdrawnHide?
+        var lastWithdrawnHide, lastGuardianReturn: HidePrimitive?
     }
 
     private let store: StageGroupStore, file: URL
@@ -190,6 +190,32 @@ public enum StageSwitchError: LocalizedError, Equatable {
         return releases.contains { $0.intent == intent }
     }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
+    /// Cold startup holds the profile writer lock. Consume only the last failed HIDE
+    /// whose original Guardian proved a physical return. No window or focus is written.
+    package func finishExitedGuardianReturn(confirmed: (HidePrimitive) -> Bool) throws {
+        guard !busy, !journalCommitUnconfirmed, (ledger.releases ?? []).isEmpty, var pending = ledger.pending,
+              !pending.verifiedDirectoryCommit, let owner = ledger.owner, owner.backend == .corner,
+              pending.owner == owner, pending.generation == owner.generation, let transaction = pending.intent,
+              let nativeID = pending.nativeID, nativeID > 0, let entry = pending.entries.last, entry.action == .hide,
+              let intent = entry.intent, let group = entry.group, let member = entry.member,
+              entry.after == nil, entry.undoIntent == nil, entry.guardianPending == nil,
+              entry.before.visibility == .visible, entry.before.hiddenSpaceID == nil,
+              pending.before.contains(entry.before), !ledger.owned.contains(where: { $0.hidden.window == entry.before.window }),
+              pending.entries.count > 1 || pending.ownedBefore == ledger.owned.filter({ $0.scope == pending.scope })
+        else { return }
+        let returned = HidePrimitive(transaction: transaction, intent: intent, group: group, member: member,
+                                     owner: owner, scope: pending.scope, nativeID: nativeID, before: entry.before)
+        guard confirmed(returned) else { return }
+        try verifyJournal()
+        pending.entries.removeLast()
+        let finished = pending.entries.isEmpty && ledger.owned.isEmpty
+        if finished { try withdrawVerifiedActivity() }
+        try update {
+            $0.lastGuardianReturn = returned
+            $0.pending = pending.entries.isEmpty ? nil : pending
+            if finished { $0.owner = nil; $0.activeScopes = nil }
+        }
+    }
     /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
     public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner,
                                     mayManage: (StageWindowState) -> Bool = { _ in true }) -> Bool {

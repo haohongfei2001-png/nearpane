@@ -49,6 +49,7 @@ import NearpaneOrdinaryWindowRuntime
         if let profile {
             do {
                 let journal = try StageGroupCoordinator(store:store,profile:profile)
+                try journal.finishExitedGuardianReturn { CornerExitedReturnReceipt.confirmed($0, in: profile) }
                 try journal.withdrawVerifiedActivity()
                 engine = StageWindowEngineController(coordinator:journal)
                 unreadableLedger = false

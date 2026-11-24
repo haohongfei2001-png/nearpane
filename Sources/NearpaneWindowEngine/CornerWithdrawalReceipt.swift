@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import CNearpaneWindowEngine
+import NearpaneCore
 
 /// Shared binding for the live Guardian's prepared and withdrawn records. A disk record never grants a writer.
 struct CornerGuardianOriginalProof: Decodable, Equatable {
@@ -102,7 +103,7 @@ struct CornerMeasuredFrameReceipt: Decodable {
 }
 
 /// Read through the exact directory descriptor opened before launching this Guardian.
-private enum CornerGuardianRecord: String {
+enum CornerGuardianRecord: String {
     case prepared = "guardian-prepared.json", observed = "guardian-observed.json", final = "guardian-receipt.json"
 
     func read<T: Decodable>(_ type: T.Type, in directory: Int32) -> T? {
