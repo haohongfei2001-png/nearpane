@@ -171,6 +171,51 @@ import Testing
         #expect(store.groups(in: runtime.scope).first?.members.first?.layout == StageGroupWindow.relativeFrame(moved, in: runtime.work))
     }
 
+    @Test func reselectingTheFocusedWorksetKeepsBothFilesAndYieldsToAFocusChange() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let group = groups[0]
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        let directory = store.directory, windows = session.windows
+        let files = ["stage-visibility-v1.json", "stage-groups-v2.json"].map { profile.appendingPathComponent($0) }
+        let stamp = Date(timeIntervalSince1970: 1000)
+        for file in files { try FileManager.default.setAttributes([.modificationDate: stamp], ofItemAtPath: file.path) }
+        let before = session.sequence
+        session.writes.removeAll()
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        #expect(session.sequence >= before + 5)
+        #expect(store.directory == directory && session.windows == windows)
+
+        let interruptAt = session.sequence + 4
+        let bystander = try #require(session.windows.keys.first { $0.number == 4 })
+        session.beforeRead = { [unowned session] in if session.sequence == interruptAt { session.focus = bystander } }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.focus == bystander && session.writes.isEmpty && !coordinator.requiresRecovery)
+        for file in files {
+            let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+            #expect(attributes[.modificationDate] as? Date == stamp)
+        }
+    }
+
+    @Test func reselectingAWorksetCannotAcknowledgeAnExternallyChangedDirectory() async throws {
+        let (profile, _, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let group = groups[0]
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        let directory = profile.appendingPathComponent("stage-groups-v2.json")
+        let original = try Data(contentsOf: directory)
+        let external = original + Data([0x0a])
+        try external.write(to: directory, options: .atomic)
+        session.writes.removeAll()
+        await #expect(throws: StageGroupError.changedFile) {
+            try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(try Data(contentsOf: directory) == external)
+        #expect(session.writes.isEmpty && !coordinator.requiresRecovery)
+    }
+
     @Test func firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() async throws {
         let (p, store, engine, runtime, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: p) }

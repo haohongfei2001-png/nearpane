@@ -1,5 +1,7 @@
 # Nearpane 当前工程状态
 
+重复点击已聚焦的工作集合时，协调器会核实执行引擎健康、当前显示器与桌面、成员和旁窗、真实焦点与已保存布局。连续读回一致时保留原恢复日志，与集合目录一起原位核验。用户已手动移窗时保存新布局，核验中焦点被用户移走时立即让渡。22 项协调器回归通过。完整回归首次在命令沙箱内出现图像解码及测试文件书签错误并停滞，保留为失败。正常测试环境完整串行回归 808 项通过、3 项跳过。整组实机切换仍为 **NOT_RUN**。[针对性与完整回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/focused-workset-selection.zip)
+
 ## 实体机上的窗口遮挡与鼠标透明度
 
 在 26A428 普通桌面 4，签名观察器将自己的 16×16 点彩色小窗放在正式引擎的面板下方。两次从 WindowServer 取实际叠放画面，每次 60,544 个像素。采样中排除面板时，均出现 1,024 个高对比像素；包含面板时，整个区域与前后两帧实时壁纸的差异像素均为零（每通道容差 1）。引擎分别读到面板画面不透明度 1、鼠标命中权重 0。两扇自有窗口已连续两读确认退出，前台进程和原生桌面保持一致。首次采样未取得结论，原始记录保留为 **UNKNOWN**。[实机读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control.json) · [两次原始记录和回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control-raw.zip)

@@ -167,16 +167,22 @@ public struct StageGroupWindow: Sendable {
         catch let error as CocoaError where error.code == .fileReadNoSuchFile { return nil }
     }
 
+    func verifyPersistedDirectory() throws {
+        guard loadIssue == nil else { throw StageGroupError.invalidDirectory }
+        guard let file else { return }
+        let legacyUnchanged = try original != nil || legacy.flatMap(Self.read) == legacyOriginal
+        guard try Self.read(file) == original, legacyUnchanged else {
+            loadIssue = StageGroupError.changedFile.localizedDescription
+            throw StageGroupError.changedFile
+        }
+    }
+
     private func commit(_ updated: StageGroupDirectory) throws {
         guard loadIssue == nil else { throw StageGroupError.invalidDirectory }
         guard updated != directory else { return }
         try updated.validate()
         if let file {
-            let legacyUnchanged = try original != nil || legacy.flatMap(Self.read) == legacyOriginal
-            guard try Self.read(file) == original, legacyUnchanged else {
-                loadIssue = StageGroupError.changedFile.localizedDescription
-                throw StageGroupError.changedFile
-            }
+            try verifyPersistedDirectory()
             let bytes = try JSONEncoder().encode(updated)
             try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try bytes.write(to: file, options: .atomic)

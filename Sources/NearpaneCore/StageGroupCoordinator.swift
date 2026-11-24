@@ -233,10 +233,14 @@ public enum StageSwitchError: LocalizedError, Equatable {
         catch let e as CocoaError where e.code == .fileReadNoSuchFile { return nil }
     }
 
-    private func save(_ next: Ledger) throws {
+    private func verifyJournal() throws {
         guard !journalCommitUnconfirmed else { throw StageSwitchError.recoveryRequired }
         try ProfileLease.checkPath(file)
         guard try disk() == bytes else { throw StageSwitchError.recoveryRequired }
+    }
+
+    private func save(_ next: Ledger) throws {
+        try verifyJournal()
         let directory = file.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(next)
@@ -360,6 +364,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
         let otherIDs = first.windows.keys.filter { !ids.contains($0) }
         let intent = UUID(), owner = session.engineOwner
+        let ownsScope = ledger.owner == owner && (ledger.activeScopes ?? []).contains(scope)
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
         if let owner {
             // An unavailable corner is known before showing another member or transferring the keyboard.
@@ -368,9 +373,12 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 try requireCurrentIntent()
             }
             // Record the worker before preparing it. A failed health check cannot imply a window was hidden.
-            try update {
-                $0.owner = owner
-                if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
+            if ownsScope { try verifyJournal() }
+            else {
+                try update {
+                    $0.owner = owner
+                    if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
+                }
             }
             try await session.prepareBackend(first)
             try requireCurrentIntent()
@@ -383,16 +391,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   postLaunch.foreignFocusScope == first.foreignFocusScope else { throw StageSwitchError.interrupted }
             first = postLaunch
         }
-        try update {
-            $0.pending = .init(scope: scope, generation: first.generation, target: group, preferred: preferred.windowHint,
-                originalFocus: first.focus, before: Array(first.windows.values), ownedBefore: originalHeld,
-                owner: owner, intent: intent, nativeID: first.nativeID, workArea: first.workArea)
-        }
         var last = first
         func requireFocus(_ sample: StageWindowSample, _ expected: NativeSpaceWindow?) throws {
             guard sample.focus == expected else {
                 invalidate()
-                if let focus = sample.focus { try update { $0.pending?.yieldedFocus = focus } }
+                if let focus = sample.focus, ledger.pending != nil { try update { $0.pending?.yieldedFocus = focus } }
                 throw StageSwitchError.interrupted
             }
         }
@@ -409,6 +412,36 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   }),
                   otherIDs.allSatisfy({ next.windows[$0] == first.windows[$0] }) else { throw StageSwitchError.interrupted }
             return next
+        }
+        func verifySelection() async throws {
+            let parked = ledger.owned.filter { $0.scope == scope }
+            guard Set(parked.map { $0.hidden.window }) == ids.subtracting(targets) else { throw StageSwitchError.incomplete }
+            for _ in 0..<3 {
+                try requireCurrentIntent()
+                let next = try await read()
+                try requireCurrentIntent()
+                try requireFocus(next, preferred.windowHint)
+                guard next.foreignFocusScope == nil, next.windows == last.windows,
+                      parked.allSatisfy({ next.windows[$0.hidden.window] == $0.hidden }),
+                      activeMembers.allSatisfy({ m in
+                          guard let value = next.windows[m.windowHint], value.visibility == .visible else { return false }
+                          return targetLayouts[m.id].map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
+                      }) else { throw StageSwitchError.incomplete }
+                last = next
+            }
+        }
+        // Reselecting an intact, focused workset only observes. Its previously committed leases remain authoritative.
+        if ownsScope, alreadyVisible, first.focus == preferred.windowHint, first.foreignFocusScope == nil,
+           target.selectedMember == preferred.id, activeMembers.allSatisfy({ targetLayouts[$0.id] == $0.layout }) {
+            try await verifySelection()
+            try verifyJournal()
+            try store.verifyPersistedDirectory()
+            return
+        }
+        try update {
+            $0.pending = .init(scope: scope, generation: first.generation, target: group, preferred: preferred.windowHint,
+                originalFocus: first.focus, before: Array(first.windows.values), ownedBefore: originalHeld,
+                owner: owner, intent: intent, nativeID: first.nativeID, workArea: first.workArea)
         }
         func perform(_ action: StageWindowAction, id: NativeSpaceWindow,
                      check: (StageWindowState, StageWindowSample) -> Bool) async throws {
@@ -494,23 +527,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     }
                 }
             }
-            func complete(_ s: StageWindowSample) -> Bool {
-                let parked = ledger.owned.filter { $0.scope == scope }
-                return Set(parked.map { $0.hidden.window }) == ids.subtracting(targets) &&
-                    parked.allSatisfy { s.windows[$0.hidden.window] == $0.hidden } &&
-                    activeMembers.allSatisfy { m in
-                        guard let value = s.windows[m.windowHint], value.visibility == .visible else { return false }
-                        return targetLayouts[m.id].map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
-                    }
-            }
-            for _ in 0..<3 {
-                try requireCurrentIntent()
-                let next = try await read()
-                try requireCurrentIntent()
-                try requireFocus(next, preferred.windowHint)
-                guard next.foreignFocusScope == nil, next.windows == last.windows, complete(next) else { throw StageSwitchError.incomplete }
-                last = next
-            }
+            try await verifySelection()
             try update { $0.pending?.verifiedDirectoryCommit = true }
             try store.commitActivity(group, preferred: preferred.id, in: scope, expected: directory, verifiedLayouts: verifiedLayouts)
             try update { $0.pending = nil }
