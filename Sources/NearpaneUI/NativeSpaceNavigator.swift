@@ -25,6 +25,8 @@ struct SidebarWindowDragAndDrop: ViewModifier {
     let select: () -> Void
     let place: (SidebarPairDrop) -> Void
     var prepare: () -> Void = {}
+    var stack: SidebarCardPointer.StackPosition?
+    var detach: (() -> Void)?
 
     @ViewState private var highlightedSide: Bool?
 
@@ -32,10 +34,14 @@ struct SidebarWindowDragAndDrop: ViewModifier {
         if let member, let lifetime, let feed, member.source.kind == .ordinary {
             content
                 .background(SidebarCardPointer(member: member, lifetime: lifetime,
-                    current: { feed.lifetime(of: member.key) == lifetime }, select: select, place: place,
-                    highlight: { highlightedSide = $0 }, prepare: prepare).accessibilityHidden(true))
+                    current: {
+                        if let stack { return feed.stillGroups(member, in: stack.group, appearance: lifetime) }
+                        return feed.lifetime(of: member.key) == lifetime
+                    }, select: select, place: place,
+                    highlight: { highlightedSide = $0 }, prepare: prepare, stack: stack, detach: detach).accessibilityHidden(true))
                 .overlay(alignment: highlightedSide == true ? .leading : .trailing) { indicator }
-                .accessibilityHint(member.selectionOnly ? "将这扇窗口切换到前台" : "拖到另一扇窗口预览的左半或右半可在本屏分屏")
+                .accessibilityHint(member.selectionOnly ? "将这扇窗口切换到前台" : detach == nil ?
+                    "拖到另一扇窗口预览的左半或右半可在本屏分屏" : "拖到另一扇预览可分屏，拖出侧栏到本屏工作区可独立成组")
         } else { content }
     }
 
@@ -229,6 +235,8 @@ struct NativeWindowGroupCard: View {
         .accessibilityLabel(choice.label)
         .accessibilityIdentifier("native-space-window:\(dest.display):\(dest.space):\(member.key.pid):\(member.key.number)")
         .modifier(SidebarWindowDragAndDrop(member: member, lifetime: choice.lifetime,
-            width: width, feed: feed, select: { select(member, choice.lifetime) }, place: place))
+            width: width, feed: feed, select: { select(member, choice.lifetime) }, place: place,
+            stack: choice.window.metadata.map { .init(group:id,session:snapshot.sessionID,revision:snapshot.revision,frontToBack:$0.frontToBack) },
+            detach: { remove(member) }))
     }
 }

@@ -84,6 +84,98 @@ import Testing
         #expect(clicks == [8] && placements.count == 2)
     }
 
+    @Test func overlappingLiveMembersDragAndSelectOnlyTheFrontWindowInOneGroupSnapshot() throws {
+        let panel = EdgePanel(contentRect: .init(x:0,y:0,width:220,height:200),
+                              styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:true)
+        let content = try #require(panel.contentView)
+        let windows = [window(8,["1"],front:1), window(9,["1"],front:0), window(10,["1"],front:2)]
+        let sample = snapshot(windows), group = UUID()
+        let catalog = try map(sample)
+        let home = try #require(NativeSidebarDestination(catalog.rows[0],in:catalog))
+        var clicked = [UInt32](), drops = [SidebarPairDrop](), stale = Set<UInt32>()
+        var areas = [SidebarCardPointer.CardArea]()
+        let frames = [NSRect(x:10,y:10,width:120,height:60), NSRect(x:55,y:10,width:120,height:60),
+                      NSRect(x:10,y:100,width:165,height:55)]
+        func stack(_ rank: Int, revision: UInt64? = nil) -> SidebarCardPointer.StackPosition {
+            .init(group:group,session:sample.sessionID,revision:revision ?? sample.revision,frontToBack:rank)
+        }
+        for (index, w) in windows.enumerated() {
+            let member = try #require(NativeSidebarMember(w,source:home))
+            let area = SidebarCardPointer.CardArea(frame:frames[index])
+            area.card = .init(member:member,lifetime:UUID(),current:{ !stale.contains(member.key.number) },
+                              select:{ clicked.append(member.key.number) },place:{ drops.append($0) },highlight:{ _ in },
+                              stack:index < 2 ? stack(index == 0 ? 1 : 0) : nil)
+            content.addSubview(area)
+            areas.append(area)
+        }
+        func point(_ type: NSEvent.EventType, _ x: Int, _ y: Int) throws {
+            let e = try #require(NSEvent.mouseEvent(with:type,location:.init(x:x,y:y),modifierFlags:[],timestamp:1,
+                windowNumber:panel.windowNumber,context:nil,eventNumber:0,clickCount:1,pressure:1))
+            #expect(panel.cardPointer.receive(e,in:panel))
+        }
+        try point(.leftMouseDown,35,35); try point(.leftMouseUp,35,35)
+        try point(.leftMouseDown,70,35); try point(.leftMouseUp,70,35)
+        try point(.leftMouseDown,70,35); try point(.leftMouseDragged,40,120); try point(.leftMouseUp,40,120)
+        try point(.leftMouseDown,40,120); try point(.leftMouseDragged,70,35); try point(.leftMouseUp,70,35)
+        #expect(clicked == [8,9])
+        #expect(drops.map { $0.dragged.key.number } == [9,10])
+        #expect(drops.map { $0.target.key.number } == [10,9])
+        #expect(drops.map { $0.draggedOnLeft } == [true,true])
+
+        stale.insert(9)
+        try point(.leftMouseDown,70,35); try point(.leftMouseUp,70,35)
+        stale.remove(9)
+        areas[0].card?.stack = stack(0)
+        try point(.leftMouseDown,70,35); try point(.leftMouseUp,70,35)
+        areas[0].card?.stack = stack(1,revision:sample.revision + 1)
+        try point(.leftMouseDown,70,35); try point(.leftMouseUp,70,35)
+        areas[0].card?.stack = stack(1)
+        try point(.leftMouseDown,70,35)
+        areas[1].card?.stack = stack(2)
+        try point(.leftMouseUp,70,35)
+        try point(.leftMouseDown,35,35); try point(.leftMouseDragged,40,120)
+        stale.insert(8)
+        try point(.leftMouseUp,40,120)
+        #expect(clicked == [8,9] && drops.count == 2)
+    }
+
+    @Test(.enabled("AppKit must expose the screen containing the panel") { await MainActor.run { !NSScreen.screens.isEmpty } })
+    func draggingALiveMemberOutDetachesOnlyOnReleaseInTheSameWorkspace() throws {
+        let screen = try #require(NSScreen.screens.first)
+        let device = try #require(screen.deviceDescription[.init("NSScreenNumber")] as? NSNumber)
+        let uuid = try #require(CGDisplayCreateUUIDFromDisplayID(device.uint32Value)?.takeRetainedValue())
+        let displayID = CFUUIDCreateString(nil,uuid) as String
+        let work = screen.visibleFrame
+        let panel = EdgePanel(contentRect:.init(x:work.midX-100,y:work.midY-40,width:100,height:80),
+                              styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:true)
+        let area = SidebarCardPointer.CardArea(frame:.init(x:0,y:0,width:100,height:80))
+        try #require(panel.contentView).addSubview(area)
+        let w = window(12,["1"],front:0)
+        let location = NativeSidebarDestination(session:session,topology:"display-test",display:displayID,space:"1",uuid:a)
+        let fixture = WindowObservation(id:w.id,displayID:displayID,bounds:w.bounds,membership:w.membership,
+                                        confidence:w.confidence,metadata:w.metadata)
+        let member = try #require(NativeSidebarMember(fixture,source:location))
+        var removed = 0, live = true
+        area.card = .init(member:member,lifetime:UUID(),current:{ live },select:{},place:{ _ in },highlight:{ _ in },
+                          stack:.init(group:b,session:session,revision:1,frontToBack:0),detach:{ removed += 1 })
+        func route(_ type: NSEvent.EventType, x: CGFloat, flags: NSEvent.ModifierFlags = []) throws {
+            let event = try #require(NSEvent.mouseEvent(with:type,location:.init(x:x,y:25),modifierFlags:flags,
+                timestamp:1,windowNumber:panel.windowNumber,context:nil,eventNumber:0,clickCount:1,pressure:1))
+            #expect(panel.cardPointer.receive(event,in:panel))
+        }
+        try route(.leftMouseDown,x:20); try route(.leftMouseUp,x:160)
+        try route(.leftMouseDown,x:20); try route(.leftMouseDragged,x:109); try route(.leftMouseUp,x:109)
+        try route(.leftMouseDown,x:20); try route(.leftMouseDragged,x:145); try route(.leftMouseUp,x:160,flags:.shift)
+        try route(.leftMouseDown,x:20); try route(.leftMouseDragged,x:145)
+        live = false
+        try route(.leftMouseUp,x:160)
+        live = true
+        try route(.leftMouseDown,x:20); try route(.leftMouseDragged,x:145); try route(.leftMouseUp,x:work.width+150)
+        #expect(removed == 0)
+        try route(.leftMouseDown,x:20); try route(.leftMouseDragged,x:145); try route(.leftMouseUp,x:160)
+        #expect(removed == 1)
+    }
+
     @Test func internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch() throws {
         let all = snapshot([window(8, ["1"], front: 2), window(9, ["2"], front: 1), window(7, ["1","2"], front: 0)])
         let rows = try map(all).rows
