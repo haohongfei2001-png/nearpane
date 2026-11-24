@@ -1,0 +1,87 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "7aab7957593bf29884660c4d02d5811e0bbe025f",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "24e5459bf5ad5c24ea84ef4fe1ea7890bd7a7c3d",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33407571,
+  "sha256": "172e1890a3219bdf49fb38f2277baff69a04565b08eea86936b50cbe0a9a7db5",
+  "previousCandidate": "e32738cad30d6702bf0f7e929bf94d478c21b34e",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "windowEngineCI": {
+    "productSource": "7aab7957593bf29884660c4d02d5811e0bbe025f",
+    "conclusion": "success",
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45302860806",
+    "jobs": {
+      "Rust, Swift and production C ABI": "success",
+      "Read-only hosted desktop preflight": "skipped"
+    }
+  },
+  "productSourceRegression": {
+    "swiftPassed": 809,
+    "swiftSkipped": 3,
+    "rustCornerPassed": 76,
+    "raw": "guardian-lease-lifetime.zip"
+  },
+  "physicalEvidence": {
+    "platform": "macOS 27.0 (26A428), arm64, SIP enabled",
+    "scope": "Each physical result applies to the source and signed processes identified in the linked original receipt. This signed candidate was packaged and verified offline.",
+    "guardianReturnedVisibleWindowAfterNormalHostExit": {
+      "status": "PASS",
+      "receipt": "visible-return/session.json"
+    },
+    "guardianReturnedVisibleWindowAfterAbruptHostExit": {
+      "status": "PASS",
+      "receipt": "abrupt-visible-return/session.json"
+    },
+    "visualOcclusionOfObserverOwnedControl": {
+      "status": "PASS",
+      "receipt": "occlusion-control.json"
+    },
+    "developmentHostCornerParkAdmission": {
+      "status": "BLOCKED",
+      "detail": 21,
+      "receipt": "result.json"
+    },
+    "thirdPartyCornerRetirementAndInputAndRestore": "NOT_RUN",
+    "sidebarABCA": "NOT_RUN",
+    "tenAndFiftySwitches": "NOT_RUN",
+    "multiDisplayWorksetSwitching": "NOT_RUN",
+    "sameMacAppleStageManagerComparison": "NOT_RUN"
+  }
+}

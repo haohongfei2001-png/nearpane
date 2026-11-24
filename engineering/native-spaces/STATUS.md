@@ -1,5 +1,13 @@
 # Nearpane 当前工程状态
 
+## 5.22（90）侧栏工作集合交付状态
+
+**R4 侧栏整组切换尚未取得生产资格。** 目标实体机 26A428 上，Guardian 已在测试 Host 正常退出和异常退出后，将屏内偏移 24 点的签名普通窗口恢复到原位。独立观察器也已两次验证正式引擎面板完全遮住受控色块。[正常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [异常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [实际遮挡读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control.json)
+
+**真实单窗退场的准入为 BLOCKED。** Corner 需要执行 Host 读取实时壁纸以绘制角落遮挡。隔离 Host 的录屏检查返回 21，已获授权的日常 Host `bec6cb2` 缺少新版认证观察接口。两者使用各自的权限。下一项实机验收是一扇签名普通窗口真实退场后的画面、按下／拖动／释放及键盘收件、旁窗状态和原位恢复。该闭环、R4 的 A→B→C→A、10/50 次切换、多屏整组调度及 Apple 同机对照均为 **NOT_RUN**。[执行 Host 的实机准入](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/result.json) · [独立观察器的实机收件](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels.json)
+
+源码 `7aab795` 的 ARM64 开发候选和上一版回滚包已保存在本机。当前 ZIP 已解压复验，14 个可执行组件严格验签通过。GitHub 上该源码的 Rust、Swift 与生产 C ABI 作业通过，托管桌面作业跳过。日常安装仍运行 `bec6cb2`。[签名、校验和与验收分项](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-7aab795.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45302860806)
+
 ### 工作集合退场后的恢复责任
 
 Host 现在从 Guardian 接受窗口前起持有对原签名进程的内核观察，直到该窗归位。PID 和出生时间相同但进程更换映像时会停止新的健康、显示和退场派发。窗口归还后，Host 须核对同一份准备记录、角落位置及两次原位读回。若应答丢失，只有原映像已正常退出并有完全匹配的持久化最终收据，才能解除责任；不确定时保留日志。
