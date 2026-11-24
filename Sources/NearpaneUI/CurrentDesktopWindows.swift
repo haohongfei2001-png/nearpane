@@ -298,7 +298,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
-                if let next { stageEngine.observeEnvironment(next) }
+                stageEngine.observeEnvironment(next)
                 if next?.native?.stageManagerEnabled == false {
                     stageEngine.ordinaryContextObserved()
                     stageEngine.refreshHeld(feed:self)

@@ -20,7 +20,7 @@ import NearpaneOrdinaryWindowRuntime
     private let authorizedLifetimes: [NativeSpaceWindow: UUID]
     private var leases: [NativeSpaceWindow: OrdinaryFileLease]
     private var bindings = [NativeSpaceWindow:Binding](), claims = [NativeSpaceWindow:VisibilityClaim]()
-    private let session: UUID, display: String
+    private let session: UUID, display: String, topology: String
     private var releaseInput: [UInt32]?
     private var owner: StageWindowBackend?, home: OrdinaryDesktopIdentity?, sequence: UInt64 = 0
     private var enrolledTopology: [ManagedDisplayScope]?
@@ -62,6 +62,7 @@ import NearpaneOrdinaryWindowRuntime
         leases = acquired
         authorizedLifetimes = authorized
         self.feed = feed; self.scope = scope; self.session = snapshot.sessionID; display = physical.id
+        topology = snapshot.topologyFingerprint
         self.available = available; self.restoreAvailable = restoreAvailable
     }
 
@@ -99,11 +100,21 @@ import NearpaneOrdinaryWindowRuntime
             (restoring || WindowVisibilityProvider.corner.requiredPermissions.isSubset(of: StageWindowEngineAttestation.currentPermissions()))
     }
 
+    static func homeCatalog(_ snapshot: DesktopSnapshot?, display: String, space: UUID, session: UUID,
+                            topology: String) -> NativeSpaceCatalog? {
+        guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology,
+              snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
+              let catalog = NativeSpaceCatalog(snapshot, displayID: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+              catalog.current.ordinaryUUID == space else { return nil }
+        return catalog
+    }
+
+    func homeCatalog(_ snapshot: DesktopSnapshot?) -> NativeSpaceCatalog? {
+        Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology)
+    }
+
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess) throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
-        guard snapshot.sessionID == session, snapshot.native?.stageManagerEnabled == false,
-              snapshot.native?.catalogComplete == true,
-              let catalog = NativeSpaceCatalog(snapshot,displayID:display,now:.now,uptime:ProcessInfo.processInfo.systemUptime),
-              catalog.current.ordinaryUUID == scope.nativeSpace else { throw StageSwitchError.incomplete }
+        guard let catalog = homeCatalog(snapshot) else { throw StageSwitchError.incomplete }
         let keys = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { key in
             // An already retained standard window can be unlisted after our same-desktop action.
             // Its original AX object and current physical state are still verified in the binding loop.

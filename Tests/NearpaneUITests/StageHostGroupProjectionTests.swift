@@ -35,6 +35,33 @@ import NearpaneCore
               onscreen: true, minimized: false, focus: nil)
     }
 
+    @Test func aMissingOrChangedDesktopCannotAuthorizeContinuationOrRecoveryOnAnotherDesktop() {
+        let sample = snapshot([window(8)])
+        func accepted(_ next: DesktopSnapshot?) -> Bool {
+            StageWindowEngineWitness.homeCatalog(next, display: display, space: space,
+                session: sample.sessionID, topology: sample.topologyFingerprint) != nil
+        }
+        #expect(accepted(sample))
+        #expect(!accepted(nil))
+        let next = DesktopReadRequest(session: sample.sessionID, revision: 6, parentPID: 1,
+            fixtureWindows: nil, anchors: [], experimentalSpaces: false)
+        #expect(!accepted(snapshot([window(8)], stage: nil, request: next)))
+        #expect(!accepted(snapshot([window(8)], stage: true, request: next)))
+        #expect(!accepted(snapshot([window(8)], complete: false, request: next)))
+        var changed = sample
+        changed.topologyFingerprint = "other-display-configuration"
+        #expect(!accepted(changed))
+        changed = sample
+        changed.sessionID = UUID()
+        #expect(!accepted(changed))
+        changed = sample
+        changed.scopes = [.init(id: "scope", displayID: display, records: [.init(id: "4", isCurrent: true, ordinaryUUID: UUID())])]
+        #expect(!accepted(changed))
+        changed.scopes = [.init(id: "scope", displayID: display, records: [.init(id: "4", isCurrent: true, fullscreenUUID: space)])]
+        #expect(!accepted(changed))
+        #expect(accepted(sample))
+    }
+
     @Test func overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup() async throws {
         let windows = [window(8, rank: 1), window(9, rank: 0)].map { observed in
             var confirmed = observed

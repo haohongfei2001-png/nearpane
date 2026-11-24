@@ -63,8 +63,15 @@ import NearpaneOrdinaryWindowRuntime
 
     /// Initial sample, wake/unlock and display notifications re-evaluate the installed environment.
     /// They never enroll a new writer or infer that a pre-restart AX reference survived.
-    func observeEnvironment(_ snapshot: DesktopSnapshot) {
+    func observeEnvironment(_ snapshot: DesktopSnapshot?) {
         guard !Self.shipped.isEmpty, let profile else { return }
+        // A reader failure or a different ordinary desktop revokes the current intent even
+        // when a previous build/permission attestation is still within its two-second cache.
+        guard let snapshot, snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
+              witness.map({ $0.homeCatalog(snapshot) != nil }) != false else {
+            if !needsReassessment || granted != nil || consentRequest != nil || engine?.session?.isFrozen == false { freeze() }
+            return
+        }
         let now = ProcessInfo.processInfo.systemUptime
         guard needsReassessment || now-lastEnvironmentalRead >= 2 else { return }
         needsReassessment = false
@@ -251,7 +258,8 @@ import NearpaneOrdinaryWindowRuntime
     /// A takeover revokes new actions immediately. Restore under the old worker only after its independent
     /// witness positively observes a safe context again. An uncertain issued restore remains in the WAL.
     func ordinaryContextObserved() {
-        guard recoveryRequested, !releasing, engine?.canAttemptOwnedRelease == true else { return }
+        guard recoveryRequested, !releasing, engine?.canAttemptOwnedRelease == true,
+              witness?.homeCatalog(feed?.snapshot) != nil else { return }
         recoveryRequested = false
         _ = beginRelease()
     }
