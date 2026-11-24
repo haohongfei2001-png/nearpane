@@ -38,14 +38,14 @@ private extension NativeStageEngineReceipt {
               read.frame.width > 0, read.frame.height > 0 else { throw StageSwitchError.unavailable }
     }
 
-    init?(owner: StageEngineOwner, profile: URL) {
+    init?(owner: StageEngineOwner, profile: URL, releaseExited: @escaping @MainActor (UUID) -> Void) {
         guard owner.backend == .corner,
               let engine = NativeStageWindowEngine(qualifiedBackend: UInt32(NP_CORNER), evidence: owner.evidence),
               let epoch = engine.qualifiedEpoch else { return nil }
         self.engine = engine
         acquiredOwner = owner
         acquisitionEpoch = epoch
-        guardian = CornerGuardianClient(profile: profile)
+        guardian = CornerGuardianClient(profile: profile, releaseExited: releaseExited)
     }
 
     private func commandEpoch(_ owner: StageEngineOwner, restoring: Bool = false) throws -> UInt64 {
@@ -96,6 +96,10 @@ private extension NativeStageEngineReceipt {
         default: throw StageSwitchError.ownership
         }
     }
+    func readsFinalRelease(_ c: StageWindowCommand, owner: StageEngineOwner) async -> Bool {
+        guard owner == acquiredOwner else { return false }
+        return guardian.consumeFinalRelease(request(5, owner: owner, c))
+    }
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
         let epoch = try commandEpoch(owner)
         try guardian.checkLiveOwners()
@@ -113,8 +117,9 @@ private extension NativeStageEngineReceipt {
 }
 
 public extension StageEngineSession {
-    convenience init?(owner: StageEngineOwner, witness: any StageEngineWindowWitness, profile: URL) {
-        guard let transport = LinkedStageEngineTransport(owner:owner,profile:profile) else { return nil }
+    convenience init?(owner: StageEngineOwner, witness: any StageEngineWindowWitness, profile: URL,
+                      releaseExited: @escaping @MainActor (UUID) -> Void = { _ in }) {
+        guard let transport = LinkedStageEngineTransport(owner:owner,profile:profile,releaseExited:releaseExited) else { return nil }
         self.init(owner:owner,witness:witness,transport:transport)
     }
 }

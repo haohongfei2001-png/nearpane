@@ -287,6 +287,16 @@ import NearpaneOrdinaryWindowRuntime
 
     func release() async { await beginRelease()?.value }
 
+    private func guardianExited(releasing intent: UUID, owner: StageEngineOwner) {
+        Task { [weak self] in
+            await self?.releaseTask?.value
+            guard let self, let engine, engine.session?.owner == owner,
+                  engine.coordinator.awaitsFinalRelease(intent, from: owner), engine.canAttemptOwnedRelease,
+                  witness?.homeCatalog(feed?.snapshot) != nil else { return }
+            await release()
+        }
+    }
+
     func prepareForShutdown() async -> Bool {
         if let shutdownTask { return await shutdownTask.value }
         guard !unreadableLedger else { return false }
@@ -360,7 +370,10 @@ import NearpaneOrdinaryWindowRuntime
             self.witness = witness
             watchSystem()
             guard let profile else { return nil }
-            return StageEngineSession(owner:.init(qualification:q,generation:witness.generation),witness:witness,profile:profile)
+            let owner = StageEngineOwner(qualification: q, generation: witness.generation)
+            return StageEngineSession(owner: owner, witness: witness, profile: profile) { [weak self] terminal in
+                self?.guardianExited(releasing: terminal, owner: owner)
+            }
         }
         if engine.session != nil { feed.observeStageOwnership(true) }
         guard available, permitted() else { throw StageSwitchError.unavailable }

@@ -46,10 +46,12 @@ import CNearpaneWindowEngine
         }
     }
     private let profile: URL
+    private let releaseExited: @MainActor (UUID) -> Void
     private var leases: [NativeSpaceWindow: Lease] = [:]
     private static let clients = NSHashTable<CornerGuardianClient>.weakObjects()
-    init(profile: URL) {
+    init(profile: URL, releaseExited: @escaping @MainActor (UUID) -> Void) {
         self.profile = profile
+        self.releaseExited = releaseExited
         Self.clients.add(self)
     }
 
@@ -135,6 +137,13 @@ import CNearpaneWindowEngine
         process.standardInput = input
         process.standardOutput = output
         process.standardError = FileHandle.nullDevice
+        process.terminationHandler = { [weak self] child in
+            Task { @MainActor in
+                guard let self, let lease = self.leases[w], lease.process === child,
+                      let intent = lease.releaseIntent else { return }
+                self.releaseExited(intent)
+            }
+        }
         _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
         try process.run()
         let lease = Lease(r, epoch: epoch, process: process, writer: input.fileHandleForWriting, reader: output.fileHandleForReading, directory: heldDirectory)
@@ -228,7 +237,7 @@ import CNearpaneWindowEngine
 
     func disarm(_ r: NativeStageEngineRequest) async throws {
         guard [4, 5].contains(r.operation), let w = r.window, let l = leases[w], same(l.original, r), l.sealed,
-              let birth = l.guardianBirth, let prepared = l.preparation, let parked = l.result,
+              let birth = l.guardianBirth, l.preparation != nil, l.result != nil,
               l.releaseIntent == nil || l.releaseIntent == r.intent else {
             throw Failure.pendingRecovery
         }
@@ -251,15 +260,25 @@ import CNearpaneWindowEngine
             try await Task.sleep(for: .milliseconds(15))
             image = l.imageState(birth: birth)
         }
+        guard consumeFinalRelease(r) else { throw Failure.pendingRecovery }
+    }
+
+    /// The original lease pins the directory, Guardian process generation and one release intent.
+    /// This read never sends another release byte or reaches the window executor.
+    func consumeFinalRelease(_ r: NativeStageEngineRequest) -> Bool {
+        guard [4, 5].contains(r.operation), let w = r.window, let l = leases[w], same(l.original, r), l.sealed,
+              l.releaseIntent == r.intent, let birth = l.guardianBirth, let prepared = l.preparation,
+              let parked = l.result else { return false }
+        let image = l.imageState(birth: birth)
         let normalExitCode = image == NP_GUARDIAN_IMAGE_EXITED && !l.process.isRunning && l.process.terminationReason == .exit
             ? l.process.terminationStatus : nil
-        guard leases[w] === l,
-              let receipt = CornerLiveReleaseReceipt.read(in: l.directory.fileDescriptor),
+        guard let receipt = CornerLiveReleaseReceipt.read(in: l.directory.fileDescriptor),
               receipt.confirms(prepared, parked: parked, image: image, acknowledged: l.releaseAcknowledged,
-                               normalExitCode: normalExitCode) else { throw Failure.pendingRecovery }
+                               normalExitCode: normalExitCode) else { return false }
         try? l.writer.close()
         try? l.reader.close()
         leases.removeValue(forKey: w)
+        return true
     }
 
     /// No caller can obtain the positive result from an error, a cancelled ticket, or a cold WAL.

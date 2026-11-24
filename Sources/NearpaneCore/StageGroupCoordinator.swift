@@ -47,6 +47,8 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     func mayManage(_ state: StageWindowState) -> Bool
     func dispatch(_ command: StageWindowCommand) async throws
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
+    /// Read an already-issued Guardian release. This path must never issue a window or Guardian command.
+    func readsFinalRelease(_ command: StageWindowCommand) async -> Bool
     func prepareBackend(_ sample: StageWindowSample) async throws
     func checkHealth() async throws
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws
@@ -65,6 +67,7 @@ public extension StageWindowSession {
     func prepareBackend(_ sample: StageWindowSample) async throws {}
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws { throw StageSwitchError.unavailable }
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
+    func readsFinalRelease(_ command: StageWindowCommand) async -> Bool { false }
     var engineOwner: StageEngineOwner? { nil }
     func dispatch(_ c: StageWindowCommand) async throws {
         try await apply(c.action, to: c.before, in: c.scope, generation: c.generation)
@@ -180,6 +183,12 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
 
     public var requiresRecovery: Bool { journalCommitUnconfirmed || ledger.pending != nil || !(ledger.releases ?? []).isEmpty }
+    public func awaitsFinalRelease(_ intent: UUID, from owner: StageEngineOwner) -> Bool {
+        guard !journalCommitUnconfirmed, ledger.owner == owner, owner.backend == .corner,
+              ledger.pending == nil, ledger.owned.isEmpty, let releases = ledger.releases,
+              releases.allSatisfy({ $0.restored == true && $0.owned.owner == owner }) else { return false }
+        return releases.contains { $0.intent == intent }
+    }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
     /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
     public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner,
@@ -694,6 +703,21 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
     }
 
+    private func readReleaseState(_ expected: StageWindowState, of entry: Ownership, owner: StageEngineOwner,
+                                  token: UUID, session: StageWindowSession) async throws -> StageWindowSample {
+        guard epoch == token, session.engineOwner == owner, entry.owner == owner, let native = entry.nativeID
+        else { throw StageSwitchError.interrupted }
+        let one = try await session.read(entry.scope)
+        let two = try await session.read(entry.scope)
+        guard epoch == token, session.engineOwner == owner, one.scope == entry.scope, two.scope == one.scope,
+              one.generation == owner.generation, two.generation == owner.generation,
+              one.nativeID == native, two.nativeID == native, one.sequence < two.sequence,
+              one.windows == two.windows, two.windows[expected.window] == expected,
+              one.workArea == two.workArea, one.focus == two.focus, one.foreignFocusScope == two.foreignFocusScope
+        else { throw StageSwitchError.recoveryRequired }
+        return two
+    }
+
     /// Freeze first. An old owner may release independently confirmed hides. Neither an ambiguous write nor
     /// a modified/reused window becomes an instruction to the replacement backend.
     public func releaseOwned(_ session: StageWindowSession) async throws {
@@ -703,16 +727,26 @@ public enum StageSwitchError: LocalizedError, Equatable {
         busy = true; defer { busy = false }
         let token = epoch, touched = Set(ledger.pending?.entries.filter { $0.after == nil }.map { $0.before.window } ?? [])
         try withdrawVerifiedActivity()
+        // A previous pass can finish the actual restore before the Guardian's terminal record
+        // becomes readable. Only these previously verified restores may settle without a write.
+        for release in ledger.releases ?? [] where release.restored == true && owner.backend == .corner {
+            let entry = release.owned
+            guard !touched.contains(entry.original.window), let group = entry.group,
+                  let member = entry.member, let native = entry.nativeID,
+                  (try? await readReleaseState(entry.original, of: entry, owner: owner, token: token, session: session)) != nil
+            else { continue }
+            let command = StageWindowCommand(intent: release.intent, group: group, member: member, generation: owner.generation,
+                scope: entry.scope, nativeID: native, action: .show, before: entry.hidden, restoring: true, restoreFrame: entry.original.frame)
+            try verifyJournal()
+            guard await session.readsFinalRelease(command) else { continue }
+            try update { $0.releases?.removeAll { $0.intent == release.intent } }
+        }
         for entry in ledger.owned where entry.owner == owner && !touched.contains(entry.hidden.window) &&
                 !(ledger.releases ?? []).contains(where: { $0.owned.hidden.window == entry.hidden.window }) {
             guard token == epoch, session.engineOwner == owner,
                   let group = entry.group, let member = entry.member, let native = entry.nativeID else { break }
             do {
-                let one = try await session.read(entry.scope)
-                let two = try await session.read(entry.scope)
-                guard token == epoch, one.scope == entry.scope, two.scope == one.scope, two.nativeID == native, one.nativeID == native,
-                      one.windows == two.windows, one.focus == two.focus, one.generation == two.generation,
-                      one.sequence < two.sequence, two.windows[entry.hidden.window] == entry.hidden else { continue }
+                let two = try await readReleaseState(entry.hidden, of: entry, owner: owner, token: token, session: session)
                 let intent = UUID()
                 try update { $0.releases = ($0.releases ?? []) + [.init(intent: intent, owned: entry)] }
                 let command = StageWindowCommand(intent:intent,group:group,member:member,generation:two.generation,

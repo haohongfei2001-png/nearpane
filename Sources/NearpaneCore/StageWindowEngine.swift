@@ -50,6 +50,7 @@ package struct StageEngineReply {
     /// acknowledged its durable, independently witnessed withdrawal for this exact intent.
     func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool
     func verified(_ command: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws
+    func readsFinalRelease(_ command: StageWindowCommand, owner: StageEngineOwner) async -> Bool
     func revoke()
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply
     func close() async -> Bool
@@ -57,6 +58,7 @@ package struct StageEngineReply {
 
 package extension StageEngineTransport {
     func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool { false }
+    func readsFinalRelease(_ command: StageWindowCommand, owner: StageEngineOwner) async -> Bool { false }
 }
 
 /// Only the session that completed both sides of a Corner withdrawal can create this receipt.
@@ -240,6 +242,12 @@ struct UnsubmittedCornerHide: Error {
         guard owner.backend == .corner, command.generation == owner.generation, command.before.window == after.window,
               command.before.lifetime == after.lifetime else { throw StageSwitchError.ownership }
         try await transport.verified(command,after:after,owner:owner)
+    }
+    public func readsFinalRelease(_ command: StageWindowCommand) async -> Bool {
+        guard recovering, !closed, owner.backend == .corner, command.generation == owner.generation,
+              command.restoring, command.action == .show, command.before.visibility == .parked,
+              command.restoreFrame != nil, witness.permits(owner, restoring: true) else { return false }
+        return await transport.readsFinalRelease(command, owner: owner)
     }
     func beginRelease() { recovering = true; witness.beginRelease() }
     func freeze() {

@@ -17,6 +17,7 @@ import Testing
     var beforeRead: (() -> Void)?
     var beforeCloseRead: (() -> Void)?
     var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
+    var delayedRelease: UUID?, holdReleaseReceipt = false, lateReleaseReads = [UUID]()
     enum Withdrawal: Sendable { case confirmed, denied, lostReply }
     var withdrawal: Withdrawal = .denied
     var afterPrepare: ((StageWindowCommand) -> Void)?
@@ -82,8 +83,16 @@ import Testing
         }
     }
     func verified(_ c: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws {
+        if c.restoring && c.action == .show && holdReleaseReceipt {
+            delayedRelease = c.intent
+            throw StageSwitchError.recoveryRequired
+        }
         guard writeIntents.contains(c.intent), (c.action != .hide || prepared.contains(c.intent)),
               confirmed.insert(c.intent).inserted, after.window.number != confirmationFailure else { throw StageSwitchError.recoveryRequired }
+    }
+    func readsFinalRelease(_ c: StageWindowCommand, owner: StageEngineOwner) async -> Bool {
+        lateReleaseReads.append(c.intent)
+        return !holdReleaseReceipt && c.intent == delayedRelease && writeIntents.contains(c.intent)
     }
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
         if obstructWhenRetired && !visible.isEmpty {
@@ -598,6 +607,44 @@ import Testing
             _ = try await engine.configure(for:environment,records:[qualification(.spaces)],exclusive:{true}) { _ in other = true; return nil }
         }
         #expect(!other && f.effects.filter { $0.0 == 3 }.count == 1)
+    }
+
+    @Test(arguments: [false, true])
+    func lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain(userMoved: Bool) async throws {
+        let (profile, _, engine, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, fixture, qualification(.corner))
+        try await activate(groups[0], engine, fixture)
+        fixture.holdReleaseReceipt = true
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+        let release = try #require(try readJournal(profile).releases?.first)
+        let target = release.owned.original.window
+        let owner = try #require(engine.session?.owner)
+        #expect(release.restored == true && release.intent == fixture.delayedRelease)
+        #expect(engine.coordinator.awaitsFinalRelease(release.intent, from: owner))
+        #expect(!engine.coordinator.awaitsFinalRelease(UUID(), from: owner))
+        #expect(fixture.windows[target] == release.owned.original)
+        let firstWrites = fixture.writeIntents, focus = fixture.focus
+
+        if userMoved { fixture.windows[target]?.frame.x += 20 }
+        fixture.holdReleaseReceipt = false
+        if userMoved {
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+            #expect(try readJournal(profile).releases?.first?.intent == release.intent)
+            #expect(fixture.lateReleaseReads.isEmpty && fixture.closes == 0)
+        } else {
+            fixture.holdReleaseReceipt = true
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+            #expect(try readJournal(profile).releases?.first?.intent == release.intent)
+            fixture.holdReleaseReceipt = false
+            try await engine.release()
+            #expect(fixture.lateReleaseReads == [release.intent, release.intent] && fixture.closes == 1)
+            let finished = try readJournal(profile)
+            #expect(!engine.holdsWindowDispatch && finished.owner == nil)
+            #expect(!engine.coordinator.awaitsFinalRelease(release.intent, from: owner))
+        }
+        #expect(fixture.writeIntents == firstWrites && fixture.focus == focus)
+        #expect(fixture.effects.filter { $0.0 == 5 && $0.1 == target }.count == 1)
     }
 
     @Test func uncertainStartupRetainsOriginalWorkerUntilItCanClose() async throws {
