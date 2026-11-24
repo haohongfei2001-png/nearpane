@@ -31,15 +31,15 @@ pub(super) struct Publication {
 
 /// Only a complete CG observation is actionable. Any press in the dynamically changing park zone
 /// revokes qualification if its recipient cannot yet be identified; it is never guessed.
-fn hit(p: &Publication, at: Point, now: Instant, pid: i32) -> Result<bool, u32> {
+fn hit(p: &Publication, at: Point, now: Instant, pid: i32) -> Result<Option<u32>, u32> {
     if !p.shield.may_hit(at) {
-        return Ok(false);
+        return Ok(None);
     }
     if p.moving_window.is_some_and(|(_, zone)| zone.contains(at)) {
         return Err(CHANGING);
     }
     let rows = p.seen.fresh(now).ok_or(STALE)?;
-    Ok(p.shield.hits(rows, at, pid).is_some())
+    Ok(p.shield.hits(rows, at, pid))
 }
 
 fn observed_owner(p: &Publication, now: Instant, window: u32) -> Option<i32> {
@@ -75,7 +75,8 @@ fn press_decision(
         });
         return (false, outside.then_some(RECEIVER_DISAGREES));
     }
-    let predicted = hit(p, at, now, -1);
+    let under_pointer = hit(p, at, now, -1);
+    let predicted = under_pointer.map(|window| window.is_some());
     let Some((id, pid)) = recipient else { return (false, Some(RECEIVER_DISAGREES)); };
     let parked = p.shield.parked.contains(&id);
     // A new ordinary window can appear above a parked sibling between CG snapshots.
@@ -85,6 +86,13 @@ fn press_decision(
         return (false, Some(predicted.err().unwrap_or(RECEIVER_DISAGREES)));
     }
     if id == 0 || pid == 0 {
+        // A session-head down can identify only the receiving application. Its
+        // gesture cannot belong to a geometric candidate owned by a different PID.
+        if id == 0 && pid > 0 && let Ok(Some(candidate)) = under_pointer
+            && observed_owner(p, now, candidate) != Some(pid)
+        {
+            return (false, Some(RECEIVER_DISAGREES));
+        }
         if parked && predicted == Ok(false) {
             return (false, Some(RECEIVER_DISAGREES));
         }
@@ -406,10 +414,10 @@ mod tests {
             ),
             Err(STALE)
         );
-        assert_eq!(hit(&publication(now, false), at, now, 123), Ok(true));
+        assert_eq!(hit(&publication(now, false), at, now, 123), Ok(Some(9)));
         assert_eq!(
             hit(&publication(now, true), Point::new(5., 5.), now, 123),
-            Ok(false)
+            Ok(None)
         );
     }
     #[test]
@@ -564,6 +572,18 @@ mod tests {
             assert_eq!(tap.health(), Err(RECEIVER_DISAGREES));
             assert_eq!(decide(raw, 6, 95., 97., 0, 9, 44), 0);
             assert_eq!(decide(raw, 2, 95., 97., 0, 9, 44), 0);
+        }
+    }
+    #[test]
+    fn process_only_down_cannot_be_claimed_by_a_window_from_another_process() {
+        for (pid, expected, health) in [(45, 0, Err(RECEIVER_DISAGREES)), (44, 1, Ok(()))] {
+            let (tap, mut handler) = Tap::pair(publication(Instant::now(), false));
+            tap.shared.ready.store(true, Ordering::Release);
+            let raw = (&mut handler as *mut TapThread).cast();
+            assert_eq!(decide(raw, 1, 95., 97., 0, 0, pid), expected);
+            assert_eq!(tap.health(), health);
+            assert_eq!(decide(raw, 6, 95., 97., 0, 9, 44), expected);
+            assert_eq!(decide(raw, 2, 95., 97., 0, 9, 44), expected);
         }
     }
     #[test]

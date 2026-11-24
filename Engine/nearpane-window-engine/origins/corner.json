@@ -63,7 +63,7 @@
     "local": "src/corner/tap.rs",
     "upstream": "src/platform/corner/sliver_tap.rs",
     "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
-    "modifications": "Use a session-owned tap with immutable observations. Preserve the complete gesture of an explicit nonmember or a different process when its window number contradicts the resize band. Yield on a confirmed stationary member outside its expected zone. Protect corroborated existing recipients during recovery."
+    "modifications": "Use a session-owned tap with immutable observations. Preserve a bystander's entire gesture when its window number or the only available target PID contradicts the leased window identified by the resize band. Yield on a confirmed stationary member outside its expected zone. Protect corroborated existing recipients during recovery."
   },
   {
     "local": "src/corner/tap.rs",
