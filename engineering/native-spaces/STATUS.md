@@ -4,7 +4,9 @@
 
 恢复过程中，如果窗口已经两次读回原位、Guardian 的最终回执稍后才落盘，侧栏现在会在原 Guardian 退出后处理这份回执。它重新核对窗口代际、几何、原生归属、旁窗和焦点，只读取已登记的同一次归还记录。用户已经移动窗口、回执仍缺失或还有未确认的窗口动作时保留恢复责任。已在故障注入中复现修复前窗口已归位而事务无法结束的问题；实际退场窗口上的迟到回执仍待实机验收。此次完整 Swift 回归 815 项通过、3 项跳过。[修复前失败、修复后与完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-release-after-return.zip)
 
-当前签名开发候选为 `539eb42`。本机完整 Swift 回归 814 项通过、3 项跳过，Corner 定向 83 项通过。侧栏与引擎两次源码提交触发的三项 CI 均通过；托管桌面作业跳过。ARM64 开发包及 14 个可执行组件通过严格验签。已从 GitHub 内部草稿独立下载当前候选并核对 SHA-256，上一候选 `74fc1cc` 的回滚包也已复核。日常版本继续运行。产品仍缺少一扇真实退场窗口的画面及键鼠收件证据，正式工作集合切换保持关闭。[签名、回滚和 CI 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-539eb42.json) · [WindowServer 原始读数、回归及失败记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-member-and-sheet-order.zip)
+当前签名开发候选为 `504e588`，回滚包为 `539eb42`。两个草稿附件均已核对完整 SHA-256，14 个可执行组件通过严格验签。当前源码的两项 CI 通过，真实退场和整组仍待验收。[候选、回滚及两项 CI](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-504e588.json)
+
+前一候选 `539eb42` 已验证侧栏成员选取和遮挡层级。本机完整 Swift 回归 814 项通过、3 项跳过，Corner 定向 83 项通过。侧栏与引擎两次源码提交触发的三项 CI 均通过；托管桌面作业跳过。ARM64 开发包及 14 个可执行组件通过严格验签。已从 GitHub 内部草稿独立下载当前候选并核对 SHA-256，上一候选 `74fc1cc` 的回滚包也已复核。日常版本继续运行。产品仍缺少一扇真实退场窗口的画面及键鼠收件证据，正式工作集合切换保持关闭。[签名、回滚和 CI 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-539eb42.json) · [WindowServer 原始读数、回归及失败记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-member-and-sheet-order.zip)
 
 在 26A428 实体机上，AppKit 完成遮挡面板重排时，WindowServer 仍返回旧顺序。Corner 现在原位移动同一面板，每次提交一次层级指令，再独立读回。同一签名测试进程的三个窗口中，首次确认新顺序在指令发出后 15.4 毫秒，第二次在 28.6 毫秒。未确认请求到期后没有再次派发。三个测试面板全部关闭，前台、HID 和原生桌面保持一致。此项为面板层级验收；第三方窗口退场及实际输入隔离仍未执行。
 

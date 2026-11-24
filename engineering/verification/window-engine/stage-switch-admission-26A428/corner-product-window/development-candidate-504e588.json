@@ -1,0 +1,161 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "504e5883b41137b2c067821934084f5670c68f34",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "c381e9ea250bb35650ccd5a8edb054aac6dd44b8",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33602049,
+  "sha256": "80942ad0a8a5fd1b34bd49837b1fe1c70df2840dbf75ee04d88769be21f3f843",
+  "previousCandidate": "539eb42752a84b83679f71d5d9bd3c2b7f3e844b",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "githubInternalDelivery": {
+    "draftReleaseID": 452393835,
+    "releaseStillDraft": true,
+    "publishedAt": null,
+    "releasePage": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+    "publicRelease": false,
+    "previousAssetsPreserved": true,
+    "assetCountBefore": 26,
+    "assetCountAfter": 27,
+    "items": [
+      {
+        "revision": "504e5883b41137b2c067821934084f5670c68f34",
+        "role": "development candidate",
+        "name": "Nearpane-5.22-90-arm64-504e588.zip",
+        "assetID": 786816468,
+        "bytes": 33602049,
+        "sha256": "80942ad0a8a5fd1b34bd49837b1fe1c70df2840dbf75ee04d88769be21f3f843",
+        "downloadSHA256": "80942ad0a8a5fd1b34bd49837b1fe1c70df2840dbf75ee04d88769be21f3f843",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/786816468",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-504e588.zip"
+      },
+      {
+        "revision": "539eb42752a84b83679f71d5d9bd3c2b7f3e844b",
+        "role": "rollback",
+        "name": "Nearpane-5.22-90-arm64-539eb42.zip",
+        "assetID": 786401937,
+        "bytes": 33521426,
+        "sha256": "9bd3ad8fd3689cc4cfb4f663f46cb54e227f433c48db3defc133d5a839b7fb8f",
+        "downloadSHA256": "9bd3ad8fd3689cc4cfb4f663f46cb54e227f433c48db3defc133d5a839b7fb8f",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/786401937",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-539eb42.zip"
+      }
+    ]
+  },
+  "sourceCI": [
+    {
+      "conclusion": "success",
+      "headSha": "504e5883b41137b2c067821934084f5670c68f34",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45378250392",
+      "workflowName": "StageGroup window engine"
+    },
+    {
+      "conclusion": "success",
+      "headSha": "504e5883b41137b2c067821934084f5670c68f34",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "protocol",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Desktop files on macOS 27",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45378250619",
+      "workflowName": "Nearpane native 5.22 protocol"
+    }
+  ],
+  "recoveryRegression": {
+    "scope": "Swift product recovery transaction and original Guardian receipt; fault injected in transport. No macOS window actions in these tests.",
+    "before": "FAIL",
+    "after": "PASS",
+    "xunit": {
+      "baseline.xml": {
+        "total": 1,
+        "failed": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "targeted.xml": {
+        "total": 35,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "full.xml": {
+        "total": 818,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 3
+      }
+    },
+    "archive": "guardian-release-after-return.zip",
+    "archiveSHA256": "764cc4fe0daf1705dfb70945e209b3b89cafb585dc2c18d184dcc72918b7ec03"
+  },
+  "physicalSheetEvidence": "development-candidate-539eb42.json",
+  "admission": {
+    "guardedThirdPartyRetirement": "BLOCKED",
+    "executorRaw": "result.json",
+    "authenticatedRegisteredFixturePixels": "registered-pixels.json",
+    "realSingleWindowHideInputRestore": "NOT_RUN",
+    "r4ABCA": "NOT_RUN",
+    "ten": "NOT_RUN",
+    "fifty": "NOT_RUN",
+    "multiplePhysicalDisplays": "NOT_RUN",
+    "pairedApplePerformance": "NOT_RUN"
+  }
+}

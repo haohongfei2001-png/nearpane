@@ -14,6 +14,18 @@
 
 当前的精确路径、历史差异与真实系统门槛见[架构审查](NEARPANE-STAGE-GROUP-ARCHITECTURE.md)和[新路线](NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。
 
+### Corner 从侧栏到真实窗口
+
+| 固定上游模块 | Nearpane 的执行路径 | 5.22 的适配和实测边界 |
+| --- | --- | --- |
+| `engine/geometry.rs`、`engine/corner/park.rs`、`engine/displays.rs` | Rust `corner/geometry.rs`、`park.rs`、`worker.rs` | 复用坐标和四角选择。移动之前，执行器核对物理显示器、原生归属、原 AX 对象和恢复责任。 |
+| `engine/corner/sliver.rs`、`platform/corner/sliver_tap.rs` | `sliver.rs`、`tap.rs`、`macos.m` | 复用残边、前后顺序、resize 边界及 PressGate。Nearpane 把实际收件人与持有窗口绑定；真实退场窗的整段键鼠收件待验。 |
+| `engine/corner/corner_patch.rs`、`ui/corner_patch.rs`、`platform/capture.rs` | `patch.rs`、`patch_sheet.m`、`patch_material.inc`、`patch_display.inc` | 复用裁片、重排和画面采样。实体机已测同一面板原位重排；执行器取得壁纸材质、独立观察器验证实际停放窗是两个环节。 |
+| `platform/guardian.rs`、`engine/recovery.rs` | `corner/guardian`、Swift `CornerGuardianClient`、`StageGroupCoordinator.releaseOwned` | Nearpane 加入进程代际、写前租约、两次独立原位读回和最终回执。实机已测可见测试窗口在 Host 正常和异常退出后归位。 |
+| Nearpane 产品代码 | `DesktopSurface` → `StageWindowEngineHost` → `StageGroupCoordinator` → `LinkedStageEngineTransport` → Rust `worker.rs` | Swift 持有唯一事务。侧栏传递被选中的组与具体成员。Rust 和 Swift 的生产准入均保持关闭。 |
+
+源码固定于 `69a73665488243bf78982c6d523ac4e0850c1ddb`。各移植文件的上游路径、原始 Blob 和修改说明已逐条登记。[MIT 与逐文件来源](../../Engine/nearpane-window-engine/origins/corner.json) · [当前候选和实机资格](../native-spaces/STATUS.md)
+
 ## ARCHIVED · 原 Native Spaces 路径图
 
 PR #15 的起点为 `6f85f73bc6b64290308ac610e342702f989a9f66`，接管时的安装版窗口修复源码为 `365fdc40c19853e4fa4343f9f20c240c85b7583b`。本目录三份裁决原文取自研究提交 `3151827799a646d4a41af7f15bae6fa8c520d00b`。原生源码与 PR #14 修复均沿 PR #15 历史向前更新。冻结的 R4 窗口卡、空态及视觉令牌继续生效。
