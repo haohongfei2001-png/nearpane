@@ -79,6 +79,13 @@ fn press_decision(
     let predicted = under_pointer.map(|window| window.is_some());
     let Some((id, pid)) = recipient else { return (false, Some(RECEIVER_DISAGREES)); };
     let parked = p.shield.parked.contains(&id);
+    if let Ok(Some(front)) = under_pointer && parked && front != id {
+        // Two leased windows can overlap, even in one process. Protect the actual receiver
+        // when its owner is corroborated and revoke this contradictory window order.
+        let owned = observed_owner(p, now, id)
+            .is_some_and(|seen| seen > 0 && (pid == 0 || seen == pid));
+        return (owned, Some(RECEIVER_DISAGREES));
+    }
     // A new ordinary window can appear above a parked sibling between CG snapshots.
     // Its explicit window number remains outside the lease even when the session-head
     // event does not carry a process ID.
@@ -472,6 +479,32 @@ mod tests {
             }, 0);
         }
         assert_eq!(tap.health(), Err(RECEIVER_DISAGREES));
+    }
+    #[test]
+    fn overlapping_parked_windows_must_agree_on_the_exact_gesture_recipient() {
+        for (rear_owner, event_owner, swallowed) in
+            [(44, 44, 1), (45, 45, 1), (44, 0, 1), (44, 77, 0)]
+        {
+            let at = Instant::now();
+            let mut p = publication(at, false);
+            p.shield.parked.insert(12);
+            p.seen.windows.push(Listed {
+                id: 12,
+                pid: rear_owner,
+                ..p.seen.windows[0]
+            });
+            assert_eq!(hit(&p, Point::new(95., 97.), at, -1), Ok(Some(9)));
+            let (port, mut handler) = Tap::pair(p);
+            port.shared.ready.store(true, Ordering::Release);
+            let raw = (&mut handler as *mut TapThread).cast();
+            // Quartz identifies the rear window. Keep the verified parked receiver's entire
+            // gesture isolated, but this stack cannot authorize another window operation.
+            assert_eq!(decide(raw, 1, 95., 97., 0, 12, event_owner), swallowed);
+            assert_eq!(port.health(), Err(RECEIVER_DISAGREES));
+            assert_eq!(decide(raw, 6, 3., 4., 0, 9, 44), swallowed);
+            assert_eq!(decide(raw, 2, 3., 4., 0, 9, 44), swallowed);
+            assert!(!port.shared.busy.load(Ordering::Acquire));
+        }
     }
     #[test]
     fn confirmed_receiver_disagreement_latches_the_whole_gesture_and_revokes_health() {
