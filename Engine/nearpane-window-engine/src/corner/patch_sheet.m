@@ -139,8 +139,10 @@ uint32_t np_corner_patch_sites(const NCMember *home, const NCFrame *footprints, 
     return 0;
 }
 
+typedef NS_ENUM(NSUInteger, NCOrderRead) { NCOrderConfirmed, NCOrderPlanned, NCOrderSettling };
+
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
-                            BOOL planned, uint32_t *obstruction) {
+                            NCOrderRead read, uint32_t *obstruction) {
     NCListed *rows = calloc(2048, sizeof(*rows));
     if (!rows)
         return 0;
@@ -160,7 +162,10 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     for (unsigned i = 0; i < n; i++) {
         const NCListed *w = &rows[i];
         if (w->window == panel) {
-            if (w->pid != getpid()) { free(rows); return 0; }
+            if (passedSheet || w->pid != getpid() || (read == NCOrderSettling &&
+                (w->layer != NSNormalWindowLevel || w->alpha != 1 || !CGRectEqualToRect(patchRect(w->frame), patchRect(frame))))) {
+                free(rows); return 0;
+            }
             passedSheet = YES;
         }
         if (!CGRectIntersectsRect(patchRect(frame), patchRect(w->frame)))
@@ -183,13 +188,18 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
             if (matched & bit) { free(rows); return 0; }
             matched |= bit;
         } else if (w->window != panel && !reason) {
+            // A lagging sheet may sit below an enrolled window. It may never cover an ordinary bystander.
+            if (read == NCOrderSettling && passedSheet && w->layer == NSNormalWindowLevel && w->alpha > 0) {
+                free(rows); return 0;
+            }
             reason = nc_site_layer(w, patchRect(frame), icons, &dock,
                                    !above && !passedSheet && ownSidebarAbove(w, screen), true);
         }
     }
     BOOL complete = matched == (UINT64_MAX >> (64 - count));
     if (complete) *obstruction = reason;
-    BOOL ok = complete && !reason && above && np_corner_patch_order(rows, n, ids, count, panel, above, frame, planned);
+    BOOL ok = complete && !reason && above && np_corner_patch_order(rows, n, ids, count, panel, above, frame,
+                                                                     read != NCOrderConfirmed);
     free(rows);
     return ok ? above : 0;
 }
@@ -201,6 +211,12 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
 @property(nonatomic) NSUInteger generation;
 @property(nonatomic) BOOL sampling;
 @property(nonatomic) NSTimeInterval lastAttempt, lastMatch;
+@property(nonatomic, strong) NSData *orderPacket;
+@property(nonatomic) uint32_t orderAnchor;
+@property(nonatomic) uint64_t orderStartedNS;
+@property(nonatomic) BOOL orderReadScheduled;
+- (BOOL)orderExpired;
+- (BOOL)placeAbove:(uint32_t)anchor packet:(NSData *)packet;
 @end
 @implementation NCPatchSheet
 - (void)invalidatePicture {
@@ -208,6 +224,24 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     self.sampling = NO;
     self.lastAttempt = 0;
     self.lastMatch = 0;
+}
+- (BOOL)orderExpired {
+    return self.orderPacket && clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - self.orderStartedNS >= 250 * NSEC_PER_MSEC;
+}
+- (BOOL)placeAbove:(uint32_t)anchor packet:(NSData *)packet {
+    NCWallpaperPanel *panel = self.panel;
+    if (!anchor || !packet || !panel || panel.keyWindow || panel.mainWindow || !panel.ignoresMouseEvents ||
+        (panel.visible && !panel.onActiveSpace)) return NO;
+    if (self.orderPacket == packet) {
+        return self.orderAnchor == anchor && panel.visible && ![self orderExpired];
+    }
+    [self invalidatePicture];
+    self.orderPacket = packet;
+    self.orderAnchor = anchor;
+    self.orderStartedNS = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+    // AppKit can restack a visible sheet in place. Ordering it out here would expose its previous members.
+    [panel orderWindow:NSWindowAbove relativeTo:anchor];
+    return panel.visible && panel.onActiveSpace && !panel.keyWindow && !panel.mainWindow && panel.ignoresMouseEvents;
 }
 @end
 
@@ -245,11 +279,11 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         interruptInput(reason);
     }
 }
-- (uint32_t)order:(NSData *)group frame:(NCFrame)frame panel:(uint32_t)panel planned:(BOOL)planned packet:(NSData *)packet {
+- (uint32_t)order:(NSData *)group frame:(NCFrame)frame panel:(uint32_t)panel read:(NCOrderRead)read packet:(NSData *)packet {
     if (![self current:packet]) return 0;
     uint32_t obstruction = 0;
     uint32_t anchor = targetOrder(group.bytes, (unsigned)(group.length / sizeof(NCParkedPatchMember)),
-                                  frame, panel, planned, &obstruction);
+                                  frame, panel, read, &obstruction);
     if (obstruction) [self interrupt:obstruction packet:packet];
     return anchor;
 }
@@ -316,7 +350,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     }
     if (!sheet) {
         // Plan first so an obstructed corner never incurs a wallpaper decode.
-        if (![self order:group frame:frame panel:UINT32_MAX planned:YES packet:packet])
+        if (![self order:group frame:frame panel:UINT32_MAX read:NCOrderPlanned packet:packet])
             return NO;
         sheet = [NCPatchSheet new];
         sheet.source = source;
@@ -349,21 +383,36 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     // A new member may change the highest parked window without moving the existing sheet.
     // Its real Z-order must already cover this exact roster. The surface proof still belongs
     // to the same panel, material, native desktop, display and pixel rectangle.
-    uint32_t covered = panel.visible && panel.onActiveSpace ? [self order:group frame:frame panel:number planned:NO packet:packet] : 0;
+    if (sheet.orderPacket == packet && [sheet orderExpired]) {
+        [self interrupt:NP_CORNER_SITE_UNAVAILABLE packet:packet];
+        return NO;
+    }
+    uint32_t covered = panel.visible && panel.onActiveSpace ? [self order:group frame:frame panel:number read:NCOrderConfirmed packet:packet] : 0;
     if (covered) {
+        sheet.orderPacket = nil;
         *verified = [self picture:sheet home:&members[0].member key:key frame:frame packet:packet];
         return YES;
     }
-    if (panel.visible)
-        [panel orderOut:nil];
-    uint32_t anchor = [self order:group frame:frame panel:number planned:YES packet:packet];
-    if (!anchor || ![self current:packet])
+    uint32_t anchor = [self order:group frame:frame panel:number read:NCOrderSettling packet:packet];
+    if (!anchor || ![self current:packet]) {
+        if (panel.visible) [self interrupt:NP_CORNER_SITE_UNAVAILABLE packet:packet];
         return NO;
-    [sheet invalidatePicture];
-    [panel orderWindow:NSWindowAbove relativeTo:anchor];
-    if (!panel.visible || !panel.onActiveSpace || panel.keyWindow || panel.mainWindow ||
-        !panel.ignoresMouseEvents || [self order:group frame:frame panel:number planned:NO packet:packet] != anchor) return NO;
-    *verified = [self picture:sheet home:&members[0].member key:key frame:frame packet:packet];
+    }
+    if (![sheet placeAbove:anchor packet:packet]) {
+        [self interrupt:NP_CORNER_SITE_UNAVAILABLE packet:packet];
+        return NO;
+    }
+    // WindowServer may still list the old order on return from AppKit. Keep the
+    // sheet unverified and re-read the roster; never reissue the same pending order.
+    if (!sheet.orderReadScheduled) {
+        sheet.orderReadScheduled = YES;
+        __weak NCPatchSession *weak = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 16 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+            sheet.orderReadScheduled = NO;
+            NCPatchSession *session = weak;
+            if (session.sheets[key] == sheet && [session current:sheet.orderPacket]) [session update];
+        });
+    }
     return YES;
 }
 - (void)update {

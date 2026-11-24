@@ -45,7 +45,7 @@
     "local": "src/corner/patch_sheet.m",
     "upstream": "src/ui/corner_patch.rs",
     "blob": "ca8cfc370677549227fa57d3dc8c96675a581edb",
-    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering to AppKit. Verify the live wallpaper against the sheet. Withdraw stale publications. A confirmed obstruction over the enrolled windows or a changed verified picture revokes the same input generation immediately."
+    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering to AppKit. Restack a visible sheet in place when the topmost parked member changes. Verify its new order and live wallpaper. Withdraw stale publications. A confirmed obstruction or changed verified picture revokes the input generation."
   },
   {
     "local": "src/corner/patch_material.inc",

@@ -2,6 +2,8 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
+在 26A428 实体机上，AppKit 完成遮挡面板重排时，WindowServer 仍返回旧顺序。Corner 现在原位移动同一面板，每次提交一次层级指令，再独立读回。同一签名测试进程的三个窗口中，首次确认新顺序在指令发出后 15.4 毫秒，第二次在 28.6 毫秒。未确认请求到期后没有再次派发。三个测试面板全部关闭，前台、HID 和原生桌面保持一致。此项为面板层级验收；第三方窗口退场及实际输入隔离仍未执行。
+
 非活动组合的历史画面现在可选择具体窗口。按下和抬起必须命中同一批画面的同一成员；真实切换事务会再核对该成员的 AX 对象、窗口代际、桌面归属和恢复责任。标题及画面空白处仍恢复上次焦点。26A428 上的定向验证已覆盖同应用两窗重叠、缺图、拖动、按下后换代及整组恢复的焦点选择。此次指针事件只交给未显示的 R4 测试面板；实体机第三方窗口退场和键盘输入仍待验收。
 
 **R4 侧栏整组切换尚未取得生产资格。** 目标实体机 26A428 上，Guardian 已在测试 Host 正常退出和异常退出后，将屏内偏移 24 点的签名普通窗口恢复到原位。独立观察器也已两次验证正式引擎面板完全遮住受控色块。[正常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [异常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [实际遮挡读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control.json)
