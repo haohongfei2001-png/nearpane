@@ -235,14 +235,15 @@ if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "corner-fixture
     RunLoop.main.run()
     exit(3)
 }
-if CommandLine.arguments.count == 3, ["product-corner-material", "product-corner-panel", "product-corner-occlusion"].contains(CommandLine.arguments[1]),
+if CommandLine.arguments.count == 3, ["product-corner-material", "product-corner-site", "product-corner-panel", "product-corner-occlusion"].contains(CommandLine.arguments[1]),
    let nonce = UUID(uuidString: CommandLine.arguments[2]) {
-    let panel = CommandLine.arguments[1] != "product-corner-material"
     let occlusion = CommandLine.arguments[1] == "product-corner-occlusion"
+    let panel = occlusion || CommandLine.arguments[1] == "product-corner-panel"
+    let site = CommandLine.arguments[1] == "product-corner-site"
     if panel { NSApplication.shared.setActivationPolicy(.accessory) }
     DispatchQueue.global(qos: .userInitiated).async {
         let name = nonce.uuidString as CFString
-        let row = (panel ? NPObserveProductCornerPanel(name, occlusion) : NPObserveProductCornerMaterial(name)) as NSDictionary
+        let row = (panel ? NPObserveProductCornerPanel(name, occlusion) : NPObserveProductCornerPreparation(name, site)) as NSDictionary
         guard let data = try? JSONSerialization.data(withJSONObject: row, options: .sortedKeys) else { exit(3) }
         print(String(decoding: data, as: UTF8.self))
         exit(row["status"] as? String == "PASS" ? 0 : 2)

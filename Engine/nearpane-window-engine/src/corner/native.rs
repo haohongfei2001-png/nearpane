@@ -94,9 +94,16 @@ unsafe extern "C" {
     fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
     fn np_corner_patch_verified(session: *mut c_void, member: *const PatchMember) -> bool;
     fn np_corner_patch_prepare_source(session: *mut c_void, home: *const Member, footprint: Rect, prepare: bool) -> u32;
+    fn np_corner_patch_site(home: *const Member, footprint: Rect) -> u32;
     fn np_corner_patch_end(session: *mut c_void);
 }
 pub(super) struct PatchMaterial(std::ptr::NonNull<c_void>);
+pub(super) fn check_patch_site(home: &Member, footprint: Rect) -> Result<(), u32> {
+    match unsafe { np_corner_patch_site(home, footprint) } {
+        0 => Ok(()),
+        reason => Err(reason),
+    }
+}
 impl PatchMaterial {
     pub fn new() -> Option<Self> {
         std::ptr::NonNull::new(unsafe { np_corner_patch_material() }).map(Self)

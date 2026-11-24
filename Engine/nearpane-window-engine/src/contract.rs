@@ -23,6 +23,7 @@ pub const LAUNCH: u32 = 8;
 pub const CLEAN_LAUNCH: u32 = 9;
 pub const CORNER_PARK_ACCESS: u32 = 10;
 pub const CORNER_DISPLAY_MATERIAL: u32 = 11;
+pub const CORNER_RETIREMENT_SURFACE: u32 = 12;
 pub const PASS: u32 = 0;
 pub const FAIL: u32 = 1;
 pub const UNKNOWN: u32 = 2;
@@ -116,7 +117,7 @@ impl Request {
     }
     pub fn valid(&self) -> bool {
         if !matches!(self.backend, CORNER | SPACES)
-            || !(PROBE..=CORNER_DISPLAY_MATERIAL).contains(&self.operation)
+            || !(PROBE..=CORNER_RETIREMENT_SURFACE).contains(&self.operation)
             || self.intent == [0; 16]
             || self.epoch == 0
             || !(1..=10_000).contains(&self.timeout_ms)
@@ -131,7 +132,7 @@ impl Request {
         if matches!(self.operation, PROBE | HEALTH) {
             return true;
         }
-        if self.operation == CORNER_DISPLAY_MATERIAL {
+        if matches!(self.operation, CORNER_DISPLAY_MATERIAL | CORNER_RETIREMENT_SURFACE) {
             return self.backend == CORNER && self.display != [0; 16] && self.native_space != [0; 16]
                 && self.native_id > 0 && self.pid == 0 && self.window == 0 && self.birth == 0
                 && self.frame == Rect::default() && self.target == Rect::default()

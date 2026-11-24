@@ -37,6 +37,14 @@ const OWNERSHIP_UNKNOWN: u32 = 45;
 const NEED_INDEPENDENT_READ: u32 = 46;
 const PICTURE_UNCONFIRMED: u32 = 47;
 const PICTURE_SOURCE_UNAVAILABLE: u32 = 48;
+const SITE_UNAVAILABLE: u32 = 51;
+
+#[derive(Clone, Copy, PartialEq)]
+enum SurfaceUse {
+    ObserveMaterial,
+    PrepareRetirement,
+    RecheckBeforeMove,
+}
 
 struct Owned {
     key: Key,
@@ -143,13 +151,14 @@ fn health_member(r: &Request) -> Result<Option<Member>, u32> {
 }
 
 impl Corner {
-    fn drawable_corner<'a>(&mut self, list: &'a [Display], home: &Member, prepare: bool) -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
+    fn drawable_corner<'a>(&mut self, list: &'a [Display], home: &Member, usage: SurfaceUse) -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
         let (display, corner) = scoped(list, home.display)?;
         let zone = sliver::corner_zone(display.frame, display.visible, corner);
         let footprint = patch::patch_rect(&[zone], display.frame, patch::DEFAULT_REACH).ok_or(BAD_LAYOUT)?;
+        if usage != SurfaceUse::ObserveMaterial { native::check_patch_site(home, footprint)?; }
         if self.material.is_none() { self.material = native::PatchMaterial::new(); }
         let material = self.material.as_ref().ok_or(PICTURE_SOURCE_UNAVAILABLE)?;
-        let source = material.source(home, footprint, prepare);
+        let source = material.source(home, footprint, usage != SurfaceUse::RecheckBeforeMove);
         if source == 0 { return Err(PICTURE_SOURCE_UNAVAILABLE); }
         Ok((display, corner, footprint, source))
     }
@@ -403,9 +412,9 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        let (display, corner, _, _) = match self.drawable_corner(&layout, &id, false) {
+        let (display, corner, _, _) = match self.drawable_corner(&layout, &id, SurfaceUse::RecheckBeforeMove) {
             Ok(v) => v,
-            Err(e) => return self.result(c::UNSUPPORTED, e, None, false),
+            Err(e) => return self.result(if e == SITE_UNAVAILABLE { c::UNKNOWN } else { c::UNSUPPORTED }, e, None, false),
         };
         let sample = match native::sample(&id) {
             Ok(v) => v,
@@ -613,9 +622,15 @@ impl WindowEngine for Corner {
                 Ok(()) => self.result(c::PASS, 0, None, false),
                 Err(why) => self.result(c::UNSUPPORTED, why, None, false),
             },
-            c::CORNER_DISPLAY_MATERIAL => {
+            c::CORNER_DISPLAY_MATERIAL | c::CORNER_RETIREMENT_SURFACE => {
+                let usage = if r.operation == c::CORNER_RETIREMENT_SURFACE {
+                    SurfaceUse::PrepareRetirement
+                } else {
+                    SurfaceUse::ObserveMaterial
+                };
                 let eligible = native::displays().and_then(|layout| {
-                    self.drawable_corner(&layout, &Member::from(r), true).map(|(_, _, frame, source)| (frame, source))
+                    self.drawable_corner(&layout, &Member::from(r), usage)
+                        .map(|(_, _, frame, source)| (frame, source))
                 });
                 match eligible {
                     Ok((frame, source)) => {
@@ -624,6 +639,7 @@ impl WindowEngine for Corner {
                         result.frame = abi(frame);
                         result
                     }
+                    Err(SITE_UNAVAILABLE) => self.result(c::UNKNOWN, SITE_UNAVAILABLE, None, false),
                     Err(why) => self.result(c::UNSUPPORTED, why, None, false),
                 }
             }
@@ -656,17 +672,19 @@ mod tests {
     use super::*;
     #[test]
     fn display_material_preflight_has_no_window_or_write_authority() {
-        let scope = Request {
-            backend: c::CORNER, operation: c::CORNER_DISPLAY_MATERIAL, intent: [1; 16],
-            display: [2; 16], native_space: [3; 16], native_id: 4, epoch: 1, timeout_ms: 500,
-            ..Request::default()
-        };
-        assert!(scope.valid() && !scope.writes());
-        assert!(!Request { window: 1, ..scope }.valid());
-        assert!(!Request { group: [7; 16], ..scope }.valid());
-        assert!(!Request { native_id: 0, ..scope }.valid());
-        assert!(!Request { display: [0; 16], ..scope }.valid());
-        assert!(!Request { backend: c::SPACES, ..scope }.valid());
+        for operation in [c::CORNER_DISPLAY_MATERIAL, c::CORNER_RETIREMENT_SURFACE] {
+            let scope = Request {
+                backend: c::CORNER, operation, intent: [1; 16],
+                display: [2; 16], native_space: [3; 16], native_id: 4, epoch: 1, timeout_ms: 500,
+                ..Request::default()
+            };
+            assert!(scope.valid() && !scope.writes());
+            assert!(!Request { window: 1, ..scope }.valid());
+            assert!(!Request { group: [7; 16], ..scope }.valid());
+            assert!(!Request { native_id: 0, ..scope }.valid());
+            assert!(!Request { display: [0; 16], ..scope }.valid());
+            assert!(!Request { backend: c::SPACES, ..scope }.valid());
+        }
     }
     #[test]
     fn neither_a_visible_patch_nor_an_input_shield_alone_confirms_isolation() {

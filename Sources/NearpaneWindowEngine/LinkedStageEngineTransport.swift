@@ -21,7 +21,7 @@ import NearpaneCore
                                                    intent: permissionIntent), expectedEpoch: epoch)
         guard access.epoch == epoch, access.intent == permissionIntent, access.status == NP_PASS, access.flags == 0
         else { throw StageSwitchError.unavailable }
-        let request = NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_DISPLAY_MATERIAL),
+        let request = NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_CORNER_RETIREMENT_SURFACE),
                                                intent: intent, scope: scope, nativeID: nativeID)
         let read = try await engine.submit(request, timeoutMilliseconds: 4_000, expectedEpoch: epoch)
         guard try engine.currentEpoch() == epoch, read.epoch == epoch, read.intent == intent,

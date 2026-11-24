@@ -71,6 +71,55 @@ static CGRect patchRect(NCFrame r) { return CGRectMake(r.x, r.y, r.w, r.h); }
 
 #include "patch_material.inc"
 #include "patch_display.inc"
+#include "patch_site.h"
+
+// Only the actual R4 panel of this Host is a known interactive surface above the sheet.
+// It stays in both CG lists, so normal sidebar clicks and drags continue to reach it.
+static BOOL ownSidebarAbove(const NCListed *row, NSScreen *screen) {
+    if (!screen || row->pid != getpid() || row->layer != NSFloatingWindowLevel) return NO;
+    Class type = NSClassFromString(@"NearpaneR4EdgePanel");
+    NSWindow *side = [NSApp windowWithWindowNumber:row->window];
+    if (!type || ![side isMemberOfClass:type] || !side.visible || !side.onActiveSpace ||
+        ![side.screen.deviceDescription[@"NSScreenNumber"] isEqual:screen.deviceDescription[@"NSScreenNumber"]] ||
+        side.isKeyWindow || side.isMainWindow || side.ignoresMouseEvents ||
+        side.level != NSFloatingWindowLevel || !(side.styleMask & NSWindowStyleMaskNonactivatingPanel)) return NO;
+    CGDirectDisplayID display = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+    return NSEqualRects(side.frame, cornerPanelFrame(screen, CGDisplayBounds(display), patchRect(row->frame)));
+}
+
+// Read the potential shadow area before the coordinator changes focus and again before a hide.
+// A clear site still requires the actual measured sliver, sheet, input and ordering after the move.
+uint32_t np_corner_patch_site(const NCMember *home, NCFrame footprint) {
+    if (!home || NSThread.isMainThread || !stillOrdinaryHome(home)) return NP_CORNER_SITE_UNAVAILABLE;
+    NSTimeInterval began = NSProcessInfo.processInfo.systemUptime;
+    NSMutableData *storage = [NSMutableData dataWithLength:2048 * sizeof(NCListed)];
+    NCDock dock = {};
+    uint32_t count = 0;
+    if (np_corner_visual_zorder(storage.mutableBytes, 2048, &count, &dock) || !count)
+        return NP_CORNER_SITE_UNAVAILABLE;
+    NCMember scope = *home;
+    __block uint32_t reason = NP_CORNER_SITE_UNAVAILABLE;
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSScreen *screen = cornerScreen(&scope);
+        CGDirectDisplayID id = [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue];
+        CGRect display = CGDisplayBounds(id), area = patchRect(footprint);
+        if (screen && !CGRectIsEmpty(area) && CGRectEqualToRect(CGRectIntegral(area), area) &&
+            CGRectContainsRect(display, area) && area.size.width <= 128 &&
+            (CGRectGetMinX(display) == CGRectGetMinX(area) || CGRectGetMaxX(display) == CGRectGetMaxX(area))) {
+            const NCListed *rows = storage.bytes;
+            CGWindowLevel icons = CGWindowLevelForKey(kCGDesktopIconWindowLevelKey);
+            reason = 0;
+            for (uint32_t i = 0; i < count && !reason; i++)
+                reason = nc_site_layer(&rows[i], area, icons, &dock, ownSidebarAbove(&rows[i], screen), false);
+        }
+        dispatch_semaphore_signal(done);
+    });
+    if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC)) ||
+        NSProcessInfo.processInfo.systemUptime - began >= .25 || !stillOrdinaryHome(home))
+        return NP_CORNER_SITE_UNAVAILABLE;
+    return reason;
+}
 
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
                             BOOL planned) {
@@ -86,9 +135,14 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     for (unsigned j = 0; j < count; j++)
         ids[j] = members[j].member.window;
     CGWindowLevel icons = CGWindowLevelForKey(kCGDesktopIconWindowLevelKey);
+    NSScreen *screen = cornerScreen(&members[0].member);
+    BOOL passedSheet = NO;
     for (unsigned i = 0; i < n; i++) {
         const NCListed *w = &rows[i];
-        if (w->window == panel && w->pid != getpid()) { free(rows); return 0; }
+        if (w->window == panel) {
+            if (w->pid != getpid()) { free(rows); return 0; }
+            passedSheet = YES;
+        }
         if (!CGRectIntersectsRect(patchRect(frame), patchRect(w->frame)))
             continue;
         unsigned j = 0;
@@ -105,23 +159,10 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
             }
             if (!above)
                 above = w->window;
-        } else if (w->window != panel && w->alpha > 0) {
-            // Do not paint wallpaper over desktop icons, widgets, a menu, or the actual Dock.
-            if (w->layer >= icons && w->layer < 0) {
-                free(rows);
-                return 0;
-            }
-            if (w->layer > 0) {
-                if (w->pid != dock.pid || w->layer != 20 || !dock.count) {
-                    free(rows);
-                    return 0;
-                }
-                for (unsigned k = 0; k < dock.count; k++)
-                    if (CGRectIntersectsRect(patchRect(dock.bars[k]), patchRect(frame))) {
-                        free(rows);
-                        return 0;
-                    }
-            }
+        } else if (w->window != panel &&
+                   nc_site_layer(w, patchRect(frame), icons, &dock, !above && !passedSheet && ownSidebarAbove(w, screen), true)) {
+            free(rows);
+            return 0;
         }
     }
     BOOL ok = above && np_corner_patch_order(rows, n, ids, count, panel, above, frame, planned);

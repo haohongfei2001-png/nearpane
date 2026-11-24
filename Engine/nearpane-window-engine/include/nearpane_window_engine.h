@@ -14,10 +14,15 @@ extern "C" {
  * Each command concerns one journaled window. 32 outstanding tickets per handle. */
 enum { NP_ENGINE_ABI = 1, NP_CORNER = 1, NP_SPACES = 2 };
 enum { NP_PROBE = 1, NP_READBACK, NP_HIDE, NP_SHOW, NP_RESTORE, NP_HEALTH, NP_TRIAL,
-       NP_LAUNCH, NP_CLEAN_LAUNCH, NP_CORNER_PARK_ACCESS, NP_CORNER_DISPLAY_MATERIAL };
+       NP_LAUNCH, NP_CLEAN_LAUNCH, NP_CORNER_PARK_ACCESS, NP_CORNER_DISPLAY_MATERIAL,
+       NP_CORNER_RETIREMENT_SURFACE };
 /* DISPLAY_MATERIAL returns the complete shadow footprint, native ID and the
  * verified source in detail. It cannot acquire visibility, input or window rights. */
 enum { NP_CORNER_MATERIAL_SEALED_FILE = 49, NP_CORNER_MATERIAL_WALLPAPER_SURFACE = 50 };
+/* RETIREMENT_SURFACE also checks the proposed corner against the current desktop,
+ * other panels and the real Dock before preparing pixels. Neither call moves a window. */
+enum { NP_CORNER_SITE_UNAVAILABLE = 51, NP_CORNER_SITE_DESKTOP = 52,
+       NP_CORNER_SITE_OVERLAY = 53, NP_CORNER_SITE_DOCK = 54 };
 /* Read-only eligibility of the calling Host. No window, tap or write authority. */
 enum { NP_CORNER_MISSING_AX = 1, NP_CORNER_MISSING_LISTEN = 19,
        NP_CORNER_MISSING_POST = 20, NP_CORNER_MISSING_CAPTURE = 21 };

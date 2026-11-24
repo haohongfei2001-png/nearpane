@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 import NearpaneCore
 
+// The linked Corner executor identifies this exact in-process class when checking
+// the R4 surface above its normal-level sheet. Window titles are not identities.
+@objc(NearpaneR4EdgePanel)
 public final class EdgePanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }

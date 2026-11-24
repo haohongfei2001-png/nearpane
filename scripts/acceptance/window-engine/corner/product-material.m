@@ -32,10 +32,10 @@ bool NPCornerObserverMatchesHome(CFStringRef display, CFStringRef space, uint64_
         [nc_uuid(home[@"space"]) isEqual:nc_uuid((__bridge NSString *)space)];
 }
 
-static NSDictionary *observe(uint64_t handle, NSDictionary *home, NSUUID *nonce) {
+static NSDictionary *observe(uint64_t handle, NSDictionary *home, NSUUID *nonce, uint32_t operation) {
     NSMutableDictionary *record = [@{@"challenge":nonce.UUIDString, @"status":@"UNKNOWN"} mutableCopy];
     NPRequest request = {.size=sizeof(NPRequest), .version=NP_ENGINE_ABI, .backend=NP_CORNER,
-        .operation=NP_CORNER_DISPLAY_MATERIAL, .timeout_ms=4000, .native_id=[home[@"native"] unsignedLongLongValue]};
+        .operation=operation, .timeout_ms=4000, .native_id=[home[@"native"] unsignedLongLongValue]};
     [nc_uuid(home[@"display"]) getUUIDBytes:request.display]; [nc_uuid(home[@"space"]) getUUIDBytes:request.native_space];
     [nonce getUUIDBytes:request.intent];
     uint64_t ticket = 0;
@@ -58,13 +58,16 @@ static NSDictionary *observe(uint64_t handle, NSDictionary *home, NSUUID *nonce)
             !memcmp(receipt.intent,request.intent,16) && receipt.epoch == request.epoch && !receipt.flags && !receipt.owned &&
             receipt.detail == NP_CORNER_MATERIAL_WALLPAPER_SURFACE &&
             receipt.frame.width > 0 && receipt.frame.height > 0) record[@"status"] = @"PASS";
-        if (receipt.status == NP_UNSUPPORTED) record[@"status"] = @"BLOCKED";
+        if (receipt.status == NP_UNSUPPORTED && !memcmp(receipt.intent,request.intent,16) &&
+            receipt.epoch == request.epoch && !receipt.flags)
+            record[@"status"] = @"BLOCKED";
     }
     return record;
 }
 
-CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
-    NSMutableDictionary *record = [@{@"scope":@"readOnlyProductCornerMaterial", @"status":@"BLOCKED",
+CFDictionaryRef NPObserveProductCornerPreparation(CFStringRef nonceText, bool requireRetirementSite) {
+    uint32_t operation = requireRetirementSite ? NP_CORNER_RETIREMENT_SURFACE : NP_CORNER_DISPLAY_MATERIAL;
+    NSMutableDictionary *record = [@{@"scope":requireRetirementSite ? @"readOnlyProductRetirementSite" : @"readOnlyProductCornerMaterial", @"status":@"BLOCKED",
         @"windowWrites":@0, @"inputEvents":@0, @"storedFrames":@0, @"productionQualified":@NO} mutableCopy];
     NSUUID *nonce = [[NSUUID alloc] initWithUUIDString:(__bridge NSString *)nonceText];
     NSDictionary *home = ordinaryDisplay();
@@ -74,11 +77,11 @@ CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
     NPConfig config = {.size=sizeof(NPConfig), .version=NP_ENGINE_ABI, .mode=NP_HOST};
     uint64_t handle = 0;
     if (np_engine_create(&config, &handle) != NP_OK) { record[@"reason"] = @"engineCreate"; return CFBridgingRetain(record); }
-    NSDictionary *cold = observe(handle, home, nonce);
+    NSDictionary *cold = observe(handle, home, nonce, operation);
     record[@"cold"] = cold;
     record[@"status"] = cold[@"status"];
     if ([cold[@"status"] isEqual:@"PASS"] && [ordinaryDisplay() isEqual:home]) {
-        NSDictionary *warm = observe(handle, home, NSUUID.UUID);
+        NSDictionary *warm = observe(handle, home, NSUUID.UUID, operation);
         record[@"warm"] = warm;
         record[@"status"] = [warm[@"shadowFootprint"] isEqual:cold[@"shadowFootprint"]] &&
             [warm[@"nativeDetail"] isEqual:cold[@"nativeDetail"]] ? warm[@"status"] : @"UNKNOWN";
@@ -88,6 +91,10 @@ CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
     NSDictionary *after = ordinaryDisplay(); if (after) record[@"after"] = after;
     if (closed != NP_OK || ![home isEqual:after]) record[@"status"] = @"UNKNOWN";
     return CFBridgingRetain(record);
+}
+
+CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
+    return NPObserveProductCornerPreparation(nonceText, false);
 }
 
 static BOOL coveredMarker(CGWindowID sheet, CGWindowID marker, CGFloat level) {
@@ -143,7 +150,7 @@ CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText, bool occlusio
     NPConfig config = {.size=sizeof(NPConfig), .version=NP_ENGINE_ABI, .mode=NP_HOST};
     uint64_t handle = 0;
     if (np_engine_create(&config, &handle) != NP_OK) return CFBridgingRetain(record);
-    NSDictionary *geometry = observe(handle, home, nonce);
+    NSDictionary *geometry = observe(handle, home, nonce, NP_CORNER_DISPLAY_MATERIAL);
     record[@"material"] = geometry;
     if (np_engine_destroy(handle) != NP_OK || ![geometry[@"status"] isEqual:@"PASS"]) return CFBridgingRetain(record);
     NSArray *a = geometry[@"shadowFootprint"];
