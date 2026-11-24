@@ -1,0 +1,110 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "fa59777a8142537b8e077bac1d9f943a6a9805f9",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "9adb7e84c8dc3c4c347a334b1b73a7f195aeac8f",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33484925,
+  "sha256": "f7f3fae51151947704ba328862b68b60472409b717d2fba1fa096942e9f6410d",
+  "previousCandidate": "ccea020dd0f17cb1c7a0f72d064698d92d833cc1",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "sourceCI": [
+    {
+      "name": "StageGroup window engine",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45327572836",
+      "headSha": "fa59777a8142537b8e077bac1d9f943a6a9805f9",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "sameSwiftSourcePreviousCI": [
+    {
+      "name": "StageGroup window engine",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45326180785",
+      "headSha": "ccea020dd0f17cb1c7a0f72d064698d92d833cc1",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    },
+    {
+      "name": "Nearpane native 5.22 protocol",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45326180839",
+      "headSha": "ccea020dd0f17cb1c7a0f72d064698d92d833cc1",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "protocol",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Desktop files on macOS 27",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "nativeProtocolOnRustOnlyCommit": "NOT_TRIGGERED_BY_PATH_FILTER",
+  "evidenceArchive": "workset-input-ownership.zip",
+  "evidenceArchiveSHA256": "60c8e2e02b85f1d9aaceb019fbeaf995ea9d5b6d5179a33c1ae762aba8e84cf2"
+}

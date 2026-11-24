@@ -4,6 +4,14 @@
 
 **R4 侧栏整组切换尚未取得生产资格。** 目标实体机 26A428 上，Guardian 已在测试 Host 正常退出和异常退出后，将屏内偏移 24 点的签名普通窗口恢复到原位。独立观察器也已两次验证正式引擎面板完全遮住受控色块。[正常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [异常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [实际遮挡读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control.json)
 
+产品源码 `fa59777` 已修复两处切换错误。系统面板短暂遮住退场区域，也会撤回当次切换。窗口全部归还且焦点连续两次核实后，协调器可以结束恢复日志。另一个窗口收到鼠标按下时，即使系统遗漏收件 PID，执行器也会让它收到后续拖动和抬起。若用户已经在保护区域外重新点到原窗口，引擎会交还控制权。最先复现的恢复日志错误和修复后的回归均已归档。[修复前后原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-input-ownership.zip)
+
+**实机读回。** macOS 27.0（26A428）、ARM64、SIP 开启。普通桌面 6 上，AppKit 两轮查询四角各 5 个位置，返回的点击目标与截屏面板的前后关系一致。两轮均有 16 个目标在 Apple 截屏面板下方、4 个在上方，面板自身为 0。前台、桌面及输入计数稳定。全程发送事件 0、采图 0、窗口写入 0。退场区域的实际画面及键鼠收件仍待证明。隔离执行 Host 的录屏准入为 **BLOCKED**，单窗完整隐藏恢复、R4 A→B→C→A、10/50 次及性能对照均为 **NOT_RUN**。[实体机采样与未执行项](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-input-ownership.zip) · [执行 Host 的原始准入](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/result.json)
+
+**可回滚开发候选。** `fa59777` 的 5.22（90）ARM64 包已解压复验，整包及 14 个可执行组件均通过严格签名检查。上一包 `ccea020` 同样已归档。最新 Rust 整库 123 项通过，Corner 定向 82 项通过。相同 Swift 源码的完整本机回归 812 项通过、3 项跳过。两次源码提交各自触发的 CI 均通过，托管桌面作业跳过。日常应用保留在原安装路径。[候选签名及校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-fa59777.json) · [最新引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45327572836) · [Swift 和原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45326180839)
+
+### 此前的角落、桌面与构建记录
+
 **真实单窗退场的准入为 BLOCKED。** 源码 `0c7f590` 用同一份 WindowServer 层级和 Dock 读数检查本屏候选角落。局部遮挡时可选用另一个安全位置，现有成员、鼠标保护和后续恢复继续绑定到已选角落。侧栏在恢复窗口或移交键盘焦点之前核对所有即将退场窗口的高度，避免把高窗停在会露出过长边缘的上角。
 
 26A428 实体机上，链接正式静态库的只读程序用 49.7 毫秒读到四个角落均为 53（其他窗口层占用）。前后均为普通桌面 4，前台和输入计数稳定。此前已确认 Apple 截屏界面有覆盖整屏的窗口层，它的实际截屏活动未知。[四角读数与回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/display-corner-selection.zip) · [原始窗口层证据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/retirement-site-raw.zip)
@@ -16,7 +24,7 @@ Finder 的整屏滚动区域与桌面图标层共享显示范围。连续两轮�
 
 源码 `d3f4770` 修复了系统台前调度开关在准入期间出现时仍可能被读成关闭的问题。Host 和执行引擎只查询这一个设置。设置读取有矛盾时让渡调度权，执行引擎在实际移动或归还窗口前再次核对登录会话、系统台前调度和安全输入。实体机上，两次只读核对均确认系统台前调度关闭，两端结论一致。窗口退场途中发生系统接管仍为 **NOT_RUN**。[实机读回及针对性回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/finder-item-binding-and-system-ownership.zip)
 
-当前 5.22（90）ARM64 开发候选已解压复验，整包及 14 个可执行组件严格验签通过。Swift 本机回归 811 项通过、3 项跳过，Corner 定向 78 项通过。窗口引擎及原生协议两项 CI 通过，各有一项桌面作业跳过。`0c7f590` 保存在本机，可供回滚。项目保持草稿状态，签名开发包保存在本机。[当前候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-d3f4770.json) · [上一候选及 Rust 全库回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-0c7f590.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45321563840) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45321563860)
+源码 `d3f4770` 的 5.22（90）ARM64 开发候选已解压复验，整包及 14 个可执行组件严格验签通过。Swift 本机回归 811 项通过、3 项跳过，Corner 定向 78 项通过。窗口引擎及原生协议两项 CI 通过，各有一项桌面作业跳过。`0c7f590` 保存在本机，可供回滚。[候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-d3f4770.json) · [上一候选及 Rust 全库回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-0c7f590.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45321563840) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45321563860)
 
 ### 工作集合退场后的恢复责任
 
