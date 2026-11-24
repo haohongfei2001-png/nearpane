@@ -99,14 +99,15 @@ import Testing
                 }, originalMatches: { _, _ in false }))
         }
         let red = try await capture(0, channel: 0)
-        gallery.setCard(targets[0].key, on: targets[0].display, visible: true)
+        let oldCard = UUID(), newCard = UUID(), peerCard = UUID()
+        gallery.setCard(targets[0].key, on: targets[0].display, owner: oldCard, visible: true)
         let mountInvalidated = OSAllocatedUnfairLock(initialState: false)
         withObservationTracking {
             _ = gallery.image(for: targets[0], permitted: true)
         } onChange: { mountInvalidated.withLock { $0 = true } }
-        gallery.setCard(targets[1].key, on: targets[1].display, visible: true)
-        gallery.setCard(targets[1].key, on: targets[1].display, visible: false)
-        gallery.setCard(targets[0].key, on: targets[0].display, visible: true)
+        gallery.setCard(targets[1].key, on: targets[1].display, owner: peerCard, visible: true)
+        gallery.setCard(targets[1].key, on: targets[1].display, owner: peerCard, visible: false)
+        gallery.setCard(targets[0].key, on: targets[0].display, owner: oldCard, visible: true)
         receipt["currentCardInvalidatedByPeerMountOrRepeatedAppearance"] = mountInvalidated.withLock { $0 }
         try #require(!mountInvalidated.withLock { $0 })
         let redInvalidated = OSAllocatedUnfairLock(initialState: false)
@@ -124,7 +125,27 @@ import Testing
                 "allowsSharing": row?.allowsSharing == true, "drawn": row?.isDrawn == true,
                 "appSharingType": panels[i].sharingType.rawValue, "frameMatches": row?.frame == target.frame]
         }
-        gallery.setCard(targets[0].key, on: targets[0].display, visible: false)
+        let first = targets[0], startsBeforeHandoff = starts
+        let cancelledCard = UUID()
+        gallery.setViewport(first.key, on: first.display, owner: oldCard, visible: true)
+        gallery.setCard(first.key, on: first.display, owner: cancelledCard, visible: true)
+        gallery.setViewport(first.key, on: first.display, owner: cancelledCard, visible: false)
+        gallery.setCard(first.key, on: first.display, owner: cancelledCard, visible: false)
+        gallery.setViewport(first.key, on: first.display, owner: cancelledCard, visible: false)
+        let retained = try read(0)
+        try #require(gallery.priority(first) == 2 && !mountInvalidated.withLock { $0 } && retained === red)
+        gallery.setCard(first.key, on: first.display, owner: newCard, visible: true)
+        gallery.setViewport(first.key, on: first.display, owner: newCard, visible: true)
+        gallery.setViewport(first.key, on: first.display, owner: oldCard, visible: false)
+        gallery.setCard(first.key, on: first.display, owner: oldCard, visible: false)
+        gallery.setViewport(first.key, on: first.display, owner: oldCard, visible: false)
+        let handoffImage = try read(0)
+        try #require(gallery.priority(first) == 2 && !mountInvalidated.withLock { $0 })
+        try #require(handoffImage === red && starts == startsBeforeHandoff && !redInvalidated.withLock { $0 })
+        receipt["overlappingCardHandoffRGB"] = try rgb(handoffImage)
+        receipt["captureStartsDuringCardHandoff"] = starts - startsBeforeHandoff
+        receipt["replacementRetainedMountAndViewport"] = true
+        gallery.setCard(first.key, on: first.display, owner: newCard, visible: false)
         try #require(mountInvalidated.withLock { $0 })
         gallery.clear(display: targets[0].display, keepingCardFrames: true)
         let before = starts

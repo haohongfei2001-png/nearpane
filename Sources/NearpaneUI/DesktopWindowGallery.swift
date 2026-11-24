@@ -334,18 +334,28 @@ struct DesktopWindowTarget: Equatable {
     // A per-display lease prevents cancelled or superseded captures from being published.
     @ObservationIgnored private var operations = [String: UUID]()
     @ObservationIgnored private var changes = [String: AsyncStream<Void>.Continuation]()
-    @ObservationIgnored private var visible = [String: Set<DesktopWindowKey>]()
-    @ObservationIgnored private var viewport = [String: [DesktopWindowKey: Bool]]()
-    @ObservationIgnored private var lastService = [DesktopWindowKey: TimeInterval]()
-
-    func setViewport(_ key: DesktopWindowKey, on display: String, visible: Bool) {
-        if viewport[display]?[key] != visible {
-            viewport[display, default: [:]][key] = visible
-            changes[display]?.yield(())
+    private struct CardMounts {
+        enum Exposure { case pending, visible, outside }
+        var owners = [UUID: Exposure]()
+        var viewport: Bool? {
+            if owners.values.contains(.visible) { return true }
+            if owners.isEmpty || owners.values.contains(.pending) { return nil }
+            return false
         }
     }
-    private func priority(_ target: DesktopWindowTarget) -> Int {
-        switch viewport[target.display]?[target.key] { case true: return 2; case false: return 0; case nil: return 1 }
+    @ObservationIgnored private var cards = [String: [DesktopWindowKey: CardMounts]]()
+    @ObservationIgnored private var lastService = [DesktopWindowKey: TimeInterval]()
+
+    func setViewport(_ key: DesktopWindowKey, on display: String, owner: UUID, visible: Bool) {
+        let exposure: CardMounts.Exposure = visible ? .visible : .outside
+        guard var mounts = cards[display]?[key], let previous = mounts.owners[owner], previous != exposure else { return }
+        let wasVisible = mounts.viewport
+        mounts.owners[owner] = exposure
+        cards[display]?[key] = mounts
+        if mounts.viewport != wasVisible { changes[display]?.yield(()) }
+    }
+    func priority(_ target: DesktopWindowTarget) -> Int {
+        switch cards[target.display]?[target.key]?.viewport { case true: return 2; case false: return 0; case nil: return 1 }
     }
 
     @ObservationIgnored let audit: PreviewPipelineAudit?
@@ -379,25 +389,34 @@ struct DesktopWindowTarget: Equatable {
     // A mount on another card or display must not make SwiftUI requery this card's pixels.
     private subscript(mounted key: DesktopWindowKey, on display: String) -> Bool {
         access(keyPath: \Self.[mounted: key, on: display])
-        return visible[display]?.contains(key) == true
+        return cards[display]?[key] != nil
     }
 
-    func setCard(_ key: DesktopWindowKey, on display: String, visible onScreen: Bool) {
-        audit?.record(key, .lifecycle, onScreen ? .mounted : .unmounted)
-        let wasMounted = visible[display]?.contains(key) == true
-        if wasMounted != onScreen {
-            withMutation(keyPath: \Self.[mounted: key, on: display]) {
-                if onScreen { visible[display, default: []].insert(key) }
-                else { visible[display]?.remove(key) }
+    func setCard(_ key: DesktopWindowKey, on display: String, owner: UUID, visible onScreen: Bool) {
+        var mounts = cards[display]?[key] ?? CardMounts()
+        let alreadyRegistered = mounts.owners[owner] != nil
+        guard alreadyRegistered != onScreen else { return }
+        let wasMounted = !mounts.owners.isEmpty, previousViewport = mounts.viewport
+        if onScreen { mounts.owners[owner] = .pending }
+        else { mounts.owners.removeValue(forKey: owner) }
+        let isMounted = !mounts.owners.isEmpty
+        if isMounted == wasMounted {
+            // During a transition each mounted view owns only its own viewport report.
+            cards[display]?[key] = mounts
+            if mounts.viewport != previousViewport { changes[display]?.yield(()) }
+            return
+        }
+        withMutation(keyPath: \Self.[mounted: key, on: display]) {
+            if isMounted {
+                cards[display, default: [:]][key] = mounts
+            } else {
+                cards[display]?[key] = nil
+                if cards[display]?.isEmpty == true { cards[display] = nil }
             }
         }
-        if !onScreen {
-            viewport[display]?.removeValue(forKey: key)
-            lastService.removeValue(forKey: key)
-        }
-        // SwiftUI may replace a card in the same update. Reconcile the final mounted
-        // set in the capture loop, including a disappearance reported after teardown.
-        if !onScreen || !wasMounted { changes[display]?.yield(()) }
+        if !isMounted { lastService.removeValue(forKey: key) }
+        audit?.record(key, .lifecycle, isMounted ? .mounted : .unmounted)
+        changes[display]?.yield(())
     }
 
     func clear(display: String? = nil, keepingCardFrames: Bool = false) {
@@ -495,7 +514,7 @@ struct DesktopWindowTarget: Equatable {
     /// Revalidate only an image already in the cache. A completed asynchronous capture
     /// with a changed target must never supply pixels for this fallback.
     private func keepPreviousIfEligible(for key: DesktopWindowKey, as target: DesktopWindowTarget?) {
-        guard let target, permitsWindow(key), visible[target.display]?.contains(key) == true,
+        guard let target, permitsWindow(key), cards[target.display]?[key] != nil,
               streams[key].map({ $0.publishedEpoch == $0.stream.epoch }) != false, var still = stills.peek(.current(key)),
               still.canRetainPrevious(target, lifetime: lifetime(key), now: ProcessInfo.processInfo.systemUptime),
               target.liveOwner() != nil, target.sharedSurface(visible: false, matchFrame: false),
@@ -550,11 +569,11 @@ struct DesktopWindowTarget: Equatable {
             let previous = stills.peek(slot)
             guard permitsWindow(key), lifetime(key) == member.appearance, let row = snapshot.windows.first(where: { DesktopWindowKey($0) == key }),
                   let target = DesktopWindowTarget.preview(row, in:snapshot), target.publiclyVisible, target.frame == member.before.frame,
-                  visible[target.display]?.contains(key) == true,
+                  cards[target.display]?[key] != nil,
                   var still = stills.peek(.current(key)),
                   let live = streams[key], !live.cancelled, live.sequence > 0, live.publishedEpoch == live.stream.epoch,
                   still.matches(target,lifetime:member.appearance,now:now,confirmedAt:live.confirmedAt),
-                  live.lastShown === still.capture.image, viewport[target.display]?[key] == true,
+                  live.lastShown === still.capture.image, cards[target.display]?[key]?.viewport == true,
                   still.signedOwner?.stillSigned(as:key) == true,
                   target.pictureEligibility(needsMembership:live.needsMembership,owner:live.owner,audit:audit) == .allowed,
                   let cost = PreviewPixelBudget.charge(still.capture.image) else { continue }
@@ -635,7 +654,7 @@ struct DesktopWindowTarget: Equatable {
                                  groups: (DesktopSnapshot) -> ObservedPictureGroups?) {
         let existing = observedGroups.filter { $0.value.scope.display.uuidString.caseInsensitiveCompare(display) == .orderedSame }
         guard !existing.isEmpty || streams.values.contains(where: {
-            $0.target.display == display && !$0.cancelled && $0.lastShown != nil && viewport[display]?[$0.target.key] == true
+            $0.target.display == display && !$0.cancelled && $0.lastShown != nil && cards[display]?[$0.target.key]?.viewport == true
         }) else {
             recentInventory[display] = nil
             return
@@ -733,7 +752,7 @@ struct DesktopWindowTarget: Equatable {
             let targets = sample.map { sample in
                 sample.activeSpaceWindows(on: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime)
                     .compactMap { DesktopWindowTarget.preview($0, in: sample) }
-                    .filter { permitsWindow($0.key) && visible[display]?.contains($0.key) == true }
+                    .filter { permitsWindow($0.key) && cards[display]?[$0.key] != nil }
             } ?? []
             let active = Dictionary(grouping: targets, by: \.key).compactMapValues { $0.count == 1 ? $0.first : nil }
             for (key, live) in streams where live.target.display == display && !live.cancelled {
@@ -822,7 +841,7 @@ struct DesktopWindowTarget: Equatable {
                     let key = target.key
                     guard streams.count < WindowFrameStream.limit, streams[key] == nil,
                           let incarnation = issued[key], lifetime(key) == incarnation, permitsWindow(key),
-                          visible[display]?.contains(key) == true, target.present(in: before), target.present(in: snapshot()),
+                          cards[display]?[key] != nil, target.present(in: before), target.present(in: snapshot()),
                           let windows = shared[key.number], windows.count == 1, let window = windows.first,
                           let app = target.liveOwner(), (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()),
                           let pipe = WindowFrameStream(window: window, target: target, audit: audit) else {
@@ -845,7 +864,7 @@ struct DesktopWindowTarget: Equatable {
         let target = live.target
         guard !live.cancelled, !Task.isCancelled, streams[target.key] === live, operations[target.display] == live.run else { return .leaseChanged }
         guard allowed() else { return .notPermitted }
-        guard visible[target.display]?.contains(target.key) == true else { return .notVisible }
+        guard cards[target.display]?[target.key] != nil else { return .notVisible }
         guard permitsWindow(target.key) else { return .notPermitted }
         guard lifetime(target.key) == live.incarnation else { return .incarnationChanged }
         guard WindowContentPreview.sessionAvailable() else { return .sessionUnavailable }

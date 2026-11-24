@@ -1,6 +1,8 @@
 import SwiftUI
 import NearpaneCore
 
+private typealias ViewState<T> = State<T>
+
 extension DesktopWindowKey {
     init?(_ window: WindowObservation) {
         guard let m = window.metadata, m.pid > 1, let birth = m.launchMicroseconds, birth > 0, m.number > 0 else { return nil }
@@ -26,19 +28,64 @@ struct GalleryCardExposure: ViewModifier {
     let gallery: DesktopWindowGallery?
     let target: DesktopWindowTarget?
 
+    private struct Address: Hashable {
+        let gallery: ObjectIdentifier
+        let display: String
+        let key: DesktopWindowKey
+    }
+
     func body(content: Content) -> some View {
         // A reader revision has new observation IDs even when the same native window
         // is still mounted. Tie ownership to the physical display and window incarnation.
         if let target, let gallery {
+            content
+                .modifier(MountedCard(gallery: gallery, key: target.key, display: target.display))
+                .id(Address(gallery: ObjectIdentifier(gallery), display: target.display, key: target.key))
+        } else { content }
+    }
+
+    private struct MountedCard: ViewModifier {
+        private final class Appearance {
+            let token = UUID()
+            var mounted = false
+            var viewport: Bool?
+        }
+
+        let gallery: DesktopWindowGallery
+        let key: DesktopWindowKey
+        let display: String
+        @ViewState private var appearance = Appearance()
+
+        init(gallery: DesktopWindowGallery, key: DesktopWindowKey, display: String) {
+            self.gallery = gallery
+            self.key = key
+            self.display = display
+        }
+
+        func body(content: Content) -> some View {
             let bound = content
-                .onAppear { gallery.setCard(target.key, on: target.display, visible: true) }
-                .onDisappear { gallery.setCard(target.key, on: target.display, visible: false) }
+                .onAppear {
+                    guard !appearance.mounted else { return }
+                    appearance.mounted = true
+                    gallery.setCard(key, on: display, owner: appearance.token, visible: true)
+                    if let viewport = appearance.viewport {
+                        gallery.setViewport(key, on: display, owner: appearance.token, visible: viewport)
+                    }
+                }
+                .onDisappear {
+                    appearance.mounted = false
+                    appearance.viewport = nil
+                    gallery.setCard(key, on: display, owner: appearance.token, visible: false)
+                }
             if #available(macOS 15, *) {
                 bound.onScrollVisibilityChange(threshold: 0.01) { visible in
-                    gallery.setViewport(target.key, on: target.display, visible: visible)
+                    appearance.viewport = visible
+                    if appearance.mounted {
+                        gallery.setViewport(key, on: display, owner: appearance.token, visible: visible)
+                    }
                 }
             } else { bound }
-        } else { content }
+        }
     }
 }
 
