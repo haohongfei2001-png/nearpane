@@ -45,7 +45,7 @@
     "local": "src/corner/patch_sheet.m",
     "upstream": "src/ui/corner_patch.rs",
     "blob": "ca8cfc370677549227fa57d3dc8c96675a581edb",
-    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering relative to the uppermost held window to AppKit. Use only observed wallpaper pixels and compare the compositor output for the exact local sheet with the live wallpaper. Withdraw on an unverifiable topology, order or expired publication."
+    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering to AppKit. Verify the live wallpaper against the sheet. Withdraw stale publications. A confirmed obstruction over the enrolled windows or a changed verified picture revokes the same input generation immediately."
   },
   {
     "local": "src/corner/patch_material.inc",

@@ -22,7 +22,9 @@ typedef NS_ENUM(uint32_t, NCCornerPicture) {
 };
 void np_corner_compare_panel(NSPanel *panel, NCMember home, NCFrame footprint,
                              void (^completion)(NCCornerPicture));
-void *np_corner_patch_session(void *material);
+// Called only for a current published roster. patch_end fences every pending callback.
+typedef void (*NCSurfaceInterrupted)(const void *context, uint32_t reason);
+void *np_corner_patch_session(void *material, const void *context, NCSurfaceInterrupted interrupted);
 void np_corner_patch_publish(void *session, const NCParkedPatchMember *members, uint32_t count);
 bool np_corner_patch_verified(void *session, const NCParkedPatchMember *member);
 uint32_t np_corner_patch_prepare_source(void *material, const NCMember *home, NCFrame footprint, bool prepare);

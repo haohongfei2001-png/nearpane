@@ -10,6 +10,12 @@ fn default_construction_never_starts_a_tap_or_opens_a_window(){
 }
 
 #[test]
+fn a_replaced_or_expired_compositor_packet_cannot_revoke_the_current_workset() {
+    unsafe extern "C" { fn np_test_surface_interruption(); }
+    unsafe { np_test_surface_interruption() }
+}
+
+#[test]
 fn the_single_transparent_fixture_cannot_swallow_a_real_gesture() {
     use corner::geometry::{Point,Rect};
     use corner::sliver::{Button,DockBar,Listed,Press,PressGate,Shield};

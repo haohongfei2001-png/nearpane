@@ -140,7 +140,7 @@ uint32_t np_corner_patch_sites(const NCMember *home, const NCFrame *footprints, 
 }
 
 static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, NCFrame frame, uint32_t panel,
-                            BOOL planned) {
+                            BOOL planned, uint32_t *obstruction) {
     NCListed *rows = calloc(2048, sizeof(*rows));
     if (!rows)
         return 0;
@@ -155,6 +155,8 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     CGWindowLevel icons = CGWindowLevelForKey(kCGDesktopIconWindowLevelKey);
     NSScreen *screen = cornerScreen(&members[0].member);
     BOOL passedSheet = NO;
+    uint64_t matched = 0;
+    uint32_t reason = 0;
     for (unsigned i = 0; i < n; i++) {
         const NCListed *w = &rows[i];
         if (w->window == panel) {
@@ -177,13 +179,17 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
             }
             if (!above)
                 above = w->window;
-        } else if (w->window != panel &&
-                   nc_site_layer(w, patchRect(frame), icons, &dock, !above && !passedSheet && ownSidebarAbove(w, screen), true)) {
-            free(rows);
-            return 0;
+            uint64_t bit = UINT64_C(1) << j;
+            if (matched & bit) { free(rows); return 0; }
+            matched |= bit;
+        } else if (w->window != panel && !reason) {
+            reason = nc_site_layer(w, patchRect(frame), icons, &dock,
+                                   !above && !passedSheet && ownSidebarAbove(w, screen), true);
         }
     }
-    BOOL ok = above && np_corner_patch_order(rows, n, ids, count, panel, above, frame, planned);
+    BOOL complete = matched == (UINT64_MAX >> (64 - count));
+    if (complete) *obstruction = reason;
+    BOOL ok = complete && !reason && above && np_corner_patch_order(rows, n, ids, count, panel, above, frame, planned);
     free(rows);
     return ok ? above : 0;
 }
@@ -209,7 +215,8 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
   @public
     NSData *latest, *verifiedMembers;
     uint64_t validUntil, verifiedAt;
-    BOOL stopped, scheduled;
+    BOOL stopped, scheduled, interrupted;
+    void (^interruptInput)(uint32_t);
 }
 @property(nonatomic, strong) NSMutableDictionary<NSData *, NCPatchSheet *> *sheets;
 @property(nonatomic, strong) NSMutableDictionary<NSData *, NCCornerStill *> *materials;
@@ -226,10 +233,27 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
 }
 - (BOOL)current:(NSData *)packet {
     @synchronized(self) {
-        return !stopped && latest == packet && clock_gettime_nsec_np(CLOCK_UPTIME_RAW) < validUntil;
+        return packet && !stopped && !interrupted && latest == packet && clock_gettime_nsec_np(CLOCK_UPTIME_RAW) < validUntil;
     }
 }
-- (BOOL)picture:(NCPatchSheet *)sheet home:(const NCMember *)home key:(NSData *)key frame:(NCFrame)frame {
+- (void)interrupt:(uint32_t)reason packet:(NSData *)packet {
+    @synchronized(self) {
+        if (![self current:packet]) return;
+        interrupted = YES;
+        verifiedMembers = nil;
+        // The worker may be inside an AX command. Revoke its input generation before returning to AppKit.
+        interruptInput(reason);
+    }
+}
+- (uint32_t)order:(NSData *)group frame:(NCFrame)frame panel:(uint32_t)panel planned:(BOOL)planned packet:(NSData *)packet {
+    if (![self current:packet]) return 0;
+    uint32_t obstruction = 0;
+    uint32_t anchor = targetOrder(group.bytes, (unsigned)(group.length / sizeof(NCParkedPatchMember)),
+                                  frame, panel, planned, &obstruction);
+    if (obstruction) [self interrupt:obstruction packet:packet];
+    return anchor;
+}
+- (BOOL)picture:(NCPatchSheet *)sheet home:(const NCMember *)home key:(NSData *)key frame:(NCFrame)frame packet:(NSData *)packet {
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
     // The geometry/tap path remains independent. Only live parked sheets incur captures.
     // Recheck before expiry, and never block the event-tap or the AppKit run loop.
@@ -243,6 +267,9 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
                 NCPatchSession *session = weak;
                 if (session.sheets[key] != sheet || sheet.generation != epoch) return;
                 sheet.sampling = NO;
+                if (![session current:packet]) return;
+                if (verdict == NCCornerPictureDifferent && sheet.lastMatch > 0)
+                    [session interrupt:NP_CORNER_PICTURE_CHANGED packet:packet];
                 sheet.lastMatch = verdict == NCCornerPictureMatch ? now : 0;
                 [session update];
             });
@@ -289,7 +316,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     }
     if (!sheet) {
         // Plan first so an obstructed corner never incurs a wallpaper decode.
-        if (!targetOrder(members, count, frame, UINT32_MAX, YES))
+        if (![self order:group frame:frame panel:UINT32_MAX planned:YES packet:packet])
             return NO;
         sheet = [NCPatchSheet new];
         sheet.source = source;
@@ -322,28 +349,28 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     // A new member may change the highest parked window without moving the existing sheet.
     // Its real Z-order must already cover this exact roster. The surface proof still belongs
     // to the same panel, material, native desktop, display and pixel rectangle.
-    uint32_t covered = panel.visible && panel.onActiveSpace ? targetOrder(members, count, frame, number, NO) : 0;
+    uint32_t covered = panel.visible && panel.onActiveSpace ? [self order:group frame:frame panel:number planned:NO packet:packet] : 0;
     if (covered) {
-        *verified = [self picture:sheet home:&members[0].member key:key frame:frame];
+        *verified = [self picture:sheet home:&members[0].member key:key frame:frame packet:packet];
         return YES;
     }
     if (panel.visible)
         [panel orderOut:nil];
-    uint32_t anchor = targetOrder(members, count, frame, number, YES);
+    uint32_t anchor = [self order:group frame:frame panel:number planned:YES packet:packet];
     if (!anchor || ![self current:packet])
         return NO;
     [sheet invalidatePicture];
     [panel orderWindow:NSWindowAbove relativeTo:anchor];
     if (!panel.visible || !panel.onActiveSpace || panel.keyWindow || panel.mainWindow ||
-        !panel.ignoresMouseEvents || ![self current:packet] || targetOrder(members, count, frame, number, NO) != anchor) return NO;
-    *verified = [self picture:sheet home:&members[0].member key:key frame:frame];
+        !panel.ignoresMouseEvents || [self order:group frame:frame panel:number planned:NO packet:packet] != anchor) return NO;
+    *verified = [self picture:sheet home:&members[0].member key:key frame:frame packet:packet];
     return YES;
 }
 - (void)update {
     NSData *packet;
     @synchronized(self) {
         scheduled = NO;
-        if (stopped || clock_gettime_nsec_np(CLOCK_UPTIME_RAW) >= validUntil)
+        if (stopped || interrupted || clock_gettime_nsec_np(CLOCK_UPTIME_RAW) >= validUntil)
             latest = nil;
         packet = latest;
     }
@@ -374,7 +401,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         [self withdraw:key];
     }
     @synchronized(self) {
-        if (!stopped && latest == packet) {
+        if ([self current:packet]) {
             verifiedMembers = [confirmed copy];
             verifiedAt = observed;
         }
@@ -470,9 +497,10 @@ uint32_t np_corner_patch_prepare_source(void *material, const NCMember *requeste
     }
     return false;
 }
-void *np_corner_patch_session(void *material) {
-    if (!material) return NULL;
+void *np_corner_patch_session(void *material, const void *context, NCSurfaceInterrupted notify) {
+    if (!material || !context || !notify) return NULL;
     NCPatchSession *s = [NCPatchSession new];
+    s->interruptInput = ^(uint32_t reason) { notify(context, reason); };
     s.materials = (__bridge NSMutableDictionary *)material;
     s.sheets = [NSMutableDictionary dictionary];
     return (void *)CFBridgingRetain(s);
@@ -486,10 +514,13 @@ void np_corner_patch_publish(void *owner, const NCParkedPatchMember *members, ui
                              ? [NSData dataWithBytes:members length:sizeof(*members) * count]
                              : nil;
         @synchronized(s) {
-            if (s->stopped)
+            if (s->stopped || s->interrupted)
                 return;
             BOOL same = (s->latest == packet || [s->latest isEqual:packet]);
-            s->validUntil = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + 450000000;
+            uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+            // An expired publication cannot extend the lifetime of an old in-flight sample.
+            same = same && now < s->validUntil;
+            s->validUntil = now + 450000000;
             if (same)
                 return;
             s->verifiedMembers = nil;
@@ -508,7 +539,7 @@ bool np_corner_patch_verified(void *owner, const NCParkedPatchMember *member) {
     NCPatchSession *s = (__bridge NCPatchSession *)owner;
     @synchronized(s) {
         uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
-        if (s->stopped || !s->latest || now >= s->validUntil || now - s->verifiedAt >= 450000000)
+        if (s->stopped || s->interrupted || !s->latest || now >= s->validUntil || now - s->verifiedAt >= 450000000)
             return false;
         const NCParkedPatchMember *rows = s->verifiedMembers.bytes;
         for (size_t i = 0; i < s->verifiedMembers.length / sizeof(*rows); ++i)
@@ -522,6 +553,7 @@ void np_corner_patch_end(void *owner) {
     NCPatchSession *s = CFBridgingRelease(owner);
     @synchronized(s) {
         s->stopped = YES;
+        s->interruptInput = nil;
         s->latest = nil;
         s->verifiedMembers = nil;
     }

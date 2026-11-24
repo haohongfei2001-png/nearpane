@@ -1,5 +1,5 @@
 //! Values copied from the macOS SDK shim, in Quartz global top-left logical points.
-use super::{geometry::Rect, sliver};
+use super::{geometry::Rect, sliver, tap::{SurfaceWatch, Tap}};
 use crate::contract::{Control, Request};
 use std::ffi::c_void;
 
@@ -90,7 +90,8 @@ pub(super) struct PatchMember {
 unsafe extern "C" {
     fn np_corner_patch_material() -> *mut c_void;
     fn np_corner_patch_material_end(material: *mut c_void);
-    fn np_corner_patch_session(material: *mut c_void) -> *mut c_void;
+    fn np_corner_patch_session(material: *mut c_void, context: *const c_void,
+                               interrupted: unsafe extern "C" fn(*const c_void, u32)) -> *mut c_void;
     fn np_corner_patch_publish(session: *mut c_void, members: *const PatchMember, count: u32);
     fn np_corner_patch_verified(session: *mut c_void, member: *const PatchMember) -> bool;
     fn np_corner_patch_prepare_source(session: *mut c_void, home: *const Member, footprint: Rect, prepare: bool) -> u32;
@@ -119,20 +120,27 @@ impl PatchMaterial {
 impl Drop for PatchMaterial {
     fn drop(&mut self) { unsafe { np_corner_patch_material_end(self.0.as_ptr()) } }
 }
-pub(super) struct PatchSession(std::ptr::NonNull<c_void>);
+pub(super) struct PatchSession {
+    session: std::ptr::NonNull<c_void>,
+    _watch: SurfaceWatch,
+}
 impl PatchSession {
-    pub fn new(material: &PatchMaterial) -> Option<Self> {
-        std::ptr::NonNull::new(unsafe { np_corner_patch_session(material.0.as_ptr()) }).map(Self)
+    pub fn new(material: &PatchMaterial, tap: &Tap) -> Option<Self> {
+        let watch = tap.watch_surface();
+        let session = std::ptr::NonNull::new(unsafe {
+            np_corner_patch_session(material.0.as_ptr(), watch.context(), SurfaceWatch::interrupted)
+        })?;
+        Some(Self { session, _watch: watch })
     }
     pub fn publish(&self, members: &[PatchMember]) {
-        unsafe { np_corner_patch_publish(self.0.as_ptr(), members.as_ptr(), members.len() as u32) }
+        unsafe { np_corner_patch_publish(self.session.as_ptr(), members.as_ptr(), members.len() as u32) }
     }
     pub fn verified(&self, member: Member, frame: Rect) -> bool {
-        unsafe { np_corner_patch_verified(self.0.as_ptr(), &PatchMember { member, frame }) }
+        unsafe { np_corner_patch_verified(self.session.as_ptr(), &PatchMember { member, frame }) }
     }
 }
 impl Drop for PatchSession {
-    fn drop(&mut self) { unsafe { np_corner_patch_end(self.0.as_ptr()) } }
+    fn drop(&mut self) { unsafe { np_corner_patch_end(self.session.as_ptr()) } }
 }
 pub(super) fn inputs() -> Inputs {
     let mut state = [0; 13];

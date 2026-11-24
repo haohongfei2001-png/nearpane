@@ -30,8 +30,11 @@ public struct StageWindowPhysicalObservation: Codable, Equatable, Sendable {
 package struct StageEngineReply {
     let status, flags: UInt32
     let intent: UUID, nativeID: UInt64, frame: SurfaceRect?
-    package init(status: UInt32, flags: UInt32, intent: UUID, nativeID: UInt64, frame: SurfaceRect? = nil) {
+    let workAreaObstructed: Bool
+    package init(status: UInt32, flags: UInt32, intent: UUID, nativeID: UInt64, frame: SurfaceRect? = nil,
+                 workAreaObstructed: Bool = false) {
         self.status = status; self.flags = flags; self.intent = intent; self.nativeID = nativeID; self.frame = frame
+        self.workAreaObstructed = workAreaObstructed
     }
     func verifies(_ intent: UUID, _ mask: UInt32) -> Bool {
         self.intent == intent && status == 0 && flags & mask == mask
@@ -125,14 +128,23 @@ struct UnsubmittedCornerHide: Error {
         freeze()
     }
 
+    private func requireHealthy(_ reply: StageEngineReply, intent: UUID) throws {
+        if reply.intent == intent, reply.status == 2, reply.workAreaObstructed {
+            // This generation must return its windows. A later unobstructed desktop
+            // may use the reviewed backend after the old ownership has been released.
+            freeze()
+            throw StageSwitchError.workAreaObstructed
+        }
+        guard reply.verifies(intent, 64 | 16) else { throw StageSwitchError.unavailable }
+    }
+
     public func checkHealth() async throws {
         let intent = UUID()
         guard qualifiedHiddenState != nil else { throw StageSwitchError.unavailable }
         do {
             let health = try await transport.health(owner,intent:intent)
-            guard qualifiedHiddenState != nil, health.verifies(intent,64 | 16) else {
-                throw StageSwitchError.unavailable
-            }
+            guard qualifiedHiddenState != nil else { throw StageSwitchError.unavailable }
+            try requireHealthy(health, intent: intent)
         } catch { stopAfterBackendFailure(current: true); throw error }
     }
 
@@ -161,9 +173,8 @@ struct UnsubmittedCornerHide: Error {
         if !c.restoring {
             do {
                 let health = try await transport.submit(6,owner:owner,c)
-                guard eligible(), health.verifies(c.intent,64 | 16) else {
-                    throw StageSwitchError.unavailable
-                }
+                guard eligible() else { throw StageSwitchError.unavailable }
+                try requireHealthy(health, intent: c.intent)
             } catch { stopAfterBackendFailure(current: eligible()); throw error }
             // Recheck the home, roster and original focus after the worker health observation.
             let checked = try await read(c.scope)

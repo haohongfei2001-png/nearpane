@@ -2,6 +2,14 @@ import CNearpaneWindowEngine
 import Foundation
 import NearpaneCore
 
+private extension NativeStageEngineReceipt {
+    var stageReply: StageEngineReply {
+        let obstructed = detail == NP_CORNER_SITE_DESKTOP || detail == NP_CORNER_SITE_OVERLAY || detail == NP_CORNER_SITE_DOCK
+        return .init(status: status, flags: flags, intent: intent, nativeID: nativeID, frame: frame,
+                     workAreaObstructed: status == NP_UNKNOWN && (flags == 0 || flags == NP_OWNED) && obstructed)
+    }
+}
+
 /// Concrete visibility port for the Host. The ordinary controller and desktop reader never link it.
 @MainActor final class LinkedStageEngineTransport: StageEngineTransport {
     private let engine: NativeStageWindowEngine
@@ -78,7 +86,7 @@ import NearpaneCore
         let receipt = try await engine.submit(command, timeoutMilliseconds: timeout, expectedEpoch: epoch, guardian: peer)
         if c.action == .hide, operation == 3 { try await guardian.observe(command,receipt:receipt) }
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
-        return .init(status:receipt.status,flags:receipt.flags,intent:receipt.intent,nativeID:receipt.nativeID,frame:receipt.frame)
+        return receipt.stageReply
     }
     func verified(_ c: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws {
         guard owner == acquiredOwner, owner.backend == .corner else { throw StageSwitchError.ownership }
@@ -93,7 +101,7 @@ import NearpaneCore
         try guardian.checkLiveOwners()
         let r = try await engine.submit(.init(backend:UInt32(NP_CORNER),operation:6,intent:intent), expectedEpoch: epoch)
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
-        return .init(status:r.status,flags:r.flags,intent:r.intent,nativeID:r.nativeID,frame:r.frame)
+        return r.stageReply
     }
     func revoke() { engine.revoke() }
     func close() async -> Bool {

@@ -198,6 +198,7 @@ fn health_member(r: &Request) -> Result<Option<Member>, u32> {
 impl Corner {
     fn drawable_corner<'a>(&mut self, list: &'a [Display], request: &Request, usage: SurfaceUse)
         -> Result<(&'a Display, park::Corner, Rect, u32), u32> {
+        if let Some(tap) = &self.tap { tap.health()?; }
         let home = Member::from(request);
         let epoch = request.epoch;
         let (display, preferred) = scoped(list, home.display)?;
@@ -237,6 +238,7 @@ impl Corner {
         let material = self.material.as_ref().ok_or(PICTURE_SOURCE_UNAVAILABLE)?;
         let source = material.source(&home, footprint, usage != SurfaceUse::RecheckBeforeMove);
         if source == 0 { return Err(PICTURE_SOURCE_UNAVAILABLE); }
+        if let Some(tap) = &self.tap { tap.health()?; }
         if usage != SurfaceUse::RecheckBeforeMove {
             self.prepared.insert(home.display, PreparedSite {
                 epoch, native: home.native, space: home.space, displays: list.to_vec(), corner,
@@ -347,7 +349,8 @@ impl Corner {
         }
         members.sort_by_key(|m| m.member.window);
         if self.patch.is_none() {
-            self.patch = self.material.as_ref().and_then(native::PatchSession::new);
+            self.patch = self.material.as_ref().zip(self.tap.as_ref())
+                .and_then(|(material, tap)| native::PatchSession::new(material, tap));
         }
         if let Some(sheet) = &self.patch { sheet.publish(&members); }
     }
@@ -360,6 +363,7 @@ impl Corner {
             }
             let id = health_member(r)?;
             native::park_access()?;
+            if let Some(tap) = &self.tap { tap.health()?; }
             for held in self.owned.values() {
                 if let Some(frame) = held.parked {
                     if !held.within_product_extent(frame) { return Err(POSTCONDITION); }

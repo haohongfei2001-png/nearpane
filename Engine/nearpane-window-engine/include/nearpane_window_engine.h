@@ -22,7 +22,7 @@ enum { NP_CORNER_MATERIAL_SEALED_FILE = 49, NP_CORNER_MATERIAL_WALLPAPER_SURFACE
 /* RETIREMENT_SURFACE also checks the proposed corner against the current desktop,
  * other panels and the real Dock before preparing pixels. Neither call moves a window. */
 enum { NP_CORNER_SITE_UNAVAILABLE = 51, NP_CORNER_SITE_DESKTOP = 52,
-       NP_CORNER_SITE_OVERLAY = 53, NP_CORNER_SITE_DOCK = 54 };
+       NP_CORNER_SITE_OVERLAY = 53, NP_CORNER_SITE_DOCK = 54, NP_CORNER_PICTURE_CHANGED = 55 };
 /* Read-only eligibility of the calling Host. No window, tap or write authority. */
 enum { NP_CORNER_MISSING_AX = 1, NP_CORNER_MISSING_LISTEN = 19,
        NP_CORNER_MISSING_POST = 20, NP_CORNER_MISSING_CAPTURE = 21 };

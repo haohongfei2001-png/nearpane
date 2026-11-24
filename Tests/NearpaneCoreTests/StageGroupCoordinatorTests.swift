@@ -19,6 +19,9 @@ import Testing
     var excluded = Set<NativeSpaceWindow>()
     var retirementSurfaceAvailable = true
     var checkedBottomSites = [Bool]()
+    func checkHealth() throws {
+        guard qualifiedHiddenState == .parked else { throw StageSwitchError.unavailable }
+    }
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) throws {
         checkedBottomSites.append(bottomOnly)
         guard retirementSurfaceAvailable else { throw StageSwitchError.unavailable }

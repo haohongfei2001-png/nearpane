@@ -13,6 +13,7 @@ import Testing
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
     var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
     var workerHealthy = true
+    var obstructWhenRetired = false
     var beforeRead: (() -> Void)?
     var beforeCloseRead: (() -> Void)?
     var prepared = Set<UUID>(), confirmed = Set<UUID>(), confirmationFailure: UInt32?
@@ -85,7 +86,10 @@ import Testing
               confirmed.insert(c.intent).inserted, after.window.number != confirmationFailure else { throw StageSwitchError.recoveryRequired }
     }
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
-        .init(status:workerHealthy ? 0 : 2,flags:workerHealthy ? 64 | 16 : 0,intent:intent,nativeID:0)
+        if obstructWhenRetired && !visible.isEmpty {
+            return .init(status: 2, flags: 0, intent: intent, nativeID: 0, workAreaObstructed: true)
+        }
+        return .init(status:workerHealthy ? 0 : 2,flags:workerHealthy ? 64 | 16 : 0,intent:intent,nativeID:0)
     }
     func revoke() { revokes += 1 }
     func close() async -> Bool {
@@ -453,6 +457,32 @@ import Testing
         #expect(!session.backendFailed && engine.preferredRecord([q], in: environment) == q)
         try await engine.release()
         #expect(runtime.focus == user && runtime.windows.values.allSatisfy { $0.visibility == .visible })
+    }
+
+    @Test(arguments: [false, true])
+    func obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend(focusChanged: Bool) async throws {
+        let (profile, store, engine, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let original = fixture.windows, reviewed = qualification(.corner)
+        try await bind(engine, fixture, reviewed)
+        fixture.obstructWhenRetired = true
+        await #expect(throws: StageSwitchError.workAreaObstructed) { try await activate(groups[1], engine, fixture) }
+        #expect(!fixture.visible.isEmpty && fixture.effects.contains { $0.0 == 3 })
+        #expect(store.activeGroup(in: fixture.scope) == nil && engine.session?.isFrozen == true)
+        #expect(try readJournal(profile).pending?.focusAtSurfaceInterruption == groups[1].members[0].windowHint)
+        #expect(engine.session?.backendFailed == false && engine.holdsWindowDispatch)
+        if focusChanged {
+            let bystander = try #require(fixture.windows.keys.first { $0.number == 4 })
+            fixture.focus = bystander
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.release() }
+            #expect(fixture.focus == bystander && engine.holdsWindowDispatch && fixture.closes == 0)
+            #expect(try readJournal(profile).pending != nil)
+        } else {
+            try await engine.release()
+            #expect(!engine.holdsWindowDispatch && fixture.closes == 1)
+        }
+        #expect(fixture.windows == original && fixture.visible.isEmpty)
+        #expect(engine.preferredRecord([reviewed], in: environment) == reviewed)
     }
 
     @Test func oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn() async throws {

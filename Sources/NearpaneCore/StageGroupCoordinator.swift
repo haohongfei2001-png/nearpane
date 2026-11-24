@@ -48,6 +48,7 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     func dispatch(_ command: StageWindowCommand) async throws
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws
     func prepareBackend(_ sample: StageWindowSample) async throws
+    func checkHealth() async throws
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws
     func read(_ scope: StageGroupScope) async throws -> StageWindowSample
     func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) async throws
@@ -71,13 +72,14 @@ public extension StageWindowSession {
 }
 
 public enum StageSwitchError: LocalizedError, Equatable {
-    case busy, unavailable, interrupted, incomplete, ownership, recoveryRequired, superseded
+    case busy, unavailable, interrupted, workAreaObstructed, incomplete, ownership, recoveryRequired, superseded
 
     public var errorDescription: String? {
         switch self {
         case .busy: return "已有窗口操作正在进行。"
         case .unavailable: return "当前环境暂不能切换整个窗口组。"
         case .interrupted: return "窗口或焦点已变化，本次切换已停止。"
+        case .workAreaObstructed: return "系统界面占用了窗口退场区域，本次切换已停止。"
         case .incomplete: return "尚未核对完整的窗口组状态。"
         case .ownership: return "窗口归属已变化，请重新选择。"
         case .recoveryRequired: return "上一次窗口操作仍有待确认的恢复记录。"
@@ -114,6 +116,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var nativeID: UInt64? = nil
         var workArea: SurfaceRect? = nil
         var yieldedFocus: NativeSpaceWindow? = nil
+        var focusAtSurfaceInterruption: NativeSpaceWindow? = nil
     }
     struct Release: Codable {
         let intent: UUID, owned: Ownership
@@ -433,6 +436,23 @@ public enum StageSwitchError: LocalizedError, Equatable {
                       }) else { throw StageSwitchError.incomplete }
                 last = next
             }
+            if !parked.isEmpty {
+                // The independent AX reads can still show the correct geometry after the
+                // compositor or pointer shield has yielded. Ask the owning worker last.
+                do {
+                    try await session.checkHealth()
+                } catch StageSwitchError.workAreaObstructed {
+                    // Keep the user's last verified focus when releasing this fully observed
+                    // prefix. A new click, an unknown primitive or a different focus cannot use it.
+                    if epoch == token, !Task.isCancelled, current(), ledger.pending?.intent == intent {
+                        try update { $0.pending?.focusAtSurfaceInterruption = last.focus }
+                    }
+                    throw StageSwitchError.workAreaObstructed
+                }
+                try requireCurrentIntent()
+                guard session.engineOwner == owner, session.qualifiedHiddenState == mechanism,
+                      directory.hasSameWindowGroups(as: store.directory, in: scope) else { throw StageSwitchError.interrupted }
+            }
         }
         // Reselecting an intact, focused workset only observes. Its previously committed leases remain authoritative.
         if ownsScope, alreadyVisible, first.focus == preferred.windowHint, first.foreignFocusScope == nil,
@@ -549,6 +569,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     guard newerChoice(), !Task.isCancelled, next.focus == expected.focus, next.foreignFocusScope == expected.foreignFocusScope,
                           next.windows == expected.windows else { throw StageSwitchError.recoveryRequired }
                     last = next
+                }
+                if !ledger.owned.isEmpty {
+                    try await session.checkHealth()
+                    guard newerChoice(), !Task.isCancelled, epoch == token, session.engineOwner == owner,
+                          session.qualifiedHiddenState == mechanism else { throw StageSwitchError.recoveryRequired }
                 }
                 var layouts = [UUID: SurfaceRect]()
                 for entry in pending.entries where entry.action == .hide {
@@ -728,7 +753,9 @@ public enum StageSwitchError: LocalizedError, Equatable {
     private func confirmInterruptedRelease(_ pending: Transaction, owner: StageEngineOwner,
                                            session: StageWindowSession, token: UUID) async throws {
         guard pending.owner == owner, pending.generation == owner.generation, let transaction = pending.intent,
-              let focus = pending.yieldedFocus, let area = pending.workArea, !pending.verifiedDirectoryCommit,
+              let focus = pending.yieldedFocus ?? pending.focusAtSurfaceInterruption,
+              pending.focusAtSurfaceInterruption.map({ $0 == pending.preferred && pending.yieldedFocus == nil }) != false,
+              let area = pending.workArea, !pending.verifiedDirectoryCommit,
               !pending.entries.isEmpty, pending.entries.allSatisfy({ entry in
                   guard entry.intent != nil, entry.after != nil, entry.undoIntent == nil, entry.guardianPending != true else { return false }
                   switch entry.action { case .hide, .show, .focus: return true; case .place: return false }
@@ -744,6 +771,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
             let sample = try await session.read(pending.scope)
             guard epoch == token, session.engineOwner == owner, sample.generation == owner.generation, sample.scope == pending.scope,
                   sample.nativeID == pending.nativeID, sample.workArea == area, sample.focus == focus,
+                  (pending.focusAtSurfaceInterruption == nil || sample.foreignFocusScope == nil),
                   sample.windows == expected else { throw StageSwitchError.recoveryRequired }
             return sample.sequence
         }

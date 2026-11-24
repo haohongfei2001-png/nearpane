@@ -16,6 +16,12 @@ pub(super) const SECURE_INPUT: u32 = 32;
 pub(super) const STALE: u32 = 33;
 pub(super) const CHANGING: u32 = 34;
 pub(super) const RECEIVER_DISAGREES: u32 = 35;
+// The compositor positively observed a protected system surface or a changed picture.
+// Keep the ABI reasons in sync with nearpane_window_engine.h.
+const DESKTOP: u32 = 52;
+const OVERLAY: u32 = 53;
+const DOCK: u32 = 54;
+const PICTURE_CHANGED: u32 = 55;
 
 pub(super) struct Publication {
     pub shield: Shield,
@@ -45,7 +51,7 @@ fn observed_recipient(p: &Publication, now: Instant, window: u32, pid: i32) -> O
 }
 
 fn can_protect_existing(reason: u32) -> bool {
-    matches!(reason, STALE | CHANGING | RECEIVER_DISAGREES)
+    matches!(reason, STALE | CHANGING | RECEIVER_DISAGREES | DESKTOP | OVERLAY | DOCK | PICTURE_CHANGED)
 }
 
 // A head tap can lack a resolved recipient. When Quartz supplies both fields,
@@ -97,6 +103,21 @@ impl Shared {
                 (old == 0 || (can_protect_existing(old) && !can_protect_existing(reason)))
                     .then_some(reason)
             });
+    }
+}
+// The renderer and the event tap belong to the same ownership generation. AppKit's
+// completion can outlive the Rust worker command; PatchSession ends callbacks before
+// dropping this Arc. The callback touches only the existing atomic revocation state.
+pub(super) struct SurfaceWatch(Arc<Shared>);
+impl SurfaceWatch {
+    pub fn context(&self) -> *const c_void {
+        Arc::as_ptr(&self.0).cast()
+    }
+    // SAFETY: context is this watch's live Arc pointer. The native call and the
+    // removal of its callback in np_corner_patch_end take the same session lock.
+    pub unsafe extern "C" fn interrupted(context: *const c_void, reason: u32) {
+        let shared = unsafe { &*context.cast::<Shared>() };
+        shared.revoke(reason);
     }
 }
 struct TapThread {
@@ -221,6 +242,9 @@ extern "C" fn status(raw: *mut c_void, code: u32) {
     }
 }
 impl Tap {
+    pub fn watch_surface(&self) -> SurfaceWatch {
+        SurfaceWatch(self.shared.clone())
+    }
     fn pair(initial: Publication) -> (Self, TapThread) {
         let (updates, incoming) = mpsc::sync_channel(1);
         let initial = Arc::new(initial);
@@ -506,6 +530,33 @@ mod tests {
             press_decision(&p, at, now + SEEN_FRESH + Duration::from_millis(1), 9, 44),
             (false, Some(STALE))
         );
+    }
+    #[test]
+    fn surface_takeover_preserves_the_gesture_and_never_rearms_the_same_owner() {
+        for reason in [DESKTOP, OVERLAY, DOCK, PICTURE_CHANGED] {
+            let (tap, mut handler) = Tap::pair(publication(Instant::now(), false));
+            tap.shared.ready.store(true, Ordering::Release);
+            let raw = (&mut handler as *mut TapThread).cast();
+            let watch = tap.watch_surface();
+            assert_eq!(decide(raw, 1, 95., 97., 0, 9, 44), 1);
+            unsafe { SurfaceWatch::interrupted(watch.context(), reason) };
+            assert_eq!(tap.health(), Err(reason));
+            // A sibling or system surface keeps its own button sequence. Only the
+            // parked window's previous down owns the matching drag and release.
+            assert_eq!(decide(raw, 3, 95., 97., 1, 10, 44), 0);
+            assert_eq!(decide(raw, 6, 4., 4., 0, 10, 44), 1);
+            assert_eq!(decide(raw, 2, 4., 4., 0, 10, 44), 1);
+            assert_eq!(decide(raw, 4, 95., 97., 1, 9, 44), 0);
+            assert_eq!(decide(raw, 1, 95., 97., 0, 0, 0), 0);
+            assert_eq!(decide(raw, 2, 95., 97., 0, 0, 0), 0);
+            let mut added = publication(Instant::now(), false);
+            added.shield.parked.insert(11);
+            assert_eq!(tap.publish(added), Err(reason));
+            let (next, _) = Tap::pair(publication(Instant::now(), false));
+            next.shared.ready.store(true, Ordering::Release);
+            unsafe { SurfaceWatch::interrupted(watch.context(), OVERLAY) };
+            assert_eq!(next.health(), Ok(()));
+        }
     }
     #[test]
     fn forced_port_disable_discards_the_button_latch_and_cannot_be_healed_by_republication() {
