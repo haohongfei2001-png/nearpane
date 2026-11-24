@@ -359,7 +359,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
              journal(s, YES),
          @"committedPostimageOrIntentMissing");
 #else
-    need(ncg_wait_for_host_message(STDIN_FILENO), @"hostClosedBeforeSealOrWithdrawal");
+    need(ncg_next_host_packet(STDIN_FILENO) == 1, @"hostClosedBeforeSealOrWithdrawal");
     NSDictionary *message = productMessage();
     if ([message[@"phase"] isEqual:@"withdrawUnsubmitted"]) {
         need(withdrawalMessage(s, message), @"withdrawalIntentOrEpochChanged");
@@ -371,7 +371,21 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
         receipt[@"status"] = @"WITHDRAWN_BEFORE_SUBMISSION";
         return;
     }
-    if ([message[@"phase"] isEqual:@"observeRecoveryFrame"]) {
+    if ([message[@"phase"] isEqual:@"workerMeasuredPark"]) {
+        need(productParkReceipt(s, message, NO) && displayIs(s) && stable(s, convert(s->sealed.result.frame)),
+             @"workerPositionOrOriginalWindowUnavailable");
+        receipt[@"workerPositionWitnessed"] = @YES;
+        int next = ncg_next_host_packet(STDIN_FILENO);
+        need(next >= 0, @"workerPositionChannelUnavailable");
+        if (next == 0) {
+            hostEOFBeforeConfirmation = YES;
+            receipt[@"hostClosedBeforeTerminalReceipt"] = @YES;
+        } else {
+            message = productMessage();
+            need(followsWorkerMeasurement(message, &s->sealed.result), @"terminalPositionDiffersFromWorkerReadback");
+        }
+    }
+    if (hostEOFBeforeConfirmation || [message[@"phase"] isEqual:@"observeRecoveryFrame"]) {
         need(productParkReceipt(s, message, NO) && originalFocusUnchanged(s), @"measuredRecoveryFrameNotBoundToPendingIntentOrFocus");
         s->recoveryOnly = YES;
     } else if ([message[@"phase"] isEqual:@"observePark"]) {

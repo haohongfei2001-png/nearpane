@@ -20,6 +20,7 @@ import Testing
     var delayedRelease: UUID?, holdReleaseReceipt = false, lateReleaseReads = [UUID]()
     enum Withdrawal: Sendable { case confirmed, denied, lostReply }
     var withdrawal: Withdrawal = .denied
+    var loseHideTransportAfterAdmission: Bool?
     var afterPrepare: ((StageWindowCommand) -> Void)?
     var afterVisibilityWrite: (() -> Void)?
     var prepareReplyLost = false, nextReadFails = false
@@ -44,7 +45,9 @@ import Testing
     }
     func submit(_ op: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) throws -> StageEngineReply {
         let id = c.before.window
+        if op == 3, loseHideTransportAfterAdmission == false { throw CornerHideAdmissionRefused(StageSwitchError.incomplete) }
         if [3,4,5].contains(op), withdrawn.contains(c.intent) || !writeIntents.insert(c.intent).inserted { throw StageSwitchError.ownership }
+        if op == 3, loseHideTransportAfterAdmission == true { throw StageSwitchError.incomplete }
         switch op {
         case 6: return .init(status:health ? 0 : 2,flags:health ? 64 | 16 | 32 : 0,intent:c.intent,nativeID:22)
         case 3:
@@ -325,6 +328,25 @@ import Testing
             #expect(f.prepared.count == 1 && f.withdrawalAttempts.isEmpty && journal.lastWithdrawnHide == nil)
             #expect(f.effects.count == (afterSubmit ? 1 : 0) && journal.pending?.entries.count == 1)
             #expect(journal.pending?.entries.first?.after == nil && engine.coordinator.requiresRecovery)
+        }
+    }
+
+    @Test(arguments: [false, true]) func lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket(_ admitted: Bool) async throws {
+        let (profile, store, engine, f, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        f.withdrawal = .confirmed
+        f.loseHideTransportAfterAdmission = admitted
+        await #expect(throws: admitted ? StageSwitchError.incomplete : .interrupted) {
+            try await activate(groups[0], engine, f)
+        }
+        let journal = try readJournal(profile)
+        #expect(f.withdrawalAttempts.count == (admitted ? 0 : 1) && f.prepared.count == 1 && f.effects.isEmpty)
+        #expect(store.activeGroup(in: f.scope) == nil)
+        if admitted {
+            #expect(f.withdrawn.isEmpty && journal.lastWithdrawnHide == nil && engine.coordinator.requiresRecovery)
+        } else {
+            #expect(f.withdrawn == f.prepared && journal.lastWithdrawnHide != nil && journal.pending == nil)
         }
     }
 

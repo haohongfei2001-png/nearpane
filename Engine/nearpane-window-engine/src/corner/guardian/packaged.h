@@ -259,19 +259,20 @@ static BOOL withdrawalWitness(Session *s, NSDictionary *expected) {
            [expected isEqual:withdrawableJournal(s)] && displayIs(s) && stable(s, convert(s->pre.lease.frame)) &&
            np_corner_same_window(&s->member, s->held);
 }
-static NSDictionary *productMessage(void) {
+static NSDictionary *productMessageFrom(int fd) {
     uint32_t size = 0;
-    if (!readPacket(STDIN_FILENO, &size, sizeof(size)))
+    if (!readPacket(fd, &size, sizeof(size)))
         return nil;
     size = ntohl(size);
     if (size < 2 || size > 8000)
         return nil;
     NSMutableData *data = [NSMutableData dataWithLength:size];
-    if (!readPacket(STDIN_FILENO, data.mutableBytes, size))
+    if (!readPacket(fd, data.mutableBytes, size))
         return nil;
     id m = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
     return [m isKindOfClass:NSDictionary.class] ? m : nil;
 }
+static NSDictionary *productMessage(void) { return productMessageFrom(STDIN_FILENO); }
 static BOOL productPrepare(Session *s, NSDictionary *m, NSString *folder) {
     NCGuardianEntry *p = &s->pre;
     NPRequest *r = &p->lease;
@@ -303,7 +304,9 @@ static BOOL productPrepare(Session *s, NSDictionary *m, NSString *folder) {
 }
 static BOOL productParkReceipt(Session *s, NSDictionary *m, BOOL confirm) {
     s->sealed = s->pre;
-    BOOL geometryOnly = !confirm && [m[@"phase"] isEqual:@"observeRecoveryFrame"];
+    BOOL workerFrame = [m[@"phase"] isEqual:@"workerMeasuredPark"];
+    if (workerFrame && !sameWindow(m[@"window"], &s->pre.lease)) return NO;
+    BOOL geometryOnly = !confirm && (workerFrame || [m[@"phase"] isEqual:@"observeRecoveryFrame"]);
     s->sealed.phase = geometryOnly ? NCG_RECOVERY_FRAME : NCG_CONFIRMED;
     NPReceipt *r = &s->sealed.result;
     NPRect independently;
@@ -334,6 +337,16 @@ static BOOL productParkReceipt(Session *s, NSDictionary *m, BOOL confirm) {
 }
 static BOOL productSeal(Session *s, NSDictionary *m) {
     return productParkReceipt(s, m, YES);
+}
+
+static BOOL followsWorkerMeasurement(NSDictionary *m, const NPReceipt *early) {
+    NPRect f;
+    return ([m[@"phase"] isEqual:@"observePark"] || [m[@"phase"] isEqual:@"observeRecoveryFrame"]) &&
+           uuidField(m[@"intent"], early->intent) && number(m[@"epoch"]) && [m[@"epoch"] isEqual:@(early->epoch)] &&
+           number(m[@"native"]) && [m[@"native"] isEqual:@(early->native_id)] &&
+           number(m[@"owned"]) && [m[@"owned"] isEqual:@(early->owned)] && productFrame(m[@"frame"], &f) &&
+           f.x == early->frame.x && f.y == early->frame.y &&
+           f.width == early->frame.width && f.height == early->frame.height;
 }
 
 // After a genuine Host exit the active profile stays protected by its writer lock and our

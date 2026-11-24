@@ -321,14 +321,14 @@ impl Session {
     pub fn submit(&self, r: Request) -> Result<u64, u32> {
         self.enqueue(r, None)
     }
-    pub fn submit_corner_hide(&self, r: Request, child: i32, birth: u64) -> Result<u64, u32> {
+    pub fn submit_corner_hide(&self, r: Request, child: i32, birth: u64, writer: i32) -> Result<u64, u32> {
         if !r.valid() || r.backend != CORNER || r.operation != HIDE || child <= 1 || birth == 0 {
             return Err(INVALID);
         }
-        if lock(&self.state).corner_hides.is_none() || r.epoch != ACQUISITION_EPOCH {
+        if writer < 0 || lock(&self.state).corner_hides.is_none() || r.epoch != ACQUISITION_EPOCH {
             return Err(INCOMPATIBLE);
         }
-        let peer = GuardianPeer::open(child, birth).ok_or(INCOMPATIBLE)?;
+        let peer = GuardianPeer::open(child, birth, writer).ok_or(INCOMPATIBLE)?;
         self.enqueue(r, Some(Arc::new(peer)))
     }
     fn enqueue(&self, r: Request, guardian: Option<Arc<GuardianPeer>>) -> Result<u64, u32> {
@@ -567,10 +567,10 @@ mod tests {
     #[test]
     fn qualified_hide_without_a_guardian_never_enters_the_backend() {
         let (session, rx, request) = idle_corner_lane();
-        assert_eq!(session.submit_corner_hide(request, 0, 1), Err(INVALID));
-        assert_eq!(session.submit_corner_hide(request, 42, 0), Err(INVALID));
+        assert_eq!(session.submit_corner_hide(request, 0, 1, -1), Err(INVALID));
+        assert_eq!(session.submit_corner_hide(request, 42, 0, -1), Err(INVALID));
         assert_eq!(
-            session.submit_corner_hide(request, std::process::id() as i32, 1),
+            session.submit_corner_hide(request, std::process::id() as i32, 1, -1),
             Err(INCOMPATIBLE)
         );
         let id = session.submit(request).unwrap();

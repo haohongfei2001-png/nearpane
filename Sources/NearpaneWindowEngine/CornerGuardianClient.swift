@@ -144,7 +144,10 @@ import CNearpaneWindowEngine
                 self.releaseExited(intent)
             }
         }
-        _ = fcntl(input.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
+        let pipeFD = input.fileHandleForWriting.fileDescriptor
+        let flags = fcntl(pipeFD, F_GETFL)
+        guard flags >= 0, fcntl(pipeFD, F_SETFL, flags | O_NONBLOCK) == 0,
+              fcntl(pipeFD, F_SETNOSIGPIPE, 1) == 0 else { throw Failure.unavailable }
         try process.run()
         let lease = Lease(r, epoch: epoch, process: process, writer: input.fileHandleForWriting, reader: output.fileHandleForReading, directory: heldDirectory)
         let launchedBirth = Self.childGeneration(process.processIdentifier)
@@ -181,7 +184,10 @@ import CNearpaneWindowEngine
               l.epoch == epoch, l.preparedAt != nil, !l.withdrawing, !l.sealed, l.result == nil,
               let proof = l.preparation, CornerPreparedReceipt.read(in: l.directory.fileDescriptor) == proof,
               let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else { throw Failure.pendingRecovery }
-        return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth)
+        let fd = fcntl(l.writer.fileDescriptor, F_DUPFD_CLOEXEC, 3)
+        guard fd >= 0 else { throw Failure.unavailable }
+        return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth,
+                                  writer: FileHandle(fileDescriptor: fd, closeOnDealloc: true))
     }
 
     func checkLiveOwners() throws {

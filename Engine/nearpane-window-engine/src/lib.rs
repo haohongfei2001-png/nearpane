@@ -198,13 +198,24 @@ pub unsafe extern "C" fn np_engine_submit_guarded_corner_hide(
     birth: u64,
     out: *mut u64,
 ) -> u32 {
+    unsafe { np_engine_submit_witnessed_corner_hide(handle, request, child, birth, -1, out) }
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_submit_witnessed_corner_hide(
+    handle: u64,
+    request: *const Request,
+    child: i32,
+    birth: u64,
+    writer: i32,
+    out: *mut u64,
+) -> u32 {
     boundary(|| {
         output(out)?;
         unsafe {
             out.write(0);
             header(request)?;
         }
-        let id = find(handle)?.submit_corner_hide(unsafe { request.read() }, child, birth)?;
+        let id = find(handle)?.submit_corner_hide(unsafe { request.read() }, child, birth, writer)?;
         unsafe { out.write(id) };
         Ok(())
     })

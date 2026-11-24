@@ -569,6 +569,13 @@ impl Corner {
                 {
                     if previous.is_some_and(|p| same(p, s.cg)) {
                         self.owned.get_mut(&id.window).unwrap().parked = Some(s.cg);
+                        // The original Guardian can receive this even if the Host exits while
+                        // the compositor is still settling. A desired frame is never published.
+                        if let Some(peer) = &control.guardian {
+                            if !peer.measured(r, abi(s.cg), self.owned.len() as u32) {
+                                return self.interrupted_park(r, OWNERSHIP_UNKNOWN);
+                            }
+                        }
                         if !control.may_write() {
                             return self.interrupted_park(r, POSTCONDITION);
                         }

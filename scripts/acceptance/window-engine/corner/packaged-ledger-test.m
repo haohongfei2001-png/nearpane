@@ -5,6 +5,7 @@
 #import "guardian/main.m"
 #undef main
 #undef np_corner_inputs
+#include "guardian/measurement.h"
 #include <assert.h>
 void deterministic_test_inputs(uint32_t counters[13]) { memset(counters, 0, 13 * sizeof(*counters)); }
 static uint8_t accepted[16];
@@ -95,6 +96,8 @@ int main(void) {
         assert(hostlock >= 0 && flock(hostlock, LOCK_EX | LOCK_NB) == 0);
         put(root, @"profile-index.json", @{@"format" : @1, @"active" : gen, @"imports" : @{}});
         assert(productOpen(&s, job));
+        r->backend = NP_CORNER;
+        r->operation = NP_HIDE;
         r->pid = 377;
         r->window = 409;
         r->birth = 48435;
@@ -244,6 +247,47 @@ int main(void) {
         entry[@"member"] = member;
         put(profile, ledgerFile, ledger);
         assert(productParkReceipt(&s, measured, NO) && !productSeal(&s, measured));
+        NSMutableDictionary *early = [measured mutableCopy];
+        early[@"phase"] = @"workerMeasuredPark";
+        early[@"window"] = @{@"pid": @(r->pid), @"birth": @(r->birth), @"number": @(r->window)};
+        assert(productParkReceipt(&s, early, NO) && !productSeal(&s, early));
+        early[@"window"] = @{@"pid": @(r->pid), @"birth": @(r->birth), @"number": @(r->window + 1)};
+        assert(!productParkReceipt(&s, early, NO));
+        // Exercise the shipping writer and reader on an anonymous pipe. Close all Host
+        // writers before the Guardian reads. A complete frame survives EOF; an incomplete
+        // second packet cannot be confused with the loss of the writer between packets.
+        int conduit[2];
+        assert(pipe(conduit) == 0);
+        assert(np_corner_copy_measurement_writer(conduit[0]) < 0 && np_corner_copy_measurement_writer(conduit[1]) < 0);
+        assert(fcntl(conduit[1], F_SETFL, O_NONBLOCK) == 0 && fcntl(conduit[1], F_SETNOSIGPIPE, 1) == 0);
+        int copy = np_corner_copy_measurement_writer(conduit[1]);
+        assert(copy >= 0);
+        NPRect landing;
+        assert(productFrame(park, &landing));
+        assert(np_corner_send_measurement(copy, r, landing, 1));
+        close(copy);
+        close(conduit[1]);
+        assert(ncg_next_host_packet(conduit[0]) == 1);
+        NSDictionary *wire = productMessageFrom(conduit[0]);
+        assert(ncg_next_host_packet(conduit[0]) == 0 && productParkReceipt(&s, wire, NO));
+        close(conduit[0]);
+        NPReceipt workerPosition = s.sealed.result;
+        assert(!productSeal(&s, wire) && followsWorkerMeasurement(motion, &workerPosition));
+        assert(followsWorkerMeasurement(measured, &workerPosition) && !followsWorkerMeasurement(wire, &workerPosition));
+        workerPosition.frame.x += 1;
+        assert(!followsWorkerMeasurement(motion, &workerPosition));
+        assert(pipe(conduit) == 0);
+        assert(write(conduit[1], "x", 1) == 1);
+        close(conduit[1]);
+        assert(ncg_next_host_packet(conduit[0]) == 1 && !productMessageFrom(conduit[0]));
+        close(conduit[0]);
+        assert(pipe(conduit) == 0);
+        assert(fcntl(conduit[1], F_SETFL, O_NONBLOCK) == 0 && fcntl(conduit[1], F_SETNOSIGPIPE, 1) == 0);
+        close(conduit[0]);
+        assert(!np_corner_send_measurement(conduit[1], r, landing, 1));
+        close(conduit[1]);
+        printf("{\"scope\":\"workerMeasuredPark\",\"bufferedAfterClose\":true,\"earlySeal\":false,"
+               "\"changedFrameAccepted\":false,\"partialPacketAccepted\":false,\"windowWrites\":0}\n");
         assert(!productJournal(&s, YES, NO));
         for (NSNumber *invalid in @[@(frameFlags | NP_INPUT_SAFE), @(frameFlags | NP_HIDDEN), @(frameFlags & ~NP_CG_VALID),
                                      @(UINT64_C(0x100000000) + frameFlags)]) {

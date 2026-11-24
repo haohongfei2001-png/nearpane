@@ -655,6 +655,45 @@ int np_corner_same_window(const NCMember *m, void *retained) {
 #include "host_scope.inc"
 #include "guardian/observe.inc"
 #include "guardian/peer-watch.h"
+#include "guardian/measurement.h"
+#include <arpa/inet.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+
+int np_corner_copy_measurement_writer(int fd) {
+    int copy = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+    if (copy < 0) return -1;
+    struct stat st;
+    int flags = fcntl(copy, F_GETFL);
+    if (!fstat(copy, &st) && S_ISFIFO(st.st_mode) && flags >= 0 &&
+        (flags & O_ACCMODE) == O_WRONLY && (flags & O_NONBLOCK) &&
+        fcntl(copy, F_GETNOSIGPIPE) == 1) return copy;
+    close(copy);
+    return -1;
+}
+
+bool np_corner_send_measurement(int fd, const NPRequest *r, NPRect f, uint32_t owned) {
+    @autoreleasepool {
+        if (!r || r->backend != NP_CORNER || r->operation != NP_HIDE || !owned || owned > 32 ||
+            !isfinite(f.x) || !isfinite(f.y) || !isfinite(f.width) || !isfinite(f.height) ||
+            f.width <= 0 || f.height <= 0) return false;
+        NSDictionary *message = @{
+            @"phase": @"workerMeasuredPark", @"intent": [[NSUUID alloc] initWithUUIDBytes:r->intent].UUIDString,
+            @"epoch": @(r->epoch), @"native": @(r->native_id), @"owned": @(owned), @"status": @(NP_UNKNOWN),
+            @"flags": @(NP_CORNER_RECOVERY_FRAME | NP_OWNED | NP_AX_VALID | NP_CG_VALID | NP_MEMBERSHIP_VALID),
+            @"window": @{@"pid": @(r->pid), @"birth": @(r->birth), @"number": @(r->window)},
+            @"frame": @[@(f.x), @(f.y), @(f.width), @(f.height)]
+        };
+        NSData *data = [NSJSONSerialization dataWithJSONObject:message options:0 error:NULL];
+        if (!data.length || sizeof(uint32_t) + data.length > PIPE_BUF) return false;
+        uint32_t size = htonl((uint32_t)data.length);
+        struct iovec parts[] = {{&size, sizeof(size)}, {(void *)data.bytes, data.length}};
+        ssize_t n;
+        do { n = writev(fd, parts, 2); } while (n < 0 && errno == EINTR);
+        return n == (ssize_t)(sizeof(size) + data.length);
+    }
+}
 
 int np_corner_open_guardian_peer(pid_t child, uint64_t generation) {
     @autoreleasepool {

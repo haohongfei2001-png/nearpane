@@ -32,6 +32,7 @@ public enum NativeStageEngineError: Error { case transport(UInt32), correlation 
 struct CornerGuardianPeer: Sendable {
     let pid: Int32
     let birth: UInt64
+    let writer: FileHandle
 }
 
 /// Submission copies PODs immediately. Revocation is safe from the main actor even
@@ -111,16 +112,24 @@ public actor NativeStageWindowEngine {
 
     func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
                 expectedEpoch: UInt64?, guardian: CornerGuardianPeer?) async throws -> NativeStageEngineReceipt {
-        try Task.checkCancellation()
+        if Task.isCancelled {
+            if guardian != nil { throw CornerHideAdmissionRefused(CancellationError()) }
+            throw CancellationError()
+        }
         let epoch = try expectedEpoch ?? qualifiedEpoch ?? currentEpoch()
         var request = Self.encode(input, timeout: timeoutMilliseconds, epoch: epoch), ticket: UInt64 = 0
         let submitStatus: UInt32
         if let guardian {
-            submitStatus = np_engine_submit_guarded_corner_hide(handle, &request, guardian.pid, guardian.birth, &ticket)
+            submitStatus = np_engine_submit_witnessed_corner_hide(handle, &request, guardian.pid, guardian.birth,
+                                                                  guardian.writer.fileDescriptor, &ticket)
         } else {
             submitStatus = np_engine_submit(handle, &request, &ticket)
         }
-        guard submitStatus == NP_OK else { throw NativeStageEngineError.transport(submitStatus) }
+        guard submitStatus == NP_OK else {
+            let cause = NativeStageEngineError.transport(submitStatus)
+            if guardian != nil, ticket == 0 { throw CornerHideAdmissionRefused(cause) }
+            throw cause
+        }
         let accepted = ticket, usedEpoch = request.epoch
         return try await withTaskCancellationHandler {
             // Always consume the terminal receipt, including after Swift task cancellation.

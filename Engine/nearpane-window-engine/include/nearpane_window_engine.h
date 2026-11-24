@@ -71,9 +71,12 @@ uint32_t np_engine_create_qualified(uint32_t backend, const uint8_t *evidence, u
 bool np_engine_evidence_is_reviewed(uint32_t backend, const uint8_t *evidence);
 uint32_t np_engine_epoch(uint64_t handle, uint64_t *epoch);
 uint32_t np_engine_submit(uint64_t handle, const NPRequest *, uint64_t *ticket);
-/* The Host supplies its acknowledged Guardian child for this exact HIDE intent. */
+/* Older callers cannot submit a product HIDE without the per-lease observation channel. */
 uint32_t np_engine_submit_guarded_corner_hide(uint64_t handle, const NPRequest *, int32_t guardian_pid,
                                             uint64_t guardian_birth, uint64_t *ticket);
+/* Copies the nonblocking, SIGPIPE-safe writer of the authenticated Guardian's original input pipe. */
+uint32_t np_engine_submit_witnessed_corner_hide(uint64_t handle, const NPRequest *, int32_t guardian_pid,
+                                              uint64_t guardian_birth, int32_t writer, uint64_t *ticket);
 /* Qualified original Corner handle only. OK permanently excludes this never-accepted HIDE intent.
    An accepted ticket (including a consumed timeout/unknown), duplicate or closed handle cannot attest absence. */
 uint32_t np_engine_fence_unsubmitted_corner_hide(uint64_t handle, const NPRequest *);

@@ -61,6 +61,12 @@ package extension StageEngineTransport {
     func readsFinalRelease(_ command: StageWindowCommand, owner: StageEngineOwner) async -> Bool { false }
 }
 
+/// A pre-ticket refusal allows the session to ask for proof. It cannot clear the journal.
+package struct CornerHideAdmissionRefused: Error {
+    package let cause: any Error
+    package init(_ cause: any Error) { self.cause = cause }
+}
+
 /// Only the session that completed both sides of a Corner withdrawal can create this receipt.
 struct UnsubmittedCornerHide: Error {
     let owner: StageEngineOwner, command: StageWindowCommand, yieldedFocus: NativeSpaceWindow?
@@ -200,9 +206,11 @@ struct UnsubmittedCornerHide: Error {
                     throw StageSwitchError.ownership
                 }
             }
-            if hiding, owner.backend == .corner {
+            let sent: StageEngineReply
+            if hiding {
                 try await transport.prepareHide(c,owner:owner)
                 var yieldedFocus: NativeSpaceWindow?
+                var submitting = false
                 do {
                     let after = try await read(c.scope)
                     guard after.scope == pre.scope, after.nativeID == pre.nativeID, after.generation == pre.generation,
@@ -211,14 +219,21 @@ struct UnsubmittedCornerHide: Error {
                     if let focus = after.focus, focus != pre.focus, after.foreignFocusScope == nil,
                        after.windows[focus]?.visibility == .visible { yieldedFocus = focus }
                     guard eligible(), after.focus == pre.focus else { throw StageSwitchError.interrupted }
+                    submitting = true
+                    sent = try await transport.submit(3,owner:owner,c)
                 } catch {
-                    guard c.restoreFrame == nil,
-                          (try? await transport.withdrawUnsubmittedHide(c, owner: owner)) == true else { throw error }
+                    // Admission can be lost between the last read and Rust taking the ticket.
+                    // Only the original engine fence plus the live Guardian can prove it unused.
+                    let refused = error as? CornerHideAdmissionRefused
+                    guard !submitting || refused != nil, c.restoreFrame == nil,
+                          (try? await transport.withdrawUnsubmittedHide(c, owner: owner)) == true
+                    else { throw refused?.cause ?? error }
                     if yieldedFocus != nil || !newerSelectionWaiting() { freeze() }
                     throw UnsubmittedCornerHide(owner: owner, command: c, yieldedFocus: yieldedFocus)
                 }
+            } else {
+                sent = try await transport.submit(c.restoring ? 5 : 4,owner:owner,c)
             }
-            let sent = try await transport.submit(c.restoring ? 5 : hiding ? 3 : 4,owner:owner,c)
             guard eligible(settling: true), sent.verifies(c.intent,0) else { freeze(); throw StageSwitchError.incomplete }
             let readback = try await transport.submit(2,owner:owner,c)
             let mask: UInt32 = 4 | 8 | 32 | (hiding ? 2 | 128 | 16 : 1)

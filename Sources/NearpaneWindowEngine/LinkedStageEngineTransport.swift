@@ -76,10 +76,16 @@ private extension NativeStageEngineReceipt {
     func submit(_ operation: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) async throws -> StageEngineReply {
         let restoring = c.restoring && c.action == .show && (operation == 5 || operation == 2)
         guard operation != 5 || restoring else { throw StageSwitchError.ownership }
-        let epoch = try commandEpoch(owner, restoring: restoring)
         let command = request(operation,owner:owner,c)
-        if operation == NP_HEALTH || operation == NP_HIDE || operation == NP_SHOW { try guardian.checkLiveOwners() }
-        let peer = operation == 3 ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
+        let epoch: UInt64, peer: CornerGuardianPeer?
+        do {
+            epoch = try commandEpoch(owner, restoring: restoring)
+            if operation == NP_HEALTH || operation == NP_HIDE || operation == NP_SHOW { try guardian.checkLiveOwners() }
+            peer = operation == NP_HIDE ? try guardian.preparedPeer(for: command, epoch: epoch) : nil
+        } catch {
+            if operation == NP_HIDE { throw CornerHideAdmissionRefused(error) }
+            throw error
+        }
         // A guarded hide includes the settled AX position and the asynchronous compositor comparison.
         // Cancellation and the Guardian handoff remain live during that read-only interval.
         let timeout: UInt32 = operation == NP_HIDE ? 2_500 : 1_000
