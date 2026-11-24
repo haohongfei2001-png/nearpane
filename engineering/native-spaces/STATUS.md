@@ -2,7 +2,13 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前签名开发候选为 `5bd0732`，回滚包为 `e105c1e`。** 修复前，旁窗卡片出现或离开会通知红窗重新读取预览。修复后，在同一台 26A428 Mac 上，红窗的这项通知为零。返回红窗的首帧复用了原位图，新增捕获为零。红窗变绿时，蓝窗保持蓝色，两扇夹具关闭后前台与此前一致。标准安装版的三指手势观感为 **NOT_RUN**。日常应用仍为 `bec6cb2`。[源码](https://github.com/haohongfei2001-png/nearpane/commit/5bd0732b44d6f54c67c54ca1ba74482e9450609c) · [实测及签名候选](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.json) · [前后对照与卡片图像](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.zip)
+**当前签名开发候选为 `a63dd14`，回滚包为 `5bd0732`。** 同一扇窗口从独立卡换成组合卡或分屏成员时，新旧视图可以短暂同时存在。过去，任一旧卡离开都会撤销整扇窗的预览。现在每张卡只撤销自己的登记，最后一张卡离开时才会停止该窗的预览流。两种卸载顺序及迟到的滚动通知均已验证。
+
+26A428 上，两扇非激活测试窗口分别显示红色和蓝色。切回和新旧卡交接时新增捕获均为零；R4 卡片从原位图绘出了红色。红窗变绿时蓝窗保持蓝色，夹具关闭后前台仍为原应用。普通安装版三指滑动往返仍为 **NOT_RUN**。本机完整 Swift 回归通过 830 项、跳过 4 项。[机器收据与内部签名候选](../verification/native-spaces/5.22-90-active-display-previews/card-handoff-a63dd14.json) · [真实夹具画面、回归与恢复记录](../verification/native-spaces/5.22-90-active-display-previews/card-handoff-a63dd14.zip)
+
+工作集合切换中断时，协调器会先向仍在原组的准确窗口交还键盘焦点，连续两次读回一致后才允许重新退场。Guardian 和 Rust 共同核对旧停放位置、当前可见几何和这次恢复操作。修复前同应用双窗的错误顺序已复现。Swift 协调器、Guardian 日志解析和 Rust 几何回归均通过。实机普通桌面上的签名隔离 Host（`5bd0732`）独立两次确认夹具身份、几何和归属；系统屏幕录制预检为 false，实际退场为 **BLOCKED**。夹具像素两读通过，屏幕合成因遮挡为 **UNKNOWN**。未进行窗口写入。整组 A→B→C→A、10/50 次与同机性能对照均为 **NOT_RUN**。
+
+**此前签名候选为 `5bd0732`，其回滚包为 `e105c1e`。** 修复前，旁窗卡片出现或离开会通知红窗重新读取预览。修复后，在同一台 26A428 Mac 上，红窗的这项通知为零。返回红窗的首帧复用了原位图，新增捕获为零。红窗变绿时，蓝窗保持蓝色，两扇夹具关闭后前台与此前一致。标准安装版的三指手势观感为 **NOT_RUN**。日常应用仍为 `bec6cb2`。[源码](https://github.com/haohongfei2001-png/nearpane/commit/5bd0732b44d6f54c67c54ca1ba74482e9450609c) · [实测及签名候选](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.json) · [前后对照与卡片图像](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.zip)
 
 Guardian 已在允许退场前核对 Swift 选中的前台窗口，并在写入恢复记录后复核焦点和输入。隔离管道回归中，缺少选窗记录、缺少实际焦点对象、焦点仍在待退场窗、选错同应用旁窗、进程换代，五种情况的可执行回执均为零。真实单窗退场和归位仍为 **BLOCKED**，侧栏整组往返及 10/50 次仍为 **NOT_RUN**。[引擎源码](https://github.com/haohongfei2001-png/nearpane/commit/e105c1eb4eaa60d29af11da231d2dbb4b287a02a) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45447195303)
 
