@@ -1,8 +1,29 @@
 import CoreGraphics
+import Observation
+import os
 @testable import NearpaneUI
 import Testing
 
 @MainActor struct PreviewPixelCacheTests {
+    @Test func aCardObservesOnlyItsOwnFirstFrameAndRemoval() {
+        let cache = PreviewPixelCache<Int, String>(maxCount: 2, maxBytes: 16)
+        cache.store("retained", for: 1, cost: 4)
+        let retained = OSAllocatedUnfairLock(initialState: false)
+        let waiting = OSAllocatedUnfairLock(initialState: false)
+        withObservationTracking({ _ = cache.peek(1); cache.touch(1) }, onChange: { retained.withLock { $0 = true } })
+        withObservationTracking({ _ = cache.peek(3) }, onChange: { waiting.withLock { $0 = true } })
+        cache.store("visiting", for: 2, cost: 4)
+        cache.touch(1)
+        #expect(!retained.withLock { $0 } && !waiting.withLock { $0 })
+        cache.store("first frame", for: 3, cost: 4) // evicts window 2
+        #expect(!retained.withLock { $0 } && waiting.withLock { $0 })
+        #expect(!cache.contains(2) && cache.peek(1) == "retained")
+        cache.remove(3)
+        #expect(!retained.withLock { $0 })
+        cache.removeAll()
+        #expect(retained.withLock { $0 } && !cache.contains(1))
+    }
+
     @Test func bytesAndCountEvictTheLeastRecentlyDisplayedWindow() {
         let cache = PreviewPixelCache<Int, String>(maxCount: 3, maxBytes: 10)
         for key in 1...3 { cache.store("card", for: key, cost: 2) }

@@ -1,5 +1,7 @@
 import AppKit
 import NearpaneCore
+import Observation
+import os
 @preconcurrency import ScreenCaptureKit
 import SwiftUI
 import Testing
@@ -90,7 +92,19 @@ import Testing
                 time: ProcessInfo.processInfo.systemUptime), for: .current(target.key), cost: try #require(PreviewPixelBudget.charge(image)))
             return image
         }
-        let red = try await capture(0, channel: 0), blue = try await capture(1, channel: 2)
+        func read(_ i: Int) throws -> CGImage {
+            try #require(DesktopWindowGallery.lastCardPixels(targets[i], in: cache, appearance: appearance,
+                now: ProcessInfo.processInfo.systemUptime, allows: { _ in
+                    panels[i].windowNumber == targets[i].key.number && targets[i].lastFrameAccess() == .allowed
+                }, originalMatches: { _, _ in false }))
+        }
+        let red = try await capture(0, channel: 0)
+        let redInvalidated = OSAllocatedUnfairLock(initialState: false)
+        let observedRed = withObservationTracking { try? read(0) } onChange: { redInvalidated.withLock { $0 = true } }
+        try #require(observedRed === red)
+        let blue = try await capture(1, channel: 2)
+        receipt["existingCardInvalidatedBySiblingFirstFrame"] = redInvalidated.withLock { $0 }
+        try #require(!redInvalidated.withLock { $0 })
         receipt["sourceWindowIDs"] = sources.map(\.windowID)
         receipt["initialWindowServerRGB"] = [try rgb(red), try rgb(blue)]
         receipt["surfaces"] = targets.enumerated().map { i, target -> [String: Any] in
@@ -102,12 +116,6 @@ import Testing
         }
         gallery.setCard(targets[0].key, on: targets[0].display, visible: false)
         gallery.clear(display: targets[0].display, keepingCardFrames: true)
-        func read(_ i: Int) throws -> CGImage {
-            try #require(DesktopWindowGallery.lastCardPixels(targets[i], in: cache, appearance: appearance,
-                now: ProcessInfo.processInfo.systemUptime, allows: { _ in
-                    panels[i].windowNumber == targets[i].key.number && targets[i].lastFrameAccess() == .allowed
-                }, originalMatches: { _, _ in false }))
-        }
         let before = starts
         let returned = try read(0), peer = try read(1)
         let card = DesktopWindowCard(label: "Fixture A", icon: nil, image: returned, pictureSize: CGSize(width: 80, height: 60)).frame(width: 80)
@@ -123,6 +131,12 @@ import Testing
         let green = try await capture(0, channel: 1, reusing: baseline)
         let changed = try read(0), unchanged = try read(1)
         try #require(changed === green && unchanged === blue)
+        let blueInvalidated = OSAllocatedUnfairLock(initialState: false)
+        let observedBlue = withObservationTracking { try? read(1) } onChange: { blueInvalidated.withLock { $0 = true } }
+        try #require(observedBlue === blue)
+        cache.remove(.current(targets[0].key))
+        receipt["existingCardInvalidatedBySiblingEviction"] = blueInvalidated.withLock { $0 }
+        try #require(!blueInvalidated.withLock { $0 })
         receipt["ownerPID"] = getpid()
         receipt["ownerBirth"] = birth
         receipt["captureStartsDuringReturn"] = 0

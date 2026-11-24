@@ -26,12 +26,12 @@ enum PreviewPixelBudget {
         init(value: Value, cost: Int) { self.value = value; self.cost = cost }
     }
     @ObservationIgnored var onRemoval: ((Key) -> Void)?
-    private var entries = [Key: Entry]()
+    @ObservationIgnored private var entries = [Key: Entry]()
     // Reads update LRU order without invalidating a SwiftUI body that just read an image.
     @ObservationIgnored private var lastUse = [Key: UInt64]()
     @ObservationIgnored private var tick: UInt64 = 0
     private(set) var bytes = 0
-    var count: Int { entries.count }
+    private(set) var count = 0
     private let maxCount, maxBytes: Int
 
     init(maxCount: Int = PreviewPixelBudget.galleryCount, maxBytes: Int = PreviewPixelBudget.galleryBytes) {
@@ -39,8 +39,14 @@ enum PreviewPixelBudget {
         self.maxBytes = maxBytes
     }
 
-    func contains(_ key: Key) -> Bool { entries[key] != nil }
-    func peek(_ key: Key) -> Value? { entries[key]?.value }
+    // A card waiting for its first frame observes this key even before an entry
+    // exists. Arrival or eviction of a different window cannot redraw it.
+    private subscript(present key: Key) -> Bool {
+        access(keyPath: \Self.[present: key])
+        return entries[key] != nil
+    }
+    func contains(_ key: Key) -> Bool { self[present: key] }
+    func peek(_ key: Key) -> Value? { self[present: key] ? entries[key]?.value : nil }
     func touch(_ key: Key) {
         guard entries[key] != nil else { return }
         tick &+= 1
@@ -57,14 +63,18 @@ enum PreviewPixelBudget {
         if let existing {
             existing.value = value
             existing.cost = cost
-        } else { entries[key] = Entry(value: value, cost: cost) }
+        } else {
+            withMutation(keyPath: \Self.[present: key]) { entries[key] = Entry(value: value, cost: cost) }
+            count = entries.count
+        }
         if cost != prior { bytes += cost - prior }
         touch(key)
     }
 
     func remove(_ key: Key) {
         guard let entry = entries[key] else { return }
-        entries.removeValue(forKey: key)
+        withMutation(keyPath: \Self.[present: key]) { _ = entries.removeValue(forKey: key) }
+        count = entries.count
         onRemoval?(key)
         bytes -= entry.cost
         lastUse.removeValue(forKey: key)
@@ -74,9 +84,6 @@ enum PreviewPixelBudget {
         for (key, entry) in entries where predicate(key, entry.value) { remove(key) }
     }
     func removeAll() {
-        if let onRemoval { for key in entries.keys { onRemoval(key) } }
-        entries.removeAll()
-        lastUse.removeAll()
-        bytes = 0
+        for key in entries.keys { remove(key) }
     }
 }
