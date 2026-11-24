@@ -2,6 +2,8 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
+当前签名开发候选为 `539eb42`。本机完整 Swift 回归 814 项通过、3 项跳过，Corner 定向 83 项通过。侧栏与引擎两次源码提交触发的三项 CI 均通过；托管桌面作业跳过。ARM64 开发包及 14 个可执行组件通过严格验签。已从 GitHub 内部草稿独立下载当前候选并核对 SHA-256，上一候选 `74fc1cc` 的回滚包也已复核。日常版本继续运行。产品仍缺少一扇真实退场窗口的画面及键鼠收件证据，正式工作集合切换保持关闭。[签名、回滚和 CI 收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-539eb42.json) · [WindowServer 原始读数、回归及失败记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-member-and-sheet-order.zip)
+
 在 26A428 实体机上，AppKit 完成遮挡面板重排时，WindowServer 仍返回旧顺序。Corner 现在原位移动同一面板，每次提交一次层级指令，再独立读回。同一签名测试进程的三个窗口中，首次确认新顺序在指令发出后 15.4 毫秒，第二次在 28.6 毫秒。未确认请求到期后没有再次派发。三个测试面板全部关闭，前台、HID 和原生桌面保持一致。此项为面板层级验收；第三方窗口退场及实际输入隔离仍未执行。
 
 非活动组合的历史画面现在可选择具体窗口。按下和抬起必须命中同一批画面的同一成员；真实切换事务会再核对该成员的 AX 对象、窗口代际、桌面归属和恢复责任。标题及画面空白处仍恢复上次焦点。26A428 上的定向验证已覆盖同应用两窗重叠、缺图、拖动、按下后换代及整组恢复的焦点选择。此次指针事件只交给未显示的 R4 测试面板；实体机第三方窗口退场和键盘输入仍待验收。
@@ -12,7 +14,7 @@
 
 **实机读回。** macOS 27.0（26A428）、ARM64、SIP 开启。普通桌面 6 上，AppKit 两轮查询四角各 5 个位置，返回的点击目标与截屏面板的前后关系一致。两轮均有 16 个目标在 Apple 截屏面板下方、4 个在上方，面板自身为 0。前台、桌面及输入计数稳定。全程发送事件 0、采图 0、窗口写入 0。退场区域的实际画面及键鼠收件仍待证明。隔离执行 Host 的录屏准入为 **BLOCKED**，单窗完整隐藏恢复、R4 A→B→C→A、10/50 次及性能对照均为 **NOT_RUN**。[实体机采样与未执行项](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-input-ownership.zip) · [执行 Host 的原始准入](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/result.json)
 
-**可回滚开发候选。** `74fc1cc` 的 5.22（90）ARM64 包已解压复验，整包及 14 个可执行组件均通过严格签名检查。本包和前一包 `fa59777` 均已从 PR #15 原有的内部草稿附件独立下载，两包的 SHA-256 各自与本机严格验签的原包一致。最新 Rust 整库 124 项通过，Corner 定向 83 项通过。相同 Swift 源码的完整本机回归 812 项通过、3 项跳过。三次源码提交各自触发的 CI 均通过，托管桌面作业跳过。日常应用保留在原安装路径。[候选、回滚与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-74fc1cc.json) · [最新引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45329279105) · [Swift 和原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45326180839)
+**前一签名候选。** `74fc1cc` 的 5.22（90）ARM64 包已解压复验，整包及 14 个可执行组件均通过严格签名检查。本包和前一包 `fa59777` 均已从 PR #15 原有的内部草稿附件独立下载，两包的 SHA-256 各自与本机严格验签的原包一致。最新 Rust 整库 124 项通过，Corner 定向 83 项通过。相同 Swift 源码的完整本机回归 812 项通过、3 项跳过。三次源码提交各自触发的 CI 均通过，托管桌面作业跳过。日常应用保留在原安装路径。[候选、回滚与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-74fc1cc.json) · [最新引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45329279105) · [Swift 和原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45326180839)
 
 ### 此前的角落、桌面与构建记录
 
