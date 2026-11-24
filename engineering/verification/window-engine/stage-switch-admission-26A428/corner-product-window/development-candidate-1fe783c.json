@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "recordedUTC": "2026-11-24T14:42:39.848014+00:00",
+  "version": "5.22",
+  "build": "90",
+  "sourceRevision": "1fe783c940d6001bf51d4abde754bae0bcfdc74c",
+  "previousCandidate": "9aa87c9b3846547f9cd3d952bc770c1b5240bc96",
+  "engineABI": 1,
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "5d15b9af4a3a77c2466053e4cc3e312f37b8c492",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "package": {
+    "sha256": "2c9f21275c4d6a52c9a0108c4a98a1758659023aadef59ed04d8bd52b5225496",
+    "bytes": 33961377,
+    "verifiedMachO": 14,
+    "signingMode": "local Developer ID, without distribution timestamps",
+    "deepStrictAllArchitectures": "PASS",
+    "archiveRoundTrip": "PASS",
+    "draft": {
+      "draftReleaseID": 452393835,
+      "releaseStillDraft": true,
+      "publishedAt": null,
+      "releasePage": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+      "publicRelease": false,
+      "previousAssetsPreserved": true,
+      "assetCountBefore": 31,
+      "assetCountAfter": 32,
+      "items": [
+        {
+          "revision": "1fe783c940d6001bf51d4abde754bae0bcfdc74c",
+          "role": "development candidate",
+          "name": "Nearpane-5.22-90-arm64-1fe783c.zip",
+          "assetID": 787542764,
+          "bytes": 33961377,
+          "sha256": "2c9f21275c4d6a52c9a0108c4a98a1758659023aadef59ed04d8bd52b5225496",
+          "downloadSHA256": "2c9f21275c4d6a52c9a0108c4a98a1758659023aadef59ed04d8bd52b5225496",
+          "independentDownload": "PASS",
+          "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/787542764",
+          "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-1fe783c.zip"
+        },
+        {
+          "revision": "9aa87c9b3846547f9cd3d952bc770c1b5240bc96",
+          "role": "rollback",
+          "name": "Nearpane-5.22-90-arm64-9aa87c9.zip",
+          "assetID": 787375589,
+          "bytes": 33701000,
+          "sha256": "033802e06235668ca3e77f4e7443647ef2853ced89842dbdde826041341bd20f",
+          "downloadSHA256": "033802e06235668ca3e77f4e7443647ef2853ced89842dbdde826041341bd20f",
+          "independentDownload": "PASS",
+          "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/787375589",
+          "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-9aa87c9.zip"
+        }
+      ]
+    }
+  },
+  "recovery": {
+    "scope": "Original Swift product transaction, Rust Corner worker and packaged Guardian. Controlled roster, journal, process protocol and ABI regressions; no third-party window parked in this qualification.",
+    "priorSource": "After the worker reported an unqualified landing, the living Host had no exact measured-return request. Post-exit recovery remains available on its own evidence.",
+    "cases": {
+      "originalIntentStillCurrent": "PASS",
+      "bystanderMovedBeforeReturn": "PASS",
+      "newSelectionWhileArming": "PASS",
+      "finalReplyLostDoesNotRepeatSetter": "PASS",
+      "kernelAndWriterExclusionRequiredForPostExitReadOnlySettlement": "PASS",
+      "independentRemainingTransactionStillBlocksInstall": "PASS"
+    },
+    "swiftFull": {
+      "total": 825,
+      "passed": 822,
+      "failed": 0,
+      "skipped": 3
+    },
+    "swiftTargeted": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped": 0
+    },
+    "rustAllFeatures": {
+      "passed": 126,
+      "failed": 0
+    },
+    "cornerTargeted": {
+      "passed": 85,
+      "failed": 0,
+      "overlapsRustTests": true
+    },
+    "targetWindowWritesInThisPhase": 0
+  },
+  "ci": [
+    {
+      "conclusion": "success",
+      "headSha": "1fe783c940d6001bf51d4abde754bae0bcfdc74c",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed"
+        }
+      ],
+      "name": "StageGroup window engine",
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45413909975"
+    },
+    {
+      "conclusion": "success",
+      "headSha": "1fe783c940d6001bf51d4abde754bae0bcfdc74c",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "protocol",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Desktop files on macOS 27",
+          "status": "completed"
+        }
+      ],
+      "name": "Nearpane native 5.22 protocol",
+      "status": "completed",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45413910060"
+    }
+  ],
+  "lastPhysicalAdmission": {
+    "source": "display-marker-and-card-input.zip#quiet-read/session-host.json",
+    "observedUTC": "2026-11-24T11:37:05.689224+00:00",
+    "systemBuild": "26A428",
+    "status": "BLOCKED",
+    "managedDisplays": [
+      1,
+      1
+    ],
+    "activeSpaceTypes": [
+      4,
+      4
+    ],
+    "isolatedHostPermissions": {
+      "accessibility": true,
+      "listenEvent": true,
+      "postEvent": true,
+      "screenCapture": false
+    },
+    "sameExperimentRepeated": false
+  },
+  "productQualification": {
+    "targetSingleWindowAdmission": "BLOCKED",
+    "singleWindowRetirement": "NOT_RUN",
+    "gestureRecipient": "NOT_RUN",
+    "parkedGuardianRestore": "NOT_RUN",
+    "sidebarABCtoA": "NOT_RUN",
+    "sameAppWindowsAcrossGroups": "NOT_RUN",
+    "tenSwitches": "NOT_RUN",
+    "fiftySwitches": "NOT_RUN",
+    "multiplePhysicalDisplays": "NOT_RUN",
+    "appleHeadToHead": "NOT_RUN",
+    "productionWritesEnabled": false,
+    "candidateInstalled": false,
+    "notarization": "NOT_RUN",
+    "publicRelease": false
+  },
+  "executionScope": {
+    "currentInstalledHost": "bec6cb2; last physical receipt, not upgraded",
+    "registeredObserver": "Authenticated observer independently verified registered fixture pixels, with no capability conferred on the executing renderer",
+    "internalReadback": "Read-only fixture protocol; no write grant or production admission",
+    "reviewedProductionCornerEvidence": 0,
+    "externalCondition": "An eligible ordinary desktop and an independently authorized executing/renderer process for the same signed fixture, before a genuine Corner single-window trial",
+    "technicalConclusion": "No production qualification for this build. No platform-wide impossibility inferred."
+  },
+  "rawEvidence": {
+    "file": "live-measured-corner-return.zip",
+    "sha256": "d9032781c65f549b0996d0193f6e17f52fa36f6aa91744a720314d9cfbc9b1fd"
+  }
+}

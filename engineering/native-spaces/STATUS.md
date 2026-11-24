@@ -2,7 +2,17 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前签名开发候选为 `9aa87c9`，回滚包为 `b204a44`。** 若 Guardian 在 Host 退出后把一次未完成退场的窗口送回原位，并连续两次核实原窗，重启的 Host 可以读取原写前记录、实测停放位置及终结收据，只结清该窗。批次中此前的操作和其他窗口的责任继续保留，活动组不会因此变更。回归在隔离资料中验证了这条路径，窗口写入为零。Swift 821 项通过、3 项跳过，两项源码 CI 通过。两份开发签名包均已校验。[候选与验收结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-9aa87c9.json) · [修复前后的原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-measured-return.zip)
+**当前开发候选为 `1fe783c`，回滚包为 `9aa87c9`。** 已修复窗口到达角落后画面或输入隔离未能确认时的归位路径。原 Host 先记录这扇窗的恢复意图，再核对它的位置、旁窗、原焦点和用户最新选择。原 Guardian 同意后，Rust 最多发出一次归位操作。原 Host 和 Guardian 各自复核原位，Swift 才结清该窗。若 Host 在归位后、确认前退出，Guardian 须取得内核退出和原写入者已离开的证据，再连续两次读取原窗。工作集合的活动状态继续以整组切换结果为准。[源码](https://github.com/haohongfei2001-png/nearpane/commit/1fe783c940d6001bf51d4abde754bae0bcfdc74c) · [候选、回滚包和实测边界](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-1fe783c.json)
+
+隔离回归覆盖正常归还、旁窗移动、用户快速改选和终结回执丢失。Swift 完整回归 822 项通过，3 项跳过，Rust 126 项通过。两项源码 CI 均通过。开发包及 14 个可执行组件通过验签和解压复验，候选与回滚包均已从 GitHub 草稿下载核对。本轮第三方窗口写入次数为零。[原始记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/live-measured-corner-return.zip) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45413909975) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45413910060)
+
+**真实工作集合切换仍为 BLOCKED。** 在 26A428 实体机上，首次检查因 12 秒内有 60 次输入计数变化而在启动前停止。输入安静后，隔离签名 Host 实际启动，确认了原焦点，并连续两次读到原生全屏桌面（type 4）。随后四分钟内系统没有发出桌面改变通知。Host 自读辅助功能、输入监听和事件投递均已授权，屏幕录制未授权。已有实机证据确认独立观察器可以读取登记测试窗口的独立画面。Corner 绘制退场区域所需的壁纸画面仍由执行 Host 自己读取。本次未创建测试窗。Host 已正常退出，观察通道已清理，日常 Nearpane 在前后两次均处于停止状态，签名、配置和恢复记录指纹一致。[实机原始读数、清理、交互与回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/display-marker-and-card-input.zip)
+
+下一次实机操作是在系统自然回到普通桌面、且执行 Host 具有现有合法画面权限时，由正式执行器让一扇签名测试窗口退场，独立核实画面、完整鼠标手势、键盘收件和 Guardian 归位。登记窗口在物理显示器上的新色标核验、退场窗口恢复、正式侧栏 A→B→C→A、10/50 次和同机性能对照均为 **NOT_RUN**。
+
+### 此前的候选和真实窗口证据
+
+**此前签名开发候选为 `9aa87c9`，回滚包为 `b204a44`。** 若 Guardian 在 Host 退出后把一次未完成退场的窗口送回原位，并连续两次核实原窗，重启的 Host 可以读取原写前记录、实测停放位置及终结收据，只结清该窗。批次中此前的操作和其他窗口的责任继续保留，活动组不会因此变更。回归在隔离资料中验证了这条路径，窗口写入为零。Swift 821 项通过、3 项跳过，两项源码 CI 通过。两份开发签名包均已校验。[候选与验收结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-9aa87c9.json) · [修复前后的原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-measured-return.zip)
 
 **此前签名开发候选为 `b204a44`，回滚包为 `cc1aa89`。** Rust 在同一扇窗口的实测停放位置连续两次一致后，立即通过该窗口原先认证的管道交给 Guardian。若 Host 在稍后的画面核验期间退出，Guardian 可以继续核对原 AX 对象、几何、归属、焦点和写前日志。实测位置发送前发生中断，仍保留未决责任。正式侧栏快速改选时，只有原 Rust 引擎排除已受理的请求，且原 Guardian 核实窗口仍在原位，才会撤回对应写前记录。
 
@@ -11,12 +21,6 @@
 此前的开发候选为 `cc1aa89`，回滚包为 `c055dc4`。 两个退场窗口在角落重叠时，Nearpane 现在会逐一核对 WindowServer 预测的窗号和 Quartz 事件报告的收件窗号。发现两者矛盾时，立即中止使用该窗口顺序。能确认收件窗归属时，继续拦截本次手势直到抬起。事件报告的 PID 与窗口所有者矛盾时，整次手势交还系统。修复前，两个不同窗号会被同一次匹配误判为正确，已保留可复现的失败记录。Rust 全部 125 项、Corner 定向 84 项通过，链接最新静态库的 Swift 完整回归 818 项通过、3 项跳过。当前源码的 Rust、Swift 与生产 C ABI CI 通过，托管桌面作业跳过。两份签名包均已从 GitHub 内部草稿下载并核对。修复的验收使用可控的事件字段和窗口顺序，物理桌面上的真实收件仍待单窗验证。[当前候选和各项资格](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-cc1aa89.json) · [修复前后的原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/parked-recipient-identity.zip)
 
 上一份签名开发候选为 `c055dc4`，其回滚包为 `504e588`。点击组合预览的重叠处会选中前窗，点击后窗露出的部分可选中后窗。拖动时沿用相同的窗口身份和前后顺序。把成员拖出侧栏并释放到同一显示器的工作区域，可以将它移出组合。窗口换代、前后顺序不明、跨显示器释放或在菜单栏释放时会取消操作。36 项定向检查在连接实体显示器的 AppKit 测试面板中通过。完整本机 Swift 回归 818 项通过、3 项跳过，首轮受限环境中的失败已保留。两项源码 CI 通过。候选整包及 14 个可执行组件已严格验签，候选与回滚包均已用 GitHub 内部草稿下载核对 SHA-256。[候选、回滚、CI 和分项结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-c055dc4.json)
-
-**真实工作集合切换仍为 BLOCKED。** 在 26A428 实体机上，首次检查因 12 秒内有 60 次输入计数变化而在启动前停止。输入安静后，隔离签名 Host 实际启动，确认了原焦点，并连续两次读到原生全屏桌面（type 4）。随后四分钟内系统没有发出桌面改变通知。Host 自读辅助功能、输入监听和事件投递均已授权，屏幕录制未授权。已有实机证据确认独立观察器可以读取登记测试窗口的独立画面。Corner 绘制退场区域所需的壁纸画面仍由执行 Host 自己读取。本次未创建测试窗。Host 已正常退出，观察通道已清理，日常 Nearpane 在前后两次均处于停止状态，签名、配置和恢复记录指纹一致。[实机原始读数、清理、交互与回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/display-marker-and-card-input.zip)
-
-下一次实机操作是在系统自然回到普通桌面、且执行 Host 具有现有合法画面权限时，由正式执行器让一扇签名测试窗口退场，独立核实画面、完整鼠标手势、键盘收件和 Guardian 归位。登记窗口在物理显示器上的新色标核验、退场窗口恢复、正式侧栏 A→B→C→A、10/50 次和同机性能对照均为 **NOT_RUN**。
-
-### 此前的候选和真实窗口证据
 
 恢复过程中，如果窗口已经两次读回原位、Guardian 的最终回执稍后才落盘，侧栏现在会在原 Guardian 退出后处理这份回执。它重新核对窗口代际、几何、原生归属、旁窗和焦点，只读取已登记的同一次归还记录。用户已经移动窗口、回执仍缺失或还有未确认的窗口动作时保留恢复责任。已在故障注入中复现修复前窗口已归位而事务无法结束的问题；实际退场窗口上的迟到回执仍待实机验收。此次完整 Swift 回归 815 项通过、3 项跳过。[修复前失败、修复后与完整回归](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-release-after-return.zip)
 
