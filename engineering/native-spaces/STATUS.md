@@ -2,7 +2,11 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前开发候选为 `1fe783c`，回滚包为 `9aa87c9`。** 已修复窗口到达角落后画面或输入隔离未能确认时的归位路径。原 Host 先记录这扇窗的恢复意图，再核对它的位置、旁窗、原焦点和用户最新选择。原 Guardian 同意后，Rust 最多发出一次归位操作。原 Host 和 Guardian 各自复核原位，Swift 才结清该窗。若 Host 在归位后、确认前退出，Guardian 须取得内核退出和原写入者已离开的证据，再连续两次读取原窗。工作集合的活动状态继续以整组切换结果为准。[源码](https://github.com/haohongfei2001-png/nearpane/commit/1fe783c940d6001bf51d4abde754bae0bcfdc74c) · [候选、回滚包和实测边界](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-1fe783c.json)
+**当前开发候选为 `a34161a`，回滚包为 `1fe783c`。** 滑动切换桌面或切回窗口时，侧栏可以在取到新帧前直接绘制原窗口上次确认的画面。重新收到相同内容时复用原位图，内容变化时只更新对应窗口。读到新桌面目录前，旧卡片仅供显示。确认桌面为空、窗口换代或共享被撤回时，会撤下原画面。[源码](https://github.com/haohongfei2001-png/nearpane/commit/a34161a180163bd86b0275f8b3a61923e6796708)
+
+在 macOS 27.0（26A428）实体机上，红、蓝两扇测试窗提供了真实 WindowServer 画面。重新呈现红窗卡片时，首帧直接使用同一张红色位图，新增捕获次数为 0。后台恢复采集后，相同画面仍复用原图。红窗变绿时，蓝窗像素保持原值。两扇测试窗均已关闭，前台保持原样。该项覆盖生产卡片渲染与测试进程自己的窗口。标准安装版三指滑动的端到端观感为 **NOT_RUN**。首次实机复现、修复前后的像素、清理结果及签名候选均可复核。[实测与候选收据](../verification/native-spaces/5.22-90-active-display-previews/preview-return-a34161a.json) · [原始读数和卡片图像](../verification/native-spaces/5.22-90-active-display-previews/preview-return-a34161a.zip)
+
+上一份 Corner 开发候选为 `1fe783c`，其回滚包为 `9aa87c9`。 已修复窗口到达角落后画面或输入隔离未能确认时的归位路径。原 Host 先记录这扇窗的恢复意图，再核对它的位置、旁窗、原焦点和用户最新选择。原 Guardian 同意后，Rust 最多发出一次归位操作。原 Host 和 Guardian 各自复核原位，Swift 才结清该窗。若 Host 在归位后、确认前退出，Guardian 须取得内核退出和原写入者已离开的证据，再连续两次读取原窗。工作集合的活动状态继续以整组切换结果为准。[源码](https://github.com/haohongfei2001-png/nearpane/commit/1fe783c940d6001bf51d4abde754bae0bcfdc74c) · [候选、回滚包和实测边界](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-1fe783c.json)
 
 隔离回归覆盖正常归还、旁窗移动、用户快速改选和终结回执丢失。Swift 完整回归 822 项通过，3 项跳过，Rust 126 项通过。两项源码 CI 均通过。开发包及 14 个可执行组件通过验签和解压复验，候选与回滚包均已从 GitHub 草稿下载核对。本轮第三方窗口写入次数为零。[原始记录](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/live-measured-corner-return.zip) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45413909975) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45413910060)
 
