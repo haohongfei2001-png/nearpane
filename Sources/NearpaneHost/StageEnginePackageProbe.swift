@@ -264,6 +264,7 @@ enum StageEnginePackageProbe {
                             let end = DispatchTime.now().uptimeNanoseconds
                             report["fixturePixelWitness"] = ["status":receipt.confirms(item,observer:pin.pid,until:end) ? "PASS" :
                                 (["BLOCKED","FAIL"].contains(receipt.status) ? receipt.status : "UNKNOWN"),
+                                "displayMarkerStatus":receipt.displayStatus(item,observer:pin.pid,until:end),
                                 "observerCDHash":pin.cdhash,"receivedNS":end,"storedFrames":0,"windowWrites":0,
                                 "raw":try JSONSerialization.jsonObject(with:JSONEncoder().encode(receipt))] as [String : Any]
                         } catch {

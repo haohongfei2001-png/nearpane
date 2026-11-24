@@ -21,6 +21,33 @@ struct StageInstalledProbeTests {
         #expect(!accepted([2_000_000,70_000_000],[16,16],peer:43))
         #expect(!accepted([2_000_000,70_000_000],[16,16],end:9_000_000_000))
     }
+    @Test func fixtureSurfaceDoesNotProveThatItsMarkerWasDisplayed() {
+        typealias Wire = StageFixtureVisualLink
+        let item = Wire.Request(session:UUID(),challenge:UUID(),display:UUID(),space:UUID(),native:4,birth:17,
+                                began:1_000_000,window:38,pid:71,cdhash:String(repeating:"a",count:40))
+        func sample(_ time: UInt64, opaque: Int = 16) -> Wire.Sample {
+            .init(time:time,matchingStripes:16,opaqueCells:opaque)
+        }
+        var reply = Wire.Reply(request:item,observerPID:42,screenAccess:true,
+                               samples:[sample(2_000_000),sample(70_000_000)],
+                               status:"PASS",reason:"registeredFixturePixelsTwice")
+        let end: UInt64 = 86_000_000
+        func status() -> String { reply.displayStatus(item,observer:42,until:end) }
+        #expect(reply.confirms(item,observer:42,until:end))
+        #expect(status() == "UNKNOWN")
+        reply.displayMarker = .init(status:"UNKNOWN",reason:"interveningSurfaceOverMarker",samples:[])
+        #expect(status() == "UNKNOWN")
+        for reads in [reply.samples, [sample(3_000_000),sample(80_000_000,opaque:15)],
+                      [sample(24_000_000),sample(73_000_000)], [sample(70_500_000),sample(82_000_000)]] {
+            reply.displayMarker = .init(status:"PASS",reason:"displayMarkerUnobstructedTwice",samples:reads)
+            #expect(status() == "UNKNOWN")
+        }
+        reply.displayMarker = .init(status:"PASS",reason:"displayMarkerUnobstructedTwice",
+                                    samples:[sample(3_000_000),sample(80_000_000)])
+        #expect(status() == "PASS")
+        #expect(reply.displayStatus(item,observer:43,until:end) == "UNKNOWN")
+        #expect(reply.displayStatus(item,observer:42,until:79_000_000) == "UNKNOWN")
+    }
     #endif
     @MainActor @Test func inventoryRetainsDesktopIdentityOrderAndActiveSpaceAcrossOverviewAnimation() throws {
         let a: [String:Any] = ["id64":1,"ManagedSpaceID":1,"type":0,"uuid":UUID().uuidString]

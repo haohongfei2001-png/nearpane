@@ -17,15 +17,33 @@ enum StageFixtureVisualLink {
         let time: UInt64, matchingStripes: Int
         var opaqueCells: Int?, greenCells: Int?, magentaCells: Int?
     }
+    struct DisplayMarker: Codable, Sendable {
+        let status, reason: String
+        let samples: [Sample]
+    }
     struct Reply: Codable, Sendable {
         let request: Request, observerPID: Int32, screenAccess: Bool
         let samples: [Sample], status, reason: String
+        var displayMarker: DisplayMarker?
+
+        private func matchesTwice(_ reads: [Sample], until: UInt64) -> Bool {
+            reads.count == 2 && request.began < reads[0].time && reads[0].time < reads[1].time &&
+                reads[1].time <= until && reads[1].time - reads[0].time >= 50_000_000 &&
+                reads.allSatisfy { $0.matchingStripes == 16 }
+        }
         func confirms(_ expected: Request, observer: Int32, until: UInt64) -> Bool {
             request == expected && expected.session != expected.challenge && observerPID == observer &&
-                status == "PASS" && reason == "registeredFixturePixelsTwice" && screenAccess && samples.count == 2 &&
-                expected.began < samples[0].time && samples[0].time < samples[1].time && samples[1].time <= until &&
-                samples[1].time - samples[0].time >= 50_000_000 &&
-                until >= expected.began && until - expected.began < 8_000_000_000 && samples.allSatisfy { $0.matchingStripes == 16 }
+                status == "PASS" && reason == "registeredFixturePixelsTwice" && screenAccess &&
+                until >= expected.began && until - expected.began < 8_000_000_000 && matchesTwice(samples, until: until)
+        }
+        func displayStatus(_ expected: Request, observer: Int32, until: UInt64) -> String {
+            guard confirms(expected, observer: observer, until: until), let marker = displayMarker else { return "UNKNOWN" }
+            guard marker.status == "PASS" else { return marker.status == "FAIL" ? "FAIL" : "UNKNOWN" }
+            guard marker.reason == "displayMarkerUnobstructedTwice", matchesTwice(marker.samples, until: until),
+                  zip(samples, marker.samples).allSatisfy({ $0.time < $1.time }),
+                  marker.samples[0].time < samples[1].time,
+                  marker.samples.allSatisfy({ $0.opaqueCells == 16 }) else { return "UNKNOWN" }
+            return "PASS"
         }
     }
     enum Fault: String, Error { case endpoint, untrustedPeer, terminal, stale, frame }

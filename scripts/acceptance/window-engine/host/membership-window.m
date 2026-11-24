@@ -138,6 +138,50 @@ static CGImageRef fixtureMarker(NSUUID *nonce) CF_RETURNS_RETAINED {
     CGContextRelease(ctx);
     return image;
 }
+
+// Put only the fixture into unused work area, if there is room. It will still
+// be ordered behind ordinary windows, including any that appear after this read.
+static NSRect freeMarkerContent(NSScreen *screen, NSRect original, NSWindowStyleMask style, BOOL *found) {
+    NSArray *rows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID));
+    if (!rows || !screen || NSScreen.screens.count != 1) return original;
+    CGRect native = CGDisplayBounds([screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue]);
+    NSMutableArray<NSValue *> *occupied = [NSMutableArray array];
+    for (NSDictionary *row in rows) {
+        NSNumber *layer = row[(__bridge NSString *)kCGWindowLayer];
+        NSNumber *alpha = row[(__bridge NSString *)kCGWindowAlpha];
+        if (!layer || !alpha) return original;
+        if (layer.integerValue < kCGNormalWindowLevel || alpha.doubleValue == 0) continue;
+        CGRect rect;
+        NSDictionary *value = row[(__bridge NSString *)kCGWindowBounds];
+        if (!value || !CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)value,&rect)) return original;
+        if (!CGRectIsEmpty(rect)) [occupied addObject:[NSValue valueWithRect:CGRectInset(rect,-32,-32)]];
+    }
+    NSRect available = NSInsetRect(screen.visibleFrame,8,8);
+    NSPoint pointer = NSEvent.mouseLocation;
+    NSRect avoidPointer = NSMakeRect(pointer.x-32,pointer.y-32,64,64);
+    NSRect frame = [NSWindow frameRectForContentRect:original styleMask:style];
+    if (frame.size.width > available.size.width || frame.size.height > available.size.height) return original;
+    for (int i=-1; i<16*12; i++) {
+        NSRect candidate = frame;
+        if (i >= 0) {
+            candidate.origin.x = round(NSMinX(available) + (i%16)*(NSWidth(available)-NSWidth(frame))/15);
+            candidate.origin.y = round(NSMinY(available) + (i/16)*(NSHeight(available)-NSHeight(frame))/11);
+        }
+        if (!NSContainsRect(available,candidate) || NSIntersectsRect(candidate,avoidPointer)) continue;
+        CGRect cg = CGRectMake(native.origin.x + NSMinX(candidate)-NSMinX(screen.frame),
+                               native.origin.y + NSMaxY(screen.frame)-NSMaxY(candidate),
+                               NSWidth(candidate),NSHeight(candidate));
+        BOOL clear = YES;
+        for (NSValue *other in occupied) {
+            if (CGRectIntersectsRect(cg,other.rectValue)) { clear = NO; break; }
+        }
+        if (clear) {
+            *found = YES;
+            return [NSWindow contentRectForFrameRect:candidate styleMask:style];
+        }
+    }
+    return original;
+}
 #endif
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
@@ -196,10 +240,15 @@ int main(int argc, const char *argv[]) {
             return 3;
         NSRect screen = NSScreen.screens.firstObject.visibleFrame;
         NSRect bounds = NSMakeRect(NSMidX(screen) - 110, NSMidY(screen) - 55, 220, 110);
+        NSWindowStyleMask style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+#ifdef NP_FIXTURE_VISUAL_WINDOW
+        BOOL freeSite = NO;
+        if (survival && !strcmp(argv[3], "--ordinary-window"))
+            bounds = freeMarkerContent(NSScreen.screens.firstObject,bounds,style,&freeSite);
+#endif
         NSWindow *w =
             [[NSWindow alloc] initWithContentRect:bounds
-                                        styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
-                                                  NSWindowStyleMaskResizable
+                                        styleMask:style
                                           backing:NSBackingStoreBuffered
                                             defer:YES];
         // Survival uses an ordinary opaque window ordered behind the foreground app.
@@ -243,7 +292,7 @@ int main(int argc, const char *argv[]) {
                 markerPublished = marker.layer.contents == (__bridge NSObject *)image;
                 CGImageRelease(image);
             }
-            emit(dir, "owner-drawing.json", @{@"layerPublished":@(markerPublished),
+            emit(dir, "owner-drawing.json", @{@"layerPublished":@(markerPublished), @"unoccupiedFrameAtCreation":@(freeSite),
                 @"width":@(NSWidth(marker.bounds)), @"height":@(NSHeight(marker.bounds))});
         }
 #endif

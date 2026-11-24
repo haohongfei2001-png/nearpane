@@ -115,11 +115,14 @@ def main():
     mode.add_argument('--corner-readback', action='store_true', help='read a registered window on the product worker without starting Guardian')
     parser.add_argument('--abrupt-visible-exit', action='store_true', help='bypass Host teardown only in the internal visible fixture drill')
     parser.add_argument('--visual-observer', type=Path, help='verify only the signed fixture content through an independent authorized observer')
+    parser.add_argument('--require-displayed-marker', action='store_true', help='also require two unobstructed display-composited reads of that fixture marker')
     a = parser.parse_args()
     if a.abrupt_visible_exit and not a.visible_recovery:
         parser.error('--abrupt-visible-exit requires --visible-recovery')
     if a.visual_observer and not a.corner_readback:
         parser.error('--visual-observer requires --corner-readback')
+    if a.require_displayed_marker and not a.visual_observer:
+        parser.error('--require-displayed-marker requires --visual-observer')
     out = a.output.resolve()
     out.mkdir(mode=0o700, exist_ok=False)
     seal = json.loads(a.package_receipt.read_bytes())
@@ -152,7 +155,12 @@ def main():
             result['cornerParkAccess'] = session.get('cornerParkAccess')
             result['productWindowRead'] = session.get('cornerWindowReadback') or {'status': 'NOT_RUN'}
             if a.visual_observer:
-                result['registeredFixturePixelRead'] = session.get('fixturePixelWitness', {}).get('status', 'NOT_RUN')
+                witness = session.get('fixturePixelWitness') or {}
+                result['registeredFixturePixelRead'] = witness.get('status', 'NOT_RUN')
+                result['displayedFixtureMarker'] = witness.get('displayMarkerStatus', 'NOT_RUN')
+                if a.require_displayed_marker and result['status'] == 'PASS' and result['displayedFixtureMarker'] != 'PASS':
+                    result['status'] = 'FAIL' if result['displayedFixtureMarker'] == 'FAIL' else 'UNKNOWN'
+                    result['reason'] = (witness.get('raw', {}).get('displayMarker') or {}).get('reason', 'displayMarkerNotMeasured')
         elif session.get('hostReadback'):
             host = json.loads((out / session['hostReadback']).read_bytes())
             principal = (host.get('preflight') or {}).get('guardianPrincipal') or {}

@@ -40,13 +40,10 @@ enum CornerFixturePixels {
               frame.width == 220, (110...160).contains(frame.height), Link.birth(r.pid) == r.birth else { throw Link.Fault.frame }
         return frame
     }
-    /// Single-window capture has its own coordinate system. Crop the middle of the
-    /// returned fixture surface locally, independent of display origin or backing scale.
-    private static func stripes(_ surface: CGImage, session: UUID) throws -> Link.Sample {
+    private static func stripes(_ image: CGImage, session: UUID) throws -> Link.Sample {
         let w = 160, h = 8
         var rgba = [UInt8](repeating:0,count:w*h*4)
-        guard surface.width == 220, (110...160).contains(surface.height),
-              let image = surface.cropping(to:CGRect(x:0,y:surface.height/2 - h/2,width:surface.width,height:h)),
+        guard image.width == 220, image.height == h,
               let color = CGColorSpace(name:CGColorSpace.sRGB) else { throw Link.Fault.frame }
         let bits = withUnsafeBytes(of: session.uuid) { Array($0.prefix(2)) }
         return try rgba.withUnsafeMutableBytes { pixels in
@@ -75,11 +72,64 @@ enum CornerFixturePixels {
                          opaqueCells:opaqueCells, greenCells:greenCells, magentaCells:magentaCells)
         }
     }
+
+    // The allowlist never includes another application's content. Check the real
+    // front-to-back order as well, since the filtered compositor omits other windows.
+    private static func unobstructed(_ r: Link.Request, band: CGRect) throws -> Bool {
+        guard let rows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String:Any]],
+              let index = rows.firstIndex(where: { $0[kCGWindowNumber as String] as? UInt32 == r.window }),
+              rows[index][kCGWindowOwnerPID as String] as? Int32 == r.pid else { throw Link.Fault.stale }
+        for row in rows[..<index] {
+            guard let alpha = row[kCGWindowAlpha as String] as? Double, alpha.isFinite,
+                  let bounds = row[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation:bounds), !rect.isInfinite, !rect.isNull else {
+                throw Link.Fault.frame
+            }
+            if alpha > 0, !rect.isEmpty, rect.insetBy(dx:-32,dy:-32).intersects(band) { return false }
+        }
+        return true
+    }
+
+    @MainActor private static func displayRead(_ r: Link.Request, window: SCWindow,
+                                               display: SCDisplay, frame: CGRect) async throws -> Link.Sample? {
+        let band = CGRect(x:frame.minX, y:frame.minY + CGFloat(Int(frame.height)/2 - 4),
+                          width:frame.width, height:8)
+        guard CGDisplayIsActive(display.displayID) != 0, CGDisplayIsInMirrorSet(display.displayID) == 0,
+              CGDisplayBounds(display.displayID) == display.frame, display.frame.contains(frame),
+              try listed(r) == frame else { throw Link.Fault.stale }
+        guard try unobstructed(r,band:band) else { return nil }
+        let filter = SCContentFilter(display:display,including:[window])
+        filter.includeMenuBar = false
+        let cfg = SCStreamConfiguration()
+        cfg.sourceRect = band.offsetBy(dx:-display.frame.minX,dy:-display.frame.minY)
+        cfg.width = Int(band.width)
+        cfg.height = Int(band.height)
+        cfg.destinationRect = CGRect(origin:.zero,size:band.size)
+        cfg.showsCursor = false
+        cfg.scalesToFit = true
+        cfg.preservesAspectRatio = false
+        let image = try await SCScreenshotManager.captureImage(contentFilter:filter,configuration:cfg)
+        guard try listed(r) == frame, CGDisplayBounds(display.displayID) == display.frame else { throw Link.Fault.stale }
+        guard try unobstructed(r,band:band) else { return nil }
+        return try stripes(image,session:r.session)
+    }
+
     @MainActor private static func sample(_ r: Link.Request) async -> Link.Reply {
-        var samples = [Link.Sample]()
+        var samples = [Link.Sample](), displaySamples = [Link.Sample]()
+        var displayIssue: String?
         let access = CGPreflightScreenCaptureAccess()
         func reply(_ status: String, _ reason: String) -> Link.Reply {
-            .init(request:r,observerPID:getpid(),screenAccess:access,samples:samples,status:status,reason:reason)
+            let marker: Link.DisplayMarker
+            if let displayIssue {
+                marker = .init(status:"UNKNOWN",reason:displayIssue,samples:displaySamples)
+            } else if displaySamples.count != 2 {
+                marker = .init(status:"UNKNOWN",reason:"displaySamplesIncomplete",samples:displaySamples)
+            } else if displaySamples.allSatisfy({ $0.matchingStripes == 16 && $0.opaqueCells == 16 }) {
+                marker = .init(status:"PASS",reason:"displayMarkerUnobstructedTwice",samples:displaySamples)
+            } else {
+                marker = .init(status:"FAIL",reason:"displayMarkerMismatch",samples:displaySamples)
+            }
+            return .init(request:r,observerPID:getpid(),screenAccess:access,samples:samples,status:status,reason:reason,displayMarker:marker)
         }
         guard access else { return reply("BLOCKED","observerScreenCaptureDenied") }
         do {
@@ -87,6 +137,11 @@ enum CornerFixturePixels {
             let inventory = try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
             let exact = inventory.windows.filter { $0.windowID == r.window && $0.owningApplication?.processID == r.pid && $0.frame == frame }
             guard exact.count == 1, let window = exact.first else { throw Link.Fault.frame }
+            let displays = inventory.displays.filter { display in
+                guard let uuid = CGDisplayCreateUUIDFromDisplayID(display.displayID)?.takeRetainedValue() else { return false }
+                return UUID(uuidString:CFUUIDCreateString(nil,uuid) as String) == r.display
+            }
+            if displays.count != 1 { displayIssue = "displayIdentityChanged" }
             let filter = SCContentFilter(desktopIndependentWindow:window)
             let cfg = SCStreamConfiguration()
             cfg.width = Int(frame.width); cfg.height = Int(frame.height); cfg.showsCursor = false
@@ -96,8 +151,17 @@ enum CornerFixturePixels {
                 if index > 0 { try await Task.sleep(for:.milliseconds(80)) }
                 guard try listed(r) == frame else { throw Link.Fault.stale }
                 let frameImage = try await SCScreenshotManager.captureImage(contentFilter:filter,configuration:cfg)
-                guard try listed(r) == frame else { throw Link.Fault.stale }
-                samples.append(try stripes(frameImage,session:r.session))
+                guard try listed(r) == frame, frameImage.width == Int(frame.width), frameImage.height == Int(frame.height),
+                      let band = frameImage.cropping(to:CGRect(x:0,y:frameImage.height/2-4,width:frameImage.width,height:8))
+                else { throw Link.Fault.stale }
+                samples.append(try stripes(band,session:r.session))
+                if displayIssue == nil, let display = displays.first {
+                    do {
+                        if let read = try await displayRead(r,window:window,display:display,frame:frame) {
+                            displaySamples.append(read)
+                        } else { displayIssue = "interveningSurfaceOverMarker" }
+                    } catch { displayIssue = (error as? Link.Fault)?.rawValue ?? "displayCaptureUnavailable" }
+                }
             }
             return samples.allSatisfy { $0.matchingStripes == 16 } ? reply("PASS","registeredFixturePixelsTwice") : reply("FAIL","fixtureMarkerMismatch")
         } catch { return reply("UNKNOWN",(error as? Link.Fault)?.rawValue ?? "captureUnavailable") }
