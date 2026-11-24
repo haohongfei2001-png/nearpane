@@ -5,15 +5,25 @@ import NearpaneCore
 
 /// Shared binding for the live Guardian's prepared and withdrawn records. A disk record never grants a writer.
 struct CornerGuardianOriginalProof: Decodable, Equatable {
+    private static let zeroUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
     let intent, transaction, group, member, generation, lifetime, display, space: UUID
     let epoch, native, birth, hostBirth, guardianBirth: UInt64
     let pid, hostPID: Int32
     let window: UInt32
     let frame: [Double]
+    let sourceShowIntent: UUID?
+    let expectedPark: [Double]?
     let originalReadbacks: Int
 
     func matches(_ request: NativeStageEngineRequest, epoch: UInt64, host: Int32, hostBirth: UInt64, childBirth: UInt64) -> Bool {
         guard let original = request.frame, let target = request.window, hostBirth > 0, childBirth > 0 else { return false }
+        if let park = request.target {
+            guard let sourceShowIntent, let expectedPark,
+                  sourceShowIntent != transaction, sourceShowIntent != intent, transaction != intent,
+                  ![sourceShowIntent, transaction, intent].contains(Self.zeroUUID),
+                  park != original, park.width > 0, park.height > 0, expectedPark.allSatisfy(\.isFinite),
+                  expectedPark == [park.x, park.y, park.width, park.height] else { return false }
+        } else if sourceShowIntent != nil || expectedPark != nil { return false }
         return request.backend == 1 && request.operation == 3 && self.epoch == epoch && originalReadbacks == 2 &&
             guardianBirth == childBirth && hostPID == host && self.hostBirth == hostBirth &&
             intent == request.intent && group == request.group && member == request.member && generation == request.generation &&

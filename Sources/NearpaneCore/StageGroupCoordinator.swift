@@ -105,6 +105,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var after: StageWindowState?
         var intent: UUID? = nil
         var undoIntent: UUID? = nil
+        var undoBefore: StageWindowState? = nil
         var measuredReturnIntent: UUID? = nil
         var guardianPending: Bool? = nil
         var group: UUID? = nil
@@ -681,6 +682,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
             let s = try await session.read(t.scope)
             guard token == epoch, current(), !Task.isCancelled, s.generation == t.generation, s.scope == t.scope, s.nativeID == t.nativeID, session.engineOwner == t.owner,
                   session.qualifiedHiddenState == hidden, previousSequence.map({ s.sequence > $0 }) != false,
+                  t.workArea.map({ $0 == s.workArea }) != false, s.foreignFocusScope == nil,
                   s.windows == expected, s.focus == expectedFocus else { throw StageSwitchError.recoveryRequired }
             previousSequence = s.sequence
             return s
@@ -694,15 +696,39 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard second.focus == t.preferred else { throw StageSwitchError.recoveryRequired }
             try update { $0.pending = nil }; return
         }
-        for e in t.entries.reversed() {
+        for index in t.entries.indices.reversed() {
+            let e = t.entries[index]
             guard let after = e.after else { throw StageSwitchError.recoveryRequired }
             _ = try await verified(expected)
             let inverse: StageWindowAction?
+            var inverseBefore = after
             switch e.action {
             case .hide: inverse = .show
-            case .show: inverse = .hide
+            case .show:
+                guard let focus = expectedFocus, focus == t.originalFocus, focus != after.window,
+                      expected[focus]?.visibility == .visible else { throw StageSwitchError.recoveryRequired }
+                if t.owner?.backend == .corner {
+                    guard t.ownedBefore.contains(where: {
+                        $0.owner == t.owner && $0.scope == t.scope && $0.nativeID == t.nativeID &&
+                        $0.member == e.member && $0.group == e.group && $0.hidden == e.before && $0.original == after
+                    }) else { throw StageSwitchError.recoveryRequired }
+                }
+                inverse = .hide
             case .place: inverse = .place(e.before.frame)
-            case .focus: inverse = nil
+            case .focus:
+                // An incoming window can be parked again only after the previous responder has the keyboard.
+                let previous = t.entries[..<index].last(where: { $0.action == .focus })?.before.window ?? t.originalFocus
+                if previous == expectedFocus {
+                    inverse = nil
+                } else {
+                    guard let previous, let state = expected[previous], state.visibility == .visible,
+                          initial[previous]?.lifetime == state.lifetime, session.mayManage(state),
+                          store.groups(in: t.scope).contains(where: { group in group.members.contains {
+                              $0.windowHint == previous && store.isBound($0, to: state.lifetime)
+                          } }) else { throw StageSwitchError.recoveryRequired }
+                    inverseBefore = state
+                    inverse = .focus
+                }
             }
             var undoCommand: StageWindowCommand?
             if let inverse {
@@ -712,8 +738,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     let last = $0.pending!.entries.count - 1
                     $0.pending!.entries[last].after = nil
                     $0.pending!.entries[last].undoIntent = inverseIntent
+                    $0.pending!.entries[last].undoBefore = inverseBefore
                 }
-                undoCommand = try await undo(inverse, intent: inverseIntent, before: after, original: e.before, t: t, session: session)
+                undoCommand = try await undo(inverse, intent: inverseIntent, before: inverseBefore, original: e.before, t: t, session: session)
+                if inverse == .focus { expectedFocus = inverseBefore.window }
             }
             expected[e.before.window] = e.before
             _ = try await verified(expected); _ = try await verified(expected)
@@ -731,16 +759,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
             try update { _ = $0.pending?.entries.popLast() }
         }
         let restored = try await verified(initial)
-        if restored.focus != t.originalFocus {
-            guard let old = t.originalFocus, let window = initial[old],
-                  t.before.contains(where: { $0.window == old }), store.groups(in: t.scope).contains(where: { $0.members.contains { $0.windowHint == old } })
-            else { throw StageSwitchError.recoveryRequired }
-            let focusIntent = UUID()
-            try update { $0.pending?.entries.append(.init(action: .focus, before: window, intent: focusIntent)) }
-            _ = try await undo(.focus, intent: focusIntent, before: window, original: window, t: t, session: session)
-            expectedFocus = old
-            for _ in 0..<2 { guard try await verified(initial).focus == old else { throw StageSwitchError.recoveryRequired } }
-        }
+        guard restored.focus == t.originalFocus else { throw StageSwitchError.recoveryRequired }
         try update { state in
             state.owned.removeAll { $0.scope == t.scope }; state.owned.append(contentsOf: t.ownedBefore); state.pending = nil
         }
@@ -750,7 +769,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
         if t.intent != nil, let group = store.groups(in: t.scope).first(where: { $0.members.contains { $0.windowHint == before.window } }),
            let member = group.members.first(where: { $0.windowHint == before.window }) {
             let command = StageWindowCommand(intent:intent,group:group.id,member:member.id,generation:t.generation,
-                scope:t.scope,nativeID:t.nativeID,action:action,before:before,restoring:action == .show,restoreFrame:original.frame)
+                scope:t.scope,nativeID:t.nativeID,action:action,before:before,restoring:action == .show,
+                restoreFrame:action == .show || action == .hide ? original.frame : nil)
             try await session.dispatch(command)
             return command
         } else {

@@ -99,6 +99,113 @@ static void selectedWorksetFocusChecks(int jobFD) {
     assert(focusMatchesSelection(&s, @{@"pending": @{@"preferred": @{@"pid": @378, @"birth": @48436, @"number": @410}}}));
     puts("{\"scope\":\"guardianPrepareFocus\",\"refusedCases\":5,\"prepareAckBytes\":0,\"preparedRecords\":0,\"windowWrites\":0}");
 }
+static void inverseHideJournalChecks(Session *s, NSString *profile, NSString *name, NSDictionary *baseline,
+                                     NSDictionary *owned) {
+    Session copy = *s;
+    NPRequest *r = &copy.pre.lease;
+    NSString *undo = [[NSUUID alloc] initWithUUIDBytes:r->intent].UUIDString;
+    NSDictionary *visible = owned[@"original"], *parked = owned[@"hidden"];
+    NSDictionary *sibling = @{@"pid": @(r->pid), @"birth": @(r->birth), @"number": @(r->window + 1)};
+    NSMutableDictionary *e = [@{@"intent": NSUUID.UUID.UUIDString, @"undoIntent": undo, @"action": @{@"show": @{}},
+        @"before": parked, @"undoBefore": visible, @"group": owned[@"group"], @"member": owned[@"member"]} mutableCopy];
+    NSMutableDictionary *p = [baseline[@"pending"] mutableCopy];
+    NSMutableDictionary *l = [baseline mutableCopy];
+    [p addEntriesFromDictionary:@{@"entries": @[e], @"verifiedDirectoryCommit": @NO,
+        @"target": owned[@"group"], @"originalFocus": sibling, @"preferred": visible[@"window"],
+        @"ownedBefore": @[owned], @"before": @[parked]}];
+    l[@"pending"] = p;
+    l[@"owned"] = @[];
+    copy.member.window = r->window;
+    copy.preparedFrontPID = r->pid;
+    copy.preparedFrontBirth = r->birth;
+    copy.preparedFocusNumber = r->window + 1;
+    put(profile, name, l);
+    NSString *job = [profile stringByAppendingPathComponent:undo];
+    NSMutableDictionary *request = [@{@"phase": @"prepare", @"epoch": @1, @"intent": undo,
+        @"group": owned[@"group"], @"member": owned[@"member"], @"lifetime": visible[@"lifetime"],
+        @"generation": p[@"generation"], @"display": p[@"scope"][@"display"], @"space": p[@"scope"][@"nativeSpace"],
+        @"native": p[@"nativeID"], @"pid": @(r->pid), @"birth": @(r->birth), @"number": @(r->window),
+        @"frame": visible[@"frame"]} mutableCopy];
+    assert(!productPrepare(&copy, request, job));
+    request[@"expectedPark"] = visible[@"frame"];
+    assert(!productPrepare(&copy, request, job));
+    request[@"expectedPark"] = parked[@"frame"];
+    assert(productPrepare(&copy, request, job));
+    assert(decodeUUID(e[@"intent"], copy.preparedShowIntent));
+    assert([originalProof(&copy, l)[@"sourceShowIntent"] isEqual:e[@"intent"]]);
+    assert(withdrawableJournal(&copy) && pendingFrameJournal(&copy) && focusMatchesSelection(&copy, l));
+    assert(!productJournal(&copy, YES, NO));
+    copy.preparedFocusNumber = r->window;
+    assert(!focusMatchesSelection(&copy, l));
+    copy.preparedFocusNumber = r->window + 1;
+    NSDictionary *original = [e copy];
+    for (NSDictionary *change in @[@{@"undoIntent": NSUUID.UUID.UUIDString}, @{@"intent": NSUUID.UUID.UUIDString}, @{@"intent": undo},
+                                   @{@"intent": p[@"intent"]}, @{@"undoBefore": parked}, @{@"before": visible},
+                                   @{@"group": NSUUID.UUID.UUIDString}, @{@"member": NSUUID.UUID.UUIDString},
+                                   @{@"action": @{@"focus": @{}}}, @{@"after": visible}]) {
+        [e addEntriesFromDictionary:change];
+        put(profile, name, l);
+        assert(!preparedHideJournal(&copy));
+        [e setDictionary:original];
+    }
+    for (NSDictionary *change in @[@{@"ownedBefore": @[]}, @{@"ownedBefore": @[owned, owned]},
+                                   @{@"before": @[visible]}, @{@"target": NSUUID.UUID.UUIDString},
+                                   @{@"entries": @[e, original]}, @{@"verifiedDirectoryCommit": @YES}]) {
+        NSString *key = [change.allKeys firstObject];
+        id value = p[key];
+        p[key] = change[key];
+        put(profile, name, l);
+        assert(!preparedHideJournal(&copy));
+        p[key] = value;
+    }
+    [e removeObjectForKey:@"undoBefore"];
+    put(profile, name, l);
+    assert(!preparedHideJournal(&copy));
+    e[@"undoBefore"] = visible;
+    e[@"guardianPending"] = @YES;
+    l[@"owned"] = @[owned];
+    put(profile, name, l);
+    assert(productJournal(&copy, YES, NO) && !preparedHideJournal(&copy));
+    copy.sealed.result.frame.x += 2;
+    assert(!productJournal(&copy, YES, NO));
+    put(profile, name, baseline);
+    assert(!productPrepare(&copy, request, job));
+    puts("{\"scope\":\"inverseShowHideWAL\",\"originalFocusOnly\":true,\"requiresPriorOwnership\":true,"
+         "\"requiresBothWindowImages\":true,\"changedParkRejected\":true,\"windowWrites\":0}");
+}
+static void inverseShowReleaseChecks(Session *s, NSString *profile, NSString *name, NSDictionary *baseline,
+                                     NSDictionary *owned) {
+    NSMutableDictionary *p = [baseline[@"pending"] mutableCopy], *l = [baseline mutableCopy];
+    NSMutableDictionary *e = [[p[@"entries"] lastObject] mutableCopy];
+    [e removeObjectForKey:@"after"];
+    [e addEntriesFromDictionary:@{@"group": owned[@"group"], @"member": owned[@"member"], @"undoIntent": NSUUID.UUID.UUIDString,
+        @"undoBefore": owned[@"hidden"], @"guardianPending": @YES}];
+    p[@"entries"] = @[e];
+    p[@"verifiedDirectoryCommit"] = @NO;
+    l[@"pending"] = p;
+    l[@"owned"] = @[];
+    put(profile, name, l);
+    assert(productJournal(s, YES, YES));
+    l[@"owned"] = @[owned];
+    put(profile, name, l);
+    assert(!productJournal(s, YES, YES));
+    l[@"owned"] = @[];
+    NSDictionary *valid = [e copy];
+    for (NSDictionary *change in @[@{@"undoIntent": e[@"intent"]}, @{@"undoIntent": p[@"intent"]},
+                                   @{@"action": @{@"show": @{}}}, @{@"after": owned[@"original"]},
+                                   @{@"member": NSUUID.UUID.UUIDString}, @{@"undoBefore": owned[@"original"]},
+                                   @{@"guardianPending": @NO}]) {
+        [e addEntriesFromDictionary:change];
+        put(profile, name, l);
+        assert(!productJournal(s, YES, YES));
+        [e setDictionary:valid];
+    }
+    [e removeObjectForKey:@"undoBefore"];
+    put(profile, name, l);
+    assert(!productJournal(s, YES, YES));
+    put(profile, name, baseline);
+    puts("{\"scope\":\"inverseHideShowReleaseWAL\",\"ownedOrAmbiguousReleaseRejected\":true,\"windowWrites\":0}");
+}
 int main(void) {
     @autoreleasepool {
         displayScopeChecks();
@@ -402,6 +509,8 @@ int main(void) {
             @"original" : visible,
             @"hidden" : parked
         };
+        inverseHideJournalChecks(&s, profile, ledgerFile, ledger, owned);
+        inverseShowReleaseChecks(&s, profile, ledgerFile, ledger, owned);
         ledger[@"owned"] = @[ owned ];
         put(profile, ledgerFile, ledger);
         assert(productJournal(&s, YES, NO));

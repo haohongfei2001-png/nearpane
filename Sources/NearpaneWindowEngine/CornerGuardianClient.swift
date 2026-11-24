@@ -128,10 +128,12 @@ import CNearpaneWindowEngine
         let fd = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard fd >= 0 else { throw Failure.unavailable }
         let heldDirectory = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
-        let data = try packet(["phase": "prepare", "epoch": epoch, "intent": r.intent.uuidString, "group": group.uuidString,
+        var message: [String: Any] = ["phase": "prepare", "epoch": epoch, "intent": r.intent.uuidString, "group": group.uuidString,
             "member": member.uuidString, "generation": generation.uuidString, "lifetime": lifetime.uuidString,
             "display": scope.display.uuidString, "space": scope.nativeSpace.uuidString, "native": r.nativeID,
-            "pid": w.pid, "birth": w.birth, "number": w.number, "frame": Self.frame(original)])
+            "pid": w.pid, "birth": w.birth, "number": w.number, "frame": Self.frame(original)]
+        if let expectedPark = r.target { message["expectedPark"] = Self.frame(expectedPark) }
+        let data = try packet(message)
         let process = Process(), input = Pipe(), output = Pipe()
         process.executableURL = Self.helper
         process.arguments = ["--watch", directory.path]
@@ -184,7 +186,9 @@ import CNearpaneWindowEngine
               l.original.intent == r.intent, l.original.frame == r.frame, l.original.target == r.target,
               l.epoch == epoch, l.preparedAt != nil, !l.withdrawing, !l.sealed, l.result == nil,
               let proof = l.preparation, CornerPreparedReceipt.read(in: l.directory.fileDescriptor) == proof,
-              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else { throw Failure.pendingRecovery }
+              let birth = l.guardianBirth, let hostBirth = Self.generation(getpid(), parent: nil),
+              proof.matches(r, epoch: epoch, host: getpid(), hostBirth: hostBirth, child: l.process.processIdentifier,
+                            childBirth: birth), l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE else { throw Failure.pendingRecovery }
         let fd = fcntl(l.writer.fileDescriptor, F_DUPFD_CLOEXEC, 3)
         guard fd >= 0 else { throw Failure.unavailable }
         return CornerGuardianPeer(pid: l.process.processIdentifier, birth: birth,

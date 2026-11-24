@@ -42,6 +42,13 @@ struct CornerWithdrawalTests {
                 .matches(row, prepared: prepared, measured: measured)
         }
         #expect(try matches([:]))
+        let inverse = original.merging(["expectedPark": landing, "sourceShowIntent": UUID().uuidString]) { _, new in new }
+        let inversePrepared = try decode(CornerPreparedReceipt.self, ["schema": 1, "status": "PREPARED",
+            "guardianPID": 41, "original": inverse])
+        let inverseMeasured = try decode(CornerMeasuredFrameReceipt.self, ["schema": 1, "status": "RECOVERY_FRAME_ONLY",
+            "guardianPID": 41, "original": inverse, "postimage": landing, "engineStatus": NP_UNKNOWN, "engineFlags": flags])
+        let inverseExit = try decode(CornerExitedReturnReceipt.self, final.merging(["original": inverse]) { _, new in new })
+        #expect(!inverseExit.matches(row, prepared: inversePrepared, measured: inverseMeasured))
         for invalid: [String: Any] in [["status": "UNKNOWN"], ["guardianPID": 42], ["originalFrameReadbacks": 1],
             ["postimage": [898,682,300,160]], ["kernelHostExit": false], ["committedPostimage": true],
             ["original": original.merging(["birth": 55]) { _, new in new }], ["unchangedInput": false]] {
@@ -209,6 +216,35 @@ struct CornerWithdrawalTests {
         let final = try JSONDecoder().decode(CornerWithdrawalReceipt.self, from: JSONSerialization.data(withJSONObject: withdrawal))
         #expect(final.withdrawal == prepared.original)
         #expect((try? JSONDecoder().decode(CornerWithdrawalReceipt.self, from: data)) == nil)
+    }
+
+    @Test func inversePreparationRequiresMatchingParkAndThreeDistinctIntents() throws {
+        let (forward, withdrawal) = envelope()
+        let original = try #require(withdrawal["withdrawal"] as? [String: Any])
+        let park = SurfaceRect(x: 899, y: 682, width: 300, height: 160)
+        let inverse = NativeStageEngineRequest(backend: forward.backend, operation: forward.operation, intent: forward.intent,
+            group: forward.group, scope: forward.scope, member: forward.member, lifetime: forward.lifetime,
+            generation: forward.generation, window: forward.window, nativeID: forward.nativeID, frame: forward.frame, target: park)
+        let frame = [park.x, park.y, park.width, park.height]
+        let source = UUID().uuidString
+        func matches(_ request: NativeStageEngineRequest, _ change: [String: Any]) throws -> Bool {
+            let data = try JSONSerialization.data(withJSONObject: original.merging(change) { _, new in new })
+            return try JSONDecoder().decode(CornerGuardianOriginalProof.self, from: data)
+                .matches(request, epoch: 1, host: 32, hostBirth: 81, childBirth: 91)
+        }
+        let valid: [String: Any] = ["expectedPark": frame, "sourceShowIntent": source]
+        #expect(try matches(inverse, valid))
+        #expect(try !matches(inverse, [:]))
+        #expect(try !matches(forward, valid))
+        for partial: [String: Any] in [["expectedPark": frame], ["sourceShowIntent": source]] {
+            #expect(try !matches(inverse, partial))
+            #expect(try !matches(forward, partial))
+        }
+        for change: [String: Any] in [["expectedPark": [898, 682, 300, 160]],
+            ["sourceShowIntent": forward.intent.uuidString], ["sourceShowIntent": original["transaction"]!],
+            ["sourceShowIntent": "00000000-0000-0000-0000-000000000000"], ["transaction": forward.intent.uuidString]] {
+            #expect(try !matches(inverse, valid.merging(change) { _, new in new }))
+        }
     }
 
     @Test func receiptReadRejectsMissingAliasedSharedOrTruncatedEvidence() throws {

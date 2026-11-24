@@ -30,7 +30,8 @@ typedef struct {
     void *profileID;
     __unsafe_unretained NSString *hostHash;
     __unsafe_unretained NSData *hostDigest;
-    uint8_t preparedTransaction[16];
+    uint8_t preparedTransaction[16], preparedShowIntent[16];
+    NPRect expectedPark;
     __unsafe_unretained NSDictionary *stamp;
     uint32_t takeoverInput[13];
 #endif
@@ -125,8 +126,11 @@ static void need(BOOL yes, NSString *why);
 #include "inspect.h"
 static BOOL focusMatchesSelection(Session *s, NSDictionary *wal) {
     NPRequest focused = {.pid = s->preparedFrontPID, .birth = s->preparedFrontBirth, .window = s->preparedFocusNumber};
+    NSDictionary *pending = wal[@"pending"], *last = [pending[@"entries"] lastObject];
+    id expected = last[@"undoIntent"] ? (inverseHideEntry(s, pending, last) ? pending[@"originalFocus"] : nil)
+                                      : pending[@"preferred"];
     return focused.pid > 1 && focused.birth && focused.window && focused.window != s->member.window &&
-        sameWindow(wal[@"pending"][@"preferred"], &focused);
+        sameWindow(expected, &focused);
 }
 static BOOL prepareFocusUnchanged(Session *s) {
     if (!originalFocusUnchanged(s)) return NO;
@@ -137,7 +141,7 @@ static BOOL prepareFocusUnchanged(Session *s) {
 }
 static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
     NPRequest r = s->pre.lease;
-    return @{
+    NSDictionary *proof = @{
         @"intent": [[NSUUID alloc] initWithUUIDBytes:r.intent].UUIDString,
         @"transaction": wal[@"pending"][@"intent"], @"epoch": @(r.epoch),
         @"group": [[NSUUID alloc] initWithUUIDBytes:r.group].UUIDString,
@@ -151,6 +155,12 @@ static NSDictionary *originalProof(Session *s, NSDictionary *wal) {
         @"hostPID": @(s->pre.host), @"hostBirth": @(s->pre.host_birth),
         @"guardianBirth": @(ncg_birth(getpid(), NULL)), @"originalReadbacks": @2
     };
+    if (!s->expectedPark.width) return proof;
+    NSMutableDictionary *inverse = [proof mutableCopy];
+    inverse[@"sourceShowIntent"] = [[NSUUID alloc] initWithUUIDBytes:s->preparedShowIntent].UUIDString;
+    NPRect f = s->expectedPark;
+    inverse[@"expectedPark"] = @[@(f.x), @(f.y), @(f.width), @(f.height)];
+    return inverse;
 }
 
 // The Host can submit a move as soon as it reads R. Keep both the durable handoff and
@@ -330,6 +340,9 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     NSDictionary *initialWAL = productFile(s->profile, "stage-visibility-v1.json");
     NSDictionary *__attribute__((objc_precise_lifetime)) stamp = [initialWAL[@"owner"] copy];
     (void)decodeUUID(initialWAL[@"pending"][@"intent"], s->preparedTransaction);
+    if (s->expectedPark.width)
+        need(decodeUUID([initialWAL[@"pending"][@"entries"] lastObject][@"intent"], s->preparedShowIntent),
+             @"sourceShowIntentUnavailable");
     s->stamp = stamp;
     need(stamp && journal(s, NO), @"hostOwnerStampChangedBeforeRetention");
 #endif

@@ -54,6 +54,8 @@ struct Owned {
     measured_return_spent: bool,
     needs_measured_return: bool,
     original: Rect,
+    // A compensating hide must reproduce the previous lease's measured postimage.
+    expected_park: Option<Rect>,
     parked: Option<Rect>,
     displays: Vec<Display>,
     corner: park::Corner,
@@ -62,9 +64,13 @@ struct Owned {
 impl Owned {
     fn within_product_extent(&self, frame: Rect) -> bool {
         self.displays.iter().find(|d| d.id == self.id.display)
-            .and_then(|d| d.frame.intersect(&frame))
-            .is_some_and(|r| r.w <= park::PARK_SLIVER && r.h <= park::PARK_SLIVER_LENGTH)
+            .is_some_and(|d| within_product_extent(frame, d))
     }
+}
+
+fn within_product_extent(frame: Rect, display: &Display) -> bool {
+    display.frame.intersect(&frame)
+        .is_some_and(|r| r.w <= park::PARK_SLIVER && r.h <= park::PARK_SLIVER_LENGTH)
 }
 
 struct PreparedSite {
@@ -169,6 +175,19 @@ fn origin_safe(old: Rect, displays: &[Display], id: [u8; 16]) -> bool {
             .iter()
             .filter(|d| d.id != id)
             .all(|d| old.intersect(&d.frame).is_none())
+}
+
+fn park_destination(original: Rect, requested: c::Rect, display: &Display, list: &[Display],
+                    corner: park::Corner) -> Result<(Rect, Option<Rect>), u32> {
+    if requested == c::Rect::default() {
+        return Ok((park::park_frame_at(original.size(), display.frame, corner), None));
+    }
+    let prior = rect(requested);
+    if !requested.valid() || prior.size() != original.size() ||
+        !hidden(prior, list, display.id, corner) || !within_product_extent(prior, display) {
+        return Err(POSTCONDITION);
+    }
+    Ok((prior, Some(prior)))
 }
 
 /// Startup/monitoring has no nominated member. A partially populated lease is never an idle check.
@@ -466,7 +485,7 @@ impl Corner {
             {
                 let input = self.tap.as_ref().ok_or(tap::UNAVAILABLE).and_then(Tap::health);
                 let covered = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
-                let proof = if o.within_product_extent(s.cg) {
+                let proof = if o.within_product_extent(s.cg) && o.expected_park.is_none_or(|expected| s.cg == expected) {
                     verified_isolation(input, covered)
                 } else {
                     Err(POSTCONDITION)
@@ -522,8 +541,11 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, false),
         };
-        let target = park::park_frame_at(sample.cg.size(), display.frame, corner);
         let original = sample.cg;
+        let (target, expected_park) = match park_destination(original, r.target, display, &layout, corner) {
+            Ok(destination) => destination,
+            Err(reason) => return self.result(c::FAIL, reason, Some(sample), false),
+        };
         let return_guard = native::ReturnGuard::capture(&reference, input, control);
         if control.guardian.is_some() && return_guard.is_none() {
             return self.result(c::UNKNOWN, USER_CHANGED, Some(sample), false);
@@ -538,6 +560,7 @@ impl Corner {
                 needs_measured_return: control.guardian.is_some(),
                 reference,
                 original,
+                expected_park,
                 parked: None,
                 displays: layout,
                 corner,
@@ -585,6 +608,9 @@ impl Corner {
                             if !peer.measured(r, abi(s.cg), self.owned.len() as u32) {
                                 return self.interrupted_park(r, OWNERSHIP_UNKNOWN);
                             }
+                        }
+                        if expected_park.is_some_and(|expected| expected != s.cg) {
+                            return self.interrupted_park(r, POSTCONDITION);
                         }
                         if !control.may_write() {
                             return self.interrupted_park(r, POSTCONDITION);
@@ -871,6 +897,24 @@ mod tests {
         assert_eq!(opposite, park::Corner::BottomLeft);
         let top = display(3, 1400., -900.);
         assert!(scoped(&[a, neighbour, top], a.id).is_ok());
+    }
+    #[test]
+    fn inverse_hide_reuses_only_the_previous_measured_site_on_its_original_display() {
+        let screen = display(1, 0., 0.);
+        let area = [screen];
+        let corner = park::Corner::BottomRight;
+        let original = Rect::new(240., 180., 540., 340.);
+        let prior = Rect::new(1399., 891., original.w, original.h);
+        assert_eq!(park_destination(original, c::Rect::default(), &screen, &area, corner),
+                   Ok((park::park_frame_at(original.size(), screen.frame, corner), None)));
+        assert_eq!(park_destination(original, abi(prior), &screen, &area, corner), Ok((prior, Some(prior))));
+        let resized = Rect::new(prior.x, prior.y, 542., prior.h);
+        let long_sliver = Rect::new(prior.x, screen.frame.max_y() - park::PARK_SLIVER_LENGTH - 1., prior.w, prior.h);
+        for invalid in [original, resized, long_sliver] {
+            assert_eq!(park_destination(original, abi(invalid), &screen, &area, corner), Err(POSTCONDITION));
+        }
+        assert_eq!(park_destination(original, abi(prior), &screen, &area, park::Corner::BottomLeft), Err(POSTCONDITION));
+        assert_eq!(park_destination(original, abi(prior), &screen, &[screen, display(2, 1400., 0.)], corner), Err(POSTCONDITION));
     }
     #[test]
     fn unknown_display_or_all_four_overlapping_corners_refuse_writes() {

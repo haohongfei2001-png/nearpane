@@ -107,6 +107,73 @@ import Testing
         #expect(alreadyClaimed.retainedOwner == owner && alreadyClaimed.requiresRecovery && session.writes.isEmpty)
     }
 
+    enum RecoveryInterruption: CaseIterable { case none, originalBecameUnmanaged, lostFocusReply, takeoverAfterFocus }
+
+    @Test(arguments: RecoveryInterruption.allCases)
+    func recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_ interruption: RecoveryInterruption) async throws {
+        let (profile, store, _, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let oldFocus = try #require(runtime.focus)
+        let sibling = try #require(runtime.windows.values.first { $0.window.pid == oldFocus.pid && $0.window != oldFocus })
+        let target = try #require(groups.first { $0.members.first?.windowHint == sibling.window })
+        let owner = try #require(runtime.engineOwner)
+        var parked = sibling
+        parked.visibility = .parked
+        var initial = runtime.windows
+        initial[sibling.window] = parked
+        let held = StageGroupCoordinator.Ownership(scope: runtime.scope, original: sibling, hidden: parked,
+            owner: owner, group: target.id, member: target.members[0].id, nativeID: 4)
+        let show = StageGroupCoordinator.Entry(action: .show, before: parked, after: sibling, intent: UUID(),
+            group: target.id, member: target.members[0].id)
+        let focus = StageGroupCoordinator.Entry(action: .focus, before: sibling, after: sibling, intent: UUID(),
+            group: target.id, member: target.members[0].id)
+        var ledger = StageGroupCoordinator.Ledger()
+        ledger.owner = owner
+        ledger.pending = .init(scope: runtime.scope, generation: runtime.generation, target: target.id,
+            preferred: sibling.window, originalFocus: oldFocus, before: Array(initial.values), ownedBefore: [held],
+            entries: [show, focus], owner: owner, intent: UUID(), nativeID: 4, workArea: runtime.work)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        runtime.focus = sibling.window
+        let resumed = try StageGroupCoordinator(store: store, profile: profile)
+        func pending() throws -> StageGroupCoordinator.Transaction? {
+            try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file)).pending
+        }
+        switch interruption {
+        case .originalBecameUnmanaged:
+            runtime.excluded.insert(oldFocus)
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await resumed.recover(runtime) }
+            #expect(runtime.writes.isEmpty && resumed.requiresRecovery)
+            let last = try pending()?.entries.last
+            #expect(last?.after == sibling && last?.undoIntent == nil)
+        case .lostFocusReply, .takeoverAfterFocus:
+            let bystander = try #require(runtime.windows.keys.first { $0.number == 4 })
+            runtime.afterWrite = {
+                if interruption == .lostFocusReply { throw StageSwitchError.interrupted }
+                runtime.focus = bystander
+            }
+            await #expect(throws: StageSwitchError.self) { try await resumed.recover(runtime) }
+            let last = try pending()?.entries.last
+            #expect(last?.after == nil && last?.undoIntent != nil && last?.undoBefore == initial[oldFocus])
+            let reopened = try StageGroupCoordinator(store: store, profile: profile)
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await reopened.recover(runtime) }
+            #expect(runtime.writes.map(\.0) == [.focus] && reopened.requiresRecovery)
+            #expect(runtime.windows[sibling.window]?.visibility == .visible)
+        case .none:
+            runtime.afterWrite = {
+                if runtime.writes.last?.0 == .hide {
+                    #expect(runtime.focus == oldFocus)
+                    let last = try pending()?.entries.last
+                    #expect(last?.intent == show.intent && last?.undoIntent != nil && last?.undoBefore == sibling)
+                }
+            }
+            try await resumed.recover(runtime)
+            #expect(runtime.writes.map(\.0) == [.focus, .hide])
+            #expect(runtime.writes.map(\.1) == [oldFocus, sibling.window])
+            #expect(runtime.windows == initial && runtime.focus == oldFocus && !resumed.requiresRecovery)
+        }
+    }
+
     @Test func unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() async throws {
         let (profile, store, coordinator, session, groups) = try fixture()
         defer { try? FileManager.default.removeItem(at: profile) }

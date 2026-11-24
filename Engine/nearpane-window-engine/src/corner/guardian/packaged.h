@@ -171,6 +171,60 @@ static BOOL productDirectory(Session *s) {
         }
     return hits == 1;
 }
+// Undoing SHOW acquires a new Guardian for a new physical HIDE. Both source images
+// must come from this transaction: the original owned park and the verified visible
+// postimage captured before compensation. A historical parked rectangle alone is not a lease.
+static BOOL inverseHideEntry(Session *s, NSDictionary *p, NSDictionary *e) {
+    const NPRequest *r = &s->pre.lease;
+    uint8_t show[16], transaction[16], zero[16] = {};
+    if (e != [p[@"entries"] lastObject] || ![e[@"action"] isEqual:@{@"show": @{}}] ||
+        p[@"verifiedDirectoryCommit"] != (__bridge id)kCFBooleanFalse ||
+        !uuidField(e[@"undoIntent"], r->intent) || !decodeUUID(e[@"intent"], show) ||
+        !decodeUUID(p[@"intent"], transaction) || !memcmp(show, r->intent, 16) ||
+        (memcmp(s->preparedTransaction, zero, 16) && memcmp(s->preparedTransaction, transaction, 16)) ||
+        (memcmp(s->preparedShowIntent, zero, 16) && memcmp(s->preparedShowIntent, show, 16)) ||
+        !memcmp(transaction, r->intent, 16) || !memcmp(show, transaction, 16) ||
+        !uuidField(p[@"target"], r->group) || !uuidField(e[@"group"], r->group) || !uuidField(e[@"member"], r->member) ||
+        e[@"after"] || e[@"measuredReturnIntent"] || !journalState(e[@"undoBefore"], r, @"visible", r->frame) ||
+        ![p[@"ownedBefore"] isKindOfClass:NSArray.class] || ![p[@"before"] isKindOfClass:NSArray.class]) return NO;
+    NPRect parked;
+    if (!productFrame(e[@"before"][@"frame"], &parked) ||
+        parked.x != s->expectedPark.x || parked.y != s->expectedPark.y ||
+        parked.width != s->expectedPark.width || parked.height != s->expectedPark.height ||
+        !journalState(e[@"before"], r, @"parked", parked) ||
+        e[@"before"][@"hiddenSpaceID"] || e[@"undoBefore"][@"hiddenSpaceID"]) return NO;
+    unsigned owners = 0, images = 0;
+    for (NSDictionary *o in p[@"ownedBefore"]) {
+        if (!sameWindow(o[@"hidden"][@"window"], r)) continue;
+        if (![o[@"owner"] isEqual:p[@"owner"]] || !productScope(o[@"scope"], r) ||
+            ![o[@"nativeID"] isEqual:@(r->native_id)] || !uuidField(o[@"group"], r->group) ||
+            !uuidField(o[@"member"], r->member) || ![o[@"hidden"] isEqual:e[@"before"]] ||
+            !journalState(o[@"original"], r, @"visible", r->frame) || o[@"original"][@"hiddenSpaceID"]) return NO;
+        owners++;
+    }
+    for (NSDictionary *state in p[@"before"]) {
+        if (!sameWindow(state[@"window"], r)) continue;
+        if (![state isEqual:e[@"before"]]) return NO;
+        images++;
+    }
+    return owners == 1 && images == 1;
+}
+// The original hide Guardian releases its lease only after the inverse SHOW was
+// witnessed and the Coordinator durably removed ownership. Live geometry is checked twice by the caller.
+static BOOL inverseShowRelease(Session *s, NSDictionary *p, NSDictionary *e) {
+    const NPRequest *r = &s->pre.lease;
+    uint8_t undo[16];
+    return e == [p[@"entries"] lastObject] && p[@"verifiedDirectoryCommit"] == (__bridge id)kCFBooleanFalse &&
+        uuidField(p[@"intent"], s->preparedTransaction) && uuidField(p[@"generation"], r->generation) &&
+        productScope(p[@"scope"], r) && [p[@"nativeID"] isEqual:@(r->native_id)] &&
+        [e[@"action"] isEqual:@{@"hide": @{}}] && uuidField(e[@"intent"], r->intent) &&
+        uuidField(e[@"group"], r->group) && uuidField(e[@"member"], r->member) &&
+        decodeUUID(e[@"undoIntent"], undo) && memcmp(undo, r->intent, 16) && memcmp(undo, s->preparedTransaction, 16) &&
+        !e[@"after"] && !e[@"measuredReturnIntent"] && e[@"guardianPending"] == (__bridge id)kCFBooleanTrue &&
+        !e[@"before"][@"hiddenSpaceID"] && !e[@"undoBefore"][@"hiddenSpaceID"] &&
+        journalState(e[@"before"], r, @"visible", r->frame) &&
+        journalState(e[@"undoBefore"], r, @"parked", s->sealed.result.frame);
+}
 static BOOL productJournalContents(Session *s, NSDictionary *l, BOOL confirmed, BOOL released) {
     if (!activeProfile(s))
         return NO;
@@ -193,14 +247,18 @@ static BOOL productJournalContents(Session *s, NSDictionary *l, BOOL confirmed, 
             return NO;
         for (NSDictionary *e in p[@"entries"])
             if (sameWindow(e[@"before"][@"window"], r)) {
-                BOOL sameIntent = uuidField(e[@"intent"], r->intent);
-                if (!released && sameIntent && [e[@"action"][@"hide"] isKindOfClass:NSDictionary.class] &&
-                    journalState(e[@"before"], r, @"visible", r->frame) &&
+                BOOL forward = !s->expectedPark.width && uuidField(e[@"intent"], r->intent) && !e[@"undoIntent"] && !e[@"undoBefore"] &&
+                    [e[@"action"] isEqual:@{@"hide": @{}}] && journalState(e[@"before"], r, @"visible", r->frame);
+                BOOL inverse = inverseHideEntry(s, p, e);
+                if (!released && (forward || inverse) &&
                     uuidField(p[@"generation"], r->generation) && [p[@"nativeID"] isEqual:@(r->native_id)] &&
                     productScope(p[@"scope"], r) &&
-                    (!confirmed || journalState(e[@"after"], r, @"parked", s->sealed.result.frame)))
+                    (!confirmed || (inverse ? e[@"guardianPending"] == (__bridge id)kCFBooleanTrue &&
+                                              journalState(e[@"before"], r, @"parked", s->sealed.result.frame)
+                                            : journalState(e[@"after"], r, @"parked", s->sealed.result.frame))))
                     pending++;
-                else if (!released || !e[@"after"])
+                else if (!released || ((e[@"undoIntent"] || e[@"undoBefore"]) ?
+                                        !inverseShowRelease(s, p, e) : !e[@"after"]))
                     return NO;
             }
     }
@@ -233,10 +291,11 @@ static NSDictionary *preparedHideJournal(Session *s) {
     if (!productJournalContents(s, l, NO, NO) || [l[@"releases"] count]) return nil;
     NSDictionary *p = l[@"pending"], *last = [p[@"entries"] lastObject];
     uint8_t transaction[16];
+    BOOL forward = uuidField(last[@"intent"], s->pre.lease.intent) && !last[@"undoIntent"] && !last[@"undoBefore"] &&
+        [last[@"action"] isEqual:@{@"hide": @{}}];
     if (!decodeUUID(p[@"intent"], transaction) || memcmp(transaction, s->preparedTransaction, 16) ||
-        !uuidField(last[@"intent"], s->pre.lease.intent) ||
-        !sameWindow(last[@"before"][@"window"], &s->pre.lease) || ![last[@"action"] isEqual:@{@"hide": @{}}] ||
-        last[@"after"] || last[@"undoIntent"] || last[@"guardianPending"]) return nil;
+        !sameWindow(last[@"before"][@"window"], &s->pre.lease) ||
+        (!forward && !inverseHideEntry(s, p, last)) || last[@"after"] || last[@"guardianPending"]) return nil;
     return l;
 }
 static NSDictionary *withdrawableJournal(Session *s) {
@@ -291,7 +350,9 @@ static BOOL productPrepare(Session *s, NSDictionary *m, NSString *folder) {
     r->version = 1;
     r->backend = NP_CORNER;
     r->operation = NP_HIDE;
+    s->expectedPark = (NPRect){0};
     if (![m[@"phase"] isEqual:@"prepare"] || !productFrame(m[@"frame"], &r->frame) ||
+        (m[@"expectedPark"] && !productFrame(m[@"expectedPark"], &s->expectedPark)) ||
         !decodeUUID(m[@"intent"], r->intent) || !uuidField(folder.lastPathComponent, r->intent) ||
         !decodeUUID(m[@"group"], r->group) || !decodeUUID(m[@"member"], r->member) ||
         !decodeUUID(m[@"lifetime"], r->lifetime) || !decodeUUID(m[@"generation"], r->generation) ||
