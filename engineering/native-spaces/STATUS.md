@@ -8,7 +8,7 @@ Guardian 已在允许退场前核对 Swift 选中的前台窗口，并在写入�
 
 11 月 25 日 01:33，实体 Mac 读到普通桌面。01:35 输入已静止 13.98 秒，启动前读到的桌面已转为全屏。此后四分钟没有收到系统桌面变化通知。本次第三方窗口夹具没有启动，窗口操作为零。同源码的隔离 Host 已完成签名封装。预览定向与实机检查共 11 项通过，完整 Swift 回归 828 项通过、4 项跳过。[原始桌面读数与机器收据](../verification/native-spaces/5.22-90-active-display-previews/card-mount-5bd0732.json)
 
-GitHub 在 `5bd0732` 上的原生协议作业因没有空闲 ARM64 runner 而结束，未执行任何步骤。现有原生 CI 已纳入帧流和按窗口刷新的回归，覆盖修订为 `6828bb5`，产品源码与已签名候选一致。[首次作业记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/45448568514) · [含预览回归的 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45451855949)
+GitHub 在 `5bd0732` 上的原生协议作业因没有空闲 ARM64 runner 而结束，未执行任何步骤。覆盖修订 `6828bb5` 在相同产品源码上完成原生 CI，帧流与缓存两个测试套件均通过。macOS 27 专项桌面文件作业按条件跳过。[首次作业记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/45448568514) · [预览修复 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45451855949)
 
 此前签名开发候选为 `d11d101`，回滚包为 `009d330`。一扇窗口首次取得缩略图或被缓存移出时，只通知它自己的卡片。26A428 实体机上，两扇受控窗口验证了回到红窗时直接复用原位图，首帧新增捕获为 0。旁窗首次出图和被移出时，红窗卡片两次均未收到刷新通知。红窗变绿后，蓝窗仍保持原色。[实机记录、签名候选和回滚包](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.json) · [原始数据及卡片画面](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.zip)
 

@@ -1,7 +1,7 @@
 {
   "source": "5bd0732b44d6f54c67c54ca1ba74482e9450609c",
   "version": "5.22 (90)",
-  "recordedUTC": "2026-11-24T17:45:28.085299+00:00",
+  "recordedUTC": "2026-11-24T17:52:50.365308+00:00",
   "target": {
     "checkedUTC": "2026-11-24T17:28:39.157831+00:00",
     "version": "27.0",
@@ -255,13 +255,13 @@
       "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45448568514"
     },
     {
-      "conclusion": "",
+      "conclusion": "success",
       "headSha": "6828bb58ef089d681f11e91a529d7201f0b58b40",
       "jobs": [
         {
-          "conclusion": "",
+          "conclusion": "success",
           "name": "protocol",
-          "status": "in_progress"
+          "status": "completed"
         },
         {
           "conclusion": "skipped",
@@ -269,7 +269,7 @@
           "status": "completed"
         }
       ],
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45451855949"
     }
   ],
@@ -369,6 +369,6 @@
   },
   "raw": {
     "name": "card-mount-5bd0732.zip",
-    "sha256": "2c8f6e024aec00d5552d58a588145f7f3596e549cbdc3461c4e11050cd9f89b7"
+    "sha256": "ec0461f84d78a91058424a30d241b3fdf744e0aaad338bb57e28aa848a5d8d3d"
   }
 }
