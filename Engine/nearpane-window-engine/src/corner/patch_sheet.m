@@ -79,7 +79,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
         return 0;
     NCDock dock = {};
     uint32_t n = 0, ids[64], above = 0;
-    if (np_corner_zorder(rows, 2048, &n, &dock) != 0) {
+    if (np_corner_visual_zorder(rows, 2048, &n, &dock) != 0) {
         free(rows);
         return 0;
     }
@@ -88,6 +88,7 @@ static uint32_t targetOrder(const NCParkedPatchMember *members, unsigned count, 
     CGWindowLevel icons = CGWindowLevelForKey(kCGDesktopIconWindowLevelKey);
     for (unsigned i = 0; i < n; i++) {
         const NCListed *w = &rows[i];
+        if (w->window == panel && w->pid != getpid()) { free(rows); return 0; }
         if (!CGRectIntersectsRect(patchRect(frame), patchRect(w->frame)))
             continue;
         unsigned j = 0;

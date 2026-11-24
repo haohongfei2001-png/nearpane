@@ -320,8 +320,9 @@ mod native_plan {
         if preflight {
             would_be_right(&listed, patch, above, frame, &parked)
         } else {
-            listed.iter().filter(|w| w.id == patch).count() == 1
-                && ordered_right(&listed, patch, frame, &parked)
+            let mut sheets = raw.iter().filter(|w| w.id == patch);
+            sheets.next().is_some_and(|w| w.layer == 0 && w.alpha == 1. && w.frame == frame)
+                && sheets.next().is_none() && ordered_right(&listed, patch, frame, &parked)
         }
     }
     #[cfg(test)]
@@ -361,6 +362,21 @@ mod native_plan {
             assert!(!proof(&[7, 8], 8, true));
             assert!(unsafe { np_corner_patch_order(rows.as_ptr(), 3, [7].as_ptr(), 1, 42, 7, frame, false) });
             assert!(!unsafe { np_corner_patch_bounds(&screen, 1, screen, &mut frame) });
+        }
+
+        #[test]
+        fn posted_sheet_needs_its_opaque_windowserver_frame_and_normal_level() {
+            let frame = Rect::new(959., 720., 41., 80.);
+            let sheet = |alpha, bounds, layer| Row { id: 42, pid: 12, frame: bounds, alpha, layer };
+            let observed = |panel| {
+                let rows = [panel, Row { id: 7, pid: 11, frame, alpha: 1., layer: 0 }];
+                unsafe { np_corner_patch_order(rows.as_ptr(), 2, [7].as_ptr(), 1, 42, 7, frame, false) }
+            };
+            assert!(observed(sheet(1., frame, 0)));
+            assert!(!observed(sheet(0., frame, 0)));
+            assert!(!observed(sheet(0.99, frame, 0)));
+            assert!(!observed(sheet(1., Rect::new(960., 720., 40., 80.), 0)));
+            assert!(!observed(sheet(1., frame, -1)));
         }
     }
 }

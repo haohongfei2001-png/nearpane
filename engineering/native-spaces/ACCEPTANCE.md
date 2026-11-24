@@ -2,6 +2,8 @@
 
 ## Corner 的单窗口可行性边界
 
+实机验证退场画面时，在同一显示器的角落采样实时壁纸、壁纸与受控窗口、以及含正式遮挡面板的实际窗口叠放。所有样本只包含登记过的窗口和 Apple 签名壁纸。前后壁纸逐像素稳定、移除面板的采样能识别受控窗口、包含面板的采样还原整块壁纸，才算一次视觉通过。窗口顺序、真实键鼠收件及恢复责任独立判定。观察器自己创建的标记只验证测量方法；单窗和整组资格必须使用签名普通应用的真实窗口。
+
 | 验证对象 | 最小条件与可得结论 |
 | --- | --- |
 | 内部只读生存性 | 公证票据不是 AX 读取或内核退出观察的参数。正常获系统准入的内部签名 Host 可在隔离 GUI、私有资料和受控窗口中验证子进程行为。按实际签名、权限责任和系统 build 记账。更换签名、父进程或会话所得结果只适用于那个主体。26A428 上，内部签名 Host `1b03f10` 已完成退出后原窗口的双读。标准安装版另行验收，既有系统拒绝记录保留。[退出后实机记录](../verification/window-engine/guardian-survival-26A428/internal-host/05-confirmed-original/session.json) · [签名开发 Host](../verification/window-engine/target-26A428/signed-development-host.json) · [正式包回执](../verification/window-engine/guardian-survival-26A428/admission-1329/result.json) |

@@ -591,6 +591,13 @@ static BOOL fixtureFocus(NPRequest r) {
     if (app) CFRelease(app);
     return ok;
 }
+static void verifyParkedPicture(NSString *kit, const NPRequest *first, const NPRequest *second) {
+    NSDictionary *row = nc_fixture_picture(kit,first,second);
+    result[@"cornerPatch"] = row;
+    event(@"parkedWindowComposite",row);
+    save();
+    if (![row[@"status"] isEqual:@"PASS"]) stop(row[@"status"],row[@"reason"] ?: @"parkedPictureNotConfirmed");
+}
 static void oneWindow(NSString *kit, NPRequest rs[4], NSDictionary *native, int dock) {
     require(positive(rs[0],0) && fixtureFocus(rs[0]), @"sameAppSiblingFocusNotEstablished");
     NSArray *base=owners();
@@ -598,7 +605,7 @@ static void oneWindow(NSString *kit, NPRequest rs[4], NSDictionary *native, int 
         guardedFixtureWindow(kit,rs[1],^{
             require(noChange(base,owners(),rs[1].window,NO) && fixtureFocus(rs[0]) &&
                     [scope() isEqual:native] && dockTiles()==dock, @"siblingFocusDockOrNativeScopeChangedAtPark");
-            result[@"cornerPatch"]=nc_fixture_picture(&rs[1],NULL);
+            verifyParkedPicture(kit,&rs[1],NULL);
             BOOL parked[3]={NO,YES,NO};
             exerciseShield(0, 0, 0, rs, parked, native);
             require(fixtureFocus(rs[0]), @"controlledSiblingLostFocusDuringInput");
@@ -624,7 +631,7 @@ static void oneWindow(NSString *kit, NPRequest rs[4], NSDictionary *native, int 
         }
         result[@"restoredSiblingFocusAndDock"]=@YES;
         result[@"status"] = result[@"cornerPatch"][@"status"];
-        result[@"reason"] = [result[@"status"] isEqual:@"PASS"] ? @"oneSignedFixtureHideAndRestore" : @"optionalPatchUnconfirmed";
+        result[@"reason"] = @"oneSignedFixtureHideAndRestore";
     } @finally {
         uint32_t closed=np_engine_destroy(handle);
         result[@"engineClose"]=@(closed);
@@ -707,6 +714,7 @@ static void trial(NSString *kit) {
         change(rs[1], NP_HIDE, &owned[1]);
         change(rs[2], NP_HIDE, &owned[2]);
         visibleGroup(0, rs, owned, base, native, dock);
+        verifyParkedPicture(kit,&rs[1],&rs[2]);
         require(positive(rs[3], 0), @"unmanagedBystanderWholeGestureUnconfirmed");
         while (cycle.gate < 3) {
             unsigned gate = cycle.gate, from = cycle.edge, to = (from + 1) % 3, lap = cycle.lap[gate] + 1;
@@ -727,6 +735,7 @@ static void trial(NSString *kit) {
             if (!noChange(shown, hidden, rs[from].window, NO))
                 stop(@"FAIL", @"unselectedWindowChangedOnHide");
             visibleGroup(to, rs, owned, base, native, dock);
+            verifyParkedPicture(kit,&rs[from],&rs[3-from-to]);
             exerciseShield(nc_cycle_limit(gate), lap, to, rs, owned, native);
             require(nc_cycle_accept(&cycle, from, to, YES), @"unqualifiedStageOrder");
             event(
@@ -736,10 +745,6 @@ static void trial(NSString *kit) {
                   @"from" : @(from),
                   @"to" : @(to)});
             result[keys[gate]] = @(cycle.lap[gate]);
-            if (gate == 0 && cycle.gate == 1) {
-                // Optional cosmetics are separately measured. They never shield events or qualify a backend.
-                result[@"cornerPatch"] = nc_fixture_picture(&rs[1], &rs[2]);
-            }
             save();
         }
         result[@"status"] = @"PASS";

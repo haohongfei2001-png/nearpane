@@ -6,6 +6,7 @@
 #import "nearpane_host_scope.h"
 #import "scope_binding.h"
 #import "patch_sheet.h"
+#import "scene-picture.h"
 
 static NSDictionary *ordinaryDisplay(void) {
     CGDirectDisplayID active[2]; uint32_t n = 0;
@@ -89,9 +90,44 @@ CFDictionaryRef NPObserveProductCornerMaterial(CFStringRef nonceText) {
     return CFBridgingRetain(record);
 }
 
-// This exercises the actual panel factory and pixel check with one owned panel below
-// ordinary windows. There is no target AX object, input tap, write permit or parked window.
-CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText) {
+static BOOL coveredMarker(CGWindowID sheet, CGWindowID marker, CGFloat level) {
+    NSArray *rows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly,kCGNullWindowID));
+    BOOL sawSheet = NO;
+    for (NSDictionary *row in rows) {
+        CGWindowID number = [row[(id)kCGWindowNumber] unsignedIntValue];
+        if (number != sheet && number != marker) continue;
+        if ([row[(id)kCGWindowOwnerPID] intValue] != getpid() || ![row[(id)kCGWindowAlpha] isEqual:@1]) return NO;
+        NSInteger layer = [row[(id)kCGWindowLayer] integerValue];
+        if (number == marker) return sawSheet && layer == level;
+        if (sawSheet || layer != level + 1) return NO;
+        sawSheet = YES;
+    }
+    return NO;
+}
+
+static NSDictionary *observeSheetOrder(CGWindowID sheet) {
+    NSMutableData *buffer = [NSMutableData dataWithLength:2048*sizeof(NCListed)];
+    NCListed *rows = buffer.mutableBytes;
+    NSMutableDictionary *read = [NSMutableDictionary dictionary];
+    for (NSNumber *visual in @[@YES,@NO]) {
+        uint32_t count = 0;
+        NCDock dock = {};
+        uint32_t code = visual.boolValue ? np_corner_visual_zorder(rows,2048,&count,&dock) :
+                                          np_corner_zorder(rows,2048,&count,&dock);
+        NSString *key = visual.boolValue ? @"visual" : @"input";
+        NSMutableDictionary *values = [@{@"detail":@(code)} mutableCopy];
+        if (!code) for (unsigned i=0; i<count; i++) if (rows[i].window == sheet && rows[i].pid == getpid())
+            values[@"opacity"] = @(rows[i].alpha);
+        read[key] = values;
+    }
+    read[@"status"] = !read[@"visual"][@"opacity"] || !read[@"input"][@"opacity"] ? @"UNKNOWN" :
+        ([read[@"visual"][@"opacity"] isEqual:@1] && [read[@"input"][@"opacity"] isEqual:@0] ? @"PASS" : @"FAIL");
+    return read;
+}
+
+// Both modes use the product sheet below ordinary windows. The occlusion control
+// adds one small colored window owned by the observer underneath that sheet.
+CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText, bool occlusion) {
     NSMutableDictionary *record = [@{@"scope":@"ownNonactivatingMaterialPanel",@"status":@"BLOCKED",
         @"thirdPartyWindowWrites":@0,@"inputEvents":@0,@"nativeSpaceWrites":@0,@"storedFrames":@0,
         @"singleWindowIsolation":@"NOT_RUN",@"productionQualified":@NO} mutableCopy];
@@ -118,22 +154,74 @@ CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText) {
     void *store = np_corner_patch_material();
     if (!store) return CFBridgingRetain(record);
     uint32_t material = np_corner_patch_prepare_source(store, &subject, area, true);
-    __block NSPanel *panel = nil;
+    __block NSPanel *panel = nil, *marker = nil;
+    NSWindowLevel floor = CGWindowLevelForKey(kCGDesktopWindowLevelKey) + 1;
+    uint32_t hid[13], finalHID[13];
+    np_corner_inputs(hid);
     if (material == NP_CORNER_MATERIAL_WALLPAPER_SURFACE) dispatch_sync(dispatch_get_main_queue(), ^{
         if (![front isEqual:NSWorkspace.sharedWorkspace.frontmostApplication] || ![ordinaryDisplay() isEqual:home]) return;
         panel = np_corner_material_panel(store, &subject, area);
-        panel.level = CGWindowLevelForKey(kCGDesktopWindowLevelKey) + 1;
+        if (!panel) return;
+        panel.level = floor + (occlusion ? 1 : 0);
         [panel orderBack:nil];
         [panel displayIfNeeded];
+        if (occlusion) {
+            NSRect rect = NSMakeRect(NSMidX(panel.frame)-8, NSMidY(panel.frame)-8, 16, 16);
+            marker = [[NSPanel alloc] initWithContentRect:rect styleMask:NSWindowStyleMaskBorderless|NSWindowStyleMaskNonactivatingPanel
+                backing:NSBackingStoreBuffered defer:NO];
+            marker.level = floor;
+            marker.backgroundColor = NSColor.magentaColor;
+            marker.opaque = YES;
+            marker.hasShadow = NO;
+            marker.ignoresMouseEvents = YES;
+            marker.hidesOnDeactivate = NO;
+            marker.releasedWhenClosed = NO;
+            marker.collectionBehavior = NSWindowCollectionBehaviorStationary|NSWindowCollectionBehaviorIgnoresCycle;
+            [marker orderBack:nil];
+            [marker displayIfNeeded];
+        }
     });
     np_corner_patch_material_end(store);
     if (!panel) return CFBridgingRetain(record);
-    __block CGWindowID number = 0;
-    dispatch_sync(dispatch_get_main_queue(), ^{ number = (CGWindowID)panel.windowNumber; });
+    __block CGWindowID number = 0, markerID = 0;
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        number = (CGWindowID)panel.windowNumber;
+        if (marker) markerID = (CGWindowID)marker.windowNumber;
+    });
     record[@"panelID"] = @(number);
     NSMutableArray *samples = [NSMutableArray array];
     for (unsigned i = 0; i < 2; i++) {
         usleep(80000);
+        if (occlusion) {
+            record[@"scope"] = @"ownMarkerUnderLinkedSheet";
+            record[@"markerID"] = @(markerID);
+            CGRect region = CGRectMake(area.x,area.y,area.w,area.h);
+            NCSceneWindow leaf = {markerID,getpid(),ncg_birth(getpid(),NULL),
+                CGRectMake(CGRectGetMidX(region)-8,CGRectGetMidY(region)-8,16,16)};
+            np_corner_inputs(finalHID);
+            if (!markerID || memcmp(hid,finalHID,sizeof(hid)) || ![ordinaryDisplay() isEqual:home] ||
+                ![front isEqual:NSWorkspace.sharedWorkspace.frontmostApplication] || !coveredMarker(number,markerID,floor)) {
+                [samples addObject:@{@"status":@"UNKNOWN",@"reason":@"scopeOrWindowOrderChangedBeforeSample"}];
+                break;
+            }
+            __block NSDictionary *reading = nil;
+            dispatch_sync(dispatch_get_main_queue(), ^{ reading = readCornerScene(CGMainDisplayID(),region,number,&leaf,1,nil); });
+            NSMutableDictionary *row = [reading mutableCopy];
+            row[@"engineOrder"] = observeSheetOrder(number);
+            if ([row[@"status"] isEqual:@"PASS"] && ![row[@"engineOrder"][@"status"] isEqual:@"PASS"]) {
+                row[@"status"] = row[@"engineOrder"][@"status"];
+                row[@"reason"] = @"engineSheetOpacityOrInputClassification";
+            }
+            np_corner_inputs(finalHID);
+            if (memcmp(hid,finalHID,sizeof(hid)) || ![ordinaryDisplay() isEqual:home] ||
+                ![front isEqual:NSWorkspace.sharedWorkspace.frontmostApplication] || !coveredMarker(number,markerID,floor)) {
+                row[@"status"] = @"UNKNOWN";
+                row[@"reason"] = @"scopeOrWindowOrderChangedDuringSample";
+            }
+            [samples addObject:row];
+            if (![row[@"status"] isEqual:@"PASS"]) break;
+            continue;
+        }
         dispatch_semaphore_t done = dispatch_semaphore_create(0);
         __block NCCornerPicture result = NCCornerPictureUnavailable;
         uint64_t began = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
@@ -152,6 +240,8 @@ CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText) {
     record[@"samples"] = samples;
     record[@"status"] = [samples.lastObject objectForKey:@"status"];
     dispatch_sync(dispatch_get_main_queue(), ^{
+        [marker orderOut:nil];
+        [marker close];
         [panel orderOut:nil];
         [panel close];
     });
@@ -161,7 +251,8 @@ CFDictionaryRef NPObserveProductCornerPanel(CFStringRef nonceText) {
         NSArray *list = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID));
         BOOL visible = NO;
         for (NSDictionary *w in list) {
-            if ([w[(id)kCGWindowNumber] unsignedIntValue] == number && [w[(id)kCGWindowOwnerPID] intValue] == getpid()) {
+            CGWindowID seen = [w[(id)kCGWindowNumber] unsignedIntValue];
+            if ((seen == number || (markerID && seen == markerID)) && [w[(id)kCGWindowOwnerPID] intValue] == getpid()) {
                 visible = YES; break;
             }
         }

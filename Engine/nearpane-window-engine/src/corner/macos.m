@@ -453,7 +453,7 @@ static NSDictionary *ownInput(void) {
     }
     return map;
 }
-uint32_t np_corner_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NCDock *dock) {
+static uint32_t cornerZOrder(NCListed *list, uint32_t capacity, uint32_t *count, NCDock *dock, BOOL input) {
     @autoreleasepool {
         *count = 0;
         uint32_t why = dockAndOwnership(dock);
@@ -478,10 +478,9 @@ uint32_t np_corner_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NC
             NCFrame f = frame(bounds);
             if (!valid(f))
                 return NO_ZORDER;
-            // Positive iff our own NSWindow currently reports ignoresMouseEvents. A normal Host
-            // surface remains a possible recipient; metadata-only unknowns are never labeled transparent.
+            // A click-through Host window is still drawn. Only the hit-test list excludes it.
             double opacity = alpha.doubleValue;
-            if (pid.intValue == getpid() && opacity > 0) {
+            if (input && pid.intValue == getpid() && opacity > 0) {
                 if (!own)
                     own = ownInput();
                 if ([own[n] isEqual:@YES])
@@ -493,6 +492,12 @@ uint32_t np_corner_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NC
         }
         return OK;
     }
+}
+uint32_t np_corner_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NCDock *dock) {
+    return cornerZOrder(list, capacity, count, dock, YES);
+}
+uint32_t np_corner_visual_zorder(NCListed *list, uint32_t capacity, uint32_t *count, NCDock *dock) {
+    return cornerZOrder(list, capacity, count, dock, NO);
 }
 uint32_t np_corner_position(const NCMember *m, void *retained, NCFrame before, NCFrame desired, uint32_t purpose, NCGuard allow,
                             void *context, uint32_t *issued) {

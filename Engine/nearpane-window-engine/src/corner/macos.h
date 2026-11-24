@@ -34,6 +34,7 @@ typedef uint32_t (*NCGuard)(void *);
 typedef enum { NC_PARK = 1, NC_RESTORE = 2 } NCMovePurpose;
 uint32_t np_corner_displays(NCDisplay *rows, uint32_t capacity, uint32_t *count);
 uint32_t np_corner_zorder(NCListed *rows, uint32_t capacity, uint32_t *count, NCDock *dock);
+uint32_t np_corner_visual_zorder(NCListed *rows, uint32_t capacity, uint32_t *count, NCDock *dock);
 uint32_t np_corner_sample(const NCMember *, NCSample *);
 uint32_t np_corner_position(const NCMember *, void *retained, NCFrame before, NCFrame desired, uint32_t purpose, NCGuard allow,
                             void *context, uint32_t *issued);
