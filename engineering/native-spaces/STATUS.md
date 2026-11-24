@@ -6,6 +6,8 @@
 
 Corner 现在按 WindowServer 的真实透明度、矩形和层级验证遮挡；忽略鼠标的窗口仍可遮住另一扇窗口。签名普通窗口的隔离验收已改为采样实际叠放的窗口和对照画面，画面无法确认时先还原已登记目标。隔离 Host 的录屏准入仍为 **BLOCKED**。第三方普通窗口真实退场、退场后鼠标和键盘收件、R4 整组循环和 10/50 次均为 **NOT_RUN**。生产调度资格尚未取得。
 
+源码 `47109e5` 的 5.22（90）ARM64 开发候选已完成解压复验，14 个可执行组件及整包通过严格签名校验。Host CDHash 为 `72fef02744d8309cc1c124316c39a5946e6563f1`，压缩包 SHA-256 为 `843f55754b43dae403fd41bb74fa3cec0369f940c1f762345cb55a50f6cfa185`。GitHub 的窗口引擎与原生协议两项 CI 均通过，两项桌面作业跳过。开发包和前一版回滚包保存在本机，公证与发行验收尚未执行。[候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-47109e5.json) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45298541506) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45298541617)
+
 ## 工作集合切换期间的输入与画面连续性
 
 同一应用在停放窗口上方新建旁窗时，Quartz 可能先报告新窗接收按下事件，稍后才在窗口列表中列出它。Corner 现在会把整次按下、拖动、释放保留给这个旁窗，并撤销不一致的输入读数。显示器、原生桌面、面板几何和实时前后顺序均一致时，组成员增减可复用仍有效的面板画面。壁纸刷新逐像素一致时保留已绘画面。实机停放后键鼠命中、R4 整组循环与多屏调度仍待验证。
