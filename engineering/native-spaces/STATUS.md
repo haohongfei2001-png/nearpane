@@ -2,7 +2,9 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-当前签名开发候选为 `c055dc4`，回滚包为 `504e588`。点击组合预览的重叠处会选中前窗，点击后窗露出的部分可选中后窗。拖动时沿用相同的窗口身份和前后顺序。把成员拖出侧栏并释放到同一显示器的工作区域，可以将它移出组合。窗口换代、前后顺序不明、跨显示器释放或在菜单栏释放时会取消操作。36 项定向检查在连接实体显示器的 AppKit 测试面板中通过。完整本机 Swift 回归 818 项通过、3 项跳过，首轮受限环境中的失败已保留。两项源码 CI 通过。候选整包及 14 个可执行组件已严格验签，候选与回滚包均已用 GitHub 内部草稿下载核对 SHA-256。[候选、回滚、CI 和分项结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-c055dc4.json)
+**当前开发候选为 `cc1aa89`，回滚包为 `c055dc4`。** 两个退场窗口在角落重叠时，Nearpane 现在会逐一核对 WindowServer 预测的窗号和 Quartz 事件报告的收件窗号。发现两者矛盾时，立即中止使用该窗口顺序。能确认收件窗归属时，继续拦截本次手势直到抬起。事件报告的 PID 与窗口所有者矛盾时，整次手势交还系统。修复前，两个不同窗号会被同一次匹配误判为正确，已保留可复现的失败记录。Rust 全部 125 项、Corner 定向 84 项通过，链接最新静态库的 Swift 完整回归 818 项通过、3 项跳过。当前源码的 Rust、Swift 与生产 C ABI CI 通过，托管桌面作业跳过。两份签名包均已从 GitHub 内部草稿下载并核对。修复的验收使用可控的事件字段和窗口顺序，物理桌面上的真实收件仍待单窗验证。[当前候选和各项资格](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-cc1aa89.json) · [修复前后的原始日志](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/parked-recipient-identity.zip)
+
+上一份签名开发候选为 `c055dc4`，其回滚包为 `504e588`。点击组合预览的重叠处会选中前窗，点击后窗露出的部分可选中后窗。拖动时沿用相同的窗口身份和前后顺序。把成员拖出侧栏并释放到同一显示器的工作区域，可以将它移出组合。窗口换代、前后顺序不明、跨显示器释放或在菜单栏释放时会取消操作。36 项定向检查在连接实体显示器的 AppKit 测试面板中通过。完整本机 Swift 回归 818 项通过、3 项跳过，首轮受限环境中的失败已保留。两项源码 CI 通过。候选整包及 14 个可执行组件已严格验签，候选与回滚包均已用 GitHub 内部草稿下载核对 SHA-256。[候选、回滚、CI 和分项结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-c055dc4.json)
 
 **真实工作集合切换仍为 BLOCKED。** 在 26A428 实体机上，首次检查因 12 秒内有 60 次输入计数变化而在启动前停止。输入安静后，隔离签名 Host 实际启动，确认了原焦点，并连续两次读到原生全屏桌面（type 4）。随后四分钟内系统没有发出桌面改变通知。Host 自读辅助功能、输入监听和事件投递均已授权，屏幕录制未授权。已有实机证据确认独立观察器可以读取登记测试窗口的独立画面。Corner 绘制退场区域所需的壁纸画面仍由执行 Host 自己读取。本次未创建测试窗。Host 已正常退出，观察通道已清理，日常 Nearpane 在前后两次均处于停止状态，签名、配置和恢复记录指纹一致。[实机原始读数、清理、交互与回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/display-marker-and-card-input.zip)
 
