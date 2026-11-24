@@ -2,7 +2,9 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前签名开发候选为 `b204a44`，回滚包为 `cc1aa89`。** Rust 在同一扇窗口的实测停放位置连续两次一致后，立即通过该窗口原先认证的管道交给 Guardian。若 Host 在稍后的画面核验期间退出，Guardian 可以继续核对原 AX 对象、几何、归属、焦点和写前日志。实测位置发送前发生中断，仍保留未决责任。正式侧栏快速改选时，只有原 Rust 引擎排除已受理的请求，且原 Guardian 核实窗口仍在原位，才会撤回对应写前记录。
+**当前签名开发候选为 `9aa87c9`，回滚包为 `b204a44`。** 若 Guardian 在 Host 退出后把一次未完成退场的窗口送回原位，并连续两次核实原窗，重启的 Host 可以读取原写前记录、实测停放位置及终结收据，只结清该窗。批次中此前的操作和其他窗口的责任继续保留，活动组不会因此变更。回归在隔离资料中验证了这条路径，窗口写入为零。Swift 821 项通过、3 项跳过，两项源码 CI 通过。两份开发签名包均已校验。[候选与验收结果](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-9aa87c9.json) · [修复前后的原始收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-measured-return.zip)
+
+**此前签名开发候选为 `b204a44`，回滚包为 `cc1aa89`。** Rust 在同一扇窗口的实测停放位置连续两次一致后，立即通过该窗口原先认证的管道交给 Guardian。若 Host 在稍后的画面核验期间退出，Guardian 可以继续核对原 AX 对象、几何、归属、焦点和写前日志。实测位置发送前发生中断，仍保留未决责任。正式侧栏快速改选时，只有原 Rust 引擎排除已受理的请求，且原 Guardian 核实窗口仍在原位，才会撤回对应写前记录。
 
 本机真实管道验证了发送端全部关闭后仍可收到完整位置记录，错误窗号、变化的坐标和截断消息均被拒绝。上述验收的窗口写入次数为零。Swift 819 项通过、3 项跳过，Rust 125 项通过。两项原生源码 CI 成功，候选的 14 个可执行组件通过验签；候选和回滚包均从未发布的 GitHub 草稿下载核对。[源码与签名收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-b204a44.json) · [修复前后的原始证据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/guardian-worker-landing.zip)
 
