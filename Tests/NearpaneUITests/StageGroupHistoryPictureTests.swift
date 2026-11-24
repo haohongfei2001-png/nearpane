@@ -78,6 +78,85 @@ import Testing
         #expect(departure(lifetime:UUID()) == nil && departure(closing:snapshot(2,session:UUID())) == nil)
     }
 
+    @Test func selectedHistoricalWindowMustStillBeTheSameParkedIncarnationOnTheSameDesktop() throws {
+        let group = try #require(departure())
+        let rear = try #require(group.members.first), stamp = group.stamp(for: rear)
+        var parked = rear.before
+        parked.visibility = .parked
+        parked.frame.x = -100
+        func read(_ state: StageWindowState, native: UInt64 = 4, epoch: UUID? = nil) -> StageWindowSample {
+            .init(scope: scope, generation: epoch ?? generation, sequence: 3, workArea: area,
+                  windows: [state.window: state], focus: nil, nativeID: native)
+        }
+        let accepted = try #require(group.parkedMember(stamp, in: read(parked)))
+        #expect(accepted.0.id == backMember && accepted.1 == parked)
+        let sibling = try #require(group.members.last)
+        #expect(group.parkedMember(group.stamp(for: sibling), in: read(parked)) == nil)
+        #expect(group.parkedMember(stamp, in: read(rear.before)) == nil)
+        #expect(group.parkedMember(stamp, in: read(parked, native: 5)) == nil)
+        #expect(group.parkedMember(stamp, in: read(parked, epoch: UUID())) == nil)
+        let reused = StageWindowState(window: parked.window, lifetime: UUID(), frame: parked.frame, visibility: .parked)
+        #expect(group.parkedMember(stamp, in: read(reused)) == nil)
+        #expect(try #require(departure()).parkedMember(stamp, in: read(parked)) == nil)
+    }
+
+    @Test func historicalClicksUseWindowStackingAndNeverFallThroughAMissingFrontImage() throws {
+        let group = try #require(departure())
+        let backImage = try image(red: true, width: 120, height: 60)
+        let frontImage = try image(red: false, width: 100, height: 60)
+        var selected = [StageGroupDeparture.Stamp?]()
+        func card(_ images: [UUID: CGImage], from picture: StageGroupDeparture) -> some View {
+            StageGroupHistoryPicture(departure: picture, images: images, select: { selected.append($0) })
+                .frame(width: 200, height: 100)
+        }
+        let complete = [backMember: backImage, frontMember: frontImage]
+        let view = NSHostingView(rootView: card(complete, from: group))
+        let panel = EdgePanel(contentRect: .init(x: 0, y: 0, width: 200, height: 100),
+                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        panel.isReleasedWhenClosed = false
+        panel.contentView = view
+        defer { panel.close() }
+        func send(_ type: NSEvent.EventType, x: CGFloat) throws {
+            view.layoutSubtreeIfNeeded()
+            view.displayIfNeeded()
+            let location = NSPoint(x: x, y: 50)
+            let receiver = try #require(view.hitTest(location) as? DesktopMapWindowSelection<StageGroupDeparture.Selection>.MapView)
+            let event = try #require(NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber,
+                context: nil, eventNumber: 1, clickCount: 1, pressure: type == .leftMouseUp ? 0 : 1))
+            switch type {
+            case .leftMouseDown: receiver.mouseDown(with: event)
+            case .leftMouseDragged: receiver.mouseDragged(with: event)
+            case .leftMouseUp: receiver.mouseUp(with: event)
+            default: Issue.record("Unexpected local test event")
+            }
+        }
+        func click(_ x: CGFloat) throws {
+            try send(.leftMouseDown, x: x)
+            try send(.leftMouseUp, x: x)
+        }
+        try click(35)
+        try click(100)
+        try click(190)
+        let rear = try #require(group.members.first), top = try #require(group.members.last)
+        #expect(selected == [group.stamp(for: rear), group.stamp(for: top), nil])
+        selected.removeAll()
+        try send(.leftMouseDown, x: 100)
+        view.rootView = card([backMember: backImage], from: group)
+        try send(.leftMouseUp, x: 100)
+        try click(100)
+        try send(.leftMouseDown, x: 35)
+        try send(.leftMouseDragged, x: 43)
+        try send(.leftMouseUp, x: 35)
+        try click(35)
+        #expect(selected == [group.stamp(for: rear)])
+        try send(.leftMouseDown, x: 35)
+        view.rootView = card(complete, from: try #require(departure()))
+        try send(.leftMouseUp, x: 35)
+        #expect(selected == [group.stamp(for: rear)])
+        #expect(!panel.isVisible && !panel.isKeyWindow)
+    }
+
     @Test func alreadyDisplayedOrdinaryGroupCanKeepPixelsWithoutAnyWindowEngineOrNewCapture() throws {
         let opening = snapshot(1), closing = snapshot(2)
         let directory = StageGroupStore(profile:nil)

@@ -46,6 +46,29 @@ struct StageGroupDeparture: Equatable {
         .init(departure:id,group:group,generation:generation,member:member.id,originalLifetime:member.before.lifetime)
     }
 
+    struct Selection: Equatable {
+        let departure: UUID, member: Stamp?
+    }
+    func selection(at point: CGPoint, in size: CGSize, hasImage: (UUID) -> Bool) -> Selection? {
+        guard CGRect(origin: .zero, size: size).contains(point) else { return nil }
+        let location = CGPoint(x: point.x / size.width, y: point.y / size.height)
+        for member in members.reversed() {
+            let r = member.layout
+            if CGRect(x: r.x, y: r.y, width: r.width, height: r.height).contains(location) {
+                return hasImage(member.id) ? Selection(departure: id, member: stamp(for: member)) : nil
+            }
+        }
+        return Selection(departure: id, member: nil)
+    }
+
+    func parkedMember(_ stamp: Stamp, in sample: StageWindowSample) -> (Member, StageWindowState)? {
+        guard sample.scope == scope, sample.generation == generation, sample.nativeID == nativeID,
+              let member = members.first(where: { $0.id == stamp.member }), self.stamp(for: member) == stamp,
+              let state = sample.windows[member.before.window], state.window == member.before.window,
+              state.lifetime == member.before.lifetime, state.visibility == .parked, state.hiddenSpaceID == nil else { return nil }
+        return (member, state)
+    }
+
     func matches(_ snapshot: DesktopSnapshot) -> Bool {
         let home = snapshot.scopes.filter { UUID(uuidString: $0.displayID) == scope.display }.flatMap(\.records).filter(\.isCurrent)
         return snapshot.sessionID == session && snapshot.topologyFingerprint == topology && snapshot.native?.stageManagerEnabled == false &&
@@ -142,13 +165,14 @@ struct ObservedPictureGroups {
 struct StageGroupHistoryPicture: View {
     let departure: StageGroupDeparture
     let images: [UUID: CGImage]
+    var select: ((StageGroupDeparture.Stamp?) -> Void)? = nil
     @Environment(\.colorScheme) private var scheme
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .topLeading) {
-                ForEach(departure.members) { member in
+                ForEach(Array(departure.members.enumerated()), id: \.element.id) { index, member in
                     let r = member.layout, w = geometry.size.width * r.width, h = geometry.size.height * r.height
-                    ZStack {
+                    let tile = ZStack {
                         RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
                         if let image = images[member.id] {
                             Image(decorative: image, scale: 1).resizable().aspectRatio(contentMode: .fit)
@@ -156,12 +180,29 @@ struct StageGroupHistoryPicture: View {
                     }
                     .frame(width:w,height:h).clipShape(RoundedRectangle(cornerRadius:2))
                     .overlay { RoundedRectangle(cornerRadius:2).strokeBorder(.primary.opacity(0.45),lineWidth:0.8) }
-                    .offset(x:geometry.size.width*r.x,y:geometry.size.height*r.y)
+                    .contentShape(Rectangle())
+                    Group {
+                        if let select, images[member.id] != nil {
+                            Button { select(departure.stamp(for: member)) } label: { tile }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("恢复组合并聚焦第 " + String(index + 1) + " 扇窗口")
+                                .accessibilityIdentifier("held-window:" + member.id.uuidString)
+                        } else {
+                            tile.accessibilityHidden(true)
+                        }
+                    }.offset(x:geometry.size.width*r.x,y:geometry.size.height*r.y)
                 }
             }.frame(width:geometry.size.width,height:geometry.size.height,alignment:.topLeading)
+            .overlay {
+                if let select {
+                    DesktopMapWindowSelection(target: { point in
+                        departure.selection(at: point, in: geometry.size) { images[$0] != nil }
+                    }, select: { select($0.member) }).accessibilityHidden(true)
+                }
+            }
         }
         .aspectRatio(departure.area.width/departure.area.height,contentMode:.fit).clipped()
         .background(.primary.opacity(0.09), in:RoundedRectangle(cornerRadius:7))
-        .overlay { RoundedRectangle(cornerRadius:7).strokeBorder(.primary.opacity(0.4)) }
+        .overlay { RoundedRectangle(cornerRadius:7).strokeBorder(.primary.opacity(0.4)).allowsHitTesting(false) }
     }
 }

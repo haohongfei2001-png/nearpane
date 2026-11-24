@@ -2,23 +2,31 @@ import AppKit
 import NearpaneCore
 import SwiftUI
 
-@MainActor struct DesktopMapWindowSelection: NSViewRepresentable {
-    let target: (NSPoint) -> DesktopWindowTarget?
-    let select: (DesktopWindowTarget) -> Void
+@MainActor struct DesktopMapWindowSelection<Target: Equatable>: NSViewRepresentable {
+    let target: (NSPoint) -> Target?
+    let select: (Target) -> Void
+    @Environment(\.isEnabled) private var enabled
     func makeNSView(context: Context) -> MapView { MapView() }
-    func updateNSView(_ view: MapView, context: Context) { view.target = target; view.select = select }
+    func updateNSView(_ view: MapView, context: Context) {
+        view.target = enabled ? target : nil
+        view.select = select
+        if !enabled { view.cancelOperation(nil) }
+    }
 
     final class MapView: NSView {
-        var target: ((NSPoint) -> DesktopWindowTarget?)?
-        var select: ((DesktopWindowTarget) -> Void)?
-        private var down: (NSPoint, DesktopWindowTarget, UUID)?
+        var target: ((NSPoint) -> Target?)?
+        var select: ((Target) -> Void)?
+        private var down: (NSPoint, Target, UUID)?
         override var isFlipped: Bool { true }
         override var needsPanelToBecomeKey: Bool { false }
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         override func mouseDown(with event: NSEvent) {
             let p = convert(event.locationInWindow, from: nil)
             let navigation = NativeSidebarNavigation.shared
-            down = navigation.dispatchAvailable ? target?(p).map { (p, $0, navigation.ownershipEpoch) } : nil
+            down = nil
+            guard navigation.dispatchAvailable, visibleRect.contains(p),
+                  event.modifierFlags.intersection([.control, .option, .shift, .command]).isEmpty else { return }
+            down = target?(p).map { (p, $0, navigation.ownershipEpoch) }
         }
         override func mouseDragged(with event: NSEvent) {
             let p = convert(event.locationInWindow, from: nil)
@@ -27,13 +35,14 @@ import SwiftUI
         override func mouseUp(with event: NSEvent) {
             defer { down = nil }
             let p = convert(event.locationInWindow, from: nil)
-            guard let (start, original, epoch) = down, NativeSidebarNavigation.shared.dispatchAvailable,
+            guard let (start, original, epoch) = down, visibleRect.contains(p), NativeSidebarNavigation.shared.dispatchAvailable,
                   NativeSidebarNavigation.shared.ownershipEpoch == epoch, hypot(p.x - start.x, p.y - start.y) < 6,
                   let live = target?(p), original == live else { return }
             select?(live)
         }
         override func scrollWheel(with event: NSEvent) { down = nil; super.scrollWheel(with: event) }
         override func cancelOperation(_ sender: Any?) { down = nil }
+        override func viewWillMove(toWindow newWindow: NSWindow?) { down = nil; super.viewWillMove(toWindow: newWindow) }
     }
 }
 

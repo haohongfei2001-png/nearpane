@@ -189,25 +189,29 @@ struct DesktopSurface: View {
             }
         }
         let description = pictures.isEmpty ? "暂无历史画面" : "历史画面 " + String(pictures.count) + "/" + String(held.count)
-        return Button {
+        func restore(_ member: StageGroupDeparture.Stamp?) {
+            guard canNavigate else { return }
             let input = NativeSelectionPermit.inputCounters()
             let epoch = navigation.ownershipEpoch
             navigation.submit(stage:true) { token in
-                try await feed.stageEngine.chooseHeld(held,in:feed,current:{
+                try await feed.stageEngine.chooseHeld(held, member: member, in:feed,current:{
                     canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
                 }, newerChoice: { canNavigate && navigation.hasQueuedGroupChoice(after: token, in: epoch) })
             }
-        } label: {
-            VStack(spacing:0) {
-                if let departure { StageGroupHistoryPicture(departure:departure,images:pictures) }
+        }
+        return VStack(spacing:0) {
+            if let departure {
+                StageGroupHistoryPicture(departure:departure, images:pictures, select:restore)
+            }
+            Button { restore(nil) } label: {
                 HStack(spacing:3) {
                     Text(title).lineLimit(1)
                     Text(description).lineLimit(1).foregroundStyle(.secondary).fixedSize()
-                }.font(.caption2).frame(maxWidth:.infinity).frame(height:18)
-            }.contentShape(Rectangle())
-        }.buttonStyle(.plain).disabled(!canNavigate)
+                }.font(.caption2).frame(maxWidth:.infinity).frame(height:18).contentShape(Rectangle())
+            }.buttonStyle(.plain)
             .accessibilityLabel(title).accessibilityValue(description)
             .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
+        }.disabled(!canNavigate)
     }
 
     @ViewBuilder private func observedCard(_ group: StageGroupDirectory.Group, picture: StageGroupDeparture,

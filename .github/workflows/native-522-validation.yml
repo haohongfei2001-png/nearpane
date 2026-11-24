@@ -29,6 +29,7 @@ on:
       - 'Tests/NearpaneUITests/WorkspacePanelTests.swift'
       - 'Tests/NearpaneSpaceActionTests/**'
       - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
+      - 'Tests/NearpaneUITests/StageGroupHistoryPictureTests.swift'
       - 'Tests/NearpaneUITests/NativeSidebarNavigationTests.swift'
       - 'Tests/NearpaneUITests/DesktopPreviewOwnerTests.swift'
       - 'Tests/NearpaneUITests/TranslationSelectionOriginTests.swift'
@@ -142,7 +143,7 @@ jobs:
         run: |
           set -euo pipefail
           suites=(StageGroupStoreTests StageGroupCoordinatorTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
-          suites+=(DesktopItemsSettingTests)
+          suites+=(DesktopItemsSettingTests StageGroupHistoryPictureTests)
           filter=$(IFS='|'; echo "${suites[*]}")
           swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
           for suite in "${suites[@]}"; do

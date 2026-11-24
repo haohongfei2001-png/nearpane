@@ -488,26 +488,40 @@ import NearpaneOrdinaryWindowRuntime
 
     /// The row represents an explicitly owned, independently read group. Its pixel stream and drag source
     /// remain absent while hidden. Recheck the whole roster before the existing coordinator can dispatch.
-    func chooseHeld(_ held: HeldGroup, in feed: CurrentDesktopWindows, current: @escaping @MainActor () -> Bool,
+    func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, in feed: CurrentDesktopWindows,
+                    current: @escaping @MainActor () -> Bool,
                     newerChoice: @escaping @MainActor () -> Bool = { false }) async throws {
         await heldRefresh?.value
         guard !releasing, !terminationOwnsLane, let engine, let session = engine.session, session.owner == held.owner,
               heldGroups.contains(held), let granted, granted.scope == held.scope, granted.evidence == held.owner.evidence,
-              current(), witness?.matches(held.scope) == true else { throw StageSwitchError.interrupted }
+              current(), let witness, witness.matches(held.scope) else { throw StageSwitchError.interrupted }
         guard try granted == consent(for: held.scope, evidence: held.owner.evidence, feed: feed) else {
             throw StageSwitchError.ownership
         }
         let token = revision
         let observed = try await session.read(held.scope)
         if !current() && newerChoice() { throw StageSwitchError.superseded }
-        guard current(), observed.windows[held.state.window] == held.state,
-              engine.coordinator.confirmsHidden(group:held.id,member:held.member,state:held.state,scope:held.scope,owner:held.owner) else {
+        guard revision == token, engine.session === session, heldGroups.contains(held), !releasing, !terminationOwnsLane else {
+            throw StageSwitchError.interrupted
+        }
+        let selected: UUID, parked: StageWindowState
+        if let stamp {
+            guard let departure = held.departure, let (member, state) = departure.parkedMember(stamp, in: observed),
+                  witness.confirmsHistoricalMember(member, of: departure) else { throw StageSwitchError.interrupted }
+            selected = member.id
+            parked = state
+        } else {
+            selected = held.member
+            parked = held.state
+        }
+        guard current(), observed.windows[parked.window] == parked,
+              engine.coordinator.confirmsHidden(group:held.id,member:selected,state:parked,scope:held.scope,owner:held.owner) else {
             freeze(); throw StageSwitchError.ownership
         }
         do {
-            witness?.preparePictures(leavingFor:held.id)
-            defer { witness?.endPicturePreparation() }
-            try await engine.activate(held.id,member:held.member,in:held.scope,consent:true,current:current,
+            witness.preparePictures(leavingFor:held.id)
+            defer { witness.endPicturePreparation() }
+            try await engine.activate(held.id,member:selected,in:held.scope,consent:true,current:current,
                                       newerChoice: { self.revision == token && newerChoice() })
             projectHeld(feed.groups,in:held.scope)
             await armArrivals(in: feed, revision: token)

@@ -2,6 +2,8 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
+非活动组合的历史画面现在可选择具体窗口。按下和抬起必须命中同一批画面的同一成员；真实切换事务会再核对该成员的 AX 对象、窗口代际、桌面归属和恢复责任。标题及画面空白处仍恢复上次焦点。26A428 上的定向验证已覆盖同应用两窗重叠、缺图、拖动、按下后换代及整组恢复的焦点选择。此次指针事件只交给未显示的 R4 测试面板；实体机第三方窗口退场和键盘输入仍待验收。
+
 **R4 侧栏整组切换尚未取得生产资格。** 目标实体机 26A428 上，Guardian 已在测试 Host 正常退出和异常退出后，将屏内偏移 24 点的签名普通窗口恢复到原位。独立观察器也已两次验证正式引擎面板完全遮住受控色块。[正常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/visible-return/session.json) · [异常退出归位](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/abrupt-visible-return/session.json) · [实际遮挡读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/occlusion-control.json)
 
 产品源码 `74fc1cc` 修复了切换中断后的恢复及旁窗输入。系统面板短暂遮住退场区域，也会撤回当次切换。窗口全部归还且焦点连续两次核实后，协调器可以结束恢复日志。系统只给出旁窗的窗号，或只给出另一应用的收件进程号时，执行器会让该收件人收到完整的按下、拖动和抬起。若用户已在保护区域外重新点到原窗口，引擎会交还控制权。修复前，只有外部进程号的按下被错误拦截，现已通过同一条件的回归。[窗口归还与旁窗收件](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-input-ownership.zip) · [跨应用输入失败和修复收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-74fc1cc.json)

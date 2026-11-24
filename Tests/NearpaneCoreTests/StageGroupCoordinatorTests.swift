@@ -381,6 +381,13 @@ import Testing
         try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
         #expect(runtime.focus == b.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
                 runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .parked)
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let bystanders = runtime.windows.filter { $0.key.number >= 4 }
+        try await engine.activate(both.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(a.windowHint.pid == b.windowHint.pid && a.windowHint.number != b.windowHint.number)
+        #expect(runtime.focus == a.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
+                runtime.windows[b.windowHint]?.visibility == .visible && store.activeGroup(in: runtime.scope) == both.id)
+        #expect(runtime.windows.filter { $0.key.number >= 4 } == bystanders)
     }
 
     @Test func enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches() async throws {
