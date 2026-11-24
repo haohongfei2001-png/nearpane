@@ -8,7 +8,9 @@
 
 源码 `798ab74` 在协调器恢复目标组或移交焦点之前检查角落层级，移动待退场窗口前复查。正式 Host 仅对本进程、同一显示器、处于正确层级且能接收鼠标的真实 R4 面板作专门处理。隔离执行 Host 的录屏检查仍返回 21，日常 Host `bec6cb2` 缺少新版认证观察接口。第三方窗口退场及键鼠隔离、R4 的 A→B→C→A、10/50 次、多显示器及 Apple 同机对照均为 **NOT_RUN**。[执行 Host 的实机准入](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/result.json) · [独立观察器对测试窗口的读回](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/registered-pixels.json)
 
-5.22（90）ARM64 开发候选已解压复验，整包及 14 个可执行组件严格验签通过。Swift 本机回归 809 项通过、3 项跳过，Rust 118 项通过。窗口引擎及原生协议两项 CI 通过，各有一项桌面作业跳过。此前 `7aab795` 候选保存在本机，可供回滚。[当前候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-798ab74.json) · [上一候选](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-7aab795.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45307237318) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45307237322)
+源码 `007eb02` 修复了侧栏在桌面读取失败后继续沿用上次调度状态的问题。读回丢失、显示器拓扑变化或系统接管时，Host 立即撤回当前操作。只有重新确认原登录会话、原显示器和原普通桌面，才开始核对待归还窗口。此次通过了快照中断回归；真实退场期间系统接管仍为 **NOT_RUN**。[中断与恢复条件的回归收据](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/workset-home-regression.zip)
+
+当前 5.22（90）ARM64 开发候选已解压复验，整包及 14 个可执行组件严格验签通过。Swift 本机回归 810 项通过、3 项跳过。窗口引擎及原生协议两项 CI 通过，各有一项桌面作业跳过。`798ab74` 保存在本机，可供回滚。[当前候选签名与校验和](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-007eb02.json) · [上一候选](../verification/window-engine/stage-switch-admission-26A428/corner-product-window/development-candidate-798ab74.json) · [窗口引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45310145134) · [原生协议 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45310145136)
 
 ### 工作集合退场后的恢复责任
 

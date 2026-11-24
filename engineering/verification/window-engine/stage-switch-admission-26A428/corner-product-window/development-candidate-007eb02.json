@@ -1,0 +1,96 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "007eb02ae95a1cc47db7938246343aefb32cf5a9",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "bc4a7a7c9a9a49ee2b852ea3ea1ca0d1de6aa253",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33420814,
+  "sha256": "6208f181e5d1980e766bf07d3438c93410d8b1f84d088df36b2d0f025c81425c",
+  "previousCandidate": "798ab744b7b23928878a3c6e3a9e0b72ddfb783b",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "sourceCI": [
+    {
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45310145134",
+      "headSha": "007eb02ae95a1cc47db7938246343aefb32cf5a9",
+      "conclusion": "success",
+      "jobs": {
+        "Rust, Swift and production C ABI": "success",
+        "Read-only hosted desktop preflight": "skipped"
+      }
+    },
+    {
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45310145136",
+      "headSha": "007eb02ae95a1cc47db7938246343aefb32cf5a9",
+      "conclusion": "success",
+      "jobs": {
+        "protocol": "success",
+        "Desktop files on macOS 27": "skipped"
+      }
+    }
+  ],
+  "regression": {
+    "initialTestBuild": "FAIL: the new fixture attempted to mutate immutable evidence; fixed by constructing independent snapshots",
+    "worksetDesktopRead": {
+      "passed": 9,
+      "skipped": 0,
+      "failed": 0,
+      "errors": 0
+    },
+    "swift": {
+      "passed": 810,
+      "skipped": 3,
+      "failed": 0,
+      "errors": 0
+    },
+    "raw": "workset-home-regression.zip",
+    "rawSHA256": "46ff9b7a59619e7cd2ef162a7d2b9189d9d50f1ddf017d405b3a5dce62e7317a"
+  },
+  "physicalQualification": {
+    "previousTargetMacObservations": "development-candidate-798ab74.json",
+    "hostScreenAccess": "BLOCKED: development execution Host detail 21",
+    "lastKnownRetirementSurface": "BLOCKED: independent signed observer detail 53",
+    "guardianSurvival": "PASS, prior signed Host",
+    "guardianVisibleReturnAfterNormalAndAbruptExit": "PASS, prior signed Host with visible fixture displacement",
+    "thirdPartyCornerRetirementAndInputAndRestore": "NOT_RUN",
+    "systemTakeoverDuringLiveRetirement": "NOT_RUN",
+    "sidebarABCA": "NOT_RUN",
+    "tenAndFiftySwitches": "NOT_RUN",
+    "multiDisplay": "NOT_RUN",
+    "sameMachineAppleComparison": "NOT_RUN"
+  }
+}
