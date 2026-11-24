@@ -18,6 +18,7 @@ import installed_profile
 
 permissions = importlib.import_module('installed-permissions')
 recovery = importlib.import_module('daily-recovery')
+scope_reader = importlib.import_module('observe-scope')
 
 
 def save(path, data):
@@ -56,15 +57,25 @@ def ownership():
     return dict(fileSHA256=digests, sharedHolders=holders)
 
 
-def daily(path):
+def daily(path, roster_reader=None):
     measured = permissions.sample()
+    roster = None
+    if (roster_reader and measured.get('targetHostCount') == 0 and measured.get('status') == 'BLOCKED'
+            and measured.get('reason') == 'runningInstalledHostNotUnique' and measured.get('permissions') is None):
+        roster = json.loads(scope_reader.command(roster_reader, scope_reader.DAILY, '--roster'))
+        measured['bundleCensus'] = roster
     save(path, measured)
     req = measured.get('subject') or {}
     config = installed_profile.daily_state()
-    if (measured['status'] != 'PASS' or not config or installed_profile.installed_pid() != req.get('pid') or
+    pid = installed_profile.installed_pid()
+    if (roster and roster.get('complete') is True and roster.get('pids') == [] and
+            pid is None and not req and config and measured['installed'].get('TeamIdentifier') == 'ZB9D4T66QB'):
+        return dict(state='stopped', pid=None, image=measured['installed'], permissions=None,
+                    config=config, ownership=ownership())
+    if (measured['status'] != 'PASS' or not config or pid != req.get('pid') or
             not req.get('birth') or not req.get('cdhash') or type(measured.get('permissions')) is not dict):
         raise ValueError('daily Host, actual permissions or configuration unconfirmed')
-    return dict(pid=req['pid'], birth=req['birth'], cdhash=req['cdhash'], image=measured['installed'],
+    return dict(state='running', pid=req['pid'], birth=req['birth'], cdhash=req['cdhash'], image=measured['installed'],
                 permissions=measured['permissions'], config=config, ownership=ownership())
 
 
@@ -103,7 +114,26 @@ def collect_closed_fixture(out, session, result):
                 fixtureProcessExited=True, originalWindowRecovered='NOT_RUN' if visual else 'PASS',
                 directoryRemoved=[not p.exists() for p in paths],
                 privateOriginals=archive.name, rawHostSHA256=raw_hash, hostAbruptExitDeclaration=intended,
-                dailyImagePermissionsConfigurationAndOwnershipUnchanged=True)
+                dailyImageConfigurationAndOwnershipUnchanged=True,
+                dailyImagePermissionsConfigurationAndOwnershipUnchanged=True if result['dailyBefore']['state'] == 'running' else None)
+
+def collect_unopened_channel(out, session):
+    peer = session.get('fixtureVisualPeer') or {}
+    if (session.get('hostLaunchRequested') is not False or session.get('fixtureLaunchRequested')
+            or not session.get('probeResources', {}).get('clear') or type(peer.get('exit')) is not int
+            or peer.get('socketRetired') is not True):
+        raise ValueError('observer exit and absence of both Host and fixture required')
+    nonce = str(uuid.UUID(session['challenge']))
+    channel = Path('/private/tmp') / ('nearpane-host-scope.' + nonce)
+    destination = out / 'unopened-channel'
+    meta = channel.lstat()
+    if (not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.getuid() or stat.S_IMODE(meta.st_mode) != 0o700 or
+            os.path.lexists(channel.parent / ('nearpane-membership.' + nonce)) or os.path.lexists(destination) or
+            set(p.name for p in channel.iterdir()) != {'corner-fixture-visual.request', 'corner-readback.request', 'launch-scope'}):
+        raise ValueError('unopened fixture channel identity or inventory changed')
+    channel.rename(destination)
+    return dict(challenge=nonce, observerExit=peer['exit'], socketRetired=True, hostLaunched=False,
+                fixtureLaunched=False, originalChannelRemoved=not os.path.lexists(channel), privateOriginals=destination.name)
 
 
 def main():
@@ -129,6 +159,7 @@ def main():
     result = dict(status='BLOCKED', guardianSurvival='NOT_RUN', normalOrCrashRecovery='NOT_RUN',
                   singleWindowHideRestore='NOT_RUN', stageGroupCycle='NOT_RUN', ten='NOT_RUN', fifty='NOT_RUN',
                   productionQualified=False, recordedUTC=datetime.now(timezone.utc).isoformat())
+    roster_reader = None
     try:
         app = Path(seal['app'])
         if (seal.get('status') != 'PASS' or seal.get('protocol') != 1 or not seal.get('deepStrictAllArchitectures')
@@ -139,7 +170,9 @@ def main():
                 or (a.visual_observer and seal.get('fixtureVisualProtocol') != 1)):
             raise ValueError('expected a signed internal package receipt')
         result['source'] = seal['source']
-        result['dailyBefore'] = daily(out / 'before-permissions.json')
+        if a.corner_readback and a.visual_observer:
+            roster_reader = scope_reader.build_launcher(out)
+        result['dailyBefore'] = daily(out / 'before-permissions.json', roster_reader)
         run = subprocess.run([sys.executable, '-B', HERE / 'sample-membership.py', app, out / 'session.json',
                               '--internal-host', '--visible-recovery' if a.visible_recovery else
                               '--corner-readback' if a.corner_readback else '--guardian-survival', '--expected-source', seal['source'],
@@ -173,18 +206,25 @@ def main():
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         result.update(status='UNKNOWN', reason=str(error)[:400])
     finally:
-        try:
-            result['dailyAfter'] = daily(out / 'after-permissions.json')
-            result['dailyPreserved'] = result['dailyAfter'] == result.get('dailyBefore')
-            if not result['dailyPreserved']:
-                result.update(status='UNKNOWN', preservationError='dailyWitnessChangedOrUnavailable')
-        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
-            result.update(status='UNKNOWN', preservationError=str(error)[:320])
+        if 'dailyBefore' in result:
+            try:
+                result['dailyAfter'] = daily(out / 'after-permissions.json', roster_reader)
+                result['dailyPreserved'] = result['dailyAfter'] == result['dailyBefore']
+                if not result['dailyPreserved']:
+                    result.update(status='UNKNOWN', preservationError='dailyWitnessChangedOrUnavailable')
+            except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+                result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if ((a.visible_recovery and result['status'] == 'PASS') or
                 (a.visual_observer and result.get('cleanup', {}).get('clear') and session.get('fixtureLaunchRequested'))):
             try:
                 cleanup = collect_closed_fixture(out, session, result)
                 save(out / 'cleanup.json', cleanup)
+            except (OSError, ValueError, KeyError) as error:
+                result.update(status='UNKNOWN', preservationError=str(error)[:320])
+        elif (a.visual_observer and result.get('dailyPreserved') and result.get('cleanup', {}).get('clear')
+              and session.get('hostLaunchRequested') is False and session.get('fixtureVisualPeer')):
+            try:
+                save(out / 'cleanup.json', collect_unopened_channel(out, session))
             except (OSError, ValueError, KeyError) as error:
                 result.update(status='UNKNOWN', preservationError=str(error)[:320])
         if a.visible_recovery:

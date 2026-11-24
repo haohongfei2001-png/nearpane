@@ -50,6 +50,32 @@ def correlated(value, opened=launch):
 
 
 class InstalledScopeTests(unittest.TestCase):
+    def test_read_only_fixture_can_preserve_a_stopped_installation_without_claiming_its_permissions(self):
+        supervisor = module("internal_fixture_daily_tests", "internal-guardian-survival.py")
+        stopped = dict(targetHostCount=0, status="BLOCKED", reason="runningInstalledHostNotUnique",
+                       permissions=None, installed=image)
+        with (tempfile.TemporaryDirectory() as directory,
+              patch.object(supervisor.permissions, "sample", side_effect=lambda: dict(stopped)),
+              patch.object(supervisor.installed_profile, "daily_state", return_value={"configuration": digest}),
+              patch.object(supervisor.installed_profile, "installed_pid", return_value=None) as pid,
+              patch.object(supervisor, "ownership", return_value={"fileSHA256": {}}),
+              patch.object(supervisor.scope_reader, "command") as census):
+            base = Path(directory)
+            with self.assertRaises(ValueError):
+                supervisor.daily(base / "live-required.json")
+            census.assert_not_called()
+            for index, roster in enumerate(({"complete": False, "pids": []}, {"complete": True, "pids": [12]})):
+                census.return_value = json.dumps(roster)
+                with self.assertRaises(ValueError):
+                    supervisor.daily(base / f"incomplete-{index}.json", base / "reader")
+            census.return_value = json.dumps({"complete": True, "pids": []})
+            witness = supervisor.daily(base / "absent.json", base / "reader")
+            self.assertEqual(witness["state"], "stopped")
+            self.assertIsNone(witness["permissions"])
+            pid.return_value = 17
+            with self.assertRaises(ValueError):
+                supervisor.daily(base / "started.json", base / "reader")
+
     def test_internal_survival_attribute_and_independent_admission_results(self):
         pre = raw()
         parent = pre["subject"]

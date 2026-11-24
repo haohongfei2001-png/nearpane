@@ -870,7 +870,7 @@ def main():
     p.add_argument("preflight", type=Path, nargs="?", help="existing Host receipt for legacy comparison mode")
     p.add_argument("out", type=Path)
     p.add_argument("--guardian-survival", action="store_true", help="observe one retained original after the diagnostic Host exits normally")
-    p.add_argument("--internal-survival", "--internal-host", action="store_true", help="use the sealed internal Host while the daily Host remains running")
+    p.add_argument("--internal-survival", "--internal-host", action="store_true", help="use the sealed internal Host independently of the installed process")
     p.add_argument("--visible-recovery", action="store_true", help="one on-screen fixture self-move and a guarded return after Host exit")
     p.add_argument("--abrupt-visible-exit", action="store_true", help="in the sealed internal fixture drill, exit without Host cleanup")
     p.add_argument("--corner-readback", action="store_true", help="read the real registered window twice through the shipping Corner worker")
