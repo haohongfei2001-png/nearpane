@@ -172,8 +172,15 @@ import NearpaneOrdinaryWindowRuntime
         try await read(requested, owner: owner, candidate: nil)
     }
 
+    func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
+        guard command.action == .hide, !command.restoring, command.generation == generation,
+              let binding = bindings[command.before.window], binding.lifetime == command.before.lifetime,
+              !binding.readOnly, claims[command.before.window] == nil else { throw StageSwitchError.ownership }
+        return try await read(command.scope, owner: owner, candidate: nil, measured: (command.before.window, measured))
+    }
+
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
-                      candidate: (NativeSpaceWindow, Binding)?) async throws -> StageWindowSample {
+                      candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
               let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
@@ -207,6 +214,20 @@ import NearpaneOrdinaryWindowRuntime
             await Task.yield()
             guard permits(owner, restoring: false) || permits(owner, restoring: true) else { throw StageSwitchError.interrupted }
             let observed = try b.monitor.observation(home: desktop)
+            if let (target, landing) = measured, key == target {
+                let frame = CGRect(x: landing.x, y: landing.y, width: landing.width, height: landing.height)
+                func bounds(_ display: DisplayObservation) -> CGRect {
+                    .init(x: display.frame.x, y: display.frame.y, width: display.frame.width, height: display.frame.height)
+                }
+                let edge = bounds(opening.display).intersection(frame)
+                guard observed.id.pid == key.pid, observed.id.launch == key.birth, observed.id.number == key.number,
+                      observed.frame == landing, observed.membership == native, !observed.minimized, observed.focus != key,
+                      !edge.isNull, !edge.isEmpty, edge.width <= 8,
+                      first.displays.allSatisfy({ $0.id == opening.display.id || bounds($0).intersection(frame).isEmpty })
+                else { throw StageSwitchError.ownership }
+                focuses.append(observed.focus)
+                continue
+            }
             let state = try Self.classify(observed,claim:claims[key],home:native,display:opening.display,displays:first.displays)
             if state != .parked, keys.contains(key) != (observed.membership == native) { throw StageSwitchError.incomplete }
             // A confirmed parked sliver can be below the presentation reader's ordinary size cutoff.
@@ -231,7 +252,7 @@ import NearpaneOrdinaryWindowRuntime
         let sample = StageWindowSample(scope:scope,generation:generation,sequence:sequence,
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
             windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign)
-        if candidate == nil {
+        if candidate == nil && measured == nil {
             let previousAppearances = lastAppearances
             lastAppearances = feed.confirmGroupLifetimes(previous: lastSample, current: sample, inventory: last,
                                                          previousAppearances: lastAppearances, enrolled: authorizedLifetimes)

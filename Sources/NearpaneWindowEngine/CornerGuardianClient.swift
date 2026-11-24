@@ -16,6 +16,7 @@ import CNearpaneWindowEngine
         var result: NativeStageEngineReceipt?
         var sealed = false
         var recoveryFrameOnly = false
+        var measuredReturnIntent: UUID?
         var withdrawing = false
         var preparation: CornerPreparedReceipt?
         var preparedAt: UInt64?
@@ -239,6 +240,37 @@ import CNearpaneWindowEngine
         try checkLiveOwners()
         l.confirmedAt = DispatchTime.now().uptimeNanoseconds
         l.sealed = true
+    }
+
+    func armMeasuredReturn(_ r: NativeStageEngineRequest, landing: SurfaceRect, intent: UUID) async throws {
+        guard let w = r.window, let l = leases[w], l.original.intent == r.intent, same(l.original, r),
+              l.recoveryFrameOnly, !l.sealed, l.measuredReturnIntent == nil, l.result?.frame == landing,
+              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE,
+              intent != r.intent else { throw Failure.pendingRecovery }
+        l.measuredReturnIntent = intent
+        let message = try packet(["phase": "returnMeasured", "intent": r.intent.uuidString, "undo": intent.uuidString])
+        try await exchange(Data([66]) + message, ack: 66, lease: l)
+        try checkLiveOwners()
+    }
+
+    func finishMeasuredReturn(_ r: NativeStageEngineRequest, owner: StageEngineOwner, intent: UUID) async throws {
+        guard let w = r.window, let l = leases[w], same(l.original, r), l.original.intent == r.intent,
+              l.recoveryFrameOnly, l.measuredReturnIntent == intent, !l.sealed, l.releaseIntent == nil,
+              let birth = l.guardianBirth, l.imageState(birth: birth) == NP_GUARDIAN_IMAGE_LIVE,
+              let prepared = l.preparation, let raw = l.result else { throw Failure.pendingRecovery }
+        l.releaseIntent = intent
+        do { try await exchange(Data([82]), ack: 82, lease: l); l.releaseAcknowledged = true }
+        catch { /* Read the terminal evidence once. A missing acknowledgement cannot replay the setter. */ }
+        let image = l.imageState(birth: birth)
+        let normalExit = image == NP_GUARDIAN_IMAGE_EXITED && !l.process.isRunning && l.process.terminationReason == .exit &&
+            [0, 4].contains(l.process.terminationStatus)
+        guard (image == NP_GUARDIAN_IMAGE_LIVE || image == NP_GUARDIAN_IMAGE_EXITED), l.releaseAcknowledged || normalExit,
+              let measured = CornerMeasuredFrameReceipt.read(in: l.directory.fileDescriptor), measured.matches(raw, prepared: prepared),
+              let final = CornerGuardianRecord.final.read(CornerLiveMeasuredReturnReceipt.self, in: l.directory.fileDescriptor),
+              final.matches(owner: owner, undo: intent, prepared: prepared, measured: measured)
+        else { throw Failure.pendingRecovery }
+        try? l.writer.close(); try? l.reader.close()
+        leases.removeValue(forKey: w)
     }
 
     func disarm(_ r: NativeStageEngineRequest) async throws {

@@ -100,24 +100,12 @@ static BOOL readPacket(int fd, void *raw, size_t length) {
     return YES;
 }
 #ifndef NP_CORNER_FIXTURE
-static AXUIElementRef guardianFocusedWindow(pid_t pid) {
-    if (pid <= 1) return NULL;
-    AXUIElementRef app = AXUIElementCreateApplication(pid);
-    CFTypeRef window = NULL;
-    if (app) {
-        AXUIElementSetMessagingTimeout(app, .15);
-        AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, &window);
-        CFRelease(app);
-    }
-    if (window && CFGetTypeID(window) == AXUIElementGetTypeID()) return (AXUIElementRef)window;
-    if (window) CFRelease(window);
-    return NULL;
-}
+#import "../focused_window.h"
 static BOOL originalFocusUnchanged(Session *s) {
     if (!s->held || !s->preparedFocus || !s->preparedFrontBirth || CFEqual(s->preparedFocus, s->held) ||
         NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != s->preparedFrontPID ||
         ncg_birth(s->preparedFrontPID, NULL) != s->preparedFrontBirth) return NO;
-    AXUIElementRef now = guardianFocusedWindow(s->preparedFrontPID);
+    AXUIElementRef now = cornerFocusedWindow(s->preparedFrontPID);
     BOOL same = now && CFEqual(now, s->preparedFocus);
     if (now) CFRelease(now);
     return same;
@@ -270,6 +258,21 @@ static void need(BOOL yes, NSString *why) {
     if (!yes)
         @throw [NSException exceptionWithName:@"guard" reason:why userInfo:nil];
 }
+static ssize_t nextOwnerCommand(char *byte) {
+    struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
+#ifdef NP_CORNER_FIXTURE
+    need(poll(&p, 1, 30000) > 0, @"originalWriterPipeStillOpen");
+#else
+    int polled;
+    do {
+        polled = poll(&p, 1, -1);
+    } while (polled < 0 && errno == EINTR);
+    need(polled > 0, @"signedHostPipeUnavailable");
+#endif
+    ssize_t got;
+    do { got = read(STDIN_FILENO, byte, 1); } while (got < 0 && errno == EINTR);
+    return got;
+}
 static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSString *folder) {
     s->kit = kit;
 #ifdef NP_CORNER_FIXTURE
@@ -351,7 +354,7 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     s->preparedPointerMotion = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
     s->preparedFrontPID = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
     s->preparedFrontBirth = ncg_birth(s->preparedFrontPID, NULL);
-    s->preparedFocus = guardianFocusedWindow(s->preparedFrontPID);
+    s->preparedFocus = cornerFocusedWindow(s->preparedFrontPID);
 #endif
     need(write(STDOUT_FILENO, "R", 1) == 1, @"prepareAckUnavailable");
     BOOL hostEOFBeforeConfirmation = NO;
@@ -452,18 +455,34 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     receipt[@"sealAckDelivered"] = @(!s->recoveryOnly && ack == NCG_ACK_SENT);
     if (s->recoveryOnly) receipt[@"recoveryFrameAckDelivered"] = @(ack == NCG_ACK_SENT);
     receipt[@"ownershipCommittedBeforeHostEOF"] = @(hostEOFBeforeConfirmation && !s->recoveryOnly);
-    struct pollfd p = {.fd = STDIN_FILENO, .events = POLLIN};
-    char extra;
-#ifdef NP_CORNER_FIXTURE
-    need(poll(&p, 1, 30000) > 0, @"originalWriterPipeStillOpen");
-#else
-    int polled;
-    do {
-        polled = poll(&p, 1, -1);
-    } while (polled < 0 && errno == EINTR);
-    need(polled > 0, @"signedHostPipeUnavailable");
+    char extra = 0;
+    ssize_t got = nextOwnerCommand(&extra);
+#ifndef NP_CORNER_FIXTURE
+    NSString *liveReturnIntent = nil;
+    if (got == 1 && extra == 'B' && s->recoveryOnly) {
+        NSDictionary *request = productMessage();
+        NSString *undo = request[@"undo"];
+        BOOL armed = [request[@"phase"] isEqual:@"returnMeasured"] && uuidField(request[@"intent"], r.intent) &&
+                     measuredReturnWitness(s, undo, parked);
+        if (armed) { usleep(25000); armed = measuredReturnWitness(s, undo, parked); }
+        NCGSealAck grant = ncg_ack_park_witness(STDOUT_FILENO, armed ? 'B' : 'N');
+        if (armed && grant == NCG_ACK_SENT) liveReturnIntent = undo;
+        got = nextOwnerCommand(&extra);
+        if (got == 1 && extra == 'R' && liveReturnIntent) {
+            NCFrame original = convert(r.frame);
+            BOOL returned = measuredReturnWitness(s, undo, original);
+            if (returned) { usleep(25000); returned = measuredReturnWitness(s, undo, original); }
+            if (returned) {
+                recordMeasuredReturn(receipt, prepared, s->stamp, undo, @"originalHostReturnedUnqualifiedHide");
+                return;
+            }
+            // An uncertain live exchange leaves the original Guardian in place for
+            // kernel-confirmed exit. The Host must never replay the restorative setter.
+            ncg_ack_park_witness(STDOUT_FILENO, 'N');
+            got = nextOwnerCommand(&extra);
+        }
+    }
 #endif
-    ssize_t got = read(STDIN_FILENO, &extra, 1);
     if (got == 1 && extra == 'D') {
         need(!s->recoveryOnly && originalReleaseWitness(s), @"journalAndReleasedOriginalNotConfirmed");
         receipt[@"liveReleaseOriginalFrameReadbacks"] = @1;
@@ -505,6 +524,15 @@ static void run(Session *s, NSMutableDictionary *receipt, NSString *kit, NSStrin
     receipt[@"exclusiveHostWriterExcluded"] = @YES;
     receipt[@"serializedRecoveryWriter"] = @YES;
     usleep(25000);
+    s->facts.parent_generation_gone = ncg_birth(s->pre.host, NULL) != s->pre.host_birth;
+    // The Host can die after restoring the target and before sending R. The
+    // same Guardian can settle that live intent without moving the window again.
+    if (originalAfterArmedHostExit(s, liveReturnIntent)) {
+        usleep(25000);
+        need(originalAfterArmedHostExit(s, liveReturnIntent), @"originalChangedAfterMeasuredReturn");
+        recordMeasuredReturn(receipt, prepared, s->stamp, liveReturnIntent, @"originalMeasuredReturnFoundAfterHostExit");
+        return;
+    }
 #endif
     need(authorize(s), @"restoreFactsIncomplete");
     uint32_t issued = 0;
@@ -546,6 +574,10 @@ static BOOL publishReceipt(int dir, NSDictionary *receipt, int reply) {
     if ([receipt[@"status"] isEqual:@"WITHDRAWN_BEFORE_SUBMISSION"]) ack = 'W';
     else if ([receipt[@"status"] isEqual:@"PASS"] && [receipt[@"reason"] isEqual:@"liveHostReleasedRestoredOwnership"] &&
              [receipt[@"liveReleaseOriginalFrameReadbacks"] isEqual:@2]) ack = 'D';
+    else if ([receipt[@"status"] isEqual:@"PASS"] && [receipt[@"reason"] isEqual:@"originalHostReturnedUnqualifiedHide"] &&
+             [receipt[@"originalFrameReadbacks"] isEqual:@2] && [receipt[@"issued"] isEqual:@0] &&
+             [receipt[@"unqualifiedPostimageObserved"] isEqual:@YES] && [receipt[@"committedPostimage"] isEqual:@NO] &&
+             [receipt[@"kernelHostExit"] isEqual:@NO] && receipt[@"measuredReturnIntent"]) ack = 'R';
     else return YES;
     ssize_t count;
     do { count = write(reply, &ack, 1); } while (count < 0 && errno == EINTR);

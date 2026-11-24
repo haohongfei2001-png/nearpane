@@ -4,6 +4,7 @@ import Foundation
 /// operations. The Rust worker only receives visibility requests. Both lanes require the same exclusive lease.
 @MainActor public protocol StageEngineWindowWitness: AnyObject {
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample
+    func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample
     func ordinary(_ command: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool
     func mayManage(_ state: StageWindowState) -> Bool
@@ -12,6 +13,9 @@ import Foundation
 }
 
 public extension StageEngineWindowWitness {
+    func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
+        throw StageSwitchError.unavailable
+    }
     func beginRelease() {}
     func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?) {}
 }
@@ -49,6 +53,8 @@ package struct StageEngineReply {
     /// True only after this worker excluded the HIDE ticket permanently and its prepared Guardian
     /// acknowledged its durable, independently witnessed withdrawal for this exact intent.
     func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool
+    func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, valid: @escaping @MainActor () -> Bool) async throws -> StageEngineReply
+    func confirmMeasuredReturn(_ proof: MeasuredCornerHide, intent: UUID) async throws
     func verified(_ command: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws
     func readsFinalRelease(_ command: StageWindowCommand, owner: StageEngineOwner) async -> Bool
     func revoke()
@@ -57,8 +63,21 @@ package struct StageEngineReply {
 }
 
 package extension StageEngineTransport {
+    func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, valid: @escaping @MainActor () -> Bool) async throws -> StageEngineReply {
+        throw StageSwitchError.unavailable
+    }
+    func confirmMeasuredReturn(_ proof: MeasuredCornerHide, intent: UUID) async throws { throw StageSwitchError.unavailable }
     func withdrawUnsubmittedHide(_ command: StageWindowCommand, owner: StageEngineOwner) async throws -> Bool { false }
     func readsFinalRelease(_ command: StageWindowCommand, owner: StageEngineOwner) async -> Bool { false }
+}
+
+/// The original signed Guardian has independently acknowledged a physical landing.
+/// This error carries no evidence of visual or input isolation.
+package struct MeasuredCornerHide: Error {
+    package let owner: StageEngineOwner, command: StageWindowCommand, landing: SurfaceRect
+    package init(owner: StageEngineOwner, command: StageWindowCommand, landing: SurfaceRect) {
+        self.owner = owner; self.command = command; self.landing = landing
+    }
 }
 
 /// A pre-ticket refusal allows the session to ask for proof. It cannot clear the journal.
@@ -253,6 +272,34 @@ struct UnsubmittedCornerHide: Error {
             }
         }
     }
+    func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, baseline: StageWindowSample) async throws {
+        let c = proof.command
+        func permitted() -> Bool {
+            owner == proof.owner && c.generation == owner.generation && !closed && !frozen && intentIsCurrent() &&
+                !Task.isCancelled && c.action == .hide && !c.restoring && mayManage(c.before) && witness.permits(owner, restoring: false)
+        }
+        guard permitted(), baseline.windows[c.before.window] == c.before, baseline.focus != nil,
+              baseline.focus != c.before.window, baseline.generation == owner.generation, baseline.nativeID == c.nativeID,
+              baseline.scope == c.scope else { throw StageSwitchError.interrupted }
+        var sequence = baseline.sequence
+        func verify(_ sample: StageWindowSample, windows: [NativeSpaceWindow: StageWindowState]) throws {
+            guard permitted(), sample.scope == baseline.scope, sample.nativeID == baseline.nativeID,
+                  sample.generation == baseline.generation, sample.workArea == baseline.workArea, sample.sequence > sequence,
+                  sample.focus == baseline.focus, sample.foreignFocusScope == baseline.foreignFocusScope,
+                  sample.windows == windows else { throw StageSwitchError.interrupted }
+            sequence = sample.sequence
+        }
+        let others = baseline.windows.filter { $0.key != c.before.window }
+        for _ in 0..<2 {
+            try verify(try await witness.readBystanders(of: c, measured: proof.landing, owner: owner), windows: others)
+        }
+        let result = try await transport.returnMeasured(proof, intent: intent, valid: permitted)
+        guard result.verifies(intent, 1 | 4 | 8 | 32), result.flags == (1 | 4 | 8 | 32),
+              result.nativeID == c.nativeID, result.frame == c.before.frame else { throw StageSwitchError.incomplete }
+        for _ in 0..<2 { try verify(try await read(c.scope), windows: baseline.windows) }
+        try await transport.confirmMeasuredReturn(proof, intent: intent)
+    }
+
     public func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {
         guard owner.backend == .corner, command.generation == owner.generation, command.before.window == after.window,
               command.before.lifetime == after.lifetime else { throw StageSwitchError.ownership }

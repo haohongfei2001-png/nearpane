@@ -228,7 +228,7 @@ static BOOL productJournal(Session *s, BOOL confirmed, BOOL released) {
 }
 
 // A withdrawal applies only to the last prepared, unconfirmed primitive. This helper never edits that WAL.
-static NSDictionary *withdrawableJournal(Session *s) {
+static NSDictionary *preparedHideJournal(Session *s) {
     NSDictionary *l = productFile(s->profile, "stage-visibility-v1.json");
     if (!productJournalContents(s, l, NO, NO) || [l[@"releases"] count]) return nil;
     NSDictionary *p = l[@"pending"], *last = [p[@"entries"] lastObject];
@@ -239,10 +239,17 @@ static NSDictionary *withdrawableJournal(Session *s) {
         last[@"after"] || last[@"undoIntent"] || last[@"guardianPending"]) return nil;
     return l;
 }
+static NSDictionary *withdrawableJournal(Session *s) {
+    NSDictionary *l = preparedHideJournal(s);
+    return [l[@"pending"][@"entries"] lastObject][@"measuredReturnIntent"] ? nil : l;
+}
 // The group and member were persisted on this very primitive. Old or superseded
 // intents cannot acquire window ownership from a saved geometry record.
 static NSDictionary *pendingFrameJournal(Session *s) {
-    NSDictionary *wal = withdrawableJournal(s), *last = [wal[@"pending"][@"entries"] lastObject];
+    NSDictionary *wal = preparedHideJournal(s), *last = [wal[@"pending"][@"entries"] lastObject];
+    uint8_t undo[16];
+    if (last[@"measuredReturnIntent"] && (!decodeUUID(last[@"measuredReturnIntent"], undo) ||
+        !memcmp(undo, s->pre.lease.intent, 16) || !memcmp(undo, s->preparedTransaction, 16))) return nil;
     return uuidField(last[@"group"], s->pre.lease.group) && uuidField(last[@"member"], s->pre.lease.member) ? wal : nil;
 }
 static BOOL withdrawalMessage(Session *s, NSDictionary *m) {
@@ -373,6 +380,42 @@ static NSDictionary *returnedMeasuredJournal(Session *s) {
     NSDictionary *ledger = pendingFrameJournal(s), *pending = ledger[@"pending"];
     if (pending[@"verifiedDirectoryCommit"] != (__bridge id)kCFBooleanFalse) return nil;
     return ledger;
+}
+static BOOL measuredReturnIntent(Session *s, id intent) {
+    uint8_t undo[16];
+    NSDictionary *row = [returnedMeasuredJournal(s)[@"pending"][@"entries"] lastObject];
+    return decodeUUID(intent, undo) && uuidField(row[@"measuredReturnIntent"], undo);
+}
+static BOOL measuredWindowWitness(Session *s, id intent, NCFrame frame) {
+    uint32_t hid[13];
+    uint8_t hash[32];
+    np_corner_inputs(hid);
+    return AXIsProcessTrusted() && !np_corner_secure_input() &&
+           s->held && s->facts.parked_confirmed && measuredReturnIntent(s, intent) &&
+           np_corner_signed_fingerprint(s->member.pid, s->member.birth, hash) &&
+           [s->hash isEqual:[NSData dataWithBytes:hash length:sizeof(hash)]] &&
+           !memcmp(hid, s->pre.hid, sizeof(hid)) && !memcmp(hid, s->sealed.hid, sizeof(hid)) &&
+           s->preparedPointerMotion == CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved) &&
+           originalFocusUnchanged(s) && displayIs(s) && stable(s, frame);
+}
+static BOOL measuredReturnWitness(Session *s, id intent, NCFrame frame) {
+    return getppid() == s->pre.host && ncg_birth(s->pre.host, NULL) == s->pre.host_birth &&
+           [s->hostDigest isEqual:signedProduct(getppid(), hostExe, @"com.holdsnow.nearpane.alpha")] &&
+           measuredWindowWitness(s, intent, frame);
+}
+static BOOL originalAfterArmedHostExit(Session *s, NSString *undo) {
+    return undo && s->serializedRecovery && s->facts.eof && s->facts.kernel_parent_exit &&
+           s->facts.parent_generation_gone && activeProfile(s) &&
+           measuredWindowWitness(s, undo, convert(s->pre.lease.frame));
+}
+static void recordMeasuredReturn(NSMutableDictionary *receipt, NSDictionary *prepared,
+                                 NSDictionary *owner, NSString *undo, NSString *reason) {
+    receipt[@"original"] = prepared[@"original"];
+    receipt[@"owner"] = owner;
+    receipt[@"measuredReturnIntent"] = undo;
+    receipt[@"originalFrameReadbacks"] = @2;
+    receipt[@"status"] = @"PASS";
+    receipt[@"reason"] = reason;
 }
 static NSString *settleRestoredOwnership(Session *s, unsigned readbacks, uint32_t issued) {
     if (!s->serializedRecovery || !s->facts.kernel_parent_exit || !s->facts.parent_generation_gone ||

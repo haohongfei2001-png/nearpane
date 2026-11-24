@@ -45,6 +45,7 @@ pub const CORNER_RECOVERY_FRAME: u32 = 2048;
 pub const PROBE_CLEAN_FLAGS: u32 = PROBE_RESTORED | PROBE_CLOSED | PROBE_SPACE_DESTROYED;
 pub const TRIAL_CLASSIC: u32 = 1 << 16;
 pub const CORNER_BOTTOM_SITES_ONLY: u32 = 1 << 17;
+pub const CORNER_RETURN_MEASURED: u32 = 1 << 18;
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Rect {
@@ -128,11 +129,15 @@ impl Request {
         if self.flags != 0
             && !(self.backend == SPACES && self.operation == TRIAL && self.flags == TRIAL_CLASSIC)
             && !(self.backend == CORNER && self.operation == CORNER_RETIREMENT_SURFACE && self.flags == CORNER_BOTTOM_SITES_ONLY)
+            && !(self.backend == CORNER && self.operation == RESTORE && self.flags == CORNER_RETURN_MEASURED)
         {
             return false;
         }
         if matches!(self.operation, PROBE | HEALTH) {
             return true;
+        }
+        if self.flags == CORNER_RETURN_MEASURED && (!self.target.valid() || self.frame == self.target) {
+            return false;
         }
         if matches!(self.operation, CORNER_DISPLAY_MATERIAL | CORNER_RETIREMENT_SURFACE) {
             return self.backend == CORNER && self.display != [0; 16] && self.native_space != [0; 16]

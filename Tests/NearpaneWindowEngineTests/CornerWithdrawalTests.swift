@@ -47,6 +47,26 @@ struct CornerWithdrawalTests {
             ["original": original.merging(["birth": 55]) { _, new in new }], ["unchangedInput": false]] {
             #expect(try !matches(invalid))
         }
+        let undo = UUID()
+        let live = final.merging(["reason":"originalHostReturnedUnqualifiedHide", "issued":0,
+            "measuredReturnIntent":undo.uuidString, "originalPipeEOF":false, "kernelHostExit":false,
+            "originalHostGone":false]) { _, new in new }
+        func acceptsReturn(_ fields: [String: Any], onRestart: Bool = false) throws -> Bool {
+            try decode(CornerLiveMeasuredReturnReceipt.self, fields)
+                .matches(owner:owner, undo:undo, prepared:prepared, measured:measured, acceptExitWitness:onRestart)
+        }
+        #expect(try acceptsReturn(live))
+        #expect(try acceptsReturn(live, onRestart:true))
+        let afterDeath = live.merging(["reason":"originalMeasuredReturnFoundAfterHostExit",
+            "originalPipeEOF":true, "kernelHostExit":true, "originalHostGone":true,
+            "serializedRecoveryWriter":true, "exclusiveHostWriterExcluded":true]) { _, new in new }
+        #expect(try !acceptsReturn(afterDeath))
+        #expect(try acceptsReturn(afterDeath, onRestart:true))
+        for invalid: [String: Any] in [["issued":1], ["originalFrameReadbacks":1], ["kernelHostExit":false],
+            ["exclusiveHostWriterExcluded":false], ["measuredReturnIntent":request.intent.uuidString],
+            ["postimage":[898,682,300,160]], ["unqualifiedPostimageObserved":false]] {
+            #expect(try !acceptsReturn(afterDeath.merging(invalid) { _, new in new }, onRestart:true))
+        }
     }
     @Test func ordinaryABIHandleCannotPublishANoTicketWitness() throws {
         var config = NPConfig(), handle: UInt64 = 0

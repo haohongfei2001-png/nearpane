@@ -90,9 +90,34 @@ private extension NativeStageEngineReceipt {
         // Cancellation and the Guardian handoff remain live during that read-only interval.
         let timeout: UInt32 = operation == NP_HIDE ? 2_500 : 1_000
         let receipt = try await engine.submit(command, timeoutMilliseconds: timeout, expectedEpoch: epoch, guardian: peer)
-        if c.action == .hide, operation == 3 { try await guardian.observe(command,receipt:receipt) }
+        if c.action == .hide, operation == 3 {
+            try await guardian.observe(command, receipt: receipt)
+            if CornerMeasuredFrameReceipt.isMeasurement(receipt) {
+                throw MeasuredCornerHide(owner: owner, command: c, landing: receipt.frame)
+            }
+        }
         guard try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
         return receipt.stageReply
+    }
+    func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, valid: @escaping @MainActor () -> Bool) async throws -> StageEngineReply {
+        let c = proof.command, owner = proof.owner
+        guard owner == acquiredOwner, owner.backend == .corner, c.action == .hide, c.generation == owner.generation,
+              !c.restoring, let native = c.nativeID, native > 0, intent != c.intent else { throw StageSwitchError.ownership }
+        guard valid() else { throw StageSwitchError.interrupted }
+        let epoch = try commandEpoch(owner, restoring: true)
+        try await guardian.armMeasuredReturn(request(3, owner: owner, c), landing: proof.landing, intent: intent)
+        guard valid(), try engine.currentEpoch() == epoch else { throw StageSwitchError.interrupted }
+        let undo = NativeStageEngineRequest(backend: UInt32(NP_CORNER), operation: UInt32(NP_RESTORE), intent: intent,
+            group: c.group, scope: c.scope, member: c.member, lifetime: c.before.lifetime, generation: c.generation,
+            window: c.before.window, nativeID: native, frame: proof.landing, target: c.before.frame, measuredReturn: true)
+        let result = try await engine.submit(undo, timeoutMilliseconds: 1_200, expectedEpoch: epoch)
+        guard result.epoch == epoch else { throw StageSwitchError.interrupted }
+        return result.stageReply
+    }
+
+    func confirmMeasuredReturn(_ proof: MeasuredCornerHide, intent: UUID) async throws {
+        guard proof.owner == acquiredOwner else { throw StageSwitchError.ownership }
+        try await guardian.finishMeasuredReturn(request(3, owner: proof.owner, proof.command), owner: proof.owner, intent: intent)
     }
     func verified(_ c: StageWindowCommand, after: StageWindowState, owner: StageEngineOwner) async throws {
         guard owner == acquiredOwner, owner.backend == .corner else { throw StageSwitchError.ownership }

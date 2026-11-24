@@ -50,6 +50,9 @@ struct Owned {
     key: Key,
     id: Member,
     reference: Reference,
+    return_guard: Option<native::ReturnGuard>,
+    measured_return_spent: bool,
+    needs_measured_return: bool,
     original: Rect,
     parked: Option<Rect>,
     displays: Vec<Display>,
@@ -521,11 +524,18 @@ impl Corner {
         };
         let target = park::park_frame_at(sample.cg.size(), display.frame, corner);
         let original = sample.cg;
+        let return_guard = native::ReturnGuard::capture(&reference, input, control);
+        if control.guardian.is_some() && return_guard.is_none() {
+            return self.result(c::UNKNOWN, USER_CHANGED, Some(sample), false);
+        }
         self.owned.insert(
             id.window,
             Owned {
                 key: Key::from(r),
                 id,
+                return_guard,
+                measured_return_spent: false,
+                needs_measured_return: control.guardian.is_some(),
                 reference,
                 original,
                 parked: None,
@@ -598,7 +608,11 @@ impl Corner {
                             let picture = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
                             let input_ready = self.tap.as_ref().is_some_and(|t| t.health().is_ok());
                             if picture || !input_ready || self.patch.is_none() || Instant::now() >= until {
-                                return self.read(r);
+                                let result = self.read(r);
+                                if result.status == c::PASS && result.flags & c::HIDDEN != 0 {
+                                    self.owned.get_mut(&id.window).unwrap().needs_measured_return = false;
+                                }
+                                return result;
                             }
                             std::thread::sleep(Duration::from_millis(15));
                         }
@@ -624,7 +638,8 @@ impl Corner {
     }
     fn restore(&mut self, r: &Request, control: &Control) -> Outcome {
         let id = Member::from(r);
-        let Some(o) = self.owned.get(&r.window) else {
+        let measured = r.flags == c::CORNER_RETURN_MEASURED;
+        let Some(o) = self.owned.get_mut(&r.window) else {
             return self.result(c::UNKNOWN, OWNERSHIP_UNKNOWN, None, false);
         };
         let input = native::inputs();
@@ -634,6 +649,16 @@ impl Corner {
         if !r.target.valid() || !same(o.original, rect(r.target)) {
             return self.result(c::FAIL, NO_TARGET, None, true);
         }
+        if o.needs_measured_return && !measured {
+            return self.result(c::UNKNOWN, OWNERSHIP_UNKNOWN, None, true);
+        }
+        if measured {
+            if !o.needs_measured_return || o.measured_return_spent || !o.parked.is_some_and(|p| same(p, rect(r.frame))) ||
+                !o.return_guard.as_ref().is_some_and(native::ReturnGuard::unchanged) {
+                return self.result(c::UNKNOWN, USER_CHANGED, None, true);
+            }
+            o.measured_return_spent = true;
+        }
         let layout = match native::displays() {
             Ok(d) if d == o.displays => d,
             _ => return self.result(c::UNKNOWN, BAD_LAYOUT, None, true),
@@ -642,6 +667,9 @@ impl Corner {
             Ok(v) => v,
             Err(e) => return self.result(c::UNKNOWN, e, None, true),
         };
+        if measured && !same(s.cg, rect(r.frame)) {
+            return self.result(c::UNKNOWN, USER_CHANGED, Some(s), true);
+        }
         let mut remaining_reason = 0;
         if !same(s.cg, o.original) {
             if !o.parked.is_some_and(|p| same(p, s.cg)) || !hidden(s.cg, &layout, id.display, o.corner) {
@@ -655,7 +683,13 @@ impl Corner {
             if shield.is_ok() { self.publish_stationary_patches(Some(id.window)); }
             else { self.patch.take(); }
             let o = &self.owned[&id.window];
-            let (why, issued) = native::position(&id, &o.reference, s.cg, o.original, control, input, native::Move::Restore);
+            let purpose = if measured {
+                let Some(guard) = &o.return_guard else { return self.result(c::UNKNOWN, OWNERSHIP_UNKNOWN, None, true); };
+                native::Move::MeasuredReturn(guard)
+            } else {
+                native::Move::Restore
+            };
+            let (why, issued) = native::position(&id, &o.reference, s.cg, o.original, control, input, purpose);
             if !issued {
                 return self.result(control.guard().err().unwrap_or(c::UNKNOWN), why, None, true);
             }
@@ -769,6 +803,25 @@ impl WindowEngine for Corner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn measured_return_flag_needs_a_distinct_original_and_a_corner_restore() {
+        let original = c::Rect { x: 200., y: 90., width: 300., height: 240. };
+        let measured = Request {
+            backend: c::CORNER, operation: c::RESTORE, flags: c::CORNER_RETURN_MEASURED,
+            intent: [1;16], display: [2;16], native_space: [3;16], generation: [4;16],
+            group: [5;16], member: [6;16], lifetime: [7;16], native_id: 4, epoch: 1,
+            pid: 17, birth: 22, window: 43, timeout_ms: 500, target: original,
+            frame: c::Rect { x: 1199., y: 850., ..original }, ..Request::default()
+        };
+        assert!(measured.valid() && measured.writes());
+        for operation in [c::HIDE, c::SHOW, c::READBACK, c::HEALTH] {
+            assert!(!Request { operation, ..measured }.valid());
+        }
+        assert!(!Request { backend: c::SPACES, ..measured }.valid());
+        assert!(!Request { target: measured.frame, ..measured }.valid());
+        assert!(!Request { target: c::Rect::default(), ..measured }.valid());
+        assert!(!Request { flags: measured.flags | c::CORNER_BOTTOM_SITES_ONLY, ..measured }.valid());
+    }
     #[test]
     fn display_material_preflight_has_no_window_or_write_authority() {
         for operation in [c::CORNER_DISPLAY_MATERIAL, c::CORNER_RETIREMENT_SURFACE] {

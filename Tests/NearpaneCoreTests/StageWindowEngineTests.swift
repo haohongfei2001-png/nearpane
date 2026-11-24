@@ -12,6 +12,9 @@ import Testing
     var sequence: UInt64 = 0, windows = [NativeSpaceWindow:StageWindowState](), focus: NativeSpaceWindow?
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
     var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
+    var measuredHide: UInt32?, beforeMeasuredReturn: (() throws -> Void)?
+    var secondBystanderRead: (() -> Void)?, bystanderReads = 0
+    var measuredWrites = [UUID](), failReturnConfirmation = false
     var workerHealthy = true
     var obstructWhenRetired = false
     var beforeRead: (() -> Void)?
@@ -43,6 +46,28 @@ import Testing
         default: throw StageSwitchError.ownership
         }
     }
+    func readBystanders(of c: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
+        guard windows[c.before.window]?.frame == measured else { throw StageSwitchError.ownership }
+        bystanderReads += 1
+        if bystanderReads == 2 { secondBystanderRead?() }
+        sequence += 1
+        return .init(scope:scope, generation:epoch, sequence:sequence, workArea:displayArea,
+                     windows:windows.filter { $0.key != c.before.window }, focus:focus, nativeID:22)
+    }
+    func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, valid: @escaping @MainActor () -> Bool) throws -> StageEngineReply {
+        let key = proof.command.before.window
+        try beforeMeasuredReturn?()
+        guard valid(), windows[key]?.frame == proof.landing, writeIntents.insert(intent).inserted,
+              let original = visible.removeValue(forKey:key) else { throw StageSwitchError.interrupted }
+        measuredWrites.append(intent)
+        effects.append((5, key))
+        windows[key] = original
+        return .init(status:0, flags:45, intent:intent, nativeID:22, frame:original.frame)
+    }
+    func confirmMeasuredReturn(_ proof: MeasuredCornerHide, intent: UUID) throws {
+        guard !failReturnConfirmation, measuredWrites.last == intent,
+              windows[proof.command.before.window] == proof.command.before else { throw StageSwitchError.incomplete }
+    }
     func submit(_ op: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) throws -> StageEngineReply {
         let id = c.before.window
         if op == 3, loseHideTransportAfterAdmission == false { throw CornerHideAdmissionRefused(StageSwitchError.incomplete) }
@@ -54,6 +79,12 @@ import Testing
             effects.append((op,id)); visible[id] = c.before
             windows[id]?.visibility = owner.backend == .corner ? .parked : .stageSpace
             windows[id]?.hiddenSpaceID = owner.backend == .spaces ? 60 : nil
+            if id.number == measuredHide {
+                let landing = SurfaceRect(x:displayArea.width-4, y:displayArea.height-4,
+                                          width:c.before.frame.width, height:c.before.frame.height)
+                windows[id]?.frame = landing
+                throw MeasuredCornerHide(owner:owner, command:c, landing:landing)
+            }
             if c.before.window.number == unknownHide { throw StageSwitchError.incomplete }
         case 4,5:
             effects.append((op,id))
@@ -405,6 +436,56 @@ import Testing
     private func readJournal(_ profile: URL) throws -> StageGroupCoordinator.Ledger {
         let file = profile.appendingPathComponent("stage-visibility-v1.json")
         return try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+    }
+    private enum ReturnInterruption: CaseIterable { case none, bystanderMoved, newSelection, finalReplyLost }
+
+    @Test(arguments: ReturnInterruption.allCases)
+    private func failedRetirementReturnsOnlyTheMeasuredWindow(_ interruption: ReturnInterruption) async throws {
+        let (profile, store, engine, f, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        try await bind(engine, f, qualification(.corner))
+        let target = try #require(f.windows.keys.first { $0.number == 2 })
+        let bystander = try #require(f.windows.keys.first { $0.number == 3 })
+        let current = try #require(groups.first { $0.members[0].windowHint == f.focus })
+        let baseline = f.windows, originalFocus = f.focus
+        var intentIsCurrent = true
+        f.measuredHide = target.number
+        f.failReturnConfirmation = interruption == .finalReplyLost
+        if interruption == .bystanderMoved {
+            f.secondBystanderRead = { [unowned f] in
+                f.windows[bystander]?.frame = .init(x:470, y:40, width:380, height:260)
+            }
+        }
+        f.beforeMeasuredReturn = {
+            let journal = try readJournal(profile)
+            let row = try #require(journal.pending?.entries.last)
+            let undo = try #require(row.measuredReturnIntent)
+            #expect(row.before.window == target && row.after == nil && undo != row.intent && undo != journal.pending?.intent)
+            #expect(journal.lastLiveCornerReturn == nil)
+            if interruption == .newSelection { intentIsCurrent = false }
+        }
+        await #expect(throws: (any Error).self) {
+            try await engine.activate(current.id, member:current.members[0].id, in:f.scope,
+                                      consent:true, current:{ intentIsCurrent })
+        }
+        let written = interruption == .none || interruption == .finalReplyLost
+        #expect(f.bystanderReads == 2 && f.measuredWrites.count == (written ? 1 : 0))
+        #expect(f.effects.map(\.0) == (written ? [3, 5] : [3]) && f.effects.allSatisfy { $0.1 == target })
+        #expect(f.ordinaryEffects.isEmpty && f.focus == originalFocus && store.activeGroup(in:f.scope) == nil)
+        let journal = try readJournal(profile)
+        if interruption == .none {
+            #expect(journal.lastLiveCornerReturn?.measuredReturnIntent == f.measuredWrites.first)
+            #expect(journal.pending == nil && f.windows == baseline)
+            try await engine.release()
+            #expect(!engine.coordinator.hasWindowAuthority)
+        } else {
+            let row = try #require(journal.pending?.entries.last)
+            #expect(row.measuredReturnIntent != nil && row.after == nil && journal.lastLiveCornerReturn == nil)
+            #expect(journal.pending?.verifiedDirectoryCommit == false)
+            if written { #expect(f.windows == baseline) }
+            await #expect(throws: (any Error).self) { try await engine.release() }
+            #expect(f.measuredWrites.count == (written ? 1 : 0))
+        }
     }
 
     @Test func fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged() async throws {

@@ -105,6 +105,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var after: StageWindowState?
         var intent: UUID? = nil
         var undoIntent: UUID? = nil
+        var measuredReturnIntent: UUID? = nil
         var guardianPending: Bool? = nil
         var group: UUID? = nil
         var member: UUID? = nil
@@ -132,6 +133,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
     package struct HidePrimitive: Codable, Equatable {
         package let transaction, intent, group, member: UUID
         package let owner: StageEngineOwner, scope: StageGroupScope, nativeID: UInt64, before: StageWindowState
+        package var measuredReturnIntent: UUID? = nil
     }
     struct Ledger: Codable {
         var version = 1
@@ -142,6 +144,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         var activeScopes: [StageGroupScope]?
         var lastInterruptedRelease: InterruptedRelease?
         var lastWithdrawnHide, lastGuardianReturn: HidePrimitive?
+        var lastLiveCornerReturn: HidePrimitive?
     }
 
     private let store: StageGroupStore, file: URL
@@ -204,7 +207,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
               pending.entries.count > 1 || pending.ownedBefore == ledger.owned.filter({ $0.scope == pending.scope })
         else { return }
         let returned = HidePrimitive(transaction: transaction, intent: intent, group: group, member: member,
-                                     owner: owner, scope: pending.scope, nativeID: nativeID, before: entry.before)
+                                     owner: owner, scope: pending.scope, nativeID: nativeID, before: entry.before,
+                                     measuredReturnIntent: entry.measuredReturnIntent)
         guard confirmed(returned) else { return }
         try verifyJournal()
         pending.entries.removeLast()
@@ -519,6 +523,33 @@ public enum StageSwitchError: LocalizedError, Equatable {
             let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
             do { try await session.dispatch(command) }
+            catch let proof as MeasuredCornerHide {
+                guard let engine = session as? StageEngineSession, proof.owner == owner, proof.command == command,
+                      epoch == token, current(), !Task.isCancelled, action == .hide, before.visibility == .visible,
+                      let native = command.nativeID, var pending = ledger.pending, pending.intent == intent,
+                      pending.owner == owner, !pending.verifiedDirectoryCommit, let index = pending.entries.indices.last,
+                      pending.entries[index].intent == primitive, pending.entries[index].after == nil,
+                      pending.entries[index].undoIntent == nil, pending.entries[index].measuredReturnIntent == nil
+                else { throw StageSwitchError.recoveryRequired }
+                let undo = UUID()
+                pending.entries[index].measuredReturnIntent = undo
+                try update { $0.pending = pending }
+                defer { engine.freeze(); invalidate() }
+                try await engine.returnMeasured(proof, intent: undo, baseline: pre)
+                try verifyJournal()
+                guard ledger.pending?.intent == intent, ledger.pending?.entries.last?.measuredReturnIntent == undo
+                else { throw StageSwitchError.recoveryRequired }
+                pending.entries.removeLast()
+                // The other entries still belong to the failed switch. A complete
+                // physical return never commits its target group or replays focus.
+                try update {
+                    $0.pending = pending.entries.isEmpty ? nil : pending
+                    $0.lastLiveCornerReturn = .init(transaction: intent, intent: primitive, group: command.group,
+                        member: command.member, owner: proof.owner, scope: scope, nativeID: native, before: before,
+                        measuredReturnIntent: undo)
+                }
+                throw StageSwitchError.incomplete
+            }
             catch let proof as UnsubmittedCornerHide {
                 let yielding = epoch == token && !Task.isCancelled && proof.yieldedFocus == nil &&
                     !current() && newerChoice() && session.qualifiedHiddenState == mechanism

@@ -69,6 +69,9 @@ unsafe extern "C" {
     #[cfg(feature = "isolated-fixtures")]
     fn np_is_enrolled_fixture(pid: i32, birth: u64) -> bool;
     fn np_corner_release_window(retained: *mut c_void);
+    fn np_corner_retain_return_context(target: *mut c_void, events: *const u32) -> *mut c_void;
+    fn np_corner_return_context_matches(raw: *const c_void) -> bool;
+    fn np_corner_release_return_context(raw: *mut c_void);
     fn np_corner_position(
         id: *const Member,
         retained: *mut c_void,
@@ -244,6 +247,27 @@ impl Drop for Reference {
 pub(super) enum Move<'a> {
     Park(&'a super::tap::Tap),
     Restore,
+    MeasuredReturn(&'a ReturnGuard),
+}
+
+pub(super) struct ReturnGuard {
+    focus: std::ptr::NonNull<c_void>,
+    guardian: std::sync::Arc<crate::contract::GuardianPeer>,
+}
+impl ReturnGuard {
+    pub fn capture(reference: &Reference, input: Inputs, control: &Control) -> Option<Self> {
+        let guardian = control.guardian.clone()?;
+        let focus = std::ptr::NonNull::new(unsafe {
+            np_corner_retain_return_context(reference.0.as_ptr(), input.as_ptr())
+        })?;
+        Some(Self { focus, guardian })
+    }
+    pub fn unchanged(&self) -> bool {
+        self.guardian.live() && unsafe { np_corner_return_context_matches(self.focus.as_ptr()) }
+    }
+}
+impl Drop for ReturnGuard {
+    fn drop(&mut self) { unsafe { np_corner_release_return_context(self.focus.as_ptr()) } }
 }
 
 pub(super) fn position(
@@ -261,6 +285,7 @@ pub(super) fn position(
         signer: [u8; 32],
         input: Inputs,
         tap: Option<&'a super::tap::Tap>,
+        returning: Option<&'a ReturnGuard>,
     }
     extern "C" fn admitted(raw: *mut c_void) -> u32 {
         // The C shim invokes this synchronously after reacquiring both systems' window identity.
@@ -269,11 +294,13 @@ pub(super) fn position(
             && active_grant(grant.id, grant.signer, grant.control)
             && grant.control.may_write()
             && grant.tap.is_none_or(|tap| tap.health().is_ok())
+            && grant.returning.is_none_or(ReturnGuard::unchanged)
             && inputs() == grant.input) as u32
     }
-    let (op, tap) = match purpose {
-        Move::Park(tap) => (1, Some(tap)),
-        Move::Restore => (2, None),
+    let (op, tap, returning) = match purpose {
+        Move::Park(tap) => (1, Some(tap), None),
+        Move::Restore => (2, None, None),
+        Move::MeasuredReturn(guard) => (2, None, Some(guard)),
     };
     let mut context = Grant {
         control,
@@ -281,6 +308,7 @@ pub(super) fn position(
         signer: reference.1,
         input,
         tap,
+        returning,
     };
     let mut issued = 0;
     let reason = unsafe {

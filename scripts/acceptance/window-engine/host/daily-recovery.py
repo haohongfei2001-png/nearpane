@@ -28,6 +28,35 @@ def file_data(path):
     return json.loads(b), hashlib.sha256(b).hexdigest()
 
 
+def settled_guardian(d):
+    if d.get("status") != "PASS":
+        return False
+    reason = d.get("reason")
+    if d.get("durableOwnership") == "exactCommittedOwnershipRemoved" or reason == "liveHostReleasedRestoredOwnership":
+        return True
+    if not (d.get("originalFrameReadbacks") == 2 and d.get("unqualifiedPostimageObserved") is True
+            and d.get("committedPostimage") is False and d.get("retainedBeforePark") is True):
+        return False
+    exited = all(d.get(k) is True for k in ("kernelHostExit", "originalPipeEOF", "originalHostGone",
+                                            "serializedRecoveryWriter", "exclusiveHostWriterExcluded"))
+    if reason == "unqualifiedHideReturnedAfterKernelExit":
+        return (exited and d.get("issued") == 1 and d.get("physicalRestoration") == "PASS"
+                and d.get("durableOwnership") == "measuredReturnAwaitingCoordinator")
+    try:
+        undo = uuid.UUID(d["measuredReturnIntent"])
+        original = d["original"]
+        if undo.int == 0 or undo in (uuid.UUID(original["intent"]), uuid.UUID(original["transaction"])):
+            return False
+    except (TypeError, AttributeError, KeyError, ValueError):
+        return False
+    if d.get("issued") != 0:
+        return False
+    if reason == "originalMeasuredReturnFoundAfterHostExit":
+        return exited
+    return reason == "originalHostReturnedUnqualifiedHide" and all(
+        d.get(k) is False for k in ("kernelHostExit", "originalPipeEOF", "originalHostGone"))
+
+
 def ordinary(path, active, observer):
     journal, digest = file_data(path)
     entries = journal["entries"]
@@ -82,15 +111,8 @@ def inspect(profile, support, shared, observer, current_install=None):
         for guard in folder.glob("Nearpane/.corner-guardians/*"):
             receipt = owned(guard) / "guardian-receipt.json"
             d = file_data(receipt)[0] if receipt.exists() else {}
-            returned = (d.get("durableOwnership") == "measuredReturnAwaitingCoordinator"
-                        and d.get("reason") == "unqualifiedHideReturnedAfterKernelExit"
-                        and d.get("physicalRestoration") == "PASS" and d.get("originalFrameReadbacks") == 2
-                        and d.get("issued") == 1 and d.get("kernelHostExit") is True
-                        and d.get("unqualifiedPostimageObserved") is True and d.get("committedPostimage") is False)
-            settled = d.get("status") == "PASS" and (d.get("durableOwnership") == "exactCommittedOwnershipRemoved"
-                                                      or d.get("reason") == "liveHostReleasedRestoredOwnership" or returned)
             rows.append(dict(kind="cornerGuardian", receiptPresent=bool(d), result=d.get("status"),
-                             blocksExchange=not settled))
+                             blocksExchange=not settled_guardian(d)))
     previous = support / "Nearpane Acceptance Install/active.json"
     if previous.exists():
         record, digest = file_data(previous)

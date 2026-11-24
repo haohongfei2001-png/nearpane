@@ -11,6 +11,7 @@
 #import "macos.h"
 #import "../../include/nearpane_window_engine.h"
 #import "mouse_event.h"
+#import "focused_window.h"
 #define NP_CORNER_WITNESS_IMPL 1
 #import "gesture_witness.h"
 #import "scope_binding.h"
@@ -131,6 +132,50 @@ void np_corner_inputs(uint32_t counters[13]) {
                              kCGEventOtherMouseDragged};
     for (int n = 0; n < 13; n++)
         counters[n] = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, e[n]);
+}
+// Retained only by the original worker. A failed park can be returned while the
+// Host is alive only with the very same front AX window and untouched HID stream.
+typedef struct {
+    AXUIElementRef focus;
+    pid_t front;
+    uint64_t birth;
+    uint32_t events[13], moves;
+} NCReturnContext;
+void *np_corner_retain_return_context(void *target, const uint32_t events[13]) {
+    @autoreleasepool {
+        pid_t pid = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
+        uint64_t generation = birth(pid);
+        AXUIElementRef focus = cornerFocusedWindow(pid);
+        if (!target || !generation || !focus || CFEqual(focus, target)) {
+            if (focus) CFRelease(focus);
+            return NULL;
+        }
+        NCReturnContext *c = calloc(1, sizeof(*c));
+        if (!c) { CFRelease(focus); return NULL; }
+        c->focus = focus; c->front = pid; c->birth = generation;
+        memcpy(c->events, events, sizeof(c->events));
+        c->moves = CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
+        return c;
+    }
+}
+bool np_corner_return_context_matches(const void *raw) {
+    @autoreleasepool {
+        const NCReturnContext *c = raw;
+        if (!c || NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier != c->front ||
+            birth(c->front) != c->birth) return false;
+        AXUIElementRef focus = cornerFocusedWindow(c->front);
+        bool sameFocus = focus && CFEqual(focus, c->focus);
+        if (focus) CFRelease(focus);
+        uint32_t events[13];
+        np_corner_inputs(events);
+        return sameFocus && NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier == c->front &&
+            birth(c->front) == c->birth && !memcmp(events, c->events, sizeof(events)) &&
+            c->moves == CGEventSourceCounterForEventType(kCGEventSourceStateHIDSystemState, kCGEventMouseMoved);
+    }
+}
+void np_corner_release_return_context(void *raw) {
+    NCReturnContext *c = raw;
+    if (c) { CFRelease(c->focus); free(c); }
 }
 int np_corner_secure_input(void) { return IsSecureEventInputEnabled() != 0; }
 uint32_t np_corner_park_access(void) {

@@ -313,6 +313,22 @@ int main(void) {
         pending[@"verifiedDirectoryCommit"] = @NO;
         put(profile, ledgerFile, ledger);
         assert([returnedMeasuredJournal(&s) isEqual:ledger]);
+        NSString *undo = NSUUID.UUID.UUIDString;
+        assert(!measuredReturnIntent(&s, undo));
+        entry[@"measuredReturnIntent"] = undo;
+        put(profile, ledgerFile, ledger);
+        assert(measuredReturnIntent(&s, undo) && !withdrawableJournal(&s));
+        assert(!measuredReturnIntent(&s, NSUUID.UUID.UUIDString));
+        assert(!originalAfterArmedHostExit(&s, undo));
+        for (NSString *invalid in @[entry[@"intent"], pending[@"intent"], @"invalid"]) {
+            entry[@"measuredReturnIntent"] = invalid;
+            put(profile, ledgerFile, ledger);
+            assert(!pendingFrameJournal(&s) && !measuredReturnIntent(&s, invalid));
+        }
+        [entry removeObjectForKey:@"measuredReturnIntent"];
+        put(profile, ledgerFile, ledger);
+        printf("{\"scope\":\"liveMeasuredReturn\",\"exactUndoRequired\":true,\"aliasedIntentRejected\":true,"
+               "\"withdrawAfterArmingRejected\":true,\"exitWithoutKernelRejected\":true,\"windowWrites\":0}\n");
         assert([settleRestoredOwnership(&s, 2, 1) isEqual:@"ownershipRetained"]); // No kernel exit.
         pending[@"verifiedDirectoryCommit"] = @YES;
         put(profile, ledgerFile, ledger);
