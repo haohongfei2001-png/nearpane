@@ -265,6 +265,9 @@ impl ReturnGuard {
     pub fn unchanged(&self) -> bool {
         self.guardian.live() && unsafe { np_corner_return_context_matches(self.focus.as_ptr()) }
     }
+    pub fn requires_measured_return(&self) -> bool {
+        self.guardian.hide_publication().get().is_none()
+    }
 }
 impl Drop for ReturnGuard {
     fn drop(&mut self) { unsafe { np_corner_release_return_context(self.focus.as_ptr()) } }

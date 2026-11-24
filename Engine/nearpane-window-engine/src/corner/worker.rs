@@ -52,7 +52,6 @@ struct Owned {
     reference: Reference,
     return_guard: Option<native::ReturnGuard>,
     measured_return_spent: bool,
-    needs_measured_return: bool,
     original: Rect,
     // A compensating hide must reproduce the previous lease's measured postimage.
     expected_park: Option<Rect>,
@@ -557,7 +556,6 @@ impl Corner {
                 id,
                 return_guard,
                 measured_return_spent: false,
-                needs_measured_return: control.guardian.is_some(),
                 reference,
                 original,
                 expected_park,
@@ -634,11 +632,7 @@ impl Corner {
                             let picture = self.patch.as_ref().is_some_and(|p| p.verified(id, s.cg));
                             let input_ready = self.tap.as_ref().is_some_and(|t| t.health().is_ok());
                             if picture || !input_ready || self.patch.is_none() || Instant::now() >= until {
-                                let result = self.read(r);
-                                if result.status == c::PASS && result.flags & c::HIDDEN != 0 {
-                                    self.owned.get_mut(&id.window).unwrap().needs_measured_return = false;
-                                }
-                                return result;
+                                return self.read(r);
                             }
                             std::thread::sleep(Duration::from_millis(15));
                         }
@@ -675,11 +669,12 @@ impl Corner {
         if !r.target.valid() || !same(o.original, rect(r.target)) {
             return self.result(c::FAIL, NO_TARGET, None, true);
         }
-        if o.needs_measured_return && !measured {
+        let needs_measured_return = o.return_guard.as_ref().is_some_and(native::ReturnGuard::requires_measured_return);
+        if needs_measured_return && !measured {
             return self.result(c::UNKNOWN, OWNERSHIP_UNKNOWN, None, true);
         }
         if measured {
-            if !o.needs_measured_return || o.measured_return_spent || !o.parked.is_some_and(|p| same(p, rect(r.frame))) ||
+            if !needs_measured_return || o.measured_return_spent || !o.parked.is_some_and(|p| same(p, rect(r.frame))) ||
                 !o.return_guard.as_ref().is_some_and(native::ReturnGuard::unchanged) {
                 return self.result(c::UNKNOWN, USER_CHANGED, None, true);
             }

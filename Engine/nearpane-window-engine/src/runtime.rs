@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     panic::{AssertUnwindSafe, catch_unwind},
     sync::{
-        Arc, Mutex, MutexGuard,
+        Arc, Mutex, MutexGuard, OnceLock,
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc,
     },
@@ -81,6 +81,7 @@ impl Config {
 }
 struct Ticket {
     cancelled: Arc<AtomicBool>,
+    hide_publication: Option<Arc<OnceLock<()>>>,
     result: Option<Receipt>,
     request: Request,
     began: Instant,
@@ -217,6 +218,17 @@ impl State {
         }
         if let Some(t) = self.tickets.get_mut(&id) {
             t.result = Some(terminal(r, result, elapsed));
+            // The worker's provisional HIDDEN read can still be downgraded above.
+            // A consumed ticket cannot promote the retained window to ordinary SHOW/RESTORE either.
+            let hidden = HIDDEN | AX_VALID | CG_VALID | INPUT_SAFE | MEMBERSHIP_VALID | OWNED;
+            if let Some(publication) = &t.hide_publication
+                && may_enter && r.backend == CORNER && r.operation == HIDE
+                && result.status == PASS && result.flags == hidden && (1..=32).contains(&result.owned)
+                && r.native_id > 0 && result.native_id == r.native_id && result.frame.valid() && result.frame != r.frame
+                && (r.target == Rect::default() || r.target == result.frame)
+            {
+                let _ = publication.set(());
+            }
         }
     }
 }
@@ -353,6 +365,7 @@ impl Session {
             id,
             Ticket {
                 cancelled: cancelled.clone(),
+                hide_publication: guardian.as_ref().map(|peer| peer.hide_publication().clone()),
                 result: None,
                 request: r,
                 began,
@@ -866,6 +879,47 @@ mod tests {
         }
     }
 
+    #[test]
+    fn guarded_return_mode_follows_the_terminal_ticket_even_after_a_successful_worker_read() {
+        for (revoke, consume_timeout) in [(false, false), (true, false), (true, true)] {
+            let (session, rx, r) = idle_corner_lane();
+            let id = session.submit(r).unwrap();
+            let job = rx.recv().unwrap();
+            let publication = Arc::new(OnceLock::new());
+            {
+                let mut state = lock(&session.state);
+                state.running = Some(id);
+                let ticket = state.tickets.get_mut(&id).unwrap();
+                ticket.may_have_dispatched = true;
+                // Share the same cell retained by a per-hide ReturnGuard, without opening a GUI.
+                ticket.hide_publication = Some(publication.clone());
+                if consume_timeout {
+                    ticket.began = Instant::now() - Duration::from_millis(r.timeout_ms.into()) - CORNER_READBACK_GRACE;
+                }
+            }
+            let control = Control {
+                epoch: session.epoch.clone(), expected: r.epoch, cancelled: job.cancelled,
+                deadline: Instant::now() + Duration::from_secs(1), write: true,
+                spaces_route: None, corner_input_check: false, guardian: None,
+            };
+            let identity = AX_VALID | CG_VALID | MEMBERSHIP_VALID | OWNED;
+            let worker_read = Outcome {
+                status: PASS, flags: identity | HIDDEN | INPUT_SAFE, owned: 1, native_id: r.native_id,
+                frame: Rect {x: 1399., y: 850., ..r.frame}, ..Default::default()
+            };
+            if revoke { session.cancel(id).unwrap(); }
+            if consume_timeout { assert_eq!(session.poll(id).unwrap().status, UNKNOWN); }
+            lock(&session.state).finish_job(id, r, &control, true, worker_read, Duration::ZERO);
+            assert_eq!(publication.get().is_some(), !revoke && !consume_timeout);
+            if consume_timeout {
+                assert!(matches!(session.poll(id), Err(NO_TICKET)));
+            } else {
+                let receipt = session.poll(id).unwrap();
+                assert_eq!(receipt.flags, if revoke { identity | CORNER_RECOVERY_FRAME } else { worker_read.flags });
+                assert_eq!(receipt.frame, worker_read.frame);
+            }
+        }
+    }
     #[test]
     fn a_revoked_inflight_park_delivers_only_an_exact_recovery_frame() {
         let (session, rx, r) = idle_corner_lane();

@@ -1,4 +1,5 @@
 // One kernel watch per qualified HIDE ticket. The setter rechecks it after queueing and AX lookup.
+use std::sync::{Arc, OnceLock};
 #[cfg(all(target_os = "macos", feature = "corner"))]
 use std::{
     os::fd::{AsRawFd, FromRawFd, OwnedFd},
@@ -25,6 +26,9 @@ pub(crate) struct GuardianPeer {
     child: i32,
     birth: u64,
     lost: AtomicBool,
+    // Each authenticated HIDE has its own publication, shared only with its ticket
+    // and the return witness retained by the worker for this window.
+    hide_published: Arc<OnceLock<()>>,
 }
 
 #[cfg(all(target_os = "macos", feature = "corner"))]
@@ -42,7 +46,11 @@ impl GuardianPeer {
             child,
             birth,
             lost: AtomicBool::new(false),
+            hide_published: Default::default(),
         })
+    }
+    pub(crate) fn hide_publication(&self) -> &Arc<OnceLock<()>> {
+        &self.hide_published
     }
     pub(crate) fn measured(&self, r: &super::Request, frame: super::Rect, owned: u32) -> bool {
         self.live()
@@ -66,6 +74,9 @@ pub(crate) enum GuardianPeer {}
 impl GuardianPeer {
     pub(crate) fn open(_: i32, _: u64, _: i32) -> Option<Self> {
         None
+    }
+    pub(crate) fn hide_publication(&self) -> &Arc<OnceLock<()>> {
+        match *self {}
     }
     pub(crate) fn measured(&self, _: &super::Request, _: super::Rect, _: u32) -> bool {
         match *self {}
