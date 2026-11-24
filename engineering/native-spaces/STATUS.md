@@ -2,7 +2,11 @@
 
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前开发候选为 `009d330`，回滚包为 `a34161a`。** 修复了工作集合缩略图的一分钟失效。切到另一桌面期间，近期开过的组合继续在原有内存预算内保留画面。回到原桌面时，侧栏复核成员、进程及原窗口身份，再显示同一张图。已退场窗口仍由原恢复事务管理。[源码](https://github.com/haohongfei2001-png/nearpane/commit/009d330dae1f007f040731974ead1bac553fa641) · [最终签名候选、回滚与 CI](../verification/native-spaces/5.22-90-active-display-previews/group-return-009d330.json)
+**当前签名开发候选为 `d11d101`，回滚包为 `009d330`。** 现在一扇窗口首次取得缩略图或被缓存移出时，只通知它自己的卡片。26A428 实体机上，两扇受控窗口验证了回到红窗时直接复用原位图，首帧新增捕获为 0。旁窗首次出图和被移出时，红窗卡片两次均未收到刷新通知。红窗变绿后，蓝窗仍保持原色。标准安装版的三指滑动观感为 **NOT_RUN**。[实机记录、签名候选和回滚包](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.json) · [原始数据及卡片画面](../verification/native-spaces/5.22-90-active-display-previews/sibling-refresh-d11d101.zip)
+
+修正了隔离验收包中旧焦点函数名导致的 Guardian 编译失败，两个构建配置均已编译。完整 Swift 回归 827 项通过、4 项跳过，预览和引擎源码 CI 通过。实体机在准备时为普通桌面，启动前已转为全屏，签名夹具未启动。单窗退场、实际输入隔离与整组往返仍待实机验证。[预览 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45442008068) · [引擎 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45442724977)
+
+此前签名候选为 `009d330`，回滚包为 `a34161a`。修复了工作集合缩略图的一分钟失效。切到另一桌面期间，近期开过的组合继续在原有内存预算内保留画面。回到原桌面时，侧栏复核成员、进程及原窗口身份，再显示同一张图。已退场窗口仍由原恢复事务管理。[源码](https://github.com/haohongfei2001-png/nearpane/commit/009d330dae1f007f040731974ead1bac553fa641) · [签名候选、回滚与 CI](../verification/native-spaces/5.22-90-active-display-previews/group-return-009d330.json)
 
 修复前，组合成员按时间到期和显示器暂时被系统覆盖两项均复现失败。修复后，在受控目录中将单调时钟推进一小时，两张组合原图均可取回，另一原生桌面的目录读到零张。实体机上另用两扇真实窗口验证了返回卡片首帧零新增捕获，以及单窗变色后另一窗保持原图。完整回归 827 项通过、3 项跳过。日常安装版 `bec6cb2` 的签名指纹在前后核对一致。[修复前后原始记录和卡片图像](../verification/native-spaces/5.22-90-active-display-previews/group-return-009d330.zip)
 
