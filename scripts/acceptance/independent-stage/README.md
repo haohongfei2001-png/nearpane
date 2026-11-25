@@ -151,8 +151,15 @@ let its app exit before opening the interactive copy.
     separate fixture-scoped `hostCrash` pass. It kills only its own direct Host
     child. The Spaces worker must return the original windows after channel loss;
     an independent controller checks original Space membership, frames, CG
-    presence and the original Space inventory twice. Worker JSONL diagnostics
-    and `hostCrashRecovery` remain separate from the normal shutdown result.
+    presence, the original Space inventory and the original worker's process
+    identity twice. After the worker has exited, the runner restarts the same
+    Host against the same profile and unchanged original ledger. The new Host
+    must reconcile that journal through its normal startup path, press the real
+    R4 card for the previously held A1, and return all three windows normally.
+    A final independent readback confirms the original windows and complete
+    Space inventory. `crashRecovery`, `sameProfileRestart`, the original ledger
+    copy, lifecycle manifest and worker JSONL remain separate evidence; a
+    kill-and-return success alone cannot pass `hostCrashRecovery`.
 
 ### Native desktop reveal and Split View
 

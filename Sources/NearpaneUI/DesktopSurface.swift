@@ -321,6 +321,10 @@ struct DesktopSurface: View {
 
     private func choose(_ member: NativeSidebarMember, group: UUID, lifetime: UUID?, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows,
                         intent: StageSidebarSelection = .member) {
+        IndependentStageTrace.record("choose-group", ["window": member.key.number, "pid": member.key.pid,
+            "group": group.uuidString, "canNavigate": canNavigate, "lifetimePresent": lifetime != nil,
+            "stillGrouped": lifetime.map { feed.stillGroups(member, in: group, appearance: $0) } ?? false,
+            "routesGroupChoice": feed.stageEngine.routesGroupChoice])
         guard canNavigate else { return }
         guard let lifetime, let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
               feed.stillGroups(member, in: group, appearance: lifetime) else {
@@ -338,11 +342,15 @@ struct DesktopSurface: View {
                 canNavigate && navigation.isCurrent(token) && feed.stillGroups(member, in: group, appearance: lifetime) &&
                     NativeSelectionPermit.inputCounters() == input
             }
+            IndependentStageTrace.record("group-job-start", ["window": member.key.number, "current": valid()])
             guard valid() else { throw StageSwitchError.interrupted }
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
+            IndependentStageTrace.record("group-job-fresh", ["window": member.key.number, "revision": fresh.revision])
             let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,
                 successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
+            IndependentStageTrace.record("group-job-result", ["window": member.key.number, "handled": handled,
+                "current": valid()])
             if !handled && valid() {
                 try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }
             }
@@ -545,6 +553,10 @@ struct DesktopSurface: View {
                 let member = target.flatMap { _ in source.flatMap { NativeSidebarMember(window, source: $0) } }
                 let group = member?.location.flatMap { visibleGroups[$0.window] }
                 let chooseCurrent: @MainActor () -> Void = {
+                    IndependentStageTrace.record("current-card-press", ["window": row.id.number, "pid": row.id.pid,
+                        "canNavigate": canNavigate, "feedPresent": feed != nil, "memberPresent": member != nil,
+                        "visibleGroup": group?.id.uuidString ?? "none", "memberCount": group?.members.count ?? 0,
+                        "appearancePresent": lifetime != nil, "routesGroupChoice": feed?.stageEngine.routesGroupChoice == true])
                     if let feed, feed.stageEngine.routesGroupChoice, let member, let group, group.members.count == 1 {
                         choose(member, group:group.id, lifetime:lifetime, snapshot:snapshot, feed:feed)
                     } else if let target {

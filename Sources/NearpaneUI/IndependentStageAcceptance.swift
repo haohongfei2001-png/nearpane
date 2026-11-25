@@ -106,7 +106,7 @@ import QuartzCore
         var switchLatenciesMS = [Double]()
         var productPassed = false
         var startedWrites = false
-        do {
+        scenario: do {
             guard let feed = modules.windowPreviews.currentDesktop else { throw Failure(reason: "packagedOverviewReaderUnavailable") }
             let readyDeadline = ContinuousClock.now.advanced(by: .seconds(10))
             var groupIDs = [UInt32: UUID]()
@@ -257,8 +257,12 @@ import QuartzCore
                 }
                 record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
                     "step": phase, "exactMember": exactMember, "route": route])
-                let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8)
-                guard let readings else { throw Failure(reason: "R4SwitchReadbackFailed") }
+                let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8,
+                    diagnostic: { report["lastR4SwitchReadback"] = $0 })
+                guard let readings else {
+                    savePanel(controller.window, to: output.appendingPathComponent("r4-readback-failed.png"))
+                    throw Failure(reason: "R4SwitchReadbackFailed")
+                }
                 let latencyMS = (ProcessInfo.processInfo.systemUptime - pressedAt) * 1000
                 switchLatenciesMS.append(latencyMS)
                 record("R4SwitchConfirmed", ["window": target.window.number, "step": phase, "observations": readings,
@@ -285,6 +289,23 @@ import QuartzCore
                 // If it does not act, take the normal release path after this bound.
                 try await Task.sleep(for: .seconds(40))
                 throw Failure(reason: "hostCrashInputNotReceived")
+            }
+            if config.purpose == "hostRestart" {
+                guard let group = groupIDs[targets[1].window.number],
+                      let image = try? NearpaneCore.OrdinaryProcessImage.read(getpid()) else {
+                    throw Failure(reason: "restartTargetIdentityUnavailable")
+                }
+                // The runner retains the crashed Host's original profile and ledger.
+                // Only the normal startup path may reconcile that old owner. This
+                // selection uses the same real R4 input and physical proof as above.
+                try await selectR4(1, group: group, visible: [targets[1].window.number], phase: "afterSameProfileRestart")
+                report["status"] = "HOST_RESTART_R4_PASS"
+                report["reason"] = "sameProfileRestartDispatchedRealR4AndReadBack"
+                report["foreignWindowReadback"] = true
+                report["hostPID"] = getpid(); report["hostBirth"] = image.launch
+                report["profile"] = URL(fileURLWithPath: config.profile).resolvingSymlinksInPath().path
+                productPassed = true
+                break scenario
             }
             let cyclePath = [0] + (0..<cycles).flatMap { _ in [1, 2, 0] }
             for (step, index) in cyclePath.enumerated() {
@@ -474,6 +495,9 @@ import QuartzCore
         } catch {
             report["status"] = startedWrites ? "FAIL" : "BLOCKED"
             report["reason"] = (error as? Failure)?.reason ?? String(describing: error)
+            if let feed = modules.windowPreviews.currentDesktop {
+                report["r4DispatchStateAtFailure"] = dispatchState(targets, in: feed)
+            }
         }
         report["dispatchAttempted"] = startedWrites
         report["statusBeforeCleanup"] = report["status"]
@@ -520,6 +544,33 @@ import QuartzCore
               let id = (current["ManagedSpaceID"] as? NSNumber)?.uint64Value ?? (current["id64"] as? NSNumber)?.uint64Value,
               let kind = (current["type"] as? NSNumber)?.intValue else { return nil }
         return (id, kind)
+    }
+
+    private static func dispatchState(_ targets: [Target], in feed: CurrentDesktopWindows) -> [String: Any] {
+        var result: [String: Any] = ["navigationIssue": NativeSidebarNavigation.shared.issue ?? "none",
+            "navigationDispatchAvailable": NativeSidebarNavigation.shared.dispatchAvailable,
+            "groupIssue": feed.groupIssue ?? "none", "groupLoadIssue": feed.groups.loadIssue ?? "none",
+            "consentRequestPresent": feed.stageEngine.consentRequest != nil,
+            "routesGroupChoice": feed.stageEngine.routesGroupChoice, "holdsDispatch": feed.stageEngine.holdsDispatch,
+            "snapshotAvailable": feed.snapshot != nil]
+        var rows = [[String: Any]]()
+        for target in targets {
+            let key = DesktopWindowKey(pid: target.fixture.pid, birth: target.fixture.birth, number: target.window.number)
+            var row: [String: Any] = ["pid": target.fixture.pid, "number": target.window.number,
+                "ordinaryLifetime": feed.lifetime(of: key)?.uuidString ?? "none",
+                "groupLifetime": feed.groupLifetime(of: key)?.uuidString ?? "none", "visibleGroupBound": false]
+            if let sample = feed.snapshot,
+               let observed = sample.windows.first(where: { DesktopWindowKey($0) == key }),
+               let screen = sample.displays.first(where: { $0.id == observed.displayID }) {
+                let group = feed.visibleGroups(in: sample, on: screen)[target.key]
+                row["visibleGroupBound"] = group != nil
+                row["visibleGroup"] = group?.id.uuidString ?? "none"
+                row["visibleGroupMembers"] = group?.members.count ?? 0
+            }
+            rows.append(row)
+        }
+        result["targets"] = rows
+        return result
     }
 
     private static func physicalWindow(at point: CGPoint) -> Int {
@@ -830,7 +881,8 @@ import QuartzCore
     }
 
     private static func waitForState(_ targets: [Target], visible: Set<UInt32>?, focus: Target?, seconds: Double,
-                                     allAtHome: Bool = false, preservingFrames: Bool = true) async -> [[String: Any]]? {
+                                     allAtHome: Bool = false, preservingFrames: Bool = true,
+                                     diagnostic: (([String: Any]) -> Void)? = nil) async -> [[String: Any]]? {
         let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
         var consecutive = [[String: Any]]()
         while ContinuousClock.now < until {
@@ -839,11 +891,23 @@ import QuartzCore
             for target in targets {
                 let number = target.window.number
                 guard let image = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid), image.launch == target.fixture.birth,
-                      image.executable == URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath(),
-                      let observed = cg(number), observed.pid == target.fixture.pid,
-                      let membership = NPReadWindowSpacesIncludingHidden(number) as? [UInt64], membership.count == 1,
-                      let space = membership.first, let members = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32],
-                      members.filter({ $0 == number }).count == 1 else { valid = false; break }
+                      image.executable == URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath() else {
+                    observations.append(["number": number, "pid": target.fixture.pid, "failure": "processIdentityUnavailableOrChanged"])
+                    valid = false; break
+                }
+                guard let observed = cg(number), observed.pid == target.fixture.pid else {
+                    observations.append(["number": number, "pid": target.fixture.pid, "failure": "physicalWindowUnavailableOrChanged"])
+                    valid = false; break
+                }
+                guard let membership = NPReadWindowSpacesIncludingHidden(number) as? [UInt64], membership.count == 1,
+                      let space = membership.first else {
+                    observations.append(["number": number, "pid": target.fixture.pid, "failure": "singleMembershipUnavailable"])
+                    valid = false; break
+                }
+                guard let members = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32], members.filter({ $0 == number }).count == 1 else {
+                    observations.append(["number": number, "pid": target.fixture.pid, "space": space, "failure": "reverseMembershipUnconfirmed"])
+                    valid = false; break
+                }
                 let shouldShow = visible?.contains(number)
                 let matchingFrame = abs(observed.frame.minX - target.frame.minX) <= 1 && abs(observed.frame.minY - target.frame.minY) <= 1 &&
                     abs(observed.frame.width - target.frame.width) <= 1 && abs(observed.frame.height - target.frame.height) <= 1
@@ -852,15 +916,23 @@ import QuartzCore
                 valid = valid && onScreenMatches && (expectedAtHome ? space == target.home : space != target.home) &&
                     (!preservingFrames || matchingFrame)
                 observations.append(["number": number, "pid": target.fixture.pid, "space": space,
-                    "onScreen": observed.visible, "framePreserved": matchingFrame, "frameRequired": preservingFrames])
+                    "home": target.home, "homeRequired": expectedAtHome, "onScreen": observed.visible,
+                    "visibilityMatched": onScreenMatches, "framePreserved": matchingFrame, "frameRequired": preservingFrames])
             }
+            var focusRead: [String: Any] = ["required": focus != nil]
             if let focus {
                 let app = AXUIElementCreateApplication(focus.fixture.pid)
+                _ = AXUIElementSetMessagingTimeout(app, 0.1)
                 var focused: CFTypeRef?
-                valid = valid && NSWorkspace.shared.frontmostApplication?.processIdentifier == focus.fixture.pid &&
-                    AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused) == .success &&
-                    focused.map { NPReadAXWindowNumber($0) == focus.window.number } == true
+                let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+                let error = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused)
+                let number = focused.map { NPReadAXWindowNumber($0) }
+                let confirmed = front == focus.fixture.pid && error == .success && number == focus.window.number
+                focusRead = ["required": true, "expectedPID": focus.fixture.pid, "expectedWindow": focus.window.number,
+                    "frontPID": front ?? -1, "focusedWindow": number ?? 0, "focusedWindowRead": error.rawValue, "verified": confirmed]
+                valid = valid && confirmed
             }
+            diagnostic?(["uptime": ProcessInfo.processInfo.systemUptime, "windows": observations, "focus": focusRead, "verified": valid])
             if valid {
                 consecutive.append(["uptime": ProcessInfo.processInfo.systemUptime, "windows": observations])
                 if consecutive.count == 2 { return consecutive }

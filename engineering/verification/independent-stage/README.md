@@ -51,6 +51,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `bbc08a09`, diagnostics and source | 151 Rust and 156 Swift passed, one explicit skip; normal engine canary and three A→B→C→A cycles passed, with 22 confirmed hide/show requests | The yellow request was rejected after an earlier health failure; final physical readback still found A1 in hidden Space 24. Cleanup genuinely failed. [Original engine, traces and source result](cloud-bbc08a09-diagnostics/README.md) |
 | `bbc08a09`, separate full VM | Source checks, complete candidate and strict signature passed; own canary reached hidden Space but return did not confirm, leaving Space 13 | Zero foreign requests and R4 not run; this VM does not inherit the diagnostics VM's group-cycle success. [Original package and runtime evidence](cloud-bbc08a09-full/README.md) |
 | `3bcb0640`, diagnostics | Own panel acquired home in 4/24 ms and passed hidden-view; finish-canary returned Identity; bounded release on the original engine then completed physical cleanup | Zero foreign requests, BLOCKED rather than a failed foreign move; yellow behavior was not re-exercised. [Original canary and cleanup records](cloud-3bcb0640-diagnostics/README.md) |
+| `1d7402d4`, diagnostics | Launch, foreign/same-app/cross-app and three complete cycles passed; yellow adoption returned MinimizedOrAX; original hidden A1 briefly returned AX CannotComplete | A second release on the same engine restored all three windows and exact original inventory. Cleanup passed; yellow remains FAIL. [Original AX and cleanup evidence](cloud-1d7402d4-diagnostics/README.md) |
+| `3bcb0640`, full product | Source and complete candidate/signature passed; real exported R4 AX button pressed once, AXPress=0, followed by R4SwitchReadbackFailed | Actual input is proven; successful product scheduling is not. No visibility WAL or worker log was created. Cleanup passed. [Original product, input and screenshots](cloud-3bcb0640-full/README.md) |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -72,6 +74,14 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[3bcb0640 full receipts](cloud-3bcb0640-full/README.md) identify the source-checked complete candidate in
+[artifact 15069160488](https://github.com/haohongfei2001-png/nearpane/actions/runs/45710634990/artifacts/15069160488).
+Its independently recorded ZIP SHA-256 is
+`413b25f592c1d7c3840fedc1a119e5c95a9c796670d66f5e379accd6f28b6140`.
+151 Rust and 156 Swift checks passed, with one explicit skip. The real R4 button received one AXPress;
+subsequent physical state did not confirm a group switch. That is a failed product operation, not a
+successful integration inferred from the input's zero error code.
 
 [bbc08a09 full receipts](cloud-bbc08a09-full/README.md) identify the source-checked complete candidate in
 [artifact 15066931486](https://github.com/haohongfei2001-png/nearpane/actions/runs/45706743845/artifacts/15066931486).

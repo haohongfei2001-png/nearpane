@@ -183,6 +183,9 @@ struct CrossSpaceFocusContinuity {
     }
 
     func submit(selection: Bool = true, stage: Bool = false, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
+        IndependentStageTrace.record("navigation-submit", ["stage": stage, "selection": selection,
+            "dispatchAvailable": dispatchAvailable, "stageOwnsDispatch": stageOwnsWindowDispatch(),
+            "pending": pending.count, "running": running])
         guard dispatchAvailable, stage || !stageOwnsWindowDispatch() else { return }
         if selection && pending.last?.selection == true { pending.removeLast() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
@@ -195,15 +198,25 @@ struct CrossSpaceFocusContinuity {
         Task {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
+                IndependentStageTrace.record("navigation-dequeue", ["stage": job.stage,
+                    "dispatchAvailable": dispatchAvailable, "sameEpoch": job.epoch == ownershipEpoch,
+                    "currentSelection": !job.selection || isCurrent(job.token), "stageOwnsDispatch": stageOwnsWindowDispatch()])
                 guard dispatchAvailable, job.epoch == ownershipEpoch, !job.selection || isCurrent(job.token),
                       job.stage || !stageOwnsWindowDispatch() else { continue }
                 if let confirmDispatch {
-                    guard await confirmDispatch(), dispatchAvailable, job.epoch == ownershipEpoch,
+                    let confirmed = await confirmDispatch()
+                    IndependentStageTrace.record("navigation-system-confirmation", ["confirmed": confirmed,
+                        "dispatchAvailable": dispatchAvailable, "sameEpoch": job.epoch == ownershipEpoch,
+                        "currentSelection": !job.selection || isCurrent(job.token)])
+                    guard confirmed, dispatchAvailable, job.epoch == ownershipEpoch,
                           !job.selection || isCurrent(job.token), job.stage || !stageOwnsWindowDispatch() else { continue }
                 }
                 do { try await job.run(job.token) }
-                catch where job.epoch == ownershipEpoch && (!job.selection || job.token == generation) { issue = error.localizedDescription }
-                catch {}
+                catch where job.epoch == ownershipEpoch && (!job.selection || job.token == generation) {
+                    IndependentStageTrace.record("navigation-job-failed", ["reason": error.localizedDescription])
+                    issue = error.localizedDescription
+                }
+                catch { IndependentStageTrace.record("navigation-job-superseded", ["reason": error.localizedDescription]) }
             }
             running = false
         }

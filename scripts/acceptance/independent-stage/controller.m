@@ -8,6 +8,7 @@
 #import <unistd.h>
 #import <dlfcn.h>
 #import <math.h>
+#import <errno.h>
 #import "nearpane_window_engine.h"
 #import "platform.h"
 
@@ -608,10 +609,14 @@ static int runReadback(NSString *configuration,NSString *resultPath) {
         NSDictionary *config=readJSON(configuration);
         NSArray *windows=config[@"windows"],*original=config[@"originalSpaceInventory"];
         NSString *mode=config[@"mode"];
+        NSDictionary *worker=config[@"worker"];
         BOOL held=[mode isEqual:@"held"],homeMode=[mode isEqual:@"home"];
         if((!held&&!homeMode)||![windows isKindOfClass:NSArray.class]||windows.count!=3||
            ![original isKindOfClass:NSArray.class]||!original.count||
            ![[NSUUID alloc]initWithUUIDString:config[@"nonce"]])return 2;
+        if(worker && (![worker isKindOfClass:NSDictionary.class]||[worker[@"pid"] intValue]<=1||
+            [worker[@"pid"] intValue]==getpid()||![worker[@"birth"] unsignedLongLongValue]||
+            ![worker[@"executable"] isKindOfClass:NSString.class]))return 2;
         NSMutableSet *numbers=[NSMutableSet set],*owners=[NSMutableSet set];NSUInteger visible=0;
         for(NSDictionary *target in windows) {
             NSArray *frame=target[@"frame"];uint64_t expected=[target[@"expectedSpace"] unsignedLongLongValue];
@@ -635,9 +640,24 @@ static int runReadback(NSString *configuration,NSString *resultPath) {
             }
             NSArray *inventory=allSpaces();BOOL inventoryRestored=[inventory isEqual:original];
             BOOL hostUnchanged=!held||ownerMatches(config[@"host"]);
-            valid=valid&&inventory!=nil&&(!homeMode||inventoryRestored)&&hostUnchanged;
+            NSMutableDictionary *workerState=[@{@"requested":@(worker!=nil)} mutableCopy];BOOL workerConfirmed=YES;
+            if(worker) {
+                struct proc_bsdinfo info={0};errno=0;
+                int read=proc_pidinfo([worker[@"pid"] intValue],PROC_PIDTBSDINFO,0,&info,sizeof(info));
+                int error=errno;BOOL stamped=read==sizeof(info)&&info.pbi_pid==[worker[@"pid"] unsignedIntValue]&&
+                    info.pbi_uid==getuid()&&info.pbi_start_tvsec>0&&info.pbi_start_tvusec<1000000;
+                uint64_t started=stamped?info.pbi_start_tvsec*1000000+info.pbi_start_tvusec:0;
+                BOOL live=stamped&&started==[worker[@"birth"] unsignedLongLongValue]&&ownerMatches(worker);
+                BOOL gone=(read<=0&&error==ESRCH)||(stamped&&started!=[worker[@"birth"] unsignedLongLongValue]);
+                workerConfirmed=held?live:gone;
+                [workerState addEntriesFromDictionary:@{@"pid":worker[@"pid"],@"birth":worker[@"birth"],
+                    @"readBytes":@(read),@"readErrno":@(error),@"observedBirth":@(started),@"originalIdentityLive":@(live),
+                    @"originalIdentityGone":@(gone),@"verified":@(workerConfirmed)}];
+            }
+            valid=valid&&inventory!=nil&&(!homeMode||inventoryRestored)&&hostUnchanged&&workerConfirmed;
             last=@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"windows":rows,
-                   @"originalInventoryRestored":@(inventoryRestored),@"hostUnchanged":@(hostUnchanged),@"verified":@(valid)};
+                   @"originalInventoryRestored":@(inventoryRestored),@"hostUnchanged":@(hostUnchanged),
+                   @"worker":workerState,@"verified":@(valid)};
             if(valid)[samples addObject:last];else [samples removeAllObjects];
             if(samples.count==2){matched=YES;break;}
             pump(.06);

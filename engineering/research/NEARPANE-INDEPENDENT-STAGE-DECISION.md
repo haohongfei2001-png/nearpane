@@ -108,6 +108,14 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     Readback from a positively different PID/birth/window/original witness. It still requires two
     positive observations within the original deadline and never repeats the move. More precise
     diagnostics accompany this correction; its role in the observed failure requires a new run.
+11. The `1d7402d4` diagnostic again passed launch and three full group cycles. The actual minimized
+    request returned MinimizedOrAX before its precise failing precondition was recorded. Cleanup
+    exposed a real, temporary AX CannotComplete on the original hidden A1 object; a second release
+    on the same engine completed all physical restoration and destruction checks. Yellow behavior
+    remains failed. Separately, the full `3bcb0640` product received its first real R4 AXPress, but
+    subsequent state did not confirm a switch and no worker/WAL was created. Product entry and
+    minimum-state diagnostics are being completed; neither input success nor recovery success
+    substitutes for successful R4 scheduling.
 
 ### Route A: not a product dependency
 

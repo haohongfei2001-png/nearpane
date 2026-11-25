@@ -548,7 +548,16 @@ impl<P: Platform> State<P> {
     }
     fn minimized_view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64) -> Check<Seen> {
         let seen = self.sys.see(lease.window, w)?;
-        if seen.visible || !self.sys.minimized(w)? { return Err(unknown(Why::MinimizedOrAX)); }
+        if seen.visible {
+            let fault = unknown(Why::MinimizedOrAX);
+            trace_fault("minimized-still-onscreen", lease, sid, fault);
+            return Err(fault);
+        }
+        if !self.sys.minimized(w).inspect_err(|&fault| trace_fault("minimized-state-read", lease, sid, fault))? {
+            let fault = unknown(Why::MinimizedOrAX);
+            trace_fault("minimized-confirmed-false", lease, sid, fault);
+            return Err(fault);
+        }
         let membership = self.sys.spaces(c, lease.window.number)?;
         let valid = if sid == 0 {
             membership.is_empty() || membership == Rows::from([lease.slot.home.id])
@@ -693,8 +702,8 @@ impl<P: Platform> State<P> {
                 || w.lease.member == lease.member || w.lease.lifetime == lease.lifetime) {
             return Err(fail(Why::Conflict));
         }
-        let witness = self.sys.bind_minimized(lease.window)?;
-        let before = self.minimized_view(c, lease, &witness, 0)?;
+        let witness = self.sys.bind_minimized(lease.window).inspect_err(|&fault| trace_fault("minimized-bind", lease, 0, fault))?;
+        let before = self.minimized_view(c, lease, &witness, 0).inspect_err(|&fault| trace_fault("minimized-before-move", lease, 0, fault))?;
         if before.rect != expected { return Err(unknown(Why::Identity)); }
         let sid = self.get_slot(c, lease, &witness, &top, a, true)?;
         self.owned.insert(lease.window, Bound { lease, witness, original: before.rect,
