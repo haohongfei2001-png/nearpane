@@ -161,6 +161,9 @@ trait Platform {
     fn now(&self) -> Instant {
         Instant::now()
     }
+    fn wait(&self, duration: Duration) {
+        std::thread::sleep(duration);
+    }
     fn target(&self) -> bool;
     fn connection(&self) -> Check<i32>;
     fn desktops(&self, c: i32) -> Check<Vec<Desktop>>;
@@ -476,17 +479,17 @@ impl<P: Platform> State<P> {
         }
         let mut expected = before;
         expected.retain(|id| *id != sid);
-        let until = Instant::now() + DEADLINE;
+        let until = self.sys.now() + DEADLINE;
         loop {
             self.scope(c, slot.home, top, a)?;
             if self.sys.all(c)? == expected {
                 self.slots.remove(&slot);
                 return Ok(());
             }
-            if Instant::now() >= until {
+            if self.sys.now() >= until {
                 return Err(unknown(Why::Cleanup));
             }
-            std::thread::sleep(Duration::from_millis(4));
+            self.sys.wait(Duration::from_millis(4));
         }
     }
     fn view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64, hidden: bool) -> Check<Seen> {
@@ -582,7 +585,7 @@ impl<P: Platform> State<P> {
             bound.pending_target.set(None);
             return Err(fail(Why::NoDelivery));
         }
-        let started = Instant::now();
+        let started = self.sys.now();
         let until = started + DEADLINE;
         let mut hit = 0;
         let mut missed = false;
@@ -597,7 +600,7 @@ impl<P: Platform> State<P> {
                 }
                 Err(Fault(_, Why::Membership | Why::Readback)) => {
                     hit = 0;
-                    missed |= started.elapsed() >= grace;
+                    missed |= self.sys.now().saturating_duration_since(started) >= grace;
                 }
                 Err(e) => {
                     self.failed = true;
@@ -608,11 +611,11 @@ impl<P: Platform> State<P> {
                     return Err(unknown(Why::Identity));
                 }
             }
-            if Instant::now() >= until {
+            if self.sys.now() >= until {
                 self.failed = true;
                 return Err(Fault(TIMEOUT, Why::Uncertain));
             }
-            std::thread::sleep(Duration::from_millis(4));
+            self.sys.wait(Duration::from_millis(4));
         }
         bound.pending_target.set(None);
         a.fixture_membership_receipt(lease.window, target, hidden)?;
@@ -683,12 +686,12 @@ impl<P: Platform> State<P> {
         if self.sys.move_window(c, route, lease.window, sid, 7) == Delivery::Refused {
             bound.pending_target.set(None); return Err(fail(Why::NoDelivery));
         }
-        let until = Instant::now() + DEADLINE;
+        let until = self.sys.now() + DEADLINE;
         loop {
             self.scope(c, lease.slot.home, &top, a)?;
             if self.minimized_view(c, lease, &bound.witness, sid).is_ok() { break; }
-            if Instant::now() >= until { return Err(unknown(Why::Membership)); }
-            std::thread::sleep(Duration::from_millis(4));
+            if self.sys.now() >= until { return Err(unknown(Why::Membership)); }
+            self.sys.wait(Duration::from_millis(4));
         }
         bound.pending_target.set(None);
         // Clearing Dock minimization is safe only after exclusive hidden-Space
@@ -697,15 +700,15 @@ impl<P: Platform> State<P> {
         if self.sys.set_minimized(lease.window, &bound.witness, false) == Delivery::Refused {
             return Err(fail(Why::NoDelivery));
         }
-        let until = Instant::now() + DEADLINE;
+        let until = self.sys.now() + DEADLINE;
         let mut consecutive = 0;
         loop {
             self.scope(c, lease.slot.home, &top, a)?;
             if self.view(c, lease, &bound.witness, sid, true).is_ok() { consecutive += 1; }
             else { consecutive = 0; }
             if consecutive == 2 { return Ok(()); }
-            if Instant::now() >= until { return Err(unknown(Why::Readback)); }
-            std::thread::sleep(Duration::from_millis(4));
+            if self.sys.now() >= until { return Err(unknown(Why::Readback)); }
+            self.sys.wait(Duration::from_millis(4));
         }
     }
     fn restore_member(
@@ -742,14 +745,14 @@ impl<P: Platform> State<P> {
             if self.sys.move_window(c, route, lease.window, lease.slot.home.id, 15) == Delivery::Refused {
                 return Err(fail(Why::NoDelivery));
             }
-            let until = Instant::now() + DEADLINE;
+            let until = self.sys.now() + DEADLINE;
             loop {
                 self.scope(c, lease.slot.home, top, a)?;
                 let membership = self.sys.spaces(c, lease.window.number)?;
                 if !membership.contains(&sid) && !self.sys.members(c, sid)?.contains(&u64::from(lease.window.number))
                     && self.minimized_view(c, lease, &saved.witness, 0).is_ok() { break; }
-                if Instant::now() >= until { return Err(unknown(Why::RestoreFirst)); }
-                std::thread::sleep(Duration::from_millis(4));
+                if self.sys.now() >= until { return Err(unknown(Why::RestoreFirst)); }
+                self.sys.wait(Duration::from_millis(4));
             }
             self.owned.remove(&lease.window);
             if let Some(s) = self.slots.get_mut(&lease.slot) { s.owner = lease; }
@@ -843,7 +846,7 @@ impl<P: Platform> State<P> {
         if self.owned.is_empty() || self.failed || self.route.is_none() {
             return;
         }
-        let now = Instant::now();
+        let now = self.sys.now();
         if self.next_tick.is_some_and(|t| now < t) {
             return;
         }

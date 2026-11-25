@@ -32,6 +32,7 @@ impl Authority for Guard {
 }
 #[derive(Default)]
 struct Fake {
+    clock: Cell<Option<Instant>>,
     windows: BTreeMap<u32, (Window, u64, u64, bool)>,
     spaces: Rows,
     moved: Vec<(Route, u32, u64, u32)>,
@@ -85,6 +86,16 @@ impl Fake {
 }
 impl Platform for Fake {
     type Witness = u64;
+    fn now(&self) -> Instant {
+        // Synthetic scheduling follows the engine's polling interval. OS thread
+        // descheduling must not turn two pending observations into a fake timeout.
+        let now = self.clock.get().unwrap_or_else(Instant::now);
+        self.clock.set(Some(now));
+        now
+    }
+    fn wait(&self, duration: Duration) {
+        self.clock.set(Some(self.now() + duration));
+    }
     fn flags(&self) -> u32 {
         7
     }
@@ -294,7 +305,8 @@ fn panel_waits_for_registration_and_refuses_unresolved_membership_before_dispatc
         state.sys.initial_empty_memberships.set(empty);
         state.sys.ambiguous_panel_membership = ambiguous;
         let (status, _, clean) = installed::replay_panel(&mut state, &guard);
-        assert_eq!(status, if should_move { PASS } else { UNKNOWN });
+        assert_eq!(status, if should_move { PASS } else { UNKNOWN },
+            "initial empty reads={empty}, ambiguous={ambiguous}");
         assert_eq!(state.sys.moved.len(), if should_move { 2 } else { 0 });
         assert_eq!(state.sys.next, if should_move { 101 } else { 100 });
         assert_eq!(state.sys.probe_closes, 1);

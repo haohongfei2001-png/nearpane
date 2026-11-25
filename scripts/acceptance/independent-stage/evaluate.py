@@ -2,6 +2,8 @@
 """Keep platform, candidate engine, product UI and exact-target claims separate."""
 ENGINE_CHECKS = frozenset(("launchCanary", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
                            "repeatedSwitch", "yellowButton", "focusRestore", "cleanup"))
+SYSTEM_CHECKS = ("yellowButtonRouting", "missionControl", "appExpose", "nativeFullScreen",
+                 "nativeDesktopSwitch", "desktopGestures", "fullScreenSplitView", "groupMergeSplit")
 
 
 def evaluate(engine, product=None):
@@ -19,11 +21,8 @@ def evaluate(engine, product=None):
         "engine": "PASS" if foreign_pass else ("UNKNOWN" if engine.get("status") == "FOREIGN_ENGINE_PASS" else engine.get("status", "NOT_RUN")),
         "exactTargetEngine": "PASS" if foreign_pass and exact else "NOT_PROVEN",
         "R4ProductPath": "PASS" if product_pass else ("UNKNOWN" if product.get("status") == "PRODUCT_R4_PASS" else product.get("status", "NOT_RUN")),
-        "yellowButtonRouting": product.get("yellowButtonRouting", "NOT_RUN"),
-        "missionControl": product.get("missionControl", "NOT_RUN"),
-        "desktopGestures": product.get("desktopGestures", "NOT_RUN"),
-        "fullScreenSplitView": product.get("fullScreenSplitView", "NOT_RUN"),
+        **{key: product.get(key, "NOT_RUN") for key in SYSTEM_CHECKS},
         "overall": "PASS" if foreign_pass and exact and product_pass and all(
-            product.get(k) == "PASS" for k in ("missionControl", "desktopGestures", "fullScreenSplitView")) else "INCOMPLETE",
+            product.get(k) == "PASS" for k in SYSTEM_CHECKS) else "INCOMPLETE",
         "qualificationGranted": False,
     }

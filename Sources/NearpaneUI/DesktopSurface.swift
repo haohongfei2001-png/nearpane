@@ -256,7 +256,37 @@ struct DesktopSurface: View {
             }.buttonStyle(.plain)
             .accessibilityLabel(title).accessibilityValue(description)
             .accessibilityIdentifier("native-held-group:" + held.id.uuidString)
-        }.disabled(!canNavigate)
+        }
+        .contextMenu {
+            if let group = feed.groups.groups(in: held.scope).first(where: { $0.id == held.id }) {
+                if let active = feed.groups.activeGroup(in: held.scope), active != held.id {
+                    Button("加入当前窗口组") { editHeld(held, change: .joinCurrent, in: feed) }
+                        .accessibilityIdentifier("independent-held-join:" + held.id.uuidString)
+                }
+                if group.members.count > 1 {
+                    Menu("将窗口移出组合") {
+                        ForEach(Array(group.members.enumerated()), id: \.element.id) { index, member in
+                            let name = NSRunningApplication(processIdentifier: member.windowHint.pid)?.localizedName ?? "窗口"
+                            Button("\(name) · \(index + 1)") { editHeld(held, change: .detach(member.id), in: feed) }
+                                .accessibilityIdentifier("independent-held-detach:" + member.id.uuidString)
+                        }
+                    }
+                }
+            }
+        }
+        .disabled(!canNavigate)
+    }
+
+    private func editHeld(_ held: StageWindowEngineHost.HeldGroup, change: IndependentStageGroupEditing.Change,
+                          in feed: CurrentDesktopWindows) {
+        guard canNavigate else { return }
+        selectionIssue = nil
+        let input = NativeSelectionPermit.inputCounters()
+        navigation.submit(selection: false, stage: true) { token in
+            try await IndependentStageGroupEditing.perform(change, held: held, in: feed) {
+                canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
+            }
+        }
     }
 
     @ViewBuilder private func observedCard(_ group: StageGroupDirectory.Group, picture: StageGroupDeparture,
@@ -366,6 +396,14 @@ struct DesktopSurface: View {
                   members.allSatisfy({ feed.groupWindow($0, in: fresh) != nil })
             else { throw StageGroupError.staleBinding }
             try change(fresh)
+            if feed.stageEngine.routesGroupChoice, let selected = members.first,
+               let window = feed.groupWindow(selected, in: fresh), let native = window.nativeSpace,
+               let group = feed.groups.groups(in: .init(display: window.display, nativeSpace: native))
+                .first(where: { $0.members.contains { $0.windowHint == window.identity } }) {
+                guard current(), try await feed.stageEngine.groupChoice(group.id, member: selected, selection: .member,
+                    in: feed, snapshot: fresh, current: current) else { throw StageSwitchError.interrupted }
+            }
+            feed.changed()
         }
     }
 

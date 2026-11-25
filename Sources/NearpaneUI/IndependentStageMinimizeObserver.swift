@@ -119,7 +119,7 @@ struct IndependentStageMinimizeOrder {
 
     private nonisolated static func read(_ key: DesktopWindowKey, element: AXUIElement) -> Reading? {
         guard let image = try? OrdinaryProcessImage.read(key.pid), image.launch == key.birth,
-              AXUIElementSetMessagingTimeout(element, .06) == .success else { return nil }
+              AXUIElementSetMessagingTimeout(element, 0.06) == .success else { return nil }
         var pid: pid_t = 0, value: CFTypeRef?
         guard AXUIElementGetPid(element, &pid) == .success, pid == key.pid, number(element) == key.number,
               AXUIElementCopyAttributeValue(element, kAXMinimizedAttribute as CFString, &value) == .success,
@@ -137,7 +137,7 @@ struct IndependentStageMinimizeOrder {
     private nonisolated static func prepare(_ pid: pid_t, keys: Set<DesktopWindowKey>) -> Registration? {
         guard let birth = keys.first?.birth, let image = try? OrdinaryProcessImage.read(pid), image.launch == birth else { return nil }
         let app = AXUIElementCreateApplication(pid)
-        guard AXUIElementSetMessagingTimeout(app, .08) == .success else { return nil }
+        guard AXUIElementSetMessagingTimeout(app, 0.08) == .success else { return nil }
         var raw: CFArray?, count: CFIndex = 0
         guard AXUIElementGetAttributeValueCount(app, kAXWindowsAttribute as CFString, &count) == .success, count <= 256, count >= 0,
               AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, count, &raw) == .success,
@@ -209,9 +209,9 @@ struct IndependentStageMinimizeOrder {
             // A native miniaturization notification can precede the final compositor
             // frame. Read again for at most 500 ms; no UI thread is blocked.
             if kind == .miniaturized {
-                let end = ProcessInfo.processInfo.systemUptime + .5
+                let end = ProcessInfo.processInfo.systemUptime + 0.5
                 while state?.minimized == true && state?.onscreen == true && ProcessInfo.processInfo.systemUptime < end {
-                    Thread.sleep(forTimeInterval: .02)
+                    Thread.sleep(forTimeInterval: 0.02)
                     state = Self.read(key, element: target)
                 }
             }

@@ -28,6 +28,8 @@ import NearpaneOrdinaryWindowRuntime
     private var lastSnapshot: DesktopSnapshot?, lastStates = [NativeSpaceWindow:StageWindowState]()
     private var lastSample: StageWindowSample?
     private var lastAppearances = [DesktopWindowKey: UUID]()
+    private var returnedSample: StageWindowSample?
+    private var returnedAppearances = [DesktopWindowKey: UUID]()
     private var pendingDeparture: (target: UUID, after: UInt64)?
     private(set) var departures = [UUID:StageGroupDeparture]()
 
@@ -80,7 +82,7 @@ import NearpaneOrdinaryWindowRuntime
         guard let feed, let snapshot = await feed.readAfterAction(), let access = hostAccess else { return [] }
         let (_, present) = try roster(snapshot, access: access)
         let absent = bindings.filter {
-            !present.contains($0.key) && claims[$0.key] == nil && lastStates[$0.key]?.visibility == .visible
+            !present.contains($0.key)
         }
         return absent.compactMap { try? $0.value.monitor.departure() }
     }
@@ -92,6 +94,38 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func beginRelease() { releaseInput = NativeSelectionPermit.inputCounters() }
+
+    func endedOwnership() {
+        cancelArrivals()
+        leases.removeAll()
+        claims.removeAll()
+        returnedSample = nil
+        returnedAppearances.removeAll()
+    }
+
+    /// Retain read-only AX identities across a successful system handoff. This never
+    /// writes a window and never treats a recycled CG number as a surviving member.
+    func observeReturnedLifetimes(_ snapshot: DesktopSnapshot) {
+        guard let feed, let home, let prior = lastSample,
+              let catalog = homeCatalog(snapshot), UInt64(home.record) == prior.nativeID else {
+            returnedSample = nil; returnedAppearances.removeAll(); return
+        }
+        var states = [NativeSpaceWindow: StageWindowState]()
+        for (window, lifetime) in authorizedLifetimes {
+            guard let binding = bindings[window], binding.lifetime == lifetime,
+                  let physical = try? binding.monitor.observation(home: home),
+                  physical.id.pid == window.pid, physical.id.launch == window.birth, physical.id.number == window.number,
+                  let visibility = try? Self.classify(physical, claim: nil, home: prior.nativeID ?? 0,
+                      display: catalog.display, displays: snapshot.displays), visibility == .visible else { continue }
+            states[window] = .init(window: window, lifetime: lifetime, frame: physical.frame, visibility: .visible)
+        }
+        sequence &+= 1
+        let sample = StageWindowSample(scope: scope, generation: generation, sequence: sequence,
+            workArea: prior.workArea, windows: states, focus: nil, nativeID: prior.nativeID)
+        returnedAppearances = feed.confirmGroupLifetimes(previous: returnedSample, current: sample, inventory: snapshot,
+            previousAppearances: returnedAppearances, enrolled: authorizedLifetimes)
+        returnedSample = sample
+    }
 
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool {
         owner.generation == generation && self.owner.map { $0 == owner.backend } != false &&
@@ -373,7 +407,12 @@ import NearpaneOrdinaryWindowRuntime
     func confirmsSystemReturn(_ returned: StageWindowReturn) async -> Bool {
         guard returned.scope == scope, let home, UInt64(home.record) == returned.nativeID,
               let binding = bindings[returned.original.window], binding.lifetime == returned.original.lifetime else { return false }
-        return binding.monitor.returnedHome(home: home, frame: returned.original.frame, allowMinimized: returned.original.visibility == .minimized)
+        if binding.monitor.returnedHome(home: home, frame: returned.original.frame, allowMinimized: returned.original.visibility == .minimized) { return true }
+        if let closed = try? binding.monitor.departure(), closed.window == returned.original.window,
+           closed.lifetime == returned.original.lifetime { return true }
+        let gone = try? await StageWindowDeparture.exited(pid: returned.original.window.pid,
+            bound: [returned.original.window: returned.original.lifetime])
+        return gone?.contains { $0.window == returned.original.window && $0.lifetime == returned.original.lifetime } == true
     }
 
     func ordinary(_ c: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws {

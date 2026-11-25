@@ -44,6 +44,7 @@ import NearpaneOrdinaryWindowRuntime
     private(set) var consentRequest: Consent?
     private var granted: Consent?
     private weak var witness: StageWindowEngineWitness?
+    @ObservationIgnored private var returnedWitnesses = [StageGroupScope: StageWindowEngineWitness]()
     private var releaseInput: [UInt32]?
     private let unreadableLedger: Bool
     weak var management: CandidateWorkRect?
@@ -55,6 +56,7 @@ import NearpaneOrdinaryWindowRuntime
     private var revision: UInt64 = 0
     @ObservationIgnored private let minimizeObserver = IndependentStageMinimizeObserver()
     @ObservationIgnored private var minimizeTask: Task<Void, Never>?
+    private var pendingMinimized = [DesktopWindowKey]()
 
     init(profile: URL?, store: StageGroupStore) {
         self.profile = profile
@@ -104,6 +106,9 @@ import NearpaneOrdinaryWindowRuntime
     /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
     func updateGroupProjection(_ raw: DesktopSnapshot, current: @MainActor () -> Bool) async {
         guard current() else { return }
+        // A system takeover ends the writer, not the retained AX object's identity. Two
+        // ordinary observations can reconnect its new sidebar appearance to its group.
+        for returned in returnedWitnesses.values { returned.observeReturnedLifetimes(raw) }
         groupProjection = nil
         guard Self.needsDirectoryRead(raw), let measure = try? StageHostAccess.directoryReader() else { return }
         let projection = await Self.projectGroups(raw, current: current, measure: measure)
@@ -234,7 +239,7 @@ import NearpaneOrdinaryWindowRuntime
 
     func processEnded(_ pid: Int32, in feed: CurrentDesktopWindows) async throws {
         let enrolled = witness?.contains(pid: pid) == true
-        if enrolled { freeze() }
+        if enrolled { systemTakesOver(); await releaseTask?.value }
         let departed = try await StageWindowDeparture.exited(pid: pid, bound: feed.groups.boundWindows(of: pid))
         if try retire(departed, from: feed.groups) { feed.changed() }
         if enrolled { ordinaryContextObserved() }
@@ -248,6 +253,23 @@ import NearpaneOrdinaryWindowRuntime
         if holdsDispatch { await release() }
         guard !holdsDispatch else { throw StageSwitchError.recoveryRequired }
         guard current() else { throw StageSwitchError.interrupted }
+        if let feed, !returnedWitnesses.isEmpty {
+            guard await feed.readAfterAction() != nil, current(),
+                  await feed.readAfterAction() != nil, current() else { throw StageSwitchError.interrupted }
+        }
+    }
+
+    func prepareHeldGroupEdit(_ held: HeldGroup, in feed: CurrentDesktopWindows,
+                              current: @escaping @MainActor () -> Bool) async throws -> DesktopSnapshot {
+        guard current(), heldGroups.contains(held), engine?.session?.owner == held.owner,
+              let witness, witness.matches(held.scope),
+              engine?.coordinator.confirmsHidden(group: held.id, member: held.member, state: held.state,
+                  scope: held.scope, owner: held.owner) == true else { throw StageSwitchError.ownership }
+        try await prepareForGroupEdit(current: current)
+        guard let fresh = await feed.readAfterAction(), current(), witness.homeCatalog(fresh) != nil else {
+            throw StageSwitchError.interrupted
+        }
+        return snapshotForGroups(fresh)
     }
 
     func answerConsent(allow: Bool) {
@@ -262,6 +284,7 @@ import NearpaneOrdinaryWindowRuntime
         groupProjection = nil
         feed?.stageGallery?.clearHeldPictures()
         minimizeObserver.stop()
+        pendingMinimized.removeAll()
         witness?.cancelArrivals()
         consentRequest = nil
         granted = nil
@@ -292,8 +315,10 @@ import NearpaneOrdinaryWindowRuntime
         guard let engine, engine.holdsWindowDispatch else { return nil }
         feed?.stageGallery?.clearHeldPictures()
         minimizeObserver.stop()
+        pendingMinimized.removeAll()
         witness?.cancelArrivals()
         releaseInput = NativeSelectionPermit.inputCounters()
+        let returning = witness
         let pending = Task { [weak self] in
             defer {
                 self?.releaseTask = nil; self?.releaseInput = nil
@@ -306,7 +331,13 @@ import NearpaneOrdinaryWindowRuntime
             do {
                 if engine.session?.owner.backend == .spaces { try await engine.handoffToSystem() }
                 else { try await engine.release() }
-            } catch { recoveryRequested = true /* Retain ownership until independent return is proved. */ }
+                if engine.session == nil, let returning {
+                    returning.endedOwnership()
+                    self?.returnedWitnesses[returning.scope] = returning
+                    self?.witness = nil
+                    self?.recoveryRequested = false
+                }
+            } catch { self?.recoveryRequested = true /* Retain ownership until independent return is proved. */ }
         }
         releaseTask = pending
         return pending
@@ -398,6 +429,7 @@ import NearpaneOrdinaryWindowRuntime
             guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
                 available:environmentCurrent,restoreAvailable:restore) else { return nil }
             self.witness = witness
+            returnedWitnesses.removeValue(forKey: scope)
             watchSystem()
             guard let profile else { return nil }
             let owner = qualification.map { StageEngineOwner(qualification: $0, generation: witness.generation) }
@@ -480,6 +512,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
+        drainMinimized()
         guard minimizeTask == nil, let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
               engine.coordinator.retainedOwner == session.owner,
               ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }
@@ -496,10 +529,11 @@ import NearpaneOrdinaryWindowRuntime
                     }
                 } catch {
                     let failure = error
-                    if let closed = try? await witness.closedWindows(), token == revision, !Task.isCancelled,
-                       try retire(closed, from: feed.groups) {
-                        freeze()
-                        ordinaryContextObserved()
+                    if let closed = try? await witness.closedWindows(), !closed.isEmpty, token == revision, !Task.isCancelled {
+                        systemTakesOver()
+                        await releaseTask?.value
+                        _ = try retire(closed, from: feed.groups)
+                        feed.changed()
                         return
                     }
                     guard let source = failure as? StageSwitchError, source == .interrupted || source == .incomplete else {
@@ -546,8 +580,14 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func retireMinimized(_ key: DesktopWindowKey) {
+        if !pendingMinimized.contains(key) { pendingMinimized.append(key) }
+        drainMinimized()
+    }
+
+    private func drainMinimized() {
+        guard let key = pendingMinimized.first else { return }
         let window = NativeSpaceWindow(pid:key.pid, birth:key.birth, number:key.number)
-        guard minimizeTask == nil, !releasing, !terminationOwnsLane, let engine, let session = engine.session,
+        guard minimizeTask == nil, !releasing, !terminationOwnsLane, let engine, engine.canObserve, let session = engine.session,
               session.owner.backend == .spaces, let witness, let feed,
               granted?.lifetimes[window] == witness.lifetime(of:window) else { return }
         let token = revision, scope = witness.scope
@@ -560,12 +600,14 @@ import NearpaneOrdinaryWindowRuntime
                 try await engine.retireMinimized(window, in:scope) { [weak self] in
                     self?.revision == token && self?.releasing == false && !Task.isCancelled
                 }
+                pendingMinimized.removeAll { $0 == key }
                 granted = try consent(for:scope, evidence:session.owner.evidence, feed:feed)
                 projectHeld(feed.groups, in:scope)
                 await armArrivals(in:feed, revision:token)
             } catch {
                 recoveryRequested = engine.coordinator.requiresRecovery
-                if recoveryRequested { ordinaryContextObserved() }
+                if recoveryRequested { systemTakesOver() }
+                else if (error as? StageSwitchError) != .busy { pendingMinimized.removeAll { $0 == key } }
             }
         }
     }

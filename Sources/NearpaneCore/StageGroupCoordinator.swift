@@ -938,6 +938,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard entry.owner == owner, let home = entry.nativeID else { throw StageSwitchError.ownership }
             returns[entry.original.window] = .init(original:entry.original, scope:entry.scope, nativeID:home)
         }
+        for release in ledger.releases ?? [] {
+            let entry = release.owned
+            guard entry.owner == owner, let home = entry.nativeID else { throw StageSwitchError.ownership }
+            returns[entry.original.window] = .init(original:entry.original, scope:entry.scope, nativeID:home)
+        }
         if let pending = ledger.pending {
             guard pending.owner == owner, let home = pending.nativeID else { throw StageSwitchError.ownership }
             // Include uncertain issued hides as well; a callback error is not proof

@@ -20,7 +20,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 from build import build, ROOT
-from evaluate import evaluate
+from evaluate import SYSTEM_CHECKS, evaluate
 
 HERE = Path(__file__).resolve().parent
 
@@ -41,6 +41,13 @@ def execute(command, out, name, env, timeout=900):
     report.update(log=name + ".log", stderr=name + ".stderr.log")
     atomic(out / (name + ".json"), report)
     print(name, report["status"], flush=True)
+    if report["status"] != "PASS" and name in ("rust", "swift", "build-engine"):
+        # Expose a short useful CI failure while retaining the complete original logs.
+        for suffix in (".stderr.log", ".log"):
+            lines = (out / (name + suffix)).read_text(errors="replace").splitlines()
+            relevant = [line for line in lines if re.search(r"error(?:\[|:)|fatal:|failed", line, re.IGNORECASE)]
+            if relevant:
+                print("\n".join(relevant[:30]), flush=True)
     return report
 
 
@@ -139,6 +146,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
     children, cleanup = [], []
     engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
     product = None
+    phase = "fixturePreparation"
     with ExitStack() as files:
         try:
             for name, count, offset in (("FixtureA", 2, 0), ("FixtureB", 1, 560)):
@@ -153,12 +161,14 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 config["fixtures"].append({"directory": str(directory), "executable": apps[name]["executable"],
                                            "pid": state["pid"], "birth": state["birth"], "windows": state["windows"]})
             atomic(out / "config.json", config)
+            phase = "engineController"
             result = execute([apps["Controller"]["executable"], out / "config.json"], out, "engine", env, 210)
             path = out / "engine-result.json"
             engine = json.loads(path.read_text()) if path.exists() else {"status": "UNKNOWN", "reason": "controllerTerminalReceiptMissing",
                                                                        "process": result, "cleanup": False}
             # A raw/API success never runs an unverified product: first require complete restore.
             if host and engine.get("cleanup") is True:
+                phase = "productCandidate"
                 product_dir = out / "product"
                 product_dir.mkdir(mode=0o700)
                 product_config = dict(config, output=str(product_dir), profile=str(product_dir / "profile"))
@@ -171,7 +181,11 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-            engine = dict(engine, status="UNKNOWN", reason=type(error).__name__ + ": " + str(error))
+            failure = {"status": "UNKNOWN", "phase": phase, "reason": type(error).__name__ + ": " + str(error)}
+            if phase == "productCandidate":
+                product = failure
+            else:
+                engine = dict(engine, **failure)
         finally:
             for directory, child in reversed(children):
                 cleanup.append(close_fixture(directory, child, nonce))
@@ -205,6 +219,7 @@ def main():
         summary["source"] = source_checks(out / "source", env)
     if a.scope in ("runtime", "all"):
         archive = a.archive
+        built = None
         if archive is None:
             built = execute(["bash", "scripts/build-window-engine.sh"], out, "build-engine", env)
             if built["status"] == "PASS":
@@ -213,14 +228,15 @@ def main():
             summary["runtime"] = runtime_checks(out / "runtime", env, archive.resolve(), a.product_host,
                                                   a.iterations, revision)
         else:
-            summary["runtime"] = {"status": "BLOCKED", "reason": "engineArchiveUnavailable"}
+            summary["runtime"] = {"status": "FAIL" if built and built["status"] != "PASS" else "BLOCKED",
+                                  "reason": "engineArchiveUnavailable"}
     atomic(out / "summary.json", summary)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("runtime", "source")}, indent=2))
     # CI fails on an actual source/behavior failure. A blocked GUI is preserved as blocked,
     # never rewritten as a pass because a hosted runner lacks an authorized console session.
     source_failed = isinstance(summary["source"], dict) and summary["source"].get("status") != "PASS"
     runtime = summary["runtime"] if isinstance(summary["runtime"], dict) else {}
-    runtime_failed = runtime.get("engine") in ("FAIL", "UNKNOWN") or runtime.get("R4ProductPath") in ("FAIL", "UNKNOWN")
+    runtime_failed = any(runtime.get(key) in ("FAIL", "UNKNOWN") for key in ("status", "engine", "R4ProductPath", *SYSTEM_CHECKS))
     return 1 if source_failed or runtime_failed else 0
 
 

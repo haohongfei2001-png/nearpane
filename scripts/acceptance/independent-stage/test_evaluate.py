@@ -1,6 +1,6 @@
 import copy
 import unittest
-from evaluate import ENGINE_CHECKS, evaluate
+from evaluate import ENGINE_CHECKS, SYSTEM_CHECKS, evaluate
 
 
 class EvidenceTests(unittest.TestCase):
@@ -39,8 +39,11 @@ class EvidenceTests(unittest.TestCase):
     def test_whole_product_requires_the_system_interaction_receipts(self):
         product = {"status": "PRODUCT_R4_PASS", "cleanup": True, "actualR4Inputs": 3, "foreignWindowReadback": True}
         self.assertEqual(evaluate(self.engine, product)["overall"], "INCOMPLETE")
-        product.update(missionControl="PASS", desktopGestures="PASS", fullScreenSplitView="PASS")
+        product.update({key: "PASS" for key in SYSTEM_CHECKS})
         self.assertEqual(evaluate(self.engine, product)["overall"], "PASS")
+        for key in SYSTEM_CHECKS:
+            for unconfirmed in ("FAIL", "BLOCKED", "NOT_RUN", "UNKNOWN"):
+                self.assertEqual(evaluate(self.engine, dict(product, **{key: unconfirmed}))["overall"], "INCOMPLETE")
         self.assertFalse(evaluate(self.engine, product)["qualificationGranted"])
 
 

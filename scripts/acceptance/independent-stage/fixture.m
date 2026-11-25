@@ -37,7 +37,7 @@ static void command(void) {
     if (index<0 || (NSUInteger)index>=documents.count || ![action isKindOfClass:NSString.class]) return;
     NSWindow *w=documents[(NSUInteger)index];
     if ([action isEqual:@"focus"]) {
-        [NSApp activateIgnoringOtherApps:YES]; [w makeKeyAndOrderFront:nil]; [w makeFirstResponder:fields[(NSUInteger)index]];
+        [NSRunningApplication.currentApplication activateWithOptions:0]; [w makeKeyAndOrderFront:nil]; [w makeFirstResponder:fields[(NSUInteger)index]];
     } else if ([action isEqual:@"minimize"]) {
         // This is the actual AppKit action of the yellow title-bar button, not orderOut.
         [[w standardWindowButton:NSWindowMiniaturizeButton] performClick:nil];
@@ -57,7 +57,7 @@ int main(int argc,const char **argv) {
     @autoreleasepool {
         if(argc!=5) return 2;
         directory=@(argv[1]);nonce=@(argv[2]);NSInteger count=[@(argv[3]) integerValue], offset=[@(argv[4]) integerValue];
-        if (![NSUUID.alloc initWithUUIDString:nonce] || count<1 || count>2 || !birth()) return 2;
+        if (![[NSUUID alloc] initWithUUIDString:nonce] || count<1 || count>2 || !birth()) return 2;
         [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];[NSApp finishLaunching];
         documents=[NSMutableArray array];fields=[NSMutableArray array];
         for(NSInteger i=0;i<count;i++) {

@@ -57,7 +57,7 @@ fn fixed(top: &[Desktop], current: &[Desktop]) -> bool {
 }
 impl<P: Platform> State<P> {
     fn panel_home(&mut self, c: i32, window: Window, a: &impl Authority) -> Check<Home> {
-        let deadline = Instant::now() + DEADLINE;
+        let deadline = self.sys.now() + DEADLINE;
         let mut previous = None;
         loop {
             a.active()?;
@@ -92,7 +92,7 @@ impl<P: Platform> State<P> {
                     });
                 }
             }
-            if Instant::now() >= deadline {
+            if self.sys.now() >= deadline {
                 return Err(unknown(Why::Membership));
             }
             if let (Some(first), Some(second)) = (previous, confirmed) {
@@ -102,7 +102,7 @@ impl<P: Platform> State<P> {
                 return Ok(second);
             }
             previous = confirmed;
-            std::thread::sleep(Duration::from_millis(4));
+            self.sys.wait(Duration::from_millis(4));
         }
     }
 
@@ -279,7 +279,7 @@ impl<P: Platform> State<P> {
         }
         // A close is never reissued. Recheck the original Space set and independently
         // prove the exact AppKit window and its CG number both disappeared.
-        let end = Instant::now() + DEADLINE;
+        let end = self.sys.now() + DEADLINE;
         let mut streak = 0;
         loop {
             a.observation()?;
@@ -316,10 +316,10 @@ impl<P: Platform> State<P> {
             } else {
                 streak = 0;
             }
-            if Instant::now() >= end {
+            if self.sys.now() >= end {
                 return Err(unknown(Why::Cleanup));
             }
-            std::thread::sleep(Duration::from_millis(4));
+            self.sys.wait(Duration::from_millis(4));
         }
         self.launch.as_mut().unwrap().cleaned = true;
         Ok(())
