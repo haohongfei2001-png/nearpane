@@ -490,6 +490,16 @@ public enum StageSwitchError: LocalizedError, Equatable {
                          resumingFrom: StageWindowSample? = nil,
                          current: @MainActor () -> Bool = { true },
                          newerChoice: @MainActor () -> Bool = { false }) async throws {
+        var entryStep = "entry", reachedBackend = false
+        defer {
+            if !reachedBackend, ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+                let event: [String: Any] = ["event": "stageActivationBeforeBackendRejected",
+                    "step": entryStep, "group": group.uuidString, "uptime": ProcessInfo.processInfo.systemUptime]
+                if var data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]) {
+                    data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+                }
+            }
+        }
         guard !busy else { throw StageSwitchError.busy }
         let previous = yieldedRestore
         if resumingFrom == nil { yieldedRestore = nil }
@@ -511,6 +521,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
             if !current() { throw newerChoice() ? StageSwitchError.superseded : .interrupted }
         }
         try requireCurrentIntent()
+        entryStep = "initial-witness"
         var first = try await session.read(scope)
         try requireCurrentIntent()
         if let resumingFrom {
@@ -518,11 +529,13 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   previous.matches(resumingFrom), previous.matches(first), first.sequence > resumingFrom.sequence
             else { throw StageSwitchError.interrupted }
         }
+        entryStep = "participating-groups"
         let groups = store.participatingGroups(in: scope) { key in
             guard let state = first.windows[key], session.mayManage(state) else { return nil }
             return state.lifetime
         }
         guard let target = groups.first(where: { $0.id == group }) else { throw StageSwitchError.incomplete }
+        entryStep = "complete-enrollment"
         let enrolled = groups.flatMap(\.members), enrolledIDs = Set(enrolled.map(\.windowHint))
         guard epoch == token, first.scope == scope, first.workArea.width > 0, first.workArea.height > 0,
               enrolledIDs.count == enrolled.count, enrolledIDs.isSubset(of: Set(first.windows.keys)),
@@ -535,6 +548,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         // Finder's desktop. Consent, the selected retained window and all bystanders
         // were verified above; restore/focus the incoming group before retiring any
         // other window. The historical Corner first-focus requirement stays local.
+        entryStep = "retained-ownership"
         let originalHeld = ledger.owned.filter { $0.scope == scope }
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
         guard originalHeld.allSatisfy({ enrolledIDs.contains($0.hidden.window) && first.windows[$0.hidden.window] == $0.hidden }) else {
@@ -547,6 +561,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         }
         let ids = Set(members.map(\.windowHint))
         guard ids.allSatisfy({ held[$0] != nil || first.windows[$0]?.visibility == .visible }) else { throw StageSwitchError.ownership }
+        entryStep = "preferred-member"
         guard let preferred = target.focusMember(requested: member, including: { ids.contains($0.windowHint) }) else {
             throw StageSwitchError.incomplete
         }
@@ -581,6 +596,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         let intent = UUID(), owner = session.engineOwner
         let ownsScope = ledger.owner == owner && (ledger.activeScopes ?? []).contains(scope)
         guard owner == nil || (first.nativeID ?? 0) > 0 else { throw StageSwitchError.unavailable }
+        entryStep = "backend-owner"
         if let owner {
             // An unavailable corner is known before showing another member or transferring the keyboard.
             let outgoing = first.windows.values.filter { ids.contains($0.window) && !targets.contains($0.window) && held[$0.window] == nil }
@@ -591,6 +607,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 try requireCurrentIntent()
             }
             // Record the worker before preparing it. A failed health check cannot imply a window was hidden.
+            entryStep = "owner-journal"
             if ownsScope { try verifyJournal() }
             else {
                 try update {
@@ -598,6 +615,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     if !($0.activeScopes ?? []).contains(scope) { $0.activeScopes = ($0.activeScopes ?? []) + [scope] }
                 }
             }
+            reachedBackend = true
             try await session.prepareBackend(first)
             try requireCurrentIntent()
             let postLaunch = try await session.read(scope)

@@ -80,21 +80,58 @@ enum StageWindowPhysicalReader {
     }
 
     static func read(_ id: ManagedWindowID, original: AXUIElement, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation {
+        var step = "environment", completed = false, frontPID: pid_t = 0
+        var frontNumber: UInt32 = 0, frontHasElement = false, frontNumberReadAttempted = false
+        var diagnosticFocus: AXUIElement?
+        defer {
+            if !completed, ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+                var event: [String: Any] = ["event": "stagePhysicalReadRejected", "step": step,
+                    "pid": id.pid, "window": id.number, "frontPID": frontPID,
+                    "frontWindow": frontNumber, "frontHasElement": frontHasElement,
+                    "frontNumberReadAttempted": frontNumberReadAttempted,
+                    "uptime": ProcessInfo.processInfo.systemUptime]
+                // These are additional read-only failure diagnostics, not the
+                // observations that authorized a window action. Never read titles.
+                if let diagnosticFocus {
+                    for (name, key) in [("role", kAXRoleAttribute), ("subrole", kAXSubroleAttribute)] {
+                        var value: CFTypeRef?
+                        let error = AXUIElementCopyAttributeValue(diagnosticFocus, key as CFString, &value)
+                        let text = value as? String
+                        event["focusDiagnostic" + name + "Error"] = error.rawValue
+                        event["focusDiagnostic" + name] = text.map { $0.hasPrefix("AX") && $0.count <= 64 ? $0 : "nonconstant" } ?? "unavailable"
+                    }
+                    var value: CFTypeRef?
+                    let error = AXUIElementCopyAttributeValue(diagnosticFocus, "AXWindowNumber" as CFString, &value)
+                    event["focusDiagnosticNumberAttributeError"] = error.rawValue
+                    if let value = value as? NSNumber { event["focusDiagnosticNumberAttribute"] = value }
+                    else { event["focusDiagnosticNumberAttribute"] = NSNull() }
+                }
+                if var data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]) {
+                    data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+                }
+            }
+        }
         guard AXIsProcessTrusted(), NPProbeReadOnlyCatalog() == 1, let homeNumber = UInt64(home.record), homeNumber > 0,
               StageManagerPreference.read() == false,
               let inventory = NPReadInventory() as? [[String:Any]],
               OrdinaryDesktopMembership.matches(display:home.display,record:homeNumber,uuid:home.uuid,exclusive:true,
                   inventory:inventory,members:[homeNumber]) else { throw StageSwitchError.unavailable }
+        step = "front-focus"
         let focus = try FrontFocus()
+        frontPID = focus.pid; frontHasElement = focus.element != nil; diagnosticFocus = focus.element
         var pid: pid_t = 0
+        step = "original-ax-attributes"
         guard AXUIElementGetPid(original,&pid) == .success, pid == id.pid, number(original) == id.number,
-              let fields = OrdinaryFocusAttributes(original), let minimized = fields.minimized,
-              let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow,id.number) as? [[String:Any]], rows.count == 1,
+              let fields = OrdinaryFocusAttributes(original), let minimized = fields.minimized else { throw StageSwitchError.incomplete }
+        step = "cg-identity-and-geometry"
+        guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow,id.number) as? [[String:Any]], rows.count == 1,
               let row = rows.first, row[kCGWindowNumber as String] as? UInt32 == id.number, row[kCGWindowOwnerPID as String] as? Int32 == id.pid,
               row[kCGWindowLayer as String] as? Int == 0,
               let bounds = row[kCGWindowBounds as String] as? NSDictionary, let cg = CGRect(dictionaryRepresentation:bounds),
               cg.width > 0, cg.height > 0, [cg.minX,cg.minY,cg.width,cg.height].allSatisfy(\.isFinite),
-              cg == fields.frame, let forward = NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64], forward.count == 1,
+              cg == fields.frame else { throw StageSwitchError.incomplete }
+        step = "bidirectional-membership"
+        guard let forward = NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64], forward.count == 1,
               let member = forward.first, member > 0, let reverse = NPReadCatalogSpaceWindowNumbers(member) as? [UInt32],
               reverse.filter({ $0 == id.number }).count == 1 else { throw StageSwitchError.incomplete }
         if member != homeNumber {
@@ -103,6 +140,7 @@ enum StageWindowPhysicalReader {
             }
         }
         // kCGWindowIsOnscreen is optional in window dictionaries. Missing is ambiguous for background members.
+        step = "onscreen-observation"
         var enrolled = id.number
         guard let visible = NPReadVisibleWindowDescriptions(&enrolled,1) as? [[String:Any]], visible.count <= 1,
               visible.allSatisfy({ $0[kCGWindowNumber as String] as? UInt32 == id.number && $0[kCGWindowOwnerPID as String] as? Int32 == id.pid }) else {
@@ -111,22 +149,27 @@ enum StageWindowPhysicalReader {
         let showing = visible.count == 1
         guard (row[kCGWindowIsOnscreen as String] as? Bool).map({ $0 == showing }) != false else { throw StageSwitchError.interrupted }
         if member == homeNumber, showing && !minimized {
+            step = "original-ax-list-membership"
             let candidates = try windows(id.pid).filter { number($0) == id.number }
             guard candidates.count == 1, CFEqual(candidates[0],original) else { throw StageSwitchError.ownership }
         }
         let focused: NativeSpaceWindow?
+        step = "focused-window-identity"
         if let element = focus.element {
             var receiver: pid_t = 0
-            guard AXUIElementGetPid(element,&receiver) == .success, receiver == focus.pid, let n = number(element),
+            let n = number(element); frontNumber = n ?? 0; frontNumberReadAttempted = true
+            guard AXUIElementGetPid(element,&receiver) == .success, receiver == focus.pid, let n,
                   let birth = try? OrdinaryProcessImage.read(receiver).launch else { throw StageSwitchError.incomplete }
             focused = .init(pid:receiver,birth:birth,number:n)
             if receiver == id.pid, n == id.number, !CFEqual(element,original) { throw StageSwitchError.ownership }
         } else { focused = nil }
+        step = "final-continuity"
         try focus.check()
         guard number(original) == id.number, NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64] == forward,
               NPReadInventory() as? NSArray == inventory as NSArray, StageManagerPreference.read() == false else {
             throw StageSwitchError.interrupted
         }
+        completed = true
         return .init(id:id,frame:.init(x:cg.minX,y:cg.minY,width:cg.width,height:cg.height),membership:member,
                      onscreen:showing,minimized:minimized,focus:focused)
     }

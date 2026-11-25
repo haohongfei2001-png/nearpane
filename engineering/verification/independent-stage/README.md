@@ -57,6 +57,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `33d65484`, diagnostics | The specific AX CannotComplete recovered with two complete health observations; launch and three cycles passed; yellow reached binding and failed on a nonstandard subrole | Observation retry is physically confirmed. Yellow remains FAIL and same-engine cleanup passed. [Original trace](cloud-33d65484-diagnostics/README.md) |
 | `33d65484`, full candidate | 155 Rust and 162 Swift passed, one explicit skip; complete app and strict signature passed; normal engine cycles passed; yellow failed; actual external R4 reads timed out before input | Zero real button presses, no handler claim, cleanup passed, cold restart NOT_RUN. [Original candidate and AX receipt](cloud-33d65484-full/README.md) |
 | `3e197761`, diagnostics | All six initial readbacks passed with zero hidden ownership; the first never-hidden window retained its original AX identity through real minimization and reported AXDialog | Initial registration is physically proven. The earlier AXUnknown-only transition check refused this actual state before any foreign mini move; cleanup passed. The narrow follow-up admits the observed state only on that original registered window. [Original receipts](cloud-3e197761-diagnostics/README.md) |
+| `44bc3759`, diagnostics | Original minimized AXDialog accepted; engine reached hidden Space 15 membership, then the single AX demini request did not finish within the old Space deadline | Initial yellow remains FAIL; cleanup passed. The next source change separately bounds completion observations and rejects any observed escape. [Original boundary](cloud-44bc3759-diagnostics/README.md) |
+| `44bc3759`, full R4 | Actual AXPress reached current-card handling, fresh complete/bound groups and a real configured worker; all three window previews rendered; activation rejected before NP_LAUNCH | Product switch FAIL with cleanup PASS. New read-only phases distinguish the initial witness and coordinator guards. Its source fixture had two failed cases, so this binary is not promoted. [Original product trace and image](cloud-44bc3759-full/README.md) |
 
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
@@ -68,6 +70,11 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
+The corrected `a60c0a3b` source run passed **157 Rust and 166 Swift cases, with one explicit skip**;
+the new binding and initial-registration tests actually executed. Its full candidate and native results
+are recorded separately when complete. Repeated native AutoHide/zero-row controls are now an explicit
+workflow input: their already committed negative renderer evidence is not rerun on every unrelated
+engine fix, and the diagnostic tools and full cleanup conditions remain available.
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 

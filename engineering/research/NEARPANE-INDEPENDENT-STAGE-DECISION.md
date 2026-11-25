@@ -144,6 +144,20 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     dialog state only on the already registered standard object with the same positive identity,
     true minimization and false fullscreen checks. Newly discovered dialogs remain ineligible.
     [Original registration, subrole and cleanup receipts](../verification/independent-stage/cloud-3e197761-diagnostics/README.md).
+15. The `44bc3759` diagnostic accepted that actual original-object AXDialog transition, moved the
+    minimized foreign window into hidden Space 15 and passed the engine's hidden-membership check.
+    After one AX deminiaturization request, its reused 120 ms Space observation deadline expired
+    during real minimized/AXCannotComplete observations. Cleanup passed; the first yellow operation
+    still failed. The follow-up separates the AppKit completion observation into a 650 ms budget,
+    keeps the same witness and single write, and stops on any positive return to the original home
+    or another Space. [Original boundary and cleanup](../verification/independent-stage/cloud-44bc3759-diagnostics/README.md).
+16. In the separate full `44bc3759` VM, a real R4 AXPress reached current-card selection, the fresh
+    complete group directory, worker creation and a configured session. All three actual window
+    previews rendered. Activation then returned incomplete before any NP_LAUNCH reached the worker;
+    physical windows stayed at home and cleanup passed. This narrows the failure to the initial
+    Swift witness/prelaunch boundary, not the hidden-Space API. Read-only phase diagnostics now
+    distinguish original binding, AX/CG geometry, membership, actual focus and a successfully
+    returned witness from later coordinator checks. [Original product, worker and screenshot](../verification/independent-stage/cloud-44bc3759-full/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.

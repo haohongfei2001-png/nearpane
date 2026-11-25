@@ -108,6 +108,9 @@ import QuartzCore
         var startedWrites = false
         scenario: do {
             guard let feed = modules.windowPreviews.currentDesktop else { throw Failure(reason: "packagedOverviewReaderUnavailable") }
+            // Let the existing focus request settle before proving the live R4
+            // panel ready. Its acknowledgement is not a verified foreground claim.
+            guard await ownerCommand(targets[0], action: "focus", nonce: config.nonce) else { throw Failure(reason: "fixtureStartingFocusUnavailable") }
             let readyDeadline = ContinuousClock.now.advanced(by: .seconds(10))
             var groupIDs = [UInt32: UUID]()
             var candidateReady = false
@@ -213,7 +216,6 @@ import QuartzCore
             }
             guard groupIDs.count == 3, Set(groupIDs.values).count == 3 else { throw Failure(reason: "fixtureGroupsNotReady") }
             guard candidateReady else { throw Failure(reason: "candidateDispatchUnavailable") }
-            guard await ownerCommand(targets[0], action: "focus", nonce: config.nonce) else { throw Failure(reason: "fixtureStartingFocusUnavailable") }
             @MainActor func selectR4(_ index: Int, group: UUID, visible: Set<UInt32>, phase: String,
                                     exactMember: Bool = false) async throws {
                 let target = targets[index]

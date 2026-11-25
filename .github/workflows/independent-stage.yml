@@ -6,6 +6,10 @@ on:
         description: 'Run controlled WindowServer diagnostics without source tests or a product candidate'
         type: boolean
         default: false
+      native_renderer_controls:
+        description: 'Explicitly repeat the already rejected native renderer settings after confirmed cleanup'
+        type: boolean
+        default: false
   push:
     branches: ['pro/independent-stage-engine-20261126']
 permissions:
@@ -96,7 +100,9 @@ jobs:
             xcrun clang -fobjc-arc -fblocks -Wall -Wextra -O1 tools/native-stage-decoupling/probe.m -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/native-stage-inspect"
           fi
       - name: Observe native rendering and edge invocation after Spaces cleanup
-        if: ${{ !cancelled() && matrix.lane == 'diagnostics' }}
+        # Their original AX/CG/pixel evidence is already committed. Repeating
+        # unchanged rejected hypotheses on every engine fix adds no qualification.
+        if: ${{ !cancelled() && matrix.lane == 'diagnostics' && inputs.native_renderer_controls == true }}
         timeout-minutes: 10
         run: |
           python3 - <<'PY'

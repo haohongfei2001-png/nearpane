@@ -224,11 +224,22 @@ import NearpaneOrdinaryWindowRuntime
 
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
                       candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
+        var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
+        defer {
+            if !completed {
+                IndependentStageTrace.record("witness-read-rejected", ["step": step,
+                    "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
+                    "bindings": bindings.count, "claims": claims.count, "sequence": sequence])
+            }
+        }
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
               let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
+        step = "host-access"
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
         hostAccess = access
+        step = "opening-roster"
         let (opening,keys) = try roster(first, access: access)
+        step = "opening-scope"
         let initial = enrolledTopology ?? first.scopes
         guard first.scopes == initial else { throw StageSwitchError.interrupted }
         guard (!keys.isEmpty || !bindings.isEmpty), keys.count <= 64, let native = UInt64(opening.current.id), native > 0, let usable = opening.display.usable
@@ -237,6 +248,7 @@ import NearpaneOrdinaryWindowRuntime
         if self.owner == nil {
             var enrolling = [NativeSpaceWindow:Binding]()
             for key in keys {
+                step = "initial-window-binding"; reading = key
                 let k = DesktopWindowKey(pid:key.pid,birth:key.birth,number:key.number)
                 guard let life = feed.groupLifetime(of:k), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
                 let monitor = try DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
@@ -254,9 +266,11 @@ import NearpaneOrdinaryWindowRuntime
         guard home == desktop, keys.isSubset(of:Set(observedBindings.keys)) else { throw StageSwitchError.interrupted }
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
         for (key,b) in observedBindings {
+            step = "physical-window-observation"; reading = key
             await Task.yield()
             guard permits(owner, restoring: false) || permits(owner, restoring: true) else { throw StageSwitchError.interrupted }
             let observed = try b.monitor.observation(home: desktop)
+            step = "physical-window-classification"
             if let (target, landing) = measured, key == target {
                 let frame = CGRect(x: landing.x, y: landing.y, width: landing.width, height: landing.height)
                 func bounds(_ display: DisplayObservation) -> CGRect {
@@ -279,10 +293,12 @@ import NearpaneOrdinaryWindowRuntime
                                 hiddenSpaceID: state == .stageSpace ? observed.membership : nil)
             focuses.append(observed.focus)
         }
+        step = "closing-roster"; reading = nil
         guard let last = await feed.readAfterAction(), let closing = try? roster(last, access: access), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
+        step = "focused-window-scope"; reading = focus
         var foreign: StageGroupScope?
         if let focus {
             if let local = states[focus] {
@@ -319,6 +335,11 @@ import NearpaneOrdinaryWindowRuntime
             }
             lastSnapshot = last; lastStates = states; lastSample = sample
         }
+        IndependentStageTrace.record("witness-read-completed", ["sequence": sequence, "windows": states.count,
+            "managed": states.values.filter(mayManage).count, "roster": keys.count,
+            "focusPID": focus?.pid ?? 0, "focusWindow": focus?.number ?? 0,
+            "focusLocal": focus.map { states[$0] != nil } ?? false, "foreignFocus": foreign != nil])
+        completed = true
         return sample
     }
 

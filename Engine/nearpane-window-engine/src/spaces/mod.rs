@@ -14,6 +14,7 @@ type Check<T> = Result<T, Fault>;
 type Rows = BTreeSet<u64>;
 const LIMIT: usize = 64;
 const DEADLINE: Duration = Duration::from_millis(120);
+const AX_OBSERVATION_BUDGET: Duration = Duration::from_millis(650);
 #[cfg(not(test))]
 const GRACE: Duration = Duration::from_millis(40);
 const STRIKE_WINDOW: Duration = Duration::from_secs(60);
@@ -747,15 +748,49 @@ impl<P: Platform> State<P> {
         if self.sys.set_minimized(lease.window, &bound.witness, false) == Delivery::Refused {
             return Err(fail(Why::NoDelivery));
         }
-        let until = self.sys.now() + DEADLINE;
+        // AX deminiaturization is an AppKit animation, not a Space move ack.
+        // Observe its completion through the same original witness; never send
+        // set_minimized again or conceal a positive return to another Space.
+        let started = self.sys.now();
+        let until = started + AX_OBSERVATION_BUDGET;
         let mut consecutive = 0;
+        let mut last = unknown(Why::Readback);
         loop {
             self.scope(c, lease.slot.home, &top, a)?;
-            if self.view(c, lease, &bound.witness, sid, true).is_ok() { consecutive += 1; }
-            else { consecutive = 0; }
+            let forward = self.sys.spaces(c, lease.window.number);
+            let reverse = self.sys.members(c, sid);
+            let home = self.sys.members(c, lease.slot.home.id);
+            let wid = u64::from(lease.window.number);
+            let escaped = forward.as_ref().is_ok_and(|ids| ids.iter().any(|id| *id != sid))
+                || home.as_ref().is_ok_and(|ids| ids.contains(&wid));
+            let confined = forward.as_ref().is_ok_and(|ids| *ids == Rows::from([sid]))
+                && reverse.as_ref().is_ok_and(|ids| ids.contains(&wid))
+                && home.as_ref().is_ok_and(|ids| !ids.contains(&wid));
+            if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesMiniCompletionMembership\",\"window\":{},\"parking\":{sid},\"home\":{},\"forward\":{},\"hiddenContains\":{},\"homeContains\":{},\"escaped\":{escaped},\"elapsedMS\":{}}}",
+                    lease.window.number,lease.slot.home.id,
+                    forward.as_ref().map_or("null".to_owned(),|ids|format!("{:?}",ids.iter().copied().collect::<Vec<_>>())),
+                    reverse.as_ref().map_or("null".to_owned(),|ids|ids.contains(&wid).to_string()),
+                    home.as_ref().map_or("null".to_owned(),|ids|ids.contains(&wid).to_string()),
+                    self.sys.now().saturating_duration_since(started).as_millis());
+            }
+            if escaped { return Err(unknown(Why::Membership)); }
+            let sample = if confined { self.view(c, lease, &bound.witness, sid, true) }
+                else { Err(unknown(Why::Readback)) };
+            match sample {
+                Ok(seen) if seen.rect == before.rect => consecutive += 1,
+                Ok(seen) => {
+                    trace_geometry("minimized-completion-frame", lease, before, seen);
+                    return Err(unknown(Why::Identity));
+                }
+                Err(fault @ Fault(_, Why::MinimizedOrAX | Why::AXCannotComplete | Why::Readback | Why::Membership)) => {
+                    consecutive = 0; last = fault;
+                }
+                Err(fault) => return Err(fault),
+            }
+            if self.sys.now() >= until { return Err(last); }
             if consecutive == 2 { return Ok(()); }
-            if self.sys.now() >= until { return Err(unknown(Why::Readback)); }
-            self.sys.wait(Duration::from_millis(4));
+            self.sys.wait(Duration::from_millis(4).min(until.saturating_duration_since(self.sys.now())));
         }
     }
     fn restore_member(
@@ -915,7 +950,7 @@ impl<P: Platform> State<P> {
         let lease = self.owned.values().nth(index).unwrap().lease;
         let mut phase = "health-connection";
         let mut parking = 0;
-        let deadline = Passive(now + Duration::from_millis(650));
+        let deadline = Passive(now + AX_OBSERVATION_BUDGET);
         let mut unavailable = None;
         let mut confirmed = 0;
         let result = loop {

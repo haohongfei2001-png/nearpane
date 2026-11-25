@@ -64,6 +64,9 @@ struct Fake {
     minimize_writes: Vec<(u32, u64, bool)>,
     refuse_unminimize: bool,
     unminimize_returns_to_desktop: bool,
+    unminimize_observation_delay: Duration,
+    unminimize_observation_unavailable: bool,
+    unminimize_started: Option<(u32, Instant)>,
 }
 impl Fake {
     fn new() -> Self {
@@ -187,7 +190,15 @@ impl Platform for Fake {
             self.cannot_complete_minimized_reads.set(unavailable - 1);
             return Err(unknown(Why::AXCannotComplete));
         }
-        if *witness >> 32 > 0 { return Ok(self.windows[&(*witness as u32)].3); }
+        if *witness >> 32 > 0 {
+            let number = *witness as u32;
+            if let Some((pending, since)) = self.unminimize_started {
+                if pending == number && self.now().saturating_duration_since(since) < self.unminimize_observation_delay {
+                    return if self.unminimize_observation_unavailable { Err(unknown(Why::AXCannotComplete)) } else { Ok(true) };
+                }
+            }
+            return Ok(self.windows[&number].3);
+        }
         Ok(self.confirmed_document_minimized)
     }
     fn set_minimized(&mut self, w: Window, witness: &u64, minimized: bool) -> Delivery {
@@ -196,6 +207,7 @@ impl Platform for Fake {
         self.minimize_writes.push((w.number, t.1, minimized));
         t.3 = minimized;
         if !minimized && self.unminimize_returns_to_desktop { t.1 = 10; }
+        if !minimized { self.unminimize_started = Some((w.number, self.now())); }
         Delivery::Accepted
     }
     fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
@@ -922,15 +934,63 @@ fn failed_yellow_button_adoption_restores_membership_and_keeps_the_native_minimi
 }
 
 #[test]
+fn yellow_completion_waits_for_the_original_ax_animation_without_reissuing_writes() {
+    for unavailable in [false, true] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        state.sys.windows.get_mut(&1).unwrap().3 = true;
+        state.sys.unminimize_observation_delay = Duration::from_millis(220);
+        state.sys.unminimize_observation_unavailable = unavailable;
+        let writes = state.sys.moved.len();
+        let result = state.run(&request(1, HIDE_MINIMIZED, 2), &guard);
+        assert_eq!(result.status, PASS);
+        assert_eq!(result.flags & HIDDEN, HIDDEN);
+        assert_eq!(state.sys.moved.len(), writes + 1);
+        assert_eq!(state.sys.minimize_writes, vec![(1, result.native_id, false)]);
+        let elapsed = state.sys.now() - state.sys.unminimize_started.unwrap().1;
+        assert!(elapsed > DEADLINE && elapsed < AX_OBSERVATION_BUDGET);
+        assert_eq!(state.run(&request(1, SHOW, 3), &guard).status, PASS);
+        assert_eq!(state.sys.windows[&1].1, 10);
+        assert_eq!(state.sys.minimize_writes.len(), 1);
+    }
+}
+
+#[test]
+fn unreadable_yellow_completion_retains_ownership_and_stops_at_its_observation_budget() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    state.sys.windows.get_mut(&1).unwrap().3 = true;
+    state.sys.unminimize_observation_delay = Duration::from_secs(1);
+    state.sys.unminimize_observation_unavailable = true;
+    let writes = state.sys.moved.len();
+    let result = state.run(&request(1, HIDE_MINIMIZED, 2), &guard);
+    assert_eq!((result.status, result.detail), (UNKNOWN, Why::AXCannotComplete as u32));
+    assert!(state.failed && !state.owned.is_empty());
+    assert_eq!(result.flags & HIDDEN, 0);
+    assert_eq!(state.sys.moved.len(), writes + 1);
+    assert_eq!(state.sys.minimize_writes.len(), 1);
+    assert_eq!(state.sys.now() - state.sys.unminimize_started.unwrap().1, AX_OBSERVATION_BUDGET);
+    state.sys.unminimize_started = None; // The same original object becomes readable again.
+    let returned = state.run(&launch_request(RELEASE_SPACES), &guard);
+    assert_eq!((returned.status, returned.owned), (PASS, 0));
+    assert_eq!(state.sys.windows[&1].1, 10);
+    assert_eq!(state.sys.minimize_writes.len(), 1);
+}
+
+#[test]
 fn macos_pulling_an_unminimized_window_home_is_never_reported_as_hidden() {
     let (mut s, a) = setup();
     assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
     s.sys.windows.get_mut(&1).unwrap().3 = true;
     s.sys.unminimize_returns_to_desktop = true;
+    let writes = s.sys.moved.len();
     let hidden = s.run(&request(1, HIDE_MINIMIZED, 2), &a);
-    assert_ne!(hidden.status, PASS);
+    assert_eq!((hidden.status, hidden.detail), (UNKNOWN, Why::Membership as u32));
     assert_eq!(hidden.flags & HIDDEN, 0);
     assert!(s.failed && !s.owned.is_empty());
+    assert_eq!(s.sys.moved.len(), writes + 1);
+    assert_eq!(s.sys.minimize_writes.len(), 1);
+    assert!(s.sys.now() - s.sys.unminimize_started.unwrap().1 < AX_OBSERVATION_BUDGET);
     let released = s.run(&launch_request(RELEASE_SPACES), &a);
     assert_eq!((released.status, released.owned), (PASS, 0));
     assert!(s.slots.is_empty());
