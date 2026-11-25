@@ -239,14 +239,47 @@ static BOOL fixtureFocusWritePermitted(NSDictionary *target,AXUIElementRef app,A
     }
     AXUIElementRef current=copyFixtureAXWindow(app,target);CFTypeRef title=NULL,minimized=NULL,fullScreen=NULL;
     NSString *expected=[NSString stringWithFormat:@"Nearpane Fixture %@ %@ %@",runNonce.lowercaseString,bundle,target[@"index"]];
-    BOOL valid=current&&CFEqual(current,window)&&
-        AXUIElementCopyAttributeValue(window,kAXTitleAttribute,&title)==kAXErrorSuccess&&title&&CFGetTypeID(title)==CFStringGetTypeID()&&
-        [(__bridge NSString *)title isEqual:expected]&&
-        AXUIElementCopyAttributeValue(window,kAXMinimizedAttribute,&minimized)==kAXErrorSuccess&&minimized&&CFEqual(minimized,kCFBooleanFalse)&&
-        AXUIElementCopyAttributeValue(window,CFSTR("AXFullScreen"),&fullScreen)==kAXErrorSuccess&&fullScreen&&CFEqual(fullScreen,kCFBooleanFalse);
+    AXError titleRead=AXUIElementCopyAttributeValue(window,kAXTitleAttribute,&title);
+    AXError minimizedRead=AXUIElementCopyAttributeValue(window,kAXMinimizedAttribute,&minimized);
+    AXError fullScreenRead=AXUIElementCopyAttributeValue(window,CFSTR("AXFullScreen"),&fullScreen);
+    BOOL same=current&&CFEqual(current,window);
+    BOOL titleMatches=titleRead==kAXErrorSuccess&&title&&CFGetTypeID(title)==CFStringGetTypeID()&&[(__bridge NSString *)title isEqual:expected];
+    BOOL notMinimized=minimizedRead==kAXErrorSuccess&&minimized&&CFEqual(minimized,kCFBooleanFalse);
+    BOOL notFullScreen=fullScreenRead==kAXErrorSuccess&&fullScreen&&CFEqual(fullScreen,kCFBooleanFalse);
+    BOOL valid=same&&titleMatches&&notMinimized&&notFullScreen;
+    if(!valid)emit(@{@"event":@"fixtureFocusAXGuard",@"retainedExactAXWindow":@NO,
+        @"enumeratedTargetFound":[NSNumber numberWithBool:current!=NULL],@"retainedObjectEqual":@(same),
+        @"titleRead":@(titleRead),@"titleMatches":@(titleMatches),@"minimizedRead":@(minimizedRead),
+        @"notMinimized":@(notMinimized),@"fullScreenRead":@(fullScreenRead),@"notFullScreen":@(notFullScreen)});
     if(current)CFRelease(current);if(title)CFRelease(title);if(minimized)CFRelease(minimized);if(fullScreen)CFRelease(fullScreen);
-    if(!valid)emit(@{@"event":@"fixtureFocusAXGuard",@"retainedExactAXWindow":@NO});
     return valid&&ownerMatches(target);
+}
+static BOOL waitRetainedFixtureFocus(NSDictionary *target,AXUIElementRef app,AXUIElementRef original) {
+    typedef AXError (*WindowNumber)(AXUIElementRef,CGWindowID *);
+    WindowNumber numberReader=(WindowNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
+    NSMutableArray *confirmed=[NSMutableArray array];NSDictionary *last=nil;
+    double end=NSProcessInfo.processInfo.systemUptime+3;
+    do {
+        CFTypeRef focused=NULL;pid_t owner=0;CGWindowID number=0;
+        AXError focusedRead=AXUIElementCopyAttributeValue(app,kAXFocusedWindowAttribute,&focused);
+        AXError ownerRead=AXUIElementGetPid(original,&owner);
+        AXError numberRead=numberReader?numberReader(original,&number):kAXErrorNotImplemented;
+        BOOL retained=focusedRead==kAXErrorSuccess&&focused&&CFGetTypeID(focused)==AXUIElementGetTypeID()&&CFEqual(focused,original);
+        BOOL originalIdentity=ownerRead==kAXErrorSuccess&&owner==[target[@"pid"] intValue]&&
+            numberRead==kAXErrorSuccess&&number==[target[@"number"] unsignedIntValue]&&ownerMatches(target);
+        BOOL ownerKey=ownerState(target,@"key",YES),physical=[observe(target,home.id,YES)[@"verified"] boolValue];
+        NSDictionary *system=foregroundFocusSample(target);
+        BOOL good=retained&&originalIdentity&&ownerKey&&physical&&[system[@"verified"] boolValue];
+        last=@{@"retainedObjectFocused":@(retained),@"focusedRead":@(focusedRead),@"originalPIDRead":@(ownerRead),
+            @"originalNumberRead":@(numberRead),@"originalIdentity":@(originalIdentity),@"ownerKey":@(ownerKey),
+            @"originalHomeVisible":@(physical),@"systemFocus":system,@"verified":@(good)};
+        if(focused)CFRelease(focused);
+        if(good)[confirmed addObject:last];else [confirmed removeAllObjects];
+        if(confirmed.count==2)break;pump(.05);
+    } while(NSProcessInfo.processInfo.systemUptime<end);
+    emit(@{@"event":@"fixtureFocusAXEndpoint",@"observations":confirmed.count?confirmed:@[last?:@{}],
+        @"verified":[NSNumber numberWithBool:confirmed.count==2]});
+    return confirmed.count==2;
 }
 static BOOL activateExactFixture(NSDictionary *target) {
     // AppKit may decline a background app's own activation request. Use the
@@ -283,6 +316,11 @@ static BOOL activateExactFixture(NSDictionary *target) {
             } while(NSProcessInfo.processInfo.systemUptime<end);
             good=observed;
             emit(@{@"event":@"fixtureFocusAXStepReadback",@"step":step,@"confirmed":@(observed)});
+            // Activation can already make this original window the true key
+            // window. Verify that endpoint directly; a second AXWindows listing
+            // and a redundant Raise are not prerequisites for a completed focus.
+            if(good&&frontmostApplication().processIdentifier==[target[@"pid"] intValue]&&
+               waitRetainedFixtureFocus(target,app,window))break;
         }
     }
     if(window)CFRelease(window);if(app)CFRelease(app);return good;
