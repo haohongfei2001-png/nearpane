@@ -336,6 +336,22 @@ import Testing
         try await controller.release()
     }
 
+    @Test(arguments: [false, true]) func explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow(_ unmanaged: Bool) async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let managed = Set(groups.flatMap(\.members).map(\.windowHint))
+        fixture.focus = unmanaged ? fixture.windows.keys.first { !managed.contains($0) } : nil
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()), witness: fixture, transport: fixture)
+        }
+        try await activate(groups[1], controller, fixture)
+        let selected = groups[1].members[0].windowHint
+        #expect(fixture.focus == selected && fixture.windows[selected]?.visibility == .visible)
+        #expect(fixture.windows.filter { !managed.contains($0.key) }.allSatisfy { $0.value.visibility == .visible })
+        try await controller.release()
+    }
+
     @Test func ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() {
         let incomplete = StageEngineQualification(backend: .spaces, environment: environment, evidence: UUID(),
             checks: [.validatedRoute: .pass, .exactSIPBuild: .pass])

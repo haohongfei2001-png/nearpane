@@ -366,6 +366,7 @@
       }
     ]
   },
-  "finding": "The original controller's manually pumped NSRunLoop leaves NSApplication.isRunning false and fails the own-panel Prepare focus read. The same production shim succeeds for panel creation/observation/close inside NSApplication.run. This is an admission/runner defect before any foreign-window move.",
-  "qualificationGranted": false
+  "finding": "The native NSApplication loop and manual NSRunLoop pump produced different panel admission observations. A later controller experiment separately proved that running a blocking scenario on the main GCD queue deadlocks the engine callback. Subsequent direct-application AX reads established another independent defect: system-wide AXFocusedApplication failed although the actual frontmost application focused window remained readable. The initial A/B observation alone must not attribute every focus failure to NSApplication.isRunning.",
+  "qualificationGranted": false,
+  "followUp": "target-direct-focus-20261126.json"
 }

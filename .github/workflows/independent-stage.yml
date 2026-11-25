@@ -31,6 +31,7 @@ jobs:
         run: python3 -B scripts/acceptance/independent-stage/run.py "$RUNNER_TEMP/independent-source" --scope source
       - name: Build complete candidate with embedded tools
         id: candidate
+        if: ${{ !cancelled() }}
         run: |
           bash scripts/build-app.sh release
           app="$PWD/build/standalone.$NEARPANE_RUN_ID/products/release/Nearpane.app"
@@ -40,6 +41,17 @@ jobs:
           codesign --verify --strict --deep "$workspace"
           ditto -c -k --keepParent "$workspace" "$RUNNER_TEMP/Nearpane-independent-candidate.zip"
           shasum -a 256 "$RUNNER_TEMP/Nearpane-independent-candidate.zip" > "$RUNNER_TEMP/Nearpane-independent-candidate.sha256"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          source_path = root / 'independent-source/summary.json'
+          source = json.loads(source_path.read_text()).get('source') if source_path.exists() else None
+          receipt = {'schema': 1, 'revision': os.environ['GITHUB_SHA'],
+                     'sourceChecks': source.get('status', 'UNKNOWN') if isinstance(source, dict) else 'UNKNOWN',
+                     'fullBuild': 'PASS', 'bundleSignature': 'PASS', 'qualificationGranted': False}
+          (root / 'Nearpane-independent-candidate.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
           printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
       - name: Foreign-window Spaces and production R4 receipts
         if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
@@ -61,5 +73,6 @@ jobs:
             ${{ runner.temp }}/independent-runtime/
             ${{ runner.temp }}/Nearpane-independent-candidate.zip
             ${{ runner.temp }}/Nearpane-independent-candidate.sha256
+            ${{ runner.temp }}/Nearpane-independent-candidate.json
           if-no-files-found: warn
           retention-days: 30

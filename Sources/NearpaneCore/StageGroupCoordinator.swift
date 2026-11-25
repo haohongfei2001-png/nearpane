@@ -440,8 +440,8 @@ public enum StageSwitchError: LocalizedError, Equatable {
         try update { $0.pending = nil }
     }
 
-    /// The caller obtains consent from an explicit first-use confirmation before entering. On
-    /// first enrollment the actual focused window must belong to a participating group.
+    /// The caller supplies the current explicit selection and its enrolled window identities.
+    /// Spaces may start from a known desktop focus or restore an entirely retired workset.
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope,
                          consent: Bool, session: StageWindowSession,
                          resumingFrom: StageWindowSample? = nil,
@@ -485,8 +485,13 @@ public enum StageSwitchError: LocalizedError, Equatable {
               enrolledIDs.count == enrolled.count, enrolledIDs.isSubset(of: Set(first.windows.keys)),
               first.windows.allSatisfy({ $0.key == $0.value.window }),
               enrolled.allSatisfy({ m in first.windows[m.windowHint].map { state in store.isBound(m, to: state.lifetime) } == true }),
-              groups.contains(where: { $0.verifiedActive == true }) || first.focus.map(enrolledIDs.contains) == true
+              mechanism == .stageSpace || groups.contains(where: { $0.verifiedActive == true }) ||
+                  first.focus.map(enrolledIDs.contains) == true
         else { throw StageSwitchError.incomplete }
+        // A Spaces click can restore the last yellow-minimized group or start from
+        // Finder's desktop. Consent, the selected retained window and all bystanders
+        // were verified above; restore/focus the incoming group before retiring any
+        // other window. The historical Corner first-focus requirement stays local.
         let originalHeld = ledger.owned.filter { $0.scope == scope }
         let held = Dictionary(uniqueKeysWithValues: originalHeld.map { ($0.hidden.window,$0) })
         guard originalHeld.allSatisfy({ enrolledIDs.contains($0.hidden.window) && first.windows[$0.hidden.window] == $0.hidden }) else {

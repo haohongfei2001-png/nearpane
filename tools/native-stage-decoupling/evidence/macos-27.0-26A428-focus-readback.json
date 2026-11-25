@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "status": "READ_ONLY_OBSERVATION",
+  "observedOnUTCDate": "2026-11-25",
+  "environmentReference": "macos-27.0-26A428-inventory.json",
+  "windowActions": 0,
+  "applicationActivations": 0,
+  "privateWindowTitlesRead": false,
+  "session": {
+    "source": "CGSessionCopyCurrentDictionary using the SDK key constants",
+    "dictionaryPresent": true,
+    "onConsole": true,
+    "loginDone": true,
+    "currentUIDMatches": true,
+    "screenIsLockedKeyPresent": false,
+    "screenIsLocked": null
+  },
+  "focus": {
+    "AXIsProcessTrusted": true,
+    "frontmostSource": "NSWorkspace.shared.frontmostApplication",
+    "frontmostBundleIdentifier": "com.openai.codex",
+    "systemWideFocusedApplication": {
+      "error": -25204,
+      "errorName": "cannotComplete"
+    },
+    "directFrontmostApplicationFocusedWindow": {
+      "error": 0,
+      "isAXUIElement": true,
+      "windowNumberSource": "_AXUIElementGetWindow",
+      "CGWindowIDReadError": 0,
+      "positiveCGWindowID": true
+    }
+  },
+  "processExit": 0,
+  "conclusions": [
+    "A failure of the global AXFocusedApplication attribute does not establish that the console is locked or lacks a real focused window.",
+    "The direct application AXFocusedWindow and its positive CGWindowID were readable in the same read-only focus probe.",
+    "An absent ScreenIsLocked key is retained as unknown, not converted into a false value."
+  ],
+  "capabilitiesNotProven": [
+    "foreignWindowMigration",
+    "nativeRendererSeparation",
+    "productionR4Scheduling"
+  ]
+}
