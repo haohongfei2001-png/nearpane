@@ -1,0 +1,55 @@
+{
+  "deminiNotificationAndReadback" : "PASS",
+  "fixtureCleaned" : true,
+  "fixtureLaunched" : true,
+  "fixtureTimeline" : [
+    {
+      "birth" : 1795598966239874,
+      "cdhash" : "bb844d52db76e411afd1bdc284cb69addc4d6c9d",
+      "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+      "phase" : "process",
+      "pid" : 19100,
+      "uptimeNanoseconds" : 632178237821333
+    },
+    {
+      "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+      "phase" : "windows",
+      "sibling" : 104100,
+      "target" : 104101,
+      "uptimeNanoseconds" : 632178384705208
+    },
+    {
+      "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+      "phase" : "minimized",
+      "siblingNormal" : true,
+      "target" : 104101,
+      "uptimeNanoseconds" : 632179090807583
+    },
+    {
+      "geometryRestored" : true,
+      "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+      "phase" : "restored",
+      "siblingNormal" : true,
+      "target" : 104101,
+      "uptimeNanoseconds" : 632179803516041
+    },
+    {
+      "miniSeen" : true,
+      "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+      "originalForegroundUnchanged" : 1,
+      "ownWindowsClosed" : 1,
+      "phase" : "closed",
+      "restoreVerified" : true,
+      "scopeCompleted" : true,
+      "targetRestoredBeforeClose" : 1,
+      "uptimeNanoseconds" : 632179821289541
+    }
+  ],
+  "miniNotificationAndReadback" : "PASS",
+  "nativeStageQualification" : "NOT_RUN",
+  "nonce" : "8e7a0ec7-d573-4511-8f55-88408d8f81c1",
+  "observerPID" : 19096,
+  "observerTrusted" : true,
+  "scope" : "independent AX minimize observer only",
+  "status" : "PASS"
+}

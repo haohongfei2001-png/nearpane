@@ -1,8 +1,16 @@
 # Nearpane 当前工程状态
 
+## 5.22（90）Apple 原生工作集合与 R4
+
+R4 读取每块显示器上 WindowManager 的实际工作集合，在同一张平面卡片中展示成员窗口。Swift 保留侧栏选择和事务协调，Rust 复用固定上游的原生分组与变化判定。苹果负责活动窗口、原生最小化和布局。当前优先在 Apple 原生模式上验收。内部隐藏 Space 和 Corner 均未取得替代它的生产资格。[产品裁决](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [原生集成源码](https://github.com/haohongfei2001-png/nearpane/commit/d3fb818f88c0781e382bbfb52d7f5848e6d4e62a)
+
+- **实机通过**。26A428 上，团队签名的普通应用创建了两扇窗口。目标窗自行最小化和恢复时，生产观察器两次收到通知并独立核对 AX 状态。同应用旁窗、前台焦点和桌面保持稳定，目标恢复原几何，两扇夹具窗已关闭。此前注册 AX 通知时发生的 Swift 线程隔离崩溃已修复。[失败栈](../verification/window-engine/apple-native/minimize-registration-crash.json) · [复验结果](../verification/window-engine/apple-native/minimize-result.json) · [受测源码、签名和收据哈希](../verification/window-engine/apple-native/minimize-coverage.json)
+- **预览实机通过的范围**。真实红、蓝测试窗切回和卡片交接时新增捕获为 0。红窗变绿时，蓝窗仍为蓝色。受控的不完整清单中，保留两个原 AX 对象的子场景为 BLOCKED。正式安装版三指切桌面往返为 NOT_RUN。[窗口像素与计数](../verification/window-engine/apple-native/owned-window.json) · [卡片实际画面](../verification/window-engine/apple-native/returned-card.png)
+- **原生整组资格 BLOCKED**。目标登录环境中 `GloballyEnabled=0`，已识别的已授权显示器共一块。这个环境能验证普通窗口通知和像素。最小化后进入原生 Stage、黄色按钮与 ⌘M、Dock 与 ⌘Tab、R4 合组与 A→B→C→A、10/50 次切换、多屏及同机性能均待原生模式的隔离实测。生产写入由独立资格收据控制。[环境原始读数](../verification/window-engine/apple-native/native-mode.json) · [原始测试与清理记录](../verification/window-engine/apple-native/raw-evidence.zip)
+
 ## 5.22（90）侧栏工作集合交付状态
 
-**当前签名开发候选为 `a63dd14`，回滚包为 `5bd0732`。** 同一扇窗口从独立卡换成组合卡或分屏成员时，新旧视图可以短暂同时存在。过去，任一旧卡离开都会撤销整扇窗的预览。现在每张卡只撤销自己的登记，最后一张卡离开时才会停止该窗的预览流。两种卸载顺序及迟到的滚动通知均已验证。
+**此前签名开发候选为 `a63dd14`，其回滚包为 `5bd0732`。** 同一扇窗口从独立卡换成组合卡或分屏成员时，新旧视图可以短暂同时存在。过去，任一旧卡离开都会撤销整扇窗的预览。现在每张卡只撤销自己的登记，最后一张卡离开时才会停止该窗的预览流。两种卸载顺序及迟到的滚动通知均已验证。
 
 26A428 上，两扇非激活测试窗口分别显示红色和蓝色。切回和新旧卡交接时新增捕获均为零；R4 卡片从原位图绘出了红色。红窗变绿时蓝窗保持蓝色，夹具关闭后前台仍为原应用。普通安装版三指滑动往返仍为 **NOT_RUN**。本机完整 Swift 回归通过 830 项、跳过 4 项。[机器收据与内部签名候选](../verification/native-spaces/5.22-90-active-display-previews/card-handoff-a63dd14.json) · [真实夹具画面、回归与恢复记录](../verification/native-spaces/5.22-90-active-display-previews/card-handoff-a63dd14.zip)
 

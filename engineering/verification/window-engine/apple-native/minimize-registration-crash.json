@@ -1,0 +1,99 @@
+{
+  "status": "FAIL",
+  "scope": "AppleStageMinimizeObserver registration in the Swift test process",
+  "time": "2026-11-25 16:24:47.4004 +0800",
+  "pid": 87187,
+  "hardware": "Mac17,3",
+  "os": {
+    "train": "macOS 27.0",
+    "build": "26A428",
+    "releaseType": "User"
+  },
+  "exception": {
+    "codes": "0x0000000000000001, 0x0000000187e06a84",
+    "rawCodes": [
+      1,
+      6574598788
+    ],
+    "type": "EXC_BREAKPOINT",
+    "signal": "SIGTRAP"
+  },
+  "termination": {
+    "flags": 0,
+    "code": 5,
+    "namespace": "SIGNAL",
+    "indicator": "Trace/BPT trap: 5",
+    "byProc": "exc handler",
+    "byPid": 87187
+  },
+  "frames": [
+    {
+      "symbol": "_dispatch_assert_queue_fail",
+      "offset": 120,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "dispatch_assert_queue$V2.cold.1",
+      "offset": 116,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "dispatch_assert_queue",
+      "offset": 108,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_swift_task_checkIsolatedSwift",
+      "offset": 48,
+      "image": "libswift_Concurrency.dylib"
+    },
+    {
+      "symbol": "swift_task_isCurrentExecutorWithFlagsImpl(swift::SerialExecutorRef, swift::swift_task_is_current_executor_flag)",
+      "offset": 356,
+      "image": "libswift_Concurrency.dylib"
+    },
+    {
+      "symbol": "closure #3 in AppleStageMinimizeObserver.update(targets:changed:)",
+      "offset": 416,
+      "image": "nearpanePackageTests"
+    },
+    {
+      "symbol": "thunk for @escaping @callee_guaranteed () -> ()",
+      "offset": 48,
+      "image": "nearpanePackageTests"
+    },
+    {
+      "symbol": "_dispatch_block_async_invoke2",
+      "offset": 148,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_dispatch_client_callout",
+      "offset": 16,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_dispatch_lane_serial_drain",
+      "offset": 744,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_dispatch_lane_invoke",
+      "offset": 392,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_dispatch_root_queue_drain_deferred_wlh",
+      "offset": 284,
+      "image": "libdispatch.dylib"
+    },
+    {
+      "symbol": "_dispatch_workloop_worker_thread",
+      "offset": 720,
+      "image": "libdispatch.dylib"
+    }
+  ],
+  "windowMinimized": "NOT_RUN",
+  "nativeStageQualification": "NOT_RUN",
+  "nonce": "a8c266e4-7cce-4d18-9798-a03cd89ac866"
+}
