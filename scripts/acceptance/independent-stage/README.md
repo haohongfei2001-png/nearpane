@@ -147,6 +147,14 @@ let its app exit before opening the interactive copy.
 contains actual R4 input counts, system observations, cleanup and remaining tests.
 Both original failures and final cleanup survive in the journal.
 
+The product's repeated R4 selections use the same `--iterations` value: three
+cycles produce ten baseline thumbnail presses before the group-edit and system
+interaction checks. Each successful press records `pressToDoubleReadMS`, from
+the actual R4 press to two matching physical readbacks; the result includes
+sample count, p50, p95 and maximum. `windowPreviewMetrics` is captured before
+shutdown to retain thumbnail request/cache/stream counters. These observations
+are reported as measurements, not as a performance acceptance threshold.
+
 `FOREIGN_ENGINE_PASS` proves only the stated candidate-engine foreign-window
 sequence on the recorded host. `PRODUCT_R4_PASS` additionally requires actual
 production R4 presses and physical readback. Exact-target results require

@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 
 /// Selection from a card for a window currently presented on this desktop. Only use
 /// an AX window number returned by the selected application. Apps that do not expose
@@ -11,7 +12,6 @@ actor HostCurrentWindowFocus {
     private let bundle: String
     private let application: NSRunningApplication
     private let app: AXUIElement
-    private let system = AXUIElementCreateSystemWide()
     private var element: AXUIElement?
 
     init(target: DesktopWindowTarget, bundle: String, application: NSRunningApplication) {
@@ -68,8 +68,7 @@ actor HostCurrentWindowFocus {
     /// Read-only. A denial or unsupported public attribute can still try the original
     /// worker. Once focus() starts it must never fall through to another action route.
     func bind() -> Bool {
-        guard target.publiclyVisible, AXUIElementSetMessagingTimeout(app, 0.12) == .success,
-              AXUIElementSetMessagingTimeout(system, 0.12) == .success else { return false }
+        guard target.publiclyVisible, AXUIElementSetMessagingTimeout(app, 0.12) == .success else { return false }
         element = try? verifiedElement()
         return element != nil
     }
@@ -79,12 +78,7 @@ actor HostCurrentWindowFocus {
         return CFEqual(current, original)
     }
 
-    private func frontPID() -> pid_t? {
-        guard let current = value(system, kAXFocusedApplicationAttribute),
-              CFGetTypeID(current) == AXUIElementGetTypeID() else { return nil }
-        var pid: pid_t = 0
-        return AXUIElementGetPid(current as! AXUIElement, &pid) == .success && pid > 0 ? pid : nil
-    }
+    private func frontPID() -> pid_t? { try? FrontFocus.verifiedPID() }
 
     static func observe(until end: Double, interval: Double = 0.012,
                         now: () -> Double = { ProcessInfo.processInfo.systemUptime },

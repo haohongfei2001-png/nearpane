@@ -30,7 +30,7 @@ extension DesktopWindowTarget {
 
 /// A new AppKit lookup by PID can return nil for a live application. For an explicit
 /// same-app selection, the foreground reference is independent and can be verified
-/// against both the system AX foreground and the selected kernel generation.
+/// against the front application's exact AX focus and the selected kernel generation.
 extension DesktopWindowTarget {
     static func selectionOwner<App: OrdinaryApplicationReference>(
         for key: DesktopWindowKey, direct: DesktopPreviewOwner.Read<App>,
@@ -55,13 +55,7 @@ extension DesktopWindowTarget {
         let direct = DesktopPreviewOwner.read(key, find: NSRunningApplication.init(processIdentifier:))
         return Self.selectionOwner(for: key, direct: direct, foreground: { NSWorkspace.shared.frontmostApplication }, focusedPID: {
             guard AXIsProcessTrusted() else { return nil }
-            let system = AXUIElementCreateSystemWide()
-            var application: CFTypeRef?
-            guard AXUIElementSetMessagingTimeout(system, 0.12) == .success,
-                  AXUIElementCopyAttributeValue(system, kAXFocusedApplicationAttribute as CFString, &application) == .success,
-                  let application, CFGetTypeID(application) == AXUIElementGetTypeID() else { return nil }
-            var pid: pid_t = 0
-            return AXUIElementGetPid(application as! AXUIElement, &pid) == .success && pid > 1 ? pid : nil
+            return try? FrontFocus.verifiedPID()
         })
     }
 }

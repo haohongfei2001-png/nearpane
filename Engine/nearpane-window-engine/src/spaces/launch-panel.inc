@@ -27,8 +27,9 @@
 
 static int launchTrace(NPSpacesLaunchToken *t,unsigned op,int result,const char *phase) {
     if (getenv("NP_SPACES_LAUNCH_TRACE")) {
+        BOOL main=NSThread.isMainThread;
         fprintf(stderr,"{\"event\":\"spacesLaunchPlatform\",\"phase\":\"%s\",\"operation\":%u,\"result\":%d,\"mainThread\":%d,\"appRunning\":%d,\"prepared\":%d,\"opened\":%d,\"window\":%u,\"closeIssued\":%d}\n",
-            phase,op,result,NSThread.isMainThread,NSApp.isRunning,t->prepared,t->opened,t->window,t->closeIssued);
+            phase,op,result,main,main?NSApp.isRunning:-1,main?t->prepared:-1,main?t->opened:-1,main?t->window:0,main?t->closeIssued:-1);
         fflush(stderr);
     }
     return result;
@@ -65,34 +66,66 @@ void *np_stage_launch_candidate_token(void) {
     if (!np_stage_candidate_supported()) return NULL;
     return (void *)CFBridgingRetain([NPSpacesLaunchToken new]);
 }
+static BOOL focusFailure(const char *phase,AXError error,BOOL sameOwner) {
+    if(getenv("NP_SPACES_LAUNCH_TRACE")) {
+        fprintf(stderr,"{\"event\":\"spacesLaunchFocus\",\"phase\":\"%s\",\"axError\":%d,\"sameOwner\":%d}\n",phase,error,sameOwner);
+        fflush(stderr);
+    }
+    return NO;
+}
+static BOOL focusSession(void) {
+    CFDictionaryRef raw=CGSessionCopyCurrentDictionary();
+    if(!raw)return focusFailure("console-session",kAXErrorSuccess,NO);
+    NSDictionary *session=CFBridgingRelease(raw);
+    id locked=session[@"CGSSessionScreenIsLocked"], uid=session[(__bridge NSString *)kCGSessionUserIDKey];
+    BOOL active=CFEqual((__bridge CFTypeRef)(session[(__bridge NSString *)kCGSessionOnConsoleKey]?:@NO),kCFBooleanTrue) &&
+        CFEqual((__bridge CFTypeRef)(session[(__bridge NSString *)kCGSessionLoginDoneKey]?:@NO),kCFBooleanTrue) &&
+        [uid isKindOfClass:NSNumber.class] && [uid unsignedIntValue]==getuid() &&
+        (!locked || (CFGetTypeID((__bridge CFTypeRef)locked)==CFBooleanGetTypeID() && ![locked boolValue]));
+    return active || focusFailure("inactive-console",kAXErrorSuccess,NO);
+}
 static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window) {
+    if(!focusSession())return NO;
     NSRunningApplication *front=NSWorkspace.sharedWorkspace.frontmostApplication;
     pid_t owner=front.processIdentifier; uint64_t generation=birth(owner); CGWindowID n=0;
-    if (!generation) return NO;
+    if (!generation) return focusFailure("process-birth",kAXErrorSuccess,NO);
     if (owner==getpid()) {
         NSWindow *key=NSApp.keyWindow;
-        if(key && (key.windowNumber<=0 || key.windowNumber>UINT32_MAX)) return NO;
+        if(key && (key.windowNumber<=0 || key.windowNumber>UINT32_MAX)) return focusFailure("own-key-number",kAXErrorSuccess,YES);
         n=key ? (CGWindowID)key.windowNumber : 0;
     } else {
-        if(!AXIsProcessTrusted())return NO;
-        AXUIElementRef system=AXUIElementCreateSystemWide();CFTypeRef app=NULL,focused=NULL;
-        pid_t axOwner=0;BOOL valid=system && AXUIElementSetMessagingTimeout(system,.08f)==kAXErrorSuccess &&
-            AXUIElementCopyAttributeValue(system,kAXFocusedApplicationAttribute,&app)==kAXErrorSuccess && app &&
-            CFGetTypeID(app)==AXUIElementGetTypeID() && AXUIElementGetPid((AXUIElementRef)app,&axOwner)==kAXErrorSuccess && axOwner==owner &&
-            AXUIElementSetMessagingTimeout((AXUIElementRef)app,.08f)==kAXErrorSuccess;
+        if(!AXIsProcessTrusted())return focusFailure("permission",kAXErrorAPIDisabled,NO);
+        // Match the shipping ordinary controller's FrontFocus witness: the
+        // frontmost process, its own AX focused window, and a second process check.
+        // macOS 27 can fail system-wide AXFocusedApplication while this exact
+        // application's AXFocusedWindow remains positively readable.
+        AXUIElementRef app=AXUIElementCreateApplication(owner);CFTypeRef focused=NULL,active=NULL;
+        pid_t axOwner=0;AXError error=kAXErrorFailure;const char *phase="application-timeout";
+        BOOL valid=app && (error=AXUIElementSetMessagingTimeout(app,.08f))==kAXErrorSuccess;
+        if(valid){phase="application-frontmost";error=AXUIElementCopyAttributeValue(app,kAXFrontmostAttribute,&active);
+            valid=error==kAXErrorSuccess && active && CFEqual(active,kCFBooleanTrue);}
         if(valid) {
-            AXError e=AXUIElementCopyAttributeValue((AXUIElementRef)app,kAXFocusedWindowAttribute,&focused);
-            if(e==kAXErrorNoValue && !focused) n=0;
-            else {
+            phase="focused-window";error=AXUIElementCopyAttributeValue(app,kAXFocusedWindowAttribute,&focused);
+            if(error==kAXErrorNoValue && !focused) {
+                // An explicitly supported, empty focused-window attribute is a
+                // known no-window state. Unsupported/failed reads stay unknown.
+                CFArrayRef names=NULL;error=AXUIElementCopyAttributeNames(app,&names);
+                valid=error==kAXErrorSuccess && names && CFArrayContainsValue(names,
+                    CFRangeMake(0,CFArrayGetCount(names)),kAXFocusedWindowAttribute);
+                if(names)CFRelease(names);n=0;
+            } else {
                 AXNumber number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
-                valid=e==kAXErrorSuccess && focused && CFGetTypeID(focused)==AXUIElementGetTypeID() &&
-                    number && number((AXUIElementRef)focused,&n)==kAXErrorSuccess && n>0;
+                valid=error==kAXErrorSuccess && focused && CFGetTypeID(focused)==AXUIElementGetTypeID() && number;
+                if(valid){phase="focused-window-owner";error=AXUIElementGetPid((AXUIElementRef)focused,&axOwner);
+                    valid=error==kAXErrorSuccess && axOwner==owner;}
+                if(valid){phase="focused-window-number";error=number((AXUIElementRef)focused,&n);valid=error==kAXErrorSuccess && n>0;}
             }
         }
-        if(focused)CFRelease(focused);if(app)CFRelease(app);if(system)CFRelease(system);
-        if(!valid)return NO;
+        if(focused)CFRelease(focused);if(active)CFRelease(active);if(app)CFRelease(app);
+        if(!valid)return focusFailure(phase,error,axOwner==owner);
     }
-    if(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier!=owner || birth(owner)!=generation) return NO;
+    if(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier!=owner || birth(owner)!=generation || !focusSession())
+        return focusFailure("foreground-changed",kAXErrorSuccess,NO);
     *pid=owner;*started=generation;*window=n;return YES;
 }
 static BOOL originalFocus(NPSpacesLaunchToken *t) {

@@ -146,6 +146,52 @@ static BOOL waitOwnerState(NSDictionary *target,NSString *field,BOOL wanted) {
     do{n=ownerState(target,field,wanted)?n+1:0;if(n==2)return YES;pump(.035);}while(NSProcessInfo.processInfo.systemUptime<end);
     return NO;
 }
+static NSDictionary *foregroundFocusSample(NSDictionary *target) {
+    typedef AXError (*WindowNumber)(AXUIElementRef, CGWindowID *);
+    WindowNumber numberReader=(WindowNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
+    pid_t pid=frontmostApplication().processIdentifier;
+    uint64_t started=birth(pid);
+    BOOL expectedOwner=pid==[target[@"pid"] intValue] && started==[target[@"birth"] unsignedLongLongValue];
+    AXUIElementRef application=expectedOwner?AXUIElementCreateApplication(pid):NULL;
+    CFTypeRef window=NULL,frontmost=NULL;pid_t windowPID=0;CGWindowID number=0;
+    AXError windowResult=kAXErrorFailure,numberResult=kAXErrorFailure,pidResult=kAXErrorFailure,frontmostResult=kAXErrorFailure;
+    if(application) {
+        AXUIElementSetMessagingTimeout(application,.1);
+        frontmostResult=AXUIElementCopyAttributeValue(application,kAXFrontmostAttribute,&frontmost);
+        windowResult=AXUIElementCopyAttributeValue(application,kAXFocusedWindowAttribute,&window);
+        if(windowResult==kAXErrorSuccess && window && CFGetTypeID(window)==AXUIElementGetTypeID() && numberReader) {
+            pidResult=AXUIElementGetPid((AXUIElementRef)window,&windowPID);
+            numberResult=numberReader((AXUIElementRef)window,&number);
+        }
+    }
+    BOOL stableOwner=expectedOwner && frontmostApplication().processIdentifier==pid && birth(pid)==started;
+    BOOL pidMatches=pidResult==kAXErrorSuccess && windowPID==pid;
+    BOOL windowMatches=numberResult==kAXErrorSuccess && number==[target[@"number"] unsignedIntValue];
+    BOOL frontmostTrue=frontmostResult==kAXErrorSuccess && frontmost && CFGetTypeID(frontmost)==CFBooleanGetTypeID() && CFBooleanGetValue(frontmost);
+    // The stable foreground process and exact AX window are always required.
+    // If AXFrontmost is implemented it must agree; unsupported is recorded
+    // separately and is never reported as an affirmative AXFrontmost result.
+    BOOL frontmostCompatible=frontmostTrue || frontmostResult==kAXErrorAttributeUnsupported;
+    NSDictionary *sample=@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"stableForegroundOwner":@(stableOwner),
+        @"windowRead":@(windowResult),@"windowNumberRead":@(numberResult),@"pidMatches":@(pidMatches),
+        @"frontmostRead":@(frontmostResult),@"frontmostTrue":@(frontmostTrue),@"windowMatches":@(windowMatches),
+        @"verified":[NSNumber numberWithBool:stableOwner&&pidMatches&&windowMatches&&frontmostCompatible]};
+    if(frontmost)CFRelease(frontmost);if(window)CFRelease(window);if(application)CFRelease(application);
+    return sample;
+}
+static BOOL waitFocusedFixture(NSDictionary *target) {
+    NSMutableArray *confirmed=[NSMutableArray array];NSDictionary *last=nil;
+    double end=NSProcessInfo.processInfo.systemUptime+3;
+    do {
+        last=foregroundFocusSample(target);
+        if([last[@"verified"] boolValue])[confirmed addObject:last];else [confirmed removeAllObjects];
+        if(confirmed.count==2)break;
+        pump(.05);
+    } while(NSProcessInfo.processInfo.systemUptime<end);
+    emit(@{@"event":@"controlledForegroundFocusReadback",@"observations":confirmed.count?confirmed:@[last?:@{}],
+        @"verified":[NSNumber numberWithBool:confirmed.count==2]});
+    return confirmed.count==2;
+}
 static void check(NSString *name,BOOL passed,NSString *scope) {
     checks[name]=@{@"status":passed?@"PASS":@"FAIL",@"scope":scope};
     emit(@{@"event":@"check",@"name":name,@"status":passed?@"PASS":@"FAIL",@"scope":scope});
@@ -200,6 +246,14 @@ static int runScenario(NSString *configuration) {
         if(targets.count!=3 || ![targets[0][@"pid"] isEqual:targets[1][@"pid"]] || [targets[1][@"pid"] isEqual:targets[2][@"pid"]]) {
             reason=@"threeWindowsInTwoForeignProcessesRequired";goto finish;
         }
+        // Establish a real, controlled foreground before the canary captures focus.
+        // An idle desktop can legitimately have no AXFocusedApplication at all.
+        if(!ownerCommand(targets[0],@"focus") || !waitOwnerState(targets[0],@"key",YES) ||
+           frontmostApplication().processIdentifier!=[targets[0][@"pid"] intValue]) {
+            reason=@"controlledFixtureFocusUnavailable";goto finish;
+        }
+        if(!waitFocusedFixture(targets[0])){reason=@"controlledForegroundFocusUnreadable";goto finish;}
+        emit(@{@"event":@"controlledFixtureFocusPrepared",@"pid":targets[0][@"pid"],@"window":targets[0][@"number"]});
         if(np_engine_create_spaces_candidate(&engine)!=NP_OK || np_engine_epoch(engine,&epoch)!=NP_OK){reason=@"candidateHandleUnavailable";goto finish;}
         {
             NPRequest r={.size=sizeof(r),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=5000,.epoch=epoch};

@@ -173,27 +173,45 @@ func observation(_ owner: OrdinaryOwnerIdentity, _ id: ManagedWindowID, _ bundle
     return sample
 }
 
-struct FrontFocus {
-    let pid: pid_t
-    let element: AXUIElement?
-    init() throws {
+package struct FrontFocus {
+    package let pid: pid_t
+    package let element: AXUIElement?
+    private let image: OrdinaryProcessImage
+    package init() throws {
         guard let front = NSWorkspace.shared.frontmostApplication?.processIdentifier else { throw Refusal("前台身份未知。") }
+        let before = try OrdinaryProcessImage.read(front)
         let app = AXUIElementCreateApplication(front)
         var value: CFTypeRef?
         try require(AXUIElementSetMessagingTimeout(app,0.2) == .success, "焦点读取时限不可用。")
         let error = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &value)
-        if error == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() { element = (value as! AXUIElement) }
+        if error == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+            let window = value as! AXUIElement
+            var owner: pid_t = 0
+            try require(AXUIElementGetPid(window, &owner) == .success && owner == front, "前台焦点窗口的应用身份不符。")
+            element = window
+        }
         else if error == .noValue {
             var names: CFArray?
             guard AXUIElementCopyAttributeNames(app,&names) == .success,
                   (names as? [String])?.contains(kAXFocusedWindowAttribute) == true else { throw Refusal("前台窗口焦点未知。") }
             element = nil
         } else { throw Refusal("当前前台窗口焦点不可核对。") }
-        pid = front
+        try require(NSWorkspace.shared.frontmostApplication?.processIdentifier == front &&
+                    (try OrdinaryProcessImage.read(front)) == before, "读取焦点时前台进程已变化。")
+        pid = front; image = before
     }
-    func check() throws {
+    package func check() throws {
         let now = try Self()
-        try require(pid == now.pid && ((element == nil && now.element == nil) ||
+        try require(image == now.image && ((element == nil && now.element == nil) ||
                     (element != nil && now.element != nil && CFEqual(element!, now.element!))), "前台应用或窗口焦点已变化。")
+    }
+
+    /// The global AXFocusedApplication attribute can fail on a live console even
+    /// when this application's exact focused window is readable. A PID alone is
+    /// insufficient: bracket its AX observation with process and focus continuity.
+    package static func verifiedPID() throws -> pid_t {
+        let first = try Self()
+        try first.check()
+        return first.pid
     }
 }

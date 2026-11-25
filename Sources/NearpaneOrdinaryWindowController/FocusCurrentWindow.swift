@@ -63,17 +63,10 @@ package func focusCurrentWindow(id: ManagedWindowID, element: AXUIElement, owner
             try require(ProcessInfo.processInfo.systemUptime < deadline, "原选窗操作已超时。")
         }
     }
-    // NSRunningApplication properties update on the main run loop. This command is
-    // itself a CFFileDescriptor callback, so sleeping here can freeze the previous PID.
-    let system = AXUIElementCreateSystemWide()
-    try require(AXUIElementSetMessagingTimeout(system, 0.18) == .success, "无法核对当前焦点。")
-    func frontPID() -> pid_t? {
-        if let value = attribute(system, kAXFocusedApplicationAttribute), CFGetTypeID(value) == AXUIElementGetTypeID() {
-            var pid: pid_t = 0
-            if AXUIElementGetPid(value as! AXUIElement, &pid) == .success && pid > 0 { return pid }
-        }
-        return NSWorkspace.shared.frontmostApplication?.processIdentifier
-    }
+    // The exact front application's AX window and process birth are observable even
+    // when global AXFocusedApplication fails. Keep pumping the main run loop below
+    // so NSWorkspace also observes a newly activated application.
+    func frontPID() -> pid_t? { try? FrontFocus.verifiedPID() }
     func waitFor(_ seconds: Double, until condition: () -> Bool) -> Bool {
         let end = min(deadline, ProcessInfo.processInfo.systemUptime + seconds)
         while true {
