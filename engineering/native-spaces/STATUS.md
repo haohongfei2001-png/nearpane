@@ -2,7 +2,13 @@
 
 ## 5.22（90）Apple 原生工作集合与 R4
 
-**内部签名候选为 `08e1d97`，回滚包为 `a63dd14`。** 两包均从 GitHub 草稿独立下载并核对完整 SHA-256。候选的 14 个可执行文件通过验签。完整 Swift 回归 842 项通过、5 项跳过，Rust 138 项通过。该源码的原生协议与引擎 CI 通过。首次打包校验因校验器漏列两份已装入包内的上游来源清单而失败，补齐校验后的嵌入工具 CI 通过。另行签封的原生验收 Host 和两款普通窗口夹具已做静态验签。[签名候选与回滚收据](../verification/window-engine/apple-native/signed-delivery.json) · [测试与 CI](../verification/window-engine/apple-native/source-validation.json) · [原始回归输出](../verification/window-engine/apple-native/source-validation.zip) · [隔离夹具签封](../verification/window-engine/apple-native/sealed-fixture.json)
+**当前内部候选为 `06ef083`，回滚包为 `08e1d97`。** 两份归档均通过 GitHub 草稿独立下载校验。候选的 14 个可执行文件及封装资源通过签名验证，本次采用内部开发用 Developer ID 签名，发行时间戳、公证及干净安装仍待正式发行验收。[签名与回滚收据](../verification/window-engine/apple-native/delivery-06ef083.json)
+
+R4 在切回非活动集合时可复用同一真实窗口最后一次核实的画面。识别原生 Stage 中最小化的窗口时，连续两次核对原生缩略栏成员、窗口身份和原生桌面，保留此前已最小化到 Dock 的窗口状态。窗口创建、聚焦和几何变化会触发原生目录更新。完整 Swift 回归 847 项通过、5 项跳过，两项源码 CI 通过。[回归与 CI](../verification/window-engine/apple-native/verification-06ef083.json) · [原始输出](../verification/window-engine/apple-native/verification-06ef083.zip)
+
+三款独立测试应用和隔离 Host 已签封。26A428 现有授权登录会话中原生台前调度关闭，R4 原生 A→B→C→A 实机验收为 **NOT_RUN**。黄色按钮及 ⌘M 进入 Stage、从卡片恢复和合组仍待实测。原生拖出拆组目前只观察系统完成的变化，R4 主动拖出尚未实现。固定上游记录了拖动导致窗口移动但未拆组的情况。两条生产写入路线均未取得资格。[三窗夹具签封](../verification/window-engine/apple-native/focus-cycle-fixture-06ef083.json) · [上游原生拖放实现](https://github.com/eugene-tea/stage-manager/blob/69a73665488243bf78982c6d523ac4e0850c1ddb/src/platform/apple/routes/drag.rs)
+
+**上一份内部签名候选为 `08e1d97`，当时的回滚包为 `a63dd14`。** 两包均从 GitHub 草稿独立下载并核对完整 SHA-256。候选的 14 个可执行文件通过验签。完整 Swift 回归 842 项通过、5 项跳过，Rust 138 项通过。该源码的原生协议与引擎 CI 通过。首次打包校验因校验器漏列两份已装入包内的上游来源清单而失败，补齐校验后的嵌入工具 CI 通过。另行签封的原生验收 Host 和两款普通窗口夹具已做静态验签。[签名候选与回滚收据](../verification/window-engine/apple-native/signed-delivery.json) · [测试与 CI](../verification/window-engine/apple-native/source-validation.json) · [原始回归输出](../verification/window-engine/apple-native/source-validation.zip) · [隔离夹具签封](../verification/window-engine/apple-native/sealed-fixture.json)
 
 R4 读取每块显示器上 WindowManager 的实际工作集合，在同一张平面卡片中展示成员窗口。Swift 保留侧栏选择和事务协调，Rust 复用固定上游的原生分组与变化判定。苹果负责活动窗口、原生最小化和布局。当前优先在 Apple 原生模式上验收。内部隐藏 Space 和 Corner 均未取得替代它的生产资格。[产品裁决](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [原生集成源码](https://github.com/haohongfei2001-png/nearpane/commit/d3fb818f88c0781e382bbfb52d7f5848e6d4e62a)
 

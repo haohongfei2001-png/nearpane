@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "source": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+  "prHead": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+  "draftReleaseID": 452393835,
+  "releasePage": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+  "releaseStillDraft": true,
+  "publishedAt": null,
+  "previousAssetsPreserved": true,
+  "assetCountBefore": 40,
+  "assetCountAfter": 40,
+  "publicRelease": false,
+  "items": [
+    {
+      "role": "development candidate",
+      "revision": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+      "name": "Nearpane-5.22-90-arm64-06ef083.zip",
+      "assetID": 791947645,
+      "bytes": 35043581,
+      "sha256": "56589d72b1c41f3305a838e0e6233b538cee267f757b1bf16688523b222d0585",
+      "downloadSHA256": "56589d72b1c41f3305a838e0e6233b538cee267f757b1bf16688523b222d0585",
+      "independentDownload": "PASS",
+      "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/791947645",
+      "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-06ef083.zip"
+    },
+    {
+      "role": "rollback",
+      "revision": "08e1d97adc4dd60d0c701fd56bfe155620853441",
+      "name": "Nearpane-5.22-90-arm64-08e1d97.zip",
+      "assetID": 791207380,
+      "bytes": 34988070,
+      "sha256": "12ac334c6046e29133a83b709a21dd6f4177dcfdc3c856806c7bfd0192105b04",
+      "downloadSHA256": "12ac334c6046e29133a83b709a21dd6f4177dcfdc3c856806c7bfd0192105b04",
+      "independentDownload": "PASS",
+      "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/791207380",
+      "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-08e1d97.zip"
+    }
+  ],
+  "candidateArchiveVerification": {
+    "version": "5.22",
+    "build": "90",
+    "revision": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "architecture": "arm64",
+    "identity": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "40800958f93cec807df7bbaa2377c72c5146c34d",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "verifiedMachO": 14,
+    "deepStrictAllArchitectures": "PASS",
+    "archiveRoundTrip": "PASS",
+    "permissionIdentity": {
+      "subjects": 9,
+      "team": "ZB9D4T66QB"
+    },
+    "archive": "Nearpane-5.22-90-arm64.zip",
+    "archiveBytes": 35043581,
+    "sha256": "56589d72b1c41f3305a838e0e6233b538cee267f757b1bf16688523b222d0585",
+    "previousCandidate": "08e1d97adc4dd60d0c701fd56bfe155620853441",
+    "signingMode": "local Developer ID, without distribution timestamps",
+    "missingDistributionSignatures": [
+      "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+      "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+      "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+      "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+      "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+      "Helpers/NearpaneAutomation",
+      "Helpers/NearpaneCornerGuardian",
+      "Helpers/NearpaneDesktopReader",
+      "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+      "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+      "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+      "Helpers/NearpaneOrdinaryWindowController",
+      "Helpers/NearpaneSpaceAction",
+      "MacOS/NearpaneHost"
+    ],
+    "notarization": "NOT_RUN",
+    "candidateExecutions": 0,
+    "dailyInstallReplaced": false,
+    "stageGroupProductionQualified": false,
+    "publicRelease": "NOT_ADMITTED",
+    "sealedWindowEngineOrigins": {
+      "license": {
+        "resource": "Resources/Upstream/window-engine/LICENSE",
+        "sha256": "16851449171a13fcc5f978373f836cd2466ab3c0de85f8766f4a8c07f8cfc933"
+      },
+      "pinnedSource": {
+        "resource": "Resources/Upstream/window-engine/source.json",
+        "sha256": "97907744484d911d86136175ef455eff3e031cdae51b06835e444fced1a3234d"
+      },
+      "apple": {
+        "resource": "Resources/Upstream/window-engine/origins/apple.json",
+        "sha256": "7844d4c1f57a54035259810b158b1c8c7a5bbfa637c22f65bf86a5e596a95bed"
+      },
+      "minimize": {
+        "resource": "Resources/Upstream/window-engine/origins/minimize.json",
+        "sha256": "6a9c1237e26bc86d6165c37e5e4362b78d923a338478ba4b8f10e448cb68aee6"
+      }
+    }
+  }
+}
