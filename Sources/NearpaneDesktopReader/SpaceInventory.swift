@@ -82,7 +82,7 @@ struct SpaceInventory: Equatable {
                     }
                 }
                 records.append(SpaceRecord(id: id, isCurrent: id == current, ordinaryUUID: type == 0 ? uuid : nil,
-                    fullscreenUUID: type == 4 ? uuid : nil))
+                    fullscreenUUID: type == 4 ? uuid : nil, observedNativeType: uuid == nil ? type : nil))
             }
             guard records.contains(where: \.isCurrent) else { return nil }
             scopes.append(.init(id: "scope-" + display.id, displayID: display.id, records: records))

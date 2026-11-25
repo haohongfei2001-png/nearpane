@@ -41,6 +41,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `a73454a1`, desktop initialization | System created ordinary Space 12 with a real UUID; selection became current after the helper's early deadline; cleanup restored original Space 1 | No foreign writes; helper timing failure is not a failed migration |
 | `6558c2d5`, diagnostics | New raw platform diagnostic compiled; temporary native-desktop cleanup failed its first animation-time read, then completed | No fixture/platform move executed; [original preparation and cleanup](cloud-6558c2d5-diagnostics/README.md) |
 | `bdedf131`, hosted platform experiment | Two external processes' windows completed four real hidden/return moves; same-app sibling unchanged; two full observations per stage; owned hidden Space emptied and destroyed | `PLATFORM_FOREIGN_PASS` on 26A434/SIP disabled; [original evidence](cloud-bdedf131-platform/README.md). Engine/R4 not run, target not qualified, separate ordinary-desktop cleanup unconfirmed |
+| `6558c2d5`, full lane | 150 Rust, 153 Swift and 17 Python passed; one signed live fixture skipped; complete candidate and strict signature passed; platform foreign result repeated | R4 sees all three correct fixtures but `catalogComplete=false`; no R4 input yet. [Candidate and product receipt](cloud-6558c2d5-full/README.md) |
+| `e630b6bc`, diagnostics | Two foreign hidden/return cycles on original home 1, four writes, hidden Space 12 emptied/destroyed; no ordinary desktop created | Independent platform replication with cleanup; engine/R4 remain separate. [Original result references](cloud-e630b6bc-diagnostics/README.md) |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -62,6 +64,13 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[6558c2d5 complete receipts](cloud-6558c2d5-full/README.md) identify the later source-checked full
+workspace candidate in [artifact 15061066778](https://github.com/haohongfei2001-png/nearpane/actions/runs/45693715803/artifacts/15061066778).
+The independently checked ZIP SHA-256 is
+`96d4d3a71a662b629a4080f5835abc360404cc4d3ad59d94e87fb8d256d44856`.
+Its whole runtime remains incomplete: R4 directory readiness blocked before a card press, and the
+older CI-only ordinary-desktop cleanup did not confirm deletion. Neither changes the verified build.
 
 [3493f968 complete receipts](cloud-3493f968/README.md) identify the source-checked full workspace
 candidate in [artifact 15057695932](https://github.com/haohongfei2001-png/nearpane/actions/runs/45686497133/artifacts/15057695932).

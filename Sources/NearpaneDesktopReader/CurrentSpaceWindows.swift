@@ -128,15 +128,23 @@ extension Reader {
         var windows = [WindowObservation]()
         // Absence only proves emptiness when every eligible CG surface was accounted for.
         let hasBackground = inventory?.scopes.flatMap(\.records).contains { !$0.isCurrent && $0.ordinaryUUID != nil } == true
-        var complete = (!hasBackground || (first.backgroundCollectionComplete && second.backgroundCollectionComplete &&
-                                           backgroundInventory == inventory)) &&
-                       Set(first.windows.map(\.windowID)) == Set(second.windows.map(\.windowID))
+        var complete = true
+        var catalogIssues = [String]()
+        func incomplete(_ reason: String, window: CGWindowMetadata? = nil) {
+            complete = false
+            guard catalogIssues.count < 32 else { return }
+            catalogIssues.append(window.map { "\(reason):pid=\($0.process.pid),window=\($0.windowID)" } ?? reason)
+        }
+        if inventory == nil { incomplete("nativeInventoryUnavailable") }
+        if hasBackground && (!first.backgroundCollectionComplete || !second.backgroundCollectionComplete ||
+                             backgroundInventory != inventory) { incomplete("backgroundRosterIncomplete") }
+        if Set(first.windows.map(\.windowID)) != Set(second.windows.map(\.windowID)) { incomplete("windowRosterChanged") }
         let admitted = inventory?.scopes.flatMap(\.records).filter { $0.ordinaryUUID != nil || $0.fullscreenUUID != nil } ?? []
         let supported = Set(admitted.map(\.id))
         for entry in second.windows {
             guard let before = previous[entry.windowID], let birth = entry.process.launchEpochMicroseconds, birth > 0,
                   before.process == entry.process,
-                  min(entry.frame.width, entry.frame.height) > 1 else { complete = false; continue }
+                  min(entry.frame.width, entry.frame.height) > 1 else { incomplete("windowIdentityOrBounds", window: entry); continue }
             let visible = active.contains(entry.windowID) && before.isOnscreen == true && entry.isOnscreen == true
             // Our inactive group windows can remain in CG's all-window list.
             // Their independently confirmed hidden membership is not a failed
@@ -146,8 +154,8 @@ extension Reader {
                 firstOnscreen: before.isOnscreen, lastOnscreen: entry.isOnscreen,
                 active: activeBeforeRead != nil && activeAfterRead != nil ? observedActive.contains(entry.windowID) : nil) == true { continue }
             let left = firstBoundary?.membership[entry.windowID], right = lastBoundary?.membership[entry.windowID]
-            guard left == right else { complete = false; continue }
-            if right == nil || right == .unknown { complete = false }
+            guard left == right else { incomplete("membershipChanged", window: entry); continue }
+            if right == nil || right == .unknown { incomplete("membershipUnavailable", window: entry) }
             let memberDisplays: [String]
             if case .known(let ids) = right {
                 memberDisplays = inventory?.scopes.filter { $0.records.contains { ids.contains($0.id) } }.map(\.displayID) ?? []
@@ -158,7 +166,7 @@ extension Reader {
             let afterSlices = try topology.geometry.slices(of: lastRect ?? entry.frame)
             let beforeSlices = try topology.geometry.slices(of: firstRect ?? before.frame)
             guard let displayID = Self.overviewDisplay(before: beforeSlices, after: afterSlices, memberDisplays: memberDisplays),
-                  let display = topology.displays.first(where: { $0.id == displayID }) else { complete = false; continue }
+                  let display = topology.displays.first(where: { $0.id == displayID }) else { incomplete("displayUnresolved", window: entry); continue }
             let record = currentByDisplay[display.id]
             var proof: String?
             var membership = WindowMembership.unknown
@@ -169,7 +177,7 @@ extension Reader {
                 membership = .known(recordIDs: ids)
             }
             if case .known(let ids) = right, !supported.isDisjoint(with: ids) {
-                guard memberDisplays.contains(display.id) else { complete = false; continue }
+                guard memberDisplays.contains(display.id) else { incomplete("membershipDisplayMismatch", window: entry); continue }
                 nativeMember = true
                 if let record, record.ordinaryUUID != nil, ids.contains(record.id) { proof = record.id }
             }
@@ -225,6 +233,7 @@ extension Reader {
                 spaces: inventory == nil ? .disabled : .observed, rows: [], windowLimitReached: false,
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
+        result.native?.catalogIssues = catalogIssues.isEmpty ? nil : catalogIssues
         if let targets = request.sidebarAuditWindows {
             result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
                 var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,

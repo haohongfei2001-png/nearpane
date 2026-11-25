@@ -123,7 +123,7 @@ struct DesktopSurface: View {
             Button("取消",role:.cancel) { display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.answerConsent(allow:false) }
         } message: {
             let n = display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.lifetimes.count ?? 0
-            Text("允许在此屏当前桌面暂时移出、恢复和排列所选组的 \(n) 扇已登记窗口。授权后请再次选择窗口组。")
+            Text("允许在此屏当前桌面移出、恢复和排列所选组的 \(n) 扇窗口。")
         }
         .onChange(of: canNavigate) { _, available in
             if !available { nameEdit = nil; navigation.windowSwitch.cancel(on: displayID) }

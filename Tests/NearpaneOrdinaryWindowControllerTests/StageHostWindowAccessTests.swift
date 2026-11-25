@@ -5,6 +5,30 @@ import Testing
 @testable import NearpaneOrdinaryWindowRuntime
 
 @MainActor struct StageHostWindowAccessTests {
+    @Test func inactiveOrdinaryRecordWithoutUUIDPreservesOrderButCannotBecomeTheFocusDesktop() throws {
+        let display = UUID().uuidString, currentUUID = UUID(), topology = String(repeating: "a", count: 64)
+        let inactive = SpaceRecord(id: "1", isCurrent: false, observedNativeType: 0)
+        let active = SpaceRecord(id: "12", isCurrent: true, ordinaryUUID: currentUUID)
+        let scope = try #require(OrdinaryFocusScope(display: display, topology: topology, order: [inactive, active]))
+        #expect(scope.order.map(\.id) == ["1", "12"] && scope.order[0].observedNativeType == 0)
+        #expect(scope.desktop.record == "12" && scope.desktop.uuid == currentUUID)
+        #expect(scope.order[0].ordinaryUUID == nil && scope.order[0].fullscreenUUID == nil)
+        let current: [String: Any] = ["id64": UInt64(12), "type": 0, "uuid": currentUUID.uuidString]
+        func rows(_ first: [String: Any]) -> [[String: Any]] {
+            [["Display Identifier": display, "Current Space": current, "Spaces": [first, current]]]
+        }
+        #expect(CurrentFocusScope.inventory(rows(["id64": UInt64(1), "type": 0, "uuid": ""]), for: scope) == .confirmed)
+        #expect(CurrentFocusScope.inventory(rows(["id64": UInt64(1), "type": 4, "uuid": ""]), for: scope) == .changed)
+        #expect(CurrentFocusScope.inventory(rows(["id64": UInt64(1), "type": 0, "uuid": UUID().uuidString]), for: scope) == .changed)
+        #expect(CurrentFocusScope.inventory(rows(["id64": UInt64(2), "type": 0, "uuid": ""]), for: scope) == .changed)
+        #expect(OrdinaryFocusScope(display: display, topology: topology,
+            order: [.init(id: "1", isCurrent: true, observedNativeType: 0), .init(id: "12", isCurrent: false, ordinaryUUID: currentUUID)]) == nil)
+        #expect(OrdinaryFocusScope(display: display, topology: topology,
+            order: [.init(id: "1", isCurrent: false), active]) == nil)
+        let legacy = Data("{\"id\":\"1\",\"isCurrent\":false}".utf8)
+        #expect(try JSONDecoder().decode(SpaceRecord.self, from: legacy).observedNativeType == nil)
+    }
+
     @Test func ordinaryHelperRecognizesOnlyTheSealedCandidatesSingleModeAndExactExecutables() {
         let root = URL(fileURLWithPath: "/private/tmp/nearpane-parent-contract/Candidate.app")
         let host = root.appendingPathComponent("Contents/MacOS/NearpaneHost")

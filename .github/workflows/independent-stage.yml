@@ -18,7 +18,7 @@ jobs:
       matrix:
         lane: ${{ inputs.diagnostics_only == true && fromJSON('["diagnostics"]') || fromJSON('["full", "diagnostics"]') }}
     concurrency:
-      group: independent-stage-${{ github.ref }}-${{ github.event_name }}-${{ matrix.lane }}
+      group: independent-stage-${{ github.ref }}-${{ github.event_name }}-${{ matrix.lane }}-${{ matrix.lane == 'full' && github.run_id || 'sequential' }}
       cancel-in-progress: false
     runs-on: xcode-27
     timeout-minutes: 45

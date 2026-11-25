@@ -107,7 +107,9 @@ private final class SpacesWorkerChannel: @unchecked Sendable {
               Self.signed(executable, identifier: "com.holdsnow.nearpane.spaces-engine")
         else { throw Failure.unavailable }
         var directory = stat()
-        guard profile.resolvingSymlinksInPath() == profile,
+        // The profile URL can be constructed before createDirectory(), without a
+        // directory URL hint. Compare canonical paths, not that representation bit.
+        guard profile.resolvingSymlinksInPath().path == profile.path,
               lstat(profile.path, &directory) == 0, directory.st_uid == getuid(),
               directory.st_mode & S_IFMT == S_IFDIR else { throw Failure.unavailable }
         let path = profile.appendingPathComponent("spaces-worker-" + UUID().uuidString.lowercased() + ".jsonl")

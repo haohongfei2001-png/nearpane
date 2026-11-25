@@ -73,6 +73,11 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
    stopped before its canary because the controlled fixture did not become foreground. Separately,
    removal of the CI-created ordinary Desktop 12 was not confirmed in that run; overall cleanup is not
    promoted by the successful hidden-Space transaction.
+   The `e630b6bc` diagnostic independently repeated both foreign cycles on the original ordinary home 1,
+   through hidden Space 12, with confirmed cleanup and **zero ordinary-desktop initialization inputs**.
+   [Replication and full artifact reference](../verification/independent-stage/cloud-e630b6bc-diagnostics/README.md).
+   This removes dependence on the CI bootstrap from the platform mechanism result, without assigning a
+   synthetic ordinary UUID or promoting it to a state-machine/product qualification.
 
 ### Route A: not a product dependency
 

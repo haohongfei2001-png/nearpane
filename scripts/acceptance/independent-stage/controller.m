@@ -204,7 +204,7 @@ static BOOL prepareFixtureFocus(NSDictionary *target,NSString *phase) {
     emit(@{@"event":@"fixtureFocusPreparation",@"phase":phase,@"commandAcknowledged":@(acknowledged),
         @"ownerKey":@(ownerKey),@"exactForegroundFocus":@(exactFocus),@"frontPID":@(front),@"expectedPID":target[@"pid"],
         @"applicationActive":state[@"applicationActive"]?:NSNull.null,
-        @"activationAccepted":state[@"focusActivationAccepted"]?:NSNull.null,
+        @"activationRequested":state[@"focusActivationRequested"]?:NSNull.null,
         @"commandSequence":state[@"commandSequence"]?:NSNull.null});
     return acknowledged&&ownerKey&&exactFocus&&front==[target[@"pid"] intValue]&&ownerMatches(target);
 }
@@ -405,7 +405,7 @@ static int runScenario(NSString *configuration) {
         int32_t front=frontmostApplication().processIdentifier;
         BOOL testFront=front==getpid();for(NSDictionary *t in targets)testFront=testFront||front==[t[@"pid"] intValue];
         if(testFront&&original&&birth(original.processIdentifier)==originalBirth)
-            dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:NSApplicationActivateIgnoringOtherApps]; });
+            dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:0]; });
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
             @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],

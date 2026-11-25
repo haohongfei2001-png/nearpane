@@ -45,11 +45,16 @@ public struct SpaceRecord: Codable, Equatable, Identifiable, Sendable {
     public let ordinaryUUID: UUID?
     /// Type-4 system Space, distinct from an ordinary desktop.
     public let fullscreenUUID: UUID?
+    /// Raw read-only type for a record whose system UUID is unavailable. This
+    /// preserves inventory evidence; it never supplies a usable desktop identity.
+    public let observedNativeType: Int64?
     public fileprivate(set) var previouslyWitnessed = false
     // Only the local Host can add historical evidence after validating the reader's live witness.
-    private enum CodingKeys: String, CodingKey { case id, isCurrent, ordinaryUUID, fullscreenUUID }
-    public init(id: String, isCurrent: Bool, ordinaryUUID: UUID? = nil, fullscreenUUID: UUID? = nil) {
+    private enum CodingKeys: String, CodingKey { case id, isCurrent, ordinaryUUID, fullscreenUUID, observedNativeType }
+    public init(id: String, isCurrent: Bool, ordinaryUUID: UUID? = nil, fullscreenUUID: UUID? = nil,
+                observedNativeType: Int64? = nil) {
         self.fullscreenUUID = fullscreenUUID
+        self.observedNativeType = observedNativeType
         self.id = id; self.isCurrent = isCurrent; self.ordinaryUUID = ordinaryUUID
     }
 }

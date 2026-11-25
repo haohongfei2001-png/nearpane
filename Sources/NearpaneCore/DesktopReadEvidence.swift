@@ -161,6 +161,8 @@ public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
 
 public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var sidebarWindowAudit: [SidebarWindowReaderProof]? = nil
+    /// Bounded reason codes for an incomplete roster; never window titles or contents.
+    public var catalogIssues: [String]? = nil
     public let population: DesktopReadPopulation
     public package(set) var accessibility: AXReadStatus
     public var spaces: SpaceReadStatus

@@ -11,7 +11,7 @@ static NSMutableArray<NSTextField *> *fields;
 static NSInteger commandSequence;
 static NSInteger pendingFocus = -1, lastFocusSequence;
 static double focusDeadline;
-static BOOL lastActivationAccepted;
+static BOOL lastActivationRequested;
 static void completeRequestedFocus(void) {
     if(pendingFocus<0)return;
     if(NSProcessInfo.processInfo.systemUptime>focusDeadline){pendingFocus=-1;return;}
@@ -37,7 +37,7 @@ static void writeState(void) {
     NSDictionary *state=@{@"schema":@1,@"nonce":nonce,@"pid":@(getpid()),@"birth":@(birth()),
         @"bundle":NSBundle.mainBundle.bundleIdentifier?:@"",@"commandSequence":@(commandSequence),@"windows":rows,
         @"applicationActive":@(NSApp.isActive),@"lastFocusSequence":@(lastFocusSequence),
-        @"focusActivationAccepted":@(lastActivationAccepted)};
+        @"focusActivationRequested":@(lastActivationRequested)};
     NSData *data=[NSJSONSerialization dataWithJSONObject:state options:NSJSONWritingSortedKeys error:NULL];
     [data writeToFile:[directory stringByAppendingPathComponent:@"state.json"] options:NSDataWritingAtomic error:NULL];
 }
@@ -51,11 +51,11 @@ static void command(void) {
     NSWindow *w=documents[(NSUInteger)index];
     pendingFocus=-1;
     if ([action isEqual:@"focus"]) {
-        // This nonce-bound command explicitly requests foreground ownership of
-        // our own fixture. Options 0 cannot displace the currently active app.
+        // Use AppKit's current self-activation request. Its return type is void:
+        // only subsequent real application/key/system-focus reads prove success.
         lastFocusSequence=[request[@"sequence"] integerValue];pendingFocus=index;
         focusDeadline=NSProcessInfo.processInfo.systemUptime+2.5;
-        lastActivationAccepted=[NSRunningApplication.currentApplication activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+        lastActivationRequested=YES;[NSApp activate];
         completeRequestedFocus();
     } else if ([action isEqual:@"minimize"]) {
         // This is the actual AppKit action of the yellow title-bar button, not orderOut.

@@ -31,11 +31,20 @@ public struct OrdinaryFocusScope: Codable, Equatable, Sendable {
 
     public init?(display: String, topology: String, order: [SpaceRecord], physicalDisplay: DisplayObservation? = nil,
                  separateSpaces: Bool? = nil) {
+        let knownUUIDs = order.compactMap { $0.ordinaryUUID ?? $0.fullscreenUUID }
         guard UUID(uuidString: display) != nil, topology.utf8.count == 64,
               topology.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               !order.isEmpty, order.count <= 256, Set(order.map(\.id)).count == order.count,
-              order.allSatisfy({ (UInt64($0.id) ?? 0) > 0 && ($0.ordinaryUUID != nil) != ($0.fullscreenUUID != nil) }),
-              Set(order.compactMap { $0.ordinaryUUID ?? $0.fullscreenUUID }).count == order.count,
+              order.allSatisfy({ record in
+                  guard (UInt64(record.id) ?? 0) > 0 else { return false }
+                  if (record.ordinaryUUID != nil) != (record.fullscreenUUID != nil) {
+                      return record.observedNativeType == nil || record.observedNativeType == (record.ordinaryUUID != nil ? 0 : 4)
+                  }
+                  // An inactive, uninitialized ordinary Desktop is part of the
+                  // live order, but it cannot become the selected desktop.
+                  return !record.isCurrent && record.ordinaryUUID == nil && record.fullscreenUUID == nil && record.observedNativeType == 0
+              }),
+              Set(knownUUIDs).count == knownUUIDs.count,
               order.filter(\.isCurrent).count == 1, let current = order.first(where: \.isCurrent),
               let uuid = current.ordinaryUUID else { return nil }
         guard physicalDisplay == nil || (physicalDisplay?.id == display && separateSpaces != nil) else { return nil }
@@ -44,7 +53,8 @@ public struct OrdinaryFocusScope: Codable, Equatable, Sendable {
         desktop = .init(display: display, record: current.id, uuid: uuid)
         self.topology = topology
         // Previously witnessed is Host history, not part of the live WindowServer order.
-        self.order = order.map { .init(id: $0.id, isCurrent: $0.isCurrent, ordinaryUUID: $0.ordinaryUUID, fullscreenUUID: $0.fullscreenUUID) }
+        self.order = order.map { .init(id: $0.id, isCurrent: $0.isCurrent, ordinaryUUID: $0.ordinaryUUID,
+            fullscreenUUID: $0.fullscreenUUID, observedNativeType: $0.observedNativeType) }
     }
 }
 

@@ -124,6 +124,22 @@ import NearpaneOrdinaryWindowRuntime
                     readiness["accessibilityRead"] = sample.native.map { String(describing: $0.accessibility) } ?? "unavailable"
                     readiness["spacesRead"] = sample.native.map { String(describing: $0.spaces) } ?? "unavailable"
                     readiness["windowCount"] = sample.windows.count
+                    if let issues = sample.native?.catalogIssues,
+                       let data = try? JSONEncoder().encode(issues),
+                       let json = try? JSONSerialization.jsonObject(with: data) {
+                        readiness["catalogIssues"] = json
+                    }
+                    readiness["roster"] = sample.windows.prefix(32).map { window -> [String: Any] in
+                        var row: [String: Any] = ["membership": String(describing: window.membership),
+                            "display": window.displayID]
+                        if let metadata = window.metadata {
+                            row["pid"] = metadata.pid; row["number"] = metadata.number
+                            row["ordinaryRole"] = metadata.overviewOrdinaryRole.map { $0 ? "ordinary" : "nonordinary" } ?? "unknown"
+                            row["onActiveDesktop"] = metadata.onActiveDesktop ?? false
+                            row["isOnscreen"] = metadata.isOnscreen ?? false
+                        }
+                        return row
+                    }
                     readiness["currentScopes"] = sample.scopes.flatMap { scope in
                         scope.records.filter(\.isCurrent).map { record in
                             ["display": scope.displayID, "record": record.id,
@@ -427,7 +443,7 @@ import NearpaneOrdinaryWindowRuntime
         if let original, let originalImage,
            pids.contains(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1) || NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid(),
            (try? NearpaneCore.OrdinaryProcessImage.read(original.processIdentifier)) == originalImage {
-            _ = original.activate(options: [.activateIgnoringOtherApps])
+            _ = original.activate(options: [])
         }
         save()
         return productPassed && clean ? 0 : (startedWrites ? 1 : 2)

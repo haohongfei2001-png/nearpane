@@ -66,6 +66,20 @@ package enum CurrentFocusScope {
         guard ids.map(String.init) == scope.order.map(\.id) else { return note(.spaceOrder, .changed, scope.order.count, ids.count) }
         var result = Evidence.confirmed
         for (live, original) in zip(spaces, scope.order) {
+            if original.ordinaryUUID == nil && original.fullscreenUUID == nil {
+                guard !original.isCurrent, original.observedNativeType == 0,
+                      let type = live["type"] as? NSNumber, CFGetTypeID(type) != CFBooleanGetTypeID(),
+                      ["c","s","i","l","q","C","S","I","L","Q"].contains(String(cString: type.objCType))
+                else { return note(.recordType, .fullRosterRequired) }
+                if type.int64Value != 0 { return note(.recordType, .changed, 0, type.intValue) }
+                if let value = live["uuid"] {
+                    guard let text = value as? String else { return note(.recordUUID, .fullRosterRequired) }
+                    if !text.isEmpty {
+                        return note(.recordUUID, UUID(uuidString: text) == nil ? .fullRosterRequired : .changed)
+                    }
+                }
+                continue
+            }
             let expectedType = original.ordinaryUUID != nil ? 0 : 4
             if let type = live["type"] as? Int {
                 if type != expectedType { return note(.recordType, .changed, expectedType, type) }
