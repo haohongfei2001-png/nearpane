@@ -125,6 +125,8 @@ def source_checks(out, env):
             checks["rust"].update(status="FAIL", reason="noCompletedRustCases")
     checks["evidence"] = execute(["python3", "-B", "-m", "unittest", "discover", "-s", HERE, "-p", "test_*.py"],
                                   out, "evidence", env, 30)
+    checks["nativeDiagnostic"] = execute(["python3", "-B", "-m", "unittest", "discover", "-s",
+        ROOT / "tools/native-stage-decoupling", "-p", "test_*.py"], out, "native-diagnostic", env, 30)
     result = {"schema": 1, "status": "PASS" if all(x["status"] == "PASS" for x in checks.values()) else "FAIL",
               "checks": checks, "windowServer": "READ_ONLY_CONTEXT", "foreignWindowDispatch": "NOT_RUN", "productR4": "NOT_RUN"}
     atomic(out / "summary.json", result)

@@ -149,8 +149,72 @@ class Lab:
                     (self.output / f"{stem}-{d['id']}-{side}.error.txt").write_text(result.stderr)
 
     def cleanup_fixtures(self):
+        records = []
         for manifest in self.fixtures:
-            Path(str(manifest) + ".stop").touch()
+            entry = {"manifest": manifest.name, "status": "UNKNOWN"}
+            try:
+                Path(str(manifest) + ".stop").touch()
+                fixture = json.loads(manifest.read_text())
+                pid, birth = fixture["pid"], fixture.get("birth", 0)
+                if not isinstance(pid, int) or pid <= 1 or not isinstance(birth, int) or birth <= 0:
+                    raise ValueError("originalFixtureProcessBirthUnavailable")
+                deadline = time.monotonic() + 6
+                while time.monotonic() < deadline:
+                    current = self.probe("process", pid)
+                    if current.get("pid") == pid and current.get("birth") != birth:
+                        entry["status"] = "EXITED"
+                        break
+                    time.sleep(.1)
+                if entry["status"] != "EXITED":
+                    entry["reason"] = "fixtureDidNotExitAfterStopMarker"
+            except Exception as error:
+                entry["reason"] = str(error)
+            records.append(entry)
+        result = {"allExited": all(r["status"] == "EXITED" for r in records), "fixtures": records}
+        save(self.output / "fixtures-cleanup.json", result)
+        return result
+
+
+def restore_environment(lab, original, changed, before):
+    """Attempt every independent restoration step even if a previous one failed."""
+    errors = []
+    try:
+        if not lab.cleanup_fixtures()["allExited"]:
+            errors.append("A fixture's original process exit is unconfirmed; see fixtures-cleanup.json")
+    except Exception as error:
+        errors.append("fixture cleanup: " + str(error))
+    try:
+        if changed:
+            lab.preferences({key: original[key] for key in changed}, "preferences-restoring.json")
+        restored = lab.probe("preferences")
+        save(lab.output / "preferences-restored.json", restored)
+        if any(restored.get(key) != original.get(key) for key in changed):
+            errors.append("A changed preference did not restore exactly")
+    except Exception as error:
+        errors.append("preferences: " + str(error))
+    try:
+        lab.probe("move-pointer", *before["pointer"])
+    except Exception as error:
+        errors.append("pointer: " + str(error))
+    try:
+        pid, birth = before.get("frontPID", 0), before.get("frontBirth", 0)
+        if pid > 0 and birth > 0 and lab.probe("process", pid).get("birth") == birth:
+            activation = lab.probe("activate", pid, birth)
+            save(lab.output / "foreground-restored.json", activation)
+            if not activation.get("accepted"):
+                errors.append("Original foreground activation was not accepted")
+        elif pid > 0:
+            save(lab.output / "foreground-restored.json", {"accepted": False, "reason": "originalProcessNoLongerConfirmed"})
+    except Exception as error:
+        errors.append("foreground: " + str(error))
+    try:
+        time.sleep(.2)
+        save(lab.output / "after.json", lab.probe("snapshot"))
+    except Exception as error:
+        errors.append("final snapshot: " + str(error))
+    result = {"status": "RESTORED" if not errors else "RESTORE_INCOMPLETE", "errors": errors}
+    save(lab.output / "restore-result.json", result)
+    return result
 
 
 def main(argv=None):
@@ -169,15 +233,15 @@ def main(argv=None):
     if args.mode == "restore":
         lab = Lab(output)
         original = json.loads((output / "preferences-original.json").read_text())
-        applied = json.loads((output / "preferences-applied.json").read_text())
-        lab.preferences({key: original[key] for key in applied}, "preferences-restoring.json")
-        restored = lab.probe("preferences")
-        save(output / "preferences-restored.json", restored)
-        for manifest in output.glob("fixture-*.json"):
-            Path(str(manifest) + ".stop").touch()
+        path = output / "preferences-applied.json"
+        applied = json.loads(path.read_text()) if path.exists() else {}
+        lab.fixtures = sorted(output.glob("fixture-[AB].json"))
         before = json.loads((output / "before.json").read_text())
-        lab.probe("move-pointer", *before["pointer"])
-        return 0 if all(restored.get(key) == original.get(key) for key in applied) else 1
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        restored = restore_environment(lab, original, applied, before)
+        print(json.dumps(restored, indent=2))
+        return 0 if restored["status"] == "RESTORED" else 1
     output.mkdir(parents=True, mode=0o700, exist_ok=False)
     lab = Lab(output)
     lab.build()
@@ -215,7 +279,7 @@ def main(argv=None):
             b = lab.create_fixture("B")
             # Actual app activations let Apple create native groups. CG/AX readback is evidence.
             for label, f in [("A", a), ("B", b), ("A-again", a)]:
-                accepted = lab.probe("activate", f["pid"])
+                accepted = lab.probe("activate", f["pid"], f["birth"])
                 time.sleep(.9)
                 sample = lab.probe("snapshot")
                 sample["fixtureActivation"] = {"label": label, "pid": f["pid"], **accepted}
@@ -243,22 +307,13 @@ def main(argv=None):
     except (Exception, KeyboardInterrupt) as error:
         failure = str(error)
     finally:
-        lab.cleanup_fixtures()
-        try:
-            if changed:
-                lab.preferences({key: original[key] for key in changed}, "preferences-restoring.json")
-            restored = lab.probe("preferences")
-            save(output / "preferences-restored.json", restored)
-            if any(restored.get(key) != original.get(key) for key in changed):
-                restore_error = "A changed preference did not restore exactly; run restore with this --output"
-            pointer = before["pointer"]
-            lab.probe("move-pointer", *pointer)
-            if before["frontPID"] > 0:
-                lab.probe("activate", before["frontPID"])
-            time.sleep(.2)
-            save(output / "after.json", lab.probe("snapshot"))
-        except Exception as error:
-            restore_error = str(error)
+        # A second handled interrupt must not abandon an already-started restore.
+        # SIGKILL still requires the separate restore entry, using the saved intent.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        restored = restore_environment(lab, original, changed, before)
+        if restored["errors"]:
+            restore_error = "; ".join(restored["errors"])
     result = classify(samples)
     result.update({"preferencesTested": changed, "sampleCount": len(samples), "error": failure,
                    "restoreError": restore_error, "capabilityProven": False,

@@ -6,23 +6,47 @@ import NearpaneOrdinaryWindowRuntime
 #endif
 import Security
 
-// No command-line targeting: one installed Host owns both pipes and the worker can bind only one
-// same-user regular application. EOF or parent death discards all AX references.
-func verifyParent(_ parent: pid_t) -> Bool {
-    guard parent > 1, let own = windowExecutablePath(getpid()), let host = windowExecutablePath(parent),
-          own.lastPathComponent == "NearpaneOrdinaryWindowController",
-          own.deletingLastPathComponent().lastPathComponent == "Helpers" else { return false }
-    let contents = own.deletingLastPathComponent().deletingLastPathComponent()
-    let root = contents.deletingLastPathComponent()
+// This predicate identifies the owning bundle; verifyParent still requires its strict code seal.
+// Candidate markers come from that bundle's Info.plist, never the helper's arguments or Bundle.main.
+func ordinaryControllerParentMatches(helper: URL, host: URL, root: URL, declaredHost: URL?,
+                                     identifier: String?, workspace: Any?, acceptance: Any?) -> Bool {
+    let contents = helper.deletingLastPathComponent().deletingLastPathComponent()
+    guard helper.lastPathComponent == "NearpaneOrdinaryWindowController",
+          helper.deletingLastPathComponent().lastPathComponent == "Helpers",
+          root.pathExtension == "app", contents.lastPathComponent == "Contents",
+          contents.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL,
+          host.lastPathComponent == "NearpaneHost", let declaredHost else { return false }
     #if NEARPANE_WINDOW_SELECTION_FIXTURE
     let requiredBundleID = "net.example.nearpane-sidebar-observer"
     #else
     let requiredBundleID = "com.holdsnow.nearpane.alpha"
+    if identifier == IndependentStagePolicy.candidateBundleID {
+        guard (workspace as? Int == 1 && acceptance == nil) ||
+              (acceptance as? Int == 1 && workspace == nil) else { return false }
+        // Resolve the containing bundle once (including /tmp -> /private/tmp), but do not
+        // permit either sealed executable to redirect to a file elsewhere.
+        let canonical = root.resolvingSymlinksInPath()
+        let expectedHost = canonical.appendingPathComponent("Contents/MacOS/NearpaneHost")
+        let expectedHelper = canonical.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
+        return expectedHost == expectedHost.resolvingSymlinksInPath() &&
+            expectedHelper == expectedHelper.resolvingSymlinksInPath() &&
+            host.resolvingSymlinksInPath() == expectedHost &&
+            declaredHost.resolvingSymlinksInPath() == expectedHost &&
+            helper.resolvingSymlinksInPath() == expectedHelper
+    }
     #endif
-    guard root.pathExtension == "app", contents.lastPathComponent == "Contents",
-          Bundle(url:root)?.executableURL?.standardizedFileURL.path == host.standardizedFileURL.path,
-          host.lastPathComponent == "NearpaneHost",
-          Bundle(url:root)?.bundleIdentifier == requiredBundleID else { return false }
+    return identifier == requiredBundleID && declaredHost.standardizedFileURL == host.standardizedFileURL
+}
+
+// No command-line targeting: one sealed Host owns both pipes and the worker can bind only one
+// same-user regular application. EOF or parent death discards all AX references.
+func verifyParent(_ parent: pid_t) -> Bool {
+    guard parent > 1, let own = windowExecutablePath(getpid()), let host = windowExecutablePath(parent) else { return false }
+    let root = own.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    guard let bundle = Bundle(url: root),
+          ordinaryControllerParentMatches(helper: own, host: host, root: root, declaredHost: bundle.executableURL,
+              identifier: bundle.bundleIdentifier, workspace: bundle.object(forInfoDictionaryKey: "NearpaneIndependentStageWorkspace"),
+              acceptance: bundle.object(forInfoDictionaryKey: "NearpaneIndependentStageAcceptance")) else { return false }
     // A clone with new code and copied Info.plist does not validate against the sealed app.
     var signed: SecStaticCode?
     guard SecStaticCodeCreateWithPath(root as CFURL, [], &signed) == errSecSuccess, let signed,

@@ -81,7 +81,7 @@ private func inputCounters() -> [UInt32] {
 }
 private func title(_ r: SplitRequest, index: Int) -> String {
     "Nearpane Fixture " + r.nonce.uuidString.lowercased() +
-        " com.holdsnow.nearpane.independent-stage-fixture-a " + String(index)
+        " com.holdsnow.stage-engine-fixture-a " + String(index)
 }
 private func fixtureIsCurrent(_ r: SplitRequest) -> Bool {
     guard r.fixturePID > 1, r.fixturePID != getpid(),
@@ -91,7 +91,7 @@ private func fixtureIsCurrent(_ r: SplitRequest) -> Bool {
             .appendingPathComponent("FixtureA.app/Contents/MacOS/FixtureA").path), requested == adjacent,
           processPath(r.fixturePID) == requested else { return false }
     var code: SecCode?, requirement: SecRequirement?
-    let rule = "identifier \"com.holdsnow.nearpane.independent-stage-fixture-a\""
+    let rule = "identifier \"com.holdsnow.stage-engine-fixture-a\""
     return SecRequirementCreateWithString(rule as CFString, [], &requirement) == errSecSuccess &&
         SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid: NSNumber(value: r.fixturePID)] as CFDictionary, [], &code) == errSecSuccess &&
         code.map { SecCodeCheckValidity($0, [], requirement) == errSecSuccess } == true &&

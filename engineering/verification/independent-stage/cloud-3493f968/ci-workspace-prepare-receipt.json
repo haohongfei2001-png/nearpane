@@ -1,0 +1,48 @@
+{
+  "cleanup": false,
+  "created": null,
+  "current": 1,
+  "currentHasSystemUUID": false,
+  "directWindowOperations": 0,
+  "lastRecordedStep": "issued:openMissionControl",
+  "originalCurrent": 1,
+  "phase": "adding",
+  "physicalGestureClaimed": false,
+  "process": {
+    "exit": 0,
+    "log": "ci-workspace-prepare.log",
+    "status": "PASS",
+    "stderr": "ci-workspace-prepare.stderr.log"
+  },
+  "qualificationGranted": false,
+  "readOnlyDiagnostics": {
+    "AXTrusted": true,
+    "boundedNodes": 24,
+    "current": 1,
+    "identifierCounts": {
+      "mc": 1,
+      "other": 23
+    },
+    "records": [
+      {
+        "id": 1,
+        "type": 0,
+        "uuid": ""
+      }
+    ],
+    "roleCounts": {
+      "AXDockItem": 22,
+      "AXGroup": 1,
+      "AXList": 1
+    },
+    "rootChildCount": 2,
+    "rootChildrenAXError": 0,
+    "screens": 1,
+    "signedDockBirth": 1795635195098982,
+    "signedDockPID": 367
+  },
+  "reason": "systemTileGeometryOrderChanged",
+  "schema": 1,
+  "status": "BLOCKED",
+  "systemInputs": 4
+}

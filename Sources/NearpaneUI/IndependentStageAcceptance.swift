@@ -111,6 +111,41 @@ import NearpaneOrdinaryWindowRuntime
             var candidateReady = false
             while ContinuousClock.now < readyDeadline {
                 feed.changed()
+                groupIDs.removeAll(keepingCapacity: true)
+                var readiness: [String: Any] = ["snapshotAvailable": feed.snapshot != nil,
+                    "accessibilityTrusted": AXIsProcessTrusted(),
+                    "observedCapability": feed.stageEngine.observedCapability.map { String(describing: $0) } ?? "unavailable"]
+                if let sample = feed.snapshot {
+                    readiness["revision"] = sample.revision
+                    readiness["fresh"] = sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+                    readiness["catalogComplete"] = sample.native?.catalogComplete ?? false
+                    readiness["catalogCompletenessObserved"] = sample.native?.catalogComplete != nil
+                    readiness["nativeStageManager"] = sample.native?.stageManagerEnabled.map { $0 ? "on" : "off" } ?? "unknown"
+                    readiness["accessibilityRead"] = sample.native.map { String(describing: $0.accessibility) } ?? "unavailable"
+                    readiness["spacesRead"] = sample.native.map { String(describing: $0.spaces) } ?? "unavailable"
+                    readiness["windowCount"] = sample.windows.count
+                    readiness["currentScopes"] = sample.scopes.flatMap { scope in
+                        scope.records.filter(\.isCurrent).map { record in
+                            ["display": scope.displayID, "record": record.id,
+                             "ordinaryUUID": record.ordinaryUUID?.uuidString ?? "unavailable"]
+                        }
+                    }
+                    readiness["targets"] = targets.map { target -> [String: Any] in
+                        let observation = sample.windows.first {
+                            $0.metadata?.pid == target.fixture.pid && $0.metadata?.number == target.window.number &&
+                            $0.metadata?.launchMicroseconds == target.fixture.birth
+                        }
+                        var entry: [String: Any] = ["pid": target.fixture.pid, "number": target.window.number,
+                            "included": observation != nil]
+                        if let observation {
+                            entry["display"] = observation.displayID
+                            entry["membership"] = String(describing: observation.membership)
+                            entry["onActiveDesktop"] = observation.metadata?.onActiveDesktop ?? false
+                            entry["isOnscreen"] = observation.metadata?.isOnscreen ?? false
+                        }
+                        return entry
+                    }
+                }
                 if let sample = feed.snapshot, sample.native?.stageManagerEnabled == false,
                    sample.native?.catalogComplete == true, sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
                    let screen = sample.displays.first, let display = UUID(uuidString: screen.id),
@@ -121,9 +156,14 @@ import NearpaneOrdinaryWindowRuntime
                             groupIDs[target.window.number] = group.id
                         }
                     }
+                    readiness["permitsStageEngine"] = modules.workRect?.permitsStageEngine(on: screen.id) == true
                     if groupIDs.count == 3, Set(groupIDs.values).count == 3, feed.stageEngine.observedCapability == .spaces,
-                       modules.workRect?.permitsStageEngine(on: screen.id) == true { candidateReady = true; break }
+                       modules.workRect?.permitsStageEngine(on: screen.id) == true { candidateReady = true }
                 }
+                readiness["fixtureGroupCount"] = groupIDs.count
+                readiness["distinctFixtureGroupCount"] = Set(groupIDs.values).count
+                report["lastReadiness"] = readiness
+                if candidateReady { break }
                 try await Task.sleep(for: .milliseconds(100))
                 panels.update(screens: SystemScreens.geometry())
             }

@@ -5,6 +5,38 @@ import Testing
 @testable import NearpaneOrdinaryWindowRuntime
 
 @MainActor struct StageHostWindowAccessTests {
+    @Test func ordinaryHelperRecognizesOnlyTheSealedCandidatesSingleModeAndExactExecutables() {
+        let root = URL(fileURLWithPath: "/private/tmp/nearpane-parent-contract/Candidate.app")
+        let host = root.appendingPathComponent("Contents/MacOS/NearpaneHost")
+        let helper = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
+        func accepts(_ workspace: Any?, _ acceptance: Any?, identifier: String? = IndependentStagePolicy.candidateBundleID,
+                     actualHost: URL? = nil, declared: URL? = nil, actualHelper: URL? = nil) -> Bool {
+            ordinaryControllerParentMatches(helper: actualHelper ?? helper, host: actualHost ?? host, root: root,
+                declaredHost: declared ?? host, identifier: identifier, workspace: workspace, acceptance: acceptance)
+        }
+        #expect(accepts(1, nil))
+        #expect(accepts(nil, 1))
+        for (workspace, acceptance) in [(nil, nil), (1, 1), (1, 0), (0, 1), (2, nil), (nil, 0)] as [(Int?, Int?)] {
+            #expect(!accepts(workspace, acceptance))
+        }
+        #expect(!accepts("1", nil))
+        #expect(!accepts(1, nil, identifier: "net.example.unrelated"))
+        #expect(!accepts(1, nil, actualHost: URL(fileURLWithPath: "/private/tmp/Other.app/Contents/MacOS/NearpaneHost")))
+        #expect(!accepts(1, nil, actualHost: root.appendingPathComponent("Contents/Helpers/NearpaneHost")))
+        #expect(!accepts(1, nil, declared: root.appendingPathComponent("Contents/Helpers/NearpaneHost")))
+        #expect(!accepts(1, nil, actualHelper: root.appendingPathComponent("Contents/MacOS/NearpaneOrdinaryWindowController")))
+    }
+
+    @Test func ordinaryHelperKeepsTheExistingAlphaParentRule() {
+        let root = URL(fileURLWithPath: "/Applications/Nearpane.app")
+        let host = root.appendingPathComponent("Contents/MacOS/NearpaneHost")
+        let helper = root.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
+        #expect(ordinaryControllerParentMatches(helper: helper, host: host, root: root, declaredHost: host,
+            identifier: "com.holdsnow.nearpane.alpha", workspace: nil, acceptance: nil))
+        #expect(!ordinaryControllerParentMatches(helper: helper, host: host, root: root, declaredHost: host,
+            identifier: "net.example.nearpane-sidebar-observer", workspace: nil, acceptance: nil))
+    }
+
     @Test func hostNeedsTheCanonicalKernelExecutableAndTheApprovedSigningDigest() {
         let app = "/Applications/Nearpane.app", digest = String(repeating: "a", count: 40)
         let exe = app + "/Contents/MacOS/NearpaneHost", id = "com.holdsnow.nearpane.alpha"

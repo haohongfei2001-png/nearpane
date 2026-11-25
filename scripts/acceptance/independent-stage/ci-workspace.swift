@@ -71,6 +71,18 @@ private func controlFrame(_ element: AXUIElement) -> CGRect? {
           [point.x, point.y, size.width, size.height].allSatisfy(\.isFinite), size.width > 0, size.height > 0 else { return nil }
     return CGRect(origin: point, size: size)
 }
+private func controlGeometry(_ element: AXUIElement) -> [String: Any] {
+    var position: CFTypeRef?, size: CFTypeRef?
+    let p = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position)
+    let s = AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size)
+    var result: [String: Any] = ["positionAXError": p.rawValue, "sizeAXError": s.rawValue]
+    var point = CGPoint.zero, dimensions = CGSize.zero
+    if let position, CFGetTypeID(position) == AXValueGetTypeID(), AXValueGetValue(position as! AXValue, .cgPoint, &point),
+       point.x.isFinite, point.y.isFinite { result["position"] = [point.x, point.y] }
+    if let size, CFGetTypeID(size) == AXValueGetTypeID(), AXValueGetValue(size as! AXValue, .cgSize, &dimensions),
+       dimensions.width.isFinite, dimensions.height.isFinite { result["size"] = [dimensions.width, dimensions.height] }
+    return result
+}
 private func belongs(_ child: AXUIElement, to parent: AXUIElement, owner: pid_t) -> Bool {
     var next: AXUIElement? = child
     for _ in 0..<12 {
@@ -103,8 +115,12 @@ private struct CITiles {
         else { throw Refusal("systemTilesDoNotMatchRawInventoryOrder") }
         try bar.verify(list)
         let frames = items.compactMap(controlFrame)
-        if frames.count == items.count {
-            guard frames.allSatisfy(frame.contains), zip(frames, frames.dropFirst()).allSatisfy({ $0.midX < $1.midX }) else {
+        // Collapsed Mission Control can keep expanded logical thumbnail frames
+        // outside its short list. They cannot invalidate a semantic Add press.
+        // Compare visual order only when every reported frame is actually within
+        // the list; pointer selection below still requires an exact retained hit.
+        if frames.count == items.count && frames.allSatisfy(frame.contains) {
+            guard zip(frames, frames.dropFirst()).allSatisfy({ $0.midX < $1.midX }) else {
                 throw Refusal("systemTileGeometryOrderChanged")
             }
         }
@@ -387,6 +403,19 @@ private extension Array { var only: Element? { count == 1 ? first : nil } }
         if let snapshot = try? CISnapshot.read() {
             result["current"] = snapshot.current
             result["records"] = snapshot.records.map { ["id": $0.id, "type": $0.type, "uuid": $0.uuid] as [String: Any] }
+            if let display = UUID(uuidString: snapshot.display),
+               let bar = try? secondarySpacesBar(display, currentDisplay: true) {
+                var geometry: [String: Any] = ["ownerPID": bar.owner.pid, "ownerBirth": bar.owner.birth,
+                    "container": controlGeometry(bar.container), "spaces": controlGeometry(bar.spaces), "add": controlGeometry(bar.add)]
+                if let list = try? children(bar.spaces, named: "mc.spaces.list").only {
+                    geometry["list"] = controlGeometry(list)
+                    geometry["tiles"] = (attr(list, kAXChildrenAttribute) as? [AXUIElement] ?? []).prefix(32).enumerated().map { index, tile in
+                        ["index": index, "role": attr(tile, kAXRoleAttribute) as? String ?? "unavailable",
+                         "geometry": controlGeometry(tile)] as [String: Any]
+                    }
+                }
+                result["spacesBarGeometry"] = geometry
+            }
         }
         do {
             let dock = try SystemDock.identity(), root = AXUIElementCreateApplication(dock.pid)

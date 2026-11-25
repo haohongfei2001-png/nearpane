@@ -20,8 +20,8 @@ def build(archive: Path, out: Path, *, controller_only=False, stdout=None, stder
     apps = {}
     def execute(command):
         return subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
-    for name, bundle, source in (("FixtureA", "com.holdsnow.nearpane.independent-stage-fixture-a", "fixture.m"),
-                                  ("FixtureB", "com.holdsnow.nearpane.independent-stage-fixture-b", "fixture.m"),
+    for name, bundle, source in (("FixtureA", "com.holdsnow.stage-engine-fixture-a", "fixture.m"),
+                                  ("FixtureB", "com.holdsnow.stage-engine-fixture-b", "fixture.m"),
                                   ("Controller", "com.holdsnow.nearpane.independent-stage-controller", "controller.m")):
         if controller_only and name != "Controller":
             continue

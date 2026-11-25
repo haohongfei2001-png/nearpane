@@ -3,6 +3,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <objc/runtime.h>
 #import <dlfcn.h>
+#import <libproc.h>
 #import <unistd.h>
 #include <math.h>
 #include <stdlib.h>
@@ -18,6 +19,12 @@ static void emit(id value) {
 static NSArray *rect(CGRect r) {
     return @[@(r.origin.x), @(r.origin.y), @(r.size.width), @(r.size.height)];
 }
+static uint64_t birth(pid_t pid) {
+    struct proc_bsdinfo info = {0};
+    return pid > 1 && proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, sizeof(info)) == sizeof(info) &&
+        info.pbi_pid == (uint32_t)pid && info.pbi_uid == getuid() && info.pbi_start_tvsec > 0 && info.pbi_start_tvusec < 1000000
+        ? info.pbi_start_tvsec * 1000000 + info.pbi_start_tvusec : 0;
+}
 static id attribute(AXUIElementRef node, CFStringRef key, AXError *status) {
     CFTypeRef value = NULL;
     AXUIElementSetMessagingTimeout(node, .05f);
@@ -28,8 +35,17 @@ static id attribute(AXUIElementRef node, CFStringRef key, AXError *status) {
 static NSArray *axFrame(AXUIElementRef node) {
     id value = attribute(node, CFSTR("AXFrame"), NULL);
     CGRect r = CGRectZero;
-    if (value && CFGetTypeID((__bridge CFTypeRef)value) == AXValueGetTypeID() &&
-        AXValueGetValue((__bridge AXValueRef)value, kAXValueCGRectType, &r)) return rect(r);
+    BOOL read = value && CFGetTypeID((__bridge CFTypeRef)value) == AXValueGetTypeID() &&
+        AXValueGetValue((__bridge AXValueRef)value, kAXValueCGRectType, &r);
+    if (!read) {
+        id position = attribute(node, kAXPositionAttribute, NULL), size = attribute(node, kAXSizeAttribute, NULL);
+        read = position && size && CFGetTypeID((__bridge CFTypeRef)position) == AXValueGetTypeID() &&
+            CFGetTypeID((__bridge CFTypeRef)size) == AXValueGetTypeID() &&
+            AXValueGetValue((__bridge AXValueRef)position, kAXValueCGPointType, &r.origin) &&
+            AXValueGetValue((__bridge AXValueRef)size, kAXValueCGSizeType, &r.size);
+    }
+    if (read && isfinite(r.origin.x) && isfinite(r.origin.y) && isfinite(r.size.width) &&
+        isfinite(r.size.height) && r.size.width > 0 && r.size.height > 0) return rect(r);
     return @[];
 }
 static NSArray *displays(void) {
@@ -103,11 +119,12 @@ static NSDictionary *snapshot(void) {
     if(e) CFRelease(e);
     id enabled = CFBridgingRelease(CFPreferencesCopyAppValue(CFSTR("GloballyEnabled"), CFSTR("com.apple.WindowManager")));
     id autoHide = CFBridgingRelease(CFPreferencesCopyAppValue(CFSTR("AutoHide"), CFSTR("com.apple.WindowManager")));
+    pid_t front = NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
     return @{@"uptime":@(NSProcessInfo.processInfo.systemUptime),
              @"os":NSProcessInfo.processInfo.operatingSystemVersionString,
              @"nativeEnabled":enabled ?: NSNull.null, @"autoHide":autoHide ?: NSNull.null,
              @"accessibility":@(AXIsProcessTrusted()), @"screenCapture":@(CGPreflightScreenCaptureAccess()),
-             @"frontPID":@(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier),
+             @"frontPID":@(front), @"frontBirth":@(birth(front)),
              @"pointer":@[@(p.x), @(p.y)], @"displays":displays(),
              @"windowListAvailable":@(raw != nil), @"windows":rows, @"managers":owners};
 }
@@ -156,6 +173,8 @@ static NSDictionary *inventory(void) {
 static int fixture(NSString *destination, NSString *label) {
     [NSApplication sharedApplication];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    NSWindow.allowsAutomaticWindowTabbing = NO;
+    [NSApp finishLaunching];
     NSMutableArray<NSWindow *> *windows = [NSMutableArray array];
     for (int i=0;i<2;i++) {
         NSWindow *w = [[NSWindow alloc] initWithContentRect:NSMakeRect(260+i*55,220+i*55,420,260)
@@ -173,18 +192,25 @@ static int fixture(NSString *destination, NSString *label) {
         NSMutableArray *items=[NSMutableArray array];
         for(NSWindow *w in windows) [items addObject:@{@"id":@(w.windowNumber),@"frame":rect(w.frame),
             @"visible":@(w.visible),@"key":@(w.keyWindow),@"minimized":@(w.miniaturized)}];
-        NSDictionary *r=@{@"pid":@(getpid()),@"label":label,@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"windows":items};
+        NSDictionary *r=@{@"pid":@(getpid()),@"birth":@(birth(getpid())),@"label":label,
+            @"uptime":@(NSProcessInfo.processInfo.systemUptime),@"windows":items};
         NSData *data=[NSJSONSerialization dataWithJSONObject:r options:NSJSONWritingSortedKeys error:NULL];
         [data writeToFile:destination options:NSDataWritingAtomic error:NULL];
     };
     write();
-    [NSTimer scheduledTimerWithTimeInterval:.1 repeats:YES block:^(__unused NSTimer *timer) {
-        if ([[NSFileManager defaultManager] fileExistsAtPath:[destination stringByAppendingString:@".stop"]]) [NSApp terminate:nil];
+    double deadline=NSProcessInfo.processInfo.systemUptime+600;
+    NSTimer *timer=[NSTimer timerWithTimeInterval:.1 repeats:YES block:^(NSTimer *current) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:[destination stringByAppendingString:@".stop"]] ||
+            NSProcessInfo.processInfo.systemUptime>=deadline) {
+            for (NSWindow *window in windows) [window close];
+            [current invalidate];[NSApp terminate:nil];return;
+        }
         write();
     }];
+    [NSRunLoop.mainRunLoop addTimer:timer forMode:NSRunLoopCommonModes];
     [NSApp run]; return 0;
 }
-int main(int argc,const char **argv) {
+static int runCommand(int argc,const char **argv) {
     @autoreleasepool {
         if(argc<2) return 2;
         NSString *command=@(argv[1]);
@@ -210,10 +236,14 @@ int main(int argc,const char **argv) {
             BOOL ok=CFPreferencesSynchronize(CFSTR("com.apple.WindowManager"),kCFPreferencesCurrentUser,kCFPreferencesAnyHost);
             emit(@{@"synchronized":@(ok)}); if(!ok) return 1;
         }
-        else if([command isEqual:@"fixture"] && argc==4) return fixture(@(argv[2]),@(argv[3]));
-        else if([command isEqual:@"activate"] && argc==3) {
-            NSRunningApplication *a=[NSRunningApplication runningApplicationWithProcessIdentifier:atoi(argv[2])];
-            emit(@{@"accepted":@([a activateWithOptions:NSApplicationActivateIgnoringOtherApps])});
+        else if([command isEqual:@"process"] && argc==3) {
+            pid_t pid=atoi(argv[2]);emit(@{@"pid":@(pid),@"birth":@(birth(pid))});
+        }
+        else if([command isEqual:@"activate"] && (argc==3 || argc==4)) {
+            pid_t pid=atoi(argv[2]);uint64_t actual=birth(pid), expected=argc==4?strtoull(argv[3],NULL,10):actual;
+            NSRunningApplication *a=[NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+            emit(@{@"accepted":@(actual>0 && actual==expected && [a activateWithOptions:NSApplicationActivateIgnoringOtherApps]),
+                @"pid":@(pid),@"birth":@(actual)});
         } else if([command isEqual:@"move-pointer"] && argc==4) {
             CGPoint p=CGPointMake(atof(argv[2]),atof(argv[3]));
             if(!isfinite(p.x)||!isfinite(p.y)) return 2;
@@ -223,5 +253,16 @@ int main(int argc,const char **argv) {
             emit(@{@"posted":@YES,@"requested":@[@(p.x),@(p.y)]});
         } else return 2;
         return 0;
+    }
+}
+int main(int argc,const char **argv) {
+    @autoreleasepool {
+        if(argc<2) return 2;
+        if(!strcmp(argv[1],"fixture") && argc==4) return fixture(@(argv[2]),@(argv[3]));
+        [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];[NSApp finishLaunching];
+        // NSWorkspace foreground/application discovery needs a live AppKit loop,
+        // including one-shot snapshot/activation commands. No panel is opened.
+        dispatch_async(dispatch_get_main_queue(), ^{ exit(runCommand(argc,argv)); });
+        [NSApp run];return 2;
     }
 }

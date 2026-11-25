@@ -83,6 +83,68 @@ jobs:
           if [ -f tools/native-stage-decoupling/probe.m ]; then
             xcrun clang -fobjc-arc -fblocks -Wall -Wextra -O1 tools/native-stage-decoupling/probe.m -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/native-stage-inspect"
           fi
+      - name: Observe native rendering and edge invocation after Spaces cleanup
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          output = root / 'native-stage-cloud'
+          output.mkdir()
+          runtime_file = root / 'independent-runtime/runtime/summary.json'
+          runtime = json.loads(runtime_file.read_text()) if runtime_file.exists() else {}
+          engine = runtime.get('engineReceipt') or {}
+          product = runtime.get('productReceipt') or {}
+          workspace = runtime.get('ciWorkspaceCleanup') or {}
+          crash = product.get('hostCrashReceipt') or {}
+          safe = (workspace.get('cleanup') is True and workspace.get('status') == 'READY'
+                  and (engine.get('cleanup') is True or engine.get('phase') == 'ciWorkspacePreparation')
+                  and (not product or product.get('cleanup') is True)
+                  and (not crash or crash.get('cleanup') is True)
+                  and all(isinstance(row.get('exit'), int) for row in runtime.get('fixtureCleanup', [])))
+          results = {'schema': 1, 'qualificationGranted': False, 'experiments': []}
+          tool = ['python3', '-B', 'tools/native-stage-decoupling/run.py']
+          experiments = [('inventory', ['inventory']),
+                         ('autohide', ['edge-sweep', '--enable-native', '--autohide']),
+                         ('zero-rows', ['edge-sweep', '--enable-native', '--zero-rows'])]
+          cleanup_failed = False
+          for name, arguments in experiments:
+              directory = output / name
+              receipt = {'name': name, 'qualificationGranted': False}
+              if name != 'inventory' and not safe:
+                  receipt['result'] = {'status': 'NOT_RUN',
+                      'reason': 'Independent Spaces cleanup was not positively confirmed.'}
+                  results['experiments'].append(receipt)
+                  continue
+              with (output / (name + '.log')).open('w') as log:
+                  try:
+                      process = subprocess.run(tool + arguments + ['--output', str(directory)],
+                                               stdout=log, stderr=subprocess.STDOUT, timeout=150)
+                      receipt['exit'] = process.returncode
+                  except subprocess.TimeoutExpired:
+                      receipt['error'] = 'diagnosticTimeout'
+                  finally:
+                      if (directory / 'preferences-applied.json').exists() and (directory / 'preferences-original.json').exists():
+                          try:
+                              restored = subprocess.run(tool + ['restore', '--output', str(directory)],
+                                                        stdout=log, stderr=subprocess.STDOUT, timeout=30)
+                              receipt['restoreExit'] = restored.returncode
+                              cleanup_failed = restored.returncode != 0
+                          except subprocess.TimeoutExpired:
+                              receipt['restoreError'] = 'restoreTimeout'
+                              cleanup_failed = True
+              result_file = directory / 'result.json'
+              receipt['result'] = json.loads(result_file.read_text()) if result_file.exists() else {
+                  'status': 'NOT_RUN', 'reason': 'Diagnostic produced no terminal receipt.'}
+              results['experiments'].append(receipt)
+              if cleanup_failed:
+                  break
+          results.update(status='UNKNOWN' if cleanup_failed else 'COLLECTED', cleanup=not cleanup_failed)
+          (output / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
+          sys.exit(1 if cleanup_failed else 0)
+          PY
       - name: Preserve every terminal result and candidate
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -91,6 +153,7 @@ jobs:
           path: |
             ${{ runner.temp }}/independent-source/
             ${{ runner.temp }}/independent-runtime/
+            ${{ runner.temp }}/native-stage-cloud/
             ${{ runner.temp }}/Nearpane-independent-candidate.zip
             ${{ runner.temp }}/Nearpane-independent-candidate.sha256
             ${{ runner.temp }}/Nearpane-independent-candidate.json
