@@ -105,7 +105,8 @@ def source_checks(out, env):
             checks["readOnlyContext"] = {"status": "FAIL", "reason": type(error).__name__ + ": " + str(error)}
     # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
     pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
-                        "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus", "SpaceInventoryTests"))
+                        "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus",
+                        "SpaceInventoryTests", "SpacesWorkerLifecycleTests"))
     checks["swift"] = execute(["bash", "scripts/test.sh", "--jobs", "4", "--filter", pattern,
                                 "--xunit-output", out / "swift.xml"], out, "swift", env, 1200)
     if checks["swift"]["status"] == "PASS":

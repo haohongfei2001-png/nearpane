@@ -67,8 +67,10 @@ _Static_assert(sizeof(int) == 4 && sizeof(uint32_t) == 4, "unreviewed ABI");
 typedef int (*MainConnection)(void);
 typedef CFArrayRef (*CopyManaged)(int);
 typedef CFArrayRef (*CopyMembership)(int, int, CFArrayRef);
+typedef CFArrayRef (*CopyAllSpaces)(int, int);
 static CopyManaged managed;
 static CopyMembership membership;
+static CopyAllSpaces allSpaces;
 typedef CGError (*ReadLogicalBounds)(int, uint32_t, CGRect *);
 static ReadLogicalBounds logicalBounds;
 typedef CFArrayRef (*CopySpaceWindowNumbers)(int, uint32_t, CFArrayRef, uint32_t, uint64_t *, uint64_t *);
@@ -98,6 +100,7 @@ static void resolveGetters(void) {
     mainConnection = (MainConnection)dlsym(handle, "SLSMainConnectionID");
     managed = (CopyManaged)dlsym(handle, "SLSCopyManagedDisplaySpaces");
     membership = (CopyMembership)dlsym(handle, "SLSCopySpacesForWindows");
+    allSpaces = (CopyAllSpaces)dlsym(handle, "SLSCopySpaces");
     logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
     spaceWindowNumbers = (CopySpaceWindowNumbers)dlsym(handle, "SLSCopyWindowsWithOptionsAndTags");
 }
@@ -171,6 +174,25 @@ CFArrayRef NPReadCatalogSpaceWindowNumbers(uint64_t space) {
 
 CFArrayRef NPReadInventory(void) {
     return connection > 0 && managed ? checkedArray(managed(connection)) : NULL;
+}
+
+CFArrayRef NPReadAllSpaceNumbers(void) {
+    if (connection <= 0 || !allSpaces) return NULL;
+    CFArrayRef result = checkedArray(allSpaces(connection, 15));
+    if (!result) return NULL;
+    CFIndex count = CFArrayGetCount(result);
+    int valid = count > 0 && count <= 2048;
+    for (CFIndex i = 0; valid && i < count; i++) {
+        CFTypeRef value = CFArrayGetValueAtIndex(result, i);
+        int64_t number = 0;
+        valid = value && CFGetTypeID(value) == CFNumberGetTypeID() &&
+            !CFNumberIsFloatType((CFNumberRef)value) &&
+            CFNumberGetValue((CFNumberRef)value, kCFNumberSInt64Type, &number) && number > 0;
+    }
+    // Some native fullscreen Spaces occur twice in the raw all-Space list.
+    // Preserve the actual list; callers checking absence must not invent IDs.
+    if (!valid) { CFRelease(result); return NULL; }
+    return result;
 }
 
 static CFArrayRef copyWindowSpaces(uint32_t window, int selector) {

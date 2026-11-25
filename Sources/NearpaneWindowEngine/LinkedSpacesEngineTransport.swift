@@ -13,7 +13,7 @@ import NearpaneCore
 
     init?(owner: StageEngineOwner, profile: URL) {
         guard owner.backend == .spaces,
-              let engine = SpacesEngineWorker(profile: profile) else { return nil }
+              let engine = SpacesEngineWorker(owner: owner, profile: profile) else { return nil }
         self.engine = engine
         self.owner = owner
         acquisitionEpoch = engine.acquisitionEpoch

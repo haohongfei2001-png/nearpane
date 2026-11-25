@@ -64,6 +64,9 @@ import NearpaneOrdinaryWindowRuntime
     @ObservationIgnored private let minimizeObserver = IndependentStageMinimizeObserver()
     @ObservationIgnored private var minimizeTask: Task<Void, Never>?
     private var pendingMinimized = [DesktopWindowKey]()
+    @ObservationIgnored private var coldReturnTask: Task<Void, Never>?
+    private var coldReturnPending = false
+    private var lastColdReturnAttempt: TimeInterval = 0
 
     init(profile: URL?, store: StageGroupStore) {
         self.profile = profile
@@ -74,6 +77,7 @@ import NearpaneOrdinaryWindowRuntime
                 try journal.finishExitedGuardianReturn { CornerExitedReturnReceipt.confirmed($0, in: profile) }
                 try journal.withdrawVerifiedActivity()
                 engine = StageWindowEngineController(coordinator:journal)
+                coldReturnPending = journal.retainedOwner?.backend == .spaces
                 unreadableLedger = false
             } catch { engine = nil; unreadableLedger = true }
         } else { engine = nil; unreadableLedger = false }
@@ -82,11 +86,49 @@ import NearpaneOrdinaryWindowRuntime
     func attach(to feed: CurrentDesktopWindows) {
         self.feed = feed
         if candidateMode || !Self.shipped.isEmpty || holdsDispatch { watchSystem() }
+        if coldReturnPending { feed.observeStageOwnership(true); reconcileColdSpacesOwner() }
+    }
+
+    /// The original pipe worker has already restored its retained objects. A new
+    /// Host only observes the terminal and current physical state; it never sends
+    /// the old WAL to a replacement worker or restores from saved numeric hints.
+    private func reconcileColdSpacesOwner() {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard coldReturnPending, coldReturnTask == nil, !releasing, !terminationOwnsLane,
+              now - lastColdReturnAttempt >= 1, let profile, let engine, engine.session == nil else { return }
+        lastColdReturnAttempt = now
+        coldReturnTask = Task { [weak self] in
+            defer { self?.coldReturnTask = nil }
+            do {
+                guard let plan = try engine.coordinator.coldSpacesReturn() else {
+                    self?.coldReturnPending = false; self?.updateReleasedObservation(); return
+                }
+                guard let completion = SpacesWorkerLifecycle.completed(owner: plan.owner, profile: profile) else {
+                    SpacesWorkerLifecycle.trace("cold-return-awaits-original-worker"); return
+                }
+                let returned: Bool
+                if completion.previousBoot { returned = true }
+                else { returned = await StageHostAccess.confirmsColdSpacesReturn(plan.windows, hiddenSpaces: plan.hiddenSpaces) }
+                guard returned, !Task.isCancelled, let self, !self.terminationOwnsLane, !self.releasing,
+                      engine.session == nil,
+                      SpacesWorkerLifecycle.completed(owner: plan.owner, profile: profile) == completion else {
+                    SpacesWorkerLifecycle.trace("cold-return-physical-read-unconfirmed"); return
+                }
+                try engine.coordinator.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: true)
+                self.coldReturnPending = false; self.recoveryRequested = false
+                self.observedCapability = nil; self.needsReassessment = true
+                self.updateReleasedObservation()
+                self.feed?.changed()
+                SpacesWorkerLifecycle.trace("cold-return-confirmed", ["previousBoot": completion.previousBoot,
+                    "windows": plan.windows.count, "hiddenSpaces": plan.hiddenSpaces.count])
+            } catch { SpacesWorkerLifecycle.trace("cold-return-rejected", ["error": String(describing: error)]) }
+        }
     }
 
     /// Initial sample, wake/unlock and display notifications re-evaluate the installed environment.
     /// They never enroll a new writer or infer that a pre-restart AX reference survived.
     func observeEnvironment(_ snapshot: DesktopSnapshot?) {
+        reconcileColdSpacesOwner()
         guard candidateMode || !Self.shipped.isEmpty, let profile else { return }
         if wallpaperPaused {
             // Incomplete/animated geometry is not a native desktop handoff. A
@@ -553,6 +595,7 @@ import NearpaneOrdinaryWindowRuntime
 
     func prepareForShutdown() async -> Bool {
         if let shutdownTask { return await shutdownTask.value }
+        if coldReturnPending { reconcileColdSpacesOwner(); await coldReturnTask?.value }
         wallpaperState = .ordinary
         wallpaperReturnedWithoutFocus = false
         resumeScopes.removeAll()
@@ -587,19 +630,26 @@ import NearpaneOrdinaryWindowRuntime
     func groupChoice(_ group: UUID, member: NativeSidebarMember, selection: StageSidebarSelection, in feed: CurrentDesktopWindows,
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
                      successor: @escaping @MainActor () -> UUID? = { nil }) async throws -> Bool {
+        var phase = "entry", completed = false
+        SpacesWorkerLifecycle.trace("group-choice-entry", ["candidate": candidateMode, "routes": routesGroupChoice,
+            "wallpaperPaused": wallpaperPaused, "unreadableLedger": unreadableLedger, "releasing": releasing,
+            "terminating": terminationOwnsLane, "hasController": engine != nil, "current": current()])
+        defer { SpacesWorkerLifecycle.trace("group-choice-exit", ["lastPhase": phase, "completed": completed]) }
         heldSuccessor = nil
         guard !wallpaperPaused else { throw StageSwitchError.busy }
         guard routesGroupChoice else { return false }
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
+        phase = "binding"
         guard !unreadableLedger, !releasing, !terminationOwnsLane, let engine, let window = feed.groupWindow(member,in:snapshot),
               let space = window.nativeSpace, let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
                 .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity })
-        else { throw StageSwitchError.recoveryRequired }
+        else { SpacesWorkerLifecycle.trace("group-choice-binding-rejected", ["hasLiveWindow": feed.groupWindow(member, in: snapshot) != nil]); throw StageSwitchError.recoveryRequired }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
         // The live worker owns one certified home. A click on a different monitor must leave
         // that home intact until a worker can independently verify simultaneous display dispatch.
         if let witness, witness.scope.display != scope.display { throw StageSwitchError.busy }
+        phase = "environment"
         guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot) else {
             if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }
             return false
@@ -615,8 +665,12 @@ import NearpaneOrdinaryWindowRuntime
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
             self?.wallpaperPaused == false && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
+        phase = "current-intent"
         guard permitted() else { throw StageSwitchError.busy }
         let approval = try consent(for: scope, evidence: evidence, feed: feed)
+        phase = "participants"
+        SpacesWorkerLifecycle.trace("group-choice-participants", ["groups": approval.groups.count,
+            "lifetimes": approval.lifetimes.count, "selectedMemberIncluded": approval.groups[group]?.contains(saved.id) == true])
         guard approval.groups[group]?.contains(saved.id) == true else { throw StageSwitchError.ownership }
         // Choosing a group is the explicit request to schedule its real windows.
         // The same already-qualified Spaces route must not ask for a second click
@@ -628,24 +682,32 @@ import NearpaneOrdinaryWindowRuntime
             return true
         }
         let make: (StageEngineEnvironment, StageEngineQualification?) -> StageEngineSession? = { [self] environment, qualification in
-            guard returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) != false else { return nil }
+            SpacesWorkerLifecycle.trace("group-choice-make-enter")
+            guard returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) != false else {
+                SpacesWorkerLifecycle.trace("group-choice-returned-binding-rejected"); return nil
+            }
             let restore: @MainActor () -> Bool = { [weak self] in
                 guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
                 return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
             }
             guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
-                available:environmentCurrent,restoreAvailable:restore) else { return nil }
+                available:environmentCurrent,restoreAvailable:restore) else {
+                SpacesWorkerLifecycle.trace("group-choice-witness-rejected", ["lifetimes": approval.lifetimes.count]); return nil
+            }
             self.witness = witness
             returnedWitnesses.removeValue(forKey: scope)
             watchSystem()
-            guard let profile else { return nil }
+            guard let profile else { SpacesWorkerLifecycle.trace("group-choice-profile-missing"); return nil }
             let owner = qualification.map { StageEngineOwner(qualification: $0, generation: witness.generation) }
                 ?? StageEngineOwner(spacesCandidate: environment, generation: witness.generation, evidence: evidence)
-            return StageEngineSession(owner: owner, witness: witness, profile: profile) { [weak self] terminal in
+            let created = StageEngineSession(owner: owner, witness: witness, profile: profile) { [weak self] terminal in
                 self?.guardianExited(releasing: terminal, owner: owner)
             }
+            SpacesWorkerLifecycle.trace("group-choice-session-created", ["created": created != nil])
+            return created
         }
         let available: Bool
+        phase = "configure"
         if candidateMode {
             available = try await engine.configureSpacesCandidate(for: env, exclusive: permitted) { make($0, nil) }
         } else {
@@ -654,8 +716,10 @@ import NearpaneOrdinaryWindowRuntime
             }
         }
         if engine.session != nil { feed.observeStageOwnership(true) }
+        SpacesWorkerLifecycle.trace("group-choice-configured", ["available": available, "hasSession": engine.session != nil, "permitted": permitted()])
         guard available, permitted() else { throw StageSwitchError.unavailable }
         do {
+            phase = "activate"
             witness?.preparePictures(leavingFor:group)
             defer { witness?.endPicturePreparation() }
             try await engine.activate(group,member:selection == .member ? saved.id : nil,in:scope,consent:true,current:permitted,
@@ -663,6 +727,7 @@ import NearpaneOrdinaryWindowRuntime
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
             resumeScopes.remove(scope)
+            completed = true
             return true
         } catch StageSwitchError.superseded {
             if let token = successor(), let card = heldGroups.first(where: { $0.id == group && $0.scope == scope }) {
@@ -671,6 +736,7 @@ import NearpaneOrdinaryWindowRuntime
             projectHeld(feed.groups, in: scope)
             throw StageSwitchError.superseded
         } catch {
+            SpacesWorkerLifecycle.trace("group-choice-activation-error", ["error": String(describing: error)])
             if engine.coordinator.requiresRecovery || engine.session?.qualifiedHiddenState == nil {
                 recoveryRequested = true
                 ordinaryContextObserved()

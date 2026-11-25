@@ -12,9 +12,12 @@ actor SpacesEngineWorker {
     nonisolated let acquisitionEpoch: UInt64 = 1
     private nonisolated let channel: SpacesWorkerChannel
 
-    init?(profile: URL) {
-        guard let channel = try? SpacesWorkerChannel(profile: profile) else { return nil }
-        self.channel = channel
+    init?(owner: StageEngineOwner, profile: URL) {
+        do { channel = try SpacesWorkerChannel(owner: owner, profile: profile) }
+        catch {
+            SpacesWorkerLifecycle.trace("worker-initializer-rejected", ["error": String(describing: error)])
+            return nil
+        }
     }
     nonisolated func currentEpoch() throws -> UInt64 { try channel.currentEpoch() }
     nonisolated func revoke() { channel.revoke() }
@@ -95,7 +98,8 @@ private final class SpacesWorkerChannel: @unchecked Sendable {
     private var epoch: UInt64 = 1, serial: UInt64 = 0
     private var ready = false, failed = false, closed = false
 
-    init(profile: URL) throws {
+    init(owner: StageEngineOwner, profile: URL) throws {
+        SpacesWorkerLifecycle.trace("worker-initializer-enter")
         let bundle = Bundle.main, root = bundle.bundleURL.resolvingSymlinksInPath()
         let executable = root.appendingPathComponent("Contents/Helpers/NearpaneSpacesEngine")
         let host = root.appendingPathComponent("Contents/MacOS/NearpaneHost")
@@ -105,21 +109,24 @@ private final class SpacesWorkerChannel: @unchecked Sendable {
               seal.count == 64, let bytes = try? Data(contentsOf: executable, options: .mappedIfSafe),
               SHA256.hash(data: bytes).map({ String(format: "%02x", $0) }).joined() == seal,
               Self.signed(executable, identifier: "com.holdsnow.nearpane.spaces-engine")
-        else { throw Failure.unavailable }
+        else { SpacesWorkerLifecycle.trace("worker-image-or-seal-rejected"); throw Failure.unavailable }
         var directory = stat()
         // The profile URL can be constructed before createDirectory(), without a
         // directory URL hint. Compare canonical paths, not that representation bit.
         guard profile.resolvingSymlinksInPath().path == profile.path,
               lstat(profile.path, &directory) == 0, directory.st_uid == getuid(),
-              directory.st_mode & S_IFMT == S_IFDIR else { throw Failure.unavailable }
-        let path = profile.appendingPathComponent("spaces-worker-" + UUID().uuidString.lowercased() + ".jsonl")
+              directory.st_mode & S_IFMT == S_IFDIR else {
+            SpacesWorkerLifecycle.trace("worker-profile-rejected"); throw Failure.unavailable
+        }
+        let nonce = UUID(), hostStamp = try SpacesWorkerLifecycle.ProcessStamp.read(getpid())
+        let path = profile.appendingPathComponent("spaces-worker-" + nonce.uuidString.lowercased() + ".jsonl")
         let fd = open(path.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard fd >= 0 else { throw Failure.unavailable }
         diagnostic = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
         let input = Pipe(), output = Pipe()
         writer = input.fileHandleForWriting; reader = output.fileHandleForReading
         process = Process()
-        process.executableURL = executable; process.arguments = ["--stdio"]
+        process.executableURL = executable; process.arguments = ["--stdio", nonce.uuidString.lowercased()]
         process.standardInput = input; process.standardOutput = output; process.standardError = diagnostic
         for endpoint in [writer, reader] {
             let descriptor = endpoint.fileDescriptor, flags = fcntl(descriptor, F_GETFL)
@@ -128,8 +135,21 @@ private final class SpacesWorkerChannel: @unchecked Sendable {
         }
         guard fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1) == 0 else { throw Failure.unavailable }
         try process.run()
+        SpacesWorkerLifecycle.trace("worker-child-started", ["pid": process.processIdentifier])
         // These copies must not keep either direction artificially alive after exit.
         try? input.fileHandleForReading.close(); try? output.fileHandleForWriting.close()
+        do {
+            let child = try SpacesWorkerLifecycle.ProcessStamp.read(process.processIdentifier)
+            guard child.executable == executable.path else { throw Failure.unavailable }
+            try SpacesWorkerLifecycle.publish(owner: owner, profile: profile, nonce: nonce,
+                                              host: hostStamp, worker: child)
+            SpacesWorkerLifecycle.trace("worker-lifecycle-durable", ["pid": child.pid, "generation": owner.generation.uuidString])
+        } catch {
+            // No request has been submitted. The original child still consumes EOF
+            // and destroys its empty engine; never leave an unbound writer usable.
+            try? writer.close(); try? reader.close(); try? diagnostic.close()
+            throw error
+        }
     }
     deinit {
         // Do not terminate the child: it owns the only surviving native leases.

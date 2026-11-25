@@ -58,6 +58,9 @@ struct Fake {
     unavailable_first_return_read: bool,
     pending_unavailable_read: Cell<bool>,
     replace_fixture_on_return: bool,
+    cannot_complete_minimized_reads: Cell<u32>,
+    minimized_observations: Cell<u32>,
+    confirmed_document_minimized: bool,
     minimize_writes: Vec<(u32, u64, bool)>,
     refuse_unminimize: bool,
     unminimize_returns_to_desktop: bool,
@@ -177,8 +180,14 @@ impl Platform for Fake {
         else { Err(unknown(Why::MinimizedOrAX)) }
     }
     fn minimized(&self, witness: &u64) -> Check<bool> {
+        self.minimized_observations.set(self.minimized_observations.get() + 1);
+        let unavailable = self.cannot_complete_minimized_reads.get();
+        if unavailable > 0 {
+            self.cannot_complete_minimized_reads.set(unavailable - 1);
+            return Err(unknown(Why::AXCannotComplete));
+        }
         if *witness >= 10_000 { return Ok(self.windows[&((*witness - 10_000) as u32)].3); }
-        Ok(false)
+        Ok(self.confirmed_document_minimized)
     }
     fn set_minimized(&mut self, w: Window, witness: &u64, minimized: bool) -> Delivery {
         if *witness != 10_000 + u64::from(w.number) || self.refuse_unminimize { return Delivery::Refused; }
@@ -666,6 +675,64 @@ fn passive_worker_tick_freezes_after_external_change_and_never_dispatches_recove
     assert_eq!(s.run(&request(1, RESTORE, 4), &a).status, PASS);
     assert_eq!(s.sys.moved.len(), writes);
     assert!(s.slots.is_empty());
+}
+
+#[test]
+fn health_rereads_only_cannot_complete_on_the_original_witness_until_two_complete_samples() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    let window = state.sys.windows[&1].0;
+    let witness = state.owned[&window].witness;
+    let writes = state.sys.moved.len();
+    state.sys.minimized_observations.set(0);
+    state.sys.cannot_complete_minimized_reads.set(1);
+    state.observe_health();
+    assert!(!state.failed);
+    assert_eq!(state.sys.minimized_observations.get(), 3, "one unavailable read then two complete positive samples");
+    assert_eq!(state.owned[&window].witness, witness);
+    assert_eq!(state.sys.moved.len(), writes);
+    assert!(state.sys.minimize_writes.is_empty());
+}
+
+#[test]
+fn persistent_ax_unavailability_keeps_the_original_lease_and_exhausts_only_the_health_budget() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    let writes = state.sys.moved.len();
+    let window = state.sys.windows[&1].0;
+    state.sys.cannot_complete_minimized_reads.set(u32::MAX);
+    let start = state.sys.now();
+    state.observe_health();
+    assert!(state.failed && state.owned.contains_key(&window));
+    assert_eq!(state.sys.now().duration_since(start), Duration::from_millis(650));
+    assert_eq!(state.sys.moved.len(), writes);
+}
+
+#[test]
+fn a_positive_bad_health_observation_stops_even_after_a_transport_retry() {
+    for unavailable in [0, 1] {
+        for changed in 0..3 {
+            let (mut state, guard) = setup();
+            assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+            assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+            let writes = state.sys.moved.len();
+            state.sys.minimized_observations.set(0);
+            state.sys.cannot_complete_minimized_reads.set(unavailable);
+            match changed {
+                0 => state.sys.confirmed_document_minimized = true,
+                1 => state.sys.windows.get_mut(&1).unwrap().2 += 1,
+                _ => state.sys.windows.get_mut(&1).unwrap().1 = 10,
+            }
+            let start = state.sys.now();
+            state.observe_health();
+            assert!(state.failed, "positive minimization, replacement and escaped membership are not a transient read");
+            assert_eq!(state.sys.minimized_observations.get(), unavailable + 1);
+            assert!(state.sys.now().duration_since(start) < Duration::from_millis(650));
+            assert_eq!(state.sys.moved.len(), writes);
+        }
+    }
 }
 
 #[test]

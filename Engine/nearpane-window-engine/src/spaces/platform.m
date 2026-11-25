@@ -446,12 +446,25 @@ int32_t np_stage_is_minimized(void *handle) {
         AXError ownerRead=AXUIElementGetPid((AXUIElementRef)handle,&owner);
         static AXNumber number;static dispatch_once_t once;
         dispatch_once(&once,^{number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");});
-        AXError numberRead=number?number((AXUIElementRef)handle,&id):kAXErrorNotImplemented;
-        fprintf(stderr,"{\"event\":\"spacesMinimizedReadFailure\",\"axError\":%d,\"valuePresent\":%s,\"valueType\":%lu,\"booleanValue\":%s,\"retainedPID\":%d,\"pidRead\":%d,\"retainedWindow\":%u,\"windowRead\":%d}\n",
+        // Do not spend another messaging timeout purely to log an app that has
+        // just stopped answering. Rust's paired fault already records the exact
+        // original lease's CGID/PID; a diagnostic read must not consume its budget.
+        BOOL numberAttempted=result!=kAXErrorCannotComplete;
+        char windowText[32]="null",errorText[32]="null";
+        if(numberAttempted){
+            AXError numberRead=number?number((AXUIElementRef)handle,&id):kAXErrorNotImplemented;
+            snprintf(windowText,sizeof(windowText),"%u",(unsigned)id);
+            snprintf(errorText,sizeof(errorText),"%d",(int)numberRead);
+        }
+        fprintf(stderr,"{\"event\":\"spacesMinimizedReadFailure\",\"axError\":%d,\"valuePresent\":%s,\"valueType\":%lu,\"booleanValue\":%s,\"retainedPID\":%d,\"pidRead\":%d,\"retainedWindow\":%s,\"windowRead\":%s,\"windowReadAttempted\":%s}\n",
             (int)result,value?"true":"false",value?(unsigned long)CFGetTypeID(value):0UL,value&&CFGetTypeID(value)==CFBooleanGetTypeID()?"true":"false",
-            (int)owner,(int)ownerRead,(unsigned)id,(int)numberRead);
+            (int)owner,(int)ownerRead,windowText,errorText,numberAttempted?"true":"false");
     }
-    if(value)CFRelease(value);return state;
+    if(value)CFRelease(value);
+    // Preserve this specific unavailable transport observation for the original
+    // witness's bounded health reread. Positive true and every other error remain
+    // distinct; no caller may interpret an AX error as false.
+    return state<0 && result==kAXErrorCannotComplete ? (int32_t)result : state;
 }
 int32_t np_stage_set_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t minimized) {
     if (!handle || minimized>1 || !np_stage_check_bound_minimized(handle,n,pid,started,0))return 0;

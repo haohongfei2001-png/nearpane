@@ -53,6 +53,14 @@ These are code-completion claims. The evidence below determines which native eff
 | `3bcb0640`, diagnostics | Own panel acquired home in 4/24 ms and passed hidden-view; finish-canary returned Identity; bounded release on the original engine then completed physical cleanup | Zero foreign requests, BLOCKED rather than a failed foreign move; yellow behavior was not re-exercised. [Original canary and cleanup records](cloud-3bcb0640-diagnostics/README.md) |
 | `1d7402d4`, diagnostics | Launch, foreign/same-app/cross-app and three complete cycles passed; yellow adoption returned MinimizedOrAX; original hidden A1 briefly returned AX CannotComplete | A second release on the same engine restored all three windows and exact original inventory. Cleanup passed; yellow remains FAIL. [Original AX and cleanup evidence](cloud-1d7402d4-diagnostics/README.md) |
 | `3bcb0640`, full product | Source and complete candidate/signature passed; real exported R4 AX button pressed once, AXPress=0, followed by R4SwitchReadbackFailed | Actual input is proven; successful product scheduling is not. No visibility WAL or worker log was created. Cleanup passed. [Original product, input and screenshots](cloud-3bcb0640-full/README.md) |
+| `32f22cd4`, diagnostics | Launch and three group cycles passed; an actually inconsistent CG visibility pair was re-read successfully; hidden A1's original AX object then returned CannotComplete during yellow minimization | Earliest health latch is now directly identified. Same-engine retry restored all windows and inventory; original yellow FAIL remains. [Original earliest-fault trace](cloud-32f22cd4-diagnostics/README.md) |
+
+The subsequent source change retries only the separately identified AXCannotComplete observation,
+inside the original 650 ms health budget and on the same retained witness. Two complete positive
+observations are needed after that transport error; positive minimization, identity or membership
+changes still stop immediately. Its native effect awaits the next run. The same batch adds durable
+worker-to-owner correlation and read-only cold-start reconciliation after confirmed worker exit;
+the new same-profile restart scenario must independently prove resumed R4 operation.
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 

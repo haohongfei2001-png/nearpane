@@ -224,6 +224,42 @@ public enum StageSwitchError: LocalizedError, Equatable {
         return releases.contains { $0.intent == intent }
     }
     public var retainedOwner: StageEngineOwner? { ledger.owner }
+
+    /// A frozen read plan for a former Host. It is not a replacement window
+    /// session: the caller must prove that the old worker cannot issue anything
+    /// further, then independently read the original windows and private Spaces.
+    package struct ColdSpacesReturn: Equatable, Sendable {
+        package let owner: StageEngineOwner
+        package let windows: [StageWindowReturn]
+        package let hiddenSpaces: [UInt64]
+        fileprivate let journal: Data
+    }
+
+    package func coldSpacesReturn() throws -> ColdSpacesReturn? {
+        guard let owner = ledger.owner, owner.backend == .spaces else { return nil }
+        guard !busy, !journalCommitUnconfirmed, let bytes else { throw StageSwitchError.recoveryRequired }
+        let windows = try systemReturnRequirements(for: owner)
+        let prior = ledger.owned + (ledger.releases ?? []).map(\.owned) + (ledger.pending?.ownedBefore ?? [])
+        var states = prior.map(\.hidden)
+        if let pending = ledger.pending {
+            states += pending.before
+            states += pending.entries.flatMap { [$0.before, $0.after, $0.undoBefore].compactMap { $0 } }
+        }
+        let hidden = states.filter { $0.visibility == .stageSpace }
+        guard hidden.allSatisfy({ ($0.hiddenSpaceID ?? 0) > 0 }) else { throw StageSwitchError.recoveryRequired }
+        return .init(owner: owner, windows: windows, hiddenSpaces: Set(hidden.compactMap(\.hiddenSpaceID)).sorted(), journal: bytes)
+    }
+
+    /// Both empty and nonempty WALs require explicit worker completion. An empty
+    /// window list can still belong to an unresolved controller-owned launch canary.
+    package func finishColdSpacesReturn(_ expected: ColdSpacesReturn, workerFinished: Bool,
+                                        physicalReturnConfirmed: Bool) throws {
+        guard workerFinished, physicalReturnConfirmed, try coldSpacesReturn() == expected else {
+            throw StageSwitchError.recoveryRequired
+        }
+        try confirmSystemReturn(expected.windows, owner: expected.owner)
+    }
+
     /// Cold startup holds the profile writer lock. Consume only the last failed HIDE
     /// whose original Guardian proved a physical return. No window or focus is written.
     package func finishExitedGuardianReturn(confirmed: (HidePrimitive) -> Bool) throws {

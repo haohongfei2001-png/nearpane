@@ -1,4 +1,5 @@
 import AppKit
+import CReadOnlySpaces
 import Security
 import NearpaneCore
 
@@ -41,6 +42,63 @@ import NearpaneCore
         guard signedDirectoryReader || IndependentStagePolicy.candidateRequested else { throw StageSwitchError.unavailable }
         let access = try StageHostAccess(expectedCDHash: signing())
         return { window, home in try access.currentSurface(window, home: home) }
+    }
+
+    /// A new Host may only retire its old bookkeeping after the former worker
+    /// ended. These are fresh read-only AX bindings, never a continuation of the
+    /// old lifetime and never a source of focus, geometry or visibility writes.
+    package static func confirmsColdSpacesReturn(_ returned: [StageWindowReturn], hiddenSpaces: [UInt64]) async -> Bool {
+        guard returned.count <= 64, Set(returned.map { $0.original.window }).count == returned.count,
+              let access = try? StageHostAccess(expectedCDHash: signing()) else { return false }
+        var retained = [NativeSpaceWindow: (owner: OrdinaryOwnerIdentity, bundle: String, element: AXUIElement)]()
+        var absent = Set<NativeSpaceWindow>()
+
+        func sample() throws -> Bool {
+            try access.check()
+            guard StageWindowPhysicalReader.hiddenSpacesReleased(hiddenSpaces) else { return false }
+            for item in returned {
+                let key = item.original.window
+                let presence = NPReadWindowNumberPresence(key.number)
+                if presence == 0 {
+                    guard retained[key] == nil else { return false }
+                    if let image = try? OrdinaryProcessImage.read(key.pid) {
+                        if image.launch == key.birth {
+                            guard let bundle = NSRunningApplication(processIdentifier: key.pid)?.bundleIdentifier else { return false }
+                            let owner = OrdinaryOwnerIdentity()
+                            try checkOwner(owner, pid: key.pid, launch: key.birth, bundle: bundle)
+                            let list = try windows(key.pid), numbers = list.compactMap(number)
+                            guard numbers.count == list.count, !numbers.contains(key.number) else { return false }
+                            try checkOwner(owner, pid: key.pid, launch: key.birth, bundle: bundle)
+                        }
+                    } else {
+                        guard kill(key.pid, 0) == -1, errno == ESRCH else { return false }
+                    }
+                    guard NPReadWindowNumberPresence(key.number) == 0 else { return false }
+                    absent.insert(key)
+                    continue
+                }
+                guard presence == 1, !absent.contains(key) else { return false }
+                let (owner, bundle, element) = try original(key)
+                guard try role(element) else { return false }
+                if let previous = retained[key] {
+                    try checkOwner(previous.owner, pid: key.pid, launch: key.birth, bundle: previous.bundle)
+                    guard previous.bundle == bundle, CFEqual(previous.element, element) else { return false }
+                } else { retained[key] = (owner, bundle, element) }
+                let home = OrdinaryDesktopIdentity(display: item.scope.display.uuidString,
+                    record: String(item.nativeID), uuid: item.scope.nativeSpace)
+                let id = ManagedWindowID(pid: key.pid, launch: key.birth, number: key.number, element: UUID())
+                guard try StageWindowPhysicalReader.returnedHome(id, original: element, home: home,
+                    frame: item.original.frame, allowMinimized: item.original.visibility == .minimized) else { return false }
+                try checkOwner(owner, pid: key.pid, launch: key.birth, bundle: bundle)
+            }
+            try access.check()
+            return StageWindowPhysicalReader.hiddenSpacesReleased(hiddenSpaces)
+        }
+        do {
+            guard try sample() else { return false }
+            try await Task.sleep(for: .milliseconds(100))
+            return try sample()
+        } catch { return false }
     }
 
     func check() throws {

@@ -53,6 +53,7 @@ enum Why {
     LaunchPassed,
     ProbeClosed,
     ProbeFocus,
+    AXCannotComplete,
 }
 #[derive(Clone, Copy, Debug)]
 struct Fault(u32, Why);
@@ -887,19 +888,53 @@ impl<P: Platform> State<P> {
         let lease = self.owned.values().nth(index).unwrap().lease;
         let mut phase = "health-connection";
         let mut parking = 0;
-        let result = (|| -> Check<()> {
-            let c = self.connection.ok_or(unknown(Why::Connection))?;
-            let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
-            parking = sid;
-            let deadline = Passive(now + Duration::from_millis(650));
-            phase = "health-occupants";
-            self.occupants(c, lease.slot, sid)?;
-            phase = "health-owned-readback";
-            if !self.read(c, lease, &deadline)?.1 {
-                return Err(unknown(Why::Membership));
+        let deadline = Passive(now + Duration::from_millis(650));
+        let mut unavailable = None;
+        let mut confirmed = 0;
+        let result = loop {
+            if self.sys.now() >= deadline.0 {
+                break Err(unavailable.unwrap_or(Fault(TIMEOUT, Why::Readback)));
             }
-            Ok(())
-        })();
+            let sample = (|| -> Check<()> {
+                deadline.observation()?;
+                let c = self.connection.ok_or(unknown(Why::Connection))?;
+                let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
+                parking = sid;
+                phase = "health-occupants";
+                self.occupants(c, lease.slot, sid)?;
+                phase = "health-owned-readback";
+                if !self.read(c, lease, &deadline)?.1 {
+                    return Err(unknown(Why::Membership));
+                }
+                Ok(())
+            })();
+            match sample {
+                Err(fault @ Fault(_, Why::AXCannotComplete)) => {
+                    // AppKit's minimize animation can temporarily stop answering
+                    // AX for a different, already hidden window in the same app.
+                    // Retry only this absent transport observation, on the original
+                    // witness, inside the existing health budget. Never resend a move.
+                    trace_fault("health-ax-unavailable", lease, parking, fault);
+                    unavailable = Some(fault);
+                    confirmed = 0;
+                }
+                Ok(()) if unavailable.is_some() => {
+                    if self.sys.now() >= deadline.0 { break Err(unavailable.unwrap()); }
+                    confirmed += 1;
+                    if confirmed == 2 {
+                        if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                            eprintln!("{{\"event\":\"spacesHealthReadRecovered\",\"window\":{},\"pid\":{},\"completeObservations\":2}}", lease.window.number, lease.window.pid);
+                        }
+                        break Ok(());
+                    }
+                }
+                Err(Fault(TIMEOUT, Why::Readback)) if unavailable.is_some() => break Err(unavailable.unwrap()),
+                // Positive minimization, identity replacement, changed membership
+                // and every other fault still stop immediately, without a retry.
+                other => break other,
+            }
+            self.sys.wait(Duration::from_millis(4).min(deadline.0.saturating_duration_since(self.sys.now())));
+        };
         if let Err(fault) = result {
             // Preserve the first actual failure before the sticky restore-only
             // state makes a later request report only RestoreFirst.

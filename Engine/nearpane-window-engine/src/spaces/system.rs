@@ -267,7 +267,9 @@ mod mac {
                 Witness::Document(r) | Witness::Minimized(r) => r,
             };
             match unsafe { np_stage_is_minimized(reference.0.as_ptr()) } {
-                0 => Ok(false), 1 => Ok(true), _ => Err(unknown(Why::MinimizedOrAX)),
+                0 => Ok(false), 1 => Ok(true),
+                -25204 => Err(unknown(Why::AXCannotComplete)),
+                _ => Err(unknown(Why::MinimizedOrAX)),
             }
         }
         fn set_minimized(&mut self, w: Window, witness: &Witness, minimized: bool) -> Delivery {

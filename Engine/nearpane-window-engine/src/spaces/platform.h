@@ -24,6 +24,8 @@ void *np_stage_bind(uint32_t number, int32_t pid, uint64_t birth);
 void *np_stage_bind_minimized(uint32_t number, int32_t pid, uint64_t birth);
 int32_t np_stage_check_bound(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen);
 int32_t np_stage_check_bound_minimized(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen);
+// 0/1 are positive Boolean reads. -25204 preserves AXCannotComplete;
+// other missing/invalid observations return -1 and never imply false.
 int32_t np_stage_is_minimized(void *handle);
 int32_t np_stage_set_minimized(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t minimized);
 void np_stage_release(void *handle);

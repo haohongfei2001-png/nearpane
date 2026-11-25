@@ -107,6 +107,59 @@ import Testing
         #expect(alreadyClaimed.retainedOwner == owner && alreadyClaimed.requiresRecovery && session.writes.isEmpty)
     }
 
+    @Test func coldSpacesOwnerWithAnEmptyWindowWALStillNeedsCompletedWorkerAndPhysicalProof() throws {
+        let (profile, store, _, runtime, _) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let former = try #require(runtime.engineOwner)
+        let owner = StageEngineOwner(spacesCandidate: former.environment, generation: former.generation, evidence: former.evidence)
+        var ledger = StageGroupCoordinator.Ledger(); ledger.owner = owner; ledger.activeScopes = [runtime.scope]
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile)
+        let plan = try #require(try cold.coldSpacesReturn())
+        #expect(plan.windows.isEmpty && plan.hiddenSpaces.isEmpty && cold.hasWindowAuthority)
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: false, physicalReturnConfirmed: true)
+        }
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: false)
+        }
+        #expect(cold.hasWindowAuthority)
+        try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: true)
+        #expect(!cold.hasWindowAuthority && runtime.writes.isEmpty)
+        #expect(try !StageGroupCoordinator(store: store, profile: profile).hasWindowAuthority)
+    }
+
+    @Test func coldSpacesReadPlanIncludesUncertainMinimizeAndCannotClearAChangedJournal() throws {
+        let (profile, store, _, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let former = try #require(runtime.engineOwner)
+        let owner = StageEngineOwner(spacesCandidate: former.environment, generation: former.generation, evidence: former.evidence)
+        let first = groups[0].members[0], second = groups[1].members[0]
+        let visible = try #require(runtime.windows[first.windowHint])
+        var hidden = visible; hidden.visibility = .stageSpace; hidden.hiddenSpaceID = 77
+        var minimized = try #require(runtime.windows[second.windowHint]); minimized.visibility = .minimized
+        let owned = StageGroupCoordinator.Ownership(scope: runtime.scope, original: visible, hidden: hidden,
+            owner: owner, group: groups[0].id, member: first.id, nativeID: 4)
+        var ledger = StageGroupCoordinator.Ledger(); ledger.owner = owner; ledger.owned = [owned]
+        ledger.pending = .init(scope: runtime.scope, generation: owner.generation, target: groups[1].id,
+            preferred: minimized.window, originalFocus: visible.window, before: [hidden, minimized], ownedBefore: [owned],
+            entries: [.init(action: .hide, before: minimized, intent: UUID(), group: groups[1].id, member: second.id)],
+            owner: owner, intent: UUID(), nativeID: 4)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json"), bytes = try JSONEncoder().encode(ledger)
+        try bytes.write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile), plan = try #require(try cold.coldSpacesReturn())
+        #expect(plan.hiddenSpaces == [77] && plan.windows.count == 2)
+        #expect(plan.windows.first(where: { $0.original.window == minimized.window })?.original.visibility == .minimized)
+        #expect(plan.windows.first(where: { $0.original.window == visible.window })?.original == visible)
+        try (bytes + Data([32])).write(to: file)
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: true)
+        }
+        #expect(cold.hasWindowAuthority && runtime.writes.isEmpty)
+        #expect(try Data(contentsOf: file) == bytes + Data([32]))
+    }
+
     enum RecoveryInterruption: CaseIterable { case none, originalBecameUnmanaged, lostFocusReply, takeoverAfterFocus }
 
     @Test(arguments: RecoveryInterruption.allCases)

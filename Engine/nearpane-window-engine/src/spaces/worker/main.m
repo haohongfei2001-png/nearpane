@@ -21,6 +21,8 @@ _Static_assert(sizeof(NPSpacesWorkerReply)==144,"Spaces worker reply ABI");
 static uint64_t engine;
 static pid_t parentPID;
 static uint64_t parentBirth;
+static uint64_t workerBirth;
+static NSString *lifecycleNonce;
 static int parentWatch=-1;
 static NSMutableSet<NSNumber *> *pending;
 
@@ -31,17 +33,23 @@ static uint64_t processBirth(pid_t pid) {
         ? row.pbi_start_tvsec*1000000+row.pbi_start_tvusec : 0;
 }
 static void record(const char *phase,uint32_t transport,const NPReceipt *receipt) {
-    fprintf(stderr,"{\"event\":\"spacesWorker\",\"phase\":\"%s\",\"pid\":%d,\"parentPID\":%d,\"transport\":%u,\"status\":%u,\"detail\":%u,\"flags\":%u,\"owned\":%u}\n",
-        phase,getpid(),parentPID,transport,receipt?receipt->status:0,receipt?receipt->detail:0,receipt?receipt->flags:0,receipt?receipt->owned:0);
+    BOOL terminal=engine==0 && (!strcmp(phase,"released") || !strcmp(phase,"closed"));
+    fprintf(stderr,"{\"event\":\"spacesWorker\",\"phase\":\"%s\",\"pid\":%d,\"parentPID\":%d,\"birth\":%llu,\"parentBirth\":%llu,\"lifecycleNonce\":\"%s\",\"engineDestroyed\":%s,\"pendingDrained\":%s,\"transport\":%u,\"status\":%u,\"detail\":%u,\"flags\":%u,\"owned\":%u}\n",
+        phase,getpid(),parentPID,(unsigned long long)workerBirth,(unsigned long long)parentBirth,lifecycleNonce.UTF8String,
+        terminal?"true":"false",pending.count==0?"true":"false",transport,receipt?receipt->status:0,receipt?receipt->detail:0,receipt?receipt->flags:0,receipt?receipt->owned:0);
     fflush(stderr);
+    if(terminal && fsync(STDERR_FILENO)!=0) {
+        // Leave a nonterminal last line if the private receipt could not be made durable.
+        fprintf(stderr,"{\"event\":\"spacesWorker\",\"phase\":\"terminal-log-sync-failed\"}\n");fflush(stderr);
+    }
 }
 static BOOL privatePipesAndParent(void) {
     struct stat input={0},output={0};
     if(fstat(STDIN_FILENO,&input)||fstat(STDOUT_FILENO,&output)||!S_ISFIFO(input.st_mode)||!S_ISFIFO(output.st_mode))return NO;
-    parentPID=getppid();parentBirth=processBirth(parentPID);
+    parentPID=getppid();parentBirth=processBirth(parentPID);workerBirth=processBirth(getpid());
     char ownPath[PROC_PIDPATHINFO_MAXSIZE]={0},hostPath[PROC_PIDPATHINFO_MAXSIZE]={0};
     char ownReal[PATH_MAX]={0},hostReal[PATH_MAX]={0};
-    if(!parentBirth || proc_pidpath(getpid(),ownPath,sizeof(ownPath))<=0 ||
+    if(!parentBirth || !workerBirth || proc_pidpath(getpid(),ownPath,sizeof(ownPath))<=0 ||
        proc_pidpath(parentPID,hostPath,sizeof(hostPath))<=0 || !realpath(ownPath,ownReal) || !realpath(hostPath,hostReal))return NO;
     NSString *own=@(ownReal), *host=@(hostReal);
     NSString *contents=own.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
@@ -178,9 +186,12 @@ static int protocolSelfTest(void) {
 }
 int main(int argc,const char **argv) {
     if(argc==2 && !strcmp(argv[1],"--protocol-selftest"))return protocolSelfTest();
-    if(argc!=2 || strcmp(argv[1],"--stdio"))return 2;
+    if(argc!=3 || strcmp(argv[1],"--stdio"))return 2;
     signal(SIGPIPE,SIG_IGN);
     @autoreleasepool {
+        NSUUID *nonce=[[NSUUID alloc] initWithUUIDString:@(argv[2])];
+        if(!nonce)return 2;
+        lifecycleNonce=nonce.UUIDString.lowercaseString;
         if(!privatePipesAndParent())return 3;
         for(int fd=STDIN_FILENO;fd<=STDOUT_FILENO;fd++) {
             int flags=fcntl(fd,F_GETFL);if(flags<0 || fcntl(fd,F_SETFL,flags|O_NONBLOCK)<0)return 4;

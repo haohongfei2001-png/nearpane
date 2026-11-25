@@ -45,4 +45,15 @@ struct StageWindowReturnTests {
         #expect(!matches(minimized: nil, allowMinimized: true))
         #expect(!matches(forward: [98], minimized: true, allowMinimized: true))
     }
+
+    @Test func aMissingManagedRowIsNotEvidenceThatAHiddenSpaceWasDestroyed() {
+        // The full classic inventory, not the managed-display roster, supplies
+        // positive absence. A live private ID instead needs an actual empty read.
+        #expect(StageWindowPhysicalReader.hiddenSpacesReleased([99], inventory: [41], occupants: { _ in nil }))
+        #expect(StageWindowPhysicalReader.hiddenSpacesReleased([99], inventory: [41, 99], occupants: { _ in [] }))
+        #expect(!StageWindowPhysicalReader.hiddenSpacesReleased([99], inventory: [41, 99], occupants: { _ in nil }))
+        #expect(!StageWindowPhysicalReader.hiddenSpacesReleased([99], inventory: [41, 99], occupants: { _ in [101] }))
+        #expect(!StageWindowPhysicalReader.hiddenSpacesReleased([99], inventory: nil, occupants: { _ in [] }))
+        #expect(!StageWindowPhysicalReader.hiddenSpacesReleased([], inventory: [], occupants: { _ in [] }))
+    }
 }

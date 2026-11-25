@@ -7,6 +7,35 @@ import NearpaneCore
 /// This witness includes classic hidden Spaces (mask 15); the ordinary catalogue
 /// intentionally keeps its separate managed-only membership view (mask 7).
 enum StageWindowPhysicalReader {
+    /// A managed-display roster omits classic hidden Spaces. Use the complete
+    /// positive all-Space list, then an actual empty member read for any surviving
+    /// former ID. Neither nil nor a missing managed row establishes destruction.
+    static func hiddenSpacesReleased(_ hidden: [UInt64]) -> Bool {
+        guard hidden.count <= 64, hidden.allSatisfy({ $0 > 0 }),
+              NPProbeReadOnlyCatalog() == 1,
+              let all = NPReadAllSpaceNumbers() as? [UInt64], !all.isEmpty,
+              let managed = NPReadInventory() as? [[String: Any]], !managed.isEmpty else { return false }
+        let present = Set(all)
+        for display in managed {
+            guard let spaces = display["Spaces"] as? [[String: Any]], !spaces.isEmpty else { return false }
+            for space in spaces {
+                guard let id = space["id64"] as? UInt64, id > 0, present.contains(id) else { return false }
+            }
+        }
+        return hiddenSpacesReleased(hidden, inventory: all) { NPReadCatalogSpaceWindowNumbers($0) as? [UInt32] }
+    }
+
+    static func hiddenSpacesReleased(_ hidden: [UInt64], inventory: [UInt64]?,
+                                    occupants: (UInt64) -> [UInt32]?) -> Bool {
+        guard let inventory, !inventory.isEmpty, inventory.count <= 2048,
+              inventory.allSatisfy({ $0 > 0 }), hidden.count <= 64, hidden.allSatisfy({ $0 > 0 }) else { return false }
+        return hidden.allSatisfy { id in
+            if !inventory.contains(id) { return true }
+            guard let members = occupants(id) else { return false }
+            return members.isEmpty
+        }
+    }
+
     /// Unlike admission and normal switching, this read does not require the home desktop to
     /// be current. It observes only the retained AX window and the real Space membership.
     static func returnedHome(_ id: ManagedWindowID, original: AXUIElement, home: OrdinaryDesktopIdentity,

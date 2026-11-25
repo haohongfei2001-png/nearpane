@@ -116,6 +116,20 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     subsequent state did not confirm a switch and no worker/WAL was created. Product entry and
     minimum-state diagnostics are being completed; neither input success nor recovery success
     substitutes for successful R4 scheduling.
+12. The `32f22cd4` trace identifies the earliest yellow-time health fault: the original hidden A1
+    object reports AX CannotComplete and is immediately latched restore-only. The subsequent
+    correction preserves this specific AX error across C/Rust and retries only its observation,
+    on the same witness, within the original 650 ms budget, requiring two complete positive reads.
+    Positive changed state remains a fault. This is a source fix grounded in the actual trace;
+    its effect on the next yellow operation still requires native execution.
+
+Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
+record binds the original owner, nonce, boot, Host and worker generations before the first launch.
+On the same boot, exact worker destruction and both process exits precede two independent window/home
+and hidden-Space observations; only then can the old ledger be retired. A positive new boot separately
+retires the former WindowServer's authority. No saved CG number recreates an old AX writer. The unified
+crash test includes same-profile relaunch and another real R4 selection; implementation and actual
+restart acceptance remain distinct until that path runs.
 
 ### Route A: not a product dependency
 
