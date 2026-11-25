@@ -3,8 +3,6 @@ on:
   workflow_dispatch:
   push:
     branches: ['pro/independent-stage-engine-20261126']
-  pull_request:
-    branches: ['codex/r4-native-candidate-20261120']
 permissions:
   contents: read
 concurrency:

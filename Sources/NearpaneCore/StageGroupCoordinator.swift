@@ -929,6 +929,37 @@ public enum StageSwitchError: LocalizedError, Equatable {
         return two
     }
 
+    func systemReturnRequirements(for owner: StageEngineOwner) throws -> [StageWindowReturn] {
+        guard !busy, !journalCommitUnconfirmed, owner.backend == .spaces,
+              ledger.owner == nil || ledger.owner == owner else { throw StageSwitchError.recoveryRequired }
+        try verifyJournal()
+        var returns = [NativeSpaceWindow: StageWindowReturn]()
+        for entry in ledger.owned {
+            guard entry.owner == owner, let home = entry.nativeID else { throw StageSwitchError.ownership }
+            returns[entry.original.window] = .init(original:entry.original, scope:entry.scope, nativeID:home)
+        }
+        if let pending = ledger.pending {
+            guard pending.owner == owner, let home = pending.nativeID else { throw StageSwitchError.ownership }
+            // Include uncertain issued hides as well; a callback error is not proof
+            // that no move happened. The engine's release settles its retained lease.
+            for entry in pending.entries where entry.action == .hide || entry.action == .show {
+                let original = returns[entry.before.window]?.original ??
+                    pending.ownedBefore.first(where: { $0.original.window == entry.before.window })?.original ?? entry.before
+                returns[entry.before.window] = .init(original:original, scope:pending.scope, nativeID:home)
+            }
+        }
+        return returns.values.sorted { $0.original.window.number < $1.original.window.number }
+    }
+
+    func confirmSystemReturn(_ returned: [StageWindowReturn], owner: StageEngineOwner) throws {
+        guard try systemReturnRequirements(for:owner) == returned else { throw StageSwitchError.ownership }
+        try withdrawVerifiedActivity()
+        try update {
+            $0.owned.removeAll(); $0.pending = nil; $0.releases = nil
+            $0.owner = nil; $0.activeScopes = nil
+        }
+    }
+
     /// Freeze first. An old owner may release independently confirmed hides. Neither an ambiguous write nor
     /// a modified/reused window becomes an instruction to the replacement backend.
     public func releaseOwned(_ session: StageWindowSession) async throws {

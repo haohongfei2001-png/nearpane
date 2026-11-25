@@ -4,6 +4,19 @@ import NearpaneCore
 
 /// Read-only WindowServer evidence, also used for a deliberate click on a background window.
 package enum OrdinaryDesktopMembership {
+    /// A restoration may finish after the user has entered another desktop or Mission Control.
+    /// It must still name the same ordinary Space; the current Space is deliberately irrelevant.
+    static func restored(display: String, record: UInt64, uuid: UUID,
+                         inventory: [[String: Any]], members: [UInt64]) -> Bool {
+        guard record > 0, members == [record] else { return false }
+        let rows = inventory.filter { ($0["Display Identifier"] as? String)?.caseInsensitiveCompare(display) == .orderedSame }
+        guard rows.count == 1, let records = rows.first?["Spaces"] as? [[String: Any]] else { return false }
+        let matching = records.filter { $0["id64"] as? UInt64 == record }
+        guard matching.count == 1, let entry = matching.first, entry["type"] as? Int == 0,
+              (entry["uuid"] as? String).flatMap(UUID.init(uuidString:)) == uuid else { return false }
+        return true
+    }
+
     static func matches(display: String, record: UInt64, uuid: UUID?, exclusive: Bool,
                         inventory: [[String: Any]], members: [UInt64]) -> Bool {
         guard record > 0, exclusive ? members == [record] : members.contains(record) else { return false }

@@ -19,7 +19,7 @@ static void writeState(void) {
     for (NSUInteger i=0;i<documents.count;i++) {
         NSWindow *w=documents[i]; NSRect f=w.frame;
         [rows addObject:@{@"index":@(i),@"number":@(w.windowNumber),@"visible":@(w.isVisible),
-            @"miniaturized":@(w.isMiniaturized),@"key":@(w.isKeyWindow),
+            @"miniaturized":@(w.isMiniaturized),@"key":@(w.isKeyWindow),@"fullScreen":@((w.styleMask&NSWindowStyleMaskFullScreen)!=0),
             @"frame":@[@(f.origin.x),@(f.origin.y),@(f.size.width),@(f.size.height)],
             @"text":fields[i].stringValue}];
     }
@@ -43,6 +43,8 @@ static void command(void) {
         [[w standardWindowButton:NSWindowMiniaturizeButton] performClick:nil];
     } else if ([action isEqual:@"restore"]) {
         [w deminiaturize:nil];
+    } else if ([action isEqual:@"fullscreen"]) {
+        [w toggleFullScreen:nil];
     } else if ([action isEqual:@"close"]) {
         [w close];
     } else if ([action isEqual:@"quit"]) {

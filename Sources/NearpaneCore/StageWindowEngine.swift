@@ -10,6 +10,7 @@ import Foundation
     func mayManage(_ state: StageWindowState) -> Bool
     func beginRelease()
     func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?)
+    func confirmsSystemReturn(_ window: StageWindowReturn) async -> Bool
 }
 
 public extension StageEngineWindowWitness {
@@ -18,6 +19,14 @@ public extension StageEngineWindowWitness {
     }
     func beginRelease() {}
     func expectVisibility(_ command: StageWindowCommand, nativeID: UInt64, frame: SurfaceRect?) {}
+    func confirmsSystemReturn(_ window: StageWindowReturn) async -> Bool { false }
+}
+
+public struct StageWindowReturn: Equatable, Sendable {
+    public let original: StageWindowState, scope: StageGroupScope, nativeID: UInt64
+    public init(original: StageWindowState, scope: StageGroupScope, nativeID: UInt64) {
+        self.original = original; self.scope = scope; self.nativeID = nativeID
+    }
 }
 
 /// Independent metadata from the signed ordinary controller's retained AX element and WindowServer.
@@ -355,6 +364,23 @@ struct UnsubmittedCornerHide: Error {
         guard !frozen, !closed else { return }
         frozen = true; transport.revoke()
     }
+    /// System surfaces may change the active desktop before the Host receives their
+    /// notification. Return each engine-owned window to its retained home without
+    /// switching the user's desktop, then independently verify that home twice.
+    func returnToSystem(_ requirements: [StageWindowReturn]) async throws {
+        guard owner.backend == .spaces else { throw StageSwitchError.unavailable }
+        freeze()
+        if !closed {
+            guard await transport.close() else { throw StageSwitchError.recoveryRequired }
+            closed = true
+        }
+        for window in requirements {
+            for _ in 0..<2 {
+                guard await witness.confirmsSystemReturn(window) else { throw StageSwitchError.recoveryRequired }
+            }
+        }
+    }
+
     func close() async throws {
         guard !closed else { return }
         freeze()
@@ -415,6 +441,30 @@ struct UnsubmittedCornerHide: Error {
         busy = true
         defer { busy = false }
         try await releaseCurrent()
+    }
+
+    public func handoffToSystem() async throws {
+        guard !releaseRequested else { throw StageSwitchError.busy }
+        releaseRequested = true
+        defer { releaseRequested = false }
+        invalidate()
+        let deadline = ContinuousClock.now.advanced(by:.seconds(12))
+        while busy {
+            guard ContinuousClock.now < deadline else { throw StageSwitchError.recoveryRequired }
+            try await Task.sleep(for:.milliseconds(12))
+        }
+        busy = true
+        defer { busy = false }
+        guard let previous = session else {
+            guard !coordinator.hasWindowAuthority else { throw StageSwitchError.recoveryRequired }
+            return
+        }
+        guard previous.owner.backend == .spaces else { try await releaseCurrent(); return }
+        let requirements = try coordinator.systemReturnRequirements(for: previous.owner)
+        try await previous.returnToSystem(requirements)
+        try coordinator.confirmSystemReturn(requirements, owner: previous.owner)
+        session = nil
+        lastFailure = nil
     }
 
     private func releaseCurrent() async throws {

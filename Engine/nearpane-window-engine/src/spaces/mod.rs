@@ -1108,7 +1108,9 @@ impl<P: Platform> State<P> {
 pub struct Spaces(State<system::System>);
 impl Spaces {
     pub fn candidate() -> Self {
-        Self(State::new(system::System { candidate: true, ..Default::default() }))
+        let mut platform = system::System::default();
+        platform.candidate = true;
+        Self(State::new(platform))
     }
 }
 impl Default for Spaces {

@@ -370,6 +370,12 @@ import NearpaneOrdinaryWindowRuntime
         if c.action == .show { claims.removeValue(forKey:c.before.window) }
     }
 
+    func confirmsSystemReturn(_ returned: StageWindowReturn) async -> Bool {
+        guard returned.scope == scope, let home, UInt64(home.record) == returned.nativeID,
+              let binding = bindings[returned.original.window], binding.lifetime == returned.original.lifetime else { return false }
+        return binding.monitor.returnedHome(home: home, frame: returned.original.frame, allowMinimized: returned.original.visibility == .minimized)
+    }
+
     func ordinary(_ c: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws {
         guard c.scope == scope, c.generation == generation, let b = bindings[c.before.window], !b.readOnly, b.lifetime == c.before.lifetime,
               lastStates[c.before.window] == c.before, c.before.visibility == .visible, let home, let snapshot = lastSnapshot,

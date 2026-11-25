@@ -16,6 +16,7 @@ import Testing
     var secondBystanderRead: (() -> Void)?, bystanderReads = 0
     var measuredWrites = [UUID](), failReturnConfirmation = false
     var workerHealthy = true
+    var systemClose = false, systemReturnConfirmed = true
     var obstructWhenRetired = false
     var beforeRead: (() -> Void)?
     var beforeCloseRead: (() -> Void)?
@@ -80,6 +81,7 @@ import Testing
             return .init(status:health ? 0 : 2,flags:health ? 64 | 16 | 32 : 0,intent:c.intent,nativeID:22)
         case 3:
             effects.append((op,id)); visible[id] = c.before
+            if owner.backend == .spaces, c.before.visibility == .minimized { visible[id]?.visibility = .visible }
             windows[id]?.visibility = owner.backend == .corner ? .parked : .stageSpace
             windows[id]?.hiddenSpaceID = owner.backend == .spaces ? 60 : nil
             if id.number == measuredHide {
@@ -138,7 +140,14 @@ import Testing
         return .init(status:workerHealthy ? 0 : 2,flags:workerHealthy ? 64 | 16 : 0,intent:intent,nativeID:0)
     }
     func revoke() { revokes += 1 }
+    func confirmsSystemReturn(_ returned: StageWindowReturn) async -> Bool {
+        systemReturnConfirmed && returned.scope == scope && returned.nativeID == 22 && windows[returned.original.window] == returned.original
+    }
     func close() async -> Bool {
+        if systemClose {
+            for (key, state) in visible { windows[key] = state }
+            visible.removeAll()
+        }
         beforeCloseRead?()
         guard zeroLeases && visible.isEmpty else { return false }
         closes += 1
@@ -255,6 +264,42 @@ import Testing
         try await controller.release()
         #expect(fixture.windows == originals)
         #expect(!controller.holdsWindowDispatch)
+    }
+
+    @Test func systemOverviewReturnsWindowsWithoutRequiringTheOldDesktopToRemainCurrent() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let originals = fixture.windows
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()), witness: fixture, transport: fixture)
+        }
+        try await activate(groups[0], controller, fixture)
+        fixture.systemClose = true
+        fixture.health = false; fixture.recovery = false; fixture.nextReadFails = true
+        try await controller.handoffToSystem()
+        #expect(fixture.windows == originals && fixture.nextReadFails)
+        #expect(!controller.holdsWindowDispatch)
+    }
+
+    @Test func yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()), witness: fixture, transport: fixture)
+        }
+        try await activate(groups[0], controller, fixture)
+        let target = groups[0].members[0].windowHint
+        fixture.windows[target]?.visibility = .minimized
+        fixture.focus = fixture.windows.keys.first { $0 != target && fixture.windows[$0]?.visibility == .visible }
+        let bystanders = fixture.windows.filter { $0.key != target }
+        try await controller.retireMinimized(target, in:fixture.scope, current:{ true })
+        #expect(fixture.windows[target]?.visibility == .stageSpace)
+        #expect(fixture.windows.filter { $0.key != target } == bystanders)
+        try await activate(groups[0], controller, fixture)
+        #expect(fixture.windows[target]?.visibility == .visible && fixture.focus == target)
+        try await controller.release()
     }
 
     @Test func ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() {

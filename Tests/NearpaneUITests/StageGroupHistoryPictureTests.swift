@@ -112,6 +112,35 @@ import Testing
         #expect(try #require(departure()).parkedMember(stamp, in: read(parked)) == nil)
     }
 
+    @Test func exactHistoricalSelectionAcceptsOnlyTheOriginalWindowInAnIndependentHiddenSpace() throws {
+        let group = try #require(departure()), member = try #require(group.members.first)
+        let stamp = group.stamp(for: member)
+        var hidden = member.before
+        hidden.visibility = .stageSpace
+        hidden.hiddenSpaceID = 98
+        func read(_ state: StageWindowState) -> StageWindowSample {
+            .init(scope: scope, generation: generation, sequence: 3, workArea: area,
+                  windows: [state.window: state], focus: nil, nativeID: 4)
+        }
+        let selected = try #require(group.parkedMember(stamp, in: read(hidden)))
+        #expect(selected.0.id == member.id && selected.1 == hidden)
+        let invalidSpaces: [UInt64?] = [nil, 0, 4]
+        for space in invalidSpaces {
+            var invalid = hidden
+            invalid.hiddenSpaceID = space
+            #expect(group.parkedMember(stamp, in: read(invalid)) == nil)
+        }
+        for visibility in [StageWindowState.Visibility.visible, .minimized, .parked] {
+            var invalid = hidden
+            invalid.visibility = visibility
+            #expect(group.parkedMember(stamp, in: read(invalid)) == nil)
+        }
+        let reincarnated = StageWindowState(window: hidden.window, lifetime: UUID(), frame: hidden.frame,
+                                           visibility: .stageSpace, hiddenSpaceID: 98)
+        #expect(group.parkedMember(stamp, in: read(reincarnated)) == nil)
+        #expect(try #require(departure()).parkedMember(stamp, in: read(hidden)) == nil)
+    }
+
     @Test func historicalClicksUseWindowStackingAndNeverFallThroughAMissingFrontImage() throws {
         let group = try #require(departure())
         let backImage = try image(red: true, width: 120, height: 60)

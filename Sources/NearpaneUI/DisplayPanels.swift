@@ -206,7 +206,7 @@ import NearpaneCore
             navigation.setDispatchAvailable(eligible)
             workRect?.setOrdinaryHold("systemWindowDispatch", active: !eligible)
             if !eligible {
-                pointer.windowPreviews?.currentDesktop?.stageEngine.freeze()
+                pointer.windowPreviews?.currentDesktop?.stageEngine.systemTakesOver()
                 for id in pendingSpaceOpenings.union(host.panelContents.keys) { coordinator.finishRequest(id) }
                 pendingSpaceOpenings.removeAll()
                 primary.cancelWindowDispatchGesture()

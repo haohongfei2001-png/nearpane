@@ -164,6 +164,23 @@ import NearpaneCore
         return StageWindowDeparture.confirmed(try monitor.stageClosure(), original: id, lifetime: lifetime)
     }
 
+    /// After the Spaces engine releases its leases, independently confirm the exact bound
+    /// window's return even if a desktop gesture or native overview has changed what is current.
+    /// An absent/invalid AX element is not a successful return; departure() supplies separate
+    /// positive closure evidence. A failed yellow-button transaction may retain native minimization.
+    package func returnedHome(home: OrdinaryDesktopIdentity, frame: SurfaceRect, allowMinimized: Bool = false) -> Bool {
+        do {
+            try access.check()
+            guard self.home == home, lifetime != nil, monitor.canListAgain else { return false }
+            try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+            let returned = try StageWindowPhysicalReader.returnedHome(id, original: monitor.element, home: home,
+                frame: frame, allowMinimized: allowMinimized)
+            try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+            try access.check()
+            return returned
+        } catch { return false }
+    }
+
     package func beginCreation(_ token: UUID) throws {
         let observed = try observation(home: home)
         guard lifetime != nil, observed.onscreen, !observed.minimized, observed.membership == UInt64(home.record),

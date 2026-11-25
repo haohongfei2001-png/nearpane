@@ -81,7 +81,14 @@ struct StageGroupDeparture: Equatable {
         guard sample.scope == scope, sample.generation == generation, sample.nativeID == nativeID,
               let member = members.first(where: { $0.id == stamp.member }), self.stamp(for: member) == stamp,
               let state = sample.windows[member.before.window], state.window == member.before.window,
-              state.lifetime == member.before.lifetime, state.visibility == .parked, state.hiddenSpaceID == nil else { return nil }
+              state.lifetime == member.before.lifetime else { return nil }
+        switch state.visibility {
+        case .parked:
+            guard state.hiddenSpaceID == nil else { return nil }
+        case .stageSpace:
+            guard let hidden = state.hiddenSpaceID, hidden > 0, hidden != nativeID else { return nil }
+        default: return nil
+        }
         return (member, state)
     }
 

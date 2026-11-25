@@ -183,7 +183,7 @@ import NearpaneOrdinaryWindowRuntime
         for name in [NSWorkspace.willSleepNotification,NSWorkspace.sessionDidResignActiveNotification,
                      NSWorkspace.activeSpaceDidChangeNotification] {
             watchers.append((workspace,workspace.addObserver(forName:name,object:nil,queue:.main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.freeze() }
+                MainActor.assumeIsolated { self?.systemTakesOver() }
             }))
         }
         for name in [NSWorkspace.didWakeNotification,NSWorkspace.sessionDidBecomeActiveNotification] {
@@ -196,7 +196,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         let app = NotificationCenter.default
         let observer = app.addObserver(forName:NSApplication.didChangeScreenParametersNotification,object:nil,queue:.main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.freeze(); self?.needsReassessment = true; self?.feed?.changed() }
+            MainActor.assumeIsolated { self?.systemTakesOver(); self?.needsReassessment = true; self?.feed?.changed() }
         }
         watchers.append((app,observer))
     }
@@ -273,6 +273,11 @@ import NearpaneOrdinaryWindowRuntime
         engine.invalidate()
     }
 
+    func systemTakesOver() {
+        freeze()
+        if engine?.session?.owner.backend == .spaces { _ = beginRelease() }
+    }
+
     /// A takeover revokes new actions immediately. Restore under the old worker only after its independent
     /// witness positively observes a safe context again. An uncertain issued restore remains in the WAL.
     func ordinaryContextObserved() {
@@ -298,7 +303,10 @@ import NearpaneOrdinaryWindowRuntime
                     self?.feed?.observeStageOwnership(false)
                 }
             }
-            do { try await engine.release() } catch { /* Retain the prior worker and unresolved WAL. */ }
+            do {
+                if engine.session?.owner.backend == .spaces { try await engine.handoffToSystem() }
+                else { try await engine.release() }
+            } catch { recoveryRequested = true /* Retain ownership until independent return is proved. */ }
         }
         releaseTask = pending
         return pending

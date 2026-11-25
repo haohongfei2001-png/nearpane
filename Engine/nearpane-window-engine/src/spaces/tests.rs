@@ -56,6 +56,7 @@ struct Fake {
     replace_fixture_when_parked: bool,
     minimize_writes: Vec<(u32, u64, bool)>,
     refuse_unminimize: bool,
+    unminimize_returns_to_desktop: bool,
 }
 impl Fake {
     fn new() -> Self {
@@ -170,6 +171,7 @@ impl Platform for Fake {
         let t = self.windows.get_mut(&w.number).unwrap();
         self.minimize_writes.push((w.number, t.1, minimized));
         t.3 = minimized;
+        if !minimized && self.unminimize_returns_to_desktop { t.1 = 10; }
         Delivery::Accepted
     }
     fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
@@ -528,7 +530,9 @@ fn changed_ax_object_or_process_birth_prevents_restoring_a_reused_window_number(
         }
         assert_ne!(s.run(&request(1, RESTORE, 3), &a).status, PASS);
         assert_eq!(s.sys.moved.len(), before);
-        assert_eq!(s.owned.len(), 1);
+        // A changed AX reference is unresolved ownership of the same process;
+        // a different process birth proves the original lifetime has ended.
+        assert_eq!(s.owned.len(), if change_birth { 0 } else { 1 });
         assert_eq!(s.slots.len(), 1);
     }
 }
@@ -719,6 +723,22 @@ fn failed_yellow_button_adoption_restores_membership_and_keeps_the_native_minimi
     assert_eq!(s.sys.windows[&1].1, 10);
     assert!(s.sys.windows[&1].3);
     assert!(s.sys.minimize_writes.is_empty());
+}
+
+#[test]
+fn macos_pulling_an_unminimized_window_home_is_never_reported_as_hidden() {
+    let (mut s, a) = setup();
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    s.sys.windows.get_mut(&1).unwrap().3 = true;
+    s.sys.unminimize_returns_to_desktop = true;
+    let hidden = s.run(&request(1, HIDE_MINIMIZED, 2), &a);
+    assert_ne!(hidden.status, PASS);
+    assert_eq!(hidden.flags & HIDDEN, 0);
+    assert!(s.failed && !s.owned.is_empty());
+    let released = s.run(&launch_request(RELEASE_SPACES), &a);
+    assert_eq!((released.status, released.owned), (PASS, 0));
+    assert!(s.slots.is_empty());
+    assert_eq!(s.sys.windows[&1].1, 10);
 }
 
 #[test]

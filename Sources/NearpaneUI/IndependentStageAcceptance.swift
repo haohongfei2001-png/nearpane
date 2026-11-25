@@ -31,6 +31,7 @@ import NearpaneOrdinaryWindowRuntime
         var report: [String: Any] = ["schema": 1, "status": "BLOCKED", "reason": "preflight",
             "actualR4Inputs": 0, "foreignWindowReadback": false, "cleanup": true,
             "missionControl": "NOT_RUN", "desktopGestures": "NOT_RUN", "fullScreenSplitView": "NOT_RUN",
+            "nativeFullScreen": "NOT_RUN", "nativeDesktopSwitch": "NOT_RUN", "appExpose": "NOT_RUN",
             "yellowButtonRouting": "NOT_RUN", "groupMergeSplit": "NOT_RUN", "qualificationGranted": false]
         var events = [[String: Any]]()
         func record(_ phase: String, _ fields: [String: Any] = [:]) {
@@ -190,6 +191,64 @@ import NearpaneOrdinaryWindowRuntime
                     record("missionControl", ["exposed": exposed, "realWindowsReturned": restored != nil, "ordinaryReturned": ordinary])
                 } catch { report["missionControl"] = "BLOCKED" }
             } else { report["missionControl"] = "BLOCKED" }
+            // Real full-screen entry belongs to the fixture AppKit window. The test
+            // observes the product yielding its sidebar and returning to the same desktop.
+            await feed.stageEngine.release()
+            if await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 5) != nil,
+               await ownerCommand(first, action: "focus", nonce: config.nonce),
+               await ownerCommand(first, action: "fullscreen", nonce: config.nonce) {
+                var entered = false
+                let enterDeadline = ContinuousClock.now.advanced(by: .seconds(6))
+                while ContinuousClock.now < enterDeadline {
+                    panels.update(screens: SystemScreens.geometry())
+                    if ownerFlag(first, "fullScreen"), let current = currentDesktop(), current.kind == 4,
+                       cg(first.window.number)?.visible == true, controller.window?.isVisible == false {
+                        entered = true; break
+                    }
+                    try await Task.sleep(for: .milliseconds(80))
+                }
+                // Always unwind the owned window even when the sidebar observation failed.
+                if ownerFlag(first, "fullScreen") { _ = await ownerCommand(first, action: "fullscreen", nonce: config.nonce) }
+                let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 8)
+                report["nativeFullScreen"] = entered && returned != nil ? "PASS" : "FAIL"
+                record("nativeFullScreen", ["realFullScreenSpace": entered, "sameDesktopAndGeometryReturned": returned != nil])
+            } else { report["nativeFullScreen"] = "BLOCKED" }
+
+            if CGPreflightPostEventAccess(), let before = currentDesktop(), before.kind == 0,
+               before.id == first.home, let adjacent = adjacentOrdinary(to: before.id) {
+                let outbound: CGKeyCode = adjacent.forward ? 124 : 123
+                sendControlArrow(outbound)
+                let arrived = await waitDesktop(adjacent.id, seconds: 5)
+                var sourceWindowsStayedHome = arrived
+                for target in targets {
+                    sourceWindowsStayedHome = sourceWindowsStayedHome &&
+                        (NPReadWindowSpaces(target.window.number) as? [UInt64]) == [target.home] && cg(target.window.number)?.visible == false
+                }
+                // Return only from the exact adjacent desktop we just selected.
+                // A different desktop is preserved if external activity changed it.
+                if currentDesktop()?.id == adjacent.id { sendControlArrow(adjacent.forward ? 123 : 124) }
+                let back = await waitDesktop(before.id, seconds: 5)
+                let returned = back ? await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4) : nil
+                report["nativeDesktopSwitch"] = sourceWindowsStayedHome && returned != nil ? "PASS" : "FAIL"
+                record("nativeDesktopSwitch", ["source": before.id, "destination": adjacent.id,
+                    "sourceWindowMembershipPreserved": sourceWindowsStayedHome, "returned": returned != nil,
+                    "input": "existing Control-arrow system shortcut; physical trackpad gesture not asserted"])
+            } else { report["nativeDesktopSwitch"] = "BLOCKED" }
+
+            if CGPreflightPostEventAccess(), currentDesktop()?.id == first.home,
+               await ownerCommand(first, action: "focus", nonce: config.nonce) {
+                sendControlArrow(125) // Existing system App Exposé action.
+                let until = ContinuousClock.now.advanced(by: .seconds(4))
+                var exposed = false
+                while ContinuousClock.now < until {
+                    if let read = await panels.observeMissionControl(), read.mode == 1 { exposed = true; break }
+                    try await Task.sleep(for: .milliseconds(80))
+                }
+                sendEscape()
+                let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 5)
+                report["appExpose"] = exposed && returned != nil ? "PASS" : "FAIL"
+                record("appExpose", ["nativeOverviewObserved": exposed, "realWindowsReturned": returned != nil])
+            } else { report["appExpose"] = "BLOCKED" }
         } catch {
             report["status"] = startedWrites ? "FAIL" : "BLOCKED"
             report["reason"] = (error as? Failure)?.reason ?? String(describing: error)
@@ -218,6 +277,62 @@ import NearpaneOrdinaryWindowRuntime
         var enrolled = number
         guard let visible = NPReadVisibleWindowDescriptions(&enrolled, 1) as? [[String: Any]], visible.count <= 1 else { return nil }
         return (pid, frame, visible.count == 1)
+    }
+
+    private static func currentDesktop() -> (id: UInt64, kind: Int)? {
+        guard let inventory = NPReadInventory() as? [[String: Any]], inventory.count == 1,
+              let current = inventory.first?["Current Space"] as? [String: Any],
+              let id = (current["ManagedSpaceID"] as? NSNumber)?.uint64Value ?? (current["id64"] as? NSNumber)?.uint64Value,
+              let kind = (current["type"] as? NSNumber)?.intValue else { return nil }
+        return (id, kind)
+    }
+
+    private static func adjacentOrdinary(to id: UInt64) -> (id: UInt64, forward: Bool)? {
+        guard let inventory = NPReadInventory() as? [[String: Any]], inventory.count == 1,
+              let spaces = inventory.first?["Spaces"] as? [[String: Any]] else { return nil }
+        func identifier(_ row: [String: Any]) -> UInt64? {
+            (row["ManagedSpaceID"] as? NSNumber)?.uint64Value ?? (row["id64"] as? NSNumber)?.uint64Value
+        }
+        guard let index = spaces.firstIndex(where: { identifier($0) == id }) else { return nil }
+        for direction in [1, -1] {
+            let next = index + direction
+            if spaces.indices.contains(next), (spaces[next]["type"] as? NSNumber)?.intValue == 0,
+               let neighbor = identifier(spaces[next]), neighbor != id { return (neighbor, direction == 1) }
+        }
+        return nil
+    }
+
+    private static func waitDesktop(_ id: UInt64, seconds: Double) async -> Bool {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        var consecutive = 0
+        while ContinuousClock.now < until {
+            consecutive = currentDesktop()?.id == id ? consecutive + 1 : 0
+            if consecutive == 2 { return true }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        return false
+    }
+
+    private static func sendControlArrow(_ code: CGKeyCode) {
+        let source = CGEventSource(stateID: .privateState)
+        let down = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true)
+        let up = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)
+        down?.flags = .maskControl; up?.flags = .maskControl
+        down?.post(tap: .cghidEventTap); up?.post(tap: .cghidEventTap)
+    }
+
+    private static func sendEscape() {
+        let source = CGEventSource(stateID: .privateState)
+        CGEvent(keyboardEventSource: source, virtualKey: 53, keyDown: true)?.post(tap: .cghidEventTap)
+        CGEvent(keyboardEventSource: source, virtualKey: 53, keyDown: false)?.post(tap: .cghidEventTap)
+    }
+
+    private static func ownerFlag(_ target: Target, _ name: String) -> Bool {
+        let path = URL(fileURLWithPath: target.fixture.directory).appendingPathComponent("state.json")
+        guard let data = try? Data(contentsOf: path), let state = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let windows = state["windows"] as? [[String: Any]], windows.indices.contains(target.window.index),
+              windows[target.window.index]["number"] as? UInt32 == target.window.number else { return false }
+        return windows[target.window.index][name] as? Bool == true
     }
 
     private static func waitForState(_ targets: [Target], visible: Set<UInt32>, focus: Target?, seconds: Double) async -> [[String: Any]]? {
