@@ -1,5 +1,7 @@
 # 本地 Alpha 与公开发行的边界
 
+**适用范围：日常 Alpha 的发布与既有安装记录。** 当前独立台前调度候选使用不同的应用身份与资料目录；其完整构建、Finder 入口和验收见[独立候选说明](../scripts/acceptance/independent-stage/README.md)。下述日常安装流程不意味着候选已获产品资格，也不随候选提交自动替换已安装版本。产品与技术路线以[现行裁决](../engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md)为准。
+
 个人 Alpha 默认安装到 `/Applications/Nearpane.app`。已有个人目录安装且系统目录无同名应用时，更新沿用个人目录；首次安装遇系统目录不可写时也使用个人目录。应用标识为 `com.holdsnow.nearpane.alpha`。更新时正常退出正在运行的 Nearpane，使用 `scripts/build-candidate.sh` 将新包原子替换至原安装路径。安装与导出统一生成 `Nearpane.app`，默认选择 Nearpane 团队的 Developer ID Application 证书。若本机有多张匹配证书，通过 `NEARPANE_LOCAL_SIGNING_IDENTITY` 指定指纹。首次导出也要校验 Host 和助手的权限身份，覆盖已有正式包时还要双向验证签名要求。默认安装的包收据为 `build/candidate/package.json`。日常开发使用 `scripts/test.sh` 和 `scripts/build-app.sh`，开发包使用独立的 `com.holdsnow.nearpane.host` 标识。独立验收可用 `NEARPANE_CANDIDATE_OUTPUT` 指定临时目录，验收结束后保留所需的归档与收据，并清理该次临时 App。各版沿用资料格式 1 和单写锁。[Alpha 使用帮助](ALPHA-HELP.md)
 
 用户安装当前 Alpha 时只需完整的 App。窗口管理和资料导入共用签封在包内的 NearpaneAutomation。用于维护本仓库的构建工具仍在开发机上运行。为最终包验证运行环境时可从终端执行 `"<Alpha.app>/Contents/MacOS/NearpaneHost" --check-helper-runtime`。首次构建所用的 CPython 来源和 SHA-256 见[运行环境来源锁](../Dependencies/automation-runtime.json)。
