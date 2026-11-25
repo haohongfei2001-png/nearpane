@@ -1,7 +1,9 @@
 #include "ReadOnlySpaces.h"
+#include <ApplicationServices/ApplicationServices.h>
 #include <CoreGraphics/CGError.h>
 #include <CoreGraphics/CGWindow.h>
 #include <dlfcn.h>
+#include <math.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/sysctl.h>
@@ -59,7 +61,8 @@ CFArrayRef NPReadVisibleWindowDescriptions(const uint32_t *windows, int count) {
     return result;
 }
 
-// P1-A 0a704fd7: signed 32-bit connection, CGWindowID in an explicit CFArray, selector 7 only.
+// Signed 32-bit connection and CGWindowID in an explicit CFArray. These are
+// read-only lookups; engine write qualification is independent of this shim.
 _Static_assert(sizeof(int) == 4 && sizeof(uint32_t) == 4, "unreviewed ABI");
 typedef int (*MainConnection)(void);
 typedef CFArrayRef (*CopyManaged)(int);
@@ -75,54 +78,53 @@ static int connection;
 static MainConnection mainConnection;
 static pthread_once_t resolveOnce = PTHREAD_ONCE_INIT;
 
+static int readOnlyABISupported(void) {
+#if defined(__arm64__)
+    char build[64] = {0};
+    size_t length = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &length, NULL, 0)) return 0;
+    // Read the current arm64 Darwin 26 ABI family only. A matching family is
+    // permission to attempt symbol/shape reads, not proof of window behavior.
+    return length >= 4 && length <= sizeof(build) && !strncmp(build, "26", 2) &&
+        build[2] >= 'A' && build[2] <= 'Z';
+#else
+    return 0;
+#endif
+}
+
 static void resolveGetters(void) {
     void *handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LOCAL | RTLD_LAZY);
     if (!handle) return;
     mainConnection = (MainConnection)dlsym(handle, "SLSMainConnectionID");
     managed = (CopyManaged)dlsym(handle, "SLSCopyManagedDisplaySpaces");
     membership = (CopyMembership)dlsym(handle, "SLSCopySpacesForWindows");
-#if defined(__arm64__)
-    char build[64] = {0};
-    size_t length = sizeof(build);
-    if (!sysctlbyname("kern.osversion", build, &length, NULL, 0) && !strcmp(build, "26A428")) {
-        logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
-        spaceWindowNumbers = (CopySpaceWindowNumbers)dlsym(handle, "SLSCopyWindowsWithOptionsAndTags");
-    }
-#endif
+    logicalBounds = (ReadLogicalBounds)dlsym(handle, "SLSGetWindowBounds");
+    spaceWindowNumbers = (CopySpaceWindowNumbers)dlsym(handle, "SLSCopyWindowsWithOptionsAndTags");
 }
 
 int NPReadCatalogLogicalBounds(uint32_t window, CGRect *bounds) {
     if (!window || connection <= 0 || !logicalBounds) return 0;
     CGRect rect = CGRectNull;
     if (logicalBounds(connection, window, &rect) != kCGErrorSuccess ||
-        CGRectIsNull(rect) || CGRectIsInfinite(rect) || CGRectIsEmpty(rect)) return 0;
+        CGRectIsNull(rect) || CGRectIsInfinite(rect) || CGRectIsEmpty(rect) ||
+        !isfinite(rect.origin.x) || !isfinite(rect.origin.y) ||
+        !isfinite(rect.size.width) || !isfinite(rect.size.height)) return 0;
     *bounds = rect;
     return 1;
 }
 
-static int openGetters(int observeOnly) {
-#if defined(__arm64__)
-    char build[64] = {0};
-    size_t length = sizeof(build);
-    if (sysctlbyname("kern.osversion", build, &length, NULL, 0)) return 0;
-    // Only the read-only catalogue may probe other builds in this ABI family.
-    // Selection, movement and private AX identity have separate reviewed bounds.
-    if (observeOnly) {
-        if (strncmp(build, "26", 2) || build[2] < 'A' || build[2] > 'Z') return 0;
-    } else if (strcmp(build, "26A428")) return 0;
+static int openGetters(void) {
+    if (!readOnlyABISupported()) return 0;
     pthread_once(&resolveOnce, resolveGetters);
     if (!mainConnection || !managed || !membership) return -1;
     connection = mainConnection();
     return connection > 0 ? 1 : -1;
-#else
-    return 0;
-#endif
 }
 
-int NPReadOnlySpacesOpen(void) { return openGetters(0); }
+int NPReadOnlySpacesOpen(void) { return openGetters(); }
 
 int NPProbeReadOnlyCatalog(void) {
-    int opened = openGetters(1);
+    int opened = openGetters();
     if (opened != 1) return opened;
     CFArrayRef raw = NPReadInventory();
     if (!raw) return -1;
@@ -171,7 +173,7 @@ CFArrayRef NPReadInventory(void) {
     return connection > 0 && managed ? checkedArray(managed(connection)) : NULL;
 }
 
-CFArrayRef NPReadWindowSpaces(uint32_t window) {
+static CFArrayRef copyWindowSpaces(uint32_t window, int selector) {
     if (!window || connection <= 0 || !membership) return NULL;
     int32_t id;
     memcpy(&id, &window, sizeof(id));
@@ -181,21 +183,27 @@ CFArrayRef NPReadWindowSpaces(uint32_t window) {
     CFArrayRef input = CFArrayCreate(NULL, values, 1, &kCFTypeArrayCallBacks);
     CFRelease(number);
     if (!input) return NULL;
-    CFArrayRef copy = checkedArray(membership(connection, 7, input));
+    CFArrayRef copy = checkedArray(membership(connection, selector, input));
     CFRelease(input);
     return copy;
 }
 
+CFArrayRef NPReadWindowSpaces(uint32_t window) {
+    return copyWindowSpaces(window, 7);
+}
+
+CFArrayRef NPReadWindowSpacesIncludingHidden(uint32_t window) {
+    // Classic hidden Spaces are omitted by the ordinary managed-space selector.
+    // Physical engine witnesses must observe both ordinary and hidden membership.
+    return copyWindowSpaces(window, 15);
+}
+
 uint32_t NPReadAXWindowNumber(CFTypeRef element) {
-#if defined(__arm64__)
-    char build[64] = {0};
-    size_t length = sizeof(build);
-    if (sysctlbyname("kern.osversion", build, &length, NULL, 0) || strcmp(build, "26A428")) return 0;
+    if (!readOnlyABISupported() || !element || CFGetTypeID(element) != AXUIElementGetTypeID()) return 0;
     typedef int32_t (*ReadNumber)(CFTypeRef, uint32_t *);
     ReadNumber readNumber = (ReadNumber)dlsym(RTLD_DEFAULT, "_AXUIElementGetWindow");
     uint32_t number = 0;
-    if (readNumber && readNumber(element, &number) == 0) return number;
-#endif
+    if (readNumber && readNumber(element, &number) == kAXErrorSuccess && number > 0) return number;
     return 0;
 }
 

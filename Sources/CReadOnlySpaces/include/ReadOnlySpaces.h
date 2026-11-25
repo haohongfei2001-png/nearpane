@@ -2,22 +2,27 @@
 #include <CoreGraphics/CGGeometry.h>
 #include <stdint.h>
 
-// The disposable readers and action helper link this shim. The Host does not.
-// The existing entry point keeps the reviewed write/identity build gate.
+// The Host, ordinary-window controller and disposable readers share this read-only
+// shim. arm64 Darwin 26-family symbol/shape reads do not grant engine write
+// qualification; callers retain their independent TCC, process and AX identity checks.
 int NPReadOnlySpacesOpen(void);
-// Metadata-only inventory on the reviewed Darwin ABI family, after a runtime shape probe.
+// Metadata-only inventory on that ABI family, including a runtime shape probe.
 int NPProbeReadOnlyCatalog(void);
 CFArrayRef _Nullable NPReadInventory(void) CF_RETURNS_RETAINED;
 CFArrayRef _Nullable NPReadWindowSpaces(uint32_t window) CF_RETURNS_RETAINED;
+// Physical witnesses include classic hidden Spaces (selector 15). The ordinary
+// catalogue above keeps selector 7; neither view changes window membership.
+CFArrayRef _Nullable NPReadWindowSpacesIncludingHidden(uint32_t window) CF_RETURNS_RETAINED;
 
-// Exact-build, read-only WindowServer member numbers for one already witnessed Space.
+// Read-only WindowServer member numbers for one already witnessed Space.
 CFArrayRef _Nullable NPReadCatalogSpaceWindowNumbers(uint64_t space) CF_RETURNS_RETAINED;
 
 // Pre-compositor logical rectangle for the read-only roster. No content or action authority.
-// Returns zero on unverified builds or when the window disappears.
+// Returns zero outside the supported ABI family, for absent symbols or invalid bounds.
 int NPReadCatalogLogicalBounds(uint32_t window, CGRect * _Nonnull bounds);
 
-// Window-number read witnessed in P4.7.3; unavailable on unverified OS builds.
+// Private read of an existing AX element on the supported ABI family. A positive
+// number alone never replaces retained AX equality or the process-birth witness.
 uint32_t NPReadAXWindowNumber(CFTypeRef _Nonnull element);
 
 // Exact ID-only query including offscreen records: absent (0), present (1), unavailable (-1).

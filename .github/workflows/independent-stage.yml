@@ -29,6 +29,19 @@ jobs:
           swift --version
       - name: Rust, FFI, group lifecycle and R4 integration source tests
         run: python3 -B scripts/acceptance/independent-stage/run.py "$RUNNER_TEMP/independent-source" --scope source
+      - name: Publish read-only console context immediately
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nearpane-independent-context-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/independent-source/summary.json
+            ${{ runner.temp }}/independent-source/source/summary.json
+            ${{ runner.temp }}/independent-source/source/windowserver-context.json
+            ${{ runner.temp }}/independent-source/source/read-only-context*.log
+            ${{ runner.temp }}/independent-source/source/probe-build*.log
+          if-no-files-found: warn
+          retention-days: 30
       - name: Build complete candidate with embedded tools
         id: candidate
         if: ${{ !cancelled() }}

@@ -4,6 +4,8 @@ import NearpaneCore
 
 /// The helper retains this AX object from its original list. An off-Space owner's AXWindows can be empty;
 /// a fresh matching number alone can never recreate the binding. No title or document AX attributes.
+/// This witness includes classic hidden Spaces (mask 15); the ordinary catalogue
+/// intentionally keeps its separate managed-only membership view (mask 7).
 enum StageWindowPhysicalReader {
     /// Unlike admission and normal switching, this read does not require the home desktop to
     /// be current. It observes only the retained AX window and the real Space membership.
@@ -17,7 +19,7 @@ enum StageWindowPhysicalReader {
             guard AXUIElementGetPid(original, &pid) == .success, pid == id.pid, number(original) == id.number,
                   let fields = OrdinaryFocusAttributes(original),
                   let inventory = NPReadInventory() as? [[String: Any]],
-                  let forward = NPReadWindowSpaces(id.number) as? [UInt64],
+                  let forward = NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64],
                   let reverse = NPReadCatalogSpaceWindowNumbers(homeNumber) as? [UInt32],
                   let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, id.number) as? [[String: Any]],
                   rows.count == 1, let row = rows.first else { return false }
@@ -63,7 +65,7 @@ enum StageWindowPhysicalReader {
               row[kCGWindowLayer as String] as? Int == 0,
               let bounds = row[kCGWindowBounds as String] as? NSDictionary, let cg = CGRect(dictionaryRepresentation:bounds),
               cg.width > 0, cg.height > 0, [cg.minX,cg.minY,cg.width,cg.height].allSatisfy(\.isFinite),
-              cg == fields.frame, let forward = NPReadWindowSpaces(id.number) as? [UInt64], forward.count == 1,
+              cg == fields.frame, let forward = NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64], forward.count == 1,
               let member = forward.first, member > 0, let reverse = NPReadCatalogSpaceWindowNumbers(member) as? [UInt32],
               reverse.filter({ $0 == id.number }).count == 1 else { throw StageSwitchError.incomplete }
         if member != homeNumber {
@@ -92,7 +94,7 @@ enum StageWindowPhysicalReader {
             if receiver == id.pid, n == id.number, !CFEqual(element,original) { throw StageSwitchError.ownership }
         } else { focused = nil }
         try focus.check()
-        guard number(original) == id.number, NPReadWindowSpaces(id.number) as? [UInt64] == forward,
+        guard number(original) == id.number, NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64] == forward,
               NPReadInventory() as? NSArray == inventory as NSArray, StageManagerPreference.read() == false else {
             throw StageSwitchError.interrupted
         }

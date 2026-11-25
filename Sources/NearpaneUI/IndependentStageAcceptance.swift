@@ -16,6 +16,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         let schema: Int, nonce: UUID, output: String, profile: String, iterations: Int
         let purpose: String?
+        let systemHelper: String?
         let fixtures: [Fixture]
     }
     private struct Target {
@@ -33,6 +34,7 @@ import NearpaneOrdinaryWindowRuntime
             "actualR4Inputs": 0, "foreignWindowReadback": false, "cleanup": true,
             "missionControl": "NOT_RUN", "desktopGestures": "NOT_RUN", "fullScreenSplitView": "NOT_RUN",
             "nativeFullScreen": "NOT_RUN", "nativeDesktopSwitch": "NOT_RUN", "appExpose": "NOT_RUN",
+            "nativeDesktopReveal": "NOT_RUN",
             "yellowButtonRouting": "NOT_RUN", "groupMergeSplit": "NOT_RUN", "qualificationGranted": false]
         var events = [[String: Any]]()
         func record(_ phase: String, _ fields: [String: Any] = [:]) {
@@ -66,7 +68,7 @@ import NearpaneOrdinaryWindowRuntime
             }
             for window in fixture.windows {
                 guard let row = cg(window.number), row.pid == fixture.pid, row.visible,
-                      let spaces = NPReadWindowSpaces(window.number) as? [UInt64], spaces.count == 1,
+                      let spaces = NPReadWindowSpacesIncludingHidden(window.number) as? [UInt64], spaces.count == 1,
                       let home = spaces.first, home > 0 else {
                     report["reason"] = "fixtureBaselineUnavailable"; save(); return 2
                 }
@@ -230,7 +232,7 @@ import NearpaneOrdinaryWindowRuntime
                 let until = ContinuousClock.now.advanced(by: .seconds(5))
                 var retired = false
                 while ContinuousClock.now < until {
-                    if let spaces = NPReadWindowSpaces(first.window.number) as? [UInt64], spaces.count == 1,
+                    if let spaces = NPReadWindowSpacesIncludingHidden(first.window.number) as? [UInt64], spaces.count == 1,
                        spaces[0] != first.home, cg(first.window.number)?.visible == false { retired = true; break }
                     feed.changed(); try await Task.sleep(for: .milliseconds(80))
                 }
@@ -246,6 +248,14 @@ import NearpaneOrdinaryWindowRuntime
             productPassed = true
             report["status"] = "PRODUCT_R4_PASS"
             report["reason"] = "realR4ButtonsDispatchedAndReadBack"
+            try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeDesktopReveal")
+            let reveal = await exerciseDesktopReveal(targets, nonce: config.nonce, feed: feed, panels: panels)
+            report["nativeDesktopReveal"] = reveal["status"]
+            record("nativeDesktopReveal", reveal)
+            if reveal["status"] as? String == "PASS", let sibling = groupIDs[targets[1].window.number] {
+                try await selectR4(1, group: sibling, visible: [targets[1].window.number], phase: "afterDesktopRevealHeldCard")
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "returnAfterDesktopReveal")
+            }
             // The ordinary system overview must receive restored real windows, never corner proxies.
             if CGPreflightPostEventAccess() {
                 try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeMissionControl")
@@ -303,6 +313,17 @@ import NearpaneOrdinaryWindowRuntime
                     "resumeObservations": returned?.observations ?? []])
             } else { report["nativeFullScreen"] = "BLOCKED" }
 
+            if let helper = config.systemHelper, currentDesktop()?.id == first.home {
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeNativeSplitView")
+                let split = await exerciseSplitView(targets, nonce: config.nonce, helper: helper, output: output,
+                                                  feed: feed, panels: panels, panel: controller.window, scope: scope)
+                report["fullScreenSplitView"] = split["status"]
+                record("fullScreenSplitView", split)
+            } else {
+                report["fullScreenSplitView"] = "BLOCKED"
+                record("fullScreenSplitView", ["reason": "systemSplitHelperOrOriginalDesktopUnavailable"])
+            }
+
             if CGPreflightPostEventAccess(), let before = currentDesktop(), before.kind == 0,
                before.id == first.home, let adjacent = adjacentOrdinary(to: before.id) {
                 try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeDesktopSwitch")
@@ -343,6 +364,9 @@ import NearpaneOrdinaryWindowRuntime
             report["status"] = startedWrites ? "FAIL" : "BLOCKED"
             report["reason"] = (error as? Failure)?.reason ?? String(describing: error)
         }
+        report["dispatchAttempted"] = startedWrites
+        report["statusBeforeCleanup"] = report["status"]
+        report["reasonBeforeCleanup"] = report["reason"]
         report["windowPreviewMetrics"] = modules.windowPreviewMetrics
         let released = await modules.prepareStageWindowShutdown()
         let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4)
@@ -385,6 +409,240 @@ import NearpaneOrdinaryWindowRuntime
               let id = (current["ManagedSpaceID"] as? NSNumber)?.uint64Value ?? (current["id64"] as? NSNumber)?.uint64Value,
               let kind = (current["type"] as? NSNumber)?.intValue else { return nil }
         return (id, kind)
+    }
+
+    private static func physicalWindow(at point: CGPoint) -> Int {
+        let appKit = CGPoint(x: point.x, y: CGDisplayBounds(CGMainDisplayID()).maxY - point.y)
+        return NSWindow.windowNumber(at: appKit, belowWindowWithWindowNumber: 0)
+    }
+
+    private static func blankDesktopPoint() -> CGPoint? {
+        let bounds = CGDisplayBounds(CGMainDisplayID())
+        for y in [0.25, 0.5, 0.75, 0.15, 0.85] {
+            for x in [0.25, 0.5, 0.75, 0.15, 0.85] {
+                let point = CGPoint(x: bounds.minX + bounds.width * x, y: bounds.minY + bounds.height * y)
+                if WallpaperRevealMonitor.isBlankDesktop(at: point, windowNumber: physicalWindow(at: point)) { return point }
+            }
+        }
+        return nil
+    }
+
+    private static func clickBlankDesktop(at point: CGPoint) -> Bool {
+        guard CGPreflightPostEventAccess(),
+              WallpaperRevealMonitor.isBlankDesktop(at: point, windowNumber: physicalWindow(at: point)),
+              let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
+              let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else { return false }
+        down.setIntegerValueField(.mouseEventClickState, value: 1)
+        up.setIntegerValueField(.mouseEventClickState, value: 1)
+        CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
+        down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
+        return true
+    }
+
+    private static func exerciseDesktopReveal(_ targets: [Target], nonce: UUID, feed: CurrentDesktopWindows,
+                                              panels: DisplayPanels) async -> [String: Any] {
+        guard let active = targets.first, CGPreflightPostEventAccess(), let point = blankDesktopPoint(),
+              currentDesktop()?.id == active.home else {
+            return ["status": "BLOCKED", "reason": "nativeBlankDesktopClickUnavailable"]
+        }
+        let activePoint = CGPoint(x: active.frame.midX, y: active.frame.midY)
+        guard physicalWindow(at: activePoint) == Int(active.window.number) else {
+            return ["status": "BLOCKED", "reason": "activeWindowPhysicalWitnessUnavailable"]
+        }
+        var hidden = [UInt32: UInt64]()
+        for target in targets.dropFirst() {
+            guard let spaces = NPReadWindowSpacesIncludingHidden(target.window.number) as? [UInt64], spaces.count == 1,
+                  let space = spaces.first, space != target.home else {
+                return ["status": "FAIL", "reason": "inactiveGroupNotHeldBeforeDesktopReveal"]
+            }
+            hidden[target.window.number] = space
+        }
+        let mouse = CGEvent(source: nil)?.location
+        guard clickBlankDesktop(at: point) else { return ["status": "BLOCKED", "reason": "blankDesktopChangedBeforeClick"] }
+        var entered = false, heldContinuously = true, samples = 0
+        let enterDeadline = ContinuousClock.now.advanced(by: .seconds(4))
+        while ContinuousClock.now < enterDeadline {
+            for (number, space) in hidden {
+                heldContinuously = heldContinuously && (NPReadWindowSpacesIncludingHidden(number) as? [UInt64]) == [space]
+                    && cg(number)?.visible == false
+            }
+            samples += 1
+            let revealed = WallpaperRevealMonitor.isBlankDesktop(at: activePoint, windowNumber: physicalWindow(at: activePoint))
+            if revealed, panels.stageDisposition == .wallpaper, feed.stageEngine.wallpaperPaused { entered = true; break }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        if entered {
+            for _ in 0..<8 {
+                try? await Task.sleep(for: .milliseconds(100))
+                for (number, space) in hidden {
+                    heldContinuously = heldContinuously && (NPReadWindowSpacesIncludingHidden(number) as? [UInt64]) == [space]
+                        && cg(number)?.visible == false
+                }
+                heldContinuously = heldContinuously && feed.stageEngine.wallpaperPaused
+                samples += 1
+            }
+        }
+        // A second confirmed background click asks the OS to restore its own view.
+        // If this preference is disabled, the original active window remains in place.
+        let returnClick = entered && clickBlankDesktop(at: point)
+        if entered && !returnClick { _ = await ownerCommand(active, action: "focus", nonce: nonce) }
+        var returned = false
+        let returnDeadline = ContinuousClock.now.advanced(by: .seconds(8))
+        while ContinuousClock.now < returnDeadline {
+            _ = await panels.observeMissionControl()
+            feed.changed()
+            if !feed.stageEngine.wallpaperPaused, panels.stageDisposition == .ordinary,
+               physicalWindow(at: activePoint) == Int(active.window.number),
+               await waitForState(targets, visible: [active.window.number], focus: nil, seconds: 0.3) != nil {
+                returned = true; break
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        if !returned { _ = await ownerCommand(active, action: "focus", nonce: nonce) }
+        if let mouse, let present = CGEvent(source: nil)?.location, abs(present.x - point.x) <= 1, abs(present.y - point.y) <= 1 {
+            CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: mouse, mouseButton: .left)?.post(tap: .cghidEventTap)
+        }
+        return ["status": !entered ? "BLOCKED" : (heldContinuously && returnClick && returned ? "PASS" : "FAIL"),
+            "reason": !entered ? "clickWallpaperDidNotProduceConfirmedNativeReveal" : "nativeDesktopRevealMeasured",
+            "input": "synthetic click on AX/WindowServer-confirmed blank desktop; no preference change",
+            "nativeRevealObserved": entered, "originalHiddenSpacesPreserved": heldContinuously,
+            "membershipSamples": samples, "returnClickIssued": returnClick, "ordinaryGroupReturned": returned,
+            "physicalTrackpadGestureClaimed": false]
+    }
+
+    private static func splitInput(_ operation: String, targets: [Target], nonce: UUID,
+                                   helper: String, output: URL) async -> [String: Any] {
+        guard targets.count == 3, targets[0].fixture.pid == targets[1].fixture.pid else {
+            return ["status": "BLOCKED", "reason": "sameApplicationPairRequired"]
+        }
+        var kit = URL(fileURLWithPath: targets[0].fixture.executable).resolvingSymlinksInPath()
+        for _ in 0..<4 { kit.deleteLastPathComponent() }
+        let binary = URL(fileURLWithPath: helper).resolvingSymlinksInPath()
+        guard binary == kit.appendingPathComponent("SplitViewHelper") else {
+            return ["status": "BLOCKED", "reason": "fixtureScopedSplitHelperRequired"]
+        }
+        let input: [String: Any] = ["operation": operation, "fixturePID": targets[0].fixture.pid,
+            "fixtureBirth": targets[0].fixture.birth, "fixtureExecutable": targets[0].fixture.executable,
+            "nonce": nonce.uuidString.lowercased(), "numbers": [targets[0].window.number, targets[1].window.number],
+            "home": targets[0].home]
+        let child = Process(), request = Pipe(), response = Pipe()
+        child.executableURL = binary; child.standardInput = request; child.standardOutput = response
+        let errorURL = output.appendingPathComponent("split-\(operation).stderr.log")
+        _ = FileManager.default.createFile(atPath: errorURL.path, contents: Data())
+        let errorFile = try? FileHandle(forWritingTo: errorURL)
+        child.standardError = errorFile ?? FileHandle.nullDevice
+        defer { try? errorFile?.close() }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: input, options: [.sortedKeys])
+            try data.write(to: output.appendingPathComponent("split-\(operation)-request.json"), options: .atomic)
+            try child.run()
+            try request.fileHandleForWriting.write(contentsOf: data)
+            try request.fileHandleForWriting.close()
+            let until = ContinuousClock.now.advanced(by: .seconds(12))
+            while child.isRunning, ContinuousClock.now < until { try await Task.sleep(for: .milliseconds(50)) }
+            guard !child.isRunning else {
+                child.terminate()
+                return ["status": "UNKNOWN", "reason": "systemSplitHelperTimedOut"]
+            }
+            let result = response.fileHandleForReading.readDataToEndOfFile()
+            try result.write(to: output.appendingPathComponent("split-\(operation)-receipt.json"), options: .atomic)
+            guard child.terminationReason == .exit, child.terminationStatus == 0,
+                  let decoded = try JSONSerialization.jsonObject(with: result) as? [String: Any] else {
+                return ["status": "UNKNOWN", "reason": "systemSplitHelperReceiptUnavailable"]
+            }
+            return decoded
+        } catch {
+            if child.isRunning { child.terminate() }
+            return ["status": "BLOCKED", "reason": "systemSplitHelperFailed", "detail": String(describing: error)]
+        }
+    }
+
+    private static func exerciseSplitView(_ targets: [Target], nonce: UUID, helper: String, output: URL,
+                                         feed: CurrentDesktopWindows, panels: DisplayPanels, panel: NSWindow?,
+                                         scope: StageGroupScope) async -> [String: Any] {
+        let first = targets[0], second = targets[1]
+        let tile = await splitInput("tile", targets: targets, nonce: nonce, helper: helper, output: output)
+        guard tile["issued"] as? Bool == true else {
+            return ["status": "BLOCKED", "reason": tile["reason"] ?? "nativeTileActionNotAccepted", "tile": tile]
+        }
+        var halfSpace: UInt64?, handedBack = false, paired = false
+        var pair: [String: Any] = ["status": "NOT_RUN"]
+        var pairReadbacks = [[String: Any]]()
+        let halfDeadline = ContinuousClock.now.advanced(by: .seconds(7))
+        while ContinuousClock.now < halfDeadline {
+            panels.update(screens: SystemScreens.geometry())
+            if let spaces = NPReadWindowSpacesIncludingHidden(first.window.number) as? [UInt64], spaces.count == 1,
+               let space = spaces.first, space != first.home, nativeSpaceKind(space) == 4,
+               panel?.isVisible == false {
+                halfSpace = space
+                // The OS may scale the original document in its native picker.
+                // Only that system transition omits the ordinary-frame assertion.
+                handedBack = await waitForState(Array(targets.dropFirst()), visible: nil, focus: nil,
+                                                seconds: 0.4, allAtHome: true, preservingFrames: false) != nil
+                if handedBack { break }
+            }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        if handedBack {
+            pair = await splitInput("pair", targets: targets, nonce: nonce, helper: helper, output: output)
+            let issued = pair["issued"] as? Bool == true && (pair["axError"] as? Int).map({ $0 == 0 }) != false
+            if issued || pair["alreadyTogether"] as? Bool == true {
+                let pairDeadline = ContinuousClock.now.advanced(by: .seconds(7))
+                while ContinuousClock.now < pairDeadline {
+                    var matched = false
+                    if let space = halfSpace, currentDesktop()?.id == space, nativeSpaceKind(space) == 4,
+                       [first, second].allSatisfy({ target in
+                           (NPReadWindowSpacesIncludingHidden(target.window.number) as? [UInt64]) == [space] &&
+                           (NPReadCatalogSpaceWindowNumbers(space) as? [UInt32])?.filter({ $0 == target.window.number }).count == 1
+                       }), let a = cg(first.window.number), let b = cg(second.window.number), a.visible, b.visible {
+                        let halves = [a.frame, b.frame].sorted { $0.minX < $1.minX }, screen = CGDisplayBounds(CGMainDisplayID())
+                        let geometry = abs(halves[0].maxX - halves[1].minX) < 30 && abs(a.frame.height - b.frame.height) < 40 &&
+                            min(a.frame.height, b.frame.height) > screen.height * 0.8 &&
+                            halves[1].maxX - halves[0].minX > screen.width * 0.9
+                        if geometry, panel?.isVisible == false,
+                           await waitForState([targets[2]], visible: [], focus: nil, seconds: 0.3, allAtHome: true) != nil {
+                            matched = true
+                            pairReadbacks.append(["uptime": ProcessInfo.processInfo.systemUptime, "space": space,
+                                "windows": [first.window.number, second.window.number],
+                                "frames": [a.frame, b.frame].map { [$0.minX, $0.minY, $0.width, $0.height] }])
+                        }
+                    }
+                    if !matched { pairReadbacks.removeAll() }
+                    if pairReadbacks.count == 2 { paired = true; break }
+                    try? await Task.sleep(for: .milliseconds(100))
+                }
+            }
+        }
+        // Always exit the native state through the fixture's own AppKit windows.
+        if halfSpace != nil { sendEscape() }
+        for target in [first, second] where ownerFlag(target, "fullScreen") {
+            _ = await ownerCommand(target, action: "fullscreen", nonce: nonce)
+            let until = ContinuousClock.now.advanced(by: .seconds(6))
+            while ownerFlag(target, "fullScreen"), ContinuousClock.now < until {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+        }
+        _ = await ownerCommand(first, action: "focus", nonce: nonce)
+        let ordinary = await waitDesktop(first.home, seconds: 7)
+        let returned = ordinary ? await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 9) : nil
+        return ["status": paired && handedBack && returned != nil ? "PASS" :
+                    (handedBack && pair["status"] as? String == "BLOCKED" && returned != nil ? "BLOCKED" : "FAIL"),
+            "reason": paired ? "nativeSplitViewMeasured" : pair["reason"] ?? "nativeSplitViewNotConfirmed",
+            "tile": tile, "pair": pair, "nativeFullScreenSpace": halfSpace ?? 0,
+            "inactiveWindowsHandedBack": handedBack, "sameNativeSpaceAndSplitGeometry": paired,
+            "splitObservations": pairReadbacks,
+            "focusedGroupAutomaticallyResumed": returned != nil, "returnObservations": returned?.observations ?? []]
+    }
+
+    private static func nativeSpaceKind(_ id: UInt64) -> Int? {
+        guard let rows = NPReadInventory() as? [[String: Any]] else { return nil }
+        for display in rows {
+            for space in display["Spaces"] as? [[String: Any]] ?? [] {
+                let number = (space["ManagedSpaceID"] as? NSNumber)?.uint64Value ?? (space["id64"] as? NSNumber)?.uint64Value
+                if number == id { return (space["type"] as? NSNumber)?.intValue }
+            }
+        }
+        return nil
     }
 
     private static func adjacentOrdinary(to id: UInt64) -> (id: UInt64, forward: Bool)? {
@@ -461,7 +719,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private static func waitForState(_ targets: [Target], visible: Set<UInt32>?, focus: Target?, seconds: Double,
-                                     allAtHome: Bool = false) async -> [[String: Any]]? {
+                                     allAtHome: Bool = false, preservingFrames: Bool = true) async -> [[String: Any]]? {
         let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
         var consecutive = [[String: Any]]()
         while ContinuousClock.now < until {
@@ -472,7 +730,7 @@ import NearpaneOrdinaryWindowRuntime
                 guard let image = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid), image.launch == target.fixture.birth,
                       image.executable == URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath(),
                       let observed = cg(number), observed.pid == target.fixture.pid,
-                      let membership = NPReadWindowSpaces(number) as? [UInt64], membership.count == 1,
+                      let membership = NPReadWindowSpacesIncludingHidden(number) as? [UInt64], membership.count == 1,
                       let space = membership.first, let members = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32],
                       members.filter({ $0 == number }).count == 1 else { valid = false; break }
                 let shouldShow = visible?.contains(number)
@@ -480,9 +738,10 @@ import NearpaneOrdinaryWindowRuntime
                     abs(observed.frame.width - target.frame.width) <= 1 && abs(observed.frame.height - target.frame.height) <= 1
                 let onScreenMatches = shouldShow.map { $0 == observed.visible } ?? true
                 let expectedAtHome = allAtHome || shouldShow == true
-                valid = valid && onScreenMatches && (expectedAtHome ? space == target.home : space != target.home) && matchingFrame
+                valid = valid && onScreenMatches && (expectedAtHome ? space == target.home : space != target.home) &&
+                    (!preservingFrames || matchingFrame)
                 observations.append(["number": number, "pid": target.fixture.pid, "space": space,
-                    "onScreen": observed.visible, "framePreserved": matchingFrame])
+                    "onScreen": observed.visible, "framePreserved": matchingFrame, "frameRequired": preservingFrames])
             }
             if let focus {
                 let app = AXUIElementCreateApplication(focus.fixture.pid)

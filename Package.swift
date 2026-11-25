@@ -42,7 +42,7 @@ var targets: [Target] = [
     .target(name: "NearpaneWindowEngine", dependencies: ["NearpaneCore", "CNearpaneWindowEngine"], linkerSettings: engineLink),
     .testTarget(name: "NearpaneWindowEngineTests", dependencies: ["NearpaneWindowEngine", "NearpaneCore", "CNearpaneWindowEngine"]),
     .target(name: "WindowGeometryCore"),
-    .target(name: "CReadOnlySpaces"),
+    .target(name: "CReadOnlySpaces", linkerSettings: [.linkedFramework("ApplicationServices")]),
     .target(name: "CNativeSpaceActions"),
     .executableTarget(name: "NearpaneSpaceAction", dependencies: ["NearpaneCore", "CReadOnlySpaces"]),
     .testTarget(name: "NearpaneSpaceActionTests", dependencies: ["NearpaneSpaceAction", "NearpaneCore", "CNativeSpaceActions"]),

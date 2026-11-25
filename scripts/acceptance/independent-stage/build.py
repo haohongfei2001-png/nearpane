@@ -15,12 +15,16 @@ FRAMEWORKS = ("AppKit", "Foundation", "CoreGraphics", "ApplicationServices", "Se
               "CoreFoundation", "Carbon", "ImageIO", "ScreenCaptureKit")
 
 
-def build(archive: Path, out: Path):
+def build(archive: Path, out: Path, *, controller_only=False, stdout=None, stderr=None):
     out.mkdir(parents=True, exist_ok=False)
     apps = {}
+    def execute(command):
+        return subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
     for name, bundle, source in (("FixtureA", "com.holdsnow.nearpane.independent-stage-fixture-a", "fixture.m"),
                                   ("FixtureB", "com.holdsnow.nearpane.independent-stage-fixture-b", "fixture.m"),
                                   ("Controller", "com.holdsnow.nearpane.independent-stage-controller", "controller.m")):
+        if controller_only and name != "Controller":
+            continue
         app = out / (name + ".app")
         executable = app / "Contents/MacOS" / name
         executable.parent.mkdir(parents=True)
@@ -34,12 +38,29 @@ def build(archive: Path, out: Path):
         if name == "Controller":
             command += [str(archive)]
         command += [x for framework in FRAMEWORKS for x in ("-framework", framework)]
-        subprocess.run(command + ["-lc++", "-o", str(executable)], check=True)
-        subprocess.run(["codesign", "--force", "--sign", os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-"),
-                        "--timestamp=none", "--identifier", bundle, str(app)], check=True)
-        subprocess.run(["codesign", "--verify", "--strict", "--deep", str(app)], check=True)
+        execute(command + ["-lc++", "-o", str(executable)])
+        execute(["codesign", "--force", "--sign", os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-"),
+                 "--timestamp=none", "--identifier", bundle, str(app)])
+        execute(["codesign", "--verify", "--strict", "--deep", str(app)])
         apps[name] = {"bundle": bundle, "app": str(app), "executable": str(executable),
                       "sha256": hashlib.sha256(executable.read_bytes()).hexdigest()}
+    if not controller_only:
+        native = HERE.parent / "native-spaces"
+        reader, source, helper = out / "reader.o", out / "SplitViewHelper.swift", out / "SplitViewHelper"
+        source.write_text((HERE / "split-view-helper.swift").read_text() + "\n" + (native / "lifecycle-menu.swift").read_text())
+        read_only = ROOT / "Sources/CReadOnlySpaces"
+        execute(["xcrun", "clang", "-c", str(read_only / "ReadOnlySpaces.c"), "-I", str(read_only / "include"),
+                 "-o", str(reader)])
+        execute(["xcrun", "swiftc", "-parse-as-library", "-D", "SECONDARY_FOCUS_OBSERVER", "-import-objc-header",
+                        str(read_only / "include/ReadOnlySpaces.h"), str(source), str(native / "split-picker-geometry.swift"),
+                        str(native / "split-picker.swift"), str(HERE.parent / "observe-secondary-space-controls.swift"),
+                        str(reader), "-framework", "ColorSync", "-o", str(helper)])
+        identifier = "com.holdsnow.nearpane.independent-stage-split-helper"
+        execute(["codesign", "--force", "--sign", os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-"),
+                 "--timestamp=none", "--identifier", identifier, str(helper)])
+        execute(["codesign", "--verify", "--strict", str(helper)])
+        apps["SplitViewHelper"] = {"bundle": identifier, "executable": str(helper),
+                                   "sha256": hashlib.sha256(helper.read_bytes()).hexdigest()}
     (out / "build.json").write_text(json.dumps({"schema": 1, "apps": apps,
         "archiveSHA256": hashlib.sha256(archive.read_bytes()).hexdigest()}, indent=2) + "\n")
     return apps

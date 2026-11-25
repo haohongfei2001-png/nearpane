@@ -58,18 +58,34 @@ int main(int argc,const char **argv) {
         if(argc!=5) return 2;
         directory=@(argv[1]);nonce=@(argv[2]);NSInteger count=[@(argv[3]) integerValue], offset=[@(argv[4]) integerValue];
         if (![[NSUUID alloc] initWithUUIDString:nonce] || count<1 || count>2 || !birth()) return 2;
-        [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];[NSApp finishLaunching];
+        [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        NSWindow.allowsAutomaticWindowTabbing=NO;
+        // AppKit supplies the real Full Screen / Tile menu for a normal Window menu.
+        // The acceptance helper discovers that system menu instead of inventing one.
+        NSMenu *mainMenu=[NSMenu new], *applicationMenu=[NSMenu new], *windowMenu=[[NSMenu alloc] initWithTitle:@"Window"];
+        NSMenuItem *applicationItem=[NSMenuItem new], *windowItem=[NSMenuItem new];
+        applicationItem.submenu=applicationMenu;windowItem.submenu=windowMenu;
+        [applicationMenu addItemWithTitle:@"Quit" action:@selector(terminate:) keyEquivalent:@"q"];
+        [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+        [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
+        [mainMenu addItem:applicationItem];[mainMenu addItem:windowItem];NSApp.mainMenu=mainMenu;NSApp.windowsMenu=windowMenu;
+        [NSApp finishLaunching];
         documents=[NSMutableArray array];fields=[NSMutableArray array];
         for(NSInteger i=0;i<count;i++) {
             NSWindow *w=[[NSWindow alloc] initWithContentRect:NSMakeRect(120+offset+i*280,180,250,170)
                 styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
                 backing:NSBackingStoreBuffered defer:NO];
-            w.releasedWhenClosed=NO;w.title=[NSString stringWithFormat:@"Nearpane Fixture %@ %ld",NSBundle.mainBundle.bundleIdentifier,(long)i];
-            w.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenPrimary;
+            w.releasedWhenClosed=NO;w.tabbingMode=NSWindowTabbingModeDisallowed;
+            w.title=[NSString stringWithFormat:@"Nearpane Fixture %@ %@ %ld",nonce.lowercaseString,NSBundle.mainBundle.bundleIdentifier,(long)i];
+            w.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorFullScreenAllowsTiling;
             w.contentView.wantsLayer=YES;
             w.contentView.layer.backgroundColor=(i==0?(offset==0?NSColor.systemRedColor:NSColor.systemGreenColor):NSColor.systemBlueColor).CGColor;
             NSTextField *field=[[NSTextField alloc] initWithFrame:NSMakeRect(12,70,226,26)];
             field.stringValue=[NSString stringWithFormat:@"Fixture %ld / ready",(long)i];
+            NSTextField *marker=[NSTextField wrappingLabelWithString:w.title];
+            marker.frame=NSMakeRect(12,112,226,40);marker.font=[NSFont systemFontOfSize:8];
+            [marker setAccessibilityIdentifier:[NSString stringWithFormat:@"nearpane-split-marker-%@-%@",nonce.lowercaseString,i==0?@"a":@"b"]];
+            [w.contentView addSubview:marker];
             [w.contentView addSubview:field]; [documents addObject:w];[fields addObject:field];[w orderFront:nil];
         }
         [CATransaction flush]; writeState();

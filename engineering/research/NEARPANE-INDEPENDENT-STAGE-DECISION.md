@@ -132,7 +132,14 @@ daily builds and uncommitted work in other checkouts are preserved.
   deterministic while the real 120 ms deadline is unchanged. Swift production modules and the complete source-check step then passed at `2a0cfbe9`. The complete
   embedded release also compiled and passed resource verification; the later workflow signature check
   incorrectly treated the Host inside its resource-bearing bundle as a standalone executable. The
-  corrected whole-bundle package verification is tracked in the evidence index.
+  corrected whole-bundle package verification passed at `283831ef`, including the sealed native
+  worker and complete workspace ZIP. Original receipts and checksum are in the evidence index.
+- Hosted `283831ef` runtime stopped at the ordinary-desktop preflight before canary/enrollment;
+  foreign writes were zero and fixtures exited normally. Product investigation found an obsolete
+  exact-build read gate and a managed-only membership query in its physical witness. The read shim
+  now attempts current arm64 Darwin 26 ABI-family symbol/shape reads, and the physical witness uses
+  mask 15 to include classic hidden Spaces. Write qualification remains independent. Subsequent
+  diagnostics distinguish the raw native topology, C parser refusal and product cleanup result.
 - The first target runtime at `da51f75` obtained AX permission and independently read three real windows
   in two fixture processes twice. `NP_LAUNCH` then stopped with detail 217 before any third-party write.
   [Original receipt and log](../verification/independent-stage/target-da51f75/README.md).

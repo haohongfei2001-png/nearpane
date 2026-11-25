@@ -93,6 +93,14 @@ def source_checks(out, env):
                                               out, "build-spaces-worker", env)
         if checks["spacesWorkerBuild"]["status"] == "PASS":
             checks["spacesWorkerProtocol"] = execute([worker, "--protocol-selftest"], out, "spaces-worker-protocol", env, 30)
+        try:
+            with (out / "probe-build.log").open("x") as stdout, (out / "probe-build.stderr.log").open("x") as stderr:
+                probe = build(archive, out / "controller-kit", controller_only=True,
+                              stdout=stdout, stderr=stderr)["Controller"]["executable"]
+            checks["readOnlyContext"] = execute([probe, "--inspect-context", out / "windowserver-context.json"],
+                                                out, "read-only-context", dict(env, NP_SPACES_TOPOLOGY_TRACE="1"), 30)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            checks["readOnlyContext"] = {"status": "FAIL", "reason": type(error).__name__ + ": " + str(error)}
     # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
     pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
                         "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus"))
@@ -116,7 +124,7 @@ def source_checks(out, env):
     checks["evidence"] = execute(["python3", "-B", "-m", "unittest", "discover", "-s", HERE, "-p", "test_*.py"],
                                   out, "evidence", env, 30)
     result = {"schema": 1, "status": "PASS" if all(x["status"] == "PASS" for x in checks.values()) else "FAIL",
-              "checks": checks, "windowServer": "NOT_RUN", "productR4": "NOT_RUN"}
+              "checks": checks, "windowServer": "READ_ONLY_CONTEXT", "foreignWindowDispatch": "NOT_RUN", "productR4": "NOT_RUN"}
     atomic(out / "summary.json", result)
     return result
 
@@ -184,9 +192,11 @@ def close_fixture(directory, process, nonce):
 
 def runtime_checks(out, env, archive, host, iterations, revision):
     out.mkdir()
+    env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1")
     apps = build(archive, out / "kit")
     nonce = str(uuid.uuid4())
-    config = {"schema": 1, "nonce": nonce, "output": str(out), "iterations": iterations, "fixtures": []}
+    config = {"schema": 1, "nonce": nonce, "output": str(out), "iterations": iterations, "fixtures": [],
+              "systemHelper": apps["SplitViewHelper"]["executable"]}
     children, cleanup = [], []
     engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
     product = None

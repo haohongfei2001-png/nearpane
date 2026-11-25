@@ -206,6 +206,66 @@ static BOOL selectOnly(NSArray<NSNumber *> *indices,NSString *phase) {
         if(!verify(targets[i],space,visible,[phase stringByAppendingString:@"/all-members"]))return NO;}
     return YES;
 }
+static NSDictionary *spaceIdentity(id value) {
+    if(![value isKindOfClass:NSDictionary.class])return @{@"class":value?NSStringFromClass([value class]):@"nil"};
+    NSMutableDictionary *result=[NSMutableDictionary dictionary];
+    for(NSString *key in @[@"id64",@"ManagedSpaceID",@"type",@"uuid"]) {
+        id field=value[key];
+        if(field)result[key]=@{@"class":NSStringFromClass([field class]),
+            @"value":([field isKindOfClass:NSString.class]||[field isKindOfClass:NSNumber.class])?field:NSNull.null};
+    }
+    return result;
+}
+static NSDictionary *contextSnapshot(void) {
+    int c=np_stage_connection();NPStageDesktop desktop[512];int count=np_stage_desktops(c,desktop,512),current=0;
+    NSMutableArray *rows=[NSMutableArray array];
+    for(int i=0;i<count;i++){current+=desktop[i].current&&!desktop[i].kind;
+        [rows addObject:@{@"id":@(desktop[i].id),@"type":@(desktop[i].kind),@"current":@(desktop[i].current)}];}
+    uint64_t ids[2048];int allCount=np_stage_all_spaces(c,ids,2048),checked=np_stage_checked_inventory(c,ids,2048);
+    NSMutableArray *rawDisplays=[NSMutableArray array];
+    void *sky=dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",RTLD_LOCAL|RTLD_NOW);
+    CFArrayRef (*managed)(int)=sky?dlsym(sky,"SLSCopyManagedDisplaySpaces"):NULL;
+    CFTypeRef raw=managed?managed(c):NULL;
+    if(raw&&CFGetTypeID(raw)==CFArrayGetTypeID())for(id value in (__bridge NSArray *)raw) {
+        if(![value isKindOfClass:NSDictionary.class]){[rawDisplays addObject:@{@"class":NSStringFromClass([value class])}];continue;}
+        id token=value[@"Display Identifier"];NSMutableArray *roster=[NSMutableArray array];
+        id spaces=value[@"Spaces"];if([spaces isKindOfClass:NSArray.class])for(id item in spaces)[roster addObject:spaceIdentity(item)];
+        [rawDisplays addObject:@{@"displayIdentifier":[token isKindOfClass:NSString.class]?token:NSNull.null,
+            @"current":spaceIdentity(value[@"Current Space"]),@"spaces":roster}];
+    }
+    BOOL rawReadable=raw&&CFGetTypeID(raw)==CFArrayGetTypeID();if(raw)CFRelease(raw);
+    CFDictionaryRef (*sessionReader)(void)=dlsym(RTLD_DEFAULT,"CGSessionCopyCurrentDictionary");
+    CFDictionaryRef session=sessionReader?sessionReader():NULL;NSMutableDictionary *sessionFields=[NSMutableDictionary dictionary];
+    if(session&&CFGetTypeID(session)==CFDictionaryGetTypeID())for(NSString *key in
+        @[@"kCGSessionUserIDKey",@"kCGSessionOnConsoleKey",@"kCGSessionLoginDoneKey",@"CGSSessionScreenIsLocked"]) {
+        id value=((__bridge NSDictionary *)session)[key];if([value isKindOfClass:NSNumber.class])sessionFields[key]=value;
+    }
+    if(session)CFRelease(session);
+    CGRect screen=CGDisplayBounds(CGMainDisplayID());__block NSMutableArray *appKitScreens=[NSMutableArray array];
+    __block NSMutableArray *systemProcesses=[NSMutableArray array];__block BOOL applicationRunning=NO;
+    void (^readScreens)(void)=^{for(NSScreen *item in NSScreen.screens){NSRect f=item.frame;
+        [appKitScreens addObject:@[@(f.origin.x),@(f.origin.y),@(f.size.width),@(f.size.height)]];}
+        applicationRunning=NSApp.running;
+        for(NSRunningApplication *app in NSWorkspace.sharedWorkspace.runningApplications)
+            if([@[@"com.apple.dock",@"com.apple.WindowManager",@"com.apple.MissionControl"] containsObject:app.bundleIdentifier?:@""])
+                [systemProcesses addObject:@{@"bundleIdentifier":app.bundleIdentifier,@"pid":@(app.processIdentifier)}];};
+    if(NSThread.isMainThread)readScreens();else dispatch_sync(dispatch_get_main_queue(),readScreens);
+    uint32_t active=0,online=0;(void)CGGetActiveDisplayList(0,NULL,&active);(void)CGGetOnlineDisplayList(0,NULL,&online);
+    return @{@"connection":@(c),@"desktopReadCount":@(count),@"ordinaryCurrentCount":@(current),@"desktops":rows,
+        @"allSpaceCount":@(allCount),@"checkedInventoryCount":@(checked),@"rawManagedReadable":@(rawReadable),
+        @"rawManagedDisplays":rawDisplays,@"session":sessionFields,@"uid":@(getuid()),@"appKitScreens":appKitScreens,
+        @"applicationRunning":@(applicationRunning),@"systemProcesses":systemProcesses,
+        @"activeDisplayCount":@(active),@"onlineDisplayCount":@(online),@"mainDisplay":@(CGMainDisplayID()),
+        @"mainDisplayBounds":@[@(screen.origin.x),@(screen.origin.y),@(screen.size.width),@(screen.size.height)]};
+}
+static int inspectContext(NSString *path) {
+    @autoreleasepool {
+        NSMutableDictionary *report=[contextSnapshot() mutableCopy];report[@"schema"]=@1;
+        report[@"windowWrites"]=@0;report[@"qualificationGranted"]=@NO;
+        NSData *data=[NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted|NSJSONWritingSortedKeys error:NULL];
+        return data&&[data writeToFile:path options:NSDataWritingAtomic error:NULL]?0:1;
+    }
+}
 static int runScenario(NSString *configuration) {
     @autoreleasepool {
         NSDictionary *config=readJSON(configuration);outDirectory=config[@"output"];runNonce=config[@"nonce"];
@@ -219,11 +279,19 @@ static int runScenario(NSString *configuration) {
         int sip=np_stage_sip_enabled();
         emit(@{@"event":@"environment",@"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:[NSNumber numberWithBool:sip==1],
             @"exactTarget":[NSNumber numberWithBool:np_stage_target_build()==1],@"accessibility":[NSNumber numberWithBool:AXIsProcessTrusted()],@"controllerPID":@(getpid())});
+        emit(@{@"event":@"readOnlyConsoleContext",@"context":contextSnapshot()});
         NSString *status=@"BLOCKED",*reason=@"ordinaryDesktopUnavailable";BOOL clean=YES,all=NO;
         NSArray *originalSpaces=nil;NPReceipt receipt={0};
         connection=np_stage_connection();NPStageDesktop desktops[512];int n=np_stage_desktops(connection,desktops,512),homes=0;
         for(int i=0;i<n;i++)if(desktops[i].current&&!desktops[i].kind){home=desktops[i];homes++;}
-        if(homes!=1 || !(originalSpaces=allSpaces()))goto finish;
+        originalSpaces=allSpaces();
+        NSMutableArray *desktopRows=[NSMutableArray array];
+        for(int i=0;i<n;i++)[desktopRows addObject:@{@"id":@(desktops[i].id),@"kind":@(desktops[i].kind),@"current":@(desktops[i].current)}];
+        emit(@{@"event":@"ordinaryDesktopPreflight",@"connection":@(connection),@"desktopReadCount":@(n),
+            @"currentOrdinaryCount":@(homes),@"desktops":desktopRows,@"spaceInventoryReadable":[NSNumber numberWithBool:originalSpaces!=nil],
+            @"spaceInventory":originalSpaces?:@[]});
+        if(homes!=1){reason=@"ordinaryCurrentDesktopCountNotOne";goto finish;}
+        if(!originalSpaces){reason=@"windowServerSpaceInventoryUnreadable";goto finish;}
         {
             CFPropertyListRef raw=CFPreferencesCopyAppValue(CFSTR("GloballyEnabled"),CFSTR("com.apple.WindowManager"));
             BOOL enabled=raw&&[(__bridge id)raw respondsToSelector:@selector(boolValue)]&&[(__bridge id)raw boolValue];if(raw)CFRelease(raw);
@@ -383,8 +451,9 @@ static int runReadback(NSString *configuration,NSString *resultPath) {
 int main(int argc,const char **argv) {
     @autoreleasepool {
         if(argc==4&&!strcmp(argv[1],"--readback"))return runReadback(@(argv[2]),@(argv[3]));
-        if(argc!=2)return 2;
-        NSString *configuration=@(argv[1]);
+        BOOL inspect=argc==3&&!strcmp(argv[1],"--inspect-context");
+        if(argc!=2&&!inspect)return 2;
+        NSString *configuration=@(argv[inspect?2:1]);
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [NSApp finishLaunching];
@@ -393,9 +462,13 @@ int main(int argc,const char **argv) {
         // NSApplication.isRunning false and does not exercise the same contract.
         // The scenario waits for Rust worker receipts. Keep it off the main GCD
         // queue so AppKit callbacks submitted by the engine can actually run.
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-            int result=runScenario(configuration);
-            dispatch_async(dispatch_get_main_queue(), ^{ exit(result); });
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // Schedule only the worker here, then release the main queue. This
+            // proves NSApp.run started without occupying its AppKit callbacks.
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                int result=inspect?inspectContext(configuration):runScenario(configuration);
+                dispatch_async(dispatch_get_main_queue(), ^{ exit(result); });
+            });
         });
         [NSApp run];
         return 2;

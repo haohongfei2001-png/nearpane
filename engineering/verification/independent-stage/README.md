@@ -33,7 +33,9 @@ These are code-completion claims. The evidence below determines which native eff
 | `9c1be70`, target diagnostic | Actual `NSApplication.run` succeeds where manual run-loop pumping did not; main-queue callback reentry then timed out | Harness defect, not failed foreign migration |
 | Target focus contrast | Global AX focused-application call failed; direct front-app AX focused-window and CG ID succeeded | Production and canary now verify front process birth/owner and exact focused AX window directly |
 | Corrected own-panel focus/run-loop diagnostic, target | Prepare/open/read/close succeeded and original focus matched | No Space creation or foreign migration performed in this diagnostic |
-| `2a0cfbe9b16675905237ab1917fe48b9a61d8789`, hosted macOS 27.0.1 / 26A434, SIP disabled | Source step passed; full release compilation and embedded-resource checks passed; the later standalone-executable signature check used the wrong bundle context and is being corrected | Source pass is separate from a complete artifact and all native behavior |
+| `2a0cfbe9b16675905237ab1917fe48b9a61d8789`, hosted macOS 27.0.1 / 26A434, SIP disabled | Source step and full release/resource checks passed; later standalone-executable signature check used the wrong bundle context | Fixed at `283831ef` by sealing and verifying the complete bundle |
+| `283831ef8fdd452a50dd8a637d8a501ba9efb0ae`, same hosted environment | Source, complete workspace build, bundled worker C/protocol, strict/deep bundle signature and ZIP passed | Actual downloadable development candidate; no release qualification |
+| Same `283831ef` runtime | AX trusted; ordinary-desktop preflight blocked before enrollment/canary; foreign writes zero; both fixtures exited normally | `NOT_RUN` for foreign migration; product cleanup also exposed a read-adapter defect, not migration failure |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -53,6 +55,24 @@ Original target receipts:
 The target connector subsequently stopped responding. The unstarted calls returned timeouts without a
 process ID; they are not additional WindowServer experiments. The daily application and its checkout
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
+
+## Complete candidate checkpoint
+
+[Full receipts for 283831ef](cloud-283831ef/README.md) include the original candidate/source/engine/product
+JSON and the archive checksum. [Actions artifact 15053163726](https://github.com/haohongfei2001-png/nearpane/actions/runs/45678251498/artifacts/15053163726)
+contains the complete workspace application, not just a diagnostic program. Inner candidate ZIP SHA-256:
+`c0c60dbb014b0d0b135f52605c2bb694ec3d60b0b8a1996876c8224b7d234e5f`.
+It is a development signature, not a notarization receipt. Later source fixes supersede this checkpoint;
+the final PR records the final fixed source and matching artifact separately.
+
+The runtime investigation found two concrete integration errors. The read-only C shim's exact
+`26A428` gate withheld AX IDs/bounds/reverse membership on `26A434`; positive read-only symbol and
+shape checks now cover the current arm64 Darwin 26 ABI family without granting write qualification.
+The physical witness also used managed-only membership mask 7, which can omit a classic hidden Space.
+It now uses `NPReadWindowSpacesIncludingHidden` (mask 15) for both hidden and returned-home proofs;
+the ordinary display catalogue retains its previous managed-only view. The Rust backend already used
+mask 15. These fixes require the next actual runtime result and do not convert the old zero-write run
+into a success. Raw topology/console diagnostics now upload before the full build completes.
 
 ## Unified execution
 

@@ -102,7 +102,9 @@ let its app exit before opening the interactive copy.
 
 ## What actually runs
 
-1. Rust tests, relevant Swift Core/Host/UI tests and evidence classification tests.
+1. Rust tests, the production Rust archive, the native Spaces worker's C build and
+   `--protocol-selftest`, relevant Swift Core/Host/UI tests and evidence
+   classification tests. Source checks reuse the resulting archive for Swift.
 2. Fixture A creates two real ordinary windows. Fixture B creates one. Their PIDs
    differ from the controller. They service commands only for their own windows.
 3. The controller calls `np_engine_create_spaces_candidate`, then `NP_LAUNCH`.
@@ -132,12 +134,51 @@ let its app exit before opening the interactive copy.
    Mission Control, native full-screen entry/return, an existing adjacent ordinary
    desktop through the system Control-arrow action, and App Exposé. Missing system
    prerequisites are reported independently. A synthetic system desktop action is
-   **not** reported as a physical three-finger gesture. Native Split View is not
-   claimed by these initial runtime receipts.
+   **not** reported as a physical three-finger gesture. The separate Split View
+   adapter described below uses the real system menu and authenticated picker;
+   the product result records its physical membership/layout checks separately.
 9. `NP_RELEASE_SPACES` and the production shutdown path return owned windows before
    destroying empty Spaces. The runner closes only the two direct fixture children.
    Original foreground restoration is attempted only while a test app still owns
    the foreground. The product candidate profile stays in the output folder.
+10. After the normal product path and cleanup succeed, the runner launches a
+    separate fixture-scoped `hostCrash` pass. It kills only its own direct Host
+    child. The Spaces worker must return the original windows after channel loss;
+    an independent controller checks original Space membership, frames, CG
+    presence and the original Space inventory twice. Worker JSONL diagnostics
+    and `hostCrashRecovery` remain separate from the normal shutdown result.
+
+### Native desktop reveal and Split View
+
+Clicking blank wallpaper pauses independent scheduling while retaining the real
+hidden Spaces. The runner uses a synthetic click only after the production
+wallpaper monitor's AX/CG hit test confirms a blank desktop location. It verifies
+that the active window has actually yielded its screen area to the desktop and
+that the other groups remain in exactly the same private Spaces. On return it
+waits for fresh native ordinary-state and physical window reads. If the system's
+wallpaper preference does not reveal the desktop, that native behavior is
+`BLOCKED`; invoking the shared production handler alone cannot establish it.
+Mission Control, App Exposé and switching ordinary desktops retain their separate
+return-all-windows and resume behavior.
+
+`SplitViewHelper`, built beside `FixtureA.app`, accepts one JSON object on stdin:
+
+```json
+{"operation":"tile","fixturePID":123,"fixtureBirth":456,"fixtureExecutable":"/path/to/FixtureA.app/Contents/MacOS/FixtureA","nonce":"00000000-0000-4000-8000-000000000001","numbers":[101,102],"home":3}
+```
+
+`tile` presses the uniquely identified native Full Screen → Left menu for the
+already-focused first fixture window. `pair` reuses the existing signed system
+picker reader and exact nonce marker to choose the second window. Each call
+rechecks process birth, executable/signature, original AX window identity,
+forward/reverse Space membership, foreground ownership and absence of competing
+user input. The helper never activates itself or writes Space membership. It
+returns `ISSUED` with the AX result or synthetic picker input, `OBSERVED` with
+`alreadyTogether` when both fixture members already share the native full-screen
+Space, or `BLOCKED` with a specific reason. An issued action is not a PASS; the
+product runner must independently establish actual native Split View geometry,
+Nearpane handoff and restoration. Unsupported menus, ambiguous selectors and
+unconfirmed pointer hits do not trigger coordinate guessing.
 
 ## Evidence and interpretation
 

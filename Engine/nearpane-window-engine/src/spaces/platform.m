@@ -13,6 +13,8 @@
 #import <sys/sysctl.h>
 #import <unistd.h>
 #import <limits.h>
+#import <stdio.h>
+#import <stdlib.h>
 
 static const char *sky_path = "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight";
 typedef CFArrayRef (*CopyManaged)(int);
@@ -120,40 +122,54 @@ static int copyNumbers(NSArray *values,uint64_t *out,uint32_t cap) {
     for (NSUInteger i=0; i<values.count; i++) if (!exactNumber(values[i],out+i,NO)) return -1;
     return (int)values.count;
 }
+static int topologyFailure(const char *phase,int32_t managed,int32_t inventory) {
+    if(getenv("NP_SPACES_TOPOLOGY_TRACE")) {
+        fprintf(stderr,"{\"event\":\"spacesTopology\",\"phase\":\"%s\",\"managedCount\":%d,\"inventoryCount\":%d}\n",
+            phase,managed,inventory);
+        fflush(stderr);
+    }
+    return -1;
+}
 int32_t np_stage_desktops(int32_t c,NPStageDesktop *out,uint32_t cap) {
     @autoreleasepool { @try {
-        if (!same(c) || !api.managed || !out || !cap) return -1;
+        if (!same(c) || !api.managed || !out || !cap) return topologyFailure("connection-or-buffer",-1,-1);
         NSArray *list=copied(api.managed(c));
-        if (!list.count || list.count>32) return -1;
+        if (!list.count || list.count>32) return topologyFailure("managed-display-list",(int32_t)list.count,-1);
         unsigned index=0;
         for (id obj in list) {
-            if (![obj isKindOfClass:NSDictionary.class]) return -1;
+            if (![obj isKindOfClass:NSDictionary.class]) return topologyFailure("managed-display-record",(int32_t)list.count,-1);
             NSDictionary *d=obj;
             NSString *token=d[@"Display Identifier"];
             NSUUID *display=[token isEqual:@"Main"] ? nc_single_main_uuid(list.count) : nc_uuid(token);
             NSDictionary *front=d[@"Current Space"]; NSArray *spaces=d[@"Spaces"];
-            if (!display || ![front isKindOfClass:NSDictionary.class] || ![spaces isKindOfClass:NSArray.class] || !spaces.count) return -1;
+            if (!display) return topologyFailure("physical-display-identity",(int32_t)list.count,-1);
+            if (![front isKindOfClass:NSDictionary.class] || ![spaces isKindOfClass:NSArray.class] || !spaces.count)
+                return topologyFailure("current-or-roster-missing",(int32_t)list.count,-1);
             uint64_t current=nc_space_number(front).unsignedLongLongValue;
             NSNumber *currentKind=nc_integer(front[@"type"]);
             NSUUID *currentUUID=nc_uuid(front[@"uuid"]);
-            if (!current || !currentUUID || !currentKind || nc_direct_home(c,token)!=current) return -1;
+            if (!current || !currentUUID || !currentKind) return topologyFailure("current-record-identity",(int32_t)list.count,-1);
+            if (nc_direct_home(c,token)!=current) return topologyFailure("current-direct-readback",(int32_t)list.count,-1);
             unsigned found=0;
             for (id record in spaces) {
-                if (index>=cap || ![record isKindOfClass:NSDictionary.class]) return -1;
+                if (index>=cap || ![record isKindOfClass:NSDictionary.class]) return topologyFailure("roster-capacity-or-record",(int32_t)list.count,-1);
                 NSDictionary *row=record; uint64_t kind=0; NPStageDesktop *s=&out[index++];
                 s->id=nc_space_number(row).unsignedLongLongValue;
                 NSUUID *uuid=nc_uuid(row[@"uuid"]);
-                if (!s->id || !uuid || !exactNumber(row[@"type"],&kind,YES) || kind>INT32_MAX) return -1;
+                if (!s->id || !uuid || !exactNumber(row[@"type"],&kind,YES) || kind>INT32_MAX)
+                    return topologyFailure("roster-record-identity",(int32_t)list.count,-1);
                 [uuid getUUIDBytes:s->uuid]; [display getUUIDBytes:s->display];
                 s->kind=(int32_t)kind; s->current=(s->id==current);
-                if (s->current && (![uuid isEqual:currentUUID] || kind!=currentKind.unsignedLongLongValue)) return -1;
+                if (s->current && (![uuid isEqual:currentUUID] || kind!=currentKind.unsignedLongLongValue))
+                    return topologyFailure("current-roster-disagreement",(int32_t)list.count,-1);
                 found+=s->current;
             }
             if (found!=1 || nc_direct_home(c,token)!=current ||
-                ([token isEqual:@"Main"] && ![display isEqual:nc_single_main_uuid(list.count)])) return -1;
+                ([token isEqual:@"Main"] && ![display isEqual:nc_single_main_uuid(list.count)]))
+                return topologyFailure("current-or-display-changed",(int32_t)list.count,-1);
         }
-        return same(c) ? (int)index : -1;
-    } @catch (NSException *e) { return -1; } }
+        return same(c) ? (int)index : topologyFailure("connection-changed",(int32_t)list.count,-1);
+    } @catch (NSException *e) { return topologyFailure("exception",-1,-1); } }
 }
 int32_t np_stage_all_spaces(int32_t c,uint64_t *out,uint32_t cap) {
     @autoreleasepool { @try { return same(c)&&api.spaces ? copyNumbers(copied(api.spaces(c,15)),out,cap) : -1; }
@@ -187,7 +203,8 @@ int32_t np_stage_checked_inventory(int32_t c, uint64_t *out, uint32_t cap) {
     NPStageDesktop managed[512];
     int n = np_stage_all_spaces(c, out, cap);
     int count = np_stage_desktops(c, managed, 512);
-    return n > 0 && count > 0 && validateInventory(out, (size_t)n, managed, (size_t)count) && same(c) ? n : -1;
+    return n > 0 && count > 0 && validateInventory(out, (size_t)n, managed, (size_t)count) && same(c)
+        ? n : topologyFailure("checked-inventory",count,n);
 }
 int32_t np_stage_membership(int32_t c,uint32_t num,uint64_t *out,uint32_t cap) {
     @autoreleasepool { @try { return same(c)&&api.membership&&num ? copyNumbers(copied(api.membership(c,15,(__bridge CFArrayRef)@[@(num)])),out,cap) : -1; }
