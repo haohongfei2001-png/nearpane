@@ -97,7 +97,7 @@ def verify(app):
             "regularApplicationBundle": True, "strictDeveloperIDVerification": True, "auditedForbiddenImportCount": len(FORBIDDEN)}
 
 
-def build_owner(kit, bystander, signing):
+def build_owner(kit, bystander, signing, *, self_minimize=False):
     app = kit / (BYSTANDER_APP if bystander else APP)
     exe = app / (BYSTANDER_EXE if bystander else EXE)
     exe.parent.mkdir(parents=True)
@@ -105,6 +105,9 @@ def build_owner(kit, bystander, signing):
         CFBundleIdentifier=BYSTANDER_ID if bystander else IDENTIFIER, CFBundleName="Nearpane interactive windows", CFBundleExecutable=exe.name,
         CFBundleVersion="1", LSUIElement=False, NSPrincipalClass="NSApplication", LSMinimumSystemVersion="26.0")))
     flags = ["-fobjc-arc", "-O2", "-Wall", "-Wextra", "-Werror", "-I", GESTURES.parent]
+    if self_minimize:
+        need(not bystander, "the bystander cannot minimize")
+        flags.append("-DNP_SELF_MINIMIZE_FIXTURE=1")
     if bystander:
         flags.append("-DNP_INTERACTIVE_BYSTANDER=1")
     command("/usr/bin/xcrun", "clang", *flags, "-mmacosx-version-min=26.0", "-DNP_HOST_INTERACTIVE_FIXTURE=1",
@@ -176,8 +179,15 @@ def main():
     stage = modes.add_parser("prepare")
     stage.add_argument("kit", type=Path)
     stage.add_argument("challenge")
+    modes.add_parser("build-self-minimize", help="isolated owner, own-window mini/restore protocol only")
     args = p.parse_args()
-    if args.mode == "build":
+    if args.mode == "build-self-minimize":
+        kit = Path(tempfile.mkdtemp(prefix="nearpane-mini-owner.", dir=TMP))
+        signing = product_fingerprint(command("/usr/bin/security", "find-identity", "-v", "-p", "codesigning"))
+        signed, tests = build_owner(kit, False, signing, self_minimize=True)
+        save(kit / "build.json", {"signature": signed, "headlessTests": tests, "selfMinimizeSourceSHA256": digest(HERE / "self-minimize.inc")})
+        print(json.dumps({"kit": str(kit), "signature": signed}))
+    elif args.mode == "build":
         kit, receipt = build()
         if args.receipt:
             save(args.receipt, receipt)

@@ -104,7 +104,9 @@ struct AppleMinimizeReadOrder {
         retryAfter = retryAfter.filter { desired[$0.key] != nil }
         for (pid, keys) in desired where registrations[pid] == nil && pending[pid] == nil && now >= (retryAfter[pid] ?? 0) {
             let ticket = UUID()
-            let work = DispatchWorkItem { [weak self] in
+            // DispatchWorkItem's unannotated block otherwise inherits MainActor;
+            // libdispatch runs this registration on the serial AX queue.
+            let work = DispatchWorkItem { @Sendable [weak self] in
                 let registration = Self.prepare(pid, keys: keys)
                 DispatchQueue.main.async { [weak self] in
                     guard let self, self.pending[pid]?.ticket == ticket else { return }
@@ -122,6 +124,9 @@ struct AppleMinimizeReadOrder {
             reads.async(execute: work)
         }
     }
+
+    /// An isolated fixture waits for each admitted window's native registration.
+    func observes(_ key: DesktopWindowKey) -> Bool { registrations[key.pid]?.elements[key] != nil }
 
     func stop() {
         for item in pending.values { item.work.cancel() }
@@ -214,7 +219,7 @@ struct AppleMinimizeReadOrder {
 
     private func read(_ kind: UInt32, key: DesktopWindowKey, registration: Registration) {
         guard let previous = order.begin(key, event: kind) else { return }
-        reads.async { [weak self] in
+        reads.async { @Sendable [weak self] in
             let state = Self.confirm(kind, key: key, registration: registration, previous: previous)
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.registrations[key.pid] === registration, self.desired[key.pid]?.contains(key) == true else { return }

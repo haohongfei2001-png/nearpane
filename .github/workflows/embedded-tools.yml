@@ -46,7 +46,8 @@ jobs:
       - name: Verify locked inputs and embedded Host regressions
         run: |
           python3 -B scripts/test-dependencies.py
-          bash scripts/test.sh --filter 'NearpaneTrayTests|NearpaneVoiceTests|IntegratedHostTests|TranslationHandoffTests'
+          # These integration suites share AppKit's main run loop and time real notification delivery.
+          bash scripts/test.sh --no-parallel --filter 'NearpaneTrayTests|NearpaneVoiceTests|IntegratedHostTests|TranslationHandoffTests'
       - name: Build the development Host and verify its bundled resources offline
         env:
           NEARPANE_OFFLINE: '1'

@@ -379,10 +379,19 @@ static int serve(NSString *nonce) {
 }
 
 #import "self-test.inc"
+#ifdef NP_SELF_MINIMIZE_FIXTURE
+#import "self-minimize.inc"
+#endif
 int main(int argc,const char **argv) {
     @autoreleasepool {
         // This path never initializes NSApplication or looks up any other application.
         if (argc == 2 && !strcmp(argv[1],"--self-test")) return offlineTests();
+#ifdef NP_SELF_MINIMIZE_FIXTURE
+        if (argc == 3 && !strcmp(argv[1],"--self-minimize")) {
+            NSUUID *id=[[NSUUID alloc] initWithUUIDString:@(argv[2])];
+            return id && [id.UUIDString.lowercaseString isEqual:@(argv[2])] ? selfMinimize(@(argv[2])) : 2;
+        }
+#endif
         if (argc != 3 || strcmp(argv[1],"--interactive-fixture") || !getuid() || getuid() != geteuid()) return 2;
         NSUUID *id = [[NSUUID alloc] initWithUUIDString:@(argv[2])];
         if (!id || ![id.UUIDString.lowercaseString isEqual:@(argv[2])]) return 2;
