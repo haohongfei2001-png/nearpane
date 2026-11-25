@@ -409,6 +409,9 @@ struct DesktopSurface: View {
                 interactive: live && appleStages.acceptsSelection(group),
                 lifetime: { feed?.departingPictures?.appearances[$0] ?? feed?.lifetime(of: $0) }, choose: { window in
                     guard live, currentCardsAcceptInput, let admitted = appleStages.selection(for: group) else { return }
+                    #if DEBUG
+                    guard AppleStageMergeFixture.takeFocusCard(group) else { return }
+                    #endif
                     let input = NativeSelectionPermit.inputCounters()
                     navigation.submit { token in
                         try await appleStages.choose(group, window: window, after: admitted.predecessor, repeatCard: true, current: {

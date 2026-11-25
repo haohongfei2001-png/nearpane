@@ -35,6 +35,9 @@ import NearpaneWindowEngine
         }
     }
     private(set) var groups = [Group]()
+    #if DEBUG
+    private var cycleTarget: DesktopWindowKey?
+    #endif
     private(set) var ready = false
     private var handoff: AppleStageSelectionHandoff? { didSet { oldValue?.release() } }
     @ObservationIgnored private var home: Home?
@@ -160,6 +163,12 @@ import NearpaneWindowEngine
         lastChoice = lastChoice.filter { key, member in next.contains { $0.id == key && $0.members.contains(member) } }
         #if DEBUG
         guard completeMembership else { return }
+        cycleTarget = AppleStageMergeFixture.cycleTarget
+        AppleStageMergeFixture.offerFocusCycle(next) { [weak self] in
+            guard let self else { return false }
+            return self.completeMembership && self.ready && self.groups == next && self.handoff == nil && self.generation == token &&
+                self.visible?() == true && scope == Home(self.currentSnapshot?(), scope.display)
+        }
         AppleStageMergeFixture.nativeQualification(next) { [weak self] source, target in
             guard let self else { throw StageSwitchError.interrupted }
             try await self.merge(source, into: target) {
@@ -183,10 +192,13 @@ import NearpaneWindowEngine
     var focusQualified: Bool { AppleStageProductAdmission.permits(.focus) || AppleStageMergeFixture.isRunning }
     func canFocus(_ group: Group) -> Bool {
         if AppleStageProductAdmission.permits(.focus) { return true }
+        #if DEBUG
+        if AppleStageMergeFixture.runsFocusCycle, group.members.first != cycleTarget { return false }
+        #endif
         guard AppleStageMergeFixture.isRunning, let front = groups.first(where: \.current) else { return false }
-        return AppleStageMergeFixture.permitsNativeFocus(Set(front.members + group.members))
+        return AppleStageMergeFixture.permitsNativeFocus(Set(front.members), Set(group.members))
     }
-    var mergeAvailable: Bool { handoff == nil && ready && (AppleStageMerge.isQualified || AppleStageMergeFixture.isRunning) }
+    var mergeAvailable: Bool { handoff == nil && ready && (AppleStageMerge.isQualified || AppleStageMergeFixture.mergeEnabled) }
 
 
     func merge(_ source: Group, into destination: Group, current: @escaping @MainActor () -> Bool) async throws {
@@ -252,6 +264,11 @@ import NearpaneWindowEngine
 
     @discardableResult func choose(_ group: Group, window: DesktopWindowKey?, after predecessor: UUID? = nil, repeatCard: Bool = false, requireCompleteMembership: Bool = false,
                 current: @escaping @MainActor () -> Bool) async throws -> AppleStageSelectionHandoff.Outcome {
+        #if DEBUG
+        let needsWholeRoster = requireCompleteMembership || AppleStageMergeFixture.runsFocusCycle
+        #else
+        let needsWholeRoster = requireCompleteMembership
+        #endif
         let preceding = self.handoff
         guard canFocus(group), let scope = home, ready || (predecessor != nil && preceding?.id == predecessor),
               let refresh = refreshSnapshot, let original = groups.first(where: { $0.id == group.id }),
@@ -293,7 +310,7 @@ import NearpaneWindowEngine
         }
         guard allowed(), let fresh = await refresh(), scope == Home(fresh, scope.display), allowed() else { throw StageSwitchError.interrupted }
         await observe(fresh, scope: scope, token: token)
-        guard allowed(), ready, !requireCompleteMembership || completeMembership,
+        guard allowed(), ready, !needsWholeRoster || completeMembership,
               groups.contains(where: { $0.id == group.id }), keys[target.number] == target,
               let focus = AppleStageFocus(target, display: scope.display, record: String(scope.record), uuid: scope.desktop) else {
             throw StageSwitchError.unavailable
@@ -334,12 +351,20 @@ import NearpaneWindowEngine
             await observe(sample, scope: scope, token: token)
             guard allowed(), self.handoff?.id == dispatched.id else { throw StageSwitchError.interrupted }
             let exact = ready && dispatched.focused(groups)
+            #if DEBUG
+            if AppleStageMergeFixture.isRunning {
+                AppleStageMergeFixture.noteFocus(groups, strip: latestSystem?.confirmedStrip(on: scope.frame), time: lastRead, exact: exact && completeMembership && dispatched.originalMembershipConfirmed)
+            }
+            #endif
             if let outcome = confirmations.record(lastRead, focused: exact,
                     preserved: dispatched.originalMembershipConfirmed && completeMembership),
-               !requireCompleteMembership || outcome == .preservedRoster {
+               !needsWholeRoster || outcome == .preservedRoster {
                 self.handoff = nil
                 lastChoice[group.id] = target
                 lastMemberCycle = repeatCard ? memberCycle : nil
+                #if DEBUG
+                if outcome == .preservedRoster { AppleStageMergeFixture.finishedFocus(target) }
+                #endif
                 return outcome
             }
         }

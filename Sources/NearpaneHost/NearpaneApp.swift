@@ -18,7 +18,7 @@ struct NearpaneApp {
         // and the isolated R4 entry. Opening it from Finder never starts daily UI.
         if Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") != nil {
             #if DEBUG
-            guard args.count == 2, ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once"].contains(args[0]),
+            guard args.count == 2, ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once","--native-acceptance-apple-focus-cycle"].contains(args[0]),
                   Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeNonce") as? String == args[1],
                   Bundle.main.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") == nil
             else { exit(2) }
@@ -262,7 +262,7 @@ struct NearpaneApp {
             guard args.count == 2 else { exit(2) }
             do {
                 #if DEBUG
-                if ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once"].contains(command) {
+                if ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once","--native-acceptance-apple-focus-cycle"].contains(command) {
                     guard let nonce = UUID(uuidString: args[1]),
                           Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") as? Int == 1
                     else { exit(2) }
@@ -271,7 +271,7 @@ struct NearpaneApp {
                           let number = now["id"] as? UInt64, number > 0,
                           let raw = now["uuid"] as? String, let desktop = UUID(uuidString:raw),
                           let display = baseline["display"] as? String, UUID(uuidString:display) != nil else { exit(2) }
-                    try AppleStageMergeFixture.start(nonce, automate: command == "--native-acceptance-apple-merge-once",
+                    try AppleStageMergeFixture.start(nonce, automate: command == "--native-acceptance-apple-merge-once", cycleMode: command == "--native-acceptance-apple-focus-cycle",
                         display:display,desktop:desktop,record:String(number)) {
                         (try? StageCanaryOverview.inventoryIdentity(StageCanaryOverview.inventory())) == baseline
                     }
@@ -284,7 +284,7 @@ struct NearpaneApp {
                 #endif
                 switch command {
                 #if DEBUG
-                case "--native-acceptance-apple-merge","--native-acceptance-apple-merge-once":
+                case "--native-acceptance-apple-merge","--native-acceptance-apple-merge-once","--native-acceptance-apple-focus-cycle":
                     guard AppleStageMergeFixture.isRunning else { exit(2) }
                 #endif
                 case "--native-acceptance-session": break

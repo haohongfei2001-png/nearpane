@@ -19,6 +19,8 @@ import Security
     private var children = [Child]()
     private var attempted = false
     private var tentative: (AppleStageMerge.Members, AppleStageMerge.Members)?
+    private var cycleMode = false
+    private var cycle: AppleStageFocusCycleFixture?
     private var automation = false
     private var prepared = false
     private var reserved = false
@@ -33,13 +35,15 @@ import Security
         self.desktop = desktop; self.record = record; self.ordinary = ordinary
     }
     package static var isRunning: Bool { active != nil }
-    static func permitsNativeFocus(_ members: Set<DesktopWindowKey>) -> Bool {
+    static var mergeEnabled: Bool { active?.cycleMode == false }
+    static func permitsNativeFocus(_ front: Set<DesktopWindowKey>, _ target: Set<DesktopWindowKey>) -> Bool {
+        let members = front.union(target)
         guard let lab = active, !members.isEmpty, members.count <= 2,
               members.allSatisfy(lab.owns), lab.isolatedScreen() else { return false }
-        return true
+        return !lab.cycleMode || (lab.cycle?.permits(front, target) == true && fixtureInput() == lab.bootInput)
     }
     static func canDrop(_ source: AppleStageMerge.Members, _ destination: AppleStageMerge.Members) -> Bool {
-        guard let lab = active, !lab.attempted, source.count == 1, destination.count == 1,
+        guard let lab = active, !lab.cycleMode, !lab.attempted, source.count == 1, destination.count == 1,
               let a = source.first, let b = destination.first, a.pid != b.pid,
               lab.owns(a) && lab.owns(b), lab.isolatedScreen() else { return false }
         return true
@@ -84,7 +88,7 @@ import Security
     /// never fabricates a drag nonce, and its receipt cannot prove a physical R4 drag.
     static func nativeQualification(_ groups: [AppleNativeStages.Group],
             run: @escaping @MainActor (AppleNativeStages.Group, AppleNativeStages.Group) async throws -> Void) {
-        guard let lab = active, lab.automation, lab.prepared, !lab.reserved, !lab.attempted,
+        guard let lab = active, !lab.cycleMode, lab.automation, lab.prepared, !lab.reserved, !lab.attempted,
               groups.count == 2, let source = groups.first(where: { !$0.current }),
               let target = groups.first(where: { $0.current }),
               canDrop(Set(source.members),Set(target.members)), fixtureInput() == lab.bootInput else { return }
@@ -114,12 +118,12 @@ import Security
         let deadline = ContinuousClock.now.advanced(by:.seconds(8))
         while ContinuousClock.now < deadline, Self.active === self,
               Self.fixtureInput() == bootInput, isolatedScreen() {
-            if children.count == 2 && children.allSatisfy({ window($0) != nil }) { break }
+            if children.count == (cycleMode ? 3 : 2) && children.allSatisfy({ window($0) != nil }) { break }
             try? await Task.sleep(for:.milliseconds(80))
         }
         // Each activation is limited to one exact, signed, freshly observed fixture.
         // Never activate a personal app to prepare a stage.
-        for child in children {
+        for child in (cycleMode ? Array(children.reversed()) : children) {
             guard Self.active === self, Self.fixtureInput() == bootInput, isolatedScreen(),
                   let key = window(child),
                   let target = NSRunningApplication(processIdentifier:key.pid), !target.isTerminated,
@@ -146,8 +150,40 @@ import Security
             }
             guard observations == 2 else { NSApp.terminate(nil); return }
         }
+        if cycleMode {
+            guard let exact = AppleStageFocusCycleFixture(children.compactMap(window)) else { NSApp.terminate(nil); return }
+            cycle = exact
+        }
         prepared = true
     }
+    static var cycleTarget: DesktopWindowKey? { active?.cycle?.target }
+    static var runsFocusCycle: Bool { active?.cycleMode == true }
+    static func offerFocusCycle(_ groups: [AppleNativeStages.Group], current: @escaping @MainActor () -> Bool) {
+        guard let lab = active, lab.cycleMode, let cycle = lab.cycle else { return }
+        cycle.observe(groups) {
+            active === lab && lab.prepared && fixtureInput() == lab.bootInput && current() &&
+                lab.isolatedScreen() && cycle.windows.allSatisfy(lab.owns) && lab.cycleOwnsSourceFocus()
+        }
+    }
+    private func cycleOwnsSourceFocus() -> Bool {
+        guard let source = cycle?.source, owns(source),
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == source.pid else { return false }
+        let application = AXUIElementCreateApplication(source.pid)
+        AXUIElementSetMessagingTimeout(application, 0.05)
+        var focused: CFTypeRef?
+        return AXUIElementCopyAttributeValue(application, kAXFocusedWindowAttribute as CFString, &focused) == .success &&
+            focused.map { CFGetTypeID($0) == AXUIElementGetTypeID() &&
+                NearpaneOrdinaryWindowRuntime.number($0 as! AXUIElement) == source.number } == true
+    }
+    static func takeFocusCard(_ group: AppleNativeStages.Group) -> Bool {
+        guard let lab = active, lab.cycleMode else { return true }
+        return fixtureInput() == lab.bootInput && lab.isolatedScreen() && lab.cycleOwnsSourceFocus() && lab.cycle?.take(group.members) == true
+    }
+    static func noteFocus(_ groups: [AppleNativeStages.Group], strip: [[UInt32]]?, time: UInt64, exact: Bool) {
+        active?.cycle?.note(groups, strip: strip, time: time, exact: exact)
+    }
+    static func finishedFocus(_ target: DesktopWindowKey) { active?.cycle?.finish(target) }
+
     /// R4 sees live product data for the signed cohort only. If another ordinary
     /// window appears while the reader is away, discard that complete sample.
     @MainActor private struct FixtureProvider: LiveDesktopObservationProvider {
@@ -206,10 +242,11 @@ import Security
         return true
     }
 
-    package static func start(_ nonce: UUID, automate: Bool, display: String, desktop: UUID, record: String,
+    package static func start(_ nonce: UUID, automate: Bool, cycleMode: Bool, display: String, desktop: UUID, record: String,
                               ordinary: @escaping @MainActor () -> Bool) throws {
         guard active == nil, getuid() == geteuid(), getuid() != 0, StageManagerPreference.read() == true,
-              AXIsProcessTrusted(), CGPreflightListenEventAccess(), CGPreflightPostEventAccess(),
+              AXIsProcessTrusted(), CGPreflightListenEventAccess(), (cycleMode || CGPreflightPostEventAccess()),
+              cycleMode == (Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeFocusCycle") as? Bool == true),
               Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.host",
               Bundle.main.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") == nil,
               Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") as? Int == 1,
@@ -221,7 +258,8 @@ import Security
               root == root.resolvingSymlinksInPath(), root.appendingPathComponent("Nearpane.app", isDirectory:true) == Bundle.main.bundleURL.resolvingSymlinksInPath(),
               try validate(Bundle.main.bundleURL, id: "com.holdsnow.nearpane.host") == OrdinaryProcessImage.signingDigest(getpid()),
               let origin = NSWorkspace.shared.frontmostApplication,
-              ["com.apple.finder","com.holdsnow.nearpane.host"].contains(origin.bundleIdentifier ?? "")
+              ["com.apple.finder","com.holdsnow.nearpane.host"].contains(origin.bundleIdentifier ?? ""),
+              !cycleMode || origin.bundleIdentifier == "com.apple.finder"
         else { throw AppleStageMerge.Failure.unavailable }
         let lab = AppleStageMergeFixture(root, nonce: nonce, display:display,desktop:desktop,record:record,ordinary:ordinary)
         guard lab.isolatedScreen(), !FileManager.default.fileExists(atPath: root.appendingPathComponent("run.json").path) else {
@@ -229,10 +267,10 @@ import Security
         }
         // Atomically consume the signed session nonce before any fixture process is launched.
         try Data("{\"started\":true}\n".utf8).write(to: root.appendingPathComponent("run.json"), options:.withoutOverwriting)
-        lab.original = origin; lab.automation = automate; lab.bootInput = fixtureInput()
+        lab.original = origin; lab.automation = automate; lab.cycleMode = cycleMode; lab.bootInput = fixtureInput()
         active = lab
         do {
-            for name in ["A","B"] {
+            for name in (cycleMode ? ["A","B","C"] : ["A","B"]) {
                 let id = "com.holdsnow.stageworkset-merge-fixture." + name.lowercased()
                 let app = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/Merge " + name + ".app",isDirectory:true)
                 let signature = try validate(app,id:id)
@@ -251,7 +289,7 @@ import Security
                 lab.children.append(Child(process:process,image:image,signature:signature,identifier:id))
             }
         } catch { stop(); throw error }
-        if automate { Task { @MainActor in await lab.seedNativeStages() } }
+        if automate || cycleMode { Task { @MainActor in await lab.seedNativeStages() } }
         Task { @MainActor in
             let end = ContinuousClock.now.advanced(by:.seconds(120))
             while active === lab, ContinuousClock.now < end, lab.isolatedScreen() {
@@ -284,6 +322,8 @@ import Security
         }
         let receipt: [String:Any] = ["timeline":lab.timeline,"bootstrap":lab.bootstrap,
             "nativeFixtureAutomation":lab.automation,"physicalR4Gesture":"NOT_RUN","protocol":1,"nonce":lab.nonce.uuidString.lowercased(),
+            "focusCycle":lab.cycleMode, "focusCycleComplete":lab.cycle?.complete ?? false,
+            "focusCycleSteps":lab.cycle?.timeline ?? [], "focusPressIssued": lab.cycle?.pressed ?? false,
             "attempted":lab.attempted,"membershipDoubleRead":lab.completed,"productionQualified":false,
             "children":lab.children.map { ["pid":$0.image.pid,"birth":$0.image.launch,
                 "cdhash":$0.signature.map { String(format:"%02x",$0) }.joined(),"identifier":$0.identifier] as [String:Any] }]
@@ -298,7 +338,8 @@ import NearpaneCore
     package static func observationProvider() -> any DesktopObservationProvider { UnavailableDesktopProvider() }
     static func nativeQualification(_ groups: [AppleNativeStages.Group], run: @escaping @MainActor (AppleNativeStages.Group, AppleNativeStages.Group) async throws -> Void) {}
     package static var isRunning: Bool { false }
-    static func permitsNativeFocus(_ members: Set<DesktopWindowKey>) -> Bool { false }
+    static var mergeEnabled: Bool { false }
+    static func permitsNativeFocus(_ front: Set<DesktopWindowKey>, _ target: Set<DesktopWindowKey>) -> Bool { false }
     static func canDrop(_ source: Set<DesktopWindowKey>, _ destination: Set<DesktopWindowKey>) -> Bool { false }
 }
 #endif

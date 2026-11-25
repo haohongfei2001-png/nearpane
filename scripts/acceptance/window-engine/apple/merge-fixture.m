@@ -15,16 +15,20 @@ int main(int argc, const char *argv[]) {
             ![[NSString stringWithUTF8String:path] isEqual:[bundle stringByAppendingPathComponent:@"Contents/MacOS/NearpaneHost"]]) return 2;
         NSBundle *own=NSBundle.mainBundle;
         NSString *id_=own.bundleIdentifier;
-        BOOL second=[id_ isEqual:@"com.holdsnow.stageworkset-merge-fixture.b"];
-        if (!second && ![id_ isEqual:@"com.holdsnow.stageworkset-merge-fixture.a"]) return 2;
+        NSDictionary *ids=@{@"com.holdsnow.stageworkset-merge-fixture.a":@"A",
+                            @"com.holdsnow.stageworkset-merge-fixture.b":@"B",
+                            @"com.holdsnow.stageworkset-merge-fixture.c":@"C"};
+        NSString *letter=ids[id_];
+        if (!letter || ([letter isEqual:@"C"] && ![[own objectForInfoDictionaryKey:@"NearpaneNativeFocusCycle"] boolValue])) return 2;
+        NSString *relative=[NSString stringWithFormat:@"Contents/Helpers/Merge %@.app",letter];
         if (![[own objectForInfoDictionaryKey:@"NearpaneNativeMergeNonce"] isEqual:nonce] ||
-            ![own.bundlePath isEqual:[bundle stringByAppendingPathComponent: second ? @"Contents/Helpers/Merge B.app" : @"Contents/Helpers/Merge A.app"]]) return 2;
+            ![own.bundlePath isEqual:[bundle stringByAppendingPathComponent:relative]]) return 2;
         NSApplication *app=NSApplication.sharedApplication;
         [app setActivationPolicy:NSApplicationActivationPolicyRegular];
         NSWindow *window=[[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,440,290)
             styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
-        window.title=second?@"Nearpane fixture B":@"Nearpane fixture A";window.releasedWhenClosed=NO;
-        NSTextField *field=[NSTextField textFieldWithString:second?@"B":@"A"];
+        window.title=[@"Nearpane fixture " stringByAppendingString:letter];window.releasedWhenClosed=NO;
+        NSTextField *field=[NSTextField textFieldWithString:letter];
         field.frame=NSMakeRect(40,110,360,32); [window.contentView addSubview:field];
         [window center]; [window orderBack:nil];
         id focus=[NSNotificationCenter.defaultCenter addObserverForName:NSApplicationDidBecomeActiveNotification

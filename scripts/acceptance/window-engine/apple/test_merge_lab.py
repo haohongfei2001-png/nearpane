@@ -32,6 +32,28 @@ class RestrictedLabTests(unittest.TestCase):
             self.assertFalse(lab.confirmed_membership(changed),field)
         self.assertFalse(lab.confirmed_membership({'timeline':[]}))
 
+    def test_cycle_requires_all_three_r4_buttons_and_two_later_exact_reads(self):
+        children=[dict(identifier='com.holdsnow.stageworkset-merge-fixture.'+letter,pid=10+i,birth=100+i)
+                  for i,letter in enumerate('abc')]
+        keys=[dict(pid=c['pid'],birth=c['birth'],window=1000+i) for i,c in enumerate(children)]
+        bootstrap=[dict(k,timeNS=10+i*2+j) for i,k in enumerate(keys) for j in range(2)]
+        steps=[]
+        for i in range(3):
+            target=keys[(i+1)%3]
+            reads=[dict(target, timeNS=20+i*2+j,otherStages=[k['window'] for k in keys if k!=target])
+                   for j in range(2)]
+            steps.append(dict(entry='R4AccessibilityButton',fromWindow=keys[i]['window'],
+                              to=target['window'],confirmedReads=reads))
+            steps[-1]['from']=steps[-1].pop('fromWindow')
+        receipt=dict(children=children,bootstrap=bootstrap,focusCycleSteps=steps,focusCycleComplete=True)
+        self.assertTrue(lab.confirmed_focus_cycle(receipt))
+        for field,value in [('birth',0),('pid',99),('window',77),('otherStages',[]),('timeNS',20)]:
+            mutated=copy.deepcopy(receipt)
+            mutated['focusCycleSteps'][-1]['confirmedReads'][1][field]=value
+            self.assertFalse(lab.confirmed_focus_cycle(mutated))
+        self.assertFalse(lab.confirmed_focus_cycle(dict(receipt,focusCycleSteps=steps[:2])))
+        self.assertFalse(lab.confirmed_focus_cycle(dict(receipt,bootstrap=bootstrap[:4])))
+
     def test_prepare_refuses_daily_path_before_signing_or_launching(self):
         with self.assertRaises((ValueError,OSError)):
             lab.prepare('/Applications/Nearpane.app')
