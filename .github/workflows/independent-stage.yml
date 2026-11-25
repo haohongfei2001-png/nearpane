@@ -1,0 +1,64 @@
+name: Independent Stage replacement
+on:
+  workflow_dispatch:
+  push:
+    branches: ['pro/independent-stage-engine-20261126']
+  pull_request:
+    branches: ['codex/r4-native-candidate-20261120']
+permissions:
+  contents: read
+concurrency:
+  group: independent-stage-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  implementation:
+    name: Build candidate and exercise real foreign windows
+    runs-on: xcode-27
+    timeout-minutes: 45
+    env:
+      NEARPANE_RUN_ID: independent-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify the actual host
+        run: |
+          sw_vers
+          uname -m
+          csrutil status
+          cargo --version
+          swift --version
+      - name: Rust, FFI, group lifecycle and R4 integration source tests
+        run: python3 -B scripts/acceptance/independent-stage/run.py "$RUNNER_TEMP/independent-source" --scope source
+      - name: Build complete candidate with embedded tools
+        id: candidate
+        run: |
+          bash scripts/build-app.sh release
+          app="$PWD/build/standalone.$NEARPANE_RUN_ID/products/release/Nearpane.app"
+          codesign --verify --strict "$app/Contents/MacOS/NearpaneHost"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Nearpane-independent-candidate.zip"
+          shasum -a 256 "$RUNNER_TEMP/Nearpane-independent-candidate.zip" > "$RUNNER_TEMP/Nearpane-independent-candidate.sha256"
+          printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
+      - name: Foreign-window Spaces and production R4 receipts
+        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        run: |
+          python3 -B scripts/acceptance/independent-stage/run.py "$RUNNER_TEMP/independent-runtime" --scope runtime --iterations 3 --product-host '${{ steps.candidate.outputs.app }}'
+      - name: Compile native rendering-decoupling diagnostic
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -f tools/native-stage-decoupling/probe.m ]; then
+            xcrun clang -fobjc-arc -fblocks -Wall -Wextra -O1 tools/native-stage-decoupling/probe.m -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/native-stage-inspect"
+          fi
+      - name: Preserve every terminal result and candidate
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nearpane-independent-stage-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/independent-source/
+            ${{ runner.temp }}/independent-runtime/
+            ${{ runner.temp }}/Nearpane-independent-candidate.zip
+            ${{ runner.temp }}/Nearpane-independent-candidate.sha256
+          if-no-files-found: warn
+          retention-days: 30

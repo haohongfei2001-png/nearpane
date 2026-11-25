@@ -47,6 +47,13 @@ void *np_stage_launch_token(void) {
     if (!signedInstalledHost() || !np_stage_target_build()) return NULL;
     return (void *)CFBridgingRetain([NPSpacesLaunchToken new]);
 }
+void *np_stage_launch_candidate_token(void) {
+    // An explicit candidate can run from its build directory and an independently
+    // launched diagnostic app. It can create only this process's transparent panel;
+    // the original signed-install probe remains unchanged for archived receipts.
+    if (!np_stage_candidate_supported()) return NULL;
+    return (void *)CFBridgingRetain([NPSpacesLaunchToken new]);
+}
 static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window) {
     NSRunningApplication *front=NSWorkspace.sharedWorkspace.frontmostApplication;
     pid_t owner=front.processIdentifier; uint64_t generation=birth(owner); CGWindowID n=0;

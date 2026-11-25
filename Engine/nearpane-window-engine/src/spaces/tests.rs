@@ -54,6 +54,8 @@ struct Fake {
     lose_focus_on_hide: bool,
     focus_changed: bool,
     replace_fixture_when_parked: bool,
+    minimize_writes: Vec<(u32, u64, bool)>,
+    refuse_unminimize: bool,
 }
 impl Fake {
     fn new() -> Self {
@@ -154,6 +156,22 @@ impl Platform for Fake {
             Err(unknown(Why::Identity))
         }
     }
+    fn bind_minimized(&self, w: Window) -> Check<u64> {
+        let t = self.windows[&w.number];
+        if t.0 == w && t.3 { Ok(10_000 + u64::from(w.number)) }
+        else { Err(unknown(Why::MinimizedOrAX)) }
+    }
+    fn minimized(&self, witness: &u64) -> Check<bool> {
+        if *witness >= 10_000 { return Ok(self.windows[&((*witness - 10_000) as u32)].3); }
+        Ok(false)
+    }
+    fn set_minimized(&mut self, w: Window, witness: &u64, minimized: bool) -> Delivery {
+        if *witness != 10_000 + u64::from(w.number) || self.refuse_unminimize { return Delivery::Refused; }
+        let t = self.windows.get_mut(&w.number).unwrap();
+        self.minimize_writes.push((w.number, t.1, minimized));
+        t.3 = minimized;
+        Delivery::Accepted
+    }
     fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
         let n = 77;
         if op == launch::PanelOp::Open {
@@ -186,14 +204,18 @@ impl Platform for Fake {
     fn absent(&self, n: u32) -> Check<bool> {
         Ok(!self.windows.contains_key(&n) && !(n == 77 && self.cg_keeps_closed_probe))
     }
+    fn departed(&self, w: Window) -> Check<bool> {
+        Ok(self.windows.get(&w.number).is_some_and(|r| r.0 != w) || self.absent(w.number)?)
+    }
     fn transparent_canary(&self, w: &u64) -> bool {
         *w == 77
     }
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
         let t = self.windows[&w.number];
-        if t.0 == w && t.2 == *lease && !t.3 {
+        if t.0 == w && ((t.2 == *lease && !t.3) || *lease == 10_000 + u64::from(w.number)) {
             Ok(Seen {
-                visible: *lease != 77 && t.1 == 10,
+                visible: !t.3 && *lease != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
+                    else { self.managed_roster.iter().any(|d| d.id == t.1 && d.current == 1) },
                 rect: [0., 0., 100., 100.],
             })
         } else {
@@ -598,6 +620,107 @@ fn launch_request(op: u32) -> Request {
         ..Request::default()
     }
 }
+
+#[test]
+fn same_app_siblings_and_a_foreign_app_share_a_hidden_group_without_moving_the_bystander() {
+    let (mut s, a) = setup();
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    let mut foreign = request(3, HIDE, 4);
+    foreign.pid += 1;
+    s.sys.windows.get_mut(&3).unwrap().0.pid = foreign.pid;
+    assert_eq!(s.run(&request(1, HIDE, 2), &a).status, PASS);
+    assert_eq!(s.run(&foreign, &a).status, PASS);
+    let hidden = s.sys.windows[&1].1;
+    assert_eq!(s.sys.windows[&3].1, hidden, "cross-app members share the group's hidden Space");
+    assert_eq!(s.sys.windows[&2].1, 10, "same-app sibling is independently visible");
+    let result = s.run(&launch_request(RELEASE_SPACES), &a);
+    assert_eq!((result.status, result.owned), (PASS, 0));
+    assert!(s.owned.is_empty() && s.slots.is_empty());
+    assert!(s.sys.windows.values().all(|w| w.1 == 10));
+    assert!(s.sys.moved.iter().all(|(route, _, _, _)| *route == Route::Bridge));
+}
+
+#[test]
+fn switching_native_desktops_does_not_fail_hidden_groups_or_move_any_window() {
+    let (mut s, a) = setup();
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    assert_eq!(s.run(&request(1, HIDE, 2), &a).status, PASS);
+    s.sys.spaces.insert(11);
+    s.sys.managed_roster = vec![
+        Desktop { display: [5; 16], uuid: [6; 16], id: 10, kind: 0, current: 0 },
+        Desktop { display: [5; 16], uuid: [7; 16], id: 11, kind: 0, current: 1 },
+    ];
+    let writes = s.sys.moved.len();
+    s.observe_health();
+    assert!(!s.failed);
+    assert_eq!(s.run(&request(1, HEALTH, 3), &a).status, PASS);
+    assert_eq!(s.sys.moved.len(), writes);
+    let result = s.run(&launch_request(RELEASE_SPACES), &a);
+    assert_eq!((result.status, result.owned), (PASS, 0));
+    assert_eq!(s.sys.windows[&1].1, 10, "quit restores to the window's own Desktop");
+    assert_eq!(s.sys.managed_roster[1].current, 1, "no desktop switch was requested");
+}
+
+#[test]
+fn closed_and_reused_window_ids_are_forgotten_without_moving_the_new_lifetime() {
+    for reused in [false, true] {
+        let (mut s, a) = setup();
+        assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+        assert_eq!(s.run(&request(1, HIDE, 2), &a).status, PASS);
+        if reused {
+            let row = s.sys.windows.get_mut(&1).unwrap();
+            row.0.birth += 1;
+            row.1 = 10;
+        } else { s.sys.windows.remove(&1); }
+        let writes = s.sys.moved.len();
+        let result = s.run(&launch_request(RELEASE_SPACES), &a);
+        assert_eq!((result.status, result.owned), (PASS, 0));
+        assert_eq!(s.sys.moved.len(), writes, "no move is sent to a departed lifetime");
+        assert_eq!(s.sys.spaces, Rows::from([10]));
+    }
+}
+
+#[test]
+fn release_cleans_an_empty_failed_candidate_without_claiming_foreign_window_success() {
+    let (mut s, mut a) = setup();
+    a.approved = Some(Route::Bridge);
+    assert_eq!(s.run(&launch_request(RELEASE_SPACES), &a).status, PASS);
+    assert!(s.sys.moved.is_empty() && s.route.is_none());
+    assert_eq!(s.run(&request(1, PROBE, 1), &a).status, UNKNOWN);
+}
+
+#[test]
+fn yellow_button_adoption_moves_the_minimized_window_before_removing_its_dock_item() {
+    let (mut s, a) = setup();
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    s.sys.windows.get_mut(&1).unwrap().3 = true;
+    s.sys.windows.get_mut(&2).unwrap().3 = true; // A pre-existing Dock item is a bystander.
+    let hidden = s.run(&request(1, HIDE_MINIMIZED, 2), &a);
+    assert_eq!(hidden.status, PASS);
+    assert_eq!(s.sys.minimize_writes, vec![(1, hidden.native_id, false)]);
+    assert_ne!(hidden.native_id, 10, "the Dock item is removed only inside the hidden Space");
+    assert!(s.sys.windows[&2].3 && s.sys.windows[&2].1 == 10);
+    let back = s.run(&request(1, SHOW, 3), &a);
+    assert_eq!(back.status, PASS);
+    assert_eq!(s.sys.windows[&1].1, 10);
+    assert!(!s.sys.windows[&1].3);
+}
+
+#[test]
+fn failed_yellow_button_adoption_restores_membership_and_keeps_the_native_minimized_state() {
+    let (mut s, a) = setup();
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    s.sys.windows.get_mut(&1).unwrap().3 = true;
+    s.sys.refuse_unminimize = true;
+    assert_ne!(s.run(&request(1, HIDE_MINIMIZED, 2), &a).status, PASS);
+    assert!(!s.owned.is_empty());
+    let released = s.run(&launch_request(RELEASE_SPACES), &a);
+    assert_eq!((released.status, released.owned), (PASS, 0));
+    assert_eq!(s.sys.windows[&1].1, 10);
+    assert!(s.sys.windows[&1].3);
+    assert!(s.sys.minimize_writes.is_empty());
+}
+
 #[test]
 fn approved_launch_arms_only_its_evidence_route_after_its_own_canary_dies() {
     for route in [Route::Classic, Route::Bridge] {

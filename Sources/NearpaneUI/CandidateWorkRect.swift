@@ -9,8 +9,23 @@ import SwiftUI
     let desktopTiling: DesktopAutomaticTiling
     private var enrolledDesktopFeed: CurrentDesktopWindows?
     weak var stageEngine: StageWindowEngineHost?
+    /// Only the isolated, fixture-scoped candidate uses this live production catalogue.
+    /// Ordinary window tiling stays off; starting its legacy supervisor is unnecessary.
+    var independentStageSnapshot: (@MainActor () -> DesktopSnapshot?)?
     func permitsStageEngine(on display: String) -> Bool {
-        !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && ordinary.stageWindowExclusions != nil &&
+        if IndependentStagePolicy.candidateRequested {
+            guard !IndependentStagePolicy.candidatePIDs.isEmpty, AXIsProcessTrusted(), !suspended,
+                  mode == "off", count == 0, !ordinary.blocksUpdateRelaunch,
+                  desktopTiling.scope == nil, !desktopTiling.starting,
+                  let snapshot = independentStageSnapshot?(), snapshot.topologyConsistent,
+                  snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+                  snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
+                  let scope = snapshot.scopes.first(where: { $0.displayID == display }),
+                  scope.records.filter(\.isCurrent).count == 1,
+                  scope.records.first(where: \.isCurrent)?.ordinaryUUID != nil else { return false }
+            return true
+        }
+        return !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && ordinary.stageWindowExclusions != nil &&
             desktopTiling.scope == nil && !desktopTiling.starting && context(for:display) != nil
     }
     public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {

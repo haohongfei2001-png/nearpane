@@ -169,7 +169,10 @@ trait Platform {
     fn members(&self, c: i32, space: u64) -> Check<Rows>;
     fn spaces(&self, c: i32, number: u32) -> Check<Rows>;
     fn bind(&self, window: Window) -> Check<Self::Witness>;
+    fn bind_minimized(&self, _window: Window) -> Check<Self::Witness> { Err(unknown(Why::MinimizedOrAX)) }
     fn see(&self, w: Window, witness: &Self::Witness) -> Check<Seen>;
+    fn minimized(&self, _w: &Self::Witness) -> Check<bool> { Ok(false) }
+    fn set_minimized(&mut self, _w: Window, _witness: &Self::Witness, _minimized: bool) -> Delivery { Delivery::Refused }
     fn transparent_canary(&self, _w: &Self::Witness) -> bool {
         false
     }
@@ -182,6 +185,8 @@ trait Platform {
     fn absent(&self, _number: u32) -> Check<bool> {
         Err(unknown(Why::Readback))
     }
+    /// True only when the exact process/window lifetime has ended. A failed query is unknown.
+    fn departed(&self, window: Window) -> Check<bool> { self.absent(window.number) }
     fn create(&mut self, c: i32) -> Check<u64>;
     fn destroy(&mut self, c: i32, space: u64) -> Delivery;
     fn move_window(&mut self, c: i32, route: Route, w: Window, target: u64, mask: u32) -> Delivery;
@@ -355,7 +360,6 @@ impl<P: Platform> State<P> {
                     && d.id == home.id
                     && d.uuid == home.uuid
                     && d.kind == 0
-                    && d.current == 1
             })
         {
             return Err(unknown(Why::Scope));
@@ -391,6 +395,7 @@ impl<P: Platform> State<P> {
         witness: &P::Witness,
         top: &[Desktop],
         a: &impl Authority,
+        from_minimized: bool,
     ) -> Check<u64> {
         let slot = lease.slot;
         if let Some(s) = self.slots.get(&slot) {
@@ -407,7 +412,8 @@ impl<P: Platform> State<P> {
         }
         let before = self.sys.all(c)?;
         self.scope(c, slot.home, top, a)?;
-        self.view(c, lease, witness, 0, false)?;
+        if from_minimized { self.minimized_view(c, lease, witness, 0)?; }
+        else { self.view(c, lease, witness, 0, false)?; }
         a.active()?;
         let sid = self.sys.create(c).inspect_err(|_| self.failed = true)?;
         // Never claim or destroy a pre-existing ID, even when creation returned it.
@@ -485,6 +491,7 @@ impl<P: Platform> State<P> {
     }
     fn view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64, hidden: bool) -> Check<Seen> {
         let window = lease.window;
+        if self.sys.minimized(w)? { return Err(unknown(Why::MinimizedOrAX)); }
         let target = if hidden { sid } else { lease.slot.home.id };
         let a = self.sys.see(window, w)?;
         let membership = self.sys.spaces(c, window.number)?;
@@ -506,15 +513,30 @@ impl<P: Platform> State<P> {
             return Err(unknown(Why::Membership));
         }
         let b = self.sys.see(window, w)?;
+        let home_visible = self.sys.desktops(c)?.iter().any(|d| {
+            d.display == lease.slot.home.display && d.id == lease.slot.home.id && d.current == 1
+        });
         if a.rect != b.rect
             || a.visible != b.visible
             || (!self.sys.transparent_canary(w)
                 && b.visible == hidden
-                && (hidden || !self.sys.enrolled_transparent_fixture(window)))
+                && (hidden || (home_visible && !self.sys.enrolled_transparent_fixture(window))))
         {
             return Err(unknown(Why::Readback));
         }
         Ok(b)
+    }
+    fn minimized_view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64) -> Check<Seen> {
+        let seen = self.sys.see(lease.window, w)?;
+        if seen.visible || !self.sys.minimized(w)? { return Err(unknown(Why::MinimizedOrAX)); }
+        let membership = self.sys.spaces(c, lease.window.number)?;
+        let valid = if sid == 0 {
+            membership.is_empty() || membership == Rows::from([lease.slot.home.id])
+        } else { membership == Rows::from([sid]) };
+        if !valid || (sid != 0 && !self.sys.members(c, sid)?.contains(&u64::from(lease.window.number))) {
+            return Err(unknown(Why::Membership));
+        }
+        Ok(seen)
     }
     fn moved(
         &mut self,
@@ -532,7 +554,7 @@ impl<P: Platform> State<P> {
         }
         self.occupants(c, lease.slot, sid)?;
         let original = self.view(c, lease, &bound.witness, sid, !hidden)?;
-        if original.rect != bound.original {
+        if hidden && original.rect != bound.original {
             return Err(unknown(Why::Identity));
         }
         self.scope(c, lease.slot.home, top, a)?;
@@ -567,7 +589,7 @@ impl<P: Platform> State<P> {
         loop {
             self.scope(c, lease.slot.home, top, a)?;
             match self.view(c, lease, &bound.witness, sid, hidden) {
-                Ok(seen) if seen.rect == bound.original => {
+                Ok(seen) if seen.rect == original.rect => {
                     hit += 1;
                     if hit >= 2 {
                         break;
@@ -608,6 +630,11 @@ impl<P: Platform> State<P> {
         a: &impl Authority,
     ) -> Check<()> {
         let top = self.topology(c, lease.slot.home)?;
+        // A normal hide belongs to the ordinary Desktop currently shown. Merely
+        // changing Desktops never moves a window or rewrites another Desktop's group.
+        if !top.iter().any(|d| d.id == lease.slot.home.id && d.current == 1) {
+            return Err(unknown(Why::Scope));
+        }
         if self.owned.len() >= LIMIT
             || self.owned.contains_key(&lease.window)
             || self.owned.values().any(|w| {
@@ -623,7 +650,7 @@ impl<P: Platform> State<P> {
         if original.rect != expected {
             return Err(unknown(Why::Identity));
         }
-        let sid = self.get_slot(c, lease, &witness, &top, a)?;
+        let sid = self.get_slot(c, lease, &witness, &top, a, false)?;
         self.owned.insert(
             lease.window,
             Bound {
@@ -634,6 +661,52 @@ impl<P: Platform> State<P> {
             },
         );
         self.moved(c, lease, sid, true, route, &top, a)
+    }
+    fn hide_minimized(&mut self, c: i32, lease: Lease, expected: [f64; 4], route: Route, a: &impl Authority) -> Check<()> {
+        let top = self.topology(c, lease.slot.home)?;
+        if !top.iter().any(|d| d.id == lease.slot.home.id && d.current == 1)
+            || self.owned.len() >= LIMIT || self.owned.contains_key(&lease.window)
+            || self.owned.values().any(|w| w.lease.window.number == lease.window.number
+                || w.lease.member == lease.member || w.lease.lifetime == lease.lifetime) {
+            return Err(fail(Why::Conflict));
+        }
+        let witness = self.sys.bind_minimized(lease.window)?;
+        let before = self.minimized_view(c, lease, &witness, 0)?;
+        if before.rect != expected { return Err(unknown(Why::Identity)); }
+        let sid = self.get_slot(c, lease, &witness, &top, a, true)?;
+        self.owned.insert(lease.window, Bound { lease, witness, original: before.rect,
+            pending_target: std::cell::Cell::new(None) });
+        let bound = &self.owned[&lease.window];
+        self.scope(c, lease.slot.home, &top, a)?;
+        a.active()?;
+        bound.pending_target.set(Some(sid));
+        if self.sys.move_window(c, route, lease.window, sid, 7) == Delivery::Refused {
+            bound.pending_target.set(None); return Err(fail(Why::NoDelivery));
+        }
+        let until = Instant::now() + DEADLINE;
+        loop {
+            self.scope(c, lease.slot.home, &top, a)?;
+            if self.minimized_view(c, lease, &bound.witness, sid).is_ok() { break; }
+            if Instant::now() >= until { return Err(unknown(Why::Membership)); }
+            std::thread::sleep(Duration::from_millis(4));
+        }
+        bound.pending_target.set(None);
+        // Clearing Dock minimization is safe only after exclusive hidden-Space
+        // membership is independently observed. Never reveal first and hide later.
+        a.active()?;
+        if self.sys.set_minimized(lease.window, &bound.witness, false) == Delivery::Refused {
+            return Err(fail(Why::NoDelivery));
+        }
+        let until = Instant::now() + DEADLINE;
+        let mut consecutive = 0;
+        loop {
+            self.scope(c, lease.slot.home, &top, a)?;
+            if self.view(c, lease, &bound.witness, sid, true).is_ok() { consecutive += 1; }
+            else { consecutive = 0; }
+            if consecutive == 2 { return Ok(()); }
+            if Instant::now() >= until { return Err(unknown(Why::Readback)); }
+            std::thread::sleep(Duration::from_millis(4));
+        }
     }
     fn restore_member(
         &mut self,
@@ -661,16 +734,34 @@ impl<P: Platform> State<P> {
         if saved.lease != lease {
             return Err(fail(Why::Identity));
         }
+        if self.sys.minimized(&saved.witness)? {
+            // An interrupted mini adoption still belongs to this lease. Return its
+            // real Space membership while preserving its existing Dock minimization.
+            self.scope(c, lease.slot.home, top, a)?;
+            a.active()?;
+            if self.sys.move_window(c, route, lease.window, lease.slot.home.id, 15) == Delivery::Refused {
+                return Err(fail(Why::NoDelivery));
+            }
+            let until = Instant::now() + DEADLINE;
+            loop {
+                self.scope(c, lease.slot.home, top, a)?;
+                let membership = self.sys.spaces(c, lease.window.number)?;
+                if !membership.contains(&sid) && !self.sys.members(c, sid)?.contains(&u64::from(lease.window.number))
+                    && self.minimized_view(c, lease, &saved.witness, 0).is_ok() { break; }
+                if Instant::now() >= until { return Err(unknown(Why::RestoreFirst)); }
+                std::thread::sleep(Duration::from_millis(4));
+            }
+            self.owned.remove(&lease.window);
+            if let Some(s) = self.slots.get_mut(&lease.slot) { s.owner = lease; }
+            return Ok(());
+        }
         // A failed callback may have completed. Reconcile twice without replaying the move.
         if self
             .view(c, lease, &saved.witness, sid, false)
-            .is_ok_and(|x| x.rect == saved.original)
+            .is_ok()
         {
             self.scope(c, lease.slot.home, top, a)?;
-            let again = self.view(c, lease, &saved.witness, sid, false)?;
-            if again.rect != saved.original {
-                return Err(unknown(Why::Identity));
-            }
+            self.view(c, lease, &saved.witness, sid, false)?;
         } else {
             self.moved(c, lease, sid, false, route, top, a)?;
         }
@@ -695,9 +786,6 @@ impl<P: Platform> State<P> {
             let m = self.sys.spaces(c, lease.window.number)?;
             let hidden = m == Rows::from([sid]);
             let seen = self.view(c, lease, &saved.witness, sid, hidden)?;
-            if seen.rect != saved.original {
-                return Err(unknown(Why::Identity));
-            }
             self.scope(c, lease.slot.home, &top, a)?;
             Ok((seen, hidden))
         } else {
@@ -760,6 +848,8 @@ impl<P: Platform> State<P> {
             return;
         }
         self.next_tick = Some(now + Duration::from_millis(350));
+        self.reap_departed();
+        if self.owned.is_empty() { return; }
         let index = self.tick_cursor % self.owned.len();
         self.tick_cursor = index + 1;
         let lease = self.owned.values().nth(index).unwrap().lease;
@@ -787,12 +877,56 @@ impl<P: Platform> State<P> {
         }
     }
 
+    fn reap_departed(&mut self) {
+        let gone: Vec<_> = self.owned.keys().copied()
+            .filter(|w| self.sys.departed(*w).is_ok_and(|gone| gone)).collect();
+        for window in gone { self.owned.remove(&window); }
+    }
+
+    /// Shutdown is driven by retained leases, so closed windows or a changed UI
+    /// roster cannot strand the remaining windows. Each surviving window is still
+    /// checked against its process birth, AX reference and hidden Space membership.
+    fn release_all(&mut self, c: i32, a: &impl Authority) -> Check<()> {
+        a.active()?;
+        if self.launch.as_ref().is_some_and(|p| !p.cleaned) {
+            let route = a.approved_route().ok_or(Fault(UNSUPPORTED, Why::Disabled))?;
+            self.finish_canary(c, route, a)?;
+        }
+        self.reap_departed();
+        let route = self.route.or_else(|| a.approved_route())
+            .ok_or(Fault(UNSUPPORTED, Why::Disabled))?;
+        let leases: Vec<_> = self.owned.values().map(|b| b.lease).collect();
+        let mut error = None;
+        for lease in leases {
+            if let Err(e) = self.show(c, lease, route, a) { error = Some(e); }
+        }
+        let empty: Vec<_> = self.slots.keys().copied()
+            .filter(|slot| !self.owned.values().any(|b| b.lease.slot == *slot)).collect();
+        for slot in empty {
+            match self.topology(c, slot.home).and_then(|top| self.cleanup(c, slot, &top, a)) {
+                Ok(()) => (), Err(e) => error = Some(e),
+            }
+        }
+        if let Some(error) = error { return Err(error); }
+        if !self.owned.is_empty() || !self.slots.is_empty() { return Err(unknown(Why::RestoreFirst)); }
+        Ok(())
+    }
+
     fn run(&mut self, r: &Request, a: &impl Authority) -> Outcome {
         let mut out = Outcome::new(UNKNOWN);
         let mut detail = Why::Ready;
         let res = (|| -> Check<()> {
             a.observation()?;
             let c = self.connect()?;
+            self.reap_departed();
+            if r.operation == RELEASE_SPACES {
+                if !r.valid() { return Err(fail(Why::Identity)); }
+                self.release_all(c, a)?;
+                out.status = PASS;
+                out.flags = MEMBERSHIP_VALID;
+                detail = Why::Cleanup;
+                return Ok(());
+            }
             if r.operation == PROBE {
                 // Symbol availability is diagnostic only; no operating capability or health is granted.
                 let flags = self.sys.flags();
@@ -893,7 +1027,7 @@ impl<P: Platform> State<P> {
                 return Err(Fault(UNSUPPORTED, Why::Disabled));
             }
             if let Some(saved) = self.owned.get(&lease.window) {
-                if saved.lease != lease || saved.original != requested {
+                if saved.lease != lease || (r.operation == HIDE && saved.original != requested) {
                     return Err(unknown(Why::Identity));
                 }
             }
@@ -918,13 +1052,19 @@ impl<P: Platform> State<P> {
                     return Err(unknown(Why::RestoreFirst));
                 }
                 match r.operation {
-                    HIDE => {
-                        self.hide(c, lease, requested, route, a)?;
+                    HIDE | HIDE_MINIMIZED => {
+                        if r.operation == HIDE_MINIMIZED { self.hide_minimized(c, lease, requested, route, a)?; }
+                        else { self.hide(c, lease, requested, route, a)?; }
                         detail = Why::HideVerified;
                         out.flags = HIDDEN | OWNED;
                     }
                     SHOW | RESTORE => {
+                        let remains_minimized = self.owned.get(&lease.window)
+                            .map(|b| self.sys.minimized(&b.witness)).transpose()?.unwrap_or(false);
                         self.show(c, lease, route, a)?;
+                        // An interrupted yellow-button adoption can return to its
+                        // original Dock state. That is clean release, not visible-window success.
+                        if remains_minimized { return Err(unknown(Why::MinimizedOrAX)); }
                         detail = Why::ShowVerified;
                         out.flags = VISIBLE;
                     }
@@ -941,7 +1081,7 @@ impl<P: Platform> State<P> {
             Ok(())
         })();
         if let Err(Fault(s, d)) = res {
-            if (r.operation == HEALTH || r.operation == HIDE || r.operation == SHOW)
+            if matches!(r.operation, HEALTH | HIDE | HIDE_MINIMIZED | SHOW)
                 && (!self.owned.is_empty() || !self.slots.is_empty())
             {
                 self.failed = true;
@@ -966,6 +1106,11 @@ impl<P: Platform> State<P> {
     }
 }
 pub struct Spaces(State<system::System>);
+impl Spaces {
+    pub fn candidate() -> Self {
+        Self(State::new(system::System { candidate: true, ..Default::default() }))
+    }
+}
 impl Default for Spaces {
     fn default() -> Self {
         Self(State::new(system::System::default()))

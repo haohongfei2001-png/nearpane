@@ -118,6 +118,24 @@ fn create_session(config: Config, qualified: Option<Grant>) -> Result<u64, u32> 
     Ok(id)
 }
 
+/// The application chooses this candidate explicitly. It cannot acquire Corner rights,
+/// change Apple's Stage Manager setting, or claim any reviewed physical evidence.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn np_engine_create_spaces_candidate(out: *mut u64) -> u32 {
+    boundary(|| {
+        output(out)?;
+        unsafe { out.write(0) };
+        if !cfg!(feature = "spaces") { return Err(INCOMPATIBLE); }
+        let config = Config {
+            size: size_of::<Config>() as u32, version: ABI, mode: SPACES_CANDIDATE,
+            process_count: 0, processes: [Process::default(); 2],
+        };
+        let handle = create_session(config, None)?;
+        unsafe { out.write(handle) };
+        Ok(())
+    })
+}
+
 // Only reviewed physical evidence IDs belong here. The signed Swift Host authenticates the
 // detached measurement and matches its final CDHash, system, display and consent before calling.
 // A Host digest never needs to be embedded into the very binary it identifies.

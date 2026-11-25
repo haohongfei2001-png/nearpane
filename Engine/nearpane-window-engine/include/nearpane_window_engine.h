@@ -17,7 +17,7 @@ extern "C" {
 enum { NP_ENGINE_ABI = 1, NP_CORNER = 1, NP_SPACES = 2 };
 enum { NP_PROBE = 1, NP_READBACK, NP_HIDE, NP_SHOW, NP_RESTORE, NP_HEALTH, NP_TRIAL,
        NP_LAUNCH, NP_CLEAN_LAUNCH, NP_CORNER_PARK_ACCESS, NP_CORNER_DISPLAY_MATERIAL,
-       NP_CORNER_RETIREMENT_SURFACE };
+       NP_CORNER_RETIREMENT_SURFACE, NP_RELEASE_SPACES, NP_HIDE_MINIMIZED };
 /* DISPLAY_MATERIAL returns the complete shadow footprint, native ID and the
  * verified source in detail. It cannot acquire visibility, input or window rights. */
 enum { NP_CORNER_MATERIAL_SEALED_FILE = 49, NP_CORNER_MATERIAL_WALLPAPER_SURFACE = 50 };
@@ -37,7 +37,7 @@ enum { NP_VISIBLE = 1, NP_HIDDEN = 2, NP_AX_VALID = 4, NP_CG_VALID = 8,
 /* Transport status is separate from the observed result. */
 enum { NP_OK = 0, NP_INVALID = 1, NP_INCOMPATIBLE = 2, NP_CLOSED = 3, NP_BUSY = 4,
        NP_PENDING = 5, NP_NO_TICKET = 6, NP_INTERNAL = 7 };
-enum { NP_HOST = 0, NP_ISOLATED_FIXTURE = 1 };
+enum { NP_HOST = 0, NP_ISOLATED_FIXTURE = 1, NP_SPACES_CANDIDATE = 2 };
 enum { NP_TRIAL_CLASSIC = 1u << 16, NP_CORNER_BOTTOM_SITES_ONLY = 1u << 17,
        NP_CORNER_RETURN_MEASURED = 1u << 18 };
 typedef struct { double x, y, width, height; } NPRect;
@@ -69,6 +69,11 @@ typedef struct {
  * release and a fresh qualified handle. Destroy refuses pending tickets/owned windows. */
 uint32_t np_engine_version(void);
 uint32_t np_engine_create(const NPConfig *, uint64_t *handle);
+/* Explicit independent-Spaces candidate; no Corner/Apple fallback or release qualification.
+ * Start with NP_LAUNCH. Its own-window canary proves only initialization and cleanup.
+ * Every subsequent foreign-window move requires independent membership/visibility readback.
+ * NP_RELEASE_SPACES restores retained ownership even after revoke, then permits destroy. */
+uint32_t np_engine_create_spaces_candidate(uint64_t *handle);
 /* acquisition for exactly one reviewed backend; evidence points to 16 UUID bytes. */
 uint32_t np_engine_create_qualified(uint32_t backend, const uint8_t *evidence, uint64_t *handle);
 bool np_engine_evidence_is_reviewed(uint32_t backend, const uint8_t *evidence);

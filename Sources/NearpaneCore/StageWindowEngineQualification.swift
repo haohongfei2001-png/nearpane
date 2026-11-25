@@ -154,11 +154,15 @@ public struct StageEngineQualification: Codable, Equatable, Sendable {
         self.checks = checks; self.comparison = comparison; self.spacesBaseline = spacesBaseline
     }
     public func admits(_ live: StageEngineEnvironment) -> Bool {
-        WindowVisibilityProvider.admission(for: self, in: live, stage: .production) == .supported
+        guard backend == .spaces, environment == live, live.complete,
+              let permissions = live.permissions, permissions.contains(.accessibility), permissions.contains(.screenCapture),
+              StageEngineCheck.required(for: .spaces).allSatisfy({ checks[$0] == .pass }),
+              !checks.values.contains(.fail) else { return false }
+        return comparison?.passesAbsoluteLimits == true
     }
 
     public static func choose(_ records: [Self], in live: StageEngineEnvironment, excluding unavailable: Set<UUID> = []) -> Self? {
-        let candidates = records.filter { $0.backend == .corner && $0.environment == live }
+        let candidates = records.filter { $0.backend == IndependentStagePolicy.backend && $0.environment == live }
         guard candidates.count == 1, let candidate = candidates.first, !unavailable.contains(candidate.evidence),
               candidate.admits(live) else { return nil }
         return candidate
@@ -169,6 +173,10 @@ public struct StageEngineQualification: Codable, Equatable, Sendable {
 /// A generation issued by the Rust worker for this exact environment. The durable stamp is a lookup key only.
 public struct StageEngineOwner: Codable, Equatable, Sendable {
     public let backend: StageWindowBackend, environment: StageEngineEnvironment, generation: UUID, evidence: UUID
+    /// Candidate provenance is deliberately not a StageEngineQualification.
+    public init(spacesCandidate environment: StageEngineEnvironment, generation: UUID, evidence: UUID) {
+        backend = .spaces; self.environment = environment; self.generation = generation; self.evidence = evidence
+    }
     public init(qualification: StageEngineQualification, generation: UUID) {
         self.backend = qualification.backend; self.environment = qualification.environment
         self.evidence = qualification.evidence; self.generation = generation

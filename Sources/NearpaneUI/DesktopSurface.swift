@@ -98,7 +98,7 @@ struct DesktopSurface: View {
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
         .task(id: AppleObservation(display: displayID, visible: panelAvailable && displayingAppleStages)) {
-            guard panelAvailable, let displayID, displayingAppleStages,
+            guard IndependentStagePolicy.mirrorsAppleStrip, panelAvailable, let displayID, displayingAppleStages,
                   let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
             await appleStages.run(display: displayID, snapshot: { rawOverview }, refresh: { await feed.readNow() }, visible: {
                 panelAvailable && displayingAppleStages
@@ -163,12 +163,15 @@ struct DesktopSurface: View {
                         ScrollView(.vertical) {
                             VStack(alignment: .leading, spacing: 11) {
                                 if native.stageManagerEnabled == true {
-                                    if current?.kind == .ordinary, appleStages.matches(snapshot, display: screen.id) {
+                                    if IndependentStagePolicy.mirrorsAppleStrip, current?.kind == .ordinary, appleStages.matches(snapshot, display: screen.id) {
                                         appleWorksets(snapshot, screen: screen, width: innerWidth)
                                     } else if let split {
                                         DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,
                                             gallery: feed == nil ? nil : display?.pointer?.windowPreviews?.gallery,
                                             permitted: picturesAllowed, badges: appBadges, now: now, uptime: uptime)
+                                    } else {
+                                        Text("使用 Nearpane 窗口组前，请关闭系统台前调度。")
+                                            .font(.caption).foregroundStyle(.secondary)
                                     }
                                 } else if let split {
                                     DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,

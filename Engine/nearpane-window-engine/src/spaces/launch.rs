@@ -1,4 +1,5 @@
-// An approved physical evidence route can be armed only by its own one-shot AppKit probe.
+// A selected route is initialized by its own one-shot AppKit probe.
+// The own-window result is not evidence that third-party windows can be moved.
 // The request names no user window. The retained canary and original inventory also govern recovery.
 use super::*;
 

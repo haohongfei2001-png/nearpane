@@ -10,8 +10,10 @@ import NearpaneCore
     private let image: OrdinaryProcessImage, digest: String
 
     static func matches(bundle: String?, root: String, executable: String, expected: String, actual: String) -> Bool {
-        bundle == "com.holdsnow.nearpane.alpha" && root == app && executable == Self.executable &&
-        expected.count == 40 && expected.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } && actual == expected
+        let installed = bundle == "com.holdsnow.nearpane.alpha" && root == app && executable == Self.executable
+        let candidate = IndependentStagePolicy.candidateRequested && bundle == IndependentStagePolicy.candidateBundleID &&
+            executable == root + "/Contents/MacOS/NearpaneHost"
+        return (installed || candidate) && expected.count == 40 && expected.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } && actual == expected
     }
 
     private static func signing() throws -> String {
@@ -36,7 +38,7 @@ import NearpaneCore
 
     /// Expose only a read closure. Possessing the canonical Host's AX permission cannot mint a writer.
     package static func directoryReader() throws -> (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
-        guard signedDirectoryReader else { throw StageSwitchError.unavailable }
+        guard signedDirectoryReader || IndependentStagePolicy.candidateRequested else { throw StageSwitchError.unavailable }
         let access = try StageHostAccess(expectedCDHash: signing())
         return { window, home in try access.currentSurface(window, home: home) }
     }

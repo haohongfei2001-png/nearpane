@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""One entry for source checks, cross-process Spaces trials and isolated R4 acceptance.
+
+Nothing installs, stops or replaces the daily Nearpane. Runtime writes are confined
+to two freshly launched fixture apps. Receipts preserve NOT_RUN/BLOCKED explicitly.
+"""
+import argparse
+from contextlib import ExitStack
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import plistlib
+import shutil
+import subprocess
+import time
+import uuid
+
+from build import build, ROOT
+from evaluate import evaluate
+
+HERE = Path(__file__).resolve().parent
+
+
+def atomic(path, value):
+    pending = path.with_suffix(".next")
+    pending.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+    pending.replace(path)
+
+
+def execute(command, out, name, env, timeout=900):
+    with (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
+        try:
+            run = subprocess.run([str(x) for x in command], cwd=ROOT, env=env, stdout=stdout, stderr=stderr, timeout=timeout)
+            report = {"status": "PASS" if run.returncode == 0 else "FAIL", "exit": run.returncode}
+        except subprocess.TimeoutExpired:
+            report = {"status": "UNKNOWN", "reason": "timeout"}
+    report.update(log=name + ".log", stderr=name + ".stderr.log")
+    atomic(out / (name + ".json"), report)
+    print(name, report["status"], flush=True)
+    return report
+
+
+def source_checks(out, env):
+    out.mkdir()
+    env = dict(env, NEARPANE_FOUNDATION_ONLY="1")
+    checks = {}
+    checks["rust"] = execute(["cargo", "test", "--manifest-path", ROOT / "Engine/nearpane-window-engine/Cargo.toml",
+        "--locked", "--offline", "--no-default-features", "--features", "corner,spaces,isolated-fixtures"], out, "rust", env)
+    # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
+    pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
+                        "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus"))
+    checks["swift"] = execute(["bash", "scripts/test.sh", "--jobs", "4", "--filter", pattern,
+                                "--xunit-output", out / "swift.xml"], out, "swift", env, 1200)
+    checks["evidence"] = execute(["python3", "-B", "-m", "unittest", "discover", "-s", HERE, "-p", "test_*.py"],
+                                  out, "evidence", env, 30)
+    result = {"schema": 1, "status": "PASS" if all(x["status"] == "PASS" for x in checks.values()) else "FAIL",
+              "checks": checks, "windowServer": "NOT_RUN", "productR4": "NOT_RUN"}
+    atomic(out / "summary.json", result)
+    return result
+
+
+def candidate_copy(source, output, revision):
+    destination = output / "NearpaneIndependentStage.app"
+    shutil.copytree(source, destination, symlinks=True)
+    plist = destination / "Contents/Info.plist"
+    data = plistlib.loads(plist.read_bytes())
+    data.update(CFBundleIdentifier="com.holdsnow.nearpane.independent-stage-candidate",
+                CFBundleName="Nearpane Independent Stage Acceptance", NearpaneIndependentStageAcceptance=1,
+                NearpaneSourceRevision=revision)
+    data.pop("NSServices", None)
+    plist.write_bytes(plistlib.dumps(data))
+    identity = os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-")
+    executable = destination / "Contents/MacOS" / data["CFBundleExecutable"]
+    subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp=none", "--identifier",
+                    data["CFBundleIdentifier"], executable], check=True, capture_output=True)
+    subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp=none", destination], check=True, capture_output=True)
+    subprocess.run(["codesign", "--verify", "--strict", "--deep", destination], check=True, capture_output=True)
+    return executable
+
+
+def wait_fixture(directory, process, nonce, count):
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline and process.poll() is None:
+        try:
+            value = json.loads((directory / "state.json").read_text())
+            if (value.get("nonce") == nonce and value.get("pid") == process.pid
+                    and len(value.get("windows", [])) == count and all(w.get("number", 0) > 0 for w in value["windows"])):
+                return value
+        except (OSError, ValueError):
+            pass
+        time.sleep(.05)
+    raise RuntimeError("fixtureWindowsNotReady")
+
+
+def close_fixture(directory, process, nonce):
+    if process.poll() is not None:
+        return {"exit": process.returncode, "command": "alreadyExited"}
+    try:
+        state = json.loads((directory / "state.json").read_text())
+        atomic(directory / "command.json", {"nonce": nonce, "index": 0, "action": "quit",
+                                             "sequence": state.get("commandSequence", 0) + 1})
+        process.wait(timeout=4)
+        return {"exit": process.returncode, "command": "ownedWindowQuit"}
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        # This object is the direct child created above; no arbitrary PID is accepted.
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=2)
+        return {"exit": process.returncode, "command": "directChildTermination"}
+
+
+def runtime_checks(out, env, archive, host, iterations, revision):
+    out.mkdir()
+    apps = build(archive, out / "kit")
+    nonce = str(uuid.uuid4())
+    config = {"schema": 1, "nonce": nonce, "output": str(out), "iterations": iterations, "fixtures": []}
+    children, cleanup = [], []
+    engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
+    product = None
+    with ExitStack() as files:
+        try:
+            for name, count, offset in (("FixtureA", 2, 0), ("FixtureB", 1, 560)):
+                directory = out / name
+                directory.mkdir(mode=0o700)
+                stdout = files.enter_context((directory / "stdout.log").open("x"))
+                stderr = files.enter_context((directory / "stderr.log").open("x"))
+                child = subprocess.Popen([apps[name]["executable"], str(directory), nonce, str(count), str(offset)],
+                                         env=env, stdout=stdout, stderr=stderr, start_new_session=True)
+                children.append((directory, child))
+                state = wait_fixture(directory, child, nonce, count)
+                config["fixtures"].append({"directory": str(directory), "executable": apps[name]["executable"],
+                                           "pid": state["pid"], "birth": state["birth"], "windows": state["windows"]})
+            atomic(out / "config.json", config)
+            result = execute([apps["Controller"]["executable"], out / "config.json"], out, "engine", env, 210)
+            path = out / "engine-result.json"
+            engine = json.loads(path.read_text()) if path.exists() else {"status": "UNKNOWN", "reason": "controllerTerminalReceiptMissing",
+                                                                       "process": result, "cleanup": False}
+            # A raw/API success never runs an unverified product: first require complete restore.
+            if host and engine.get("cleanup") is True:
+                product_dir = out / "product"
+                product_dir.mkdir(mode=0o700)
+                product_config = dict(config, output=str(product_dir), profile=str(product_dir / "profile"))
+                atomic(product_dir / "config.json", product_config)
+                executable = candidate_copy(host, product_dir, revision)
+                product_env = dict(env, NEARPANE_SPACES_CANDIDATE_PIDS=",".join(str(p.pid) for _, p in children))
+                product_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
+                                           product_dir / "config.json"], out, "product", product_env, 150)
+                receipt = product_dir / "product-result.json"
+                product = json.loads(receipt.read_text()) if receipt.exists() else {
+                    "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            engine = dict(engine, status="UNKNOWN", reason=type(error).__name__ + ": " + str(error))
+        finally:
+            for directory, child in reversed(children):
+                cleanup.append(close_fixture(directory, child, nonce))
+            atomic(out / "fixture-cleanup.json", cleanup)
+    result = evaluate(engine, product)
+    result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup)
+    atomic(out / "summary.json", result)
+    return result
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("output", type=Path, help="new evidence directory")
+    p.add_argument("--scope", choices=("source", "runtime", "all"), default="all")
+    p.add_argument("--archive", type=Path, help="existing production Rust static archive; built if omitted")
+    p.add_argument("--product-host", type=Path, help="built Nearpane.app to copy to an isolated candidate; never installed")
+    p.add_argument("--iterations", type=int, default=3, choices=range(1, 51), metavar="1..50")
+    a = p.parse_args()
+    os.umask(0o077)
+    out = a.output.resolve()
+    out.mkdir(parents=True, exist_ok=False)
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    env.setdefault("NEARPANE_RUN_ID", "independent-" + uuid.uuid4().hex[:12])
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    summary = {"schema": 1, "revision": revision, "source": "NOT_RUN", "runtime": "NOT_RUN"}
+    if platform.system() != "Darwin":
+        summary.update(status="BLOCKED", reason="macOSWindowServerRequired")
+        atomic(out / "summary.json", summary)
+        return 2
+    if a.scope in ("source", "all"):
+        summary["source"] = source_checks(out / "source", env)
+    if a.scope in ("runtime", "all"):
+        archive = a.archive
+        if archive is None:
+            built = execute(["bash", "scripts/build-window-engine.sh"], out, "build-engine", env)
+            if built["status"] == "PASS":
+                archive = Path((out / "build-engine.log").read_text().splitlines()[-1])
+        if archive and archive.is_file():
+            summary["runtime"] = runtime_checks(out / "runtime", env, archive.resolve(), a.product_host,
+                                                  a.iterations, revision)
+        else:
+            summary["runtime"] = {"status": "BLOCKED", "reason": "engineArchiveUnavailable"}
+    atomic(out / "summary.json", summary)
+    print(json.dumps({k: v for k, v in summary.items() if k not in ("runtime", "source")}, indent=2))
+    # CI fails on an actual source/behavior failure. A blocked GUI is preserved as blocked,
+    # never rewritten as a pass because a hosted runner lacks an authorized console session.
+    source_failed = isinstance(summary["source"], dict) and summary["source"].get("status") != "PASS"
+    runtime = summary["runtime"] if isinstance(summary["runtime"], dict) else {}
+    runtime_failed = runtime.get("engine") in ("FAIL", "UNKNOWN") or runtime.get("R4ProductPath") in ("FAIL", "UNKNOWN")
+    return 1 if source_failed or runtime_failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

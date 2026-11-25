@@ -24,6 +24,12 @@ pub const CLEAN_LAUNCH: u32 = 9;
 pub const CORNER_PARK_ACCESS: u32 = 10;
 pub const CORNER_DISPLAY_MATERIAL: u32 = 11;
 pub const CORNER_RETIREMENT_SURFACE: u32 = 12;
+/// Restore every window still owned by this Spaces session, then destroy its empty Spaces.
+pub const RELEASE_SPACES: u32 = 13;
+/// Adopt an explicit post-launch yellow-button event; never an initial Dock inventory.
+pub const HIDE_MINIMIZED: u32 = 14;
+/// Explicit development/product candidate. It is never a reviewed release qualification.
+pub const SPACES_CANDIDATE: u32 = 2;
 pub const PASS: u32 = 0;
 pub const FAIL: u32 = 1;
 pub const UNKNOWN: u32 = 2;
@@ -114,18 +120,19 @@ impl Request {
     pub fn writes(&self) -> bool {
         matches!(
             self.operation,
-            HIDE | SHOW | RESTORE | TRIAL | LAUNCH | CLEAN_LAUNCH
+            HIDE | SHOW | RESTORE | TRIAL | LAUNCH | CLEAN_LAUNCH | RELEASE_SPACES | HIDE_MINIMIZED
         )
     }
     pub fn valid(&self) -> bool {
         if !matches!(self.backend, CORNER | SPACES)
-            || !(PROBE..=CORNER_RETIREMENT_SURFACE).contains(&self.operation)
+            || !(PROBE..=HIDE_MINIMIZED).contains(&self.operation)
             || self.intent == [0; 16]
             || self.epoch == 0
             || !(1..=10_000).contains(&self.timeout_ms)
         {
             return false;
         }
+        if self.operation == HIDE_MINIMIZED && self.backend != SPACES { return false; }
         if self.flags != 0
             && !(self.backend == SPACES && self.operation == TRIAL && self.flags == TRIAL_CLASSIC)
             && !(self.backend == CORNER && self.operation == CORNER_RETIREMENT_SURFACE && self.flags == CORNER_BOTTOM_SITES_ONLY)
@@ -145,7 +152,7 @@ impl Request {
                 && self.frame == Rect::default() && self.target == Rect::default()
                 && [self.group, self.member, self.lifetime, self.generation].iter().all(|id| *id == [0; 16]);
         }
-        if matches!(self.operation, LAUNCH | CLEAN_LAUNCH | CORNER_PARK_ACCESS) {
+        if matches!(self.operation, LAUNCH | CLEAN_LAUNCH | CORNER_PARK_ACCESS | RELEASE_SPACES) {
             let backend = if self.operation == CORNER_PARK_ACCESS { CORNER } else { SPACES };
             return self.backend == backend
                 && self.flags == 0

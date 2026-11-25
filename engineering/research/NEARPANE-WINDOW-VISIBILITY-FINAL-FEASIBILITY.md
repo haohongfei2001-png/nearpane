@@ -1,3 +1,5 @@
+> **Route superseded 2026-11-26.** [Current independent replacement decision](NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs. Keep the observations below as historical evidence; do not reactivate Apple Native Integration, Corner, shields, or a fallback on their basis.
+
 # 第三方窗口逐窗隐藏与恢复的可行性
 
 本次比较针对 Nearpane 5.22（90）的逻辑调度组。合格的机制要让同进程的两扇普通窗口可以分属不同组，并让未参与切换的窗口继续接收原来的输入。Dock、原生 Space、窗口内容、尺寸、位置和所有者都要有独立读回。测试使用真正经 Launch Services 注册的两个签名 App、macOS WindowServer 和 Dock。产品工程的起点为 PR #15 的 `bc991d5`。 [已有架构裁决](NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md) · [此前的三组窗口验收](../verification/stage-groups/5.22-90/isolation/RESULTS.md)

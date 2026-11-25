@@ -381,8 +381,9 @@ public enum StageSwitchError: LocalizedError, Equatable {
         if resumingFrom == nil { yieldedRestore = nil }
         guard !requiresRecovery, ledger.owner == nil || ledger.owner == session.engineOwner,
               ledger.owned.allSatisfy({ $0.owner == session.engineOwner }) else { throw StageSwitchError.recoveryRequired }
-        guard consent, let mechanism = session.qualifiedHiddenState, mechanism == .parked,
-              session.engineOwner?.backend == .corner else {
+        guard consent, let mechanism = session.qualifiedHiddenState,
+              (mechanism == .stageSpace && session.engineOwner?.backend == .spaces) ||
+              (mechanism == .parked && session.engineOwner?.backend == .corner) else {
             throw StageSwitchError.unavailable
         }
         busy = true
@@ -450,7 +451,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
         if let owner {
             // An unavailable corner is known before showing another member or transferring the keyboard.
             let outgoing = first.windows.values.filter { ids.contains($0.window) && !targets.contains($0.window) && held[$0.window] == nil }
-            if !outgoing.isEmpty {
+            if !outgoing.isEmpty && mechanism == .parked {
                 guard outgoing.allSatisfy({ $0.frame.height.isFinite && $0.frame.height > 0 }) else { throw StageSwitchError.incomplete }
                 let bottomOnly = outgoing.contains { $0.frame.height > StageWindowState.maximumParkedExtent }
                 try await session.checkRetirementSurface(first, bottomOnly: bottomOnly)
@@ -665,7 +666,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 guard let observed = last.windows[m.windowHint], observed.visibility == .visible,
                       let layout = StageGroupWindow.relativeFrame(observed.frame, in: first.workArea) else { throw StageSwitchError.incomplete }
                 try await perform(.hide, id: m.windowHint) { value, _ in value.visibility == mechanism &&
-                    value.hiddenSpaceID == nil }
+                    (mechanism == .stageSpace ? (value.hiddenSpaceID ?? 0) > 0 && value.hiddenSpaceID != first.nativeID : value.hiddenSpaceID == nil) }
                 verifiedLayouts[m.id] = layout
             }
             for m in activeMembers {

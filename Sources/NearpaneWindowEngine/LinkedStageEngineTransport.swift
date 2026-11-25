@@ -150,6 +150,11 @@ private extension NativeStageEngineReceipt {
 public extension StageEngineSession {
     convenience init?(owner: StageEngineOwner, witness: any StageEngineWindowWitness, profile: URL,
                       releaseExited: @escaping @MainActor (UUID) -> Void = { _ in }) {
+        if owner.backend == .spaces {
+            guard let transport = LinkedSpacesEngineTransport(owner: owner) else { return nil }
+            self.init(owner: owner, witness: witness, transport: transport)
+            return
+        }
         guard let transport = LinkedStageEngineTransport(owner:owner,profile:profile,releaseExited:releaseExited) else { return nil }
         self.init(owner:owner,witness:witness,transport:transport)
     }

@@ -90,6 +90,17 @@ int32_t np_stage_target_build(void) {
     return np_stage_sip_enabled()==1;
 #endif
 }
+int32_t np_stage_candidate_supported(void) {
+#if !defined(__arm64__)
+    return 0;
+#else
+    NSOperatingSystemVersion v = NSProcessInfo.processInfo.operatingSystemVersion;
+    // Availability is established by the actual ABI below and per-move readbacks.
+    // SIP posture is recorded separately; a hosted run is not a target-device result.
+    BOOL recent = v.majorVersion >= 27 || (v.majorVersion == 26 && v.minorVersion >= 4);
+    return recent && getuid() == geteuid() && getuid() != 0 && (np_stage_symbols() & 5) == 5;
+#endif
+}
 int32_t np_stage_connection(void) { np_stage_symbols(); return api.connection ? api.connection() : 0; }
 static bool same(int connection) { return connection>0 && np_stage_connection()==connection; }
 
@@ -281,8 +292,8 @@ int32_t np_stage_move(int32_t c,uint32_t route,uint32_t num,uint64_t sid,uint32_
 }
 
 typedef AXError (*AXNumber)(AXUIElementRef, CGWindowID *);
-static AXUIElementRef boundWindow(uint32_t n, int32_t pid, uint64_t started, AXUIElementRef retainedOffscreen) CF_RETURNS_RETAINED;
-static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen) {
+static AXUIElementRef boundWindow(uint32_t n, int32_t pid, uint64_t started, AXUIElementRef retainedOffscreen, BOOL allowMinimized) CF_RETURNS_RETAINED;
+static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen, BOOL allowMinimized) {
     if (!n || !started || birth(pid)!=started || !AXIsProcessTrusted()) return NULL;
     static AXNumber number; static dispatch_once_t once;
     dispatch_once(&once,^{number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");});
@@ -323,7 +334,7 @@ static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIEl
         BOOL ordinary=AXUIElementSetMessagingTimeout(found,0.15f)==kAXErrorSuccess &&
             AXUIElementCopyAttributeValue(found,kAXRoleAttribute,&role)==kAXErrorSuccess && role && CFEqual(role,kAXWindowRole) &&
             AXUIElementCopyAttributeValue(found,kAXSubroleAttribute,&sub)==kAXErrorSuccess && sub && CFEqual(sub,kAXStandardWindowSubrole) &&
-            AXUIElementCopyAttributeValue(found,kAXMinimizedAttribute,&min)==kAXErrorSuccess && min && CFEqual(min,kCFBooleanFalse);
+            AXUIElementCopyAttributeValue(found,kAXMinimizedAttribute,&min)==kAXErrorSuccess && min && (CFEqual(min,kCFBooleanFalse) || (allowMinimized && CFEqual(min,kCFBooleanTrue)));
         AXError fs=AXUIElementCopyAttributeValue(found,CFSTR("AXFullScreen"),&full);
         ordinary = ordinary && fs==kAXErrorSuccess && full && CFEqual(full,kCFBooleanFalse);
         if (role) CFRelease(role); if (sub) CFRelease(sub); if (min) CFRelease(min); if (full) CFRelease(full);
@@ -332,12 +343,36 @@ static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIEl
     if (windows) CFRelease(windows);
     CFRelease(app);return found;
 }
-void *np_stage_bind(uint32_t n,int32_t pid,uint64_t started) { return (void *)boundWindow(n,pid,started,NULL); }
+void *np_stage_bind(uint32_t n,int32_t pid,uint64_t started) { return (void *)boundWindow(n,pid,started,NULL,NO); }
 int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
     if (!handle || onScreen>1) return 0;
-    AXUIElementRef current=boundWindow(n,pid,started,onScreen?NULL:(AXUIElementRef)handle);
+    AXUIElementRef current=boundWindow(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,NO);
     if (!current) return 0;
     BOOL ok=CFEqual((CFTypeRef)handle,current); CFRelease(current);return ok;
+}
+void *np_stage_bind_minimized(uint32_t n,int32_t pid,uint64_t started) {
+    AXUIElementRef current=boundWindow(n,pid,started,NULL,YES);
+    if (current && np_stage_is_minimized((void *)current)!=1) {CFRelease(current);current=NULL;}
+    return (void *)current;
+}
+int32_t np_stage_check_bound_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
+    if (!handle || onScreen>1) return 0;
+    AXUIElementRef current=boundWindow(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,YES);
+    if (!current) return 0;
+    BOOL ok=CFEqual((CFTypeRef)handle,current);CFRelease(current);return ok;
+}
+int32_t np_stage_is_minimized(void *handle) {
+    if (!handle) return -1;
+    CFTypeRef value=NULL;
+    AXError result=AXUIElementCopyAttributeValue((AXUIElementRef)handle,kAXMinimizedAttribute,&value);
+    int32_t state=result==kAXErrorSuccess && value && CFGetTypeID(value)==CFBooleanGetTypeID()
+        ? (CFEqual(value,kCFBooleanTrue)?1:0) : -1;
+    if(value)CFRelease(value);return state;
+}
+int32_t np_stage_set_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t minimized) {
+    if (!handle || minimized>1 || !np_stage_check_bound_minimized(handle,n,pid,started,0))return 0;
+    return AXUIElementSetAttributeValue((AXUIElementRef)handle,kAXMinimizedAttribute,
+        minimized?kCFBooleanTrue:kCFBooleanFalse)==kAXErrorSuccess ? 1 : -1;
 }
 void np_stage_release(void *handle) { if (handle) CFRelease((CFTypeRef)handle); }
 #include "launch-panel.inc"

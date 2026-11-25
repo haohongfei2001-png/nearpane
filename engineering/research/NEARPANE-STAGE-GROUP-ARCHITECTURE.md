@@ -1,3 +1,5 @@
+> **Route superseded 2026-11-26.** [Current independent replacement decision](NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs. Keep the observations below as historical evidence; do not reactivate Apple Native Integration, Corner, shields, or a fallback on their basis.
+
 # 调度组架构裁决与源码差异
 
 ## 窗口调度引擎实施复核

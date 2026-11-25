@@ -105,7 +105,7 @@ import Testing
     }
     func start(_ owner: StageEngineOwner,nativeID: UInt64) async throws { guard canStart && nativeID == 22 else { throw StageSwitchError.incomplete } }
     func prepareHide(_ c: StageWindowCommand, owner: StageEngineOwner) async throws {
-        guard owner.backend == .corner, !writeIntents.contains(c.intent), prepared.insert(c.intent).inserted else { throw StageSwitchError.ownership }
+        guard !writeIntents.contains(c.intent), prepared.insert(c.intent).inserted else { throw StageSwitchError.ownership }
         if prepareReplyLost { throw StageSwitchError.incomplete }
         afterPrepare?(c)
     }
@@ -160,11 +160,11 @@ import Testing
               idleCPU:1,burstCPU:2,windowServerCPU:2,replaydCPU:1,memoryMB:memory,
               reference:.init(appleFirstFrameP95:55,appleInteractiveP95:75,nominalInterval:16.7,frameGapP95:5,longestGap:18,recoverySeconds:1))
     }
-    @Test func productNeverSelectsNativeSpacesEvenWithEveryFindingAndBetterTiming() {
+    @Test func productSelectsOnlySpacesAndNeverFallsBackToCorner() {
         let corner = qualification(.corner), spaces = qualification(.spaces, metrics(1))
-        #expect(StageEngineQualification.choose([spaces], in: environment) == nil)
-        #expect(StageEngineQualification.choose([spaces, corner], in: environment) == corner)
-        #expect(StageEngineQualification.choose([corner, spaces], in: environment, excluding: [corner.evidence]) == nil)
+        #expect(StageEngineQualification.choose([spaces], in: environment) == spaces)
+        #expect(StageEngineQualification.choose([spaces, corner], in: environment) == spaces)
+        #expect(StageEngineQualification.choose([corner, spaces], in: environment, excluding: [spaces.evidence]) == nil)
         #expect(StageEngineQualification.choose([corner, qualification(.corner)], in: environment) == nil)
         #expect(!qualification(.corner, metrics(275)).admits(environment))
         #expect(WindowVisibilityProvider.admission(for: spaces, in: environment, stage: .isolatedGroupTrial) == .unsupported)
@@ -211,7 +211,14 @@ import Testing
             }
             if n==1 {w.focus=id}
         }
-        let engine=StageWindowEngineController(coordinator:try StageGroupCoordinator(store:store,profile:path))
+        // Retain the old Corner interruption/recovery cases as historical algorithm tests;
+        // the default product initializer is tested separately and only selects Spaces.
+        let engine=StageWindowEngineController(coordinator:try StageGroupCoordinator(store:store,profile:path), selection: { records, live, excluded in
+            let legacy = records.filter { $0.backend == .corner && $0.environment == live }
+            guard legacy.count == 1, let q = legacy.first, !excluded.contains(q.evidence),
+                  WindowVisibilityProvider.admission(for:q, in:live, stage:.production) == .supported else { return nil }
+            return q
+        })
         return (path,store,engine,w,store.groups(in:w.scope))
     }
     private func bind(_ e: StageWindowEngineController, _ f: EngineFixture, _ q: StageEngineQualification) async throws {
@@ -222,6 +229,40 @@ import Testing
     }
     private func activate(_ group: StageGroupDirectory.Group, _ engine: StageWindowEngineController, _ f: EngineFixture) async throws {
         try await engine.activate(group.id,member:group.members[0].id,in:f.scope,consent:true,current:{true})
+    }
+
+    @Test func independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let originals = fixture.windows
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        let configured = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()),
+                               witness: fixture, transport: fixture)
+        }
+        #expect(configured)
+        for group in [groups[0], groups[1], groups[2], groups[0]] {
+            try await activate(group, controller, fixture)
+            let active = Set(group.members.map(\.windowHint))
+            for member in groups.flatMap(\.members) {
+                let state = try #require(fixture.windows[member.windowHint])
+                #expect(state.visibility == (active.contains(member.windowHint) ? .visible : .stageSpace))
+                #expect(state.hiddenSpaceID == (active.contains(member.windowHint) ? nil : 60))
+                #expect(state.frame == originals[member.windowHint]?.frame)
+            }
+        }
+        #expect(fixture.withdrawalAttempts.isEmpty)
+        try await controller.release()
+        #expect(fixture.windows == originals)
+        #expect(!controller.holdsWindowDispatch)
+    }
+
+    @Test func ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() {
+        let incomplete = StageEngineQualification(backend: .spaces, environment: environment, evidence: UUID(),
+            checks: [.validatedRoute: .pass, .exactSIPBuild: .pass])
+        #expect(!incomplete.admits(environment))
+        #expect(StageEngineQualification.choose([incomplete, qualification(.corner)], in: environment) == nil)
+        #expect(!IndependentStagePolicy.mirrorsAppleStrip && !IndependentStagePolicy.allowsCornerFallback)
     }
 
     @Test(arguments: [false, true]) func aNewerGroupCanReuseOnlyIndependentlySettledWork(_ afterHide: Bool) async throws {

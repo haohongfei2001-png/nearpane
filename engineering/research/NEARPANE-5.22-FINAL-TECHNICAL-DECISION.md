@@ -1,3 +1,5 @@
+> **Route superseded 2026-11-26.** [Current independent replacement decision](NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs. Keep the observations below as historical evidence; do not reactivate Apple Native Integration, Corner, shields, or a fallback on their basis.
+
 # Nearpane 5.22 — Final Technical Decision
 
 Date: 2026-11-20  

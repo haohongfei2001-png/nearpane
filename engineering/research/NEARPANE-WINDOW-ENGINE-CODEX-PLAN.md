@@ -1,3 +1,5 @@
+> **Route superseded 2026-11-26.** [Current independent replacement decision](NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs. Keep the observations below as historical evidence; do not reactivate Apple Native Integration, Corner, shields, or a fallback on their basis.
+
 # Nearpane Window Engine — Codex Implementation Plan
 
 Date: 2026-11-21. Target PR #15 branch `codex/r4-native-candidate-20261120`, starting HEAD `76d9ca80e1a10f57d0916c8555fa5199d376d4ba`.

@@ -17,6 +17,8 @@ import NearpaneOrdinaryWindowRuntime
     static let shipped: [StageWindowEngineAttestation.Pin] = []
     private let engine: StageWindowEngineController?, profile: URL?
     private var admissions: [StageEngineQualification]
+    private let candidateMode = IndependentStagePolicy.candidateRequested && !IndependentStagePolicy.candidatePIDs.isEmpty
+    private let candidateEvidence = UUID()
     @ObservationIgnored private var groupProjection: DesktopSnapshot?
     private(set) var observedCapability: StageWindowBackend?
     private var needsReassessment = true
@@ -68,13 +70,13 @@ import NearpaneOrdinaryWindowRuntime
 
     func attach(to feed: CurrentDesktopWindows) {
         self.feed = feed
-        if !Self.shipped.isEmpty || holdsDispatch { watchSystem() }
+        if candidateMode || !Self.shipped.isEmpty || holdsDispatch { watchSystem() }
     }
 
     /// Initial sample, wake/unlock and display notifications re-evaluate the installed environment.
     /// They never enroll a new writer or infer that a pre-restart AX reference survived.
     func observeEnvironment(_ snapshot: DesktopSnapshot?) {
-        guard !Self.shipped.isEmpty, let profile else { return }
+        guard candidateMode || !Self.shipped.isEmpty, let profile else { return }
         // A reader failure or a different ordinary desktop revokes the current intent even
         // when a previous build/permission attestation is still within its two-second cache.
         guard let snapshot, snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
@@ -91,9 +93,10 @@ import NearpaneOrdinaryWindowRuntime
         let selected = StageWindowEngineAttestation.installedEnvironment(snapshot).flatMap {
             engine?.preferredRecord(records, in: $0)
         }
-        observedCapability = selected?.backend
+        let candidateAvailable = candidateMode && StageWindowEngineAttestation.installedEnvironment(snapshot) != nil && AXIsProcessTrusted()
+        observedCapability = candidateAvailable ? .spaces : selected?.backend
         guard let session = engine?.session, !session.isFrozen else { return }
-        if session.qualifiedHiddenState == nil || selected?.evidence != session.owner.evidence { freeze() }
+        if session.qualifiedHiddenState == nil || (candidateMode ? !candidateAvailable : selected?.evidence != session.owner.evidence) { freeze() }
     }
 
     /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
@@ -202,7 +205,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     var holdsDispatch: Bool { terminationOwnsLane || unreadableLedger || releasing || engine?.holdsWindowDispatch == true }
-    var routesGroupChoice: Bool { !admissions.isEmpty || holdsDispatch }
+    var routesGroupChoice: Bool { candidateMode || !admissions.isEmpty || holdsDispatch }
 
     func offersGroupSelection(on source: NativeSidebarDestination) -> Bool {
         guard source.kind == .ordinary, let display = UUID(uuidString: source.display) else { return false }
@@ -325,7 +328,7 @@ import NearpaneOrdinaryWindowRuntime
     private func consent(for scope: StageGroupScope, evidence: UUID, feed: CurrentDesktopWindows) throws -> Consent {
         guard let excluded = management?.ordinary.stageWindowExclusions else { throw StageSwitchError.busy }
         func lifetime(_ key: NativeSpaceWindow) -> UUID? {
-            guard !excluded.contains(key) else { return nil }
+            guard !excluded.contains(key), !candidateMode || IndependentStagePolicy.candidatePIDs.contains(key.pid) else { return nil }
             return witness?.lifetime(of: key) ?? feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
         }
         let participants = feed.groups.participatingGroups(in: scope, lifetime: lifetime)
@@ -350,11 +353,13 @@ import NearpaneOrdinaryWindowRuntime
         // The live worker owns one certified home. A click on a different monitor must leave
         // that home intact until a worker can independently verify simultaneous display dispatch.
         if let witness, witness.scope.display != scope.display { throw StageSwitchError.busy }
-        guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot),
-              let selected = engine.preferredRecord(admissions, in: env) else {
+        guard let env = StageWindowEngineAttestation.installedEnvironment(snapshot) else {
             if engine.holdsWindowDispatch { await release(); throw StageSwitchError.unavailable }
             return false
         }
+        let selected = engine.preferredRecord(admissions, in: env)
+        guard candidateMode || selected != nil else { return false }
+        let evidence = candidateMode ? candidateEvidence : selected!.evidence
         if let witness, !witness.matches(scope) { await release(); throw StageSwitchError.interrupted }
         let token = revision
         let environmentCurrent: @MainActor () -> Bool = { [weak self] in
@@ -364,15 +369,15 @@ import NearpaneOrdinaryWindowRuntime
             self != nil && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
         guard permitted() else { throw StageSwitchError.busy }
-        let approval = try consent(for: scope, evidence: selected.evidence, feed: feed)
+        let approval = try consent(for: scope, evidence: evidence, feed: feed)
         guard approval.groups[group]?.contains(saved.id) == true else { throw StageSwitchError.ownership }
+        if candidateMode { granted = approval }
         if granted != approval {
             guard !engine.holdsWindowDispatch else { await release(); throw StageSwitchError.recoveryRequired }
             consentRequest = approval
             return true
         }
-        let available = try await engine.configure(for:env,records:admissions,exclusive:permitted) { q in
-            guard q == selected else { return nil }
+        let make: (StageEngineEnvironment, StageEngineQualification?) -> StageEngineSession? = { [self] environment, qualification in
             let restore: @MainActor () -> Bool = { [weak self] in
                 guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
                 return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
@@ -382,9 +387,18 @@ import NearpaneOrdinaryWindowRuntime
             self.witness = witness
             watchSystem()
             guard let profile else { return nil }
-            let owner = StageEngineOwner(qualification: q, generation: witness.generation)
+            let owner = qualification.map { StageEngineOwner(qualification: $0, generation: witness.generation) }
+                ?? StageEngineOwner(spacesCandidate: environment, generation: witness.generation, evidence: evidence)
             return StageEngineSession(owner: owner, witness: witness, profile: profile) { [weak self] terminal in
                 self?.guardianExited(releasing: terminal, owner: owner)
+            }
+        }
+        let available: Bool
+        if candidateMode {
+            available = try await engine.configureSpacesCandidate(for: env, exclusive: permitted) { make($0, nil) }
+        } else {
+            available = try await engine.configure(for:env,records:admissions,exclusive:permitted) { q in
+                q == selected ? make(env, q) : nil
             }
         }
         if engine.session != nil { feed.observeStageOwnership(true) }

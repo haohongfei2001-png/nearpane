@@ -55,6 +55,10 @@ fn trusted(_p: Process) -> bool {
 }
 impl Config {
     pub fn valid(&self) -> bool {
+        if self.mode == SPACES_CANDIDATE {
+            return cfg!(feature = "spaces") && self.process_count == 0
+                && self.processes == [Process::default(); 2];
+        }
         if self.mode == 0 {
             return self.process_count == 0 && self.processes == [Process::default(); 2];
         }
@@ -72,7 +76,15 @@ impl Config {
             && unused.iter().all(|p| *p == Process::default())
     }
     fn allows(&self, r: &Request) -> bool {
-        // There is no approved physical-build qualification in this revision.
+        if self.mode == SPACES_CANDIDATE {
+            return self.valid() && r.backend == SPACES
+                && match r.operation {
+                    LAUNCH | HIDE | SHOW | HIDE_MINIMIZED => r.epoch == ACQUISITION_EPOCH,
+                    RESTORE | CLEAN_LAUNCH | RELEASE_SPACES => true,
+                    _ => false,
+                };
+        }
+        // Legacy isolated research mode retains its per-process enrollment.
         self.mode == 1
             && self.processes[..self.process_count as usize]
                 .iter()
@@ -149,6 +161,13 @@ impl State {
     }
     fn record_write(&mut self, request: &Request, mut result: Outcome) -> Outcome {
         let lease = Lease::from(request);
+        if request.backend == SPACES && request.operation == RELEASE_SPACES
+            && result.status == PASS && result.owned == 0 && result.flags & OWNED == 0 {
+            self.unresolved.clear();
+            self.owner = None;
+            self.health_lost = false;
+            return result;
+        }
         let restoring = matches!(request.operation, RESTORE | SHOW);
         let visible = VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID;
         if restoring
@@ -299,6 +318,8 @@ impl Session {
             .name("Nearpane.WindowEngine".into())
             .spawn(move || {
                 let mut backends = Backends::new();
+                #[cfg(feature = "spaces")]
+                if config.mode == SPACES_CANDIDATE { backends.spaces = crate::spaces::Spaces::candidate(); }
                 loop {
                     let owner = lock(&shared).owner;
                     let job = if let Some(owner) = owner {
@@ -488,7 +509,8 @@ fn process(
             && (config.allows(&r) || qualified_write(qualified, &r))
             && !(qualified.is_some() && r.operation == HIDE && job.guardian.is_none()),
         guardian: job.guardian,
-        spaces_route: None, // Product handles have no native Space migration route.
+        // Candidate initialization is explicitly bridged; this is not release evidence.
+        spaces_route: (config.mode == SPACES_CANDIDATE && r.backend == SPACES).then_some(2),
         corner_input_check: r.operation == HEALTH
             && r.backend == CORNER
             && ((r.epoch == ACQUISITION_EPOCH && qualified.is_some_and(|g| g.backend == CORNER))
@@ -500,7 +522,7 @@ fn process(
             && control.may_write()
             && s.owner.is_none_or(|b| b == r.backend)
             && ((s.unresolved.is_empty() && !s.health_lost)
-                || matches!(r.operation, RESTORE | CLEAN_LAUNCH))
+                || matches!(r.operation, RESTORE | CLEAN_LAUNCH | RELEASE_SPACES))
             && s.can_run_probe(&r);
         let Some(ticket) = s.tickets.get_mut(&job.id) else {
             return;
@@ -539,6 +561,37 @@ fn terminal(r: Request, result: Outcome, elapsed: Duration) -> Receipt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "spaces")]
+    #[test]
+    fn explicit_spaces_candidate_never_authorizes_corner_or_new_hides_after_revoke() {
+        let config = Config { size: size_of::<Config>() as u32, version: ABI,
+            mode: SPACES_CANDIDATE, process_count: 0, processes: [Process::default(); 2] };
+        assert!(config.valid());
+        for backend in [CORNER, SPACES] {
+            for operation in [HIDE, HIDE_MINIMIZED, SHOW, LAUNCH, RESTORE, CLEAN_LAUNCH, RELEASE_SPACES, TRIAL] {
+                for epoch in [1, 2] {
+                    let request = Request { backend, operation, epoch, ..Default::default() };
+                    let expected = backend == SPACES && (matches!(operation, RESTORE | CLEAN_LAUNCH | RELEASE_SPACES)
+                        || (epoch == 1 && matches!(operation, HIDE | HIDE_MINIMIZED | SHOW | LAUNCH)));
+                    assert_eq!(config.allows(&request), expected, "backend={backend}, operation={operation}, epoch={epoch}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn only_a_confirmed_empty_spaces_release_clears_unresolved_session_ownership() {
+        let request = Request { backend: SPACES, operation: RELEASE_SPACES, ..Default::default() };
+        let mut state = State { owner: Some(SPACES), health_lost: true, ..Default::default() };
+        state.unresolved.insert(Lease::from(&request));
+        state.record_write(&request, Outcome { status: UNKNOWN, owned: 1, flags: OWNED, ..Default::default() });
+        assert_eq!(state.owner, Some(SPACES));
+        assert!(state.health_lost && !state.unresolved.is_empty());
+        state.record_write(&request, Outcome { status: PASS, flags: MEMBERSHIP_VALID, ..Default::default() });
+        assert_eq!(state.owner, None);
+        assert!(!state.health_lost && state.unresolved.is_empty());
+    }
+
     fn idle_corner_lane() -> (Session, mpsc::Receiver<Job>, Request) {
         // No worker or window system is involved. Tests drive the actual synchronized ticket entry points.
         let (tx, rx) = mpsc::sync_channel(LIMIT);

@@ -28,6 +28,7 @@ mod mac {
     unsafe extern "C" {
         fn np_stage_symbols() -> i32;
         fn np_stage_target_build() -> i32;
+        fn np_stage_candidate_supported() -> i32;
         #[cfg(feature = "isolated-fixtures")]
         fn np_stage_hosted_self_birth() -> u64;
         #[cfg(feature = "isolated-fixtures")]
@@ -39,6 +40,10 @@ mod mac {
         fn np_stage_occupants(c: i32, s: u64, out: *mut u64, n: u32) -> i32;
         fn np_stage_window(w: u32, out: *mut WindowRow) -> i32;
         fn np_stage_bind(w: u32, pid: i32, birth: u64) -> *mut c_void;
+        fn np_stage_bind_minimized(w: u32, pid: i32, birth: u64) -> *mut c_void;
+        fn np_stage_check_bound_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, on_screen: u32) -> i32;
+        fn np_stage_is_minimized(witness: *mut c_void) -> i32;
+        fn np_stage_set_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, minimized: u32) -> i32;
         fn np_stage_check_bound(
             witness: *mut c_void,
             w: u32,
@@ -48,6 +53,7 @@ mod mac {
         ) -> i32;
         fn np_stage_release(witness: *mut c_void);
         fn np_stage_launch_token() -> *mut c_void;
+        fn np_stage_launch_candidate_token() -> *mut c_void;
         fn np_stage_launch_call(
             token: *mut c_void,
             op: u32,
@@ -89,6 +95,7 @@ mod mac {
     }
     pub(crate) enum Witness {
         Document(Reference),
+        Minimized(Reference),
         Canary(Arc<Reference>),
     }
     fn panel_read(
@@ -120,6 +127,7 @@ mod mac {
             unsafe { np_stage_symbols() as u32 }
         }
         fn target(&self) -> bool {
+            if self.candidate { return unsafe { np_stage_candidate_supported() == 1 }; }
             if unsafe { np_stage_target_build() == 1 } {
                 return true;
             }
@@ -196,6 +204,9 @@ mod mac {
                         row.onboard,
                     ) == 1
                 },
+                Witness::Minimized(reference) => unsafe {
+                    np_stage_check_bound_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth, row.onboard) == 1
+                },
                 Witness::Canary(token) => {
                     let p = panel_read(token, launch::PanelOp::Read, None)?;
                     p.window() == Some(w) && p.registered == 1 && p.focus_same == 1
@@ -205,7 +216,7 @@ mod mac {
                 || self.fixture.as_ref().is_some_and(|session| {
                     w == session.window()
                         && match lease {
-                            Witness::Document(reference) => {
+                            Witness::Document(reference) | Witness::Minimized(reference) => {
                                 !session.same_document(reference.0.as_ptr(), &row.rect)
                             }
                             Witness::Canary(_) => true,
@@ -219,6 +230,24 @@ mod mac {
                 rect: row.rect,
             })
         }
+        fn bind_minimized(&self, w: Window) -> Check<Witness> {
+            std::ptr::NonNull::new(unsafe { np_stage_bind_minimized(w.number, w.pid, w.birth) })
+                .map(|reference| Witness::Minimized(Reference(reference)))
+                .ok_or(unknown(Why::MinimizedOrAX))
+        }
+        fn minimized(&self, witness: &Witness) -> Check<bool> {
+            let reference = match witness {
+                Witness::Canary(_) => return Ok(false),
+                Witness::Document(r) | Witness::Minimized(r) => r,
+            };
+            match unsafe { np_stage_is_minimized(reference.0.as_ptr()) } {
+                0 => Ok(false), 1 => Ok(true), _ => Err(unknown(Why::MinimizedOrAX)),
+            }
+        }
+        fn set_minimized(&mut self, w: Window, witness: &Witness, minimized: bool) -> Delivery {
+            let Witness::Minimized(reference) = witness else { return Delivery::Refused; };
+            delivery(unsafe { np_stage_set_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth, minimized as u32) })
+        }
         fn transparent_canary(&self, w: &Witness) -> bool {
             matches!(w, Witness::Canary(_))
         }
@@ -227,7 +256,9 @@ mod mac {
         }
         fn canary(&mut self, op: launch::PanelOp, a: &impl Authority) -> Check<launch::Panel> {
             if self.token.is_none() && op == launch::PanelOp::Prepare {
-                self.token = std::ptr::NonNull::new(unsafe { np_stage_launch_token() })
+                self.token = std::ptr::NonNull::new(unsafe {
+                    if self.candidate { np_stage_launch_candidate_token() } else { np_stage_launch_token() }
+                })
                     .map(|p| Arc::new(Reference(p)));
             }
             let token = self
@@ -268,6 +299,14 @@ mod mac {
             match unsafe { np_stage_window(n, &mut r) } {
                 0 => Ok(true),
                 1 => Ok(false),
+                _ => Err(unknown(Why::Readback)),
+            }
+        }
+        fn departed(&self, window: Window) -> Check<bool> {
+            let mut row = WindowRow::default();
+            match unsafe { np_stage_window(window.number, &mut row) } {
+                0 => Ok(true),
+                1 => Ok(row.pid != window.pid || row.birth != window.birth),
                 _ => Err(unknown(Why::Readback)),
             }
         }
@@ -328,6 +367,7 @@ mod mac {
 }
 #[derive(Default)]
 pub(super) struct System {
+    pub(super) candidate: bool,
     #[cfg(target_os = "macos")]
     pub(super) fixture: Option<installed::Guard>,
     #[cfg(target_os = "macos")]

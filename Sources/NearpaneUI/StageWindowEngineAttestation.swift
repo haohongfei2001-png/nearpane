@@ -49,7 +49,7 @@ enum StageWindowEngineAttestation {
     }
 
     @MainActor static func installedEnvironment(_ snapshot: DesktopSnapshot) -> StageEngineEnvironment? {
-        guard Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app",
+        guard (Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app" || IndependentStagePolicy.candidateRequested),
               let revision = Bundle.main.object(forInfoDictionaryKey:"NearpaneSourceRevision") as? String,
               let build = systemString("kern.osversion"), let hardware = systemString("hw.model"),
               let image = try? OrdinaryProcessImage.signingDigest(getpid()), let process = dlopen(nil,RTLD_LAZY) else { return nil }
@@ -57,7 +57,7 @@ enum StageWindowEngineAttestation {
         guard let fn = dlsym(process,"csr_get_active_config") else { return nil }
         let sip = unsafeBitCast(fn,to:(@convention(c)(UnsafeMutablePointer<UInt32>)->Int32).self)
         var posture: UInt32 = .max
-        guard sip(&posture) == 0, posture == 0 else { return nil }
+        guard sip(&posture) == 0, posture == 0 || IndependentStagePolicy.candidateRequested else { return nil }
         var parts = [String]()
         for screen in NSScreen.screens {
             guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
@@ -76,6 +76,6 @@ enum StageWindowEngineAttestation {
         guard parts.count == snapshot.displays.count, Set(parts).count == parts.count, !parts.isEmpty else { return nil }
         let topology = SHA256.hash(data:Data(parts.sorted().joined(separator:"|").utf8)).map { String(format:"%02x",$0) }.joined()
         return .init(osBuild:build,engineRevision:revision,hostCDHash:image.map { String(format:"%02x",$0) }.joined(),
-                     hardware:hardware,topology:topology,windowClass:"ordinary-standard",sipEnabled:true,permissions:currentPermissions())
+                     hardware:hardware,topology:topology,windowClass:"ordinary-standard",sipEnabled:posture == 0,permissions:currentPermissions())
     }
 }

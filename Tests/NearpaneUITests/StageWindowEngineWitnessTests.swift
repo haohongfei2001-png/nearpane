@@ -43,7 +43,7 @@ import Testing
         #expect(try read(sample(normal,4,visible:true)) == .visible)
         #expect(try read(sample(normal,4,visible:false,minimized:true)) == .minimized)
         #expect(try read(hidden,corner) == .parked)
-        #expect(throws: StageSwitchError.self) { try read(inSlot,slot) }
+        #expect(try read(inSlot,slot) == .stageSpace)
         #expect(throws:StageSwitchError.self) { try read(hidden) }
         #expect(throws:StageSwitchError.self) { try read(inSlot) }
         #expect(throws:StageSwitchError.self) { try read(sample(normal,99,visible:true),slot) }
