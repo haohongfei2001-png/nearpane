@@ -127,7 +127,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     is not an absent window or a failed hidden-Space operation. The next implementation retains
     the original standard AX object for every visible participant, including the active group
     before its first hide, and carries it through restoration. An actual minimized state on that
-    same lifetime may admit the known temporary unknown subrole; a newly discovered unknown or
+    same lifetime may admit a temporary subrole transition; a newly discovered unknown or
     dialog window cannot. Native validation must include yellow both before and after normal
     group switching. [Original health and binding evidence](../verification/independent-stage/cloud-33d65484-diagnostics/README.md).
 13. The full `33d65484` candidate passed 155 Rust and 162 Swift cases, with one explicit Swift skip,
@@ -136,6 +136,14 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     AX reads timed out before it issued an input: `actualR4Inputs=0`. That cannot be called a failed
     handler or a successful product switch. Bounded external discovery now replaces the ineffective
     wait on the local hosting view's empty child list. [Original candidate and input receipts](../verification/independent-stage/cloud-33d65484-full/README.md).
+14. The next `3e197761` diagnostic confirmed all six initial foreign-window readback registrations:
+    three windows, two positive samples each, flags 45 and zero hidden ownership. The first current
+    window, before any HIDE/SHOW, retained the exact original AX object through minimization. Its
+    actual temporary subrole was **AXDialog**, which the initial AXUnknown allowance rejected.
+    No foreign mini move was issued and cleanup passed. The narrow follow-up permits that observed
+    dialog state only on the already registered standard object with the same positive identity,
+    true minimization and false fullscreen checks. Newly discovered dialogs remain ineligible.
+    [Original registration, subrole and cleanup receipts](../verification/independent-stage/cloud-3e197761-diagnostics/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.

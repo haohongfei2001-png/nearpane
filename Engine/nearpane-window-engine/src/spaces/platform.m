@@ -346,7 +346,8 @@ static BOOL bindingSubrole(AXUIElementRef window,BOOL originalMinimized,uint32_t
     CFTypeRef value=NULL;
     AXError error=AXUIElementCopyAttributeValue(window,kAXSubroleAttribute,&value);
     BOOL standard=error==kAXErrorSuccess && value && CFEqual(value,kAXStandardWindowSubrole);
-    BOOL knownMinimized=error==kAXErrorSuccess && value && CFEqual(value,kAXUnknownSubrole);
+    BOOL knownMinimized=error==kAXErrorSuccess && value &&
+        (CFEqual(value,kAXUnknownSubrole) || CFEqual(value,kAXDialogSubrole));
     BOOL valid=standard || (originalMinimized && knownMinimized);
     if(!standard && getenv("NP_SPACES_LAUNCH_TRACE")){
         char actual[128]="unavailable";
@@ -420,7 +421,7 @@ static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t star
         error=AXUIElementSetMessagingTimeout(found,0.15f);
         if(error!=kAXErrorSuccess)bindingFailure(n,pid,"window-timeout",error,0,0);
         // Only an already retained, previously standard window may use the
-        // system's unknown subrole while its real AXMinimized state is true.
+        // system's observed minimized subrole while AXMinimized is truly set.
         // A newly enumerated unknown/dialog window never obtains this origin.
         BOOL originalMinimized=error==kAXErrorSuccess && standardBeforeMinimizing && allowMinimized && np_stage_is_minimized(found)==1;
         BOOL ordinary=error==kAXErrorSuccess &&
