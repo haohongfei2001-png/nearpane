@@ -109,7 +109,7 @@ struct CrossSpaceFocusContinuity {
     }
 }
 
-@MainActor private final class CrossSpaceFocusWatch {
+@MainActor final class CrossSpaceFocusWatch {
     var continuity: CrossSpaceFocusContinuity
     private var observer: NSObjectProtocol?
     init(source: SelectionForeground, target: SelectionForeground) {

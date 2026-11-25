@@ -4,6 +4,36 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct AppleNativeStageCardTests {
+    @Test func rapidThirdCardChoiceWaitsForTwoFreshReadsOfThePreviousExactFocus() {
+        typealias Group = AppleNativeStages.Group
+        let keys = (0..<3).map { DesktopWindowKey(pid: 10, birth: 500, number: UInt32($0 + 1)) }
+        func roster(current: Int) -> [Group] {
+            keys.enumerated().map { index, key in Group(id: String(index), current: index == current, members: [key]) }
+        }
+        let original = roster(current: 0), previous = roster(current: 1), foreign = roster(current: 2)
+        @MainActor final class Focus { var exact = false }
+        let focus = Focus()
+        let deadline = ContinuousClock.now.advanced(by: .seconds(4))
+        let handoff = AppleStageSelectionHandoff(roster: original, target: original[1], focusMatches: { focus.exact },
+            ownsForeground: { true }, release: {}, deadline: deadline)
+        #expect(handoff.includes(original[2]))
+        #expect(!handoff.includes(original[2], now: deadline))
+        #expect(handoff.permits(original))
+        #expect(!handoff.finished(original))
+        #expect(!handoff.permits(foreign))
+        let recycled = Group(id: original[2].id, current: false, members: [.init(pid: 10, birth: 501, number: 3)])
+        #expect(!handoff.includes(recycled))
+        var reads = AppleStageSelectionHandoff.Confirmations(after: 15)
+        func record(_ stamp: UInt64, _ groups: [Group]) -> Bool { reads.record(stamp, exact: handoff.finished(groups)) }
+        #expect(!record(16, previous))
+        focus.exact = true
+        #expect(!record(17, previous))
+        #expect(!record(17, previous))
+        #expect(!record(18, foreign))
+        #expect(!record(19, previous))
+        #expect(record(20, previous))
+    }
+
     @Test func onlyTheCurrentLocalDragCanMergeTheExactWindowsOnItsOriginalDesktop() async throws {
         let drag = AppleNativeStageDrag(), now = ContinuousClock.now, intent = UUID()
         let scope = AppleNativeStageDrag.Scope(session: UUID(), display: "display", desktop: UUID(), record: "4", topology: "one")

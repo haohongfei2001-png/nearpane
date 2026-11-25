@@ -313,7 +313,7 @@ public struct CandidateWorkRectView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if StageManagerPreference.read() == true {
-                Text("台前调度已开启。要让不同组的窗口同时参与分屏，可在「系统设置 → 桌面与程序坞」关闭台前调度。")
+                Text("台前调度已开启。系统保留每个工作集合的原有布局，可在 R4 侧栏选择集合。")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("打开桌面与程序坞设置") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") { NSWorkspace.shared.open(url) }

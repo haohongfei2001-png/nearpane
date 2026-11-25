@@ -80,3 +80,63 @@ import NearpaneOrdinaryWindowRuntime
         return AXUIElementGetPid(focused as! AXUIElement, &pid) == .success && pid == key.pid
     }
 }
+
+/// Follow the exact focus that was present when R4 accepted the click. A different
+/// document of either application can take focus without changing the HID counters.
+@MainActor final class AppleFocusHandoff {
+    private let applications: CrossSpaceFocusWatch
+    private enum Focused { case window(AXUIElement), desktop }
+    private let original: Focused
+    private let source: SelectionForeground
+    private let target: DesktopWindowKey
+    private var acceptedTarget = false
+    private var revoked = false
+
+    init?(target: DesktopWindowKey) {
+        guard let app = NSWorkspace.shared.frontmostApplication, app.activationPolicy == .regular, !app.isTerminated,
+              app.processIdentifier != getpid(), let source = SelectionForeground.read(app.processIdentifier),
+              let original = Self.focused(source.pid),
+              SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier) == source else { return nil }
+        self.source = source
+        self.original = original
+        self.target = target
+        applications = CrossSpaceFocusWatch(source: source, target: .init(pid: target.pid, birth: target.birth))
+    }
+
+    private static func focused(_ pid: pid_t) -> Focused? {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.06)
+        var raw: CFTypeRef?
+        let status = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &raw)
+        if status == .noValue, let finder = NSRunningApplication(processIdentifier: pid),
+           finder.bundleIdentifier == "com.apple.finder",
+           finder.bundleURL?.standardizedFileURL.path == "/System/Library/CoreServices/Finder.app" {
+            return .desktop
+        }
+        guard status == .success, let raw, CFGetTypeID(raw) == AXUIElementGetTypeID() else { return nil }
+        let window = raw as! AXUIElement
+        var actual: pid_t = 0
+        guard AXUIElementGetPid(window, &actual) == .success && actual == pid, NearpaneOrdinaryWindowRuntime.number(window) != nil else { return nil }
+        return .window(window)
+    }
+
+    func current() -> Bool {
+        guard !revoked, applications.current(),
+              let owner = SelectionForeground.read(NSWorkspace.shared.frontmostApplication?.processIdentifier),
+              let focused = Self.focused(owner.pid) else { revoked = true; return false }
+        if case let .window(element) = focused, owner.pid == target.pid, owner.birth == target.birth,
+           NearpaneOrdinaryWindowRuntime.number(element) == target.number {
+            acceptedTarget = true
+        } else if acceptedTarget || owner != source {
+            revoked = true
+        } else {
+            switch (original, focused) {
+            case (.desktop, .desktop): break
+            case let (.window(a), .window(b)): revoked = !CFEqual(a,b)
+            default: revoked = true
+            }
+        }
+        return !revoked
+    }
+    func stop() { applications.stop() }
+}

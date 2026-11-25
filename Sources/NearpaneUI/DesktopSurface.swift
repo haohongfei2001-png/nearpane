@@ -398,7 +398,7 @@ struct DesktopSurface: View {
         let rows = Dictionary(uniqueKeysWithValues: DesktopWindowRow.rows(snapshot.windows.filter { $0.displayID == screen.id })
             .map { ($0.id, $0.window) })
         let feed = display?.pointer?.windowPreviews?.currentDesktop
-        let live = currentCardsAcceptInput && appleStages.ready && !navigation.stageOwnsWindowDispatch()
+        let live = currentCardsAcceptInput && !navigation.stageOwnsWindowDispatch()
         let home = snapshot.scopes.first { $0.displayID == screen.id }?.records.first(where: \.isCurrent)?.ordinaryUUID
         return ForEach(appleStages.groups) { group in
             AppleNativeStageCard(group: group, snapshot: snapshot, screen: screen, width: width,
@@ -406,11 +406,12 @@ struct DesktopSurface: View {
                 border: settings.points(.borderWidth, in: width),
                 fontSize: settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10, rows: rows,
                 badges: appBadges, gallery: display?.pointer?.windowPreviews?.gallery, permitted: picturesAllowed,
-                interactive: live, lifetime: { feed?.departingPictures?.appearances[$0] ?? feed?.lifetime(of: $0) }, choose: { window in
-                    guard live, currentCardsAcceptInput else { return }
+                interactive: live && appleStages.acceptsSelection(group),
+                lifetime: { feed?.departingPictures?.appearances[$0] ?? feed?.lifetime(of: $0) }, choose: { window in
+                    guard live, currentCardsAcceptInput, let admitted = appleStages.selection(for: group) else { return }
                     let input = NativeSelectionPermit.inputCounters()
                     navigation.submit { token in
-                        try await appleStages.choose(group, window: window, current: {
+                        try await appleStages.choose(group, window: window, after: admitted.predecessor, repeatCard: true, current: {
                             currentCardsAcceptInput && displayingAppleStages && navigation.isCurrent(token) && !navigation.stageOwnsWindowDispatch() &&
                                 input == NativeSelectionPermit.inputCounters()
                         })

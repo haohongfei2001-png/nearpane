@@ -57,7 +57,7 @@ struct AppleNativeStageCard: View {
                 CurrentWindowCard(label: badges[key]?.name ?? "窗口", badge: badges[key], size: nil,
                     pictureLimit: CGSize(width: width, height: pictureHeight), target: target(key), key: key,
                     gallery: gallery, permitted: permitted, border: border, fontSize: fontSize, selected: { nil },
-                    describe: { $0 }, select: { choose(key) }, selectable: interactive)
+                    describe: { $0 }, select: { choose(nil) }, selectable: interactive)
             } else {
                 VStack(spacing: 2) {
                     if measured.count == group.members.count {

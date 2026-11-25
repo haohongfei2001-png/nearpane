@@ -35,6 +35,7 @@ import NearpaneWindowEngine
     }
     private(set) var groups = [Group]()
     private(set) var ready = false
+    private var handoff: AppleStageSelectionHandoff? { didSet { oldValue?.release() } }
     @ObservationIgnored private var home: Home?
     @ObservationIgnored private var mirror: AppleStageMirror?
     @ObservationIgnored private var keys = [UInt32:DesktopWindowKey]()
@@ -42,6 +43,7 @@ import NearpaneWindowEngine
     @ObservationIgnored private var didDispatch = false
     @ObservationIgnored private let minimize = AppleStageMinimizeObserver()
     @ObservationIgnored private var lastChoice: [String:DesktopWindowKey] = [:]
+    @ObservationIgnored private var lastMemberCycle: AppleStageMemberCycle?
     @ObservationIgnored private var currentSnapshot: (@MainActor () -> DesktopSnapshot?)?
     @ObservationIgnored private var refreshSnapshot: (@MainActor () async -> DesktopSnapshot?)?
     @ObservationIgnored private var visible: (@MainActor () -> Bool)?
@@ -54,6 +56,8 @@ import NearpaneWindowEngine
         return home == Home(snapshot, display)
     }
     private func clear() {
+        lastMemberCycle = nil
+        handoff = nil
         minimize.stop()
         if !groups.isEmpty { groups = [] }
         ready = false; keys = [:]; lastChoice = [:]; mirror = nil; home = nil; lastRead = 0; latestSystem = nil
@@ -90,10 +94,10 @@ import NearpaneWindowEngine
         for await _ in events {
             guard generation == token, !Task.isCancelled else { return }
             guard visible(), WindowContentPreview.sessionAvailable() else { clear(); continue }
-            guard let sample = snapshot() else { ready = false; minimize.stop(); continue }
+            guard let sample = snapshot() else { ready = false; handoff = nil; minimize.stop(); continue }
             guard let scope = Home(sample, display) else {
                 // The surface owns the read-only departing snapshot during brief catalog gaps.
-                if sample.native?.windowLimitReached == true { ready = false; minimize.stop() }
+                if sample.native?.windowLimitReached == true { ready = false; handoff = nil; minimize.stop() }
                 else { clear() }
                 continue
             }
@@ -107,7 +111,7 @@ import NearpaneWindowEngine
         let raw = await Task.detached(priority: .utility) { AppleStageSystemRead.capture(singleDisplay: single) }.value
         guard generation == token, !Task.isCancelled, visible?() == true,
               scope == Home(currentSnapshot?(), scope.display) else { return }
-        guard let raw else { ready = false; return }
+        guard let raw else { ready = false; handoff = nil; return }
         // An asynchronous collector from before a selection may finish after the newer read.
         guard raw.timestamp > lastRead else { return }
         if scope != home || known.contains(where: { keys[$0.key] != nil && keys[$0.key] != $0.value }) {
@@ -122,11 +126,15 @@ import NearpaneWindowEngine
         let transition = didDispatch
         didDispatch = false
         guard let reading = mirror?.read(raw, managed: known.keys.sorted(), screen: scope.frame, transition: transition)
-        else { ready = false; return }
+        else { ready = false; handoff = nil; return }
         let stable = reading.settled && !reading.contradictory
         // A partially classified scan can paint its last group but cannot attest that
         // every member followed a native focus. Reconsider when the catalog is whole.
         ready = stable && sample.native?.catalogComplete == true
+        if let handoff, reading.contradictory || sample.native?.catalogComplete != true ||
+            handoff.roster.contains(where: { group in group.members.contains { known[$0.number] != $0 } }) {
+            self.handoff = nil
+        }
         guard ready else {
             groups.removeAll { group in group.members.contains { known[$0.number] != $0 } }
             return
@@ -138,7 +146,18 @@ import NearpaneWindowEngine
             return Group(id: "\(scope.screen.uuidString)/\(scope.desktop.uuidString)/\(stamp)", current: stage.current, members: members)
         }
         if groups != next { groups = next }
+        if let lastMemberCycle, !next.contains(where: { $0.current && lastMemberCycle.matches($0) }) { self.lastMemberCycle = nil }
+        if let handoff, !handoff.permits(next) { self.handoff = nil }
         lastChoice = lastChoice.filter { key, member in next.contains { $0.id == key && $0.members.contains(member) } }
+        #if DEBUG
+        AppleStageMergeFixture.nativeQualification(next) { [weak self] source, target in
+            guard let self else { throw StageSwitchError.interrupted }
+            try await self.merge(source, into: target) {
+                self.generation == token && self.visible?() == true && self.handoff == nil &&
+                    scope == Home(self.currentSnapshot?(), scope.display)
+            }
+        }
+        #endif
     }
 
     static func roster(_ snapshot: DesktopSnapshot, display: String, nativeID: String, includingMinimized: Bool = false) -> [UInt32:DesktopWindowKey] {
@@ -151,7 +170,14 @@ import NearpaneWindowEngine
         return Dictionary(grouping: candidates, by: \.number).compactMapValues { $0.count == 1 ? $0.first : nil }
     }
 
-    var mergeAvailable: Bool { ready && AppleStageMerge.isQualified }
+    var focusQualified: Bool { AppleStageProductAdmission.permits(.focus) || AppleStageMergeFixture.isRunning }
+    func canFocus(_ group: Group) -> Bool {
+        if AppleStageProductAdmission.permits(.focus) { return true }
+        guard AppleStageMergeFixture.isRunning, let front = groups.first(where: \.current) else { return false }
+        return AppleStageMergeFixture.permitsNativeFocus(Set(front.members + group.members))
+    }
+    var mergeAvailable: Bool { handoff == nil && ready && (AppleStageMerge.isQualified || AppleStageMergeFixture.isRunning) }
+
 
     func merge(_ source: Group, into destination: Group, current: @escaping @MainActor () -> Bool) async throws {
         guard mergeAvailable, source.id != destination.id, let scope = home, let refresh = refreshSnapshot,
@@ -162,6 +188,10 @@ import NearpaneWindowEngine
             current() && generation == token && visible?() == true && !Task.isCancelled &&
                 WindowContentPreview.sessionAvailable() && StageManagerPreference.read() == true &&
                 scope == Home(currentSnapshot?(), scope.display)
+        }
+        if !AppleStageMerge.isQualified {
+            guard destination.current, AppleStageMergeFixture.canDrop(Set(source.members), Set(destination.members))
+            else { throw StageSwitchError.unavailable }
         }
         if !destination.current { try await choose(destination, window: nil, current: allowed) }
         guard allowed() else { throw StageSwitchError.interrupted }
@@ -192,15 +222,62 @@ import NearpaneWindowEngine
         }
     }
 
-    func choose(_ group: Group, window: DesktopWindowKey?, current: @escaping @MainActor () -> Bool) async throws {
-        guard let scope = home, ready, let refresh = refreshSnapshot, let target = window ?? lastChoice[group.id] ?? group.members.first,
-              group.members.contains(target), let original = groups.first(where: { $0.id == group.id }),
+    struct Selection {
+        let predecessor: UUID?
+    }
+
+    func acceptsSelection(_ group: Group) -> Bool { canFocus(group) && (ready || handoff?.includes(group) == true) }
+
+    func selection(for group: Group) -> Selection? {
+        guard canFocus(group), groups.contains(where: { $0.id == group.id }), let home, let snapshot = currentSnapshot?(),
+              snapshot.native?.catalogComplete == true, home == Home(snapshot, home.display) else { return nil }
+        if let handoff {
+            guard handoff.includes(group), handoff.ownsForeground() else { self.handoff = nil; return nil }
+            return Selection(predecessor: handoff.id)
+        }
+        return ready ? Selection(predecessor: nil) : nil
+    }
+
+    func choose(_ group: Group, window: DesktopWindowKey?, after predecessor: UUID? = nil, repeatCard: Bool = false,
+                current: @escaping @MainActor () -> Bool) async throws {
+        let preceding = self.handoff
+        guard canFocus(group), let scope = home, ready || (predecessor != nil && preceding?.id == predecessor),
+              let refresh = refreshSnapshot, let original = groups.first(where: { $0.id == group.id }),
               Set(original.members) == Set(group.members) else { throw StageSwitchError.unavailable }
+        let cycle = predecessor == nil ? lastMemberCycle : preceding?.memberCycle
+        let next = repeatCard && window == nil ? cycle?.next(in: original, explicit: window,
+            oneAtATime: AppleStageMemberCycle.oneAtATime(), completingPrevious: predecessor != nil) : nil
+        guard let target = window ?? next ?? lastChoice[group.id] ?? original.members.first,
+              original.members.contains(target) else { throw StageSwitchError.unavailable }
         let token = generation, hid = NativeSelectionPermit.inputCounters()
+        var watcher: AppleFocusHandoff?
+        var transferred = false
+        if predecessor == nil {
+            guard let direct = AppleFocusHandoff(target: target) else { throw StageSwitchError.interrupted }
+            watcher = direct
+        }
+        defer { if !transferred { watcher?.stop() } }
         func allowed() -> Bool {
-            generation == token && current() && visible?() == true && WindowContentPreview.sessionAvailable() &&
+            canFocus(group) && generation == token && current() && visible?() == true &&
+                (watcher?.current() ?? preceding?.ownsForeground() ?? false) && WindowContentPreview.sessionAvailable() &&
                 StageManagerPreference.read() == true && NativeSelectionPermit.inputCounters() == hid &&
+                (next == nil || AppleStageMemberCycle.oneAtATime()) &&
                 !Task.isCancelled && NSEvent.pressedMouseButtons == 0 && scope == Home(currentSnapshot?(), scope.display)
+        }
+        if let predecessor {
+            guard let preceding, preceding.id == predecessor, preceding.includes(group) else { throw StageSwitchError.interrupted }
+            var samples = AppleStageSelectionHandoff.Confirmations(after: lastRead)
+            while true {
+                guard allowed(), self.handoff?.id == predecessor, preceding.includes(group),
+                      let next = await refresh(), scope == Home(next, scope.display), allowed() else { throw StageSwitchError.interrupted }
+                await observe(next, scope: scope, token: token)
+                guard allowed(), self.handoff?.id == predecessor else { throw StageSwitchError.interrupted }
+                if samples.record(lastRead, exact: ready && preceding.finished(groups)) { break }
+                try await Task.sleep(for: .milliseconds(80))
+            }
+            guard let next = AppleFocusHandoff(target: target) else { throw StageSwitchError.interrupted }
+            watcher = next
+            guard preceding.ownsForeground() else { throw StageSwitchError.interrupted }
         }
         guard allowed(), let fresh = await refresh(), scope == Home(fresh, scope.display), allowed() else { throw StageSwitchError.interrupted }
         await observe(fresh, scope: scope, token: token)
@@ -208,22 +285,48 @@ import NearpaneWindowEngine
               let focus = AppleStageFocus(target, display: scope.display, record: String(scope.record), uuid: scope.desktop) else {
             throw StageSwitchError.unavailable
         }
+        if let predecessor, self.handoff?.id != predecessor || preceding?.finished(groups) != true {
+            throw StageSwitchError.interrupted
+        }
+        if let next {
+            guard let active = groups.first(where: \.current),
+                  cycle?.next(in: active, explicit: nil, oneAtATime: AppleStageMemberCycle.oneAtATime(),
+                              completingPrevious: false) == next else { throw StageSwitchError.interrupted }
+        } else if repeatCard, window == nil, AppleStageMemberCycle.oneAtATime(),
+                  let active = groups.first(where: \.current), active.id == group.id, let cycle, cycle.matches(active) {
+            // Apple may expose only the most recent document. Without another proven member
+            // a repeat click must leave its current native focus and document alone.
+            if predecessor != nil { self.handoff = nil; lastMemberCycle = cycle }
+            return
+        }
         let switchesStage = !groups.contains { $0.id == group.id && $0.current }
+        guard let watcher else { throw StageSwitchError.interrupted }
+        self.handoff = nil
+        lastMemberCycle = nil
         try focus.perform(current: allowed)
         didDispatch = switchesStage
+        let memberCycle = AppleStageMemberCycle(group: original, selected: target, previous: cycle, focused: { focus.confirmed() })
+        let dispatched = AppleStageSelectionHandoff(roster: groups, target: group, focusMatches: { focus.confirmed() },
+            ownsForeground: { watcher.current() }, release: { watcher.stop() },
+            deadline: .now.advanced(by: .seconds(4)), memberCycle: repeatCard ? memberCycle : nil)
+        self.handoff = dispatched
+        transferred = true
         ready = false
         updates?.yield(())
         let deadline = ProcessInfo.processInfo.systemUptime + 4.0
-        var confirmations = 0
+        var confirmations = AppleStageSelectionHandoff.Confirmations(after: lastRead)
         while ProcessInfo.processInfo.systemUptime < deadline {
             try await Task.sleep(for: .milliseconds(100))
             guard allowed(), let sample = await refresh(), scope == Home(sample, scope.display), allowed() else { throw StageSwitchError.interrupted }
             await observe(sample, scope: scope, token: token)
-            guard allowed() else { throw StageSwitchError.interrupted }
-            if ready && groups.contains(where: { $0.current && Set($0.members) == Set(group.members) }) && focus.confirmed() {
-                confirmations += 1
-                if confirmations == 2 { lastChoice[group.id] = target; return }
-            } else { confirmations = 0 }
+            guard allowed(), self.handoff?.id == dispatched.id else { throw StageSwitchError.interrupted }
+            let exact = ready && dispatched.finished(groups)
+            if confirmations.record(lastRead, exact: exact) {
+                self.handoff = nil
+                lastChoice[group.id] = target
+                lastMemberCycle = repeatCard ? memberCycle : nil
+                return
+            }
         }
         throw StageSwitchError.unavailable
     }

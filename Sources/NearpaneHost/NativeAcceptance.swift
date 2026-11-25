@@ -43,22 +43,40 @@ struct NativeAcceptanceSession {
         exit(prepare && !after.installed ? 3 : 0)
     }
 
-    init(id: String, prepare: Bool) throws {
+    init(id: String, prepare: Bool, mergeLab: Bool = false) throws {
         guard let uuid = UUID(uuidString: id), id == uuid.uuidString.lowercased(),
               Bundle.main.bundleURL.pathExtension == "app", let executable = Bundle.main.executableURL else {
             throw CocoaError(.fileReadInvalidFileName)
         }
         let fm = FileManager.default
-        // LaunchServices does not inherit the checkout's working directory. Only an
-        // already prepared, executable-bound acceptance session may use this override.
-        let checkout = prepare ? nil : ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_CHECKOUT"]
-        let repo = URL(fileURLWithPath: checkout ?? fm.currentDirectoryPath)
-        guard repo.path.hasPrefix("/"), repo.standardizedFileURL.path == repo.resolvingSymlinksInPath().path
-        else { throw CocoaError(.fileReadNoPermission) }
-        guard fm.fileExists(atPath: repo.appendingPathComponent("Dependencies/domains.lock.json").path) else {
-            throw CocoaError(.fileNoSuchFile)
+        let parent: URL
+        if mergeLab {
+            // The signed, nonce-bound Host already opened its one-shot fixture cohort.
+            // This profile stays in that same protected directory during LaunchServices startup.
+            #if DEBUG
+            guard prepare, Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.host",
+                  Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") as? Int == 1,
+                  Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeNonce") as? String == id else {
+                throw CocoaError(.fileReadNoPermission)
+            }
+            parent = Bundle.main.bundleURL.deletingLastPathComponent()
+            guard parent.path == "/private/tmp/nearpane-apple-merge." + id,
+                  parent.path == parent.resolvingSymlinksInPath().path else { throw CocoaError(.fileReadNoPermission) }
+            #else
+            throw CocoaError(.featureUnsupported)
+            #endif
+        } else {
+            // LaunchServices does not inherit the checkout's working directory. Only an
+            // already prepared, executable-bound acceptance session may use this override.
+            let checkout = prepare ? nil : ProcessInfo.processInfo.environment["NEARPANE_ACCEPTANCE_CHECKOUT"]
+            let repo = URL(fileURLWithPath: checkout ?? fm.currentDirectoryPath)
+            guard repo.path.hasPrefix("/"), repo.standardizedFileURL.path == repo.resolvingSymlinksInPath().path
+            else { throw CocoaError(.fileReadNoPermission) }
+            guard fm.fileExists(atPath: repo.appendingPathComponent("Dependencies/domains.lock.json").path) else {
+                throw CocoaError(.fileNoSuchFile)
+            }
+            parent = repo.appendingPathComponent("build/native-acceptance")
         }
-        let parent = repo.appendingPathComponent("build/native-acceptance")
         directory = parent.appendingPathComponent(id)
         let markerURL = directory.appendingPathComponent("session.json")
         let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)

@@ -1,8 +1,6 @@
 import AppKit
 import ApplicationServices
 import Darwin
-import CryptoKit
-import Security
 import NearpaneCore
 import NearpaneWindowEngine
 
@@ -20,60 +18,23 @@ import NearpaneWindowEngine
     enum Failure: Error, Equatable { case unqualified, interrupted, unavailable, unconfirmed, busy }
     private static var dispatching = false
 
-    // The signed product pins an independent QA key and receipt ID. A detached
-    // receipt can bind the final CDHash without embedding that hash in its own image.
-    private static let admission: StageWindowEngineAttestation.Pin? = nil
-    private struct Qualification: Decodable {
-        let version: Int, route, build, source, hostCDHash: String, evidence: UUID
-        let physicalNativeMerge, exactReceiver, unrelatedStagesPreserved, releasedInput: Bool
-    }
-    static var isQualified: Bool {
-        guard let pin = admission,
-              let revision = Bundle.main.object(forInfoDictionaryKey: "NearpaneSourceRevision") as? String,
-              Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.alpha",
-              Bundle.main.bundleURL.resolvingSymlinksInPath().path == "/Applications/Nearpane.app",
-              let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
-              let hash = try? OrdinaryProcessImage.signingDigest(getpid()) else { return false }
-        let url = support.appendingPathComponent("Nearpane/StageEngineEvidence")
-            .appendingPathComponent(pin.evidence.uuidString + ".json")
-        guard (try? ProfileLease.checkPath(url)) != nil else { return false }
-        let fd = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
-        guard fd >= 0 else { return false }
-        let file = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
-        var fileInfo = stat()
-        guard fstat(fd, &fileInfo) == 0, fileInfo.st_mode & S_IFMT == S_IFREG, (1...98_304).contains(fileInfo.st_size),
-              let data = try? file.read(upToCount: 98_305), data.count == fileInfo.st_size,
-              let envelope = try? JSONDecoder().decode(StageWindowEngineAttestation.Envelope.self, from: data),
-              envelope.version == 1, envelope.payload.count <= 65_536,
-              let key = try? P256.Signing.PublicKey(derRepresentation: pin.publicKeyDER),
-              let signature = try? P256.Signing.ECDSASignature(derRepresentation: envelope.signature),
-              key.isValidSignature(signature, for: envelope.payload),
-              let receipt = try? JSONDecoder().decode(Qualification.self, from: envelope.payload),
-              receipt.version == 1, receipt.route == "apple.native-strip-merge", receipt.evidence == pin.evidence,
-              receipt.physicalNativeMerge, receipt.exactReceiver, receipt.unrelatedStagesPreserved, receipt.releasedInput,
-              receipt.source == revision, receipt.hostCDHash == hash.map({ String(format: "%02x", $0) }).joined(),
-              let requirement = teamRequirement else { return false }
-        var size = 0
-        guard sysctlbyname("kern.osversion", nil, &size, nil, 0) == 0, (2...128).contains(size) else { return false }
-        var bytes = [CChar](repeating: 0, count: size)
-        guard sysctlbyname("kern.osversion", &bytes, &size, nil, 0) == 0,
-              receipt.build == String(decoding: bytes.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self)
-        else { return false }
-        var running: SecCode?
-        return SecCodeCopySelf([], &running) == errSecSuccess &&
-            running.map { SecCodeCheckValidity($0, [], requirement) } == errSecSuccess
-    }
-    private static let teamRequirement: SecRequirement? = {
-        var r: SecRequirement?
-        let requirement = "anchor apple generic and identifier \"com.holdsnow.nearpane.alpha\" and certificate leaf[subject.OU] = \"ZB9D4T66QB\""
-        return SecRequirementCreateWithString(requirement as CFString, [], &r) == errSecSuccess ? r : nil
-    }()
+    static var isQualified: Bool { AppleStageProductAdmission.permits(.merge) }
 
     /// Scope and input generation are checked again by the caller on every asynchronous return.
     /// Readback cannot infer a transfer from focus or a successful event post.
     static func perform(source: Members, destination: Members, stillCurrent: @escaping @MainActor () -> Bool,
                         observe: @escaping @MainActor (Members, Members) async -> Observation?) async throws {
-        guard isQualified else { throw Failure.unqualified }
+        let production = isQualified
+        #if DEBUG
+        let lab = !production && AppleStageMergeFixture.consume(source,destination)
+        guard production || lab else { throw Failure.unqualified }
+        var verified = false
+        defer { if lab { AppleStageMergeFixture.finish(verified) } }
+        let allowed = { @MainActor in stillCurrent() && (!lab || AppleStageMergeFixture.permitsLiveWrites()) }
+        #else
+        guard production else { throw Failure.unqualified }
+        let allowed = stillCurrent
+        #endif
         guard !dispatching else { throw Failure.busy }
         guard !source.isEmpty, !destination.isEmpty, source.isDisjoint(with: destination),
               source.count <= 32 else { throw Failure.unavailable }
@@ -82,15 +43,18 @@ import NearpaneWindowEngine
         var remaining = source, active = destination
         var protectedStrip: Set<Members>?
         while !remaining.isEmpty {
-            guard safe(stillCurrent) else { throw Failure.interrupted }
-            guard let before = await observe(remaining, active), safe(stillCurrent), before.settled,
+            guard safe(allowed) else { throw Failure.interrupted }
+            guard let before = await observe(remaining, active), safe(allowed), before.settled,
                   let point = before.point, point.timestamp == before.timestamp,
                   let target = remaining.first(where: { $0.number == point.window }),
                   within(before.timestamp, milliseconds: 400),
                   let rest = preserved(before, current: active, source: remaining),
                   protectedStrip == nil || protectedStrip == rest else { throw Failure.unavailable }
+            #if DEBUG
+            if lab { AppleStageMergeFixture.note("before",before) }
+            #endif
             protectedStrip = rest
-            try await press(point, windows: Set(remaining.map(\.number)), stillCurrent: stillCurrent)
+            try await press(point, windows: Set(remaining.map(\.number)), stillCurrent: allowed)
             let oldActive = active, oldSource = remaining
             remaining.remove(target)
             active.insert(target)
@@ -98,11 +62,14 @@ import NearpaneWindowEngine
             var confirmed = 0
             var last = before.timestamp
             while confirmed < 2 {
-                guard safe(stillCurrent) else { throw Failure.interrupted }
+                guard safe(allowed) else { throw Failure.interrupted }
                 guard ContinuousClock.now < deadline else { throw Failure.unconfirmed }
                 try await Task.sleep(for: .milliseconds(80))
-                guard let after = await observe(remaining, active), safe(stillCurrent),
+                guard let after = await observe(remaining, active), safe(allowed),
                       after.timestamp > last else { throw Failure.unconfirmed }
+                #if DEBUG
+                if lab { AppleStageMergeFixture.note("readback",after) }
+                #endif
                 last = after.timestamp
                 guard after.settled else { confirmed = 0; continue }
                 if preserved(after, current: active, source: remaining) == rest {
@@ -112,6 +79,9 @@ import NearpaneWindowEngine
                 } else { throw Failure.unconfirmed }
             }
         }
+        #if DEBUG
+        verified = true
+        #endif
     }
 
     /// Returns the unaffected partition only when native memberships are disjoint and exact.

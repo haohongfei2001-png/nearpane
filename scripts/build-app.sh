@@ -20,7 +20,13 @@ candidate_dir=""
 prepare_only=0
 internal_survival=0
 visible_recovery=0
-if [[ $# == 3 && "$configuration" == debug && ( "$2" == --prepare-internal-survival || "$2" == --prepare-internal-visible-recovery ) ]]; then
+if [[ $# == 3 && "$configuration" == debug && "$2" == --prepare-apple-stage-base ]]; then
+  candidate_dir="$(cd "$3" && pwd -P)"
+  [[ ! -L "$3" && "${candidate_dir%/*}" == "$PWD/build" && "${candidate_dir##*/}" == nearpane-apple-stage-base.* &&
+     "$(stat -f '%u:%Lp' "$candidate_dir")" == "$(id -u):700" && ! -e "$candidate_dir/Nearpane.app" &&
+     "${NEARPANE_FOUNDATION_ONLY:-0}" != 1 ]] || { echo "Expected a fresh private Apple stage base directory" >&2; exit 2; }
+  prepare_only=1
+elif [[ $# == 3 && "$configuration" == debug && ( "$2" == --prepare-internal-survival || "$2" == --prepare-internal-visible-recovery ) ]]; then
   candidate_dir="$(cd "$3" && pwd -P)"
   [[ ! -L "$3" && "${candidate_dir%/*}" == /private/tmp && "${candidate_dir##*/}" == nearpane-stage-engine-dev.* &&
      "$(stat -f '%u:%Lp' "$candidate_dir")" == "$(id -u):700" && ! -e "$candidate_dir/Nearpane.app" &&

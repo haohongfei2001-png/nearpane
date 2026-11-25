@@ -14,6 +14,18 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        // A dedicated, separately signed QA bundle accepts only its sealed nonce
+        // and the isolated R4 entry. Opening it from Finder never starts daily UI.
+        if Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") != nil {
+            #if DEBUG
+            guard args.count == 2, ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once"].contains(args[0]),
+                  Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeNonce") as? String == args[1],
+                  Bundle.main.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") == nil
+            else { exit(2) }
+            #else
+            exit(2)
+            #endif
+        }
         // A signed internal reader may be opened from Finder. Never enter the daily UI or profile.
         if Bundle.main.object(forInfoDictionaryKey: "NearpaneReadOnlyGuardianProtocol") != nil {
             guard Bundle.main.bundleIdentifier == "com.holdsnow.nearpane.host",
@@ -249,8 +261,32 @@ struct NearpaneApp {
             #if canImport(RiftletCore) && canImport(SaytileKit)
             guard args.count == 2 else { exit(2) }
             do {
+                #if DEBUG
+                if ["--native-acceptance-apple-merge","--native-acceptance-apple-merge-once"].contains(command) {
+                    guard let nonce = UUID(uuidString: args[1]),
+                          Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") as? Int == 1
+                    else { exit(2) }
+                    let baseline = try StageCanaryOverview.inventoryIdentity(StageCanaryOverview.inventory())
+                    guard let now = baseline["current"] as? NSDictionary, now["type"] as? UInt64 == 0,
+                          let number = now["id"] as? UInt64, number > 0,
+                          let raw = now["uuid"] as? String, let desktop = UUID(uuidString:raw),
+                          let display = baseline["display"] as? String, UUID(uuidString:display) != nil else { exit(2) }
+                    try AppleStageMergeFixture.start(nonce, automate: command == "--native-acceptance-apple-merge-once",
+                        display:display,desktop:desktop,record:String(number)) {
+                        (try? StageCanaryOverview.inventoryIdentity(StageCanaryOverview.inventory())) == baseline
+                    }
+                    delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: true, mergeLab: true)
+                } else {
+                    delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
+                }
+                #else
                 delegate.acceptanceSession = try NativeAcceptanceSession(id: args[1], prepare: false)
+                #endif
                 switch command {
+                #if DEBUG
+                case "--native-acceptance-apple-merge","--native-acceptance-apple-merge-once":
+                    guard AppleStageMergeFixture.isRunning else { exit(2) }
+                #endif
                 case "--native-acceptance-session": break
                 case "--native-acceptance-single-ordinary":
                     let env = ProcessInfo.processInfo.environment
@@ -661,7 +697,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if testSession == nil { provider = NativeDesktopProvider.packaged() }
         else {
             #if canImport(RiftletCore) && canImport(SaytileKit)
-            if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {
+            if AppleStageMergeFixture.isRunning {
+                provider = AppleStageMergeFixture.observationProvider()
+            } else if requestsDesktopFixture, let acceptanceSession, let passiveDisplayID {
                 do { desktopFixture = try DesktopAcceptanceFixture(session: acceptanceSession, displayID: passiveDisplayID) }
                 catch { NSApp.terminate(nil); return }
                 if candidate {
@@ -896,6 +934,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        #if DEBUG
+        AppleStageMergeFixture.stop()
+        #endif
         DesktopOverviewShortcut.shared.stop()
         updater?.stop()
         updateMenuObservation?.cancel()
