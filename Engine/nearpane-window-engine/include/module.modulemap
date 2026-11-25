@@ -1,4 +1,5 @@
 module CNearpaneWindowEngine {
     header "nearpane_window_engine.h"
+    header "nearpane_spaces_worker.h"
     export *
 }

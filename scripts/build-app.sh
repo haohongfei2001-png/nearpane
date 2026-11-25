@@ -103,6 +103,14 @@ ordinary="$binary_dir/NearpaneOrdinaryWindowController"
 /usr/bin/codesign --verify --strict "$ordinary"
 install -m 755 "$ordinary" "$stage/Contents/Helpers/NearpaneOrdinaryWindowController"
 /usr/bin/plutil -insert NearpaneOrdinaryWindowControllerSHA256 -string "$(shasum -a 256 "$ordinary" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
+# This helper owns the same Spaces engine and its AX leases through Host exit.
+# The parent communicates over private pipes; channel loss restores owned windows.
+spaces_worker="$stage/Contents/Helpers/NearpaneSpacesEngine"
+bash Engine/nearpane-window-engine/build-spaces-worker.sh "$spaces_worker" "$NEARPANE_ENGINE_ARCHIVE"
+/usr/bin/codesign --force --sign - --timestamp=none --options runtime --identifier com.holdsnow.nearpane.spaces-engine "$spaces_worker"
+/usr/bin/codesign --verify --strict "$spaces_worker"
+"$spaces_worker" --protocol-selftest
+/usr/bin/plutil -insert NearpaneSpacesEngineSHA256 -string "$(shasum -a 256 "$spaces_worker" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
 guardian="$stage/Contents/Helpers/NearpaneCornerGuardian"
 guardian_id=com.holdsnow.nearpane.alpha.corner-guardian
 if (( internal_survival )); then

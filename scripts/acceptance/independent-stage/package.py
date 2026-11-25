@@ -62,6 +62,16 @@ def package(source: Path, destination: Path, revision: str, *, mode="workspace")
             if not (destination / "Contents/Resources" / resource).is_dir():
                 raise ValueError("Workspace mode requires the complete embedded application: " + resource)
         data = workspace_tools(destination, data)
+    worker = destination / "Contents/Helpers/NearpaneSpacesEngine"
+    if (worker != worker.resolve() or not worker.is_file() or
+            hashlib.sha256(worker.read_bytes()).hexdigest() != data.get("NearpaneSpacesEngineSHA256")):
+        raise ValueError("Spaces engine helper integrity mismatch")
+    identity = os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-")
+    subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp=none", "--options", "runtime",
+                    "--identifier", "com.holdsnow.nearpane.spaces-engine", worker], check=True, capture_output=True)
+    subprocess.run(["codesign", "--verify", "--strict", worker], check=True, capture_output=True)
+    # Signing changes bytes, so the final parent seal must describe this exact helper.
+    data["NearpaneSpacesEngineSHA256"] = hashlib.sha256(worker.read_bytes()).hexdigest()
     data.update(CFBundleIdentifier="com.holdsnow.nearpane.independent-stage-candidate",
                 CFBundleName="Nearpane Independent Stage", CFBundleDisplayName="Nearpane Independent Stage",
                 LSMultipleInstancesProhibited=True, NearpaneSourceRevision=revision)
@@ -70,7 +80,6 @@ def package(source: Path, destination: Path, revision: str, *, mode="workspace")
         data.pop(key, None)
     data["NearpaneIndependentStageWorkspace" if mode == "workspace" else "NearpaneIndependentStageAcceptance"] = 1
     plist.write_bytes(plistlib.dumps(data))
-    identity = os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-")
     executable = destination / "Contents/MacOS" / data["CFBundleExecutable"]
     signing = ["codesign", "--force", "--sign", identity, "--timestamp=none", "--entitlements",
                str(ROOT / "Resources/NearpaneHost.entitlements"), "--identifier", data["CFBundleIdentifier"]]

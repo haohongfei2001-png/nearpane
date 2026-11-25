@@ -6,18 +6,17 @@ import NearpaneCore
 /// mechanism is a process-owned hidden Space; there is no visual cover, event tap,
 /// Corner fallback, or control of Apple's thumbnail strip in this implementation.
 @MainActor final class LinkedSpacesEngineTransport: StageEngineTransport {
-    private let engine: NativeStageWindowEngine
+    private let engine: SpacesEngineWorker
     private let owner: StageEngineOwner
     private let acquisitionEpoch: UInt64
     private var started = false
 
-    init?(owner: StageEngineOwner) {
+    init?(owner: StageEngineOwner, profile: URL) {
         guard owner.backend == .spaces,
-              let engine = NativeStageWindowEngine(spacesCandidate: true),
-              let epoch = engine.qualifiedEpoch else { return nil }
+              let engine = SpacesEngineWorker(profile: profile) else { return nil }
         self.engine = engine
         self.owner = owner
-        acquisitionEpoch = epoch
+        acquisitionEpoch = engine.acquisitionEpoch
     }
 
     private func epoch(for requested: StageEngineOwner, restoring: Bool = false) throws -> UInt64 {

@@ -27,7 +27,11 @@ windows and stops scheduling; it does not silently activate another backend.
 **Implement route B: an independent hidden-Space scheduler.** Keep the existing Swift R4 and group
 coordinator, Rust static library, and C ABI. This reuses implemented window identities, journalled group
 switches, exact-window focus and geometry operations, and real preview ownership instead of replacing
-the working product modules.
+the working product modules. The same Rust static library runs in a small sealed, bundled AppKit worker
+so it retains the original AX leases and WindowServer connection when the Swift Host exits. Private
+anonymous pipes carry the existing C request/receipt layout; EOF or parent exit enters release-only
+cleanup and refuses to destroy an occupied Space. There is no second engine or same-process fallback.
+Worker SIGKILL and WindowServer restart remain separate physical experiments, not inferred guarantees.
 
 This is an implementation decision, not a claim that the complete macOS 27 product has passed.
 The compiled candidate and the release qualification are separate paths. An explicit, separately
@@ -120,8 +124,10 @@ daily builds and uncommitted work in other checkouts are preserved.
 
 - macOS source checks: the 147 Rust cases passed on the target Mac and on the hosted macOS runner.
   A synthetic own-panel wait originally depended on wall-clock CPU scheduling; its fake clock is now
-  deterministic while the real 120 ms deadline is unchanged. Swift errors are being repaired against
-  actual macOS compiler output; a full source PASS is not yet recorded in this checkpoint.
+  deterministic while the real 120 ms deadline is unchanged. Swift production modules and the complete source-check step then passed at `2a0cfbe9`. The complete
+  embedded release also compiled and passed resource verification; the later workflow signature check
+  incorrectly treated the Host inside its resource-bearing bundle as a standalone executable. The
+  corrected whole-bundle package verification is tracked in the evidence index.
 - The first target runtime at `da51f75` obtained AX permission and independently read three real windows
   in two fixture processes twice. `NP_LAUNCH` then stopped with detail 217 before any third-party write.
   [Original receipt and log](../verification/independent-stage/target-da51f75/README.md).

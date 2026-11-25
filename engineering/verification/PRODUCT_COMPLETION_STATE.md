@@ -1,5 +1,9 @@
 # Nearpane 产品完成状态（持续维护入口）
 
+## 2026-11-26 · 独立台前调度替代
+
+当前开发分支为 `pro/independent-stage-engine-20261126`，独立 [PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16)。产品及技术由[唯一裁决](../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md)指导；实现、候选和逐项现场证据以[独立调度记录](independent-stage/README.md)为准。旧 Apple 原生条带跟随与 Corner 已从产品选择撤下。下方全部为其标明日期和版本的历史安装/实验记录；旧权威排序、分支和未完成工作包均不能覆盖当前裁决。日常安装不因新分支源码提交而自动变为新候选。
+
 ## 2026-11-23 · 原生 StageGroup
 
 5.22（90）的私有签名候选为 `4701693`，14 个可执行文件已独立核对加固签名和安全时间戳，Gatekeeper 判定未公证。唯一实机安装仍为 `bec6cb2`。本轮已复核四项 Host 权限、配置和零活动租约，并完成六项回滚资料的备份核对。Swift Host 持有产品事务，Rust 的 Corner、Spaces 各自等待正式单窗输入与恢复验收，生产合格后端为 0/2。[当前工程收据与恢复入口](window-engine/product-integration-20261123/STATUS.md) · [私有候选签名](window-engine/product-integration-20261123/signed-candidate.json) · [安装版备份](window-engine/product-integration-20261123/rollback-backup.json)

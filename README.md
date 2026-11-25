@@ -1,5 +1,7 @@
 # Nearpane
 
+**当前开发：独立台前调度替代。** Nearpane 通过真实隐藏 Space 调度工作组，以 R4 平放缩略图提供唯一台前调度界面。产品与技术采用[唯一现行裁决](engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md)，[实现与验证入口](engineering/verification/independent-stage/README.md)分别记录代码、候选及真实系统证据。独立候选与日常安装使用不同的应用身份和资料目录。
+
 日常使用从 Finder 的「应用程序」打开 Nearpane。菜单栏的「打开 Nearpane」集中提供语音档案、截图档案和设置。本机统一安装位置为 `/Applications/Nearpane.app`。[个人 Alpha 使用帮助](docs/ALPHA-HELP.md)
 
 在同一个原生工程中开发 Host、Saytile 文字流、Riftlet 截图托盘和本屏窗口侧栏。当前安装的版本、对应源码和实机验收结果统一记录在[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)。原生窗口专项的当前范围与历史工作包见[专项状态](engineering/native-spaces/STATUS.md)。
@@ -14,9 +16,17 @@
 
 ## 产品定义与实施依据
 
-窗口调度采用 Nearpane 自己的 Display → StageGroup → Window 模型。macOS 管理原生桌面及其手势、全屏和 Split View。产品边界、当前实现差异及阶段门槛见[产品定义](engineering/research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md)、[架构](engineering/research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md)和[实施计划](engineering/research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。R4 [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)继续生效。
+窗口调度采用 Nearpane 自己的 Display → ordinary Desktop → StageGroup → Window 模型。macOS 保留原生桌面及其手势、全屏和 Split View。窗口退出工作区必须是真实隐藏；Corner、壁纸遮罩和苹果原生缩略栏跟随均不是产品路线或自动回退。R4 [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)继续生效。
 
-打开窗口列表和启用窗口自动管理是两个独立操作。Docked 的预留区沿用该屏的持久设置。自动平铺、八窗分流、历史比例和退出恢复的产品规则见 ADR-013。哪些规则已在安装版验证，请查阅[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)。
+独立候选从完整 R4 侧栏直接选择工作组，恢复真实窗口与原布局；既有自动平铺监督器不在此路径启动。Docked 的预留区沿用该屏的持久设置。[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)保留历史安装证据，不能将早期原生栏或 Corner 的通过结果计入本次独立引擎。
+
+统一构建与实机入口：
+
+```sh
+python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --iterations 3
+```
+
+完整候选、独立夹具、清理与结果解释见[验收说明](scripts/acceptance/independent-stage/README.md)。源码测试可以远程运行；每项真实系统行为必须以对应环境的回读为依据。
 
 ## 本地构建与测试
 

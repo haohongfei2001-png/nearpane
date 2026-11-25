@@ -99,7 +99,7 @@ public actor NativeStageWindowEngine {
         try await submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_RELEASE_SPACES), intent: UUID()),
                          timeoutMilliseconds: 9_000, expectedEpoch: expectedEpoch)
     }
-    private nonisolated static func encode(_ input: NativeStageEngineRequest, timeout: UInt32, epoch: UInt64) -> NPRequest {
+    nonisolated static func encode(_ input: NativeStageEngineRequest, timeout: UInt32, epoch: UInt64) -> NPRequest {
         var request = NPRequest()
         request.size = UInt32(MemoryLayout<NPRequest>.size); request.version = UInt32(NP_ENGINE_ABI)
         request.backend = input.backend; request.operation = input.operation; request.timeout_ms = timeout

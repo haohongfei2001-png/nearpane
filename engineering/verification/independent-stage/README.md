@@ -1,0 +1,68 @@
+# Independent Stage — implementation and evidence
+
+Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16).
+Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
+The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
+
+## Implemented product path
+
+The complete Swift Host keeps the R4 surface and embedded voice/screenshot/file modules. R4 thumbnail
+selection reaches the independent group coordinator and the Rust Spaces engine. The candidate neither
+selects Corner nor mirrors Apple's strip. A separately signed, sealed worker retains the same Rust engine
+and original AX leases across Host exit; losing the anonymous pipe enters release-only cleanup. The
+worker still uses the existing static library and C ABI, not a second window-management implementation.
+
+| Behavior | Main implementation |
+| --- | --- |
+| Real hidden retirement and return | `Engine/nearpane-window-engine/src/spaces`, `LinkedSpacesEngineTransport` |
+| Group switching, member focus, last minimized group, z order | `StageGroupCoordinator`, `StageWindowEngine` |
+| Physical identity, ordinary home and visibility readback | `StageWindowEngineWitness`, `StageHostWindow`, `StageWindowPhysicalReader` |
+| Actual R4 card, merge/detach and yellow minimize | `DesktopSurface`, `StageGroupPictures`, `IndependentStageGroupEditing`, `IndependentStageMinimizeObserver` |
+| Native system handback and focused-group resume | `StageWindowEngineHost`, `DisplayPanels` |
+| Isolated full workbench and packaging | `NearpaneApp`, `CandidateProfile`, `IndependentStagePolicy`, `package.py` |
+| Controlled foreign windows, real product presses and cleanup | `scripts/acceptance/independent-stage/run.py`, `controller.m`, `IndependentStageAcceptance.swift` |
+
+These are code-completion claims. The evidence below determines which native effects have actually passed.
+
+## Executed evidence
+
+| Source/environment | Observation | Meaning |
+| --- | --- | --- |
+| Historical `9509bd0`, target 27.0 / 26A428, arm64, SIP enabled | Own panel entered hidden Space 5643, returned to ordinary home 4, empty Space destroyed | Own-window mechanism established; foreign writes were zero |
+| `da51f75`, same target | Two independent fixture apps/three windows read twice with AX and identity; launch rejected with detail 217; cleanup passed | Foreign writes zero; own-panel preparation blocked |
+| `9c1be70`, target diagnostic | Actual `NSApplication.run` succeeds where manual run-loop pumping did not; main-queue callback reentry then timed out | Harness defect, not failed foreign migration |
+| Target focus contrast | Global AX focused-application call failed; direct front-app AX focused-window and CG ID succeeded | Production and canary now verify front process birth/owner and exact focused AX window directly |
+| Corrected own-panel focus/run-loop diagnostic, target | Prepare/open/read/close succeeded and original focus matched | No Space creation or foreign migration performed in this diagnostic |
+| `2a0cfbe9b16675905237ab1917fe48b9a61d8789`, hosted macOS 27.0.1 / 26A434, SIP disabled | Source step passed; full release compilation and embedded-resource checks passed; the later standalone-executable signature check used the wrong bundle context and is being corrected | Source pass is separate from a complete artifact and all native behavior |
+
+Source CI: [run 45675486685](https://github.com/haohongfei2001-png/nearpane/actions/runs/45675486685).
+Subsequent committed corrections and final candidate receipts are added below after execution; a running
+or failed build is never advertised as a complete candidate.
+
+Original target receipts:
+
+- [Initial candidate run and cleanup](target-da51f75/README.md)
+- [Main-queue timeout and cleanup](target-9c1be70-mainqueue/README.md)
+- [Run-loop A/B receipt](target-own-panel-runloop-20261126.json)
+- [Direct-focus own-panel diagnostic](target-direct-focus-20261126.json)
+- [Read-only native-engine/strip inventory](../../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-inventory.json)
+- [Read-only front-focus contrast](../../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-focus-readback.json)
+
+The target connector subsequently stopped responding. The unstarted calls returned timeouts without a
+process ID; they are not additional WindowServer experiments. The daily application and its checkout
+were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
+
+## Unified execution
+
+```sh
+python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --iterations 3
+```
+
+The output path must be new. This builds source and the complete application, packages the independent
+workspace, creates controlled fixture apps, exercises the isolated product copy, retains raw evidence and
+cleans up its own children. [Entry and interpretation](../../../scripts/acceptance/independent-stage/README.md).
+A failed source or packaging phase keeps its failure even when independent later diagnostics can run.
+
+Actual third-party migration, full R4 operation, yellow minimize, native handback/resume, desktop reveal,
+Host-crash cleanup, full-screen/Split View and physical desktop gestures require their own completed
+receipts. `NOT_RUN`, unavailable permissions and a different macOS/SIP environment cannot qualify the target.

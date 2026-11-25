@@ -151,7 +151,7 @@ public extension StageEngineSession {
     convenience init?(owner: StageEngineOwner, witness: any StageEngineWindowWitness, profile: URL,
                       releaseExited: @escaping @MainActor (UUID) -> Void = { _ in }) {
         if owner.backend == .spaces {
-            guard let transport = LinkedSpacesEngineTransport(owner: owner) else { return nil }
+            guard let transport = LinkedSpacesEngineTransport(owner: owner, profile: profile) else { return nil }
             self.init(owner: owner, witness: witness, transport: transport)
             return
         }

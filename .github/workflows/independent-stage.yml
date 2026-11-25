@@ -35,7 +35,8 @@ jobs:
         run: |
           bash scripts/build-app.sh release
           app="$PWD/build/standalone.$NEARPANE_RUN_ID/products/release/Nearpane.app"
-          codesign --verify --strict "$app/Contents/MacOS/NearpaneHost"
+          # build-app verifies its standalone development image before assembling
+          # resources. Seal and verify the complete candidate in its bundle context.
           workspace="$RUNNER_TEMP/NearpaneIndependentStage.app"
           python3 -B scripts/acceptance/independent-stage/package.py "$app" "$workspace" --revision "$GITHUB_SHA" --mode workspace
           codesign --verify --strict --deep "$workspace"
@@ -54,9 +55,13 @@ jobs:
           PY
           printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
       - name: Foreign-window Spaces and production R4 receipts
-        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        if: ${{ !cancelled() }}
         run: |
-          python3 -B scripts/acceptance/independent-stage/run.py "$RUNNER_TEMP/independent-runtime" --scope runtime --iterations 3 --product-host '${{ steps.candidate.outputs.app }}'
+          arguments=("$RUNNER_TEMP/independent-runtime" --scope runtime --iterations 3)
+          if [[ '${{ steps.candidate.outcome }}' == success ]]; then
+            arguments+=(--product-host '${{ steps.candidate.outputs.app }}')
+          fi
+          python3 -B scripts/acceptance/independent-stage/run.py "${arguments[@]}"
       - name: Compile native rendering-decoupling diagnostic
         if: ${{ !cancelled() }}
         run: |
