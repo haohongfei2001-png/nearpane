@@ -14,6 +14,9 @@ import NearpaneCore
     let release: @MainActor () -> Void
     let deadline: ContinuousClock.Instant
     var memberCycle: AppleStageMemberCycle?
+    /// WindowManager may remove the strip item before the desktop catalog's
+    /// AXMinimized bit follows. Keep only the already dispatched witness for readback.
+    var restoringNativeMinimizedWindow: DesktopWindowKey?
 
     func includes(_ group: Group, now: ContinuousClock.Instant = .now) -> Bool {
         now < deadline && roster.contains { $0.id == group.id && Set($0.members) == Set(group.members) }

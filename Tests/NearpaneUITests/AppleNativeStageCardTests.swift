@@ -4,6 +4,28 @@ import Testing
 @testable import NearpaneUI
 
 @MainActor struct AppleNativeStageCardTests {
+    @Test func minimizedAdmissionRequiresTwoMatchingWindowGenerationsAndWholeNativeItems() {
+        var samples = AppleNativeStages.MinimizedMembership()
+        let a = DesktopWindowKey(pid: 12, birth: 100, number: 3)
+        let sibling = DesktopWindowKey(pid: 12, birth: 100, number: 4)
+        let recycled = DesktopWindowKey(pid: 12, birth: 101, number: 3)
+        samples.update([a: [a, sibling]], at: 1)
+        #expect(samples.admitted.isEmpty)
+        samples.update([a: [a]], at: 2)
+        #expect(samples.admitted.isEmpty)
+        samples.update([a: [a]], at: 3)
+        #expect(samples.admitted == [a: [a]])
+        samples.update([recycled: [recycled]], at: 4)
+        #expect(samples.admitted.isEmpty)
+        samples.update([:], at: 5)
+        samples.update([a: [a]], at: 6)
+        #expect(samples.admitted.isEmpty)
+        samples.update([a: [a]], at: 12_000_000_007)
+        #expect(samples.admitted.isEmpty)
+        samples.update([a: [a]], at: 12_000_000_007)
+        #expect(samples.admitted.isEmpty)
+    }
+
     @Test func rapidThirdCardChoiceWaitsForTwoFreshReadsOfThePreviousExactFocus() {
         typealias Group = AppleNativeStages.Group
         let keys = (0..<3).map { DesktopWindowKey(pid: 10, birth: 500, number: UInt32($0 + 1)) }

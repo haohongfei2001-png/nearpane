@@ -5,6 +5,37 @@ import Testing
 @testable import NearpaneWindowEngine
 
 struct AppleStageMembershipTests {
+    @Test func aNewNativeMinimizedStageNeedsItsExactLiveStripItemAndListedOwner() throws {
+        let screen = CGRect(x: 0, y: 0, width: 1600, height: 1000)
+        let mirror = try #require(AppleStageMirror(display: UUID(), space: 4))
+        let large = CGRect(x: 200, y: 50, width: 800, height: 650)
+        let away = CGRect(x: -1400, y: -1400, width: 700, height: 550)
+        func sample(_ time: UInt64, items: [[UInt32]]?) -> AppleStageSystemRead {
+            AppleStageSystemRead(manager: 99, sampleTime: time, listed: [
+                .init(window: 1, pid: 11, layer: 0, onscreen: 1, frame: .init(large)),
+                .init(window: 2, pid: 22, layer: 0, onscreen: 0, frame: .init(away)),
+                .init(window: 3, pid: 22, layer: 0, onscreen: 0, frame: .init(away))],
+                strips: items.map { [.init(frame: screen, items: $0.map { .init(frame: .init(x: -200, y: 100, width: 100, height: 100), members: $0) })] },
+                singleDisplay: true)
+        }
+        let owners: [UInt32:pid_t] = [1:11, 2:22, 3:22]
+        func evidence(_ groups: [[UInt32]]?, _ known: [UInt32:pid_t]? = nil) -> [UInt32:Set<UInt32>] {
+            AppleStageMirror.minimizedStripItems(in: sample(1, items: groups), screen: screen,
+                                                owners: known ?? owners, minimized: [2,3])
+        }
+        #expect(evidence([[2]]) == [2:[2]])
+        #expect(evidence(nil).isEmpty && evidence([]).isEmpty)
+        #expect(evidence([[2],[2]]).isEmpty && evidence([[2,88]]).isEmpty)
+        #expect(evidence([[2]], [1:11,2:33,3:22]).isEmpty)
+        let eligibleOwners: [UInt32:pid_t] = [1:11,2:22]
+        _ = try #require(mirror.read(sample(1, items: [[2]]), owners: eligibleOwners, screen: screen, minimized: [2]))
+        let result = try #require(mirror.read(sample(2, items: [[2]]), owners: eligibleOwners, screen: screen, minimized: [2]))
+        #expect(result.completeMembership)
+        #expect(result.stages.map(\.members) == [[1],[2]])
+        #expect(result.stages.last?.evidence == .nativeStripItem)
+        let dockOnly = try #require(mirror.read(sample(3, items: []), owners: eligibleOwners, screen: screen, minimized: [2]))
+        #expect(!dockOnly.completeMembership && dockOnly.stages.allSatisfy { $0.members != [2] })
+    }
     @Test func hiddenStripAndRememberedCardsNeedFreshMembershipToConfirmTheDirectory() throws {
         let screen = CGRect(x: 0, y: 0, width: 1600, height: 1000)
         let mirror = try #require(AppleStageMirror(display: UUID(), space: 4))

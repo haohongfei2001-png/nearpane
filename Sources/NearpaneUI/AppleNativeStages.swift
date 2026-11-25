@@ -12,6 +12,23 @@ import NearpaneWindowEngine
         let members: [DesktopWindowKey]
         var evidence: AppleStageMirror.MembershipEvidence = .unsettled
     }
+    struct MinimizedMembership {
+        typealias Items = [DesktopWindowKey: Set<DesktopWindowKey>]
+        private var previous = Items()
+        private var previousTimestamp: UInt64?
+        private(set) var admitted = Items()
+        mutating func update(_ observed: Items, at timestamp: UInt64) {
+            // Keep both independent observations inside the desktop sample's
+            // twelve-second freshness horizon, including after system wake.
+            if let previousTimestamp, timestamp > previousTimestamp,
+               timestamp - previousTimestamp <= 12_000_000_000 {
+                admitted = observed.filter { previous[$0.key] == $0.value }
+            } else { admitted = [:] }
+            previousTimestamp = timestamp
+            previous = observed
+        }
+    }
+    @ObservationIgnored private var minimizedMembership = MinimizedMembership()
     private struct Home: Equatable {
         let session: UUID
         let topology: String
@@ -66,6 +83,7 @@ import NearpaneWindowEngine
         minimize.stop()
         if !groups.isEmpty { groups = [] }
         ready = false; keys = [:]; lastChoice = [:]; mirror = nil; home = nil; lastRead = 0; latestSystem = nil
+        minimizedMembership = MinimizedMembership()
         didDispatch = false; completeMembership = false
     }
 
@@ -117,26 +135,39 @@ import NearpaneWindowEngine
     }
 
     private func observe(_ sample: DesktopSnapshot, scope: Home, token: UUID) async {
-        let known = Self.roster(sample, display: scope.display, nativeID: String(scope.record))
         let single = sample.displays.count == 1
         let raw = await Task.detached(priority: .utility) { AppleStageSystemRead.capture(singleDisplay: single) }.value
         guard generation == token, !Task.isCancelled, visible?() == true,
               scope == Home(currentSnapshot?(), scope.display) else { return }
-        guard let raw else { ready = false; handoff = nil; return }
+        guard let raw else { minimizedMembership = MinimizedMembership(); ready = false; handoff = nil; return }
         // An asynchronous collector from before a selection may finish after the newer read.
         guard raw.timestamp > lastRead else { return }
-        if scope != home || known.contains(where: { keys[$0.key] != nil && keys[$0.key] != $0.value }) {
+        let ordinary = Self.roster(sample, display: scope.display, nativeID: String(scope.record))
+        let all = Self.roster(sample, display: scope.display, nativeID: String(scope.record), includingMinimized: true)
+        if scope != home || all.contains(where: { keys[$0.key] != nil && keys[$0.key] != $0.value }) {
             clear()
             home = scope
             mirror = AppleStageMirror(display: scope.screen, space: scope.record)
         }
+        let minimized = Set(all.keys).subtracting(ordinary.keys)
+        let items = AppleStageMirror.minimizedStripItems(in: raw, screen: scope.frame, owners: all.mapValues(\.pid), minimized: minimized)
+        var observed = MinimizedMembership.Items()
+        if sample.native?.catalogComplete == true {
+            for (id, item) in items {
+                if let key = all[id] { observed[key] = Set(item.compactMap { all[$0] }) }
+            }
+        }
+        minimizedMembership.update(observed, at: raw.timestamp)
+        let admitted = minimizedMembership.admitted
+        let restoring = handoff?.restoringNativeMinimizedWindow
+        let known = all.filter { ordinary[$0.key] != nil || admitted[$0.value] != nil || $0.value == restoring }
         latestSystem = raw
         lastRead = raw.timestamp
         keys = known
-        minimize.update(targets: Array(Self.roster(sample, display: scope.display, nativeID: String(scope.record), includingMinimized: true).values)) { [weak self] in self?.updates?.yield(()) }
+        minimize.update(targets: Array(all.values)) { [weak self] in self?.updates?.yield(()) }
         let transition = didDispatch
         didDispatch = false
-        guard let reading = mirror?.read(raw, owners: known.mapValues(\.pid), screen: scope.frame, transition: transition)
+        guard let reading = mirror?.read(raw, owners: known.mapValues(\.pid), screen: scope.frame, minimized: Set(admitted.keys.map(\.number)), transition: transition)
         else { ready = false; handoff = nil; return }
         completeMembership = reading.completeMembership
         let stable = reading.settled && !reading.contradictory
@@ -183,6 +214,7 @@ import NearpaneWindowEngine
         let candidates = snapshot.windows.compactMap { w -> DesktopWindowKey? in
             guard w.displayID == display, w.membership == .known(recordIDs: [nativeID]),
                   let m = w.metadata, m.fullScreen != true, includingMinimized || m.minimized != true,
+                  m.minimized != true || (m.fullScreen == false && m.overviewOrdinaryRole == true),
                   m.overviewOrdinaryRole == true || w.canWitnessCurrentSpace else { return nil }
             return DesktopWindowKey(w)
         }
@@ -278,6 +310,15 @@ import NearpaneWindowEngine
             oneAtATime: AppleStageMemberCycle.oneAtATime(), completingPrevious: predecessor != nil) : nil
         guard let target = window ?? next ?? lastChoice[group.id] ?? original.members.first,
               original.members.contains(target) else { throw StageSwitchError.unavailable }
+        let minimizedItem = minimizedMembership.admitted[target]
+        var originalAX: AppleStageFocus?
+        if let minimizedItem {
+            guard ready, original.evidence == .nativeStripItem, minimizedItem == Set(original.members),
+                  let witness = AppleStageFocus(target, display: scope.display, record: String(scope.record),
+                                                uuid: scope.desktop, initiallyMinimized: true)
+            else { throw StageSwitchError.unavailable }
+            originalAX = witness
+        }
         let token = generation, hid = NativeSelectionPermit.inputCounters()
         var watcher: AppleFocusHandoff?
         var transferred = false
@@ -312,7 +353,10 @@ import NearpaneWindowEngine
         await observe(fresh, scope: scope, token: token)
         guard allowed(), ready, !needsWholeRoster || completeMembership,
               groups.contains(where: { $0.id == group.id }), keys[target.number] == target,
-              let focus = AppleStageFocus(target, display: scope.display, record: String(scope.record), uuid: scope.desktop) else {
+              minimizedMembership.admitted[target] == minimizedItem,
+              let focus = AppleStageFocus(target, display: scope.display, record: String(scope.record),
+                                           uuid: scope.desktop, initiallyMinimized: minimizedItem != nil),
+              originalAX.map({ focus.matches($0) }) ?? true else {
             throw StageSwitchError.unavailable
         }
         if let predecessor, self.handoff?.id != predecessor || preceding?.focused(groups) != true {
@@ -338,7 +382,8 @@ import NearpaneWindowEngine
         let memberCycle = AppleStageMemberCycle(group: original, selected: target, previous: cycle, focused: { focus.confirmed() })
         let dispatched = AppleStageSelectionHandoff(roster: groups, target: group, originalMembershipConfirmed: completeMembership, focusMatches: { focus.confirmed() },
             ownsForeground: { watcher.current() }, release: { watcher.stop() },
-            deadline: .now.advanced(by: .seconds(4)), memberCycle: repeatCard ? memberCycle : nil)
+            deadline: .now.advanced(by: .seconds(4)), memberCycle: repeatCard ? memberCycle : nil,
+            restoringNativeMinimizedWindow: minimizedItem == nil ? nil : target)
         self.handoff = dispatched
         transferred = true
         ready = false

@@ -12,8 +12,9 @@ import NearpaneOrdinaryWindowRuntime
     private let application: AXUIElement
     private let display, record: String
     private let uuid: UUID
+    private let initiallyMinimized: Bool
 
-    init?(_ key: DesktopWindowKey, display: String, record: String, uuid: UUID) {
+    init?(_ key: DesktopWindowKey, display: String, record: String, uuid: UUID, initiallyMinimized: Bool = false) {
         guard AXIsProcessTrusted(), let image = try? OrdinaryProcessImage.read(key.pid), image.launch == key.birth,
               let app = NSRunningApplication(processIdentifier: key.pid), !app.isTerminated, !app.isHidden,
               app.activationPolicy == .regular, let bundle = app.bundleIdentifier,
@@ -25,9 +26,10 @@ import NearpaneOrdinaryWindowRuntime
         let matches = windows.filter { NearpaneOrdinaryWindowRuntime.number($0) == key.number }
         guard matches.count == 1, let match = matches.first,
               Self.value(match, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole,
-              Self.value(match, kAXMinimizedAttribute) as? Bool == false,
-              Self.value(match, "AXFullScreen") as? Bool != true else { return nil }
+              Self.value(match, kAXMinimizedAttribute) as? Bool == initiallyMinimized,
+              (Self.value(match, "AXFullScreen") as? Bool ?? initiallyMinimized) == false else { return nil }
         AXUIElementSetMessagingTimeout(match, 0.08)
+        self.initiallyMinimized = initiallyMinimized
         self.key = key; self.image = image; self.window = match; self.display = display; self.record = record; self.uuid = uuid
     }
 
@@ -55,13 +57,21 @@ import NearpaneOrdinaryWindowRuntime
         return list
     }
 
+    func matches(_ previous: Self) -> Bool {
+        key == previous.key && image == previous.image && CFEqual(window, previous.window)
+    }
+
     private func live() -> Bool {
-        StageManagerPreference.read() == true && (try? OrdinaryProcessImage.read(key.pid)) == image &&
+        let app = NSRunningApplication(processIdentifier: key.pid)
+        return app?.isHidden == false && app?.isTerminated == false &&
+            (Self.value(window, "AXFullScreen") as? Bool ?? initiallyMinimized) == false &&
+            (initiallyMinimized || Self.value(window, kAXMinimizedAttribute) as? Bool == false) &&
+            StageManagerPreference.read() == true && (try? OrdinaryProcessImage.read(key.pid)) == image &&
             NearpaneOrdinaryWindowRuntime.number(window) == key.number &&
             OrdinaryDesktopMembership.contains(key.number, display: display, record: record, uuid: uuid)
     }
     func perform(current: () -> Bool) throws {
-        guard current(), live(), Self.outsideOverview(), current() else { throw StageSwitchError.interrupted }
+        guard current(), live(), Self.outsideOverview(), Self.value(window, kAXMinimizedAttribute) as? Bool == initiallyMinimized, current() else { throw StageSwitchError.interrupted }
         // Some ordinary apps decline raise. The native route still needs main and frontmost,
         // then independent AX focus and complete WindowManager group readback.
         _ = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -70,7 +80,7 @@ import NearpaneOrdinaryWindowRuntime
         else { throw StageSwitchError.interrupted }
     }
     func confirmed() -> Bool {
-        guard live(), NSWorkspace.shared.frontmostApplication?.processIdentifier == key.pid,
+        guard live(), Self.value(window, kAXMinimizedAttribute) as? Bool == false, NSWorkspace.shared.frontmostApplication?.processIdentifier == key.pid,
               let raw = Self.value(application, kAXFocusedWindowAttribute), CFGetTypeID(raw) == AXUIElementGetTypeID(),
               CFEqual(raw, window), NearpaneOrdinaryWindowRuntime.number(raw as! AXUIElement) == key.number else { return false }
         let system = AXUIElementCreateSystemWide()

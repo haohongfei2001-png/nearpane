@@ -30,6 +30,22 @@ package final class AppleStageMirror {
             items = Set(raw.map { Set($0) })
         }
     }
+    /// Native strip membership must name a complete item on this display. A Dock
+    /// tile, an offscreen rectangle or a remembered card supplies no such evidence.
+    package static func minimizedStripItems(in system: AppleStageSystemRead, screen: CGRect,
+            owners: [UInt32: pid_t], minimized: Set<UInt32>) -> [UInt32: Set<UInt32>] {
+        guard !minimized.isEmpty, let strip = StripWitness(system.confirmedStrip(on: screen)) else { return [:] }
+        let rows = Dictionary(grouping: system.listed.filter { owners[$0.window] != nil }, by: \.window)
+        let matching = Set(rows.compactMap { window, entries in
+            entries.count == 1 && entries[0].layer == 0 && owners[window] == entries[0].pid ? window : nil
+        })
+        var result = [UInt32: Set<UInt32>]()
+        for item in strip.items where item.isSubset(of: matching) {
+            for id in item.intersection(minimized) { result[id] = item }
+        }
+        return result
+    }
+
     package struct Reading {
         package let completeMembership: Bool
         package let stages: [Stage]
@@ -56,7 +72,7 @@ package final class AppleStageMirror {
     deinit { _ = np_apple_mirror_destroy(handle) }
 
     package func read(_ system: AppleStageSystemRead, owners: [UInt32: pid_t], screen: CGRect,
-                      transition: Bool = false) -> Reading? {
+                      minimized: Set<UInt32> = [], transition: Bool = false) -> Reading? {
         let managed = owners.keys.sorted()
         guard system.listed.allSatisfy({ row in owners[row.window].map { $0 == row.pid } ?? true }) else {
             return nil
@@ -99,7 +115,7 @@ package final class AppleStageMirror {
                                uniquingKeysWith: min)
         let freshStrip = StripWitness(ax?.map(\.members))
         let settled = result.settled == 1
-        let stages = groups.keys.sorted().compactMap { ordinal -> Stage? in
+        var stages = groups.keys.sorted().compactMap { ordinal -> Stage? in
             guard let rows = groups[ordinal], let first = rows.first else { return nil }
             let members = rows.map(\.window).sorted { (ranks[$0] ?? .max, $0) < (ranks[$1] ?? .max, $1) }
             let current = first.role == NP_APPLE_CURRENT
@@ -110,6 +126,25 @@ package final class AppleStageMirror {
             else if first.role == NP_APPLE_REMEMBERED { evidence = .remembered }
             else { evidence = .inferredStrip }
             return Stage(current: current, evidence: evidence, members: members)
+        }
+        // A newly minimized stage may have no strip-sized CG surface and no
+        // prior mirror group. Project only the complete native item confirmed
+        // for that physical window. Preserve every unrelated card.
+        if settled && !minimized.isEmpty, let ax, freshStrip != nil {
+            let observed = Set(Self.minimizedStripItems(in: system, screen: screen, owners: owners, minimized: minimized).values)
+            let ordered = ax.map { Set($0.members) }
+            for (ordinal, item) in ax.enumerated() where observed.contains(ordered[ordinal]) {
+                let ids = ordered[ordinal]
+                let overlaps = stages.indices.filter { !ids.isDisjoint(with: stages[$0].members) }
+                guard overlaps.allSatisfy({ !stages[$0].current && Set(stages[$0].members).isSubset(of: ids) }) else { return nil }
+                let laterItems = ordered.dropFirst(ordinal + 1)
+                let insertion = overlaps.first ?? stages.firstIndex {
+                    !$0.current && ($0.evidence == .remembered || laterItems.contains(Set($0.members)))
+                } ?? stages.endIndex
+                for index in overlaps.reversed() { stages.remove(at: index) }
+                let members = item.members.sorted { (ranks[$0] ?? .max, $0) < (ranks[$1] ?? .max, $1) }
+                stages.insert(Stage(current: false, evidence: .nativeStripItem, members: members), at: insertion)
+            }
         }
         let active = stages.filter(\.current)
         let conflictingCurrent = active.contains { !Set($0.members).isDisjoint(with: freshStrip?.windows ?? []) }
