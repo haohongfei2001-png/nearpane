@@ -17,7 +17,7 @@ import NearpaneOrdinaryWindowRuntime
     static let shipped: [StageWindowEngineAttestation.Pin] = []
     private let engine: StageWindowEngineController?, profile: URL?
     private var admissions: [StageEngineQualification]
-    private let candidateMode = IndependentStagePolicy.candidateRequested && !IndependentStagePolicy.candidatePIDs.isEmpty
+    private let candidateMode = IndependentStagePolicy.candidateHasScope
     private let candidateEvidence = UUID()
     @ObservationIgnored private var groupProjection: DesktopSnapshot?
     private(set) var observedCapability: StageWindowBackend?
@@ -256,6 +256,9 @@ import NearpaneOrdinaryWindowRuntime
         if let feed, !returnedWitnesses.isEmpty {
             guard await feed.readAfterAction() != nil, current(),
                   await feed.readAfterAction() != nil, current() else { throw StageSwitchError.interrupted }
+            for returned in returnedWitnesses.values where returned.homeCatalog(feed.snapshot) != nil {
+                guard returned.returnedMembersAreBound(in: feed) else { throw StageSwitchError.interrupted }
+            }
         }
     }
 
@@ -372,7 +375,7 @@ import NearpaneOrdinaryWindowRuntime
     private func consent(for scope: StageGroupScope, evidence: UUID, feed: CurrentDesktopWindows) throws -> Consent {
         guard let excluded = management?.ordinary.stageWindowExclusions else { throw StageSwitchError.busy }
         func lifetime(_ key: NativeSpaceWindow) -> UUID? {
-            guard !excluded.contains(key), !candidateMode || IndependentStagePolicy.candidatePIDs.contains(key.pid) else { return nil }
+            guard !excluded.contains(key), !candidateMode || IndependentStagePolicy.candidateIncludes(key.pid) else { return nil }
             return witness?.lifetime(of: key) ?? feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number))
         }
         let participants = feed.groups.participatingGroups(in: scope, lifetime: lifetime)
@@ -422,6 +425,7 @@ import NearpaneOrdinaryWindowRuntime
             return true
         }
         let make: (StageEngineEnvironment, StageEngineQualification?) -> StageEngineSession? = { [self] environment, qualification in
+            guard returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) != false else { return nil }
             let restore: @MainActor () -> Bool = { [weak self] in
                 guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
                 return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
@@ -571,7 +575,11 @@ import NearpaneOrdinaryWindowRuntime
     private func armArrivals(in feed: CurrentDesktopWindows, revision token: UInt64) async {
         guard let session = engine?.session, let granted, let witness else { return }
         if session.owner.backend == .spaces {
-            minimizeObserver.update(targets: granted.lifetimes.keys.map { .init(pid:$0.pid,birth:$0.birth,number:$0.number) },
+            let presented = granted.lifetimes.keys.filter {
+                guard let state = witness.state(of: $0) else { return false }
+                return state.visibility == .visible || state.visibility == .minimized
+            }
+            minimizeObserver.update(targets: presented.map { .init(pid:$0.pid,birth:$0.birth,number:$0.number) },
                 minimized: { [weak self] key in self?.retireMinimized(key) }, changed: { [weak feed] in feed?.changed() })
         }
         await witness.armArrivals(in: feed.groups, authorized: granted.lifetimes) { [weak self] in

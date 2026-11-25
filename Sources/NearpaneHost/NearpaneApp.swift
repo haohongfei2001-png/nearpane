@@ -640,6 +640,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func openHost() async {
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let independent = IndependentStagePolicy.workspaceRequested
+        if independent {
+            support.appendPathComponent("Nearpane Independent Stage", isDirectory: true)
+            do { try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true) }
+            catch { NSApp.presentError(error); NSApp.terminate(nil); return }
+        }
         var testSession: URL?
         #if canImport(RiftletCore) && canImport(SaytileKit)
         if let acceptanceSession { support = acceptanceSession.support; testSession = acceptanceSession.directory }
@@ -669,10 +675,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
         guard !Task.isCancelled else { return }
         #if canImport(SaytileKit)
-        let candidate = CandidateProfile.selected
+        let candidate = CandidateProfile.selected || independent
         let activeProfile = profileLease != nil
         #else
-        let candidate = false
+        let candidate = independent
         let activeProfile = false
         #endif
         let store = FileConfigurationStore(url: support.appendingPathComponent("Nearpane/host-configuration.json"),
@@ -685,14 +691,15 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        if independent { modules.connectIndependentStageObservation() }
         if let selectionService, testSession == nil, candidate, let id = UUID(uuidString: support.lastPathComponent) {
             modules.bindSelectionService(selectionService, generation: id)
         }
         modules.workRect?.setOrdinaryHold("session", active: sessionUnavailable)
         #if canImport(SaytileKit)
-        if !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }
+        if !independent && !profileTrial && !enrolledFullscreenTrial { modules.workRect?.start() }
         #else
-        modules.workRect?.start()
+        if !independent { modules.workRect?.start() }
         #endif
         let provider: any DesktopObservationProvider
         if testSession == nil { provider = NativeDesktopProvider.packaged() }
@@ -724,7 +731,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         traceFullscreenStartup("host-started")
         guard !Task.isCancelled else { return }
         if candidate, testSession == nil { modules.workRect?.restoreCleanDesktopPermission() }
-        let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate, activityBlock: { [weak modules] in
+        let updater = ApplicationUpdater(allowNetwork: testSession == nil && candidate && !independent, activityBlock: { [weak modules] in
             guard let modules else { return "暂时无法核对运行状态，请稍后安装。" }
             return await modules.updateRelaunchBlock()
         }) { [weak self] in

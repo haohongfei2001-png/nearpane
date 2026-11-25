@@ -49,7 +49,7 @@ static void command(void) {
         [w close];
     } else if ([action isEqual:@"quit"]) {
         for (NSWindow *document in documents) [document close];
-        commandSequence=[request[@"sequence"] integerValue]; writeState(); [NSApp stop:nil]; return;
+        commandSequence=[request[@"sequence"] integerValue]; writeState(); [NSApp terminate:nil]; return;
     } else { return; }
     commandSequence=[request[@"sequence"] integerValue]; writeState();
 }
@@ -76,7 +76,7 @@ int main(int argc,const char **argv) {
         double deadline=NSProcessInfo.processInfo.systemUptime+600;
         NSTimer *timer=[NSTimer timerWithTimeInterval:.04 repeats:YES block:^(NSTimer *t){
             command();writeState();
-            if(NSProcessInfo.processInfo.systemUptime>=deadline){for(NSWindow *w in documents)[w close];[t invalidate];[NSApp stop:nil];}
+            if(NSProcessInfo.processInfo.systemUptime>=deadline){for(NSWindow *w in documents)[w close];[t invalidate];[NSApp terminate:nil];}
         }];
         [NSRunLoop.mainRunLoop addTimer:timer forMode:NSRunLoopCommonModes];[NSApp run];[timer invalidate];
         return 0;

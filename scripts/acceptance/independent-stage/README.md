@@ -48,13 +48,20 @@ executable path, signing digest and window identities.
    buttons, presses them, and verifies physical foreign-window membership,
    geometry and exact AX focus. It never substitutes a direct engine call for a
    reported R4 click. Real R4 renders are saved as `r4-N.png`.
-7. The product runner exercises the yellow-button observer and held-card restore,
+7. The product runner merges the other app's held group into the current group
+   through the production context-menu handler, then presses actual R4 buttons to
+   retire/restore both members and precisely focus the second app's member. It
+   detaches that member through the same production handler used by the menu and
+   verifies that all three independent groups and their original frames survive.
+   Handler invocation is recorded explicitly; it does not claim a physical drag
+   or an accessibility press of the context menu itself.
+8. The product runner exercises the yellow-button observer and held-card restore,
    Mission Control, native full-screen entry/return, an existing adjacent ordinary
    desktop through the system Control-arrow action, and App Exposé. Missing system
    prerequisites are reported independently. A synthetic system desktop action is
    **not** reported as a physical three-finger gesture. Native Split View is not
    claimed by these initial runtime receipts.
-8. `NP_RELEASE_SPACES` and the production shutdown path return owned windows before
+9. `NP_RELEASE_SPACES` and the production shutdown path return owned windows before
    destroying empty Spaces. The runner closes only the two direct fixture children.
    Original foreground restoration is attempted only while a test app still owns
    the foreground. The product candidate profile stays in the output folder.

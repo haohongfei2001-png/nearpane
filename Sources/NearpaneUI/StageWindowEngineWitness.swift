@@ -103,6 +103,15 @@ import NearpaneOrdinaryWindowRuntime
         returnedAppearances.removeAll()
     }
 
+    func returnedMembersAreBound(in feed: CurrentDesktopWindows) -> Bool {
+        authorizedLifetimes.allSatisfy { window, lifetime in
+            let key = DesktopWindowKey(pid: window.pid, birth: window.birth, number: window.number)
+            if feed.groupLifetime(of: key) == lifetime { return true }
+            guard let binding = bindings[window], let gone = try? binding.monitor.departure() else { return false }
+            return gone.window == window && gone.lifetime == lifetime
+        }
+    }
+
     /// Retain read-only AX identities across a successful system handoff. This never
     /// writes a window and never treats a recycled CG number as a surviving member.
     func observeReturnedLifetimes(_ snapshot: DesktopSnapshot) {

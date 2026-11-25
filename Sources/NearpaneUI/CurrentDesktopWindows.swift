@@ -140,7 +140,7 @@ import OSLog
         let observations = Dictionary(grouping: snapshot.windows.compactMap(DesktopWindowKey.init), by: { $0 })
         return ordered(row.windows).filter { w in
             guard let key = DesktopWindowKey(w), observations[key]?.count == 1 else { return false }
-            if IndependentStagePolicy.candidateRequested && !IndependentStagePolicy.candidatePIDs.contains(key.pid) { return false }
+            if IndependentStagePolicy.candidateRequested && !IndependentStagePolicy.candidateIncludes(key.pid) { return false }
             return snapshot.isCurrentDesktopWindow(w)
         }.compactMap { groupWindow($0, on: screen, current: row.record) }
     }

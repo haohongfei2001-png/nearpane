@@ -11,7 +11,7 @@ import NearpaneCore
         let window: NativeSpaceWindow
     }
 
-    struct Plan {
+    @MainActor struct Plan {
         let scope: StageGroupScope
         let source: StageGroupDirectory.Group
         let target: StageGroupDirectory.Group?

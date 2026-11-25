@@ -3,6 +3,8 @@
 #import <AppKit/AppKit.h>
 #import <Security/Security.h>
 #import <stdatomic.h>
+#import <stdio.h>
+#import <stdlib.h>
 
 @interface NPSpacesLaunchPanel : NSPanel
 @end
@@ -22,6 +24,15 @@
 @end
 @implementation NPSpacesLaunchToken
 @end
+
+static int launchTrace(NPSpacesLaunchToken *t,unsigned op,int result,const char *phase) {
+    if (getenv("NP_SPACES_LAUNCH_TRACE")) {
+        fprintf(stderr,"{\"event\":\"spacesLaunchPlatform\",\"phase\":\"%s\",\"operation\":%u,\"result\":%d,\"mainThread\":%d,\"appRunning\":%d,\"prepared\":%d,\"opened\":%d,\"window\":%u,\"closeIssued\":%d}\n",
+            phase,op,result,NSThread.isMainThread,NSApp.isRunning,t->prepared,t->opened,t->window,t->closeIssued);
+        fflush(stderr);
+    }
+    return result;
+}
 
 @interface NPSpacesMainCall : NSObject {
 @public
@@ -101,15 +112,15 @@ static BOOL noRegisteredProbe(void) {
 }
 static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,void *authorization,NPStageGuard guard) {
     BOOL (^allowed)(void)=^BOOL{ return !atomic_load(&call->expired) && guard && guard(authorization); };
-    if (!NSApp || !NSThread.isMainThread || atomic_load(&call->expired))return 0;
+    if (!NSApp || !NSThread.isMainThread || atomic_load(&call->expired))return launchTrace(t,op,0,"entry");
     if(op==0 && !t->prepared) {
-        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus))return 0;
+        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus))return launchTrace(t,op,0,"prepare-focus");
         t->prepared=YES;
     }
     if(op==1) {
-        if(!t->prepared || t->opened || t->closed || !noRegisteredProbe() || !originalFocus(t) || !allowed())return 0;
+        if(!t->prepared || t->opened || t->closed || !noRegisteredProbe() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-precondition");
         NSScreen *screen=NSApp.mainWindow.screen ?: NSScreen.mainScreen;
-        if(!screen)return 0;
+        if(!screen)return launchTrace(t,op,0,"open-screen");
         // Transparent but inside a physical display so the original desktop is well defined.
         NSRect frame=NSMakeRect(NSMidX(screen.frame),NSMidY(screen.frame),4,4);
         t->panel=[[NPSpacesLaunchPanel alloc] initWithContentRect:frame
@@ -120,20 +131,20 @@ static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,v
         p.ignoresMouseEvents=YES;p.hidesOnDeactivate=NO;p.excludedFromWindowsMenu=YES;p.level=NSNormalWindowLevel;
         p.animationBehavior=NSWindowAnimationBehaviorNone;p.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenNone;
         if(p.windowNumber>0 && p.windowNumber<=UINT32_MAX)t->window=(uint32_t)p.windowNumber;
-        if(!allowed() || !originalFocus(t) || !allowed())return 0;
+        if(!allowed() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-before-order");
         [p orderFront:nil];
-        if(p.windowNumber<=0 || p.windowNumber>UINT32_MAX)return 0;
+        if(p.windowNumber<=0 || p.windowNumber>UINT32_MAX)return launchTrace(t,op,0,"open-window-number");
         t->window=(uint32_t)p.windowNumber;
     } else if(op==3 && t->panel) {
         NSWindow *p=t->panel;
         if(![p isMemberOfClass:NPSpacesLaunchPanel.class] || p.isKeyWindow || p.isMainWindow ||
-           (t->window && p.windowNumber!=t->window) || !allowed())return 0;
+           (t->window && p.windowNumber!=t->window) || !allowed())return launchTrace(t,op,0,"close-precondition");
         t->closeIssued=YES;[p close];t->panel=nil;t->closed=YES;
     }
     BOOL absent=!t->panel && noRegisteredProbe();
     call->read=(NPStageCanary){.number=t->window,.pid=getpid(),.birth=birth(getpid()),
         .opened=t->opened,.registered=truePanel(t),.absent=absent,.focus_same=originalFocus(t),.close_issued=t->closeIssued};
-    return 1;
+    return launchTrace(t,op,1,"complete");
 }
 int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard guard,NPStageFree release,NPStageCanary *out) {
     if(!handle || !out || op>3 || ((op==1 || op==3) && (!guard || !ctx || !release))) {
@@ -145,13 +156,13 @@ int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard gua
     void (^perform)(void)=^{
         @autoreleasepool {
             @try {call->result=panelCall(token,op,call,ctx,guard);}
-            @catch(NSException *e) {call->result=0;}
+            @catch(NSException *e) {call->result=launchTrace(token,op,0,"exception");}
             @finally {if(ctx && release)release(ctx);dispatch_semaphore_signal(done);}
         }
     };
     if(NSThread.isMainThread)perform();else dispatch_async(dispatch_get_main_queue(),perform);
     if(dispatch_semaphore_wait(done,dispatch_time(DISPATCH_TIME_NOW,300*NSEC_PER_MSEC))!=0) {
-        atomic_store(&call->expired,true);return 0;
+        atomic_store(&call->expired,true);return launchTrace(token,op,0,"main-queue-timeout");
     }
     if(call->result)*out=call->read;
     return call->result;

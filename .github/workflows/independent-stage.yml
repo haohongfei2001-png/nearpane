@@ -35,7 +35,10 @@ jobs:
           bash scripts/build-app.sh release
           app="$PWD/build/standalone.$NEARPANE_RUN_ID/products/release/Nearpane.app"
           codesign --verify --strict "$app/Contents/MacOS/NearpaneHost"
-          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Nearpane-independent-candidate.zip"
+          workspace="$RUNNER_TEMP/NearpaneIndependentStage.app"
+          python3 -B scripts/acceptance/independent-stage/package.py "$app" "$workspace" --revision "$GITHUB_SHA" --mode workspace
+          codesign --verify --strict --deep "$workspace"
+          ditto -c -k --keepParent "$workspace" "$RUNNER_TEMP/Nearpane-independent-candidate.zip"
           shasum -a 256 "$RUNNER_TEMP/Nearpane-independent-candidate.zip" > "$RUNNER_TEMP/Nearpane-independent-candidate.sha256"
           printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
       - name: Foreign-window Spaces and production R4 receipts

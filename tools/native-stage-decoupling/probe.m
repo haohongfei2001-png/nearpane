@@ -113,7 +113,8 @@ static NSDictionary *snapshot(void) {
 }
 static NSDictionary *inventory(void) {
     NSArray *paths = @[@"/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
-                       @"/System/Library/PrivateFrameworks/WindowManagement.framework/WindowManagement"];
+                       @"/System/Library/PrivateFrameworks/WindowManagement.framework/WindowManagement",
+                       @"/System/Library/PrivateFrameworks/WindowManager.framework/WindowManager"];
     NSMutableArray *loaded = [NSMutableArray array];
     NSMutableArray *symbols = [NSMutableArray array];
     for (NSString *path in paths) {
@@ -122,8 +123,7 @@ static NSDictionary *inventory(void) {
         [loaded addObject:@{@"path":path,@"loaded":@(h!=NULL),@"error":error ? @(error):@""}];
         if (!h) continue;
         for (NSString *name in @[@"SLSMainConnectionID",@"SLSCopyManagedDisplaySpaces",@"SLSCopySpacesForWindows",
-                @"SLSSpaceCreate",@"SLSSpaceDestroy",@"SLSBridgedSpaceAddWindowsAndRemoveFromSpacesOperation",
-                @"SLSBridgedMoveWindowsToManagedSpaceOperation",@"SLSGetWindowPresenter"])
+                @"SLSSpaceCreate",@"SLSSpaceDestroy",@"SLSGetWindowPresenter"])
             [symbols addObject:@{@"image":path,@"name":name,@"present":@(dlsym(h,name.UTF8String)!=NULL)}];
         // Keep loaded so the Objective-C runtime inventory remains valid. Never instantiate classes.
     }
@@ -132,7 +132,8 @@ static NSDictionary *inventory(void) {
     NSMutableArray *out = [NSMutableArray array];
     for (unsigned int i=0;i<count;i++) {
         const char *image = class_getImageName(classes[i]);
-        if (!image || (!strstr(image,"WindowManagement.framework") && !strstr(image,"SkyLight.framework"))) continue;
+        if (!image || (!strstr(image,"WindowManagement.framework") && !strstr(image,"WindowManager.framework") &&
+                       !strstr(image,"SkyLight.framework"))) continue;
         NSMutableArray *methods = [NSMutableArray array];
         for (int meta=0;meta<2;meta++) {
             unsigned int n=0;
@@ -144,7 +145,9 @@ static NSDictionary *inventory(void) {
             }
             free(ms);
         }
-        [out addObject:@{@"name":@(class_getName(classes[i])),@"image":@(image),@"methods":methods}];
+        Class superclass=class_getSuperclass(classes[i]);
+        [out addObject:@{@"name":@(class_getName(classes[i])),@"image":@(image),@"methods":methods,
+                         @"superclass":superclass ? @(class_getName(superclass)) : NSNull.null}];
     }
     free(classes);
     return @{@"frameworks":loaded,@"symbols":symbols,@"classes":out,
@@ -175,7 +178,7 @@ static int fixture(NSString *destination, NSString *label) {
         [data writeToFile:destination options:NSDataWritingAtomic error:NULL];
     };
     write();
-    [NSTimer scheduledTimerWithTimeInterval:.1 repeats:YES block:^(NSTimer *timer) {
+    [NSTimer scheduledTimerWithTimeInterval:.1 repeats:YES block:^(__unused NSTimer *timer) {
         if ([[NSFileManager defaultManager] fileExistsAtPath:[destination stringByAppendingString:@".stop"]]) [NSApp terminate:nil];
         write();
     }];

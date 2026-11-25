@@ -6,14 +6,11 @@ to two freshly launched fixture apps. Receipts preserve NOT_RUN/BLOCKED explicit
 """
 import argparse
 from contextlib import ExitStack
-import hashlib
 import json
 import os
 from pathlib import Path
 import platform
-import plistlib
 import re
-import shutil
 import subprocess
 import time
 import uuid
@@ -21,6 +18,7 @@ import xml.etree.ElementTree as ET
 
 from build import build, ROOT
 from evaluate import SYSTEM_CHECKS, evaluate
+from package import package
 
 HERE = Path(__file__).resolve().parent
 
@@ -45,7 +43,7 @@ def execute(command, out, name, env, timeout=900):
         # Expose a short useful CI failure while retaining the complete original logs.
         for suffix in (".stderr.log", ".log"):
             lines = (out / (name + suffix)).read_text(errors="replace").splitlines()
-            relevant = [line for line in lines if re.search(r"error(?:\[|:)|fatal:|failed", line, re.IGNORECASE)]
+            relevant = list(dict.fromkeys(line for line in lines if re.search(r"error(?:\[|:)|fatal:|\bfailed\b", line, re.IGNORECASE)))
             if relevant:
                 print("\n".join(relevant[:30]), flush=True)
     return report
@@ -86,22 +84,7 @@ def source_checks(out, env):
 
 
 def candidate_copy(source, output, revision):
-    destination = output / "NearpaneIndependentStage.app"
-    shutil.copytree(source, destination, symlinks=True)
-    plist = destination / "Contents/Info.plist"
-    data = plistlib.loads(plist.read_bytes())
-    data.update(CFBundleIdentifier="com.holdsnow.nearpane.independent-stage-candidate",
-                CFBundleName="Nearpane Independent Stage Acceptance", NearpaneIndependentStageAcceptance=1,
-                NearpaneSourceRevision=revision)
-    data.pop("NSServices", None)
-    plist.write_bytes(plistlib.dumps(data))
-    identity = os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-")
-    executable = destination / "Contents/MacOS" / data["CFBundleExecutable"]
-    subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp=none", "--identifier",
-                    data["CFBundleIdentifier"], executable], check=True, capture_output=True)
-    subprocess.run(["codesign", "--force", "--sign", identity, "--timestamp=none", destination], check=True, capture_output=True)
-    subprocess.run(["codesign", "--verify", "--strict", "--deep", destination], check=True, capture_output=True)
-    return executable
+    return package(source, output / "NearpaneIndependentStage.app", revision, mode="acceptance")
 
 
 def wait_fixture(directory, process, nonce, count):
@@ -176,7 +159,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 executable = candidate_copy(host, product_dir, revision)
                 product_env = dict(env, NEARPANE_SPACES_CANDIDATE_PIDS=",".join(str(p.pid) for _, p in children))
                 product_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
-                                           product_dir / "config.json"], out, "product", product_env, 150)
+                                           product_dir / "config.json"], out, "product", product_env, 300)
                 receipt = product_dir / "product-result.json"
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
@@ -210,7 +193,8 @@ def main():
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     env.setdefault("NEARPANE_RUN_ID", "independent-" + uuid.uuid4().hex[:12])
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    summary = {"schema": 1, "revision": revision, "source": "NOT_RUN", "runtime": "NOT_RUN"}
+    summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "source": "NOT_RUN", "runtime": "NOT_RUN"}
+    print("revision", revision, "buildRunID", env["NEARPANE_RUN_ID"], "scope", a.scope, flush=True)
     if platform.system() != "Darwin":
         summary.update(status="BLOCKED", reason="macOSWindowServerRequired")
         atomic(out / "summary.json", summary)

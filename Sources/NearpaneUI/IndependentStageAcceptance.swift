@@ -104,6 +104,7 @@ import NearpaneOrdinaryWindowRuntime
             feed.observe(true)
             let readyDeadline = ContinuousClock.now.advanced(by: .seconds(10))
             var groupIDs = [UInt32: UUID]()
+            var candidateReady = false
             while ContinuousClock.now < readyDeadline {
                 feed.changed()
                 if let sample = feed.snapshot, sample.native?.stageManagerEnabled == false,
@@ -117,32 +118,86 @@ import NearpaneOrdinaryWindowRuntime
                         }
                     }
                     if groupIDs.count == 3, Set(groupIDs.values).count == 3, feed.stageEngine.observedCapability == .spaces,
-                       modules.workRect?.permitsStageEngine(on: screen.id) == true { break }
+                       modules.workRect?.permitsStageEngine(on: screen.id) == true { candidateReady = true; break }
                 }
                 try await Task.sleep(for: .milliseconds(100))
                 panels.update(screens: SystemScreens.geometry())
             }
             guard groupIDs.count == 3, Set(groupIDs.values).count == 3 else { throw Failure(reason: "fixtureGroupsNotReady") }
+            guard candidateReady else { throw Failure(reason: "candidateDispatchUnavailable") }
             guard await ownerCommand(targets[0], action: "focus", nonce: config.nonce) else { throw Failure(reason: "fixtureStartingFocusUnavailable") }
-            let path = [0, 1, 2, 0]
-            for index in path {
+            @MainActor func selectR4(_ index: Int, group: UUID, visible: Set<UInt32>, phase: String,
+                                    exactMember: Bool = false) async throws {
                 let target = targets[index]
-                guard let group = groupIDs[target.window.number] else { throw Failure(reason: "groupIdentityLost") }
-                let ids = Set(["native-held-group:" + group.uuidString, "stage-group-select:" + group.uuidString,
-                               "current-desktop-window:\(target.fixture.pid):\(target.window.number)"])
+                let windowID = "current-desktop-window:\(target.fixture.pid):\(target.window.number)"
+                let ids: Set<String> = exactMember ? [windowID] : Set(["native-held-group:" + group.uuidString,
+                    "stage-group-select:" + group.uuidString, windowID])
                 guard let button = await waitButton(ids, panel: controller.window) else { throw Failure(reason: "realR4ButtonUnavailable") }
                 startedWrites = true
                 guard button.accessibilityPerformPress() else { throw Failure(reason: "realR4ButtonRefused") }
                 actualInputs += 1
-                record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number])
-                let readings = await waitForState(targets, visible: [target.window.number], focus: target, seconds: 8)
+                record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
+                    "step": phase, "exactMember": exactMember])
+                let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8)
                 guard let readings else { throw Failure(reason: "R4SwitchReadbackFailed") }
-                record("R4SwitchConfirmed", ["window": target.window.number, "observations": readings])
+                record("R4SwitchConfirmed", ["window": target.window.number, "step": phase, "observations": readings])
                 savePanel(controller.window, to: output.appendingPathComponent("r4-\(actualInputs).png"))
                 feed.changed()
                 try await Task.sleep(for: .milliseconds(120))
             }
+            for index in [0, 1, 2, 0] {
+                guard let group = groupIDs[targets[index].window.number] else { throw Failure(reason: "groupIdentityLost") }
+                try await selectR4(index, group: group, visible: [targets[index].window.number], phase: "singletonCycle")
+            }
             report["foreignWindowReadback"] = true
+
+            // Invoke the same production handlers as the held-card context menu.
+            // These edits are explicitly recorded as handler inputs; the subsequent
+            // group/member selections are actual R4 accessibility button presses.
+            guard let heldB = feed.stageEngine.heldGroups.first(where: { $0.id == groupIDs[targets[2].window.number] }) else {
+                throw Failure(reason: "crossAppSourceNotHeld")
+            }
+            let scope = heldB.scope
+            let live: @MainActor () -> Bool = { IndependentStagePolicy.candidateRequested && IndependentStagePolicy.candidatePIDs == pids }
+            report["groupMergeSplit"] = "FAIL"
+            try await IndependentStageGroupEditing.perform(.joinCurrent, held: heldB, in: feed, current: live)
+            let combinedKeys: Set<NativeSpaceWindow> = [targets[0].key, targets[2].key]
+            guard let combined = feed.groups.groups(in: scope).first(where: { Set($0.members.map(\.windowHint)) == combinedKeys }),
+                  let paired = await waitForState(targets, visible: [targets[0].window.number, targets[2].window.number],
+                                                  focus: targets[0], seconds: 8),
+                  let siblingGroup = groupIDs[targets[1].window.number] else {
+                throw Failure(reason: "crossAppJoinReadbackFailed")
+            }
+            record("crossAppJoin", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+                "group": combined.id.uuidString, "observations": paired, "pointerGestureClaimed": false])
+            try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "leaveCombinedGroup")
+            try await selectR4(0, group: combined.id, visible: [targets[0].window.number, targets[2].window.number], phase: "restoreCombinedGroup")
+            try await selectR4(2, group: combined.id, visible: [targets[0].window.number, targets[2].window.number],
+                               phase: "exactMemberWithinCombinedGroup", exactMember: true)
+            try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "holdCombinedForSplit")
+            guard let heldCombined = feed.stageEngine.heldGroups.first(where: { $0.id == combined.id }),
+                  let detached = feed.groups.groups(in: scope).first(where: { $0.id == combined.id })?.members
+                    .first(where: { $0.windowHint == targets[2].key }) else {
+                throw Failure(reason: "combinedGroupNotHeldForSplit")
+            }
+            try await IndependentStageGroupEditing.perform(.detach(detached.id), held: heldCombined, in: feed, current: live)
+            guard let split = await waitForState(targets, visible: [targets[2].window.number], focus: targets[2], seconds: 8) else {
+                throw Failure(reason: "groupSplitReadbackFailed")
+            }
+            let singles = feed.groups.groups(in: scope)
+            guard singles.count == 3, singles.allSatisfy({ $0.members.count == 1 }) else { throw Failure(reason: "splitDirectoryMismatch") }
+            for target in targets {
+                guard let group = singles.first(where: { $0.members.first?.windowHint == target.key }) else {
+                    throw Failure(reason: "splitMemberIdentityLost")
+                }
+                groupIDs[target.window.number] = group.id
+            }
+            record("groupSplit", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+                "member": detached.id.uuidString, "observations": split, "pointerGestureClaimed": false])
+            guard let firstGroup = groupIDs[targets[0].window.number] else { throw Failure(reason: "splitFirstGroupMissing") }
+            try await selectR4(0, group: firstGroup, visible: [targets[0].window.number], phase: "returnAfterSplit")
+            report["groupMergeSplit"] = "PASS"
+
             // Exercise the real yellow button while the production minimize observer is active.
             let first = targets[0]
             if await ownerCommand(first, action: "minimize", nonce: config.nonce) {

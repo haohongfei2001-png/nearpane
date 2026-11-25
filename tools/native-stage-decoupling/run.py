@@ -91,6 +91,7 @@ class Lab:
         save(self.output / "runtime.json", self.probe("inventory"))
         for name, args in {
             "os": ["sw_vers"], "architecture": ["uname", "-m"], "sip": ["csrutil", "status"],
+            "window-manager-dependencies": ["otool", "-L", "/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"],
             "window-manager-symbols": ["nm", "/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"],
             "window-manager-entitlements": ["codesign", "-d", "--entitlements", ":-", "/System/Library/CoreServices/WindowManager.app"],
         }.items():
@@ -100,6 +101,11 @@ class Lab:
                 value = "\n".join(line for line in value.splitlines() if re.search(
                     r"stage|strip|shelf|pile|render|visible|present|space|bridge", line, re.I))
             (self.output / f"{name}.txt").write_text(f"exit={result.returncode}\n" + value)
+            if name.endswith("symbols"):
+                demangled = subprocess.run(["xcrun", "swift-demangle", "--compact"], input=value,
+                                           text=True, capture_output=True, timeout=30)
+                (self.output / "window-manager-demangled.txt").write_text(
+                    f"exit={demangled.returncode}\n" + demangled.stdout + demangled.stderr)
 
     def preferences(self, values, name):
         path = self.output / name

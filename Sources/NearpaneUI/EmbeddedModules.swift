@@ -37,6 +37,10 @@ public final class EmbeddedModules {
         #endif
     }
     let windowPreviews: WindowContentPreview
+    public func connectIndependentStageObservation() {
+        guard IndependentStagePolicy.candidateHasScope else { return }
+        workRect?.independentStageSnapshot = { [weak self] in self?.windowPreviews.currentDesktop?.snapshot }
+    }
     public func stopWindowContentPreview(spaceChanged: Bool = false, reason: String = "lifecycle") {
         windowPreviews.invalidate(keepingDisplayedFrames: spaceChanged, reason: reason)
     }

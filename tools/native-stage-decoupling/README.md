@@ -31,6 +31,23 @@ The latest upstream checked is `19e6e490bc91e65cef6a782075b5450e3159fd2d`, relea
 2026-11-24. Earlier fixed research commit `69a73665488243bf78982c6d523ac4e0850c1ddb`
 is v1.9.1. The Apple integration architecture above remains strip-dependent.
 
+## Actual target inventory
+
+The [2026-11-25 read-only target receipt](evidence/macos-27.0-26A428-inventory.json)
+was collected remotely on **macOS 27.0 / 26A428, arm64, SIP enabled**. The three
+frameworks loaded successfully and exposed 394 Objective-C runtime classes. Both bridged
+Space-operation classes exist; they inherit the no-argument, void-returning
+`performWithWMBridgeDelegate` from `SLSAsynchronousBridgedWindowManagementOperation`.
+`WMClientWindowManager` exposes stage metadata and bridged-operation selectors.
+
+The executable imports `StageManagerStripSystemGesture` show/hide directions and a layout
+model containing both stage-enabled state and strip properties. The preference-controller
+class is a Swift object with no directly enumerated Objective-C methods. These are concrete
+ABI and architecture observations, **not** evidence of an independently disableable native
+renderer. No private selector was invoked. Stage Manager remained disabled, and all three
+observed preferences were identical before and after. The receipt deliberately excludes
+the user's window inventory and records `capabilityProven: false`.
+
 ## Executable experiment
 
 No extra Python packages are needed. Build requires Xcode command-line tools. Inventory can
@@ -58,9 +75,10 @@ controlled-window test session.
 Outputs include:
 
 - OS/build, architecture, SIP status and WindowManager's declared entitlements;
-- loaded SkyLight/WindowManagement framework metadata, Objective-C classes, selectors and
+- loaded SkyLight/WindowManagement/WindowManager framework metadata, Objective-C classes, selectors and
   type encodings, plus selected symbol presence (no discovered selector is invoked);
-- filtered static WindowManager symbols, including renderer/strip/stage/Space names;
+- WindowManager's linked frameworks and filtered static and Swift-demangled symbols,
+  including renderer/strip/stage/Space names;
 - numeric CG window identities, actual onscreen flags and frames, AX stage IDs and frames,
   frontmost PID, pointer position, and permission state;
 - the fixture activations' independent snapshots, and cropped native-edge screenshots
@@ -72,6 +90,12 @@ inspection of WindowManager's private process memory. It does not inject code, u
 restart system processes, modify SIP or assume that finding a class grants access to the
 daemon's live objects. Stripped system symbols can leave `nm` evidence incomplete; errors
 are preserved. Class or symbol presence alone is not a capability result.
+
+`SLSBridgedSpaceAddWindowsAndRemoveFromSpacesOperation` and
+`SLSBridgedMoveWindowsToManagedSpaceOperation` are Objective-C **classes**, not C functions.
+Their availability is recorded in `classes`, with superclass and method type encodings;
+looking up their bare names with `dlsym` cannot establish absence. `WindowManagement` and
+`WindowManager` are distinct private frameworks, and the inventory covers both.
 
 ## Result contract
 

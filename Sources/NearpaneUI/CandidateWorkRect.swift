@@ -14,7 +14,7 @@ import SwiftUI
     var independentStageSnapshot: (@MainActor () -> DesktopSnapshot?)?
     func permitsStageEngine(on display: String) -> Bool {
         if IndependentStagePolicy.candidateRequested {
-            guard !IndependentStagePolicy.candidatePIDs.isEmpty, AXIsProcessTrusted(), !suspended,
+            guard IndependentStagePolicy.candidateHasScope, AXIsProcessTrusted(), !suspended,
                   mode == "off", count == 0, !ordinary.blocksUpdateRelaunch,
                   desktopTiling.scope == nil, !desktopTiling.starting,
                   let snapshot = independentStageSnapshot?(), snapshot.topologyConsistent,

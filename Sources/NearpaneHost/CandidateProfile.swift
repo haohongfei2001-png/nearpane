@@ -14,9 +14,11 @@ import UniformTypeIdentifiers
 /// directory as one unit so an interrupted seed never duplicates revisions or imports.
 enum CandidateProfile {
     static let identifier = "com.holdsnow.nearpane.alpha"
-    static var selected: Bool { Bundle.main.bundleIdentifier == identifier }
+    static var selected: Bool { Bundle.main.bundleIdentifier == identifier || IndependentStagePolicy.workspaceRequested }
 
-    static let containerName = "Nearpane Alpha Profiles"
+    static var containerName: String {
+        IndependentStagePolicy.workspaceRequested ? "Nearpane Independent Stage Profiles" : "Nearpane Alpha Profiles"
+    }
 
     @MainActor static func open(in parent: URL) async throws -> (ProfileLease, URL) {
         let fm = FileManager.default
