@@ -167,7 +167,7 @@ struct Seen {
 }
 
 trait Platform {
-    type Witness;
+    type Witness: Clone;
     fn flags(&self) -> u32;
     fn now(&self) -> Instant {
         Instant::now()
@@ -183,7 +183,7 @@ trait Platform {
     fn members(&self, c: i32, space: u64) -> Check<Rows>;
     fn spaces(&self, c: i32, number: u32) -> Check<Rows>;
     fn bind(&self, window: Window) -> Check<Self::Witness>;
-    fn bind_minimized(&self, _window: Window) -> Check<Self::Witness> { Err(unknown(Why::MinimizedOrAX)) }
+    fn adopt_minimized(&self, _window: Window, _original: &Self::Witness) -> Check<Self::Witness> { Err(unknown(Why::MinimizedOrAX)) }
     fn see(&self, w: Window, witness: &Self::Witness) -> Check<Seen>;
     fn minimized(&self, _w: &Self::Witness) -> Check<bool> { Ok(false) }
     fn set_minimized(&mut self, _w: Window, _witness: &Self::Witness, _minimized: bool) -> Delivery { Delivery::Refused }
@@ -300,6 +300,10 @@ struct Bound<W> {
     original: [f64; 4],
     pending_target: std::cell::Cell<Option<u64>>,
 }
+struct Remembered<W> {
+    lease: Lease,
+    witness: W,
+}
 struct Space {
     id: u64,
     destroy_issued: bool,
@@ -310,6 +314,9 @@ struct State<P: Platform> {
     connection: Option<i32>,
     route: Option<Route>,
     owned: BTreeMap<Window, Bound<P::Witness>>,
+    // Read-only original AX identities for visible standard windows. These are
+    // not hidden leases and do not claim ownership or block an empty shutdown.
+    visible: BTreeMap<Window, Remembered<P::Witness>>,
     slots: BTreeMap<Slot, Space>,
     seen_intents: BTreeSet<Id>,
     strikes: VecDeque<Instant>,
@@ -325,6 +332,7 @@ impl<P: Platform> State<P> {
             connection: None,
             route: None,
             owned: BTreeMap::new(),
+            visible: BTreeMap::new(),
             slots: BTreeMap::new(),
             seen_intents: BTreeSet::new(),
             strikes: VecDeque::new(),
@@ -333,6 +341,12 @@ impl<P: Platform> State<P> {
             launch: None,
             tick_cursor: 0,
         }
+    }
+    fn remembered(&self, lease: Lease) -> Option<P::Witness> {
+        self.visible.get(&lease.window).filter(|saved|
+            saved.lease.lifetime == lease.lifetime && saved.lease.generation == lease.generation &&
+            saved.lease.slot.home == lease.slot.home
+        ).map(|saved| saved.witness.clone())
     }
     fn connect(&mut self) -> Check<i32> {
         if !self.sys.target() {
@@ -678,7 +692,7 @@ impl<P: Platform> State<P> {
         {
             return Err(fail(Why::Conflict));
         }
-        let witness = self.sys.bind(lease.window)?;
+        let witness = match self.remembered(lease) { Some(w) => w, None => self.sys.bind(lease.window)? };
         let original = self.view(c, lease, &witness, 0, false)?;
         if original.rect != expected {
             return Err(unknown(Why::Identity));
@@ -693,6 +707,7 @@ impl<P: Platform> State<P> {
                 pending_target: std::cell::Cell::new(None),
             },
         );
+        self.visible.remove(&lease.window);
         self.moved(c, lease, sid, true, route, &top, a)
     }
     fn hide_minimized(&mut self, c: i32, lease: Lease, expected: [f64; 4], route: Route, a: &impl Authority) -> Check<()> {
@@ -703,12 +718,14 @@ impl<P: Platform> State<P> {
                 || w.lease.member == lease.member || w.lease.lifetime == lease.lifetime) {
             return Err(fail(Why::Conflict));
         }
-        let witness = self.sys.bind_minimized(lease.window).inspect_err(|&fault| trace_fault("minimized-bind", lease, 0, fault))?;
+        let original = self.remembered(lease).ok_or(fail(Why::Unowned))?;
+        let witness = self.sys.adopt_minimized(lease.window, &original).inspect_err(|&fault| trace_fault("minimized-original-binding", lease, 0, fault))?;
         let before = self.minimized_view(c, lease, &witness, 0).inspect_err(|&fault| trace_fault("minimized-before-move", lease, 0, fault))?;
         if before.rect != expected { return Err(unknown(Why::Identity)); }
         let sid = self.get_slot(c, lease, &witness, &top, a, true)?;
         self.owned.insert(lease.window, Bound { lease, witness, original: before.rect,
             pending_target: std::cell::Cell::new(None) });
+        self.visible.remove(&lease.window);
         let bound = &self.owned[&lease.window];
         self.scope(c, lease.slot.home, &top, a)?;
         a.active()?;
@@ -798,7 +815,11 @@ impl<P: Platform> State<P> {
         } else {
             self.moved(c, lease, sid, false, route, top, a)?;
         }
-        self.owned.remove(&lease.window);
+        if let Some(saved) = self.owned.remove(&lease.window) {
+            if !self.sys.transparent_canary(&saved.witness) {
+                self.visible.insert(lease.window, Remembered { lease, witness: saved.witness });
+            }
+        }
         if let Some(s) = self.slots.get_mut(&lease.slot) {
             s.owner = lease;
         }
@@ -809,7 +830,7 @@ impl<P: Platform> State<P> {
         self.restore_member(c, lease, route, &top, a)?;
         self.cleanup(c, lease.slot, &top, a)
     }
-    fn read(&self, c: i32, lease: Lease, a: &impl Authority) -> Check<(Seen, bool)> {
+    fn read(&mut self, c: i32, lease: Lease, a: &impl Authority) -> Check<(Seen, bool)> {
         let top = self.topology(c, lease.slot.home)?;
         if let Some(saved) = self.owned.get(&lease.window) {
             if saved.lease != lease {
@@ -822,9 +843,15 @@ impl<P: Platform> State<P> {
             self.scope(c, lease.slot.home, &top, a)?;
             Ok((seen, hidden))
         } else {
-            let w = self.sys.bind(lease.window)?;
+            if self.visible.len() >= LIMIT && !self.visible.contains_key(&lease.window) {
+                return Err(fail(Why::Capacity));
+            }
+            let w = match self.remembered(lease) { Some(w) => w, None => self.sys.bind(lease.window)? };
             let seen = self.view(c, lease, &w, 0, false)?;
             self.scope(c, lease.slot.home, &top, a)?;
+            if !self.sys.transparent_canary(&w) {
+                self.visible.insert(lease.window, Remembered { lease, witness: w });
+            }
             Ok((seen, false))
         }
     }
@@ -959,6 +986,9 @@ impl<P: Platform> State<P> {
         let gone: Vec<_> = self.owned.keys().copied()
             .filter(|w| self.sys.departed(*w).is_ok_and(|gone| gone)).collect();
         for window in gone { self.owned.remove(&window); }
+        let gone: Vec<_> = self.visible.keys().copied()
+            .filter(|w| self.sys.departed(*w).is_ok_and(|gone| gone)).collect();
+        for window in gone { self.visible.remove(&window); }
     }
 
     /// Shutdown is driven by retained leases, so closed windows or a changed UI
@@ -993,6 +1023,7 @@ impl<P: Platform> State<P> {
         }
         if let Some(error) = error { return Err(error); }
         if !self.owned.is_empty() || !self.slots.is_empty() { return Err(unknown(Why::RestoreFirst)); }
+        self.visible.clear();
         Ok(())
     }
 
@@ -1035,8 +1066,9 @@ impl<P: Platform> State<P> {
                 if self.route.is_none() || self.failed {
                     return Err(unknown(Why::RestoreFirst));
                 }
-                for saved in self.owned.values() {
-                    if !self.read(c, saved.lease, a)?.1 {
+                let leases: Vec<_> = self.owned.values().map(|saved| saved.lease).collect();
+                for lease in leases {
+                    if !self.read(c, lease, a)?.1 {
                         return Err(unknown(Why::Membership));
                     }
                 }

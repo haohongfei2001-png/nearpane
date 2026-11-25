@@ -54,13 +54,19 @@ These are code-completion claims. The evidence below determines which native eff
 | `1d7402d4`, diagnostics | Launch, foreign/same-app/cross-app and three complete cycles passed; yellow adoption returned MinimizedOrAX; original hidden A1 briefly returned AX CannotComplete | A second release on the same engine restored all three windows and exact original inventory. Cleanup passed; yellow remains FAIL. [Original AX and cleanup evidence](cloud-1d7402d4-diagnostics/README.md) |
 | `3bcb0640`, full product | Source and complete candidate/signature passed; real exported R4 AX button pressed once, AXPress=0, followed by R4SwitchReadbackFailed | Actual input is proven; successful product scheduling is not. No visibility WAL or worker log was created. Cleanup passed. [Original product, input and screenshots](cloud-3bcb0640-full/README.md) |
 | `32f22cd4`, diagnostics | Launch and three group cycles passed; an actually inconsistent CG visibility pair was re-read successfully; hidden A1's original AX object then returned CannotComplete during yellow minimization | Earliest health latch is now directly identified. Same-engine retry restored all windows and inventory; original yellow FAIL remains. [Original earliest-fault trace](cloud-32f22cd4-diagnostics/README.md) |
+| `33d65484`, diagnostics | The specific AX CannotComplete recovered with two complete health observations; launch and three cycles passed; yellow reached binding and failed on a nonstandard subrole | Observation retry is physically confirmed. Yellow remains FAIL and same-engine cleanup passed. [Original trace](cloud-33d65484-diagnostics/README.md) |
+| `33d65484`, full candidate | 155 Rust and 162 Swift passed, one explicit skip; complete app and strict signature passed; normal engine cycles passed; yellow failed; actual external R4 reads timed out before input | Zero real button presses, no handler claim, cleanup passed, cold restart NOT_RUN. [Original candidate and AX receipt](cloud-33d65484-full/README.md) |
 
-The subsequent source change retries only the separately identified AXCannotComplete observation,
-inside the original 650 ms health budget and on the same retained witness. Two complete positive
-observations are needed after that transport error; positive minimization, identity or membership
-changes still stop immediately. Its native effect awaits the next run. The same batch adds durable
-worker-to-owner correlation and read-only cold-start reconciliation after confirmed worker exit;
-the new same-profile restart scenario must independently prove resumed R4 operation.
+The specific AXCannotComplete health correction has now executed successfully, inside its original
+650 ms budget and on the same retained witness. The next yellow correction registers every initially
+visible standard AX window through the existing readback operation, retains that exact identity across
+return, and requires it when adopting a later real minimization. Tests separately exercise the first
+active window's yellow button before any previous hide/show and the later repeated-switch case.
+Worker-to-owner correlation and read-only cold-start reconciliation passed source tests; the same-profile
+restart scenario still needs to prove actual worker return, old-ledger retirement and resumed R4 operation.
+The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
+current click encounters new session lifetimes, without requiring an extra menu action or silently
+substituting ordinary focus. These later source changes are not yet a product acceptance result.
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -82,6 +88,14 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[33d65484 full receipts](cloud-33d65484-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15070133110](https://github.com/haohongfei2001-png/nearpane/actions/runs/45715629275/artifacts/15070133110).
+Its independently rehashed ZIP is 25,105,091 bytes, SHA-256
+`5a5fbeda6d9356c12486987a72a0031d5946c342f2c5a0b9e10774d3f83dd64f`.
+155 Rust and 162 Swift cases passed, with one explicit skip, and strict bundle verification passed.
+Runtime is separately incomplete: yellow failed, and R4 discovery stopped before any input.
+Both reported cleanup results passed. This is a development candidate, not a target qualification.
 
 [3bcb0640 full receipts](cloud-3bcb0640-full/README.md) identify the source-checked complete candidate in
 [artifact 15069160488](https://github.com/haohongfei2001-png/nearpane/actions/runs/45710634990/artifacts/15069160488).

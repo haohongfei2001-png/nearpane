@@ -358,6 +358,19 @@ static void check(NSString *name,BOOL passed,NSString *scope) {
     checks[name]=@{@"status":passed?@"PASS":@"FAIL",@"scope":scope};
     emit(@{@"event":@"check",@"name":name,@"status":passed?@"PASS":@"FAIL",@"scope":scope});
 }
+static BOOL yellowCycle(NSMutableDictionary *target,NSString *phase) {
+    BOOL minimized=ownerCommand(target,@"minimize")&&waitOwnerState(target,@"miniaturized",YES);
+    BOOL retired=minimized&&hideOperation(target,[phase stringByAppendingString:@"-retire"],NP_HIDE_MINIMIZED)&&
+        waitOwnerState(target,@"miniaturized",NO);
+    BOOL restored=retired&&show(target,[phase stringByAppendingString:@"-return"])&&waitOwnerState(target,@"miniaturized",NO);
+    if(!retired)(void)ownerCommand(target,@"restore");
+    BOOL bystanders=YES;
+    for(NSDictionary *other in targets)if(other!=target) {
+        BOOL visible=![other[@"hidden"] boolValue];uint64_t space=visible?home.id:[other[@"parking"] unsignedLongLongValue];
+        bystanders=verify(other,space,visible,[phase stringByAppendingString:@"-bystander"])&&bystanders;
+    }
+    return minimized&&retired&&restored&&bystanders;
+}
 static BOOL selectOnly(NSArray<NSNumber *> *indices,NSString *phase) {
     // Restore the incoming real windows, then retire the outgoing real windows. No corner path exists.
     for(NSNumber *i in indices){NSMutableDictionary *t=targets[i.unsignedIntegerValue];
@@ -444,7 +457,7 @@ static int runScenario(NSString *configuration) {
         NSDictionary *config=readJSON(configuration);outDirectory=config[@"output"];runNonce=config[@"nonce"];
         if(![outDirectory isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:runNonce])return 2;
         timeline=[NSMutableArray array];checks=[NSMutableDictionary dictionary];targets=[NSMutableArray array];generation=NSUUID.UUID;
-        for(NSString *name in @[@"launchCanary",@"foreignRoundTrip",@"sameAppIndependent",@"crossAppGroup",@"repeatedSwitch",@"yellowButton",@"focusRestore",@"cleanup"])
+        for(NSString *name in @[@"launchCanary",@"initialVisibleBindings",@"initialYellowButton",@"foreignRoundTrip",@"sameAppIndependent",@"crossAppGroup",@"repeatedSwitch",@"yellowButton",@"focusRestore",@"cleanup"])
             checks[name]=@{@"status":@"NOT_RUN"};
         NSRunningApplication *original=frontmostApplication();
         uint64_t originalBirth=original?birth(original.processIdentifier):0;
@@ -500,6 +513,33 @@ static int runScenario(NSString *configuration) {
             checks[@"launchCanary"]=@{@"status":launched?@"PASS":@"BLOCKED",@"scope":@"controller-owned panel only"};
             if(!launched){reason=@"candidateCanaryNotConfirmed";goto finish;}
         }
+        status=@"FAIL";
+        {
+            BOOL bound=YES;const uint32_t required=NP_VISIBLE|NP_AX_VALID|NP_CG_VALID|NP_MEMBERSHIP_VALID;
+            for(NSDictionary *target in targets) {
+                for(NSUInteger sample=0;sample<2&&bound;sample++) {
+                    NPRequest r=windowRequest(target);NPReceipt observed={0};
+                    NSString *phase=[NSString stringWithFormat:@"initial-visible/%@/%lu",target[@"number"],(unsigned long)sample];
+                    bound=request(&r,NP_READBACK,phase,&observed)&&(observed.flags&required)==required&&
+                        (observed.flags&(NP_HIDDEN|NP_OWNED))==0&&observed.owned==0&&observed.native_id==home.id;
+                    double frame[]={observed.frame.x,observed.frame.y,observed.frame.width,observed.frame.height};
+                    for(NSUInteger coordinate=0;coordinate<4;coordinate++)
+                        bound=bound&&isfinite(frame[coordinate])&&fabs(frame[coordinate]-[target[@"frame"][coordinate] doubleValue])<=1;
+                    emit(@{@"event":@"initialVisibleBinding",@"phase":phase,@"window":target[@"number"],
+                        @"frame":@[@(frame[0]),@(frame[1]),@(frame[2]),@(frame[3])],@"home":@(observed.native_id),@"verified":@(bound)});
+                    if(bound)pump(.035);
+                }
+                if(bound)bound=verify(target,home.id,YES,@"initial-visible-independent");
+                if(!bound)break;
+            }
+            check(@"initialVisibleBindings",bound,@"two existing NP_READBACK receipts per initial visible foreign window; retained standard AX identity, original home and frame; no Space write");
+            if(!bound){reason=@"initialVisibleBindingsFailed";goto finish;}
+        }
+        {
+            BOOL good=yellowCycle(targets[0],@"initial-yellow-button");
+            check(@"initialYellowButton",good,@"first yellow minimize before any ordinary HIDE/SHOW, using the initially retained standard AX window; independent bystanders and return");
+            if(!good){reason=@"initialYellowButtonFailed";goto finish;}
+        }
         reason=@"foreignRoundTripFailed";status=@"FAIL";
         {
             BOOL good=hide(targets[0],@"foreign-hide")&&verify(targets[1],home.id,YES,@"same-app-bystander")&&
@@ -520,13 +560,9 @@ static int runScenario(NSString *configuration) {
             if(!good){reason=@"repeatedSwitchFailed";goto finish;}
         }
         {
-            BOOL minimized=ownerCommand(targets[0],@"minimize")&&waitOwnerState(targets[0],@"miniaturized",YES);
-            BOOL retired=minimized&&hideOperation(targets[0],@"yellow-button-retire",NP_HIDE_MINIMIZED)&&
-                waitOwnerState(targets[0],@"miniaturized",NO);
-            BOOL restored=retired&&show(targets[0],@"yellow-button-return")&&waitOwnerState(targets[0],@"miniaturized",NO);
-            if(!retired)(void)ownerCommand(targets[0],@"restore");
-            check(@"yellowButton",minimized&&retired&&restored,@"real title-bar action → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately");
-            if(!minimized||!restored){reason=@"yellowButtonFailed";goto finish;}
+            BOOL good=yellowCycle(targets[0],@"yellow-button");
+            check(@"yellowButton",good,@"real title-bar action after repeated switching → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately");
+            if(!good){reason=@"yellowButtonFailed";goto finish;}
         }
         {
             BOOL focused=prepareFixtureFocus(targets[0],@"afterWindowRestoration");

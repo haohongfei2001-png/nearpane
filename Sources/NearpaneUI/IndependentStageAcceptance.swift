@@ -230,8 +230,14 @@ import QuartzCore
                 CATransaction.flush()
                 if actualInputs == 0 { savePanel(controller.window, to: output.appendingPathComponent("r4-baseline.png")) }
                 let button: (any NSAccessibilityProtocol)?
-                if externalR4ClientConfirmed { button = nil }
-                else { button = await waitButton(ids, panel: controller.window) { report["lastR4ButtonSearch"] = $0 } }
+                if config.r4Controller != nil {
+                    if !externalR4ClientConfirmed, let panel = controller.window {
+                        // The exported SwiftUI AX tree is served out of process.
+                        // Preserve one local diagnostic without delaying real input.
+                        _ = Self.button(ids, panel: panel) { report["lastR4ButtonSearch"] = $0 }
+                    }
+                    button = nil
+                } else { button = await waitButton(ids, panel: controller.window) { report["lastR4ButtonSearch"] = $0 } }
                 var pressedAt = ProcessInfo.processInfo.systemUptime
                 var route = "inProcessAccessibilityButton"
                 if let button {
@@ -239,7 +245,7 @@ import QuartzCore
                     guard button.accessibilityPerformPress() else { throw Failure(reason: "realR4ButtonRefused") }
                     actualInputs += 1
                 } else {
-                    if !externalR4ClientConfirmed { savePanel(controller.window, to: output.appendingPathComponent("r4-button-unavailable.png")) }
+                    if !externalR4ClientConfirmed { savePanel(controller.window, to: output.appendingPathComponent("r4-before-external-input.png")) }
                     guard let helper = config.r4Controller, let panel = controller.window else { throw Failure(reason: "realR4ButtonUnavailable") }
                     let priorWrites = startedWrites
                     startedWrites = true
@@ -553,6 +559,15 @@ import QuartzCore
             "consentRequestPresent": feed.stageEngine.consentRequest != nil,
             "routesGroupChoice": feed.stageEngine.routesGroupChoice, "holdsDispatch": feed.stageEngine.holdsDispatch,
             "snapshotAvailable": feed.snapshot != nil]
+        if let sample = feed.snapshot {
+            result["revision"] = sample.revision
+            result["fresh"] = sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime)
+            result["catalogComplete"] = sample.native?.catalogComplete ?? false
+            if let native = sample.native {
+                result["sampleAgeSeconds"] = ProcessInfo.processInfo.systemUptime - native.beganUptime
+                result["sampleDurationSeconds"] = native.endedUptime - native.beganUptime
+            }
+        }
         var rows = [[String: Any]]()
         for target in targets {
             let key = DesktopWindowKey(pid: target.fixture.pid, birth: target.fixture.birth, number: target.window.number)

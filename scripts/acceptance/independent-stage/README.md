@@ -109,6 +109,11 @@ let its app exit before opening the interactive copy.
    differ from the controller. They service commands only for their own windows.
 3. The controller calls `np_engine_create_spaces_candidate`, then `NP_LAUNCH`.
    The launch canary is recorded separately as **controller-owned evidence**.
+   Before any retirement, each initial foreign window receives two existing
+   `NP_READBACK` calls that retain its standard AX identity and confirm visible,
+   AX/CG-valid, exclusive original membership and geometry. These reads do not
+   increment the Space-write request count. `initialVisibleBindings` and the
+   first `initialYellowButton` round trip are independent required engine checks.
 4. `NP_HIDE` and `NP_RESTORE` operate on the foreign windows. Every transition is
    independently checked twice: window→Space membership, Space→window membership,
    process birth/path, CG on-screen presence, geometry, same-app sibling and the
@@ -116,15 +121,18 @@ let its app exit before opening the interactive copy.
 5. Same-app independent scheduling, cross-app visible combinations and repeated
    A→B→C→A cycles use the candidate engine. The real yellow button is followed by
    `NP_HIDE_MINIMIZED`, an off-screen membership check, a non-minimized owner
-   witness while hidden, and exact restoration.
+   witness while hidden, and exact restoration. This runs both before any prior
+   hide/show of A0 and after the repeated switches, so a return cache cannot hide
+   a missing initial binding.
 6. If a product bundle was supplied, its isolated copy opens the actual R4
    `EdgePanel`, `DesktopSurface`, `CurrentDesktopWindows` and
    `StageWindowEngineHost`. The runner locates the production accessibility
    buttons, presses them, and verifies physical foreign-window membership,
    geometry and exact AX focus. It never substitutes a direct engine call for a
    reported R4 click. Real R4 renders are saved as `r4-N.png`, with an initial
-   `r4-baseline.png` and a bounded in-process accessibility-tree diagnostic. If
-   SwiftUI's virtual elements cannot be selected through that interface, the
+   `r4-baseline.png` and one in-process accessibility-tree diagnostic. When the
+   Controller is supplied, it directly queries SwiftUI's exported accessibility
+   tree; it does not first wait on the empty local hosting-view child list. The
    existing Controller acts as an external accessibility client and presses the
    exact button in its direct parent acceptance Host's verified R4 window. Its
    `ISSUED` receipt is followed by the same independent physical window reads;

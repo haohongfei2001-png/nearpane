@@ -139,7 +139,9 @@ static AXUIElementRef r4CopyPanel(AXUIElementRef application,NSDictionary *host,
 }
 static BOOL r4Button(AXUIElementRef element,NSDictionary *host,NSSet<NSString *> *identifiers,
                      R4WindowNumber reader,CGRect panelFrame,NSMutableDictionary *diagnostic) {
-    AXUIElementSetMessagingTimeout(element,.1f);
+    // Exported SwiftUI AX reads may briefly wait for the real Host's main queue.
+    // This only bounds discovery/readback; it does not retry an issued action.
+    AXUIElementSetMessagingTimeout(element,.25f);
     AXError error=kAXErrorFailure;
     id role=r4Attribute(element,kAXRoleAttribute,&error);
     diagnostic[@"role"]=[role isKindOfClass:NSString.class] && [role length]<=64?role:@"unknown";
@@ -234,14 +236,15 @@ static int runR4Press(NSString *requestPath) {
             if(!AXIsProcessTrusted()){report[@"reason"]=@"controllerAccessibilityUnavailable";break;}
             R4WindowNumber reader=(R4WindowNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
             if(!reader){report[@"reason"]=@"windowNumberReaderUnavailable";break;}
-            application=AXUIElementCreateApplication([host[@"pid"] intValue]);AXUIElementSetMessagingTimeout(application,.1f);
-            double deadline=NSProcessInfo.processInfo.systemUptime+4;id selected=nil;CGRect frame=CGRectNull;
+            application=AXUIElementCreateApplication([host[@"pid"] intValue]);AXUIElementSetMessagingTimeout(application,.25f);
+            double deadline=NSProcessInfo.processInfo.systemUptime+6;id selected=nil;CGRect frame=CGRectNull;
+            report[@"discoveryBudgetMS"]=@6000;report[@"attributeTimeoutMS"]=@250;
             do {
                 if(!r4HostMatches(host)){report[@"reason"]=@"parentChanged";break;}
                 if(panel){CFRelease(panel);panel=NULL;}
                 AXError error=kAXErrorFailure;panel=r4CopyPanel(application,host,reader,&error);report[@"windowListRead"]=@(error);
                 if(panel && r4CGPanel(host,&frame)) {
-                    CGRect axFrame=CGRectNull;AXUIElementSetMessagingTimeout(panel,.1f);
+                    CGRect axFrame=CGRectNull;AXUIElementSetMessagingTimeout(panel,.25f);
                     if(r4Rect(panel,&axFrame,&error) && r4SameFrame(axFrame,frame)) {
                         report[@"panelFrame"]=r4Frame(frame);
                         NSMutableDictionary *tree=[NSMutableDictionary dictionary];

@@ -1,5 +1,6 @@
 import AppKit
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 import OSLog
 
 /// One fast, metadata-only feed for all visible sidebar panels. The full reader
@@ -185,6 +186,119 @@ import OSLog
                 $0.windowHint == location.window && groups.isBound($0, to: bound)
             }
         }
+    }
+
+    /// The live card supplies a new selection intent. Looking up its saved group
+    /// here does not bind it, publish activity, or authorize a window operation.
+    func selectionGroup(_ member: NativeSidebarMember, in raw: DesktopSnapshot) -> StageGroupDirectory.Group? {
+        guard groups.loadIssue == nil, let location = member.location,
+              raw.sessionID == member.source.session, raw.topologyFingerprint == member.source.topology,
+              raw.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1 else { return nil }
+        let matches = groups.groups(in: .init(display: location.display, nativeSpace: location.spaceUUID)).filter {
+            $0.needsReorganization != true && $0.members.contains { $0.windowHint == location.window }
+        }
+        return matches.count == 1 ? matches.first : nil
+    }
+
+    func stillIntendsGroup(_ member: NativeSidebarMember, group: StageGroupDirectory.Group, appearance: UUID) -> Bool {
+        guard groups.loadIssue == nil, lifetime(of: member.key) == appearance,
+              groupLifetime(of: member.key) != nil, let location = member.location,
+              group.needsReorganization != true, group.nativeSpace == location.spaceUUID,
+              group.members.contains(where: { $0.windowHint == location.window }) else { return false }
+        return groups.groups(in: .init(display: location.display, nativeSpace: location.spaceUUID)).contains(group)
+    }
+
+    private struct RebindingRoster: Equatable {
+        let home: OrdinaryDesktopIdentity
+        let displays: [DisplayObservation]
+        let windows: [StageGroupWindow]
+        let frames: [NativeSpaceWindow: SurfaceRect]
+        let appearances: [NativeSpaceWindow: UUID]
+    }
+
+    private func rebindingRoster(_ raw: DesktopSnapshot, source: NativeSidebarDestination) throws -> RebindingRoster {
+        let sample = stageEngine.snapshotForGroups(raw)
+        guard source.kind == .ordinary, sample.native?.catalogComplete == true,
+              sample.native?.stageManagerEnabled == false, sample.native?.windowLimitReached == false,
+              let catalog = source.resolve(sample), catalog.current.id == source.space,
+              catalog.current.ordinaryUUID == source.uuid, let number = UInt64(source.space), number > 0 else {
+            throw StageSwitchError.incomplete
+        }
+        let keys = try StageWindowEngineWitness.ordinaryRoster(sample.windows, on: source.display, current: source.space) { key in
+            if IndependentStagePolicy.candidateRequested && !IndependentStagePolicy.candidateIncludes(key.pid) { return false }
+            guard let row = sample.windows.first(where: { DesktopWindowKey($0) == .init(pid: key.pid, birth: key.birth, number: key.number) }),
+                  let meta = row.metadata else { throw StageSwitchError.incomplete }
+            if meta.overviewOrdinaryRole == false || meta.minimized == true { return false }
+            guard meta.overviewOrdinaryRole == true, meta.minimized == false, meta.fullScreen == false,
+                  meta.isOnscreen == true, meta.globalFrame.geometry.isValid else { throw StageSwitchError.incomplete }
+            return true
+        }
+        let live = stageWindows(in: sample, on: catalog.display).sorted { $0.identity.number < $1.identity.number }
+        guard !live.isEmpty, Set(live.map(\.identity)) == keys else { throw StageSwitchError.incomplete }
+        var frames = [NativeSpaceWindow: SurfaceRect](), appearances = [NativeSpaceWindow: UUID]()
+        for window in live {
+            let key = DesktopWindowKey(pid: window.identity.pid, birth: window.identity.birth, number: window.identity.number)
+            guard let appearance = lifetime(of: key), let frame = sample.windows.first(where: { DesktopWindowKey($0) == key })?.metadata?.globalFrame else {
+                throw StageSwitchError.interrupted
+            }
+            appearances[window.identity] = appearance; frames[window.identity] = frame
+        }
+        return .init(home: .init(display: source.display, record: source.space, uuid: source.uuid),
+                     displays: sample.displays, windows: live, frames: frames, appearances: appearances)
+    }
+
+    /// Rebinding is part of this one real current-card click. The old authority
+    /// must already be discharged; two new complete roster/AX/CG/home reads then
+    /// establish current lifetimes for all participating groups together.
+    func prepareGroupSelection(_ member: NativeSidebarMember, group: StageGroupDirectory.Group, appearance: UUID,
+                               current: @escaping @MainActor () -> Bool,
+                               measure supplied: ((NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?)? = nil) async throws -> DesktopSnapshot {
+        let originalEpoch = epoch
+        func valid() -> Bool {
+            !Task.isCancelled && epoch == originalEpoch && current() &&
+                stillIntendsGroup(member, group: group, appearance: appearance)
+        }
+        guard valid(), let first = await readAfterAction(), valid() else { throw StageSwitchError.interrupted }
+        let sample = stageEngine.snapshotForGroups(first)
+        guard let catalog = member.source.resolve(sample), catalog.current.id == member.source.space,
+              catalog.current.ordinaryUUID == member.source.uuid else { throw StageSwitchError.incomplete }
+        let candidates = stageWindows(in: sample, on: catalog.display)
+        if !candidates.contains(where: groups.needsRebinding) {
+            guard stillGroups(member, in: group.id, appearance: appearance) else { throw StageGroupError.staleBinding }
+            return first // Normal already-bound selections keep their existing fast path.
+        }
+        guard !stageEngine.holdsDispatch else { throw StageSwitchError.recoveryRequired }
+        let before = try rebindingRoster(first, source: member.source), directory = groups.directory
+        let measure = try supplied ?? StageHostAccess.directoryReader()
+        func physical(_ roster: RebindingRoster) throws -> [NativeSpaceWindow: StageWindowState] {
+            var values = [NativeSpaceWindow: StageWindowState]()
+            for window in roster.windows {
+                guard valid(), !stageEngine.holdsDispatch, let read = try measure(window.identity, roster.home),
+                      read.id.pid == window.identity.pid, read.id.launch == window.identity.birth, read.id.number == window.identity.number,
+                      read.membership == UInt64(roster.home.record), read.onscreen, !read.minimized,
+                      read.frame == roster.frames[window.identity] else { throw StageSwitchError.interrupted }
+                values[window.identity] = .init(window: window.identity, lifetime: window.lifetime, frame: read.frame, visibility: .visible)
+            }
+            return values
+        }
+        let firstRead = try physical(before)
+        guard let second = await readAfterAction(), second.sessionID == first.sessionID, second.revision > first.revision,
+              valid(), !stageEngine.holdsDispatch else { throw StageSwitchError.interrupted }
+        let after = try rebindingRoster(second, source: member.source)
+        guard after == before, try physical(after) == firstRead, valid(), !stageEngine.holdsDispatch,
+              second.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+            throw StageSwitchError.interrupted
+        }
+        try groups.rebindCurrentScope(after.windows,
+            in: .init(display: try requireDisplay(member.source.display), nativeSpace: member.source.uuid), unchanged: directory)
+        guard stillGroups(member, in: group.id, appearance: appearance) else { throw StageGroupError.staleBinding }
+        IndependentStageTrace.record("current-click-new-bindings", ["windows": after.windows.count, "group": group.id.uuidString])
+        return second
+    }
+
+    private func requireDisplay(_ value: String) throws -> UUID {
+        guard let id = UUID(uuidString: value) else { throw StageSwitchError.incomplete }
+        return id
     }
     func pictureGroups(in snapshot: DesktopSnapshot, screen: DisplayObservation, area: SurfaceRect) -> ObservedPictureGroups? {
         let active = snapshot.scopes.filter { $0.displayID == screen.id }.flatMap(\.records).filter(\.isCurrent)

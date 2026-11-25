@@ -166,6 +166,23 @@ struct UnsubmittedCornerHide: Error {
         guard intentIsCurrent() else { throw newerSelectionWaiting() ? StageSwitchError.superseded : .interrupted }
     }
 
+    public func rememberVisible(_ command: StageWindowCommand) async throws {
+        guard owner.backend == .spaces else { return }
+        guard !closed, !frozen, intentIsCurrent(), command.generation == owner.generation,
+              command.before.visibility == .visible, command.before.hiddenSpaceID == nil,
+              mayManage(command.before), let native = command.nativeID, native > 0,
+              witness.permits(owner, restoring: false) else { throw StageSwitchError.ownership }
+        // NP_READBACK performs no Space, AX, geometry or focus mutation. The
+        // second receipt must still name the same original visible window.
+        for _ in 0..<2 {
+            let reply = try await transport.submit(2, owner: owner, command)
+            guard !closed, !frozen, intentIsCurrent(), witness.permits(owner, restoring: false),
+                  reply.verifies(command.intent, 1 | 4 | 8 | 32), reply.flags & 2 == 0,
+                  reply.nativeID == native, reply.frame == command.before.frame
+            else { throw StageSwitchError.incomplete }
+        }
+    }
+
     public func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws {
         guard let native = sample.nativeID, native > 0, sample.generation == owner.generation,
               qualifiedHiddenState != nil, intentIsCurrent() else { throw StageSwitchError.unavailable }

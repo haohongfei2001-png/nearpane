@@ -342,7 +342,26 @@ static BOOL bindingAttribute(AXUIElementRef window,CFStringRef attribute,CFTypeR
     if(value)CFRelease(value);
     return valid;
 }
-static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen, BOOL allowMinimized) {
+static BOOL bindingSubrole(AXUIElementRef window,BOOL originalMinimized,uint32_t number,int32_t pid) {
+    CFTypeRef value=NULL;
+    AXError error=AXUIElementCopyAttributeValue(window,kAXSubroleAttribute,&value);
+    BOOL standard=error==kAXErrorSuccess && value && CFEqual(value,kAXStandardWindowSubrole);
+    BOOL knownMinimized=error==kAXErrorSuccess && value && CFEqual(value,kAXUnknownSubrole);
+    BOOL valid=standard || (originalMinimized && knownMinimized);
+    if(!standard && getenv("NP_SPACES_LAUNCH_TRACE")){
+        char actual[128]="unavailable";
+        if(value && CFGetTypeID(value)==CFStringGetTypeID()){
+            BOOL constant=CFStringGetCString(value,actual,sizeof(actual),kCFStringEncodingUTF8) && !strncmp(actual,"AX",2);
+            for(size_t i=0;constant && actual[i];i++)constant=(actual[i]>='A'&&actual[i]<='Z')||(actual[i]>='a'&&actual[i]<='z')||(actual[i]>='0'&&actual[i]<='9')||actual[i]=='_';
+            if(!constant)snprintf(actual,sizeof(actual),"nonconstant");
+        }
+        fprintf(stderr,"{\"event\":\"spacesMinimizedSubrole\",\"window\":%u,\"pid\":%d,\"axError\":%d,\"subrole\":\"%s\",\"originalMinimized\":%s,\"accepted\":%s}\n",
+            number,pid,(int)error,actual,originalMinimized?"true":"false",valid?"true":"false");
+    }
+    if(!valid)bindingFailure(number,pid,"subrole",error,value?(long long)CFGetTypeID(value):0,originalMinimized);
+    if(value)CFRelease(value);return valid;
+}
+static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen,BOOL allowMinimized,BOOL standardBeforeMinimizing) {
     if (!n || !started || birth(pid)!=started || !AXIsProcessTrusted()) {
         bindingFailure(n,pid,"process-precondition",kAXErrorSuccess,0,0);return NULL;
     }
@@ -400,19 +419,27 @@ static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIEl
     if(found){
         error=AXUIElementSetMessagingTimeout(found,0.15f);
         if(error!=kAXErrorSuccess)bindingFailure(n,pid,"window-timeout",error,0,0);
+        // Only an already retained, previously standard window may use the
+        // system's unknown subrole while its real AXMinimized state is true.
+        // A newly enumerated unknown/dialog window never obtains this origin.
+        BOOL originalMinimized=error==kAXErrorSuccess && standardBeforeMinimizing && allowMinimized && np_stage_is_minimized(found)==1;
         BOOL ordinary=error==kAXErrorSuccess &&
             bindingAttribute(found,kAXRoleAttribute,kAXWindowRole,NO,n,pid,"role") &&
-            bindingAttribute(found,kAXSubroleAttribute,kAXStandardWindowSubrole,NO,n,pid,"subrole") &&
+            bindingSubrole(found,originalMinimized,n,pid) &&
             bindingAttribute(found,kAXMinimizedAttribute,kCFBooleanFalse,allowMinimized,n,pid,"minimized");
         // Preserve the original check even if an earlier attribute failed; a
         // missing full-screen or minimized value never means false.
         BOOL notFull=bindingAttribute(found,CFSTR("AXFullScreen"),kCFBooleanFalse,NO,n,pid,"full-screen");
+        if(originalMinimized && np_stage_is_minimized(found)!=1)ordinary=NO;
         uint64_t currentBirth=birth(pid);
         if(currentBirth!=started)bindingFailure(n,pid,"changed-birth",kAXErrorSuccess,(long long)started,(long long)currentBirth);
         if(ordinary && notFull && currentBirth==started)CFRetain(found);else found=NULL;
     }
     if(windows)CFRelease(windows);
     CFRelease(app);return found;
+}
+static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen,BOOL allowMinimized) {
+    return boundWindowWithOrigin(n,pid,started,retainedOffscreen,allowMinimized,NO);
 }
 void *np_stage_bind(uint32_t n,int32_t pid,uint64_t started) { return (void *)boundWindow(n,pid,started,NULL,NO); }
 int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
@@ -421,16 +448,14 @@ int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t starte
     if (!current) return 0;
     BOOL ok=CFEqual((CFTypeRef)handle,current); CFRelease(current);return ok;
 }
-void *np_stage_bind_minimized(uint32_t n,int32_t pid,uint64_t started) {
-    AXUIElementRef current=boundWindow(n,pid,started,NULL,YES);
-    if (current && np_stage_is_minimized((void *)current)!=1) {CFRelease(current);current=NULL;}
-    return (void *)current;
-}
 int32_t np_stage_check_bound_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
     if (!handle || onScreen>1) return 0;
-    AXUIElementRef current=boundWindow(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,YES);
+    AXUIElementRef current=boundWindowWithOrigin(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,YES,YES);
     if (!current) return 0;
     BOOL ok=CFEqual((CFTypeRef)handle,current);CFRelease(current);return ok;
+}
+int32_t np_stage_adopt_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started) {
+    return np_stage_check_bound_minimized(handle,n,pid,started,0)==1 && np_stage_is_minimized(handle)==1;
 }
 int32_t np_stage_is_minimized(void *handle) {
     if (!handle) return -1;

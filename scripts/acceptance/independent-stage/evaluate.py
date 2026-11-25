@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Keep platform, candidate engine, product UI and exact-target claims separate."""
-ENGINE_CHECKS = frozenset(("launchCanary", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
+ENGINE_CHECKS = frozenset(("launchCanary", "initialVisibleBindings", "initialYellowButton", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
                            "repeatedSwitch", "yellowButton", "focusRestore", "cleanup"))
 SYSTEM_CHECKS = ("yellowButtonRouting", "missionControl", "appExpose", "nativeFullScreen",
                  "nativeDesktopSwitch", "nativeDesktopReveal", "desktopGestures", "fullScreenSplitView",

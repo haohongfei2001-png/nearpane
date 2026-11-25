@@ -94,6 +94,68 @@ import NearpaneCore
         #expect(!feed.stillGroups(second.member, in: group.id, appearance: second.lifetime))
     }
 
+    @Test(arguments: [false, true])
+    func aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(changeUnselectedWindow: Bool) async throws {
+        let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let scope = StageGroupScope(display: try #require(UUID(uuidString: display)), nativeSpace: space)
+        let old = [UInt32(8), 9, 10].map {
+            StageGroupWindow(display: scope.display, identity: .init(pid: 614, birth: 3400, number: $0),
+                             lifetime: UUID(), nativeSpace: space)
+        }
+        let persisted = StageGroupStore(profile: profile)
+        try persisted.observe(old)
+        try persisted.join(old[1], to: old[0])
+        let windows = old.map { saved in
+            var w = window(saved.identity.number)
+            w.metadata?.overviewOrdinaryRole = true
+            w.metadata?.minimized = false
+            w.metadata?.fullScreen = false
+            return w
+        }
+        let feed = CurrentDesktopWindows(read: { request in await self.snapshot(windows, request: request, accessibility: .partial) },
+                                         sessionAvailable: { true }, fingerprint: { 0 }, stageGroupProfile: profile)
+        feed.observe(true)
+        defer { feed.observe(false) }
+        let sample = try #require(await feed.readNow())
+        let source = NativeSidebarDestination(session: sample.sessionID, topology: sample.topologyFingerprint,
+                                             display: display, space: "4", uuid: space)
+        let member = try #require(NativeSidebarMember(windows[0], source: source))
+        let appearance = try #require(feed.lifetime(of: member.key))
+        let requested = try #require(feed.selectionGroup(member, in: sample))
+        let directory = feed.groups.directory
+        let current = try windows.map { w in
+            let member = try #require(NativeSidebarMember(w, source: source))
+            return try #require(feed.groupWindow(member, in: sample))
+        }
+        #expect(!feed.stageEngine.holdsDispatch && feed.visibleGroups(in: sample, on: sample.displays[0]).isEmpty)
+        #expect(current.allSatisfy(feed.groups.needsRebinding))
+        #expect(zip(old, current).allSatisfy { pair in pair.0.lifetime != pair.1.lifetime })
+        var reads = [UInt32]()
+        do {
+            let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: appearance, current: { true }) { key, home in
+                #expect(home.uuid == space && home.record == "4")
+                reads.append(key.number)
+                let changed = changeUnselectedWindow && reads.count == 6
+                return seen(key.number, bounds: changed ? .init(x: 25, y: 32, width: 320, height: 200) : rect)
+            }
+            #expect(!changeUnselectedWindow)
+            #expect(fresh.revision > sample.revision)
+            #expect(current.allSatisfy { !feed.groups.needsRebinding($0) })
+            #expect(feed.visibleGroups(in: fresh, on: fresh.displays[0]).count == 3)
+            // A normal bound click keeps the existing fast path and never starts a new binding read.
+            _ = try await feed.prepareGroupSelection(member, group: requested, appearance: appearance, current: { true }) { _, _ in
+                Issue.record("Already bound selection unexpectedly repeated cold binding")
+                return nil
+            }
+        } catch {
+            #expect(changeUnselectedWindow && error is StageSwitchError)
+            #expect(current.allSatisfy(feed.groups.needsRebinding))
+        }
+        #expect(reads == [8, 9, 10, 8, 9, 10])
+        #expect(feed.groups.directory == directory && !feed.stageEngine.holdsDispatch)
+    }
+
     @Test func actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() async throws {
         let raw = snapshot([window(8), window(9), window(10), window(11, member: "5")])
         var requested = [UInt32]()

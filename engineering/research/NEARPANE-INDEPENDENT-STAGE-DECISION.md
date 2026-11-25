@@ -120,8 +120,22 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     object reports AX CannotComplete and is immediately latched restore-only. The subsequent
     correction preserves this specific AX error across C/Rust and retries only its observation,
     on the same witness, within the original 650 ms budget, requiring two complete positive reads.
-    Positive changed state remains a fault. This is a source fix grounded in the actual trace;
-    its effect on the next yellow operation still requires native execution.
+    Positive changed state remains a fault. The next `33d65484` diagnostic actually recovered
+    from that error with two complete reads, without latching the engine or repeating a move.
+    Yellow adoption then reached its original binding checks and exposed a different, precise
+    problem: the actually minimized window no longer reported the standard AX subrole. This
+    is not an absent window or a failed hidden-Space operation. The next implementation retains
+    the original standard AX object for every visible participant, including the active group
+    before its first hide, and carries it through restoration. An actual minimized state on that
+    same lifetime may admit the known temporary unknown subrole; a newly discovered unknown or
+    dialog window cannot. Native validation must include yellow both before and after normal
+    group switching. [Original health and binding evidence](../verification/independent-stage/cloud-33d65484-diagnostics/README.md).
+13. The full `33d65484` candidate passed 155 Rust and 162 Swift cases, with one explicit Swift skip,
+    the complete app build, and its strict bundle signature. This VM also passed launch and three
+    normal-engine group cycles; yellow failed and cleanup passed. The R4 external client's actual
+    AX reads timed out before it issued an input: `actualR4Inputs=0`. That cannot be called a failed
+    handler or a successful product switch. Bounded external discovery now replaces the ineffective
+    wait on the local hosting view's empty child list. [Original candidate and input receipts](../verification/independent-stage/cloud-33d65484-full/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.
@@ -130,6 +144,15 @@ and hidden-Space observations; only then can the old ledger be retired. A positi
 retires the former WindowServer's authority. No saved CG number recreates an old AX writer. The unified
 crash test includes same-profile relaunch and another real R4 selection; implementation and actual
 restart acceptance remain distinct until that path runs.
+
+An explicit current R4 card click can establish new session bindings after that old authority has
+ended. It first obtains a fresh complete ordinary-desktop roster; if any live participant needs a
+new binding, two independent physical reads validate the entire current scope before atomically
+binding its new lifetimes. A partly present saved group is rejected without partial mutation;
+wholly absent historical groups are retained. The same click then continues through normal group
+selection. An already bound click keeps its fast path. A missing current group projection no longer
+silently downgrades a Spaces selection to ordinary focus. This source path still needs its own
+real R4 input and physical scheduling receipt.
 
 ### Route A: not a product dependency
 

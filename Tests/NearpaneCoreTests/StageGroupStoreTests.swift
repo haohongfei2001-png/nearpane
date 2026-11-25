@@ -108,6 +108,57 @@ import Testing
         #expect(store.groups(on: first).first?.members.map(\.windowHint) == [a.identity])
     }
 
+    @Test func currentScopeRebindIsAtomicAndPreservesWhollyAbsentHistory() throws {
+        let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let scope = StageGroupScope(display: first, nativeSpace: UUID()), store = StageGroupStore(profile: profile)
+        func local(_ n: UInt32) -> StageGroupWindow {
+            let w = window(n, display: first)
+            return .init(display: first, identity: w.identity, lifetime: w.lifetime, layout: w.layout, nativeSpace: scope.nativeSpace)
+        }
+        let original = [local(1), local(2), local(3), local(4)]
+        try store.observe(original)
+        try store.join(original[1], to: original[0])
+        let saved = store.directory, reopened = StageGroupStore(profile: profile)
+        let live = original.prefix(3).map {
+            StageGroupWindow(display: $0.display, identity: $0.identity, lifetime: UUID(), layout: $0.layout, nativeSpace: $0.nativeSpace)
+        }
+        try reopened.observe(live)
+        #expect(live.allSatisfy(reopened.needsRebinding))
+        // A visible member of a saved pair cannot be rebound while its partner is absent.
+        #expect(throws: StageGroupError.staleBinding) {
+            try reopened.rebindCurrentScope([live[0], live[2]], in: scope, unchanged: saved)
+        }
+        #expect(live.allSatisfy(reopened.needsRebinding))
+        try reopened.rebindCurrentScope(live, in: scope, unchanged: saved)
+        #expect(live.allSatisfy { !reopened.needsRebinding($0) })
+        #expect(reopened.projectedGroups(on: first, among: live).count == 2)
+        #expect(reopened.directory == saved)
+        #expect(reopened.groups(in: scope).flatMap(\.members).contains { $0.windowHint == original[3].identity })
+        #expect(StageGroupStore(profile: profile).directory == saved)
+    }
+
+    @Test func currentScopeRebindRejectsAChangedPartitionWithoutBindingAnyMember() throws {
+        let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let scope = StageGroupScope(display: first, nativeSpace: UUID()), store = StageGroupStore(profile: profile)
+        let a = StageGroupWindow(display: first, identity: window(1, display: first).identity, lifetime: UUID(), nativeSpace: scope.nativeSpace)
+        let b = StageGroupWindow(display: first, identity: window(2, display: first).identity, lifetime: UUID(), nativeSpace: scope.nativeSpace)
+        try store.observe([a, b])
+        let oldPartition = store.directory
+        try store.join(b, to: a)
+        let reopened = StageGroupStore(profile: profile)
+        let new = [a, b].map { StageGroupWindow(display: first, identity: $0.identity, lifetime: UUID(), nativeSpace: scope.nativeSpace) }
+        #expect(throws: StageGroupError.staleBinding) {
+            try reopened.rebindCurrentScope(new, in: scope, unchanged: oldPartition)
+        }
+        #expect(new.allSatisfy(reopened.needsRebinding))
+        #expect(throws: StageGroupError.staleBinding) {
+            try reopened.rebindCurrentScope([new[0], new[0]], in: scope, unchanged: reopened.directory)
+        }
+        #expect(new.allSatisfy(reopened.needsRebinding))
+    }
+
     @Test func unknownSystemOwnershipIsDistinctFromReadableFactoryDefault() {
         #expect(StageManagerPreference.read(effective: { nil }, confirmsUnset: { false }) == nil)
         #expect(StageManagerPreference.read(effective: { nil }, confirmsUnset: { true }) == false)

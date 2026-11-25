@@ -40,7 +40,7 @@ mod mac {
         fn np_stage_occupants(c: i32, s: u64, out: *mut u64, n: u32) -> i32;
         fn np_stage_window(w: u32, out: *mut WindowRow) -> i32;
         fn np_stage_bind(w: u32, pid: i32, birth: u64) -> *mut c_void;
-        fn np_stage_bind_minimized(w: u32, pid: i32, birth: u64) -> *mut c_void;
+        fn np_stage_adopt_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64) -> i32;
         fn np_stage_check_bound_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, on_screen: u32) -> i32;
         fn np_stage_is_minimized(witness: *mut c_void) -> i32;
         fn np_stage_set_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, minimized: u32) -> i32;
@@ -93,9 +93,10 @@ mod mac {
             unsafe { np_stage_release(self.0.as_ptr()) }
         }
     }
+    #[derive(Clone)]
     pub(crate) enum Witness {
-        Document(Reference),
-        Minimized(Reference),
+        Document(Arc<Reference>),
+        Minimized(Arc<Reference>),
         Canary(Arc<Reference>),
     }
     fn panel_read(
@@ -180,7 +181,7 @@ mod mac {
                 }
             }
             std::ptr::NonNull::new(unsafe { np_stage_bind(w.number, w.pid, w.birth) })
-                .map(|reference| Witness::Document(Reference(reference)))
+                .map(|reference| Witness::Document(Arc::new(Reference(reference))))
                 .ok_or(unknown(Why::MinimizedOrAX))
         }
         fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
@@ -256,10 +257,15 @@ mod mac {
                 rect: row.rect,
             })
         }
-        fn bind_minimized(&self, w: Window) -> Check<Witness> {
-            std::ptr::NonNull::new(unsafe { np_stage_bind_minimized(w.number, w.pid, w.birth) })
-                .map(|reference| Witness::Minimized(Reference(reference)))
-                .ok_or(unknown(Why::MinimizedOrAX))
+        fn adopt_minimized(&self, w: Window, original: &Witness) -> Check<Witness> {
+            let reference = match original {
+                Witness::Document(reference) | Witness::Minimized(reference) => reference,
+                Witness::Canary(_) => return Err(fail(Why::TrialOwnWindow)),
+            };
+            if unsafe { np_stage_adopt_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth) } != 1 {
+                return Err(unknown(Why::MinimizedOrAX));
+            }
+            Ok(Witness::Minimized(reference.clone()))
         }
         fn minimized(&self, witness: &Witness) -> Check<bool> {
             let reference = match witness {

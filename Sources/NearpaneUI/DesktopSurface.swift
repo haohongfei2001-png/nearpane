@@ -326,34 +326,42 @@ struct DesktopSurface: View {
             "stillGrouped": lifetime.map { feed.stillGroups(member, in: group, appearance: $0) } ?? false,
             "routesGroupChoice": feed.stageEngine.routesGroupChoice])
         guard canNavigate else { return }
-        guard let lifetime, let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in:snapshot),
-              feed.stillGroups(member, in: group, appearance: lifetime) else {
+        guard let lifetime, let requested = feed.selectionGroup(member, in: snapshot), requested.id == group,
+              feed.stillIntendsGroup(member, group: requested, appearance: lifetime) else {
             selectionIssue = StageGroupError.staleBinding.localizedDescription
             return
         }
-        if !feed.stageEngine.routesGroupChoice && intent == .member {
+        if !feed.stageEngine.routesGroupChoice {
+            guard intent == .member, feed.stillGroups(member, in: group, appearance: lifetime),
+                  let observed = member.resolve(snapshot), let target = DesktopWindowTarget(observed, in: snapshot) else {
+                selectionIssue = StageSwitchError.unavailable.localizedDescription
+                return
+            }
             selectWindow(target,snapshot:snapshot,lifetime:lifetime,member:member,group:group)
             return
         }
         let input = NativeSelectionPermit.inputCounters()
         let epoch = navigation.ownershipEpoch
         navigation.submit(stage:true) { token in
+            var prepared = false
             let valid: @MainActor () -> Bool = {
-                canNavigate && navigation.isCurrent(token) && feed.stillGroups(member, in: group, appearance: lifetime) &&
+                canNavigate && navigation.isCurrent(token) &&
+                    (prepared ? feed.stillGroups(member, in: group, appearance: lifetime)
+                              : feed.stillIntendsGroup(member, group: requested, appearance: lifetime)) &&
                     NativeSelectionPermit.inputCounters() == input
             }
             IndependentStageTrace.record("group-job-start", ["window": member.key.number, "current": valid()])
             guard valid() else { throw StageSwitchError.interrupted }
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
-            guard let fresh = await feed.readNow(), valid() else { throw StageSwitchError.interrupted }
+            let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: lifetime, current: valid)
+            guard valid() else { throw StageSwitchError.interrupted }
+            prepared = true
             IndependentStageTrace.record("group-job-fresh", ["window": member.key.number, "revision": fresh.revision])
             let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,
                 successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
             IndependentStageTrace.record("group-job-result", ["window": member.key.number, "handled": handled,
                 "current": valid()])
-            if !handled && valid() {
-                try intent.withoutEngine { selectWindow(target,snapshot:fresh,lifetime:lifetime,member:member,group:group) }
-            }
+            guard handled else { throw StageSwitchError.unavailable }
         }
     }
 
@@ -557,8 +565,12 @@ struct DesktopSurface: View {
                         "canNavigate": canNavigate, "feedPresent": feed != nil, "memberPresent": member != nil,
                         "visibleGroup": group?.id.uuidString ?? "none", "memberCount": group?.members.count ?? 0,
                         "appearancePresent": lifetime != nil, "routesGroupChoice": feed?.stageEngine.routesGroupChoice == true])
-                    if let feed, feed.stageEngine.routesGroupChoice, let member, let group, group.members.count == 1 {
-                        choose(member, group:group.id, lifetime:lifetime, snapshot:snapshot, feed:feed)
+                    if let feed, feed.stageEngine.routesGroupChoice {
+                        guard let member, let requested = feed.selectionGroup(member, in: snapshot) else {
+                            selectionIssue = StageGroupError.staleBinding.localizedDescription
+                            return
+                        }
+                        choose(member, group:requested.id, lifetime:lifetime, snapshot:snapshot, feed:feed)
                     } else if let target {
                         selectWindow(target, snapshot:snapshot, lifetime:lifetime)
                     }

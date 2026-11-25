@@ -95,7 +95,7 @@ public enum StageGroupError: LocalizedError {
 }
 
 /// The roster token is session-local and qualifies a projection only. Window writes still require an independent AX witness.
-public struct StageGroupWindow: Sendable {
+public struct StageGroupWindow: Equatable, Sendable {
     public let display: UUID
     public let identity: NativeSpaceWindow
     public let lifetime: UUID
@@ -445,6 +445,31 @@ public struct StageGroupWindow: Sendable {
     public func rebind(_ window: StageGroupWindow) throws {
         guard needsRebinding(window) else { throw StageGroupError.staleBinding }
         bindings[window.identity] = window.lifetime
+    }
+
+    /// One explicit current-card selection may establish new session lifetimes
+    /// after independent physical reads of the complete current scope. Validate
+    /// every involved group before changing any binding; absence never deletes a
+    /// saved member, and no old AX lifetime is inherited from the directory.
+    package func rebindCurrentScope(_ windows: [StageGroupWindow], in scope: StageGroupScope,
+                                    unchanged expected: StageGroupDirectory) throws {
+        try verifyPersistedDirectory()
+        let live = Set(windows.map(\.identity))
+        guard !windows.isEmpty, windows.count <= 64, live.count == windows.count,
+              directory.hasSameWindowGroups(as: expected, in: scope),
+              windows.allSatisfy({ $0.display == scope.display && $0.nativeSpace == scope.nativeSpace &&
+                  !needsReassignment($0) }) else { throw StageGroupError.staleBinding }
+        var covered = Set<NativeSpaceWindow>()
+        for group in groups(in: scope) {
+            let members = Set(group.members.map(\.windowHint)), present = members.intersection(live)
+            if present.isEmpty { continue } // Keep wholly absent historical groups unchanged.
+            guard group.needsReorganization != true, present == members else { throw StageGroupError.staleBinding }
+            covered.formUnion(present)
+        }
+        guard covered == live else { throw StageGroupError.staleBinding }
+        var next = bindings
+        for window in windows { next[window.identity] = window.lifetime }
+        bindings = next
     }
 
     /// Transfer only the dragged member. Preserve other members, group order and their last verified geometry.

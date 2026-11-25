@@ -32,6 +32,7 @@ import Testing
     var prepareReplyLost = false, nextReadFails = false
     var withdrawalAttempts = [StageWindowCommand](), withdrawn = Set<UUID>()
     var visibleAfterMutation = [Int]()
+    var observationsBeforeFirstWrite = [NativeSpaceWindow]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
@@ -101,6 +102,7 @@ import Testing
             windows[id] = saved
             if reorderOnShow { stacking.removeAll { $0 == id }; stacking.append(id) }
         case 2:
+            if effects.isEmpty { observationsBeforeFirstWrite.append(id) }
             let hidden = windows[id]?.visibility == .parked || windows[id]?.visibility == .stageSpace
             let flags: UInt32 = id.number == badReadback ? 0 : 4 | 8 | 16 | 32 | (hidden ? 2 | 128 : 1)
             return .init(status:0,flags:flags,intent:c.intent,nativeID:hidden && owner.backend == .spaces ? 60 : 22,frame:windows[id]?.frame)
@@ -269,6 +271,23 @@ import Testing
         try await controller.release()
         #expect(fixture.windows == originals)
         #expect(!controller.holdsWindowDispatch)
+    }
+
+    @Test func spacesRegistersTheInitiallyVisibleCurrentGroupBeforeAnyRetirement() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()),
+                               witness: fixture, transport: fixture)
+        }
+        try await activate(groups[0], controller, fixture)
+        for member in groups.flatMap(\.members) {
+            #expect(fixture.observationsBeforeFirstWrite.filter { $0 == member.windowHint }.count == 2)
+        }
+        let initiallyCurrent = Set(groups[0].members.map(\.windowHint))
+        #expect(!fixture.effects.contains { $0.0 == 3 && initiallyCurrent.contains($0.1) })
+        try await controller.release()
     }
 
     @Test func systemOverviewReturnsWindowsWithoutRequiringTheOldDesktopToRemainCurrent() async throws {

@@ -53,6 +53,9 @@ public enum StageWindowAction: Codable, Equatable, Sendable {
     /// Read an already-issued Guardian release. This path must never issue a window or Guardian command.
     func readsFinalRelease(_ command: StageWindowCommand) async -> Bool
     func prepareBackend(_ sample: StageWindowSample) async throws
+    /// Retain visible members' original standard-window identity before a native
+    /// miniaturization can change their accessibility subrole.
+    func rememberVisible(_ command: StageWindowCommand) async throws
     func checkHealth() async throws
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws
     func read(_ scope: StageGroupScope) async throws -> StageWindowSample
@@ -68,6 +71,7 @@ public struct StageWindowCommand: Equatable, Sendable {
 public extension StageWindowSession {
     func mayManage(_ state: StageWindowState) -> Bool { true }
     func prepareBackend(_ sample: StageWindowSample) async throws {}
+    func rememberVisible(_ command: StageWindowCommand) async throws {}
     func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) async throws { throw StageSwitchError.unavailable }
     func didVerify(_ command: StageWindowCommand, after: StageWindowState) async throws {}
     func readsFinalRelease(_ command: StageWindowCommand) async -> Bool { false }
@@ -604,6 +608,21 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   postLaunch.windows == first.windows, postLaunch.focus == first.focus,
                   postLaunch.foreignFocusScope == first.foreignFocusScope else { throw StageSwitchError.interrupted }
             first = postLaunch
+            if mechanism == .stageSpace {
+                // Include the selected group's already visible windows, which
+                // may never have passed through HIDE/SHOW. These are read-only
+                // receipts using real group/member/lifetime IDs, not window writes.
+                for registeredGroup in groups {
+                    for member in registeredGroup.members where ids.contains(member.windowHint) {
+                        guard let state = first.windows[member.windowHint], state.visibility == .visible else { continue }
+                        let observation = StageWindowCommand(intent: UUID(), group: registeredGroup.id, member: member.id,
+                            generation: first.generation, scope: scope, nativeID: first.nativeID,
+                            action: .show, before: state, restoring: false, restoreFrame: nil)
+                        try await session.rememberVisible(observation)
+                        try requireCurrentIntent()
+                    }
+                }
+            }
         }
         var last = first
         func requireFocus(_ sample: StageWindowSample, _ expected: NativeSpaceWindow?) throws {

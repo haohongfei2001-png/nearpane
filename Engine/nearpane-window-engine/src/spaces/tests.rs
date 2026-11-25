@@ -174,9 +174,10 @@ impl Platform for Fake {
             Err(unknown(Why::Identity))
         }
     }
-    fn bind_minimized(&self, w: Window) -> Check<u64> {
+    fn adopt_minimized(&self, w: Window, original: &u64) -> Check<u64> {
         let t = self.windows[&w.number];
-        if t.0 == w && t.3 { Ok(10_000 + u64::from(w.number)) }
+        let same = *original == t.2 || (*original >> 32 == t.2 && *original as u32 == w.number);
+        if t.0 == w && t.3 && same { Ok((t.2 << 32) | u64::from(w.number)) }
         else { Err(unknown(Why::MinimizedOrAX)) }
     }
     fn minimized(&self, witness: &u64) -> Check<bool> {
@@ -186,11 +187,11 @@ impl Platform for Fake {
             self.cannot_complete_minimized_reads.set(unavailable - 1);
             return Err(unknown(Why::AXCannotComplete));
         }
-        if *witness >= 10_000 { return Ok(self.windows[&((*witness - 10_000) as u32)].3); }
+        if *witness >> 32 > 0 { return Ok(self.windows[&(*witness as u32)].3); }
         Ok(self.confirmed_document_minimized)
     }
     fn set_minimized(&mut self, w: Window, witness: &u64, minimized: bool) -> Delivery {
-        if *witness != 10_000 + u64::from(w.number) || self.refuse_unminimize { return Delivery::Refused; }
+        if *witness as u32 != w.number || *witness >> 32 != self.windows[&w.number].2 || self.refuse_unminimize { return Delivery::Refused; }
         let t = self.windows.get_mut(&w.number).unwrap();
         self.minimize_writes.push((w.number, t.1, minimized));
         t.3 = minimized;
@@ -238,7 +239,7 @@ impl Platform for Fake {
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
         if self.pending_unavailable_read.replace(false) { return Err(unknown(Why::Readback)); }
         let t = self.windows[&w.number];
-        if t.0 == w && ((t.2 == *lease && !t.3) || *lease == 10_000 + u64::from(w.number)) {
+        if t.0 == w && ((t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2)) {
             Ok(Seen {
                 visible: !t.3 && *lease != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
                     else { self.managed_roster.iter().any(|d| d.id == t.1 && d.current == 1) },
@@ -837,6 +838,55 @@ fn release_cleans_an_empty_failed_candidate_without_claiming_foreign_window_succ
     assert_eq!(s.run(&launch_request(RELEASE_SPACES), &a).status, PASS);
     assert!(s.sys.moved.is_empty() && s.route.is_none());
     assert_eq!(s.run(&request(1, PROBE, 1), &a).status, UNKNOWN);
+}
+
+#[test]
+fn visible_readback_enrolls_the_never_hidden_current_window_without_claiming_ownership() {
+    let (mut state, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    assert_eq!(state.run(&launch_request(LAUNCH), &guard).status, PASS);
+    assert!(state.visible.is_empty());
+    let writes = state.sys.moved.len();
+    let registered = state.run(&request(1, READBACK, 2), &guard);
+    assert_eq!((registered.status, registered.owned, registered.flags & OWNED), (PASS, 0, 0));
+    assert_eq!(state.sys.moved.len(), writes);
+    let window = state.sys.windows[&1].0;
+    assert_eq!(state.visible[&window].witness, state.sys.windows[&1].2);
+    state.sys.windows.get_mut(&1).unwrap().3 = true;
+    let retired = state.run(&request(1, HIDE_MINIMIZED, 3), &guard);
+    assert_eq!(retired.status, PASS);
+    assert_eq!(state.sys.minimize_writes, vec![(1, retired.native_id, false)]);
+    assert_eq!(state.run(&request(1, SHOW, 4), &guard).status, PASS);
+    assert!(state.visible.contains_key(&window), "SHOW preserves the same original binding for a later native mini event");
+    let before_release = state.sys.moved.len();
+    let released = state.run(&launch_request(RELEASE_SPACES), &guard);
+    assert_eq!((released.status, released.owned), (PASS, 0));
+    assert!(state.visible.is_empty());
+    assert_eq!(state.sys.moved.len(), before_release, "dropping read-only bindings never sends a window move");
+}
+
+#[test]
+fn mini_adoption_requires_the_registered_original_lifetime_and_never_rebinds_a_replacement() {
+    for change in 0..4 {
+        let (mut state, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        assert_eq!(state.run(&launch_request(LAUNCH), &guard).status, PASS);
+        if change != 0 { assert_eq!(state.run(&request(1, READBACK, 2), &guard).status, PASS); }
+        state.sys.windows.get_mut(&1).unwrap().3 = true;
+        let mut mini = request(1, HIDE_MINIMIZED, 3);
+        match change {
+            1 => mini.lifetime[0] += 1,
+            2 => mini.generation[0] += 1,
+            3 => state.sys.windows.get_mut(&1).unwrap().2 += 1,
+            _ => (), // A pre-existing, never-registered Dock item.
+        }
+        let writes = state.sys.moved.len();
+        let result = state.run(&mini, &guard);
+        assert_ne!(result.status, PASS);
+        assert_eq!(result.owned, 0);
+        assert_eq!(state.sys.moved.len(), writes);
+        assert!(state.sys.minimize_writes.is_empty());
+    }
 }
 
 #[test]
