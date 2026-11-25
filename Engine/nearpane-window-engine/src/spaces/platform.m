@@ -250,33 +250,42 @@ static int screenContains(uint32_t number) {
     CFRelease(ordered);
     return found==0 || found==1 ? (int)found : -1;
 }
+static int32_t windowReadFailure(uint32_t number,const char *phase,long long first,long long second) {
+    if(getenv("NP_SPACES_LAUNCH_TRACE"))
+        fprintf(stderr,"{\"event\":\"spacesCGReadFailure\",\"window\":%u,\"phase\":\"%s\",\"first\":%lld,\"second\":%lld}\n",
+            number,phase,first,second);
+    return -1;
+}
 int32_t np_stage_window(uint32_t number,NPStageWindow *out) {
     @autoreleasepool { @try {
-        if (!number || !out) return -1;
+        if (!number || !out) return windowReadFailure(number,"arguments",0,0);
         const void *raw=(const void *)(uintptr_t)number;
         CFArrayRef ids=CFArrayCreate(NULL,&raw,1,NULL);
-        if (!ids) return -1;
+        if (!ids) return windowReadFailure(number,"id-array",0,0);
         NSArray *rows=copied(CGWindowListCreateDescriptionFromArray(ids));CFRelease(ids);
-        if (!rows || rows.count>1) return -1;
+        if (!rows || rows.count>1) return windowReadFailure(number,"description-count",rows!=nil,(long long)rows.count);
         if (!rows.count) return 0;
         NSDictionary *r=rows[0];uint64_t n=0,p=0;
         if (![r isKindOfClass:NSDictionary.class] || !exactNumber(r[(id)kCGWindowNumber],&n,NO) || n!=number ||
-            !exactNumber(r[(id)kCGWindowOwnerPID],&p,NO) || p>INT32_MAX) return -1;
+            !exactNumber(r[(id)kCGWindowOwnerPID],&p,NO) || p>INT32_MAX) return windowReadFailure(number,"description-identity",(long long)n,(long long)p);
         NSNumber *layer=r[(id)kCGWindowLayer], *on=r[(id)kCGWindowIsOnscreen];
         uint64_t owner=birth((int32_t)p);
-        if (!owner || ![layer isKindOfClass:NSNumber.class] || (on && CFGetTypeID((__bridge CFTypeRef)on)!=CFBooleanGetTypeID())) return -1;
+        if (!owner || ![layer isKindOfClass:NSNumber.class] || (on && CFGetTypeID((__bridge CFTypeRef)on)!=CFBooleanGetTypeID())) return windowReadFailure(number,"description-types",(long long)owner,on?CFGetTypeID((__bridge CFTypeRef)on):0);
         CGRect rect=CGRectNull;
         NSDictionary *bounds=r[(id)kCGWindowBounds];
         if (![bounds isKindOfClass:NSDictionary.class] || !CGRectMakeWithDictionaryRepresentation((__bridge CFDictionaryRef)bounds,&rect) ||
             !isfinite(rect.origin.x) || !isfinite(rect.origin.y) || !isfinite(rect.size.width) || !isfinite(rect.size.height) ||
-            rect.size.width<=0 || rect.size.height<=0) return -1;
+            rect.size.width<=0 || rect.size.height<=0) return windowReadFailure(number,"geometry",0,0);
         int visible=screenContains(number);
         // The optional onscreen property is often absent when a surface is parked.
         // An absent property alone cannot establish invisibility.
-        if (visible<0 || (on && on.boolValue!=visible) || (visible && !on) || birth((int32_t)p)!=owner) return -1;
+        if (visible<0 || (on && on.boolValue!=visible) || (visible && !on))
+            return windowReadFailure(number,"onscreen-samples",on?on.boolValue:-1,visible);
+        uint64_t finalBirth=birth((int32_t)p);
+        if(finalBirth!=owner)return windowReadFailure(number,"process-birth",(long long)owner,(long long)finalBirth);
         *out=(NPStageWindow){number,(int32_t)p,owner,(uint32_t)visible,layer.intValue==0,{rect.origin.x,rect.origin.y,rect.size.width,rect.size.height}};
         return 1;
-    } @catch(NSException *e) { return -1; } }
+    } @catch(NSException *e) { return windowReadFailure(number,"exception",0,0); } }
 }
 
 int32_t np_stage_create(int32_t c,uint64_t *created) {

@@ -55,6 +55,9 @@ struct Fake {
     lose_focus_on_hide: bool,
     focus_changed: bool,
     replace_fixture_when_parked: bool,
+    unavailable_first_return_read: bool,
+    pending_unavailable_read: Cell<bool>,
+    replace_fixture_on_return: bool,
     minimize_writes: Vec<(u32, u64, bool)>,
     refuse_unminimize: bool,
     unminimize_returns_to_desktop: bool,
@@ -224,6 +227,7 @@ impl Platform for Fake {
         *w == 77
     }
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
+        if self.pending_unavailable_read.replace(false) { return Err(unknown(Why::Readback)); }
         let t = self.windows[&w.number];
         if t.0 == w && ((t.2 == *lease && !t.3) || *lease == 10_000 + u64::from(w.number)) {
             Ok(Seen {
@@ -258,6 +262,10 @@ impl Platform for Fake {
             self.windows.get_mut(&w.number).unwrap().1 = s;
             if self.replace_fixture_when_parked && w.number != 77 && mask == 7 {
                 self.windows.get_mut(&w.number).unwrap().2 += 1;
+            }
+            if mask == 15 {
+                self.pending_unavailable_read.set(self.unavailable_first_return_read);
+                if self.replace_fixture_on_return { self.windows.get_mut(&w.number).unwrap().2 += 1; }
             }
         }
         Delivery::Accepted
@@ -658,6 +666,31 @@ fn passive_worker_tick_freezes_after_external_change_and_never_dispatches_recove
     assert_eq!(s.run(&request(1, RESTORE, 4), &a).status, PASS);
     assert_eq!(s.sys.moved.len(), writes);
     assert!(s.slots.is_empty());
+}
+
+#[test]
+fn return_reobserves_an_unavailable_sample_but_never_accepts_a_replaced_original_witness() {
+    for replaced in [false, true] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+        let window = state.sys.windows[&1].0;
+        let original_witness = state.owned[&window].witness;
+        state.sys.unavailable_first_return_read = true;
+        state.sys.replace_fixture_on_return = replaced;
+        let writes = state.sys.moved.len();
+        let result = state.run(&request(1, SHOW, 3), &guard);
+        assert_eq!(state.sys.moved.len(), writes + 1, "observation retry must not repeat the move");
+        if replaced {
+            assert_eq!((result.status, result.detail), (UNKNOWN, Why::Identity as u32));
+            assert_eq!(state.owned[&window].witness, original_witness);
+            assert!(state.failed && !state.slots.is_empty());
+        } else {
+            assert_eq!(result.status, PASS);
+            assert!(state.owned.is_empty() && state.slots.is_empty());
+            assert!(!state.failed);
+        }
+    }
 }
 
 fn launch_request(op: u32) -> Request {

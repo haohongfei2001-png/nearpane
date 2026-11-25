@@ -49,6 +49,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `5607d3b3`, full lane | 150 Rust, 156 Swift and 17 Python passed, one explicit skip; complete candidate/signature passed; normal engine canary, foreign round trip, same-app separation and cross-app combination passed | Repeated switching exposed aggregate ownership being misread as target ownership; nine hide/restore attempts include a rejected cleanup request. R4 not run. [Original engine and candidate evidence](cloud-5607d3b3-full/README.md) |
 | `81669d13`, full R4 readiness | Complete catalogue, three distinct fixture groups, Spaces capability, ordinary system context, real previews and visible formal panel all confirmed | The strict button search found no input; zero presses. This proves the earlier reader fix worked, not a completed R4 switch. [Original product receipt](cloud-81669d13-r4/README.md) |
 | `bbc08a09`, diagnostics and source | 151 Rust and 156 Swift passed, one explicit skip; normal engine canary and three A→B→C→A cycles passed, with 22 confirmed hide/show requests | The yellow request was rejected after an earlier health failure; final physical readback still found A1 in hidden Space 24. Cleanup genuinely failed. [Original engine, traces and source result](cloud-bbc08a09-diagnostics/README.md) |
+| `bbc08a09`, separate full VM | Source checks, complete candidate and strict signature passed; own canary reached hidden Space but return did not confirm, leaving Space 13 | Zero foreign requests and R4 not run; this VM does not inherit the diagnostics VM's group-cycle success. [Original package and runtime evidence](cloud-bbc08a09-full/README.md) |
+| `3bcb0640`, diagnostics | Own panel acquired home in 4/24 ms and passed hidden-view; finish-canary returned Identity; bounded release on the original engine then completed physical cleanup | Zero foreign requests, BLOCKED rather than a failed foreign move; yellow behavior was not re-exercised. [Original canary and cleanup records](cloud-3bcb0640-diagnostics/README.md) |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -70,6 +72,14 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[bbc08a09 full receipts](cloud-bbc08a09-full/README.md) identify the source-checked complete candidate in
+[artifact 15066931486](https://github.com/haohongfei2001-png/nearpane/actions/runs/45706743845/artifacts/15066931486).
+Its independently checked ZIP SHA-256 is
+`6998bfeeb7a702c3aa5cd3b9d5eca80457aed4f2245bc9bc08dcc703316eb091`.
+151 Rust and 156 Swift checks passed, with one explicit live-fixture skip. The complete app passed
+strict bundle verification. This full VM's canary cleanup remained unconfirmed, so its R4 path was
+not run; the successful three-cycle diagnostic is a separate VM and a separate behavioral result.
 
 [5607d3b3 full receipts](cloud-5607d3b3-full/README.md) identify the source-checked complete candidate in
 [artifact 15063654234](https://github.com/haohongfei2001-png/nearpane/actions/runs/45702787052/artifacts/15063654234).

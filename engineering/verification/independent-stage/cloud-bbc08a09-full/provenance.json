@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "revision": "bbc08a09aef3fa1387a76f1e30f97e437e0f42e9",
+  "runID": 45706743845,
+  "jobID": 139530560800,
+  "attempt": 1,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45706743845",
+  "artifactID": 15066931486,
+  "artifactURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45706743845/artifacts/15066931486",
+  "artifactBytes": 28528752,
+  "artifactSHA256": "dbd27b6fc635d4b0d100f4a25c70ad7a083209f3a08f7ead4a01a324ca890b5c",
+  "artifactDigestMatchesGitHubMetadata": true,
+  "jobConclusion": "failure",
+  "sourceStep": "success",
+  "completeCandidateBuildStep": "success",
+  "runtimeStep": "failure",
+  "originals": {
+    "source-summary.json": {
+      "artifactPath": "independent-source/source/summary.json",
+      "bytes": 1253,
+      "sha256": "bc33fadb396052a183cc0e498fd60f24270435a33592050370814693157f4dc6"
+    },
+    "candidate.json": {
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "06aa6be3478efd259570686ae58d5cc1ab2cd56429957aa8be4bb97c98587f2e"
+    },
+    "candidate.sha256": {
+      "artifactPath": "Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "80e8b9e7b561cfedeeba904d50f3fddc0d57eb8ca68498942e773af7a62fcad9"
+    },
+    "runtime-summary.json": {
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 5609,
+      "sha256": "52479d117c27249d10298fdaf1332e3b1a54bbd68396129b5aec0d2172955508"
+    },
+    "engine-result.json": {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 3392,
+      "sha256": "b86cf62a540bb6585d487afff496eb92b3e5bf365440d7d6210ee251b080e4ec"
+    },
+    "engine.log": {
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 7633,
+      "sha256": "f2259668ec98151c811a301c1e081e1c1d739d8120d54c6ca4d50a06a0338e49"
+    },
+    "engine.stderr.log": {
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 7023,
+      "sha256": "2527137d711e95a718d4ff825f82db47da0778d0e63f32e7103cdf8305e8e89c"
+    },
+    "ci-workspace-cleanup-receipt.json": {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "4f56bf2884c1335aa9fb835542f1f4d71b0a23f4e46675834548c6412455b9a6"
+    },
+    "fixture-cleanup.json": {
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    }
+  },
+  "candidateArchive": {
+    "artifactPath": "Nearpane-independent-candidate.zip",
+    "bytes": 24965581,
+    "sha256": "6998bfeeb7a702c3aa5cd3b9d5eca80457aed4f2245bc9bc08dcc703316eb091",
+    "infoPlist": {
+      "zipPath": "NearpaneIndependentStage.app/Contents/Info.plist",
+      "sha256": "3c0430e8ce4303c751375ddcb3b15510c0bc00bb85fc01e7bc2cb19bc854e616",
+      "fields": {
+        "CFBundleIdentifier": "com.holdsnow.nearpane.independent-stage-candidate",
+        "CFBundleExecutable": "NearpaneHost",
+        "NearpaneIndependentStageWorkspace": 1,
+        "NearpaneStageEngineSourceRevision": "bbc08a09aef3fa1387a76f1e30f97e437e0f42e9",
+        "NearpaneStageEngineSourceState": "clean",
+        "NearpaneSourceRevision": "bbc08a09aef3fa1387a76f1e30f97e437e0f42e9"
+      }
+    }
+  },
+  "qualificationGranted": false
+}

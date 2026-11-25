@@ -100,6 +100,14 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
    substitute an unknown attribute with a false value. The separate full `81669d13` R4 run confirmed
    a complete catalogue, three distinct groups and the visible formal panel; its button search still
    stopped before any R4 input. Neither result grants a complete product or target-machine qualification.
+10. Launch is not yet stable across hosted runs: the separate bbc full VM and the next `3bcb0640`
+    diagnostic passed own-panel hidden-view but could not confirm the initial return. The latter's
+    bounded, same-engine release completed physical cleanup, with zero foreign requests. Source
+    audit identified an error classification defect: an unavailable or inconsistent CG observation
+    was called Identity, prematurely ending the existing readback loop. The adapter now distinguishes
+    Readback from a positively different PID/birth/window/original witness. It still requires two
+    positive observations within the original deadline and never repeats the move. More precise
+    diagnostics accompany this correction; its role in the observed failure requires a new run.
 
 ### Route A: not a product dependency
 

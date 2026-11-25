@@ -93,6 +93,11 @@ fn trace_fault(phase: &str, lease: Lease, parking: u64, Fault(status, why): Faul
     eprintln!("{{\"event\":\"spacesLeaseFault\",\"phase\":\"{phase}\",\"status\":{status},\"detail\":{},\"pid\":{},\"birth\":{},\"window\":{},\"home\":{},\"parking\":{parking}}}",
         why as u32, lease.window.pid, lease.window.birth, lease.window.number, lease.slot.home.id);
 }
+fn trace_geometry(phase: &str, lease: Lease, expected: Seen, observed: Seen) {
+    if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_none() { return; }
+    eprintln!("{{\"event\":\"spacesWindowGeometry\",\"phase\":\"{phase}\",\"window\":{},\"expectedRect\":{:?},\"observedRect\":{:?},\"expectedVisible\":{},\"observedVisible\":{}}}",
+        lease.window.number,expected.rect,observed.rect,expected.visible,observed.visible);
+}
 impl Lease {
     fn from(r: &Request) -> Check<Self> {
         let valid = r.window > 0
@@ -570,6 +575,7 @@ impl<P: Platform> State<P> {
         self.occupants(c, lease.slot, sid)?;
         let original = self.view(c, lease, &bound.witness, sid, !hidden)?;
         if hidden && original.rect != bound.original {
+            trace_geometry("before-hide", lease, Seen { rect: bound.original, ..original }, original);
             return Err(unknown(Why::Identity));
         }
         self.scope(c, lease.slot.home, top, a)?;
@@ -579,6 +585,7 @@ impl<P: Platform> State<P> {
         let grace = GRACE;
         let latest = self.sys.see(lease.window, &bound.witness)?;
         if latest.visible != original.visible || latest.rect != original.rect {
+            trace_geometry("before-move", lease, original, latest);
             return Err(unknown(Why::Identity));
         }
         if self.sys.spaces(c, lease.window.number)?
@@ -618,7 +625,8 @@ impl<P: Platform> State<P> {
                     self.failed = true;
                     return Err(e);
                 }
-                _ => {
+                Ok(seen) => {
+                    trace_geometry("after-move", lease, original, seen);
                     self.failed = true;
                     return Err(unknown(Why::Identity));
                 }

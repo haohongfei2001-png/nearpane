@@ -185,13 +185,27 @@ mod mac {
         }
         fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
             let mut row = WindowRow::default();
-            if unsafe { np_stage_window(w.number, &mut row) } != 1
-                || row.number != w.number
+            let read = unsafe { np_stage_window(w.number, &mut row) };
+            if read != 1 {
+                if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                    eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"cg-unavailable\",\"window\":{},\"pid\":{},\"read\":{read}}}", w.number, w.pid);
+                }
+                // Two sequential WindowServer lists can disagree while a move
+                // completes. An unavailable sample is not a positive identity
+                // replacement. The caller must still obtain both full positive
+                // samples of this original witness within the existing deadline.
+                return Err(unknown(Why::Readback));
+            }
+            if row.number != w.number
                 || row.pid != w.pid
                 || row.birth != w.birth
                 || row.layer != 1
                 || row.onboard > 1
             {
+                if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                    eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"cg-identity\",\"window\":{},\"pid\":{},\"birth\":{},\"observedWindow\":{},\"observedPID\":{},\"observedBirth\":{},\"ordinaryLayer\":{},\"onscreen\":{}}}",
+                        w.number,w.pid,w.birth,row.number,row.pid,row.birth,row.layer,row.onboard);
+                }
                 return Err(unknown(Why::Identity));
             }
             let valid = match lease {
@@ -212,7 +226,12 @@ mod mac {
                     // Focus is a launch-qualification observation, not part of
                     // this exact retained panel's identity. Release must still
                     // restore it after the Host or old foreground has disappeared.
-                    p.window() == Some(w) && p.registered == 1
+                    let same = p.window() == Some(w) && p.registered == 1;
+                    if !same && std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                        eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"panel-identity\",\"window\":{},\"observedWindow\":{},\"observedPID\":{},\"observedBirth\":{},\"registered\":{}}}",
+                            w.number,p.number,p.pid,p.birth,p.registered);
+                    }
+                    same
                 }
             };
             if !valid
@@ -226,6 +245,10 @@ mod mac {
                         }
                 })
             {
+                if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                    eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"retained-binding\",\"window\":{},\"pid\":{},\"bindingValid\":{},\"onscreen\":{}}}",
+                        w.number,w.pid,valid,row.onboard);
+                }
                 return Err(unknown(Why::Identity));
             }
             Ok(Seen {

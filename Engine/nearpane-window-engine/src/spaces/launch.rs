@@ -281,19 +281,26 @@ impl<P: Platform> State<P> {
             }
             if let Some(lease) = lease {
                 if p.window() != Some(lease.window) || p.registered != 1 {
+                    if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                        eprintln!("{{\"event\":\"spacesLaunchRestorePanel\",\"window\":{},\"observedWindow\":{},\"observedPID\":{},\"observedBirth\":{},\"registered\":{}}}",
+                            lease.window.number,p.number,p.pid,p.birth,p.registered);
+                    }
                     return Err(unknown(Why::Identity));
                 }
                 if self.owned.contains_key(&lease.window) || self.slots.contains_key(&lease.slot) {
                     let top = self.topology(c, lease.slot.home)?;
-                    self.restore_member(c, lease, route, &top, a)?;
+                    let result = self.restore_member(c, lease, route, &top, a);
+                    trace_result("restore-member", &result, self.launch.as_ref());
+                    result?;
                 }
-                let w = self.sys.bind(lease.window)?;
+                let w = self.sys.bind(lease.window).inspect_err(|&fault| trace_fault("canary-rebind", lease, 0, fault))?;
                 if !self.sys.transparent_canary(&w) {
                     return Err(fail(Why::TrialOwnWindow));
                 }
                 for _ in 0..2 {
-                    let seen = self.view(c, lease, &w, 0, false)?;
+                    let seen = self.view(c, lease, &w, 0, false).inspect_err(|&fault| trace_fault("canary-returned-view", lease, 0, fault))?;
                     if frame.is_some_and(|original| seen.rect != original) {
+                        trace_geometry("canary-returned-frame", lease, Seen { rect: frame.unwrap(), ..seen }, seen);
                         return Err(unknown(Why::Identity));
                     }
                 }
