@@ -105,15 +105,35 @@ import NearpaneOrdinaryWindowRuntime
         var startedWrites = false
         do {
             guard let feed = modules.windowPreviews.currentDesktop else { throw Failure(reason: "packagedOverviewReaderUnavailable") }
-            feed.observe(true)
             let readyDeadline = ContinuousClock.now.advanced(by: .seconds(10))
             var groupIDs = [UInt32: UUID]()
             var candidateReady = false
+            var r4RequestedDisplay: String?
             while ContinuousClock.now < readyDeadline {
+                // Use the same explicit opening path as the real overview command.
+                // Observation and panel visibility remain owned by DisplayPanels.
+                if r4RequestedDisplay == nil, host.isRunning, panels.windowDispatchEligible,
+                   let screen = SystemScreens.geometry().first,
+                   await panels.confirmWindowDispatch(), panels.windowDispatchEligible,
+                   SystemScreens.geometry().contains(where: { $0.id == screen.id }) {
+                    host.setSurfaceHidden(false)
+                    panels.request(screen.id)
+                    panels.update(screens: SystemScreens.geometry())
+                    r4RequestedDisplay = screen.id
+                    report["r4OpenRequested"] = true
+                    report["r4OpenDisplay"] = screen.id
+                    record("R4OverviewOpenRequested", ["display": screen.id, "route": "productionOverviewCommand"])
+                }
                 feed.changed()
                 groupIDs.removeAll(keepingCapacity: true)
                 var readiness: [String: Any] = ["snapshotAvailable": feed.snapshot != nil,
                     "accessibilityTrusted": AXIsProcessTrusted(),
+                    "r4OpenRequested": r4RequestedDisplay != nil,
+                    "windowDispatchEligible": panels.windowDispatchEligible,
+                    "missionControlState": panels.missionControlDispatchState,
+                    "missionControlEvidence": panels.missionControlDispatchEvidence,
+                    "panelVisible": controller.window?.isVisible == true,
+                    "previewVisibleDisplays": modules.windowPreviews.visibleDisplays.sorted(),
                     "observedCapability": feed.stageEngine.observedCapability.map { String(describing: $0) } ?? "unavailable"]
                 if let sample = feed.snapshot {
                     readiness["revision"] = sample.revision
@@ -174,11 +194,16 @@ import NearpaneOrdinaryWindowRuntime
                     }
                     readiness["permitsStageEngine"] = modules.workRect?.permitsStageEngine(on: screen.id) == true
                     if groupIDs.count == 3, Set(groupIDs.values).count == 3, feed.stageEngine.observedCapability == .spaces,
+                       r4RequestedDisplay == screen.id, controller.window?.isVisible == true,
+                       modules.windowPreviews.visibleDisplays.contains(screen.id),
                        modules.workRect?.permitsStageEngine(on: screen.id) == true { candidateReady = true }
                 }
                 readiness["fixtureGroupCount"] = groupIDs.count
                 readiness["distinctFixtureGroupCount"] = Set(groupIDs.values).count
                 report["lastReadiness"] = readiness
+                // A later transient absence must not erase the last real catalog
+                // and its concrete rejection reasons from the terminal evidence.
+                if feed.snapshot != nil { report["lastObservedReadiness"] = readiness }
                 if candidateReady { break }
                 try await Task.sleep(for: .milliseconds(100))
                 panels.update(screens: SystemScreens.geometry())

@@ -21,7 +21,7 @@ static int connection;
 static NPStageDesktop home;
 static NSUUID *generation;
 static NSMutableArray<NSMutableDictionary *> *targets;
-static NSUInteger writeCount;
+static NSUInteger writeCount, setupAXWrites, fixtureFocusCommands;
 
 static void pump(double seconds) {
     if(NSThread.isMainThread)[NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];
@@ -193,20 +193,122 @@ static BOOL waitFocusedFixture(NSDictionary *target) {
         @"verified":[NSNumber numberWithBool:confirmed.count==2]});
     return confirmed.count==2;
 }
+static AXUIElementRef copyFixtureAXWindow(AXUIElementRef app,NSDictionary *target) CF_RETURNS_RETAINED;
+static AXUIElementRef copyFixtureAXWindow(AXUIElementRef app,NSDictionary *target) {
+    typedef AXError (*WindowNumber)(AXUIElementRef,CGWindowID *);
+    WindowNumber numberReader=(WindowNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
+    CFTypeRef windows=NULL;AXUIElementRef found=NULL;BOOL complete=numberReader!=NULL;
+    if(!app||AXUIElementCopyAttributeValue(app,kAXWindowsAttribute,&windows)!=kAXErrorSuccess||!windows||
+       CFGetTypeID(windows)!=CFArrayGetTypeID()||CFArrayGetCount((CFArrayRef)windows)>32)complete=NO;
+    if(complete)for(id item in (__bridge NSArray *)windows) {
+        AXUIElementRef element=(__bridge AXUIElementRef)item;pid_t pid=0;CGWindowID number=0;
+        if(CFGetTypeID(element)!=AXUIElementGetTypeID()||AXUIElementGetPid(element,&pid)!=kAXErrorSuccess||
+           pid!=[target[@"pid"] intValue]||numberReader(element,&number)!=kAXErrorSuccess){complete=NO;break;}
+        if(number==[target[@"number"] unsignedIntValue]){if(found){complete=NO;break;}found=element;}
+    }
+    if(complete&&found)CFRetain(found);else found=NULL;
+    if(windows)CFRelease(windows);return found;
+}
+static BOOL fixtureConsoleAvailable(void) {
+    CFDictionaryRef session=CGSessionCopyCurrentDictionary();if(!session)return NO;
+    NSDictionary *fields=(__bridge NSDictionary *)session;
+    id uid=fields[(__bridge NSString *)kCGSessionUserIDKey];
+    id console=fields[(__bridge NSString *)kCGSessionOnConsoleKey],login=fields[(__bridge NSString *)kCGSessionLoginDoneKey];
+    id locked=fields[@"CGSSessionScreenIsLocked"];
+    BOOL available=[uid isKindOfClass:NSNumber.class]&&[uid unsignedIntValue]==getuid()&&
+        console&&CFEqual((__bridge CFTypeRef)console,kCFBooleanTrue)&&login&&CFEqual((__bridge CFTypeRef)login,kCFBooleanTrue)&&
+        (!locked||CFEqual((__bridge CFTypeRef)locked,kCFBooleanFalse));
+    CFRelease(session);return available;
+}
+static BOOL fixtureFocusWritePermitted(NSDictionary *target,AXUIElementRef app,AXUIElementRef window,
+                                      int32_t origin,uint64_t originBirth) {
+    NSDictionary *state=readJSON([target[@"directory"] stringByAppendingPathComponent:@"state.json"]);
+    NSArray *rows=state[@"windows"];NSUInteger index=[target[@"index"] unsignedIntegerValue];
+    NSString *bundle=state[@"bundle"];
+    BOOL scoped=ownerMatches(target)&&[state[@"nonce"] isEqual:runNonce]&&[state[@"pid"] isEqual:target[@"pid"]]&&
+       [state[@"birth"] isEqual:target[@"birth"]]&&
+       [@[@"com.holdsnow.stage-engine-fixture-a",@"com.holdsnow.stage-engine-fixture-b"] containsObject:bundle?:@""]&&
+       [rows isKindOfClass:NSArray.class]&&index<rows.count&&[rows[index][@"number"] isEqual:target[@"number"]];
+    BOOL physical=scoped&&[observe(target,home.id,YES)[@"verified"] boolValue],console=fixtureConsoleAvailable();
+    int32_t front=frontmostApplication().processIdentifier;
+    BOOL foreground=(front==origin&&birth(front)==originBirth)||
+         (front==[target[@"pid"] intValue]&&birth(front)==[target[@"birth"] unsignedLongLongValue]);
+    if(!scoped||!physical||!console||!foreground) {
+        emit(@{@"event":@"fixtureFocusAXGuard",@"nonceProcessWindowBound":@(scoped),@"originalHomeVisible":@(physical),
+            @"consoleAvailable":@(console),@"foregroundUninterrupted":@(foreground)});return NO;
+    }
+    AXUIElementRef current=copyFixtureAXWindow(app,target);CFTypeRef title=NULL,minimized=NULL,fullScreen=NULL;
+    NSString *expected=[NSString stringWithFormat:@"Nearpane Fixture %@ %@ %@",runNonce.lowercaseString,bundle,target[@"index"]];
+    BOOL valid=current&&CFEqual(current,window)&&
+        AXUIElementCopyAttributeValue(window,kAXTitleAttribute,&title)==kAXErrorSuccess&&title&&CFGetTypeID(title)==CFStringGetTypeID()&&
+        [(__bridge NSString *)title isEqual:expected]&&
+        AXUIElementCopyAttributeValue(window,kAXMinimizedAttribute,&minimized)==kAXErrorSuccess&&minimized&&CFEqual(minimized,kCFBooleanFalse)&&
+        AXUIElementCopyAttributeValue(window,CFSTR("AXFullScreen"),&fullScreen)==kAXErrorSuccess&&fullScreen&&CFEqual(fullScreen,kCFBooleanFalse);
+    if(current)CFRelease(current);if(title)CFRelease(title);if(minimized)CFRelease(minimized);if(fullScreen)CFRelease(fullScreen);
+    if(!valid)emit(@{@"event":@"fixtureFocusAXGuard",@"retainedExactAXWindow":@NO});
+    return valid&&ownerMatches(target);
+}
+static BOOL activateExactFixture(NSDictionary *target) {
+    // AppKit may decline a background app's own activation request. Use the
+    // shipping exact-window focus sequence, only on this run's retained fixture.
+    int32_t origin=frontmostApplication().processIdentifier;uint64_t originBirth=birth(origin);
+    AXUIElementRef app=AXUIElementCreateApplication([target[@"pid"] intValue]),window=NULL;
+    BOOL good=app&&originBirth&&AXUIElementSetMessagingTimeout(app,.15)==kAXErrorSuccess;
+    if(good)window=copyFixtureAXWindow(app,target);
+    good=good&&window&&AXUIElementSetMessagingTimeout(window,.15)==kAXErrorSuccess;
+    emit(@{@"event":@"fixtureFocusAXBound",@"originalForegroundBirthAvailable":@(originBirth>0),
+        @"exactWindowBound":@(window!=NULL),@"ready":@(good)});
+    for(NSString *step in @[@"main",@"frontmost",@"raise"]) {
+        if(!good)break;
+        BOOL permitted=fixtureFocusWritePermitted(target,app,window,origin,originBirth);
+        AXError result=kAXErrorFailure;
+        if(permitted) {
+            setupAXWrites++;
+            if([step isEqual:@"main"])result=AXUIElementSetAttributeValue(window,kAXMainAttribute,kCFBooleanTrue);
+            else if([step isEqual:@"frontmost"])result=AXUIElementSetAttributeValue(app,kAXFrontmostAttribute,kCFBooleanTrue);
+            else result=AXUIElementPerformAction(window,kAXRaiseAction);
+        }
+        emit(@{@"event":@"fixtureFocusAXStep",@"step":step,@"writeAttempted":@(permitted),
+            @"axError":permitted?@(result):NSNull.null,@"setupAXWrites":@(setupAXWrites),@"pid":target[@"pid"],@"window":target[@"number"]});
+        good=permitted&&result==kAXErrorSuccess;
+        if(good&&![step isEqual:@"raise"]) {
+            double end=NSProcessInfo.processInfo.systemUptime+.9;BOOL observed=NO;
+            do {
+                if([step isEqual:@"main"]) {
+                    CFTypeRef main=NULL;AXError read=AXUIElementCopyAttributeValue(app,kAXMainWindowAttribute,&main);
+                    observed=read==kAXErrorSuccess&&main&&CFGetTypeID(main)==AXUIElementGetTypeID()&&CFEqual(main,window);
+                    if(main)CFRelease(main);
+                } else observed=frontmostApplication().processIdentifier==[target[@"pid"] intValue]&&ownerMatches(target);
+                if(observed)break;pump(.025);
+            } while(NSProcessInfo.processInfo.systemUptime<end);
+            good=observed;
+            emit(@{@"event":@"fixtureFocusAXStepReadback",@"step":step,@"confirmed":@(observed)});
+        }
+    }
+    if(window)CFRelease(window);if(app)CFRelease(app);return good;
+}
 static BOOL prepareFixtureFocus(NSDictionary *target,NSString *phase) {
+    fixtureFocusCommands++;
     BOOL acknowledged=ownerCommand(target,@"focus");
     BOOL ownerKey=waitOwnerState(target,@"key",YES);
     // Always collect the stronger system focus read, even if the fixture's
     // local key-window flag disagrees. A failure must identify which fact failed.
     BOOL exactFocus=waitFocusedFixture(target);
+    BOOL usedAX=NO,activatedAX=NO;
+    if(acknowledged&&(!ownerKey||!exactFocus)&&ownerMatches(target)) {
+        usedAX=YES;activatedAX=activateExactFixture(target);
+        ownerKey=waitOwnerState(target,@"key",YES);
+        exactFocus=waitFocusedFixture(target);
+    }
     int32_t front=frontmostApplication().processIdentifier;
     NSDictionary *state=readJSON([target[@"directory"] stringByAppendingPathComponent:@"state.json"]);
     emit(@{@"event":@"fixtureFocusPreparation",@"phase":phase,@"commandAcknowledged":@(acknowledged),
         @"ownerKey":@(ownerKey),@"exactForegroundFocus":@(exactFocus),@"frontPID":@(front),@"expectedPID":target[@"pid"],
         @"applicationActive":state[@"applicationActive"]?:NSNull.null,
         @"activationRequested":state[@"focusActivationRequested"]?:NSNull.null,
+        @"exactAXAttempted":@(usedAX),@"exactAXSequenceConfirmed":@(activatedAX),@"setupAXWrites":@(setupAXWrites),
         @"commandSequence":state[@"commandSequence"]?:NSNull.null});
-    return acknowledged&&ownerKey&&exactFocus&&front==[target[@"pid"] intValue]&&ownerMatches(target);
+    return acknowledged&&(!usedAX||activatedAX)&&ownerKey&&exactFocus&&front==[target[@"pid"] intValue]&&ownerMatches(target);
 }
 static void check(NSString *name,BOOL passed,NSString *scope) {
     checks[name]=@{@"status":passed?@"PASS":@"FAIL",@"scope":scope};
@@ -408,7 +510,9 @@ static int runScenario(NSString *configuration) {
             dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:0]; });
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
-            @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
+            @"cleanup":@(clean),@"windowWrites":@(writeCount),@"windowWritesScope":@"engine Space operations only",
+            @"setupAXWrites":@(setupAXWrites),@"fixtureFocusCommands":@(fixtureFocusCommands),
+            @"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
             @"enrolledWindows":targets,@"originalSpaceInventory":originalSpaces?:@[],@"ordinaryHome":@(home.id),
             @"targetEnvironment":@{ @"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:[NSNumber numberWithBool:sip==1],
                 @"exactTarget":[NSNumber numberWithBool:np_stage_target_build()==1]},

@@ -156,6 +156,35 @@ struct SpaceInventoryTests {
         #expect(!excluded(.init(inventory: inventory, membership: [42:.known(recordIDs:["5"])], nonManaged: [42:["11"]])))
         #expect(!excluded(.init(inventory: nil, membership: [42:.unknown], nonManaged: [42:["11"]])))
     }
+    @Test func unplacedSurfaceNeedsTwoEmptyInclusiveReadsAndCompleteNegativeOrdering() throws {
+        let inventory = try #require(SpaceInventory(scope(records), displays: displays))
+        let first = SpaceBoundary(inventory: inventory, membership: [42: .unknown], unplaced: [42])
+        func excluded(_ last: SpaceBoundary? = nil, reported: Bool? = nil,
+                      cg: Set<UInt32>? = [], active: Set<UInt32>? = [], ordered: Set<UInt32>? = []) -> Bool {
+            first.excludesUnplacedSurface(42, through: last ?? first,
+                firstReportedOnscreen: reported, lastReportedOnscreen: nil,
+                firstOnscreen: cg, lastOnscreen: [], firstActive: active, lastActive: [],
+                firstOrdered: ordered, lastOrdered: [])
+        }
+        // A missing optional IsOnscreen key is not false. The complete, separate
+        // CG enumeration supplies the negative evidence instead.
+        #expect(excluded())
+        #expect(!excluded(reported: true))
+        for result in [excluded(cg: nil), excluded(active: nil), excluded(ordered: nil),
+                       excluded(cg: [42]), excluded(active: [42]), excluded(ordered: [42])] { #expect(!result) }
+        #expect(!excluded(.init(inventory: inventory, membership: [42: .unknown])))
+        #expect(!excluded(.init(inventory: inventory, membership: [42: .known(recordIDs: ["5"])], unplaced: [42])))
+        #expect(!excluded(.init(inventory: inventory, membership: [42: .unknown], nonManaged: [42: ["11"]])))
+        #expect(!excluded(.init(inventory: nil, membership: [42: .unknown], unplaced: [42])))
+    }
+    @Test func orderingEvidenceNeverConvertsMissingMalformedOrDuplicateNumbersToAbsence() {
+        #expect(Reader.windowNumberSet([]) == [])
+        #expect(Reader.windowNumberSet([53, 55, 56]) == [53, 55, 56])
+        for raw: [NSNumber]? in [nil, [0], [-1], [53, 53], [NSNumber(value: true)],
+                                 [NSNumber(value: 1.25)], [NSNumber(value: UInt64(UInt32.max) + 1)]] {
+            #expect(Reader.windowNumberSet(raw) == nil)
+        }
+    }
     @Test func unknownDisplayMalformedCurrentAndReusedIDsRejectInventory() {
         #expect(SpaceInventory(scope(records, current: 7), displays: displays) == nil)
         #expect(SpaceInventory(scope(records + [records[0]]), displays: displays) == nil)

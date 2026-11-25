@@ -146,16 +146,31 @@ extension Reader {
                   before.process == entry.process,
                   min(entry.frame.width, entry.frame.height) > 1 else { incomplete("windowIdentityOrBounds", window: entry); continue }
             let visible = active.contains(entry.windowID) && before.isOnscreen == true && entry.isOnscreen == true
+            if firstBoundary?.excludesUnplacedSurface(entry.windowID, through: lastBoundary,
+                firstReportedOnscreen: before.isOnscreen, lastReportedOnscreen: entry.isOnscreen,
+                firstOnscreen: first.observedOnscreen, lastOnscreen: second.observedOnscreen,
+                firstActive: activeBeforeRead, lastActive: activeAfterRead,
+                firstOrdered: first.observedAcrossSpaces, lastOrdered: second.observedAcrossSpaces) == true { continue }
             // Our inactive group windows can remain in CG's all-window list.
             // Their independently confirmed hidden membership is not a failed
             // ordinary-desktop read. The retained engine witness still owns and
             // verifies those windows; no directory row or write lease is minted.
             if firstBoundary?.excludesNonManagedWindow(entry.windowID, through: lastBoundary,
-                firstOnscreen: before.isOnscreen, lastOnscreen: entry.isOnscreen,
+                firstOnscreen: first.observedOnscreen.map { $0.contains(entry.windowID) || before.isOnscreen == true } ?? before.isOnscreen,
+                lastOnscreen: second.observedOnscreen.map { $0.contains(entry.windowID) || entry.isOnscreen == true } ?? entry.isOnscreen,
                 active: activeBeforeRead != nil && activeAfterRead != nil ? observedActive.contains(entry.windowID) : nil) == true { continue }
             let left = firstBoundary?.membership[entry.windowID], right = lastBoundary?.membership[entry.windowID]
             guard left == right else { incomplete("membershipChanged", window: entry); continue }
-            if right == nil || right == .unknown { incomplete("membershipUnavailable", window: entry) }
+            if right == nil || right == .unknown {
+                func presence(_ numbers: Set<UInt32>?) -> String {
+                    numbers.map { $0.contains(entry.windowID) ? "yes" : "no" } ?? "unknown"
+                }
+                let reason = "membershipUnavailable(emptyInclusive=\(firstBoundary?.unplaced.contains(entry.windowID) == true),\(lastBoundary?.unplaced.contains(entry.windowID) == true)" +
+                    ";CG=\(presence(first.observedOnscreen)),\(presence(second.observedOnscreen))" +
+                    ";active=\(presence(activeBeforeRead)),\(presence(activeAfterRead))" +
+                    ";allSpaces=\(presence(first.observedAcrossSpaces)),\(presence(second.observedAcrossSpaces)))"
+                incomplete(reason, window: entry)
+            }
             let memberDisplays: [String]
             if case .known(let ids) = right {
                 memberDisplays = inventory?.scopes.filter { $0.records.contains { ids.contains($0.id) } }.map(\.displayID) ?? []

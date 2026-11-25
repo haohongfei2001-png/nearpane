@@ -216,7 +216,17 @@ def ci_workspace(apps, out, env, operation, suffix=""):
 def runtime_checks(out, env, archive, host, iterations, revision):
     out.mkdir()
     env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1")
-    apps = build(archive, out / "kit")
+    try:
+        with (out / "kit-build.log").open("x") as stdout, (out / "kit-build.stderr.log").open("x") as stderr:
+            apps = build(archive, out / "kit", stdout=stdout, stderr=stderr)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        result = {"schema": 1, "status": "FAIL", "phase": "runtimeToolsBuild",
+                  "reason": type(error).__name__ + ": " + str(error),
+                  "engine": "NOT_RUN", "R4ProductPath": "NOT_RUN", "platformForeignMechanism": "NOT_RUN",
+                  "fixtureProcessesStarted": 0, "foreignWindowWrites": 0, "qualificationGranted": False,
+                  "buildLog": "kit-build.log", "buildStderr": "kit-build.stderr.log"}
+        atomic(out / "summary.json", result)
+        return result
     nonce = str(uuid.uuid4())
     config = {"schema": 1, "nonce": nonce, "output": str(out), "iterations": iterations, "fixtures": [],
               "systemHelper": apps["SplitViewHelper"]["executable"]}

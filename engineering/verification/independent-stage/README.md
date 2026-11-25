@@ -43,6 +43,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `bdedf131`, hosted platform experiment | Two external processes' windows completed four real hidden/return moves; same-app sibling unchanged; two full observations per stage; owned hidden Space emptied and destroyed | `PLATFORM_FOREIGN_PASS` on 26A434/SIP disabled; [original evidence](cloud-bdedf131-platform/README.md). Engine/R4 not run, target not qualified, separate ordinary-desktop cleanup unconfirmed |
 | `6558c2d5`, full lane | 150 Rust, 153 Swift and 17 Python passed; one signed live fixture skipped; complete candidate and strict signature passed; platform foreign result repeated | R4 sees all three correct fixtures but `catalogComplete=false`; no R4 input yet. [Candidate and product receipt](cloud-6558c2d5-full/README.md) |
 | `e630b6bc`, diagnostics | Two foreign hidden/return cycles on original home 1, four writes, hidden Space 12 emptied/destroyed; no ordinary desktop created | Independent platform replication with cleanup; engine/R4 remain separate. [Original result references](cloud-e630b6bc-diagnostics/README.md) |
+| `e630b6bc`, full lane | Real ordinary Desktop 12 initialized and later removed; final original inventory restored exactly; full candidate passed | CI-only desktop cleanup fixed and independently verified; [original receipts](cloud-e630b6bc-full/README.md) |
+| `5e458d1d`, full lane | 150 Rust and 154 Swift passed, one explicit skip; complete candidate/signature passed; three real R4 windows correctly identified | Activation request declined before canary; 15 unknown-membership CG surfaces blocked catalogue completeness, no R4 input. [Exact observations](cloud-5e458d1d-full/README.md) |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -64,6 +66,13 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[5e458d1d full receipts](cloud-5e458d1d-full/README.md) identify the source-checked candidate in
+[artifact 15062876476](https://github.com/haohongfei2001-png/nearpane/actions/runs/45697978438/artifacts/15062876476),
+with independently checked ZIP SHA-256
+`0fabd6c1ede4640e3fbc59edf61fa23c07b4029008884cd094a61fb86f483fa2`.
+Its runtime blockers are retained in the same evidence folder; a later implementation fix does not
+change the status of this recorded run.
 
 [6558c2d5 complete receipts](cloud-6558c2d5-full/README.md) identify the later source-checked full
 workspace candidate in [artifact 15061066778](https://github.com/haohongfei2001-png/nearpane/actions/runs/45693715803/artifacts/15061066778).

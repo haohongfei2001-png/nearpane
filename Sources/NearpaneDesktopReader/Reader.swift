@@ -36,6 +36,8 @@ struct Reader {
         var backgroundCollectionComplete = false
         var audit = [UInt32: [String: Bool]]()
         var orderedAcrossSpaces = Set<UInt32>()
+        var observedAcrossSpaces: Set<UInt32>?
+        var observedOnscreen: Set<UInt32>?
         var unhiddenOwners = Set<Int32>()
     }
 
@@ -60,12 +62,19 @@ struct Reader {
         }
         if overview {
             auditRows("publicCG", in: list)
+            // IsOnscreen is an optional CG dictionary key. A separate complete
+            // onscreen enumeration supplies negative visibility evidence without
+            // treating a missing key as false.
+            if let onscreen = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] {
+                let numbers = onscreen.compactMap { $0[kCGWindowNumber as String] as? NSNumber }
+                if numbers.count == onscreen.count { result.observedOnscreen = Self.windowNumberSet(numbers) }
+            }
             // The WindowServer enumeration and AppKit's ordered window numbers are
             // independent during a stage transition. Resolve a missing number against
             // its own CG record; never infer its owner or Space from another window.
             let known = Set(list.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value })
-            let publicIDs = NSWindow.windowNumbers(options: [.allApplications, .allSpaces]) ?? []
-            result.orderedAcrossSpaces = Set(publicIDs.map(\.uint32Value))
+            result.observedAcrossSpaces = Self.windowNumberSet(NSWindow.windowNumbers(options: [.allApplications, .allSpaces]))
+            result.orderedAcrossSpaces = result.observedAcrossSpaces ?? []
             for id in result.orderedAcrossSpaces.subtracting(known) {
                 if let exact = CGWindowListCopyWindowInfo(.optionIncludingWindow, id) as? [[String: Any]],
                    exact.count == 1, exact[0][kCGWindowNumber as String] as? UInt32 == id {
@@ -124,9 +133,13 @@ struct Reader {
             guard frame.isValid, !overview || min(frame.width, frame.height) > 1 else { continue }
             guard result.windows.count < (overview ? 4096 : windowLimit) else { result.limited = true; break }
             let process = processes[pid] ?? incarnation(pid); processes[pid] = process
+            let reportedOnscreen: Bool?
+            if let value = row[kCGWindowIsOnscreen as String], CFGetTypeID(value as CFTypeRef) == CFBooleanGetTypeID() {
+                reportedOnscreen = (value as? NSNumber)?.boolValue
+            } else { reportedOnscreen = nil }
             result.windows.append(CGWindowMetadata(process: process, windowID: number,
                 title: overview ? nil : (row[kCGWindowName as String] as? String).flatMap(titleToken), frame: frame,
-                isOnscreen: (row[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
+                isOnscreen: reportedOnscreen,
                 frontToBackIndex: result.windows.count))
         }
         return result
@@ -167,11 +180,16 @@ struct Reader {
 
     func observedActiveNumbers() -> Set<UInt32>? {
         // The allSpaces flag must stay absent. Only numbers are requested from AppKit.
-        guard let raw = NSWindow.windowNumbers(options: .allApplications) else { return nil }
-        let numbers = raw.compactMap { UInt32(exactly: $0.int64Value) }
+        guard let active = Self.windowNumberSet(NSWindow.windowNumbers(options: .allApplications)) else { return nil }
+        if let fixture = request.fixtureWindows { return active.intersection(fixture) }
+        return active
+    }
+
+    nonisolated static func windowNumberSet(_ raw: [NSNumber]?) -> Set<UInt32>? {
+        guard let raw, raw.count <= 16_384 else { return nil }
+        let numbers = raw.compactMap { SpaceInventory.integer($0).flatMap { UInt32($0.stringValue) } }
         let active = Set(numbers)
         guard numbers.count == raw.count, active.count == raw.count, !active.contains(0) else { return nil }
-        if let fixture = request.fixtureWindows { return active.intersection(fixture) }
         return active
     }
 

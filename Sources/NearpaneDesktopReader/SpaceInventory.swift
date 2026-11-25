@@ -135,6 +135,27 @@ struct SpaceBoundary: Equatable {
     let inventory: SpaceInventory?
     let membership: [UInt32: WindowMembership]
     var nonManaged: [UInt32: [String]] = [:]
+    /// A successful inclusive query returned an actually empty array, not nil.
+    var unplaced = Set<UInt32>()
+
+    /// An allocated/unmapped surface is outside this observation's work-window
+    /// roster. This says nothing about closure or the lifetime of an owned lease.
+    func excludesUnplacedSurface(_ window: UInt32, through last: Self?,
+        firstReportedOnscreen: Bool?, lastReportedOnscreen: Bool?,
+        firstOnscreen: Set<UInt32>?, lastOnscreen: Set<UInt32>?,
+        firstActive: Set<UInt32>?, lastActive: Set<UInt32>?,
+        firstOrdered: Set<UInt32>?, lastOrdered: Set<UInt32>?) -> Bool {
+        guard window > 0, let inventory, let last, last.inventory == inventory,
+              membership[window] == .unknown, last.membership[window] == .unknown,
+              unplaced.contains(window), last.unplaced.contains(window),
+              firstReportedOnscreen != true, lastReportedOnscreen != true,
+              let firstOnscreen, let lastOnscreen, let firstActive, let lastActive,
+              let firstOrdered, let lastOrdered,
+              !firstOnscreen.contains(window), !lastOnscreen.contains(window),
+              !firstActive.contains(window), !lastActive.contains(window),
+              !firstOrdered.contains(window), !lastOrdered.contains(window) else { return false }
+        return true
+    }
 
     /// Two exact Space observations and two negative surface observations are
     /// needed before an internal Space can be omitted from the ordinary roster.
@@ -171,6 +192,7 @@ struct SpaceBoundary: Equatable {
             return Self(inventory: nil, membership: [:])
         }
         var result: [UInt32: WindowMembership] = [:], nonManaged: [UInt32: [String]] = [:]
+        var unplaced = Set<UInt32>()
         var occupantCache: [UInt64: [Any]] = [:], unreadable = Set<UInt64>()
         func occupants(_ space: UInt64) -> [Any]? {
             if let cached = occupantCache[space] { return cached }
@@ -182,12 +204,14 @@ struct SpaceBoundary: Equatable {
         }
         for id in Set(windowIDs) {
             result[id] = NPReadWindowSpaces(id).map { inventory.membership($0 as [AnyObject]) } ?? .unknown
-            if result[id] == .unknown,
-               let raw = NPReadWindowSpacesIncludingHidden(id),
-               let spaces = inventory.nonManagedMembership(window: id, raw: raw as [AnyObject], occupants: occupants) {
-                nonManaged[id] = spaces
+            if result[id] == .unknown, let raw = NPReadWindowSpacesIncludingHidden(id) {
+                let values = raw as [AnyObject]
+                if values.isEmpty { unplaced.insert(id) }
+                else if let spaces = inventory.nonManagedMembership(window: id, raw: values, occupants: occupants) {
+                    nonManaged[id] = spaces
+                }
             }
         }
-        return Self(inventory: inventory, membership: result, nonManaged: nonManaged)
+        return Self(inventory: inventory, membership: result, nonManaged: nonManaged, unplaced: unplaced)
     }
 }

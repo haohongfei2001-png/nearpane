@@ -120,6 +120,12 @@ substitute for a 26A428/SIP-on acceptance result.
   confirms the exact window, and both CG observations are offscreen. Missing/empty membership alone
   remains incomplete. This prevents the Host from revoking its own correct hidden group while retaining
   all ordinary-desktop and window-identity requirements.
+- CG's all-window list also contains allocated, unmapped surfaces. A separate exclusion requires two
+  actual empty inclusive Space arrays and two complete CG onscreen, AppKit active and AppKit all-Spaces
+  inventories that all omit the unchanged PID/birth/window identity. A missing CG `IsOnscreen` key is
+  unknown, never false; an independent complete onscreen enumeration supplies negative evidence.
+  This only excludes a surface from that sample's work-window roster. It cannot retire an owned window,
+  release an AX lifetime or clear recovery ownership.
 - Restore first; then destroy only an empty owned Space. Partial/uncertain moves retain recovery ownership.
 - System overview handling returns windows to their real ordinary desktop and does not park them in corners.
   Fullscreen and native split windows remain outside ordinary group management.
