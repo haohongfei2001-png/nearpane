@@ -42,7 +42,7 @@ import NearpaneWindowEngine
     @ObservationIgnored private var keys = [UInt32:DesktopWindowKey]()
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var didDispatch = false
-    @ObservationIgnored private let minimize = AppleStageMinimizeObserver()
+    @ObservationIgnored private let minimize = AppleStageMinimizeObserver(observesGeometry: true)
     @ObservationIgnored private var lastChoice: [String:DesktopWindowKey] = [:]
     @ObservationIgnored private var lastMemberCycle: AppleStageMemberCycle?
     @ObservationIgnored private var currentSnapshot: (@MainActor () -> DesktopSnapshot?)?
@@ -75,19 +75,15 @@ import NearpaneWindowEngine
         currentSnapshot = snapshot; refreshSnapshot = refresh; self.visible = visible
         let (events, wake) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         updates = wake
-        let clock = Task { @MainActor in
-            while !Task.isCancelled {
-                wake.yield(())
-                do { try await Task.sleep(for: .milliseconds(ready ? 1800 : 250)) } catch { break }
-            }
-        }
+        var nextRead: Task<Void, Never>?
+        wake.yield(())
         let listener = NSWorkspace.shared.notificationCenter
         let notices = [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification,
                        NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification].map { name in
             listener.addObserver(forName: name, object: nil, queue: nil) { _ in wake.yield(()) }
         }
         defer {
-            clock.cancel()
+            nextRead?.cancel()
             for notice in notices { listener.removeObserver(notice) }
             if generation == token {
                 clear(); self.visible = nil; currentSnapshot = nil; refreshSnapshot = nil; updates = nil
@@ -95,6 +91,16 @@ import NearpaneWindowEngine
         }
         for await _ in events {
             guard generation == token, !Task.isCancelled else { return }
+            // An observed native drag can start while the settled (slow) timer sleeps.
+            // Select the next interval from this read, including all unavailable paths.
+            nextRead?.cancel()
+            defer {
+                let delay: Duration = .milliseconds(ready ? 1800 : 250)
+                nextRead = Task {
+                    do { try await Task.sleep(for: delay) } catch { return }
+                    wake.yield(())
+                }
+            }
             guard visible(), WindowContentPreview.sessionAvailable() else { clear(); continue }
             guard let sample = snapshot() else { ready = false; handoff = nil; minimize.stop(); continue }
             guard let scope = Home(sample, display) else {

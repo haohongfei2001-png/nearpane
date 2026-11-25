@@ -43,6 +43,9 @@ struct AppleMinimizeReadOrder {
     private var order = AppleMinimizeReadOrder()
     private var termination: NSObjectProtocol?
     private var changed: Changed?
+    private let observesGeometry: Bool
+
+    init(observesGeometry: Bool = false) { self.observesGeometry = observesGeometry }
 
     // AX sources run on the main run loop. Route by the delivering observer so
     // a queued notification can never dereference a released refcon.
@@ -106,8 +109,9 @@ struct AppleMinimizeReadOrder {
             let ticket = UUID()
             // DispatchWorkItem's unannotated block otherwise inherits MainActor;
             // libdispatch runs this registration on the serial AX queue.
+            let observeGeometry = observesGeometry
             let work = DispatchWorkItem { @Sendable [weak self] in
-                let registration = Self.prepare(pid, keys: keys)
+                let registration = Self.prepare(pid, keys: keys, observeGeometry: observeGeometry)
                 DispatchQueue.main.async { [weak self] in
                     guard let self, self.pending[pid]?.ticket == ticket else { return }
                     self.pending.removeValue(forKey: pid)
@@ -152,7 +156,7 @@ struct AppleMinimizeReadOrder {
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(registration.observer), .commonModes)
     }
 
-    private nonisolated static func prepare(_ pid: pid_t, keys: Set<DesktopWindowKey>) -> Registration? {
+    private nonisolated static func prepare(_ pid: pid_t, keys: Set<DesktopWindowKey>, observeGeometry: Bool) -> Registration? {
         guard let birth = keys.first?.birth, let image = try? OrdinaryProcessImage.read(pid), image.launch == birth,
               let owner = NSRunningApplication(processIdentifier: pid), !owner.isTerminated, owner.activationPolicy == .regular else { return nil }
         let app = AXUIElementCreateApplication(pid)
@@ -183,7 +187,13 @@ struct AppleMinimizeReadOrder {
             guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
             let mini = AXObserverAddNotification(observer, element, kAXWindowMiniaturizedNotification as CFString, nil)
             let restore = AXObserverAddNotification(observer, element, kAXWindowDeminiaturizedNotification as CFString, nil)
-            guard mini == .success || restore == .success else { return false }
+            var subscribed = mini == .success || restore == .success
+            if observeGeometry {
+                let move = AXObserverAddNotification(observer, element, kAXWindowMovedNotification as CFString, nil)
+                let resize = AXObserverAddNotification(observer, element, kAXWindowResizedNotification as CFString, nil)
+                subscribed = subscribed || move == .success || resize == .success
+            }
+            guard subscribed else { return false }
             _ = AXObserverAddNotification(observer, element, kAXUIElementDestroyedNotification as CFString, nil)
             return true
         }
@@ -210,6 +220,11 @@ struct AppleMinimizeReadOrder {
         }
         let kind: UInt32
         switch event {
+        case kAXWindowMovedNotification, kAXWindowResizedNotification:
+            // macOS sends these notifications at the end of a move or resize. The
+            // mirror coalesces wakeups and independently reads the native arrangement.
+            changed?()
+            return
         case kAXWindowMiniaturizedNotification: kind = UInt32(NP_APPLE_AX_MINIATURIZED)
         case kAXWindowDeminiaturizedNotification: kind = UInt32(NP_APPLE_AX_DEMINIATURIZED)
         default: return
