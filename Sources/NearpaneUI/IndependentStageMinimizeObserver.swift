@@ -144,7 +144,7 @@ struct IndependentStageMinimizeOrder {
               let windows = raw as? [AXUIElement] else { return nil }
         let callback: AXObserverCallback = { observer, element, event, _ in
             MainActor.assumeIsolated {
-                Self.destinations[ObjectIdentifier(observer)]?.value?.receive(observer, element: element, event: event as String)
+                IndependentStageMinimizeObserver.destinations[ObjectIdentifier(observer)]?.value?.receive(observer, element: element, event: event as String)
             }
         }
         var observer: AXObserver?

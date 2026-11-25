@@ -369,6 +369,73 @@ public enum StageSwitchError: LocalizedError, Equatable {
         abs(a.x-b.x) <= 1 && abs(a.y-b.y) <= 1 && abs(a.width-b.width) <= 1 && abs(a.height-b.height) <= 1
     }
 
+    /// A trusted AX miniaturization event retires one previously enrolled window.
+    /// The engine first moves the minimized window into its hidden Space and only then
+    /// clears AXMinimized. Previously minimized Dock windows never enter this method.
+    public func retireMinimized(_ window: NativeSpaceWindow, in scope: StageGroupScope,
+                                session: StageWindowSession, current: @escaping @MainActor () -> Bool) async throws {
+        guard !busy, !requiresRecovery, let owner = session.engineOwner, owner.backend == .spaces,
+              session.qualifiedHiddenState == .stageSpace, ledger.owner == owner,
+              !ledger.owned.contains(where: { $0.hidden.window == window }), current() else {
+            throw StageSwitchError.unavailable
+        }
+        busy = true
+        defer { busy = false }
+        let token = epoch
+        let first = try await session.read(scope)
+        guard current(), token == epoch, first.generation == owner.generation,
+              let before = first.windows[window], before.visibility == .minimized, before.hiddenSpaceID == nil,
+              session.mayManage(before), let native = first.nativeID, native > 0,
+              let existing = store.groups(in: scope).first(where: { $0.members.contains { $0.windowHint == window } }),
+              let oldMember = existing.members.first(where: { $0.windowHint == window }), store.isBound(oldMember, to: before.lifetime),
+              let layout = StageGroupWindow.relativeFrame(before.frame, in: first.workArea) else { throw StageSwitchError.ownership }
+        if existing.members.count > 1 {
+            guard !ledger.owned.contains(where: { $0.group == existing.id }) else { throw StageSwitchError.ownership }
+            try store.detach(.init(display:scope.display, identity:window, lifetime:before.lifetime,
+                layout:layout, nativeSpace:scope.nativeSpace), from:existing.id)
+        }
+        guard let group = store.groups(in:scope).first(where: { $0.members.contains { $0.windowHint == window } }),
+              let member = group.members.first(where: { $0.windowHint == window }) else { throw StageSwitchError.ownership }
+        let directory = store.directory, intent = UUID(), primitive = UUID()
+        var original = before
+        original.visibility = .visible
+        try update {
+            $0.pending = .init(scope:scope, generation:first.generation, target:group.id, preferred:window,
+                originalFocus:first.focus, before:Array(first.windows.values), ownedBefore:$0.owned.filter { $0.scope == scope },
+                entries:[.init(action:.hide, before:before, intent:primitive, group:group.id, member:member.id)],
+                owner:owner, intent:intent, nativeID:native, workArea:first.workArea)
+        }
+        let command = StageWindowCommand(intent:primitive, group:group.id, member:member.id, generation:first.generation,
+            scope:scope, nativeID:native, action:.hide, before:before, restoring:false, restoreFrame:nil)
+        try await session.dispatch(command)
+        var last = first, hidden: StageWindowState?
+        for _ in 0..<2 {
+            let sample = try await session.read(scope)
+            guard current(), token == epoch, sample.generation == first.generation, sample.nativeID == native,
+                  sample.sequence > last.sequence, sample.windows.keys == first.windows.keys,
+                  let after = sample.windows[window], after.lifetime == before.lifetime,
+                  after.visibility == .stageSpace, let hiddenID = after.hiddenSpaceID, hiddenID > 0, hiddenID != native,
+                  matches(after.frame, original.frame), sample.focus != window,
+                  hidden == nil || hidden == after,
+                  first.windows.keys.filter({ $0 != window }).allSatisfy({ first.windows[$0] == sample.windows[$0] })
+            else { throw StageSwitchError.incomplete }
+            hidden = after; last = sample
+        }
+        guard let hidden else { throw StageSwitchError.incomplete }
+        try await session.didVerify(command, after:hidden)
+        try update {
+            $0.pending?.entries[0].after = hidden
+            $0.owned.append(.init(scope:scope, original:original, hidden:hidden, owner:owner,
+                group:group.id, member:member.id, nativeID:native))
+        }
+        let focused = last.focus.flatMap { focus in
+            store.groups(in:scope).first { group in group.members.contains { $0.windowHint == focus } }
+                .flatMap { group in group.members.first { $0.windowHint == focus }.map { (group.id, $0.id) } }
+        }
+        try store.saveObservedActivity(focused, in:scope, expected:directory, verifiedLayouts:[member.id:layout])
+        try update { $0.pending = nil }
+    }
+
     /// The caller obtains consent from an explicit first-use confirmation before entering. On
     /// first enrollment the actual focused window must belong to a participating group.
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope,

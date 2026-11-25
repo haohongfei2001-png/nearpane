@@ -12,10 +12,12 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import re
 import shutil
 import subprocess
 import time
 import uuid
+import xml.etree.ElementTree as ET
 
 from build import build, ROOT
 from evaluate import evaluate
@@ -53,6 +55,21 @@ def source_checks(out, env):
                         "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus"))
     checks["swift"] = execute(["bash", "scripts/test.sh", "--jobs", "4", "--filter", pattern,
                                 "--xunit-output", out / "swift.xml"], out, "swift", env, 1200)
+    if checks["swift"]["status"] == "PASS":
+        try:
+            cases = ET.parse(out / "swift.xml").findall(".//testcase")
+            passed = [c for c in cases if all(c.find(tag) is None for tag in ("skipped", "failure", "error"))]
+            if not passed:
+                raise ValueError("noCompletedSwiftCases")
+            checks["swift"].update(passed=len(passed), skipped=len(cases)-len(passed))
+        except (OSError, ValueError, ET.ParseError) as error:
+            checks["swift"].update(status="FAIL", reason=str(error))
+    if checks["rust"]["status"] == "PASS":
+        counts = re.findall(r"test result: ok\. (\d+) passed; 0 failed;", (out / "rust.log").read_text())
+        count = sum(map(int, counts))
+        checks["rust"].update(passed=count)
+        if not count:
+            checks["rust"].update(status="FAIL", reason="noCompletedRustCases")
     checks["evidence"] = execute(["python3", "-B", "-m", "unittest", "discover", "-s", HERE, "-p", "test_*.py"],
                                   out, "evidence", env, 30)
     result = {"schema": 1, "status": "PASS" if all(x["status"] == "PASS" for x in checks.values()) else "FAIL",

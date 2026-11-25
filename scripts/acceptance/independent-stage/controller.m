@@ -6,6 +6,7 @@
 #import <sys/sysctl.h>
 #import <unistd.h>
 #import <dlfcn.h>
+#import <math.h>
 #import "nearpane_window_engine.h"
 #import "platform.h"
 
@@ -95,17 +96,18 @@ static NPRequest windowRequest(NSDictionary *target) {
     NSArray *f=target[@"frame"];r.frame=(NPRect){[f[0] doubleValue],[f[1] doubleValue],[f[2] doubleValue],[f[3] doubleValue]};
     return r;
 }
-static BOOL hide(NSMutableDictionary *target,NSString *phase) {
+static BOOL hideOperation(NSMutableDictionary *target,NSString *phase,uint32_t operation) {
     if([target[@"hidden"] boolValue])return YES;
     if(!ownerMatches(target))return NO;
     NPRequest r=windowRequest(target);NPReceipt receipt;writeCount++;
-    BOOL accepted=request(&r,NP_HIDE,phase,&receipt);
+    BOOL accepted=request(&r,operation,phase,&receipt);
     // Keep the attempted target even after an uncertain receipt; cleanup reads actual membership.
     target[@"attempted"]=@YES;
     if(receipt.native_id && receipt.native_id!=home.id)target[@"parking"]=@(receipt.native_id);
     BOOL verified=accepted&&receipt.native_id!=home.id&&receipt.native_id&&verify(target,receipt.native_id,NO,phase);
     target[@"hidden"]=@(verified);return verified;
 }
+static BOOL hide(NSMutableDictionary *target,NSString *phase) { return hideOperation(target,phase,NP_HIDE); }
 static BOOL show(NSMutableDictionary *target,NSString *phase) {
     if(!ownerMatches(target))return NO;
     NPRequest r=windowRequest(target);NPReceipt receipt;writeCount++;
@@ -218,8 +220,11 @@ int main(int argc,const char **argv) {
         }
         {
             BOOL minimized=ownerCommand(targets[0],@"minimize")&&waitOwnerState(targets[0],@"miniaturized",YES);
-            BOOL restored=ownerCommand(targets[0],@"restore")&&waitOwnerState(targets[0],@"miniaturized",NO)&&verify(targets[0],home.id,YES,@"yellow-button-return");
-            check(@"yellowButton",minimized&&restored,@"real title-bar action and return; R4 routing is assessed in separate product receipt");
+            BOOL retired=minimized&&hideOperation(targets[0],@"yellow-button-retire",NP_HIDE_MINIMIZED)&&
+                waitOwnerState(targets[0],@"miniaturized",NO);
+            BOOL restored=retired&&show(targets[0],@"yellow-button-return")&&waitOwnerState(targets[0],@"miniaturized",NO);
+            if(!retired)(void)ownerCommand(targets[0],@"restore");
+            check(@"yellowButton",minimized&&retired&&restored,@"real title-bar action → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately");
             if(!minimized||!restored){reason=@"yellowButtonFailed";goto finish;}
         }
         {

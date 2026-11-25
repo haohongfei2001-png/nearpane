@@ -53,6 +53,8 @@ import NearpaneOrdinaryWindowRuntime
     private var releasing: Bool { releaseTask != nil }
     private var recoveryRequested = false
     private var revision: UInt64 = 0
+    @ObservationIgnored private let minimizeObserver = IndependentStageMinimizeObserver()
+    @ObservationIgnored private var minimizeTask: Task<Void, Never>?
 
     init(profile: URL?, store: StageGroupStore) {
         self.profile = profile
@@ -200,6 +202,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func stopWatching() {
+        minimizeObserver.stop()
         for (center,observer) in watchers { center.removeObserver(observer) }
         watchers.removeAll()
     }
@@ -258,6 +261,7 @@ import NearpaneOrdinaryWindowRuntime
         observedCapability = nil
         groupProjection = nil
         feed?.stageGallery?.clearHeldPictures()
+        minimizeObserver.stop()
         witness?.cancelArrivals()
         consentRequest = nil
         granted = nil
@@ -282,6 +286,7 @@ import NearpaneOrdinaryWindowRuntime
         if let releaseTask { return releaseTask }
         guard let engine, engine.holdsWindowDispatch else { return nil }
         feed?.stageGallery?.clearHeldPictures()
+        minimizeObserver.stop()
         witness?.cancelArrivals()
         releaseInput = NativeSelectionPermit.inputCounters()
         let pending = Task { [weak self] in
@@ -467,7 +472,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
-        guard let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
+        guard minimizeTask == nil, let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
               engine.coordinator.retainedOwner == session.owner,
               ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }
         let token = revision, scope = witness.scope
@@ -523,8 +528,37 @@ import NearpaneOrdinaryWindowRuntime
 
     private func armArrivals(in feed: CurrentDesktopWindows, revision token: UInt64) async {
         guard let session = engine?.session, let granted, let witness else { return }
+        if session.owner.backend == .spaces {
+            minimizeObserver.update(targets: granted.lifetimes.keys.map { .init(pid:$0.pid,birth:$0.birth,number:$0.number) },
+                minimized: { [weak self] key in self?.retireMinimized(key) }, changed: { [weak feed] in feed?.changed() })
+        }
         await witness.armArrivals(in: feed.groups, authorized: granted.lifetimes) { [weak self] in
             self?.canObserveArrivals(session, revision: token) == true
+        }
+    }
+
+    private func retireMinimized(_ key: DesktopWindowKey) {
+        let window = NativeSpaceWindow(pid:key.pid, birth:key.birth, number:key.number)
+        guard minimizeTask == nil, !releasing, !terminationOwnsLane, let engine, let session = engine.session,
+              session.owner.backend == .spaces, let witness, let feed,
+              granted?.lifetimes[window] == witness.lifetime(of:window) else { return }
+        let token = revision, scope = witness.scope
+        minimizeTask = Task { [weak self, weak feed] in
+            guard let self, let feed else { return }
+            defer { minimizeTask = nil; feed.changed() }
+            await heldRefresh?.value
+            guard revision == token, !releasing, !session.isFrozen else { return }
+            do {
+                try await engine.retireMinimized(window, in:scope) { [weak self] in
+                    self?.revision == token && self?.releasing == false && !Task.isCancelled
+                }
+                granted = try consent(for:scope, evidence:session.owner.evidence, feed:feed)
+                projectHeld(feed.groups, in:scope)
+                await armArrivals(in:feed, revision:token)
+            } catch {
+                recoveryRequested = engine.coordinator.requiresRecovery
+                if recoveryRequested { ordinaryContextObserved() }
+            }
         }
     }
 

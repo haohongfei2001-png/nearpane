@@ -14,6 +14,7 @@ import NearpaneTray
 struct NearpaneApp {
     @MainActor static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        if IndependentStageAcceptanceHost.startIfRequested(args) { return }
         // A dedicated, separately signed QA bundle accepts only its sealed nonce
         // and the isolated R4 entry. Opening it from Finder never starts daily UI.
         if Bundle.main.object(forInfoDictionaryKey: "NearpaneNativeMergeFixtureProtocol") != nil {

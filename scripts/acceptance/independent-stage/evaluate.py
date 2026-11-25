@@ -16,9 +16,10 @@ def evaluate(engine, product=None):
                     and product.get("actualR4Inputs", 0) > 0 and product.get("foreignWindowReadback") is True)
     return {
         "schema": 1,
-        "engine": "PASS" if foreign_pass else engine.get("status", "NOT_RUN"),
+        "engine": "PASS" if foreign_pass else ("UNKNOWN" if engine.get("status") == "FOREIGN_ENGINE_PASS" else engine.get("status", "NOT_RUN")),
         "exactTargetEngine": "PASS" if foreign_pass and exact else "NOT_PROVEN",
-        "R4ProductPath": "PASS" if product_pass else product.get("status", "NOT_RUN"),
+        "R4ProductPath": "PASS" if product_pass else ("UNKNOWN" if product.get("status") == "PRODUCT_R4_PASS" else product.get("status", "NOT_RUN")),
+        "yellowButtonRouting": product.get("yellowButtonRouting", "NOT_RUN"),
         "missionControl": product.get("missionControl", "NOT_RUN"),
         "desktopGestures": product.get("desktopGestures", "NOT_RUN"),
         "fullScreenSplitView": product.get("fullScreenSplitView", "NOT_RUN"),

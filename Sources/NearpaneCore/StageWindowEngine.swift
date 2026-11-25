@@ -246,7 +246,8 @@ struct UnsubmittedCornerHide: Error {
         case .hide, .show:
             let hiding = c.action == .hide
             if hiding {
-                guard c.before.visibility == .visible else { throw StageSwitchError.ownership }
+                guard c.before.visibility == .visible || (owner.backend == .spaces && c.before.visibility == .minimized)
+                else { throw StageSwitchError.ownership }
             } else {
                 guard c.restoreFrame != nil, c.before.visibility == (owner.backend == .spaces ? .stageSpace : .parked) else {
                     throw StageSwitchError.ownership
@@ -479,6 +480,15 @@ struct UnsubmittedCornerHide: Error {
         session = candidate
         lastFailure = nil
         return true
+    }
+
+    public func retireMinimized(_ window: NativeSpaceWindow, in scope: StageGroupScope,
+                                current: @escaping @MainActor () -> Bool) async throws {
+        guard !busy, !releaseRequested, let session, session.owner.backend == .spaces,
+              session.qualifiedHiddenState == .stageSpace, current() else { throw StageSwitchError.unavailable }
+        busy = true; session.intentIsCurrent = current
+        defer { busy = false; session.intentIsCurrent = { false } }
+        try await coordinator.retireMinimized(window, in: scope, session: session, current: current)
     }
 
     public func activate(_ group: UUID, member: UUID?, in scope: StageGroupScope, consent: Bool,

@@ -71,7 +71,7 @@ int main(int argc,const char **argv) {
             [w.contentView addSubview:field]; [documents addObject:w];[fields addObject:field];[w orderFront:nil];
         }
         [CATransaction flush]; writeState();
-        double deadline=NSProcessInfo.processInfo.systemUptime+240;
+        double deadline=NSProcessInfo.processInfo.systemUptime+600;
         NSTimer *timer=[NSTimer timerWithTimeInterval:.04 repeats:YES block:^(NSTimer *t){
             command();writeState();
             if(NSProcessInfo.processInfo.systemUptime>=deadline){for(NSWindow *w in documents)[w close];[t invalidate];[NSApp stop:nil];}

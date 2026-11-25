@@ -24,7 +24,7 @@ static BOOL bindInteractiveRow(NPInstalledFixture *part, NSDictionary *ready, NS
     if (![n isKindOfClass:NSNumber.class] || !isfinite([n doubleValue])) return NO;
   part->subject = (NPInstalledSubject){(pid_t)pid, (uint32_t)window, started};
   if (!signedFixture(part)) return NO;
-  part->document = boundWindow((uint32_t)window, (pid_t)pid, started, NULL);
+  part->document = boundWindow((uint32_t)window, (pid_t)pid, started, NULL, NO);
   CFTypeRef identifier = NULL;
   if (!part->document || AXUIElementCopyAttributeValue(part->document,kAXIdentifierAttribute,&identifier) != kAXErrorSuccess) return NO;
   NSString *axID = CFBridgingRelease(identifier);

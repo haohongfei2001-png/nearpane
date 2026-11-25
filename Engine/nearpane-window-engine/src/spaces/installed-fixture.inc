@@ -393,7 +393,7 @@ static BOOL registerFixtureWindow(NPInstalledFixture *s, NSString *idString, uin
     return NO;
   *bits |= 32;
   *reason = 8;
-  s->document = boundWindow((uint32_t)w, (pid_t)pid, started, NULL);
+  s->document = boundWindow((uint32_t)w, (pid_t)pid, started, NULL, NO);
   NPStageWindow row = {0};
   if (!s->document || !singleRegisteredDocument(s, NO) ||
       !documentGeometry(s->document, &s->geometry) ||
