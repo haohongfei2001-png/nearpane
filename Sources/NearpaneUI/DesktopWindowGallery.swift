@@ -1,5 +1,6 @@
 import AppKit
 import NearpaneCore
+import NearpaneOrdinaryWindowRuntime
 @preconcurrency import ScreenCaptureKit
 
 /// One WindowServer surface on the observed desktop. Observation IDs include a revision and
@@ -498,6 +499,46 @@ struct DesktopWindowTarget: Equatable {
         return still.capture.image
     }
 
+    /// A native Stage thumbnail can replace the full-size CG surface while its document
+    /// stays on the same desktop. Only read the original frame already in this gallery.
+    func nativeStageHistory(_ key: DesktopWindowKey, display: String, snapshot: DesktopSnapshot,
+                            permitted: Bool, nativeStripMember: Bool) -> CGImage? {
+        guard permitted, permitsWindow(key), WindowContentPreview.sessionAvailable(),
+              WindowPermissionProbe.screen.allowed() else { return nil }
+        return Self.nativeStagePixels(key, display: display, snapshot: snapshot, cache: stills,
+                                      appearance: pictureAppearance(key), nativeStripMember: nativeStripMember) { still, record, uuid in
+            let access = still.target.lastFrameAccess()
+            if access == .surfaceMismatch || access == .sharingDenied { discardRevokedPictures(key) }
+            return access == .allowed && still.signedOwner?.stillSigned(as: key) == true &&
+                OrdinaryDesktopMembership.contains(key.number, display: display, record: record, uuid: uuid) &&
+                still.original?.matches(key) == true
+        }
+    }
+
+    static func nativeStagePixels(_ key: DesktopWindowKey, display: String, snapshot: DesktopSnapshot,
+                                 cache: PreviewPixelCache<StillSlot, Still>, appearance: UUID?, nativeStripMember: Bool,
+                                 confirms: (Still, String, UUID) -> Bool) -> CGImage? {
+        let slot = StillSlot.current(key)
+        guard let appearance, let still = cache.peek(slot), still.use != .mapOnly,
+              still.lifetime == appearance, still.target.stageEnabled, still.target.key == key,
+              snapshot.native?.stageManagerEnabled == true, snapshot.native?.catalogComplete == true,
+              snapshot.native?.windowLimitReached == false, snapshot.topologyConsistent,
+              snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+              snapshot.sessionID == still.target.session, snapshot.topologyFingerprint == still.target.topology,
+              display == still.target.display, still.target.matchesScreen(snapshot.displays.first { $0.id == display }),
+              let uuid = still.target.desktopUUID, let record = still.target.current,
+              still.target.membership == .known(recordIDs: [record]) else { return nil }
+        let current = snapshot.scopes.filter { $0.displayID == display }.flatMap(\.records).filter(\.isCurrent)
+        let rows = snapshot.windows.filter { $0.metadata?.number == key.number }
+        guard current.count == 1, current[0].id == record, current[0].ordinaryUUID == uuid,
+              rows.count == 1, let row = rows.first, DesktopWindowKey(row) == key, row.displayID == display,
+              row.membership == .known(recordIDs: [record]), let metadata = row.metadata, metadata.fullScreen != true,
+              nativeStripMember || metadata.minimized == false, metadata.overviewOrdinaryRole == true || row.canWitnessCurrentSpace,
+              row.confidence != .synthetic, confirms(still, record, uuid) else { return nil }
+        cache.touch(slot)
+        return still.capture.image
+    }
+
     private func discardRevokedPictures(_ key: DesktopWindowKey) {
         // SwiftUI may be drawing the card. Withdraw these exact images without erasing
         // a newer authorized frame that arrives before the end of the view update.
@@ -782,6 +823,13 @@ struct DesktopWindowTarget: Equatable {
                 guard sample.sessionID == still.target.session, still.target.matchesScreen(screen) else { return true }
                 if owners[key.number]?.contains(where: { $0 != key }) == true { return true }
                 if case .current = slot, still.use == .previous, let target = active[key] {
+                    // A complete signed-window history can survive a long inactive Stage.
+                    // Display requires the current original AX object, sharing and native home.
+                    if still.target.stageEnabled, still.original != nil, still.signedOwner != nil,
+                       still.lifetime == lifetime(key), target.stageEnabled, still.target.desktopUUID != nil,
+                       still.target.desktopUUID == target.desktopUUID, still.target.membership == target.membership {
+                        return false
+                    }
                     return !still.canRetainPrevious(target, lifetime: lifetime(key), now: now)
                 }
                 // The owner remains on its home desktop while the user visits

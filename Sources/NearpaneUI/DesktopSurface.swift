@@ -407,6 +407,7 @@ struct DesktopSurface: View {
                 fontSize: settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10, rows: rows,
                 badges: appBadges, gallery: display?.pointer?.windowPreviews?.gallery, permitted: picturesAllowed,
                 interactive: live && appleStages.acceptsSelection(group),
+                currentNativeStripItem: currentCardsAcceptInput && appleStages.ready && group.evidence == .nativeStripItem,
                 lifetime: { feed?.departingPictures?.appearances[$0] ?? feed?.lifetime(of: $0) }, choose: { window in
                     guard live, currentCardsAcceptInput, let admitted = appleStages.selection(for: group) else { return }
                     #if DEBUG

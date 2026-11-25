@@ -19,6 +19,7 @@ struct AppleNativeStageCard: View {
     let badges: [DesktopWindowKey: WindowAppBadges.Badge]
     let gallery: DesktopWindowGallery?
     let permitted, interactive: Bool
+    let currentNativeStripItem: Bool
     let lifetime: (DesktopWindowKey) -> UUID?
     let choose: (DesktopWindowKey?) -> Void
     @AppleCardState var retained: [DesktopWindowKey: Measurement] = [:]
@@ -49,6 +50,11 @@ struct AppleNativeStageCard: View {
         }
     }
 
+    private func history(_ key: DesktopWindowKey) -> CGImage? {
+        gallery?.nativeStageHistory(key, display: screen.id, snapshot: snapshot, permitted: permitted,
+                                    nativeStripMember: currentNativeStripItem && group.evidence == .nativeStripItem)
+    }
+
     var body: some View {
         let measured = Self.layoutFrames(group.members, currentStage: group.current, screen: screen, rows: rows,
                                          retained: retained, lifetime: lifetime)
@@ -57,7 +63,7 @@ struct AppleNativeStageCard: View {
                 CurrentWindowCard(label: badges[key]?.name ?? "窗口", badge: badges[key], size: nil,
                     pictureLimit: CGSize(width: width, height: pictureHeight), target: target(key), key: key,
                     gallery: gallery, permitted: permitted, border: border, fontSize: fontSize, selected: { nil },
-                    describe: { $0 }, select: { choose(nil) }, selectable: interactive)
+                    describe: { $0 }, select: { choose(nil) }, selectable: interactive, groupHistory: { history(key) })
             } else {
                 VStack(spacing: 2) {
                     if measured.count == group.members.count {
@@ -113,7 +119,11 @@ struct AppleNativeStageCard: View {
         let picture = target(key)
         return Button { choose(key) } label: {
             if let picture {
-                WindowPanePicture(gallery: gallery, target: picture, permitted: permitted, icon: badges[key]?.icon)
+                WindowPanePicture(gallery: gallery, target: picture, permitted: permitted, icon: badges[key]?.icon,
+                                  groupHistory: { history(key) })
+            } else if let last = history(key) {
+                Image(decorative: last, scale: 1).resizable().aspectRatio(contentMode: .fit)
+                    .accessibilityValue("上次画面")
             } else {
                 (badges[key].map { Image(nsImage: $0.icon) } ?? Image(systemName: "macwindow"))
                     .resizable().scaledToFit().frame(maxWidth: 24, maxHeight: 24)
