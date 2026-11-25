@@ -135,7 +135,7 @@ struct CrossSpaceFocusContinuity {
     // subsequently focus a window after a newer explicit choice.
     static let shared = NativeSidebarNavigation()
     typealias Work = @MainActor (UUID) async throws -> Void
-    private var generation = UUID()
+    private(set) var generation = UUID()
     private var activeSelection: NativeSelectionPermit?
     private(set) var dispatchAvailable = true
     private(set) var ownershipEpoch = UUID()

@@ -2,6 +2,8 @@
 #define NEARPANE_WINDOW_ENGINE_H
 #include <stdint.h>
 #include <stdbool.h>
+#include "nearpane_apple_stage.h"
+#include "nearpane_apple_minimize.h"
 #include "nearpane_host_scope.h"
 #include "nearpane_guardian_observation.h"
 #include "nearpane_spaces_installed_fixture.h"

@@ -264,6 +264,7 @@ def main():
             suites = sorted(
                 {p.stem for p in (ROOT / "Tests/NearpaneWindowEngineTests").glob("*Tests.swift")}
                 | {p.stem for p in (ROOT / "Tests").glob("*/Stage*Tests.swift")}
+                | {p.stem for p in (ROOT / "Tests").glob("*/Apple*Stage*Tests.swift")}
             )
             xml = out / "swift.xml"
             run(

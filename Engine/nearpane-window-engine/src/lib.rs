@@ -1,6 +1,8 @@
 //! Nearpane's C ABI. An accepted submission owns a ticket until the caller polls its terminal
 //! receipt. Swift owns all durable group state. No AX, CF or Rust-owned object crosses the ABI.
+mod apple;
 pub mod contract;
+mod minimize;
 #[cfg(feature = "corner")]
 mod corner;
 mod runtime;

@@ -22,6 +22,8 @@ on:
       - 'Sources/NearpaneWindowEngine/**'
       - 'Sources/NearpaneOrdinaryWindowController/**'
       - 'Sources/**/Stage*.swift'
+      - 'Sources/**/Apple*Stage*.swift'
+      - 'Sources/NearpaneUI/DesktopSurface.swift'
       - 'Sources/NearpaneHost/NearpaneApp.swift'
       - 'Sources/NearpaneHost/InstalledSpacesFixtureCycle.swift'
       - 'Sources/NearpaneUI/DesktopWindowSelection.swift'
@@ -30,6 +32,7 @@ on:
       - 'Sources/NearpaneUI/DisplayPanels.swift'
       - 'Tests/NearpaneWindowEngineTests/**'
       - 'Tests/**/Stage*Tests.swift'
+      - 'Tests/**/Apple*Stage*Tests.swift'
 permissions:
   contents: read
 concurrency:

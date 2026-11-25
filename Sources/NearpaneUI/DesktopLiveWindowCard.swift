@@ -141,6 +141,8 @@ struct DesktopSplitViewCard: View {
     let gallery: DesktopWindowGallery?
     let permitted: Bool
     let badges: [DesktopWindowKey: WindowAppBadges.Badge]
+    let now: Date
+    let uptime: TimeInterval
 
     var body: some View {
         let scale = width / layout.displayFrame.width
@@ -159,7 +161,7 @@ struct DesktopSplitViewCard: View {
     }
 
     @ViewBuilder private func pane(_ window: WindowObservation, frame: SurfaceRect, scale: CGFloat) -> some View {
-        if let target = DesktopWindowTarget.preview(window, in: snapshot) {
+        if let target = DesktopWindowTarget.preview(window, in: snapshot, now: now, uptime: uptime) {
             WindowPanePicture(gallery: gallery, target: target, permitted: permitted, icon: badges[target.key]?.icon)
                 .frame(width: frame.width * scale, height: frame.height * scale)
                 .modifier(GalleryCardExposure(gallery: gallery, target: target))

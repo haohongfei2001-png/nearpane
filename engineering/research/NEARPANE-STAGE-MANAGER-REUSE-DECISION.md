@@ -1,12 +1,14 @@
 # Nearpane 窗口引擎复用裁决
 
-采用 Swift Host、进程内 Rust staticlib 和版本化 C ABI。上游固定为 `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850c1ddb`。本文件落实[窗口可见性裁决](NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md)。原先允许临时 Spaces 参与生产自动选择的条款已废止，原因是该机制在工作组切换期间改变原生窗口归属。[原版裁决与来源](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md)
+采用 Swift Host、进程内 Rust staticlib 和版本化 C ABI。上游固定为 `eugene-tea/stage-manager@69a73665488243bf78982c6d523ac4e0850c1ddb`。本文件落实[窗口可见性裁决](NEARPANE-WINDOW-VISIBILITY-FINAL-ARCHITECTURE.md)。工程复用依次支持 Apple 原生调度、应用自有隐藏私有 Space 和 Corner。该顺序取代 11 月 23 日的 Corner 单一路线。历史写入与实测资格按原判保留。[原版裁决与来源](https://github.com/haohongfei2001-png/nearpane/blob/7d099c7/engineering/research/NEARPANE-STAGE-MANAGER-REUSE-DECISION.md)
 
 ## 执行责任
 
 - Swift 拥有 R4、StageGroupStore、StageGroupCoordinator、窗口存活身份、布局、意图日志和恢复决策。
 - Rust 的工作线程拥有逐窗执行、事件 tap、按键手势生命周期、独立 WindowServer 读回和恢复辅助。请求使用固定宽度 POD、intent、epoch 和有界队列。CF/AX 对象由取得者管理，Rust panic 留在 FFI 内。
-- 产品 Provider 仅考虑符合当前桌面不变合同的实现。暂时停放到另一原生 Space 的机制保留为隔离研究，未获准的 Provider 返回 unsupported。
+- A 优先复用上游 Apple 模式的系统集合镜像、精确激活与重新采样。`AppleStageMinimizeObserver` 逐窗读取系统最小化和还原事件，Rust 拒绝代际不符、重复或不完整的变化。事件仅唤醒镜像；系统执行单窗、批量最小化、应用隐藏和退出。上游自管路线的键鼠截获与 Dock 移出动画不进入 A。[固定来源与许可证](../../Engine/nearpane-window-engine/src/minimize/upstream.json)
+- B 复用既有 Rust Spaces 适配。A 有具体产品缺口且 B 在当前 build 独立通过资格后，B 只在自有隐藏私有 Space 与登记窗口原位之间执行有租约的操作。用户可见桌面的数量、次序和当前桌面须保持一致。
+- A 与 B 均有不能达到产品合同的实证时才评估 C。任何未获准的执行路径返回 unsupported。
 - Corner 必须完整保留手势隔离、角落和边界命中、裁片、Guardian、写前租约及原始几何恢复。旧遮罩失败证据和上游速度数据均不能赋予写权。
 - 单个窗口同一时刻只有一个写入者。健康检查失败时原执行器先归还确切持有的窗口，任何未知状态保留原责任。
 
@@ -21,7 +23,7 @@ Preserve unchanged in principle:
 - Nearpane performance standard and its PASS/FAIL/UNKNOWN/NOT_RUN definitions.
 
 Replace or consolidate:
-- the current experimental visibility driver behind `StageWindowSession` with the Rust backend adapter;
+- the experimental self-managed visibility driver behind `StageWindowSession` with the qualified Rust adapter when route B or C is used;
 - duplicate AX frame/park code that would otherwise compete with the Rust worker;
 - any overlay-only or minimized-state path that is represented as full input-safe hiding without a qualifying input isolation mechanism;
 - any second authoritative group/visibility persistence model copied from upstream.

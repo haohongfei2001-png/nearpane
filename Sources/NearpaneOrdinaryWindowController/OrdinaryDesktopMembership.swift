@@ -3,7 +3,7 @@ import CReadOnlySpaces
 import NearpaneCore
 
 /// Read-only WindowServer evidence, also used for a deliberate click on a background window.
-enum OrdinaryDesktopMembership {
+package enum OrdinaryDesktopMembership {
     static func matches(display: String, record: UInt64, uuid: UUID?, exclusive: Bool,
                         inventory: [[String: Any]], members: [UInt64]) -> Bool {
         guard record > 0, exclusive ? members == [record] : members.contains(record) else { return false }
@@ -36,7 +36,7 @@ enum OrdinaryDesktopMembership {
             && matches(display: desktop.display, record: record, uuid: desktop.uuid, exclusive: true, inventory: current, members: second)
     }
 
-    static func contains(_ number: UInt32, display: String, record: String, uuid: UUID? = nil) -> Bool {
+    package static func contains(_ number: UInt32, display: String, record: String, uuid: UUID? = nil) -> Bool {
         guard let space = UInt64(record), NPReadOnlySpacesOpen() == 1,
               let inventory = NPReadInventory() as? [[String: Any]],
               let members = NPReadWindowSpaces(number) as? [UInt64] else { return false }

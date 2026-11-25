@@ -70,6 +70,10 @@ mkdir -p "$stage/Contents/Resources/Upstream/window-engine"
 cp Engine/nearpane-window-engine/LICENSE.upstream "$stage/Contents/Resources/Upstream/window-engine/LICENSE"
 cp Engine/nearpane-window-engine/upstream.json "$stage/Contents/Resources/Upstream/window-engine/source.json"
 cp -R Engine/nearpane-window-engine/origins "$stage/Contents/Resources/Upstream/window-engine/"
+for engine_module in apple minimize; do
+  cp "Engine/nearpane-window-engine/src/$engine_module/upstream.json" \
+     "$stage/Contents/Resources/Upstream/window-engine/origins/$engine_module.json"
+done
 /usr/bin/plutil -insert NearpaneStageEngineABI -integer 1 "$stage/Contents/Info.plist"
 if [[ -n "$candidate_dir" ]]; then
   # The packaging intermediate is a different bundle identifier. Only the signed candidate advertises this Service.
