@@ -10,12 +10,13 @@ class EvidenceTests(unittest.TestCase):
                        "checks": {name: {"status": "PASS"} for name in ENGINE_CHECKS}}
 
     def test_own_window_and_no_dispatch_never_become_foreign(self):
-        for key, value in (("status", "OWN_FIXTURE_PASS"), ("foreignProcesses", False), ("windowWrites", 0)):
+        for key, value in (("status", "OWN_FIXTURE_PASS"), ("foreignProcesses", False), ("foreignProcesses", 1), ("windowWrites", 0)):
             record = dict(self.engine, **{key: value})
             self.assertNotEqual(evaluate(record)["engine"], "PASS")
 
     def test_runner_os_and_sip_do_not_substitute_for_exact_target(self):
-        for patch in ({"kernelBuild": "25G332"}, {"sipEnabled": False}, {"exactTarget": False}):
+        for patch in ({"kernelBuild": "25G332"}, {"sipEnabled": False}, {"exactTarget": False},
+                      {"sipEnabled": 1}, {"exactTarget": 1}):
             record = copy.deepcopy(self.engine)
             record["targetEnvironment"].update(patch)
             result = evaluate(record)

@@ -9,23 +9,96 @@ Stage Manager. The daily installation and its profile are not opened or replaced
 From a clean checkout on a macOS console:
 
 ```sh
-python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --product-host /path/to/built/Nearpane.app --iterations 3
+python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --iterations 3
 ```
 
 `OUTPUT` must not already exist. `--iterations` accepts 1–50. The default is three
 complete A→B→C→A engine cycles; increase it only after one complete cycle and
-cleanup are confirmed. `--scope source` has no window operations. `--scope runtime`
+cleanup are confirmed. The `all` scope runs source checks, builds the complete
+release application, packages a signed interactive workspace candidate under
+`OUTPUT/candidate`, and tests its separate PID-scoped acceptance copy. Supplying
+`--product-host /path/to/built/Nearpane.app` reuses an existing complete application.
+A failed source check prevents a candidate PASS but still permits the independent
+engine experiment and cleanup to produce useful evidence. `--scope source` has no
+window operations. `--scope runtime`
 reuses the source revision and builds a fresh production Rust archive unless
-`--archive PATH` supplies one. Existing accessibility and screen-recording access
+`--archive PATH` supplies one; it runs the product only when `--product-host` is
+explicitly supplied. Existing accessibility and screen-recording access
 are observed; this entry does not alter TCC or submit permission dialogs.
 
 `NP_ENGINE_FIXTURE_SIGN_IDENTITY` optionally selects an existing signing identity.
 Without it the three test apps and copied product candidate use ad-hoc development
 signatures. The product copy has identifier
 `com.holdsnow.nearpane.independent-stage-candidate`; the originals remain intact.
-Its `NEARPANE_SPACES_CANDIDATE_PIDS` value contains only this invocation's two
+The acceptance copy's `NEARPANE_SPACES_CANDIDATE_PIDS` value contains only this invocation's two
 fresh fixture PIDs, and its Swift runner additionally verifies their process birth,
 executable path, signing digest and window identities.
+
+The full interactive candidate is packaged separately and retains the complete R4
+workbench and embedded tools:
+
+```sh
+python3 -B scripts/acceptance/independent-stage/package.py /path/to/built/Nearpane.app /path/to/new/NearpaneIndependentStage.app --revision COMMIT_SHA --mode workspace
+```
+
+This creates and verifies the signed bundle without opening or installing it.
+The input must be a complete application built from the exact clean revision in
+`--revision`; an older binary is rejected instead of being relabeled as new code.
+When the donor is the raw `build-app.sh` output, packaging adds the existing
+profile/window tools and pinned private Python runtime with
+`build-helper-runtime.py`. A donor's existing runtime is reused only after all
+five sealed files pass their recorded SHA-256 checks. The candidate preserves the
+Host's existing audio-input and Apple-event entitlements; these do not grant
+system privacy access.
+
+## Interactive workspace candidate
+
+Double-click the produced `NearpaneIndependentStage.app` in Finder, or open that
+exact bundle:
+
+```sh
+open /path/to/new/NearpaneIndependentStage.app
+```
+
+For `--scope all`, this bundle is under
+`OUTPUT/candidate/NearpaneIndependentStage.app`. No special command-line argument
+or fixture PID environment variable is required. The `workspace` marker starts
+the normal `HostAppDelegate`, R4 surface, window catalogue and independent engine;
+choosing a group in R4 starts scheduling the real windows. Native Stage Manager
+must be off. The candidate uses its own bundle/signing identity and can launch
+from this output directory; it does not require the daily application's canonical
+installation path. Accessibility and screen-recording access must apply to this
+candidate identity. The package does not change TCC or inherit a different app's
+permission by claiming its identity.
+
+Click a thumbnail to select its group and restore the selected real window's
+focus. A held card's context menu can add that group to the current group; the
+member menu can detach an individual window. Editing first returns owned windows
+to their original ordinary desktop, applies the existing group model operation,
+then activates the result. The group's member picker selects an exact window,
+including multiple windows from the same application.
+
+The workspace uses a separate profile at:
+
+```text
+~/Library/Application Support/Nearpane Independent Stage/Nearpane Independent Stage Profiles/generations/<UUID>/
+```
+
+Its Host, groups and notebook use the generation's `Nearpane/` directory, voice
+uses `Nearpane/Voice/`, and the screenshot/file library uses `Riftlet/`. It retains
+the existing `EmbeddedModules` for voice, screenshot/file tools, notes and tasks,
+including their bundled resources. The candidate does not start the legacy
+automatic-tiling supervisor, automatic updater or the daily translation Service.
+Bundle verification establishes that these modules and their resources are
+present; the independent-stage acceptance does not claim to have exercised every
+recording, transcription, attachment or profile-import workflow.
+
+The acceptance runner always requests `mode="acceptance"`, keeps its exact
+fixture-PID restriction and output-local profile, and cannot be mistaken for the
+unrestricted interactive workspace. CI archives the workspace candidate and runs
+the separate acceptance copy only against its newly created fixture apps. Both
+copies carry the independent candidate identifier; finish the automated run and
+let its app exit before opening the interactive copy.
 
 ## What actually runs
 

@@ -22,7 +22,16 @@ static NSUUID *generation;
 static NSMutableArray<NSMutableDictionary *> *targets;
 static NSUInteger writeCount;
 
-static void pump(double seconds) { [NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]]; }
+static void pump(double seconds) {
+    if(NSThread.isMainThread)[NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];
+    else [NSThread sleepForTimeInterval:seconds];
+}
+static NSRunningApplication *frontmostApplication(void) {
+    if(NSThread.isMainThread)return NSWorkspace.sharedWorkspace.frontmostApplication;
+    __block NSRunningApplication *application=nil;
+    dispatch_sync(dispatch_get_main_queue(), ^{ application=NSWorkspace.sharedWorkspace.frontmostApplication; });
+    return application;
+}
 static uint64_t birth(int32_t pid) {
     struct proc_bsdinfo p={0};
     return pid>1 && proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&p,sizeof(p))==sizeof(p) && p.pbi_uid==getuid()
@@ -158,7 +167,7 @@ static int runScenario(NSString *configuration) {
         timeline=[NSMutableArray array];checks=[NSMutableDictionary dictionary];targets=[NSMutableArray array];generation=NSUUID.UUID;
         for(NSString *name in @[@"launchCanary",@"foreignRoundTrip",@"sameAppIndependent",@"crossAppGroup",@"repeatedSwitch",@"yellowButton",@"focusRestore",@"cleanup"])
             checks[name]=@{@"status":@"NOT_RUN"};
-        NSRunningApplication *original=NSWorkspace.sharedWorkspace.frontmostApplication;
+        NSRunningApplication *original=frontmostApplication();
         uint64_t originalBirth=original?birth(original.processIdentifier):0;
         char build[64]={0};size_t length=sizeof(build);(void)sysctlbyname("kern.osversion",build,&length,NULL,0);
         int sip=np_stage_sip_enabled();
@@ -228,7 +237,7 @@ static int runScenario(NSString *configuration) {
         }
         {
             BOOL focused=ownerCommand(targets[0],@"focus")&&waitOwnerState(targets[0],@"key",YES)&&
-                NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier==[targets[0][@"pid"] intValue];
+                frontmostApplication().processIdentifier==[targets[0][@"pid"] intValue];
             check(@"focusRestore",focused,@"fixture-owned focus witness after exact window restoration");
             if(!focused){reason=@"focusReturnFailed";goto finish;}
         }
@@ -247,9 +256,10 @@ static int runScenario(NSString *configuration) {
         for(NSDictionary *target in targets)clean=verify(target,home.id,YES,@"cleanup-final")&&clean;
         if(originalSpaces)clean=[originalSpaces isEqual:allSpaces()]&&clean;
         check(@"cleanup",clean,@"all enrolled foreign windows on their original desktop; no owned Space remains");
-        int32_t front=NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier;
+        int32_t front=frontmostApplication().processIdentifier;
         BOOL testFront=front==getpid();for(NSDictionary *t in targets)testFront=testFront||front==[t[@"pid"] intValue];
-        if(testFront&&original&&birth(original.processIdentifier)==originalBirth)[original activateWithOptions:0];
+        if(testFront&&original&&birth(original.processIdentifier)==originalBirth)
+            dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:0]; });
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
             @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
@@ -274,9 +284,11 @@ int main(int argc,const char **argv) {
         // AppKit's real application loop is required by the production canary's
         // focus and window lifecycle checks. A manually pumped NSRunLoop leaves
         // NSApplication.isRunning false and does not exercise the same contract.
-        dispatch_async(dispatch_get_main_queue(), ^{
+        // The scenario waits for Rust worker receipts. Keep it off the main GCD
+        // queue so AppKit callbacks submitted by the engine can actually run.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             int result=runScenario(configuration);
-            exit(result);
+            dispatch_async(dispatch_get_main_queue(), ^{ exit(result); });
         });
         [NSApp run];
         return 2;

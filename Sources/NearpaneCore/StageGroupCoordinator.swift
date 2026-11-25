@@ -26,12 +26,15 @@ public struct StageWindowSample: Sendable {
     /// Set only when the exact focused window is independently visible on another physical display.
     public let foreignFocusScope: StageGroupScope?
     public let nativeID: UInt64?
+    /// Public WindowServer stacking order for the independently visible, retained windows.
+    public let frontToBack: [NativeSpaceWindow]
     public init(scope: StageGroupScope, generation: UUID, sequence: UInt64, workArea: SurfaceRect,
                 windows: [NativeSpaceWindow: StageWindowState], focus: NativeSpaceWindow?, nativeID: UInt64? = nil,
-                foreignFocusScope: StageGroupScope? = nil) {
+                foreignFocusScope: StageGroupScope? = nil, frontToBack: [NativeSpaceWindow] = []) {
         self.scope = scope; self.generation = generation; self.sequence = sequence
         self.workArea = workArea; self.windows = windows; self.focus = focus; self.nativeID = nativeID
         self.foreignFocusScope = foreignFocusScope
+        self.frontToBack = frontToBack
     }
 }
 
@@ -153,6 +156,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
     private var journalCommitUnconfirmed = false
     private var busy = false
     private var epoch = UUID()
+    private var groupStacking = [UUID: [NativeSpaceWindow]]()
 
     // A queued card may outlive its parked representation. Only this executor's most
     // recent, fully read-back show prefix can admit that card on its next activation.
@@ -501,6 +505,20 @@ public enum StageSwitchError: LocalizedError, Equatable {
         if ledger.owner != nil, let active = groups.first(where: { $0.verifiedActive == true }),
            !matchesActiveSet(active, groups: groups, sample: first) { throw StageSwitchError.interrupted }
         let activeMembers = target.members.filter { ids.contains($0.windowHint) }, targets = Set(activeMembers.map(\.windowHint))
+        // Capture the actual order before retirement. Hidden windows have no meaningful
+        // onscreen rank; their last visible order survives in this coordinator instead.
+        for visibleGroup in groups {
+            let keys = Set(visibleGroup.members.filter { ids.contains($0.windowHint) }.map(\.windowHint))
+            let order = first.frontToBack.filter(keys.contains)
+            if !keys.isEmpty, order.count == keys.count, Set(order) == keys,
+               keys.allSatisfy({ first.windows[$0]?.visibility == .visible }) {
+                groupStacking[visibleGroup.id] = order
+            }
+        }
+        let expectedStack = groupStacking[group].flatMap { order -> [NativeSpaceWindow]? in
+            guard order.count == targets.count, Set(order) == targets else { return nil }
+            return [preferred.windowHint] + order.filter { $0 != preferred.windowHint }
+        }
         let alreadyVisible = target.verifiedActive == true && first.focus.map(targets.contains) == true &&
             Set(held.keys) == ids.subtracting(targets)
         var targetLayouts = [UUID: SurfaceRect]()
@@ -574,6 +592,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 try requireCurrentIntent()
                 try requireFocus(next, preferred.windowHint)
                 guard next.foreignFocusScope == nil, next.windows == last.windows,
+                      expectedStack.map({ next.frontToBack.filter(targets.contains) == $0 }) != false,
                       parked.allSatisfy({ next.windows[$0.hidden.window] == $0.hidden }),
                       activeMembers.allSatisfy({ m in
                           guard let value = next.windows[m.windowHint], value.visibility == .visible else { return false }
@@ -720,6 +739,15 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 if let previous = held[member.windowHint] {
                     try await perform(.show, id:member.windowHint) { value, _ in
                         value.visibility == .visible && self.matches(value.frame,previous.original.frame)
+                    }
+                }
+            }
+            if let expectedStack, last.frontToBack.filter(targets.contains) != expectedStack {
+                // AX focus/raise is already the exact-window production primitive. Only
+                // repair stacking when the compositor did not preserve it on return.
+                for id in expectedStack.reversed() where last.focus != id {
+                    try await perform(.focus, id: id) { state, sample in
+                        state.visibility == .visible && sample.focus == id
                     }
                 }
             }

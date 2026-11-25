@@ -599,7 +599,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         #if canImport(RiftletCore) && canImport(SaytileKit)
-        if CandidateProfile.selected, acceptanceSession == nil,
+        if CandidateProfile.selected, !IndependentStagePolicy.workspaceRequested, acceptanceSession == nil,
            let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             let service = SelectionTranslation(support: support)
             selectionService = service

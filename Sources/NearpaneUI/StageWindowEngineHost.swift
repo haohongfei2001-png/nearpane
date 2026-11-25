@@ -53,6 +53,9 @@ import NearpaneOrdinaryWindowRuntime
     private var releaseTask: Task<Void,Never>?
     private var releasing: Bool { releaseTask != nil }
     private var recoveryRequested = false
+    private var resumeScopes = Set<StageGroupScope>()
+    private var resumeEnqueued = false
+    private var lastResumeAttempt: TimeInterval = 0
     private var revision: UInt64 = 0
     @ObservationIgnored private let minimizeObserver = IndependentStageMinimizeObserver()
     @ObservationIgnored private var minimizeTask: Task<Void, Never>?
@@ -85,7 +88,7 @@ import NearpaneOrdinaryWindowRuntime
         // when a previous build/permission attestation is still within its two-second cache.
         guard let snapshot, snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
               witness.map({ $0.homeCatalog(snapshot) != nil }) != false else {
-            if !needsReassessment || granted != nil || consentRequest != nil || engine?.session?.isFrozen == false { freeze() }
+            if !needsReassessment || granted != nil || consentRequest != nil || engine?.session?.isFrozen == false { systemTakesOver() }
             return
         }
         let now = ProcessInfo.processInfo.systemUptime
@@ -100,7 +103,7 @@ import NearpaneOrdinaryWindowRuntime
         let candidateAvailable = candidateMode && StageWindowEngineAttestation.installedEnvironment(snapshot) != nil && AXIsProcessTrusted()
         observedCapability = candidateAvailable ? .spaces : selected?.backend
         guard let session = engine?.session, !session.isFrozen else { return }
-        if session.qualifiedHiddenState == nil || (candidateMode ? !candidateAvailable : selected?.evidence != session.owner.evidence) { freeze() }
+        if session.qualifiedHiddenState == nil || (candidateMode ? !candidateAvailable : selected?.evidence != session.owner.evidence) { systemTakesOver() }
     }
 
     /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
@@ -300,6 +303,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func systemTakesOver() {
+        if let witness, let feed, engine?.session?.owner.backend == .spaces,
+           feed.groups.activeGroup(in: witness.scope) != nil { resumeScopes.insert(witness.scope) }
         freeze()
         if engine?.session?.owner.backend == .spaces { _ = beginRelease() }
     }
@@ -307,10 +312,64 @@ import NearpaneOrdinaryWindowRuntime
     /// A takeover revokes new actions immediately. Restore under the old worker only after its independent
     /// witness positively observes a safe context again. An uncertain issued restore remains in the WAL.
     func ordinaryContextObserved() {
+        if !holdsDispatch { resumeFocusedGroupIfNeeded(); return }
         guard recoveryRequested, !releasing, engine?.canAttemptOwnedRelease == true,
               witness?.homeCatalog(feed?.snapshot) != nil else { return }
         recoveryRequested = false
         _ = beginRelease()
+    }
+
+    /// Native overview and desktop navigation temporarily own the real windows. Once
+    /// they finish, resume the group of the actually focused window through R4's same
+    /// serialized action lane; a newer pointer/keyboard choice supersedes this work.
+    private func resumeFocusedGroupIfNeeded() {
+        let navigation = NativeSidebarNavigation.shared
+        let now = ProcessInfo.processInfo.systemUptime
+        guard !resumeEnqueued, !terminationOwnsLane, !resumeScopes.isEmpty,
+              navigation.idleGeneration != nil, now - lastResumeAttempt >= 1,
+              let feed, let snapshot = feed.snapshot,
+              let scope = resumeScopes.first(where: { scope in
+                  management?.permitsStageEngine(on: scope.display.uuidString) == true &&
+                  returnedWitnesses[scope]?.homeCatalog(snapshot) != nil &&
+                  returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) == true
+              }) else { return }
+        lastResumeAttempt = now
+        let input = NativeSelectionPermit.inputCounters(), version = revision
+        navigation.submit(stage: true) { [weak self, weak feed] token in
+            guard let self, let feed else { return }
+            self.resumeEnqueued = true
+            defer { self.resumeEnqueued = false }
+            let current: @MainActor () -> Bool = { [weak self] in
+                self?.revision == version && self?.resumeScopes.contains(scope) == true &&
+                navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters() &&
+                self?.management?.permitsStageEngine(on: scope.display.uuidString) == true
+            }
+            guard current(), !self.holdsDispatch,
+                  let first = await feed.readAfterAction(), current(),
+                  let catalog = NativeSpaceCatalog(first, displayID: scope.display.uuidString,
+                      now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+                  catalog.current.ordinaryUUID == scope.nativeSpace,
+                  let row = catalog.rows.first(where: { $0.record.isCurrent }),
+                  let source = NativeSidebarDestination(row, in: catalog) else { return }
+            let measure = try StageHostAccess.directoryReader()
+            let home = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
+            let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            for window in row.windows where window.metadata?.pid == frontPID {
+                guard let member = NativeSidebarMember(window, source: source),
+                      let grouped = feed.groupWindow(member, in: first),
+                      let physical = try measure(grouped.identity, home), physical.focus == grouped.identity,
+                      physical.onscreen, !physical.minimized,
+                      let group = feed.groups.groups(in: scope).first(where: { $0.members.contains { $0.windowHint == grouped.identity } }),
+                      let second = await feed.readAfterAction(), current(),
+                      let stable = feed.groupWindow(member, in: second), stable.lifetime == grouped.lifetime,
+                      let confirmed = try measure(grouped.identity, home), confirmed.focus == grouped.identity,
+                      confirmed.onscreen, !confirmed.minimized, confirmed.frame == physical.frame else { continue }
+                _ = try await self.groupChoice(group.id, member: member, selection: .member, in: feed,
+                    snapshot: second, current: current,
+                    successor: { navigation.queuedGroupChoice(after: token, in: navigation.ownershipEpoch) })
+                return
+            }
+        }
     }
 
     private func beginRelease() -> Task<Void,Never>? {
@@ -346,7 +405,10 @@ import NearpaneOrdinaryWindowRuntime
         return pending
     }
 
-    func release() async { await beginRelease()?.value }
+    func release() async {
+        resumeScopes.removeAll()
+        await beginRelease()?.value
+    }
 
     private func guardianExited(releasing intent: UUID, owner: StageEngineOwner) {
         Task { [weak self] in
@@ -360,9 +422,10 @@ import NearpaneOrdinaryWindowRuntime
 
     func prepareForShutdown() async -> Bool {
         if let shutdownTask { return await shutdownTask.value }
-        guard !unreadableLedger else { return false }
-        guard holdsDispatch else { return true }
+        resumeScopes.removeAll()
         terminationOwnsLane = true
+        guard !unreadableLedger else { return false }
+        guard engine?.holdsWindowDispatch == true || releasing else { return true }
         let drain = Task { [weak self] in
             guard let self else { return false }
             await self.release()
@@ -459,6 +522,7 @@ import NearpaneOrdinaryWindowRuntime
                                       newerChoice: { environmentCurrent() && successor() != nil })
             projectHeld(feed.groups,in:scope)
             await armArrivals(in: feed, revision: token)
+            resumeScopes.remove(scope)
             return true
         } catch StageSwitchError.superseded {
             if let token = successor(), let card = heldGroups.first(where: { $0.id == group && $0.scope == scope }) {
@@ -551,7 +615,7 @@ import NearpaneOrdinaryWindowRuntime
                     guard recorded else { throw failure }
                     // A new singleton has no part in the current grant. Preserve the user's focus and
                     // return the confirmed hides to their owners before accepting a different roster.
-                    freeze()
+                    systemTakesOver()
                     ordinaryContextObserved()
                     return
                 }

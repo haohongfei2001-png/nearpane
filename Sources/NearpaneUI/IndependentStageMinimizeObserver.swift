@@ -48,6 +48,9 @@ struct IndependentStageMinimizeOrder {
     private var minimized: Minimized?, changed: Changed?
 
     private struct Reading: Sendable { let minimized, onscreen: Bool }
+    // This observer's source is installed only on the main run loop. Retain the
+    // immutable callback references as one notice before entering MainActor.
+    private struct Notice: @unchecked Sendable { let observer: AXObserver, element: AXUIElement, name: String }
     private final class Registration: @unchecked Sendable {
         let observer: AXObserver
         let keys: Set<DesktopWindowKey>
@@ -143,8 +146,10 @@ struct IndependentStageMinimizeOrder {
               AXUIElementCopyAttributeValues(app, kAXWindowsAttribute as CFString, 0, count, &raw) == .success,
               let windows = raw as? [AXUIElement] else { return nil }
         let callback: AXObserverCallback = { observer, element, event, _ in
+            let notice = Notice(observer: observer, element: element, name: event as String)
             MainActor.assumeIsolated {
-                IndependentStageMinimizeObserver.destinations[ObjectIdentifier(observer)]?.value?.receive(observer, element: element, event: event as String)
+                IndependentStageMinimizeObserver.destinations[ObjectIdentifier(notice.observer)]?.value?.receive(
+                    notice.observer, element: notice.element, event: notice.name)
             }
         }
         var observer: AXObserver?

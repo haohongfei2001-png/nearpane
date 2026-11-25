@@ -292,9 +292,12 @@ import NearpaneOrdinaryWindowRuntime
             }
         }
         sequence += 1
+        let stacking = last.windows.sorted { ($0.metadata?.frontToBack ?? .max) < ($1.metadata?.frontToBack ?? .max) }
+            .compactMap(DesktopWindowKey.init).map { NativeSpaceWindow(pid: $0.pid, birth: $0.birth, number: $0.number) }
+            .filter { states[$0]?.visibility == .visible }
         let sample = StageWindowSample(scope:scope,generation:generation,sequence:sequence,
             workArea:.init(x:opening.display.frame.x+usable.x,y:opening.display.frame.y+usable.y,width:usable.width,height:usable.height),
-            windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign)
+            windows:states,focus:focus,nativeID:native,foreignFocusScope:foreign,frontToBack:stacking)
         if candidate == nil && measured == nil {
             let previousAppearances = lastAppearances
             lastAppearances = feed.confirmGroupLifetimes(previous: lastSample, current: sample, inventory: last,

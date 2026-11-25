@@ -9,7 +9,7 @@ import SwiftUI
     let desktopTiling: DesktopAutomaticTiling
     private var enrolledDesktopFeed: CurrentDesktopWindows?
     weak var stageEngine: StageWindowEngineHost?
-    /// Only the isolated, fixture-scoped candidate uses this live production catalogue.
+    /// The separately identified workspace or PID-scoped acceptance candidate uses this catalogue.
     /// Ordinary window tiling stays off; starting its legacy supervisor is unnecessary.
     var independentStageSnapshot: (@MainActor () -> DesktopSnapshot?)?
     func permitsStageEngine(on display: String) -> Bool {
@@ -149,7 +149,10 @@ import SwiftUI
     private(set) var blocked = false
     private(set) var trusted = false
     var updateRequiresManagementToFinish: Bool {
-        !supervisorReady || mode != "off" || count != 0 || blocked || ordinary.blocksUpdateRelaunch || desktopTiling.scope != nil || desktopTiling.starting
+        let independentWithoutSupervisor = IndependentStagePolicy.candidateHasScope &&
+            independentStageSnapshot != nil && process == nil
+        return (!supervisorReady && !independentWithoutSupervisor) || mode != "off" || count != 0 || blocked ||
+            ordinary.blocksUpdateRelaunch || desktopTiling.scope != nil || desktopTiling.starting
     }
 
     init(support: URL) {
@@ -246,31 +249,49 @@ public struct CandidateWorkRectView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if (!admissionFixtureOnly && !showsTestTools) || session.hasDesktopTrial {
-                    desktopControls
-                    Divider()
-                }
-                WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
-                                        exposure: previewExposure)
-                if showsTestTools {
-                    Divider()
-                    DisclosureGroup("随包兼容应用", isExpanded: $showingCompatibility) {
-                        compatibilityControls
+                if IndependentStagePolicy.workspaceRequested {
+                    independentControls
+                } else {
+                    if (!admissionFixtureOnly && !showsTestTools) || session.hasDesktopTrial {
+                        desktopControls
+                        Divider()
                     }
-                    .onAppear { if session.blocked || session.mode != "off" { showingCompatibility = true } }
-                    .onChange(of: session.blocked) { _, blocked in if blocked { showingCompatibility = true } }
-                } else if session.blocked || session.mode != "off" {
-                    Divider()
-                    Text(session.message).font(.callout).textSelection(.enabled)
-                    if session.blocked {
-                        Button("重新核对窗口并恢复") { session.send("retry") }
-                    } else {
-                        Button("停止兼容窗口管理并恢复位置") { session.send("disable") }
+                    WindowAdmissionSettings(host: host, manager: session, fixtureOnly: admissionFixtureOnly, owners: owners,
+                                            exposure: previewExposure)
+                    if showsTestTools {
+                        Divider()
+                        DisclosureGroup("随包兼容应用", isExpanded: $showingCompatibility) {
+                            compatibilityControls
+                        }
+                        .onAppear { if session.blocked || session.mode != "off" { showingCompatibility = true } }
+                        .onChange(of: session.blocked) { _, blocked in if blocked { showingCompatibility = true } }
+                    } else if session.blocked || session.mode != "off" {
+                        Divider()
+                        Text(session.message).font(.callout).textSelection(.enabled)
+                        if session.blocked {
+                            Button("重新核对窗口并恢复") { session.send("retry") }
+                        } else {
+                            Button("停止兼容窗口管理并恢复位置") { session.send("disable") }
+                        }
                     }
+                    Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
-                    .font(.caption).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding()
+        }
+    }
+
+    private var independentControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("点击侧栏的窗口缩略图，即可切换窗口组并恢复所选窗口的焦点。其他组会退出当前工作区域。")
+            Text("右键点隐藏组可将它加入当前窗口组；成员菜单可以移出某一扇窗口。组合卡中的成员列表可精确选择同一应用的不同窗口。")
+            Text("请先关闭 macOS 原生台前调度，再使用 Nearpane 独立调度。")
+                .font(.callout).foregroundStyle(.secondary)
+            Button("打开桌面与程序坞设置") {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") {
+                    NSWorkspace.shared.open(url)
+                }
+            }.buttonStyle(.link)
         }
     }
 
@@ -328,7 +349,7 @@ public struct CandidateWorkRectView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if StageManagerPreference.read() == true {
-                Text("台前调度已开启。系统保留每个工作集合的原有布局，可在 R4 侧栏选择集合。")
+                Text("原生台前调度已开启。使用 Nearpane 独立调度前，请先在系统设置中关闭。")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("打开桌面与程序坞设置") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") { NSWorkspace.shared.open(url) }

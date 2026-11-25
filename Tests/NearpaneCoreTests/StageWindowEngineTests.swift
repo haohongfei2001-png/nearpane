@@ -10,6 +10,7 @@ import Testing
     let scope = StageGroupScope(display:UUID(),nativeSpace:UUID()), epoch = UUID()
     let displayArea = SurfaceRect(width:1200,height:950)
     var sequence: UInt64 = 0, windows = [NativeSpaceWindow:StageWindowState](), focus: NativeSpaceWindow?
+    var stacking = [NativeSpaceWindow](), reorderOnShow = false
     var visible = [NativeSpaceWindow:StageWindowState](), writeIntents = Set<UUID>()
     var health = true, recovery = true, zeroLeases = true, canStart = true, unknownHide: UInt32?, badReadback: UInt32?
     var measuredHide: UInt32?, beforeMeasuredReturn: (() throws -> Void)?
@@ -37,14 +38,17 @@ import Testing
         beforeRead?()
         if nextReadFails { nextReadFails = false; throw StageSwitchError.incomplete }
         sequence += 1
-        return .init(scope:self.scope,generation:epoch,sequence:sequence,workArea:displayArea,windows:windows,focus:focus,nativeID:22)
+        return .init(scope:self.scope,generation:epoch,sequence:sequence,workArea:displayArea,windows:windows,focus:focus,nativeID:22,
+                     frontToBack: stacking.filter { windows[$0]?.visibility == .visible })
     }
     func ordinary(_ c: StageWindowCommand, valid: @escaping @MainActor () -> Bool) throws {
         guard valid() else { throw StageSwitchError.interrupted }
         ordinaryEffects.append(c.action)
         switch c.action {
         case .place(let f): windows[c.before.window]?.frame = f
-        case .focus: focus = c.before.window
+        case .focus:
+            focus = c.before.window
+            if !stacking.isEmpty { stacking.removeAll { $0 == c.before.window }; stacking.insert(c.before.window, at: 0) }
         default: throw StageSwitchError.ownership
         }
     }
@@ -95,6 +99,7 @@ import Testing
             effects.append((op,id))
             guard let saved = visible.removeValue(forKey:id) else { throw StageSwitchError.ownership }
             windows[id] = saved
+            if reorderOnShow { stacking.removeAll { $0 == id }; stacking.append(id) }
         case 2:
             let hidden = windows[id]?.visibility == .parked || windows[id]?.visibility == .stageSpace
             let flags: UInt32 = id.number == badReadback ? 0 : 4 | 8 | 16 | 32 | (hidden ? 2 | 128 : 1)
@@ -280,6 +285,35 @@ import Testing
         try await controller.handoffToSystem()
         #expect(fixture.windows == originals && fixture.nextReadFails)
         #expect(!controller.holdsWindowDispatch)
+    }
+
+    @Test func returningMixedGroupRepairsCompositorStackingBeforeConfirmingSelectedFocus() async throws {
+        let (profile, store, _, fixture, groups) = try setup(4)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let keys = groups.map { $0.members[0].windowHint }
+        func live(_ id: NativeSpaceWindow) throws -> StageGroupWindow {
+            let state = try #require(fixture.windows[id])
+            return .init(display: fixture.scope.display, identity: id, lifetime: state.lifetime,
+                         nativeSpace: fixture.scope.nativeSpace)
+        }
+        try store.join(live(keys[1]), to: live(keys[0]))
+        try store.join(live(keys[2]), to: live(keys[0]))
+        let mixed = try #require(store.groups(in: fixture.scope).first { $0.id == groups[0].id })
+        let expected = [keys[0], keys[2], keys[1]]
+        fixture.stacking = expected + [keys[3]] + fixture.windows.keys.filter { !keys.contains($0) }
+        fixture.reorderOnShow = true
+        let originalFrames = fixture.windows.mapValues(\.frame)
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()), witness: fixture, transport: fixture)
+        }
+        try await activate(mixed, controller, fixture)
+        try await activate(groups[3], controller, fixture)
+        try await activate(mixed, controller, fixture)
+        #expect(fixture.stacking.filter { expected.contains($0) } == expected)
+        #expect(fixture.focus == keys[0])
+        #expect(fixture.windows.mapValues(\.frame) == originalFrames)
+        try await controller.release()
     }
 
     @Test func yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine() async throws {
