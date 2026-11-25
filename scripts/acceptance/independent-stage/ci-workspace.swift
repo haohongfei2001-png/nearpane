@@ -245,6 +245,36 @@ private extension Array { var only: Element? { count == 1 ? first : nil } }
         }
         let _: Bool = try await poll(4) { try self.overview() == nil ? true : nil }
     }
+    func selectionSettled(_ target: UInt64, snapshot: CISnapshot, owners: [OverviewProcess], seconds: Double) async throws -> Bool {
+        let until = ProcessInfo.processInfo.systemUptime + seconds
+        var previous: CISnapshot?
+        repeat {
+            try verifyRun()
+            for owner in owners { try owner.verify() }
+            if let current = try? CISnapshot.read(), current.display == snapshot.display,
+               current.records == snapshot.records, current.current == target {
+                if previous?.sameScope(current) == true { state?.latest = current; return true }
+                previous = current
+            } else { previous = nil }
+            try await Task.sleep(for: .milliseconds(90))
+        } while ProcessInfo.processInfo.systemUptime < until
+        return false
+    }
+    func stableEmpty(_ desktop: UInt64, snapshot: CISnapshot, beforeOverview: Set<UInt32>? = nil) async throws -> Set<UInt32> {
+        var previous: Set<UInt32>?
+        return try await poll(5) {
+            do {
+                try self.verifyRun()
+                guard snapshot.sameScope(try CISnapshot.read()), desktop != snapshot.current else {
+                    throw Refusal("createdDesktopScopeChangedDuringEmptyRead")
+                }
+                let current = try self.empty(desktop, beforeOverview: beforeOverview)
+                if current == previous { return current }
+                previous = current
+                return nil
+            } catch { previous = nil; throw error }
+        }
+    }
     func action(_ operation: String, snapshot: CISnapshot, target: UInt64? = nil,
                 overviewMembers: Set<UInt32> = []) async throws {
         try verifyRun(); try await openOverview()
@@ -260,30 +290,53 @@ private extension Array { var only: Element? { count == 1 ? first : nil } }
             control = second.elements[index]; name = operation == "remove" ? "AXRemoveDesktop" : kAXPressAction
         default: throw Refusal("unknownSystemAction")
         }
-        if operation == "remove", let target { _ = try empty(target, beforeOverview: overviewMembers) }
+        if operation == "remove", let target { _ = try await stableEmpty(target, snapshot: snapshot, beforeOverview: overviewMembers) }
         try second.bar.verify(control)
         var available: CFArray?
         guard AXUIElementCopyActionNames(control, &available) == .success, (available as? [String])?.contains(name) == true,
               attr(control, kAXEnabledAttribute) as? Bool == true else { throw Refusal("requiredSystemAXActionUnavailable") }
+        guard second.sameObjects(try CITiles(snapshot)), snapshot.sameScope(try CISnapshot.read()) else {
+            throw Refusal("systemControlsChangedDuringActionReadback")
+        }
         try verifyRun(); try event("intent:" + operation)
         let result = AXUIElementPerformAction(control, name as CFString)
         try event("issued:" + operation, error: result)
         guard result == .success else { throw Refusal("systemAXActionReturned:" + String(result.rawValue)) }
         guard operation == "select", let target, let index else { return }
-        let selected: Bool? = try? await poll(0.8) { try CISnapshot.read().current == target ? true : nil }
-        if selected == true { try await closeOverview(); return }
+        let owners = [second.bar.dock, second.bar.owner]
+        // AXPress acknowledgement precedes the native desktop animation. Require
+        // two fresh matches before considering a secondary input or a failure.
+        if try await selectionSettled(target, snapshot: snapshot, owners: owners, seconds: 5) {
+            try await closeOverview(); return
+        }
         // Some Dock builds acknowledge AXPress without selecting. Only a fresh,
         // exactly hit-tested thumbnail body may complete that same selection.
         guard let pointer = CGEvent(source: nil)?.location, CGPreflightPostEventAccess(),
-              let hover = second.point(index, body: false) else { throw Refusal("systemTileSelectionUnconfirmed") }
+              let hover = second.point(index, body: false) else {
+            if try await selectionSettled(target, snapshot: snapshot, owners: owners, seconds: 0.6) {
+                try await closeOverview(); return
+            }
+            throw Refusal("systemTileSelectionUnconfirmed")
+        }
         var lastPoint = hover
         defer { if CGEvent(source: nil)?.location == lastPoint { CGWarpMouseCursorPosition(pointer) } }
         CGWarpMouseCursorPosition(hover)
         CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: hover, mouseButton: .left)?.post(tap: .cgSessionEventTap)
-        let point: CGPoint = try await poll(3) {
-            let current = try CITiles(snapshot)
-            guard current.sameObjects(second), snapshot.sameScope(try CISnapshot.read()) else { throw Refusal("systemTileChangedDuringHover") }
-            return current.point(index, body: true)
+        let point: CGPoint
+        do {
+            point = try await poll(3) {
+                let current = try CITiles(snapshot)
+                guard current.sameObjects(second), snapshot.sameScope(try CISnapshot.read()) else { throw Refusal("systemTileChangedDuringHover") }
+                return current.point(index, body: true)
+            }
+        } catch {
+            if try await selectionSettled(target, snapshot: snapshot, owners: owners, seconds: 0.6) {
+                try await closeOverview(); return
+            }
+            throw error
+        }
+        if try await selectionSettled(target, snapshot: snapshot, owners: owners, seconds: 0.25) {
+            try await closeOverview(); return
         }
         guard controlHit(point, tile: control, owner: second.bar.owner.pid, body: true),
               let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
@@ -294,7 +347,9 @@ private extension Array { var only: Element? { count == 1 ? first : nil } }
         lastPoint = point; down.setIntegerValueField(.mouseEventClickState, value: 1); up.setIntegerValueField(.mouseEventClickState, value: 1)
         down.post(tap: .cgSessionEventTap); up.post(tap: .cgSessionEventTap)
         try event("issued:hitTestedTileClick")
-        let _: Bool = try await poll(5) { try CISnapshot.read().current == target ? true : nil }
+        guard try await selectionSettled(target, snapshot: snapshot, owners: owners, seconds: 5) else {
+            throw Refusal("systemTileSelectionUnconfirmedAfterClick")
+        }
         try await closeOverview()
     }
     func empty(_ desktop: UInt64, beforeOverview: Set<UInt32>? = nil) throws -> Set<UInt32> {
@@ -372,9 +427,7 @@ private extension Array { var only: Element? { count == 1 ? first : nil } }
             guard actual.type == created.type, actual.uuid == created.uuid || (created.uuid.isEmpty && actual.hasUUID),
                   created.id != current.current else { throw Refusal("createdDesktopIdentityChangedBeforeRemoval") }
             self.state?.created = actual; try save("removingCreated")
-            let first = try empty(created.id)
-            try await Task.sleep(for: .milliseconds(90))
-            guard first == (try empty(created.id)) else { throw Refusal("createdDesktopEmptyReadChanged") }
+            let first = try await stableEmpty(created.id, snapshot: current)
             try await action("remove", snapshot: current, target: created.id, overviewMembers: first)
             let _: Bool = try await poll(6) { try CISnapshot.read().records.contains { $0.id == created.id } ? nil : true }
         }

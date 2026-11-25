@@ -252,7 +252,16 @@ lane performs the complete source/build/package/R4 chain. The shorter
 `diagnostics` lane builds the actual Rust archive and all runtime tools, then
 runs the controlled window and native diagnostics without waiting for a complete
 product build. It supplies no product Host and leaves source, candidate and R4
-statuses `NOT_RUN`. Native edge experiments run only in this lane. Run IDs and
+statuses `NOT_RUN`. Its explicit hosted-only environment marker keeps the
+original native desktop: Mission Control preparation is not executed, and that
+fact is recorded as `desktopPreparationExecuted: false`, zero native desktop
+inputs and `workspaceUnchanged: true`. The normal controller still runs first;
+only a real blocked, zero-write, cleaned receipt admits the separate platform
+probe. This removes a product-UUID prerequisite from mechanism research without
+changing the product's ordinary-desktop identity rules. Native edge experiments
+still require independent engine/platform and fixture cleanup, plus either
+verified workspace cleanup or this explicit record that no preparation ran.
+They run only in this lane. Run IDs and
 artifact names include the lane; the two processes never share a desktop
 session. A manual dispatch with `diagnostics_only: true` selects just the shorter
 lane when that interface is available.

@@ -1,0 +1,68 @@
+{
+  "capabilityProven": false,
+  "error": null,
+  "evidence": [
+    {
+      "sample": 1,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    },
+    {
+      "sample": 2,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    },
+    {
+      "sample": 3,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    },
+    {
+      "sample": 4,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    },
+    {
+      "sample": 5,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    },
+    {
+      "sample": 6,
+      "windows": [
+        31,
+        85,
+        86
+      ]
+    }
+  ],
+  "preferencesTested": {
+    "AutoHide": true,
+    "GloballyEnabled": true
+  },
+  "reason": "Native strip members were still presented onscreen.",
+  "requires": [
+    "A concrete render-disable mechanism",
+    "Independent group switch/merge/split controls",
+    "Engine operations verified while rendering remains disabled",
+    "Target macOS 27.0 SIP-enabled reproduction"
+  ],
+  "restoreError": null,
+  "sampleCount": 13,
+  "status": "REJECTED_RENDERER_SEPARATION"
+}

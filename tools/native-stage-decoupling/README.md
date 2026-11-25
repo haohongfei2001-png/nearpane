@@ -48,6 +48,31 @@ renderer. No private selector was invoked. Stage Manager remained disabled, and 
 observed preferences were identical before and after. The receipt deliberately excludes
 the user's window inventory and records `capabilityProven: false`.
 
+## Executed cloud renderer probes
+
+[Cloud run 45690818649](https://github.com/haohongfei2001-png/nearpane/actions/runs/45690818649)
+executed both configuration experiments on **macOS 27.0.1 / 26A434, arm64, SIP
+disabled**. The [original receipts and cropped screenshots](../../engineering/verification/independent-stage/cloud-a73454a1/)
+corroborate native rendering with both AX identities and CG presentation:
+
+- With `AutoHide=true`, the baseline had no matched onscreen strip members.
+  Moving the pointer to the left edge at `(0.5, 153.6)` exposed native tilted
+  thumbnails. WindowManager's strip identified fixture B windows **85 and 86**;
+  their CG records were onscreen with alpha 1 and approximately **74 × 100** and
+  **73 × 99** bounds intersecting that strip item. The saved edge crop visibly
+  confirms the native strip. Returning to the right edge hid it again.
+- With `LeftStripMaximumRowCount=0`, the native strip remained visible in the
+  baseline and all twelve subsequent edge samples. Fixture B windows **125 and
+  126** again matched native AX strip entries and onscreen thumbnail bounds;
+  the baseline crop confirms that this setting did not suppress the renderer.
+
+Both runs returned all three observed preferences to their original absent
+values, confirmed both fixture process generations had exited, and recorded
+`RESTORED` without errors. Their final snapshots had no native AX strip.
+These are actual rejections of the two tested configurations. They do not prove
+that every unknown private separation mechanism is impossible, and this
+SIP-disabled cloud build does not qualify the user's 27.0/SIP-enabled target.
+
 ## Executable experiment
 
 No extra Python packages are needed. Build requires Xcode command-line tools. Inventory can

@@ -85,6 +85,15 @@ the synchronous superclass method returns an object. Swift strip-gesture/layout 
 but no callable rendering/edge-suppression separation was proved. Preferences were unchanged throughout.
 [Machine receipt](../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-inventory.json).
 
+Hosted controls now provide actual negative evidence for two concrete renderer hypotheses.
+At `a73454a1` on macOS 27.0.1 / 26A434 / arm64 / SIP disabled, both `AutoHide=true` and
+`LeftStripMaximumRowCount=0` produced native tilted thumbnails corroborated by AX members,
+onscreen CG surfaces and captured pixels. AutoHide exposed them on left-edge dwell; the zero-row
+setting left them rendered even at baseline. Each experiment retained 13 observations and restored
+preferences, fixtures, pointer and foreground. [Original receipts and two decisive crops](../verification/independent-stage/cloud-a73454a1/README.md).
+This rejects those two configurations, not every possible private separation mechanism and not a
+substitute for a 26A428/SIP-on acceptance result.
+
 ## Runtime and system coordination
 
 - The engine owns only the precise windows it enrolled. The original ordinary desktop is retained for

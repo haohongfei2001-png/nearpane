@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "revision": "6558c2d5cd82f026505e8f399a3deeb37f79a314",
+  "workflowRun": 45693715803,
+  "job": 139485526008,
+  "lane": "diagnostics",
+  "artifact": 15058959655,
+  "sourceChecks": "NOT_RUN",
+  "completeCandidate": "NOT_RUN",
+  "runtimeToolsBuild": "PASS",
+  "platformProbeCompiled": true,
+  "ciWorkspacePreparation": "BLOCKED systemTileSelectionUnconfirmed",
+  "firstCleanup": "FAIL createdDesktopEmptyReadChanged",
+  "finalCleanup": true,
+  "foreignWindowWrites": 0,
+  "engine": "BLOCKED before fixture creation",
+  "platformForeignMechanism": "NOT_RUN",
+  "R4ProductPath": "NOT_RUN",
+  "nativeAutohide": "REJECTED_RENDERER_SEPARATION",
+  "nativeZeroRows": "REJECTED_RENDERER_SEPARATION",
+  "nativeCleanup": true,
+  "qualificationGranted": false,
+  "originalReceiptSHA256": {
+    "entry-summary.json": "442c38fb5d3eaef697f03da8656c2165ca78725325d5fdf195e6b9153755cbc1",
+    "runtime-summary.json": "d5b8abc65453f5aa376bb3db7741204fcf065be4d8dd6bd484725e3d909d8d4a",
+    "ci-workspace-prepare-receipt.json": "3e3caf3ebeb435f5d5f5a0db46decdc489e0d6a1ca248d1ba4a298d5560c7322",
+    "ci-workspace-cleanup-before-fixtures-receipt.json": "3de3379b09a1ebf6de67218fc6c49eca3bc9d2675e1c1953b66ef64ec2914834",
+    "ci-workspace-cleanup-receipt.json": "b3fa2b03cb89a05d76f3112af656b3d0f8a79411161fd122fb11055802e35d22",
+    "native-summary.json": "fb85fc212942962acb6ff40d99dab40869b26c9c26ec8c4be1970e15241c7252"
+  }
+}

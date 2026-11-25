@@ -228,10 +228,15 @@ def runtime_checks(out, env, archive, host, iterations, revision):
     workspace_cleanup = None
     workspace_before_fixtures = None
     hosted = env.get("GITHUB_ACTIONS") == "true" and env.get("GITHUB_REPOSITORY") == "haohongfei2001-png/nearpane"
+    original_desktop_diagnostic = (hosted and env.get("RUNNER_ENVIRONMENT") != "self-hosted"
+                                   and env.get("NEARPANE_HOSTED_PLATFORM_ONLY") == "1")
+    if original_desktop_diagnostic:
+        workspace = {"status": "NOT_RUN", "reason": "hostedPlatformMechanismUsesOriginalDesktop",
+                     "desktopPreparationExecuted": False, "nativeDesktopInputs": 0, "workspaceUnchanged": True}
     phase = "fixturePreparation"
     with ExitStack() as files:
         try:
-            if hosted:
+            if hosted and not original_desktop_diagnostic:
                 phase = "ciWorkspacePreparation"
                 workspace = ci_workspace(apps, out, env, "prepare")
                 if workspace.get("status") != "READY":

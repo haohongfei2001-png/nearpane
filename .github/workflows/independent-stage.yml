@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 45
     env:
       NEARPANE_RUN_ID: independent-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.lane }}
+      NEARPANE_HOSTED_PLATFORM_ONLY: ${{ matrix.lane == 'diagnostics' && '1' || '0' }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -109,9 +110,15 @@ jobs:
           engine = runtime.get('engineReceipt') or {}
           product = runtime.get('productReceipt') or {}
           workspace = runtime.get('ciWorkspaceCleanup') or {}
+          preparation = runtime.get('ciWorkspacePreparation') or {}
           crash = product.get('hostCrashReceipt') or {}
           platform_diagnostic = runtime.get('platformDiagnosticReceipt') or {}
-          safe = (workspace.get('cleanup') is True and workspace.get('status') == 'READY'
+          untouched_workspace = (preparation.get('status') == 'NOT_RUN'
+                  and preparation.get('reason') == 'hostedPlatformMechanismUsesOriginalDesktop'
+                  and preparation.get('desktopPreparationExecuted') is False
+                  and preparation.get('nativeDesktopInputs') == 0
+                  and preparation.get('workspaceUnchanged') is True)
+          safe = (((workspace.get('cleanup') is True and workspace.get('status') == 'READY') or untouched_workspace)
                   and (engine.get('cleanup') is True or engine.get('phase') == 'ciWorkspacePreparation')
                   and (not product or product.get('cleanup') is True)
                   and (not crash or crash.get('cleanup') is True)
