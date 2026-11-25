@@ -47,6 +47,23 @@ class EvidenceTests(unittest.TestCase):
                 self.assertEqual(evaluate(self.engine, dict(product, **{key: unconfirmed}))["overall"], "INCOMPLETE")
         self.assertFalse(evaluate(self.engine, product)["qualificationGranted"])
 
+    def test_platform_foreign_roundtrip_cannot_promote_the_engine_or_product(self):
+        platform = {"status": "PLATFORM_FOREIGN_PASS", "scope": "platform-only-mechanism",
+                    "cleanup": True, "foreignProcesses": True, "completedForeignCycles": 2,
+                    "windowWrites": 4, "createdSpace": 20, "numericHome": 1, "qualificationGranted": False,
+                    "engineStateMachine": "NOT_RUN", "R4ProductPath": "NOT_RUN"}
+        result = evaluate({"status": "BLOCKED"}, platform_diagnostic=platform)
+        self.assertEqual(result["platformForeignMechanism"], "PASS")
+        self.assertEqual(result["engine"], "BLOCKED")
+        self.assertEqual(result["R4ProductPath"], "NOT_RUN")
+        self.assertEqual(result["exactTargetEngine"], "NOT_PROVEN")
+        self.assertEqual(result["overall"], "INCOMPLETE")
+        self.assertFalse(result["qualificationGranted"])
+        for key, value in (("cleanup", False), ("foreignProcesses", 1), ("completedForeignCycles", 1),
+                           ("windowWrites", 0), ("engineStateMachine", "PASS")):
+            malformed = dict(platform, **{key: value})
+            self.assertEqual(evaluate({"status": "BLOCKED"}, platform_diagnostic=malformed)["platformForeignMechanism"], "UNKNOWN")
+
 
 if __name__ == "__main__":
     unittest.main()

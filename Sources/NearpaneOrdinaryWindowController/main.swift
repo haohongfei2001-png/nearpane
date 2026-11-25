@@ -14,7 +14,7 @@ func ordinaryControllerParentMatches(helper: URL, host: URL, root: URL, declared
     guard helper.lastPathComponent == "NearpaneOrdinaryWindowController",
           helper.deletingLastPathComponent().lastPathComponent == "Helpers",
           root.pathExtension == "app", contents.lastPathComponent == "Contents",
-          contents.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL,
+          contents.deletingLastPathComponent().standardizedFileURL.path == root.standardizedFileURL.path,
           host.lastPathComponent == "NearpaneHost", let declaredHost else { return false }
     #if NEARPANE_WINDOW_SELECTION_FIXTURE
     let requiredBundleID = "net.example.nearpane-sidebar-observer"
@@ -28,14 +28,14 @@ func ordinaryControllerParentMatches(helper: URL, host: URL, root: URL, declared
         let canonical = root.resolvingSymlinksInPath()
         let expectedHost = canonical.appendingPathComponent("Contents/MacOS/NearpaneHost")
         let expectedHelper = canonical.appendingPathComponent("Contents/Helpers/NearpaneOrdinaryWindowController")
-        return expectedHost == expectedHost.resolvingSymlinksInPath() &&
-            expectedHelper == expectedHelper.resolvingSymlinksInPath() &&
-            host.resolvingSymlinksInPath() == expectedHost &&
-            declaredHost.resolvingSymlinksInPath() == expectedHost &&
-            helper.resolvingSymlinksInPath() == expectedHelper
+        return expectedHost.path == expectedHost.resolvingSymlinksInPath().path &&
+            expectedHelper.path == expectedHelper.resolvingSymlinksInPath().path &&
+            host.resolvingSymlinksInPath().path == expectedHost.path &&
+            declaredHost.resolvingSymlinksInPath().path == expectedHost.path &&
+            helper.resolvingSymlinksInPath().path == expectedHelper.path
     }
     #endif
-    return identifier == requiredBundleID && declaredHost.standardizedFileURL == host.standardizedFileURL
+    return identifier == requiredBundleID && declaredHost.standardizedFileURL.path == host.standardizedFileURL.path
 }
 
 // No command-line targeting: one sealed Host owns both pipes and the worker can bind only one

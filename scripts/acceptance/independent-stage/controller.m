@@ -460,12 +460,15 @@ static int runReadback(NSString *configuration,NSString *resultPath) {
     }
 }
 
+#include "platform-foreign-probe.inc"
+
 int main(int argc,const char **argv) {
     @autoreleasepool {
         if(argc==4&&!strcmp(argv[1],"--readback"))return runReadback(@(argv[2]),@(argv[3]));
         BOOL inspect=argc==3&&!strcmp(argv[1],"--inspect-context");
-        if(argc!=2&&!inspect)return 2;
-        NSString *configuration=@(argv[inspect?2:1]);
+        BOOL platformOnly=argc==3&&!strcmp(argv[1],"--platform-only");
+        if(argc!=2&&!inspect&&!platformOnly)return 2;
+        NSString *configuration=@(argv[(inspect||platformOnly)?2:1]);
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [NSApp finishLaunching];
@@ -478,7 +481,7 @@ int main(int argc,const char **argv) {
             // Schedule only the worker here, then release the main queue. This
             // proves NSApp.run started without occupying its AppKit callbacks.
             dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                int result=inspect?inspectContext(configuration):runScenario(configuration);
+                int result=inspect?inspectContext(configuration):(platformOnly?runPlatformForeignProbe(configuration):runScenario(configuration));
                 dispatch_async(dispatch_get_main_queue(), ^{ exit(result); });
             });
         });

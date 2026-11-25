@@ -198,8 +198,8 @@ class PreflightBlocked(RuntimeError):
     pass
 
 
-def ci_workspace(apps, out, env, operation):
-    name = "ci-workspace-" + operation
+def ci_workspace(apps, out, env, operation, suffix=""):
+    name = "ci-workspace-" + operation + suffix
     process = execute([apps["CIWorkspace"]["executable"], operation, out / "ci-workspace-state.json"],
                       out, name, env, 75)
     try:
@@ -223,16 +223,27 @@ def runtime_checks(out, env, archive, host, iterations, revision):
     children, cleanup = [], []
     engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
     product = None
+    platform_diagnostic = None
     workspace = {"status": "NOT_RUN", "reason": "notGitHubHostedAcceptance"}
     workspace_cleanup = None
+    workspace_before_fixtures = None
+    hosted = env.get("GITHUB_ACTIONS") == "true" and env.get("GITHUB_REPOSITORY") == "haohongfei2001-png/nearpane"
     phase = "fixturePreparation"
     with ExitStack() as files:
         try:
-            if env.get("GITHUB_ACTIONS") == "true" and env.get("GITHUB_REPOSITORY") == "haohongfei2001-png/nearpane":
+            if hosted:
                 phase = "ciWorkspacePreparation"
                 workspace = ci_workspace(apps, out, env, "prepare")
                 if workspace.get("status") != "READY":
-                    raise PreflightBlocked("ciWorkspace: " + workspace.get("reason", "ordinaryIdentityUnavailable"))
+                    # A system-UI preparation failure is not a failed platform
+                    # experiment. First restore the native desktop, then create
+                    # fresh controlled windows and let the unchanged production
+                    # controller make its own current, physical admission read.
+                    if workspace.get("status") == "BLOCKED":
+                        workspace_before_fixtures = ci_workspace(apps, out, env, "cleanup", "-before-fixtures")
+                    if (not workspace_before_fixtures or workspace_before_fixtures.get("status") != "READY"
+                            or workspace_before_fixtures.get("cleanup") is not True):
+                        raise PreflightBlocked("ciWorkspace: " + workspace.get("reason", "ordinaryIdentityUnavailable"))
             phase = "fixturePreparation"
             for name, count, offset in (("FixtureA", 2, 0), ("FixtureB", 1, 560)):
                 directory = out / name
@@ -251,8 +262,24 @@ def runtime_checks(out, env, archive, host, iterations, revision):
             path = out / "engine-result.json"
             engine = json.loads(path.read_text()) if path.exists() else {"status": "UNKNOWN", "reason": "controllerTerminalReceiptMissing",
                                                                        "process": result, "cleanup": False}
+            if (hosted and engine.get("status") == "BLOCKED" and engine.get("nonce") == nonce
+                    and type(engine.get("windowWrites")) is int and engine["windowWrites"] == 0
+                    and engine.get("cleanup") is True):
+                # Separate mechanism evidence only: no invented ordinary UUID,
+                # no replacement engine and no promotion of the primary receipt.
+                phase = "platformDiagnostic"
+                process = execute([apps["Controller"]["executable"], "--platform-only", out / "config.json"],
+                                  out, "platform", env, 90)
+                try:
+                    platform_diagnostic = json.loads((out / "platform-result.json").read_text())
+                    if not isinstance(platform_diagnostic, dict) or platform_diagnostic.get("nonce") != nonce:
+                        raise ValueError("platformNonceMismatch")
+                except (OSError, ValueError):
+                    platform_diagnostic = {"status": "UNKNOWN", "reason": "platformTerminalReceiptUnavailable", "cleanup": False}
+                platform_diagnostic["process"] = process
             # A raw/API success never runs an unverified product: first require complete restore.
-            if host and engine.get("cleanup") is True:
+            if (host and engine.get("cleanup") is True
+                    and (platform_diagnostic is None or platform_diagnostic.get("cleanup") is True)):
                 phase = "productCandidate"
                 product_dir = out / "product"
                 product_dir.mkdir(mode=0o700)
@@ -275,7 +302,9 @@ def runtime_checks(out, env, archive, host, iterations, revision):
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
             failure = {"status": "BLOCKED" if isinstance(error, PreflightBlocked) else "UNKNOWN", "phase": phase,
                        "reason": type(error).__name__ + ": " + str(error)}
-            if phase in ("productCandidate", "productCrash"):
+            if phase == "platformDiagnostic":
+                platform_diagnostic = dict(failure, cleanup=False)
+            elif phase in ("productCandidate", "productCrash"):
                 product = failure
             else:
                 engine = dict(engine, **failure)
@@ -285,9 +314,12 @@ def runtime_checks(out, env, archive, host, iterations, revision):
             atomic(out / "fixture-cleanup.json", cleanup)
             if (out / "ci-workspace-state.json").is_file():
                 workspace_cleanup = ci_workspace(apps, out, env, "cleanup")
-    result = evaluate(engine, product)
+    result = evaluate(engine, product, platform_diagnostic)
     result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup,
-                  ciWorkspacePreparation=workspace, ciWorkspaceCleanup=workspace_cleanup)
+                  platformDiagnosticReceipt=platform_diagnostic, ciWorkspacePreparation=workspace,
+                  ciWorkspaceCleanup=workspace_cleanup, ciWorkspaceCleanupBeforeFixtures=workspace_before_fixtures)
+    if platform_diagnostic and platform_diagnostic.get("cleanup") is not True:
+        result.update(status="UNKNOWN", overall="INCOMPLETE", reason="platformDiagnosticCleanupUnconfirmed")
     if workspace_cleanup and (workspace_cleanup.get("status") != "READY" or workspace_cleanup.get("cleanup") is not True):
         result.update(status="UNKNOWN", overall="INCOMPLETE", reason="ciOwnedWorkspaceCleanupUnconfirmed")
     atomic(out / "summary.json", result)
@@ -345,7 +377,8 @@ def main():
     source_failed = isinstance(summary["source"], dict) and summary["source"].get("status") != "PASS"
     candidate_failed = summary["candidate"].get("status") in ("FAIL", "UNKNOWN")
     runtime = summary["runtime"] if isinstance(summary["runtime"], dict) else {}
-    runtime_failed = any(runtime.get(key) in ("FAIL", "UNKNOWN") for key in ("status", "engine", "R4ProductPath", *SYSTEM_CHECKS))
+    runtime_failed = any(runtime.get(key) in ("FAIL", "UNKNOWN") for key in
+                         ("status", "engine", "R4ProductPath", "platformForeignMechanism", *SYSTEM_CHECKS))
     return 1 if source_failed or candidate_failed or runtime_failed else 0
 
 

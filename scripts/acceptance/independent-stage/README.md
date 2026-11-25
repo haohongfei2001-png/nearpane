@@ -204,6 +204,26 @@ provide useful mechanism evidence but does not satisfy that target. None of thes
 receipts automatically inserts a release qualification or changes the shipped
 qualification table.
 
+On the disposable GitHub runner only, an initial Mission Control preparation
+block first triggers verified restoration. Fresh fixture processes are then
+created and the normal production controller reads the actual desktop again.
+If the ordinary native UUID has become available, this can proceed through the
+same engine and R4 paths. An earlier preparation block does not override newer
+physical evidence.
+
+If the normal controller still reports `BLOCKED`, zero foreign writes, and
+confirmed cleanup, a separate `--platform-only` invocation may exercise the
+shipping `np_stage_*` bridge atoms against those same fresh fixtures. It records
+the boot, display and raw numeric desktop identity; it never supplies an invented
+ordinary UUID to the product. It creates one real hidden Space and independently
+hides/returns A0 and B0 while checking the sibling and other app as bystanders.
+`runtime/platform-result.json` and `platformForeignMechanism` preserve this
+limited `PLATFORM_FOREIGN_PASS` separately. It does not prove the production
+state machine, R4 interaction, native UUID qualification, or target SIP behavior,
+and cannot promote `engine`, `R4ProductPath`, or `overall`. Unconfirmed cleanup
+prevents later product/system-input experiments. This diagnostic is not an
+interactive product backend or an automatic product fallback.
+
 The historical `9509bd0` self-panel success is retained at
 `engineering/verification/window-engine/single-version-26A428/11-formal-panel-cycle.json`.
 The same series explicitly reports **zero foreign operations** where single-instance,
@@ -217,5 +237,22 @@ and controller identities to remove that unrelated admission dependency.
 It compiles the candidate engine, source checks, full application with embedded
 tools, cross-process fixture and native-decoupling diagnostic, then uploads the
 candidate archive and original receipts. A source failure or an attempted behavior
-failure fails the job. A genuinely unavailable console is retained as `BLOCKED`,
+failure fails the job. A missing runtime prerequisite is retained as `BLOCKED`,
 so a green compile cannot be read as foreign-window or product acceptance.
+
+After the independent-window work, CI always collects the read-only native
+Stage Manager inventory. Only positively confirmed cleanup permits the two
+sequential native edge experiments (`AutoHide` and zero strip rows). Each has
+its own fresh directory, fixture lifetime checks and preference/pointer/focus
+restoration. `INCONCLUSIVE`, `NOT_RUN` and `REJECTED_RENDERER_SEPARATION` remain
+native diagnostic outcomes; no result grants a route-A qualification.
+
+Each push starts two lanes of the same workflow on separate runners. The `full`
+lane performs the complete source/build/package/R4 chain. The shorter
+`diagnostics` lane builds the actual Rust archive and all runtime tools, then
+runs the controlled window and native diagnostics without waiting for a complete
+product build. It supplies no product Host and leaves source, candidate and R4
+statuses `NOT_RUN`. Native edge experiments run only in this lane. Run IDs and
+artifact names include the lane; the two processes never share a desktop
+session. A manual dispatch with `diagnostics_only: true` selects just the shorter
+lane when that interface is available.
