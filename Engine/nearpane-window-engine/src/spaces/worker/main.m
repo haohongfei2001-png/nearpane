@@ -31,8 +31,8 @@ static uint64_t processBirth(pid_t pid) {
         ? row.pbi_start_tvsec*1000000+row.pbi_start_tvusec : 0;
 }
 static void record(const char *phase,uint32_t transport,const NPReceipt *receipt) {
-    fprintf(stderr,"{\"event\":\"spacesWorker\",\"phase\":\"%s\",\"pid\":%d,\"parentPID\":%d,\"transport\":%u,\"status\":%u,\"detail\":%u,\"owned\":%u}\n",
-        phase,getpid(),parentPID,transport,receipt?receipt->status:0,receipt?receipt->detail:0,receipt?receipt->owned:0);
+    fprintf(stderr,"{\"event\":\"spacesWorker\",\"phase\":\"%s\",\"pid\":%d,\"parentPID\":%d,\"transport\":%u,\"status\":%u,\"detail\":%u,\"flags\":%u,\"owned\":%u}\n",
+        phase,getpid(),parentPID,transport,receipt?receipt->status:0,receipt?receipt->detail:0,receipt?receipt->flags:0,receipt?receipt->owned:0);
     fflush(stderr);
 }
 static BOOL privatePipesAndParent(void) {
@@ -122,12 +122,13 @@ static int serve(void) {
     @autoreleasepool {
         pending=[NSMutableSet set];
         uint32_t created=np_engine_create_spaces_candidate(&engine);
+        record("ready",created,NULL);
         NPSpacesWorkerReply ready={.operation=NP_SW_READY,.transport=created};
         if(!writeReply(&ready)){if(engine)releaseAfterChannelLoss("ready-channel-lost");return 1;}
         if(created!=NP_OK)return 1;
         uint8_t buffer[sizeof(NPSpacesWorkerRequest)]={0};size_t used=0;
         const char *ended="host-eof";
-        for(;;) {
+        for(;;) {@autoreleasepool {
             if(!parentStillOwnsChannel()){ended="parent-exited-or-execed";break;}
             struct pollfd sources[2]={{.fd=STDIN_FILENO,.events=POLLIN},{.fd=parentWatch,.events=POLLIN}};
             int observed=poll(sources,2,500);
@@ -158,7 +159,7 @@ static int serve(void) {
             }
             if(!writeReply(&response)){ended="reply-channel-lost";break;}
             if(!engine){record("closed",NP_OK,NULL);return 0;}
-        }
+        }}
         if(engine)releaseAfterChannelLoss(ended);
         return 0;
     }

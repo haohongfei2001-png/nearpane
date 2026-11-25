@@ -94,6 +94,11 @@ but no callable rendering/edge-suppression separation was proved. Preferences we
 - Restore first; then destroy only an empty owned Space. Partial/uncertain moves retain recovery ownership.
 - System overview handling returns windows to their real ordinary desktop and does not park them in corners.
   Fullscreen and native split windows remain outside ordinary group management.
+- Blank-desktop reveal keeps inactive groups in their real hidden Spaces while pausing new group,
+  arrival and minimize actions. It does not return hidden windows into the native reveal animation.
+  Fresh ordinary-context and two physical visibility reads reopen scheduling; this grants no focus
+  transfer. An actual desktop change, native overview or session suspension still returns ownership
+  to the system even if wallpaper reveal had already paused dispatch.
 - Returning from system navigation resumes the group of the independently verified focused window in the
   same serialized R4 action lane. A newer input supersedes it. Retained read-only AX objects reconnect
   ordinary sidebar appearances after two observations; old file leases are released before reacquisition.

@@ -108,7 +108,12 @@ import NearpaneCore
                 let result = try await engine.releaseSpaces(expectedEpoch: current)
                 guard result.status == NP_PASS, result.owned == 0, result.flags & UInt32(NP_OWNED) == 0 else { return false }
                 return await engine.close()
-            } catch { return false }
+            } catch {
+                // A broken pipe already started the original worker's release.
+                // close accepts only that worker's normal zero exit; the session
+                // still requires independent returned-home observations.
+                return await engine.close()
+            }
         }.value
     }
 

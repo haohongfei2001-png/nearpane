@@ -57,6 +57,7 @@ actor SpacesEngineWorker {
                 }
                 let result = response.receipt
                 guard result.intent == input.intent, result.epoch == epoch else {
+                    channel.disconnect()
                     throw NativeStageEngineError.correlation
                 }
                 return result
@@ -70,7 +71,11 @@ actor SpacesEngineWorker {
             guard response.transport == NP_OK else { return false }
             channel.finish()
             return true
-        } catch { return false }
+        } catch {
+            // Only this exact worker's clean exit can establish that its EOF
+            // cleanup finished. Core separately reads every surviving window home.
+            return await Task.detached { channel.waitForReleasedExit(seconds: 10) }.value
+        }
     }
 }
 
@@ -144,6 +149,22 @@ private final class SpacesWorkerChannel: @unchecked Sendable {
         writeLock.lock(); defer { writeLock.unlock() }
         stateLock.lock(); failed = true; stateLock.unlock()
         try? writer.close() // EOF requests the same original owner's cleanup.
+    }
+    func disconnect() { abort() }
+    func waitForReleasedExit(seconds: TimeInterval) -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + seconds
+        while true {
+            stateLock.lock(); let wasClosed = closed, wasFailed = failed; stateLock.unlock()
+            if wasClosed { return true }
+            guard wasFailed else { return false }
+            if !process.isRunning {
+                guard process.terminationReason == .exit, process.terminationStatus == 0 else { return false }
+                finish()
+                return true
+            }
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            Thread.sleep(forTimeInterval: 0.02)
+        }
     }
     func finish() {
         writeLock.lock(); defer { writeLock.unlock() }

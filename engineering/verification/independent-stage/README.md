@@ -35,6 +35,8 @@ These are code-completion claims. The evidence below determines which native eff
 | Corrected own-panel focus/run-loop diagnostic, target | Prepare/open/read/close succeeded and original focus matched | No Space creation or foreign migration performed in this diagnostic |
 | `2a0cfbe9b16675905237ab1917fe48b9a61d8789`, hosted macOS 27.0.1 / 26A434, SIP disabled | Source step passed; full release compilation and embedded-resource checks passed; the later standalone-executable signature check used the wrong bundle context and is being corrected | Source pass is separate from a complete artifact and all native behavior |
 
+Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
+
 Source CI: [run 45675486685](https://github.com/haohongfei2001-png/nearpane/actions/runs/45675486685).
 Subsequent committed corrections and final candidate receipts are added below after execution; a running
 or failed build is never advertised as a complete candidate.

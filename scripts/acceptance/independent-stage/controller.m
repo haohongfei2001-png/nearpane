@@ -317,6 +317,7 @@ static int runScenario(NSString *configuration) {
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
             @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
+            @"enrolledWindows":targets,@"originalSpaceInventory":originalSpaces?:@[],@"ordinaryHome":@(home.id),
             @"targetEnvironment":@{ @"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:[NSNumber numberWithBool:sip==1],
                 @"exactTarget":[NSNumber numberWithBool:np_stage_target_build()==1]},
             @"R4ProductPath":@"NOT_RUN",@"missionControl":@"NOT_RUN",@"desktopGestures":@"NOT_RUN",@"fullScreenSplitView":@"NOT_RUN",
@@ -328,8 +329,60 @@ static int runScenario(NSString *configuration) {
     }
 }
 
+// This mode never creates an engine or submits a window operation. A separate
+// process verifies the product's held checkpoint and its worker's crash recovery.
+static int runReadback(NSString *configuration,NSString *resultPath) {
+    @autoreleasepool {
+        NSDictionary *config=readJSON(configuration);
+        NSArray *windows=config[@"windows"],*original=config[@"originalSpaceInventory"];
+        NSString *mode=config[@"mode"];
+        BOOL held=[mode isEqual:@"held"],homeMode=[mode isEqual:@"home"];
+        if((!held&&!homeMode)||![windows isKindOfClass:NSArray.class]||windows.count!=3||
+           ![original isKindOfClass:NSArray.class]||!original.count||
+           ![[NSUUID alloc]initWithUUIDString:config[@"nonce"]])return 2;
+        NSMutableSet *numbers=[NSMutableSet set],*owners=[NSMutableSet set];NSUInteger visible=0;
+        for(NSDictionary *target in windows) {
+            NSArray *frame=target[@"frame"];uint64_t expected=[target[@"expectedSpace"] unsignedLongLongValue];
+            uint64_t originalHome=[target[@"home"] unsignedLongLongValue];BOOL shown=[target[@"expectedOnScreen"] boolValue];
+            if(![frame isKindOfClass:NSArray.class]||frame.count!=4||!expected||!originalHome||
+               ![target[@"executable"] isKindOfClass:NSString.class]||![original containsObject:@(originalHome)]||
+               [target[@"pid"] intValue]<=1||![target[@"birth"] unsignedLongLongValue]||![target[@"number"] unsignedIntValue])return 2;
+            if((homeMode||shown)?expected!=originalHome:[original containsObject:@(expected)])return 2;
+            [numbers addObject:target[@"number"]];[owners addObject:target[@"pid"]];visible+=shown?1:0;
+        }
+        if(numbers.count!=3||owners.count!=2||visible!=(held?1:3))return 2;
+        connection=np_stage_connection();NSMutableArray *samples=[NSMutableArray array];
+        NSDictionary *last=@{};double deadline=NSProcessInfo.processInfo.systemUptime+MAX(1,MIN(25,[config[@"seconds"] doubleValue]));
+        BOOL matched=NO;
+        do {
+            NSMutableArray *rows=[NSMutableArray array];BOOL valid=YES;
+            for(NSDictionary *target in windows) {
+                NSDictionary *row=observe(target,[target[@"expectedSpace"] unsignedLongLongValue],
+                                          [target[@"expectedOnScreen"] boolValue]);
+                [rows addObject:row];valid=valid&&[row[@"verified"] boolValue];
+            }
+            NSArray *inventory=allSpaces();BOOL inventoryRestored=[inventory isEqual:original];
+            BOOL hostUnchanged=!held||ownerMatches(config[@"host"]);
+            valid=valid&&inventory!=nil&&(!homeMode||inventoryRestored)&&hostUnchanged;
+            last=@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"windows":rows,
+                   @"originalInventoryRestored":@(inventoryRestored),@"hostUnchanged":@(hostUnchanged),@"verified":@(valid)};
+            if(valid)[samples addObject:last];else [samples removeAllObjects];
+            if(samples.count==2){matched=YES;break;}
+            pump(.06);
+        } while(NSProcessInfo.processInfo.systemUptime<deadline);
+        NSDictionary *report=@{@"schema":@1,@"nonce":config[@"nonce"],@"mode":mode,
+            @"status":matched?@"INDEPENDENT_READBACK_PASS":@"UNKNOWN",@"windowWrites":@0,
+            @"observations":matched?samples:@[last],@"cleanup":[NSNumber numberWithBool:homeMode&&matched],
+            @"qualificationGranted":@NO};
+        NSData *data=[NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted|NSJSONWritingSortedKeys error:NULL];
+        BOOL saved=data&&[data writeToFile:resultPath options:NSDataWritingAtomic error:NULL];
+        return matched&&saved?0:1;
+    }
+}
+
 int main(int argc,const char **argv) {
     @autoreleasepool {
+        if(argc==4&&!strcmp(argv[1],"--readback"))return runReadback(@(argv[2]),@(argv[3]));
         if(argc!=2)return 2;
         NSString *configuration=@(argv[1]);
         [NSApplication sharedApplication];

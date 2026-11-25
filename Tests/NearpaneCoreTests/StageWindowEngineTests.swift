@@ -352,6 +352,32 @@ import Testing
         try await controller.release()
     }
 
+    @Test func wallpaperReturnVerifiesOwnedVisibilityWithoutRequiringOrChangingKeyboardFocus() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()), witness: fixture, transport: fixture)
+        }
+        try await activate(groups[0], controller, fixture)
+        let session = try #require(controller.session)
+        let effects = fixture.effects.count, ordinaryEffects = fixture.ordinaryEffects.count
+        fixture.focus = nil
+        let returned = try await session.read(fixture.scope)
+        #expect(!controller.coordinator.observesActiveGroup(returned, owner: session.owner))
+        #expect(controller.coordinator.observesActiveGroup(returned, owner: session.owner, requiringActiveFocus: false))
+        #expect(fixture.focus == nil && fixture.effects.count == effects && fixture.ordinaryEffects.count == ordinaryEffects)
+        var changed = returned.windows
+        let hidden = groups[1].members[0].windowHint
+        changed[hidden]?.visibility = .visible
+        changed[hidden]?.hiddenSpaceID = nil
+        let escaped = StageWindowSample(scope: returned.scope, generation: returned.generation, sequence: returned.sequence + 1,
+            workArea: returned.workArea, windows: changed, focus: nil, nativeID: returned.nativeID)
+        #expect(!controller.coordinator.observesActiveGroup(escaped, owner: session.owner, requiringActiveFocus: false))
+        fixture.focus = groups[0].members[0].windowHint
+        try await controller.release()
+    }
+
     @Test func ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() {
         let incomplete = StageEngineQualification(backend: .spaces, environment: environment, evidence: UUID(),
             checks: [.validatedRoute: .pass, .exactSIPBuild: .pass])

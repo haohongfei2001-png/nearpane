@@ -15,6 +15,7 @@ import NearpaneOrdinaryWindowRuntime
             let windows: [Window]
         }
         let schema: Int, nonce: UUID, output: String, profile: String, iterations: Int
+        let purpose: String?
         let fixtures: [Fixture]
     }
     private struct Target {
@@ -151,6 +152,24 @@ import NearpaneOrdinaryWindowRuntime
                 try await Task.sleep(for: .milliseconds(120))
             }
             let cycles = min(50, max(1, config.iterations))
+            if config.purpose == "hostCrash" {
+                guard let firstGroup = groupIDs[targets[0].window.number] else { throw Failure(reason: "crashTargetGroupMissing") }
+                try await selectR4(0, group: firstGroup, visible: [targets[0].window.number], phase: "beforeHostCrash")
+                guard let readings = await waitForState(targets, visible: [targets[0].window.number], focus: targets[0], seconds: 3),
+                      let image = try? NearpaneCore.OrdinaryProcessImage.read(getpid()) else {
+                    throw Failure(reason: "crashCheckpointNotConfirmed")
+                }
+                let checkpoint: [String: Any] = ["schema": 1, "nonce": config.nonce.uuidString.lowercased(),
+                    "hostPID": getpid(), "hostBirth": image.launch, "actualR4Inputs": actualInputs,
+                    "visibleWindow": targets[0].window.number, "observations": readings,
+                    "qualificationGranted": false]
+                let data = try JSONSerialization.data(withJSONObject: checkpoint, options: [.prettyPrinted, .sortedKeys])
+                try data.write(to: output.appendingPathComponent("host-crash-ready.json"), options: .atomic)
+                // Only the harness's exact child Process is eligible for SIGKILL.
+                // If it does not act, take the normal release path after this bound.
+                try await Task.sleep(for: .seconds(40))
+                throw Failure(reason: "hostCrashInputNotReceived")
+            }
             let cyclePath = [0] + (0..<cycles).flatMap { _ in [1, 2, 0] }
             for (step, index) in cyclePath.enumerated() {
                 guard let group = groupIDs[targets[index].window.number] else { throw Failure(reason: "groupIdentityLost") }

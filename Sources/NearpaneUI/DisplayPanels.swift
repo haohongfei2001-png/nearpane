@@ -16,14 +16,18 @@ import NearpaneCore
     private var stageMonitor: Timer?
     private var wallpaperMonitor: WallpaperRevealMonitor?
     private var wallpaperHeld = false
+    private var wallpaperAwaitingOrdinary = false
+    enum StageDisposition: Equatable { case ordinary, wallpaper, system }
+    private(set) var stageDisposition: StageDisposition = .ordinary
     private var occlusionMonitor: NSObjectProtocol?
+    private var spaceMonitor: NSObjectProtocol?
     private var sampleGeneration = UUID()
     private var sampleBegan: ContinuousClock.Instant?
     private var stopped = false
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
     public var windowDispatchEligible: Bool {
-        !stopped && !suspended && !systemManagesWindows && !wallpaperHeld && missionControl == .ordinary
+        !stopped && !suspended && !systemManagesWindows && !wallpaperHeld && !wallpaperAwaitingOrdinary && missionControl == .ordinary
     }
     public var missionControlDispatchState: String { missionControl.rawValue }
     /// Fixed reason only, including incomplete reads on other macOS builds.
@@ -58,20 +62,13 @@ import NearpaneCore
     }
     private let present: (EdgeWindowController) -> Void
     var secondaryIDs: Set<String> { Set(secondary.keys) }
+    isolated deinit {
+        if let spaceMonitor { NSWorkspace.shared.notificationCenter.removeObserver(spaceMonitor) }
+    }
     public convenience init(host: HostSession, primary: EdgeWindowController, domains: EmbeddedModules? = nil) {
         self.init(host: host, primary: primary, domains: domains, navigation: .shared, missionControlReader: .init(), present: { $0.presentIfNeeded() })
         wallpaperMonitor = WallpaperRevealMonitor { [weak self] held in
-            guard let self, !stopped else { return }
-            let previous = windowDispatchEligible
-            wallpaperHeld = held
-            sampleGeneration = UUID()
-            if !held {
-                missionControl = .unknown
-                missionControlDispatchEvidence = "wallpaperRestoredAwaitingOrdinaryRead"
-                missionControlReadInterval = nil
-                pointer.windowPreviews?.currentDesktop?.changed()
-            }
-            publishOwnership(previous: previous)
+            self?.setWallpaperHeld(held)
         }
         pollSystemOwnership()
         occlusionMonitor = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification,
@@ -80,6 +77,9 @@ import NearpaneCore
             let id = ObjectIdentifier(source)
             MainActor.assumeIsolated { self?.panelOcclusionChanged(id) }
         }
+        spaceMonitor = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in MainActor.assumeIsolated { self?.nativeDesktopChanged() } }
         // The panel may be entirely withdrawn when Stage Manager owns the display.
         // Observe the preference independently of the gallery, without prompting or writing it.
         let timer = Timer(timeInterval: 0.35, repeats: true) { [weak self] _ in
@@ -133,9 +133,44 @@ import NearpaneCore
         guard value != systemManagesWindows else { return }
         let previous = windowDispatchEligible
         systemManagesWindows = value
+        if value { clearWallpaperTracking() }
         sampleGeneration = UUID()
         missionControl = .unknown
         missionControlDispatchEvidence = "waitingForDock"
+        missionControlReadInterval = nil
+        publishOwnership(previous: previous)
+    }
+
+    /// Shared with the observational wallpaper monitor; this never sends input or
+    /// changes the native desktop preference. An unknown Dock read cannot create it.
+    func setWallpaperHeld(_ held: Bool) {
+        guard !stopped, wallpaperHeld != held else { return }
+        let previous = windowDispatchEligible
+        wallpaperHeld = held
+        wallpaperAwaitingOrdinary = !held
+        sampleGeneration = UUID()
+        if !held {
+            missionControl = .unknown
+            missionControlDispatchEvidence = "wallpaperRestoredAwaitingOrdinaryRead"
+            missionControlReadInterval = nil
+            pointer.windowPreviews?.currentDesktop?.changed()
+        }
+        publishOwnership(previous: previous)
+    }
+
+    private func clearWallpaperTracking() {
+        wallpaperHeld = false
+        wallpaperAwaitingOrdinary = false
+        wallpaperMonitor?.reset()
+    }
+
+    func nativeDesktopChanged() {
+        guard !stopped else { return }
+        let previous = windowDispatchEligible
+        clearWallpaperTracking()
+        sampleGeneration = UUID()
+        missionControl = .unknown
+        missionControlDispatchEvidence = "desktopChangedAwaitingOrdinaryRead"
         missionControlReadInterval = nil
         publishOwnership(previous: previous)
     }
@@ -148,6 +183,8 @@ import NearpaneCore
         guard missionControl != value else { return }
         let previous = windowDispatchEligible
         missionControl = value
+        if value == .exposed { clearWallpaperTracking() }
+        if value == .ordinary { wallpaperAwaitingOrdinary = false }
         sampleGeneration = UUID()
         publishOwnership(previous: previous)
     }
@@ -202,11 +239,25 @@ import NearpaneCore
 
     private func publishOwnership(previous: Bool) {
         let eligible = windowDispatchEligible
+        let disposition: StageDisposition
+        if stopped || suspended || systemManagesWindows || missionControl == .exposed { disposition = .system }
+        else if wallpaperHeld || wallpaperAwaitingOrdinary { disposition = .wallpaper }
+        else if missionControl == .ordinary { disposition = .ordinary }
+        else { disposition = .system }
+        let dispositionChanged = stageDisposition != disposition
+        stageDisposition = disposition
+        let stage = pointer.windowPreviews?.currentDesktop?.stageEngine
+        if dispositionChanged {
+            switch disposition {
+            case .wallpaper: stage?.setWallpaperHeld(true)
+            case .system: stage?.systemTakesOver()
+            case .ordinary: break
+            }
+        }
         if previous != eligible {
             navigation.setDispatchAvailable(eligible)
             workRect?.setOrdinaryHold("systemWindowDispatch", active: !eligible)
             if !eligible {
-                pointer.windowPreviews?.currentDesktop?.stageEngine.systemTakesOver()
                 for id in pendingSpaceOpenings.union(host.panelContents.keys) { coordinator.finishRequest(id) }
                 pendingSpaceOpenings.removeAll()
                 primary.cancelWindowDispatchGesture()
@@ -221,9 +272,11 @@ import NearpaneCore
                     for id in previews.visibleDisplays { previews.setVisible(false, on: id) }
                 }
                 stopObservingClicks()
-            } else {
-                pointer.windowPreviews?.currentDesktop?.stageEngine.ordinaryContextObserved()
             }
+        }
+        if eligible {
+            if dispositionChanged { stage?.setWallpaperHeld(false) }
+            stage?.ordinaryContextObserved()
         }
         if !stopped { refresh?() }
     }
@@ -249,6 +302,7 @@ import NearpaneCore
         guard value != suspended else { return }
         let previous = windowDispatchEligible
         suspended = value
+        if value { clearWallpaperTracking() }
         if missionControlReader != nil {
             sampleGeneration = UUID(); missionControl = .unknown
             missionControlDispatchEvidence = value ? "sessionSuspended" : "waitingForDock"
@@ -417,6 +471,7 @@ import NearpaneCore
         stopped = true
         publishOwnership(previous: previous)
         if let occlusionMonitor { NotificationCenter.default.removeObserver(occlusionMonitor); self.occlusionMonitor = nil }
+        if let spaceMonitor { NSWorkspace.shared.notificationCenter.removeObserver(spaceMonitor); self.spaceMonitor = nil }
         stageMonitor?.invalidate(); stageMonitor = nil
         wallpaperMonitor?.stop(); wallpaperMonitor = nil
         pointer.windowPreviews?.currentDesktop?.configureSplitObservation(allowed: false, fullscreenHint: false)

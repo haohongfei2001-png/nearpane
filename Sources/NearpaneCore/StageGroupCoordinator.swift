@@ -253,18 +253,21 @@ public enum StageSwitchError: LocalizedError, Equatable {
     }
     /// An idle check never tries to regain focus. An external takeover withdraws the active claim.
     public func observesActiveGroup(_ sample: StageWindowSample, owner: StageEngineOwner,
-                                    mayManage: (StageWindowState) -> Bool = { _ in true }) -> Bool {
-        guard !busy, !requiresRecovery, ledger.owner == owner, sample.generation == owner.generation,
-              let focus = sample.focus else { return false }
+                                    mayManage: (StageWindowState) -> Bool = { _ in true },
+                                    requiringActiveFocus: Bool = true) -> Bool {
+        guard !busy, !requiresRecovery, ledger.owner == owner, sample.generation == owner.generation else { return false }
         let groups = store.participatingGroups(in: sample.scope) { key in
             guard let state = sample.windows[key], mayManage(state) else { return nil }
             return state.lifetime
         }
         guard let group = groups.first(where: { $0.verifiedActive == true }) else { return false }
-        if let other = sample.foreignFocusScope {
-            guard other.display != sample.scope.display, sample.windows[focus] == nil else { return false }
-        } else if sample.windows[focus]?.visibility != .visible || !group.members.contains(where: { $0.windowHint == focus }) {
-            return false
+        if requiringActiveFocus {
+            guard let focus = sample.focus else { return false }
+            if let other = sample.foreignFocusScope {
+                guard other.display != sample.scope.display, sample.windows[focus] == nil else { return false }
+            } else if sample.windows[focus]?.visibility != .visible || !group.members.contains(where: { $0.windowHint == focus }) {
+                return false
+            }
         }
         return matchesActiveSet(group, groups: groups, sample: sample)
     }

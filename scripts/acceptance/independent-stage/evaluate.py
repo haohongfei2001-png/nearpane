@@ -3,7 +3,7 @@
 ENGINE_CHECKS = frozenset(("launchCanary", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
                            "repeatedSwitch", "yellowButton", "focusRestore", "cleanup"))
 SYSTEM_CHECKS = ("yellowButtonRouting", "missionControl", "appExpose", "nativeFullScreen",
-                 "nativeDesktopSwitch", "desktopGestures", "fullScreenSplitView", "groupMergeSplit")
+                 "nativeDesktopSwitch", "desktopGestures", "fullScreenSplitView", "groupMergeSplit", "hostCrashRecovery")
 
 
 def evaluate(engine, product=None):

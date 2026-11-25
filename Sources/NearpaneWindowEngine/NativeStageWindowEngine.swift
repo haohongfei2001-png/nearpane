@@ -50,19 +50,6 @@ public actor NativeStageWindowEngine {
         handle = created
         qualifiedEpoch = nil
     }
-    /// Explicit independent-Spaces candidate. No physical qualification is fabricated;
-    /// launch and every foreign-window transaction still require actual system readback.
-    public init?(spacesCandidate: Bool) {
-        guard spacesCandidate else { return nil }
-        var created: UInt64 = 0, epoch: UInt64 = 0
-        guard np_engine_create_spaces_candidate(&created) == NP_OK else { return nil }
-        guard np_engine_epoch(created, &epoch) == NP_OK, epoch > 0 else {
-            _ = np_engine_destroy(created)
-            return nil
-        }
-        handle = created
-        qualifiedEpoch = epoch
-    }
     public init?(qualifiedBackend: UInt32, evidence: UUID) {
         var bytes = evidence.uuid
         var created: UInt64 = 0

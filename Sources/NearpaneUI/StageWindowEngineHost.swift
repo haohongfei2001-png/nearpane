@@ -56,6 +56,10 @@ import NearpaneOrdinaryWindowRuntime
     private var resumeScopes = Set<StageGroupScope>()
     private var resumeEnqueued = false
     private var lastResumeAttempt: TimeInterval = 0
+    private enum WallpaperState: Equatable { case ordinary, showing, returning }
+    private var wallpaperState = WallpaperState.ordinary
+    var wallpaperPaused: Bool { wallpaperState != .ordinary }
+    private var wallpaperReturnedWithoutFocus = false
     private var revision: UInt64 = 0
     @ObservationIgnored private let minimizeObserver = IndependentStageMinimizeObserver()
     @ObservationIgnored private var minimizeTask: Task<Void, Never>?
@@ -84,6 +88,19 @@ import NearpaneOrdinaryWindowRuntime
     /// They never enroll a new writer or infer that a pre-restart AX reference survived.
     func observeEnvironment(_ snapshot: DesktopSnapshot?) {
         guard candidateMode || !Self.shipped.isEmpty, let profile else { return }
+        if wallpaperPaused {
+            // Incomplete/animated geometry is not a native desktop handoff. A
+            // positively different current Space or native Stage Manager is.
+            if snapshot?.native?.stageManagerEnabled == true {
+                systemTakesOver()
+            } else if let witness, let current = snapshot?.scopes.first(where: {
+                $0.displayID == witness.scope.display.uuidString
+            })?.records.first(where: \.isCurrent),
+                current.nativeUUID != nil, current.ordinaryUUID != witness.scope.nativeSpace {
+                systemTakesOver()
+            } else { verifyWallpaperReturn() }
+            return
+        }
         // A reader failure or a different ordinary desktop revokes the current intent even
         // when a previous build/permission attestation is still within its two-second cache.
         guard let snapshot, snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
@@ -108,7 +125,7 @@ import NearpaneOrdinaryWindowRuntime
 
     /// The directory can show positively identified ordinary windows even when every visibility provider is unsupported.
     func updateGroupProjection(_ raw: DesktopSnapshot, current: @MainActor () -> Bool) async {
-        guard current() else { return }
+        guard current(), !wallpaperPaused else { return }
         // A system takeover ends the writer, not the retained AX object's identity. Two
         // ordinary observations can reconnect its new sidebar appearance to its group.
         for returned in returnedWitnesses.values { returned.observeReturnedLifetimes(raw) }
@@ -220,13 +237,14 @@ import NearpaneOrdinaryWindowRuntime
 
     func offersGroupSelection(on source: NativeSidebarDestination) -> Bool {
         guard source.kind == .ordinary, let display = UUID(uuidString: source.display) else { return false }
-        return observedCapability != nil && !needsReassessment && !recoveryRequested && !unreadableLedger &&
+        return !wallpaperPaused && observedCapability != nil && !needsReassessment && !recoveryRequested && !unreadableLedger &&
             !releasing && !terminationOwnsLane && engine?.coordinator.requiresRecovery == false &&
             engine?.session?.isFrozen != true && (witness?.matches(.init(display: display, nativeSpace: source.uuid)) ?? true) &&
             management?.permitsStageEngine(on: source.display) == true
     }
 
     func observeDirectory(_ candidates: [StageGroupWindow], in store: StageGroupStore) throws {
+        guard !wallpaperPaused else { return }
         if !holdsDispatch { try store.observe(candidates) }
         else if let scope = witness?.scope { try store.observe(candidates, preserving: scope.display) }
     }
@@ -242,6 +260,7 @@ import NearpaneOrdinaryWindowRuntime
 
     func processEnded(_ pid: Int32, in feed: CurrentDesktopWindows) async throws {
         let enrolled = witness?.contains(pid: pid) == true
+        if wallpaperPaused { if enrolled { recoveryRequested = true }; return }
         if enrolled { systemTakesOver(); await releaseTask?.value }
         let departed = try await StageWindowDeparture.exited(pid: pid, bound: feed.groups.boundWindows(of: pid))
         if try retire(departed, from: feed.groups) { feed.changed() }
@@ -250,7 +269,7 @@ import NearpaneOrdinaryWindowRuntime
 
     /// Membership edits and ordinary tiling share the sidebar's serialized intent lane.
     func prepareForGroupEdit(current: @MainActor () -> Bool) async throws {
-        guard current(), !unreadableLedger, !terminationOwnsLane, !releasing else { throw StageSwitchError.interrupted }
+        guard current(), !wallpaperPaused, !unreadableLedger, !terminationOwnsLane, !releasing else { throw StageSwitchError.interrupted }
         granted = nil
         consentRequest = nil
         if holdsDispatch { await release() }
@@ -283,7 +302,87 @@ import NearpaneOrdinaryWindowRuntime
         consentRequest = nil
     }
 
+    /// Show Desktop transforms the active windows but does not acquire our hidden
+    /// groups. Keep their real leases while the native animation owns presentation.
+    func setWallpaperHeld(_ held: Bool) {
+        if held {
+            guard wallpaperState != .showing else { return }
+            wallpaperState = .showing
+            wallpaperReturnedWithoutFocus = false
+            if let witness, let feed, engine?.session?.owner.backend == .spaces,
+               feed.groups.activeGroup(in: witness.scope) != nil { resumeScopes.insert(witness.scope) }
+            minimizeObserver.stop()
+            witness?.cancelArrivals()
+            heldRefresh?.cancel()
+        } else if wallpaperState == .showing {
+            wallpaperState = .returning
+            needsReassessment = true
+            feed?.changed()
+        }
+    }
+
+    private func verifyWallpaperReturn() {
+        guard wallpaperState == .returning, !releasing, !terminationOwnsLane,
+              heldRefresh == nil, minimizeTask == nil, let feed else { return }
+        guard let engine, let session = engine.session, let witness else {
+            wallpaperState = .ordinary
+            feed.changed()
+            return
+        }
+        guard management?.permitsStageEngine(on: witness.scope.display.uuidString) == true else { return }
+        if recoveryRequested || session.isFrozen || engine.coordinator.requiresRecovery {
+            systemTakesOver()
+            return
+        }
+        guard engine.canObserve else { return }
+        let token = revision, scope = witness.scope
+        heldRefresh = Task { [weak self, weak feed] in
+            guard let self, let feed else { return }
+            defer { heldRefresh = nil }
+            do {
+                var previous: StageWindowSample?
+                for _ in 0..<2 {
+                    let sample = try await session.read(scope)
+                    guard !Task.isCancelled, wallpaperState == .returning, token == revision,
+                          engine.coordinator.observesActiveGroup(sample, owner: session.owner,
+                              mayManage: session.mayManage, requiringActiveFocus: false),
+                          previous.map({ $0.windows == sample.windows && $0.workArea == sample.workArea &&
+                              $0.nativeID == sample.nativeID && $0.sequence < sample.sequence }) != false else {
+                        throw StageSwitchError.incomplete
+                    }
+                    previous = sample
+                }
+                try await session.checkHealth()
+                guard !Task.isCancelled, wallpaperState == .returning, token == revision else { return }
+                wallpaperState = .ordinary
+                needsReassessment = true
+                observedCapability = nil
+                wallpaperReturnedWithoutFocus = previous?.focus == nil
+                resumeScopes.remove(scope)
+                projectHeld(feed.groups, in: scope)
+                await armArrivals(in: feed, revision: token)
+                // A new published catalogue re-evaluates capability before any R4
+                // selection is offered; keep the metadata loop even with panels hidden.
+                feed.observeStageOwnership(true)
+                feed.changed()
+            } catch {
+                guard !Task.isCancelled, wallpaperState == .returning, token == revision else { return }
+                // An interrupted transaction or changed member requires the existing
+                // real return/recovery path, after the native desktop has returned.
+                systemTakesOver()
+                feed.changed()
+            }
+        }
+    }
+
     func freeze() {
+        if wallpaperPaused {
+            groupProjection = nil
+            minimizeObserver.stop()
+            witness?.cancelArrivals()
+            heldRefresh?.cancel()
+            return
+        }
         heldSuccessor = nil
         needsReassessment = true
         observedCapability = nil
@@ -303,6 +402,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func systemTakesOver() {
+        wallpaperState = .ordinary
+        wallpaperReturnedWithoutFocus = false
         if let witness, let feed, engine?.session?.owner.backend == .spaces,
            feed.groups.activeGroup(in: witness.scope) != nil { resumeScopes.insert(witness.scope) }
         freeze()
@@ -312,6 +413,7 @@ import NearpaneOrdinaryWindowRuntime
     /// A takeover revokes new actions immediately. Restore under the old worker only after its independent
     /// witness positively observes a safe context again. An uncertain issued restore remains in the WAL.
     func ordinaryContextObserved() {
+        if wallpaperPaused { verifyWallpaperReturn(); return }
         if !holdsDispatch { resumeFocusedGroupIfNeeded(); return }
         guard recoveryRequested, !releasing, engine?.canAttemptOwnedRelease == true,
               witness?.homeCatalog(feed?.snapshot) != nil else { return }
@@ -432,6 +534,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func release() async {
+        wallpaperState = .ordinary
+        wallpaperReturnedWithoutFocus = false
         resumeScopes.removeAll()
         await beginRelease()?.value
         if !holdsDispatch { updateReleasedObservation() }
@@ -449,6 +553,8 @@ import NearpaneOrdinaryWindowRuntime
 
     func prepareForShutdown() async -> Bool {
         if let shutdownTask { return await shutdownTask.value }
+        wallpaperState = .ordinary
+        wallpaperReturnedWithoutFocus = false
         resumeScopes.removeAll()
         terminationOwnsLane = true
         guard !unreadableLedger else { return false }
@@ -482,6 +588,7 @@ import NearpaneOrdinaryWindowRuntime
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
                      successor: @escaping @MainActor () -> UUID? = { nil }) async throws -> Bool {
         heldSuccessor = nil
+        guard !wallpaperPaused else { throw StageSwitchError.busy }
         guard routesGroupChoice else { return false }
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
@@ -506,7 +613,7 @@ import NearpaneOrdinaryWindowRuntime
             self?.revision == token && self?.management?.permitsStageEngine(on:member.source.display) == true
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
-            self != nil && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
+            self?.wallpaperPaused == false && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
         }
         guard permitted() else { throw StageSwitchError.busy }
         let approval = try consent(for: scope, evidence: evidence, feed: feed)
@@ -610,6 +717,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func refreshHeld(feed: CurrentDesktopWindows) {
+        if wallpaperPaused { verifyWallpaperReturn(); return }
         drainMinimized()
         guard minimizeTask == nil, let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
               engine.coordinator.retainedOwner == session.owner,
@@ -622,9 +730,11 @@ import NearpaneOrdinaryWindowRuntime
                 try await session.checkHealth()
                 do {
                     let sample = try await session.read(scope)
-                    guard engine.coordinator.observesActiveGroup(sample, owner: session.owner, mayManage: session.mayManage) else {
+                    guard engine.coordinator.observesActiveGroup(sample, owner: session.owner, mayManage: session.mayManage,
+                        requiringActiveFocus: !(wallpaperReturnedWithoutFocus && sample.focus == nil)) else {
                         throw StageSwitchError.ownership
                     }
+                    if sample.focus != nil { wallpaperReturnedWithoutFocus = false }
                 } catch {
                     let failure = error
                     if let closed = try? await witness.closedWindows(), !closed.isEmpty, token == revision, !Task.isCancelled {
@@ -661,13 +771,13 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func canObserveArrivals(_ session: StageEngineSession, revision token: UInt64) -> Bool {
-        !Task.isCancelled && !releasing && !terminationOwnsLane && revision == token &&
+        !wallpaperPaused && !Task.isCancelled && !releasing && !terminationOwnsLane && revision == token &&
             engine?.session === session && engine?.canObserve == true &&
             granted?.scope == witness?.scope && granted?.evidence == session.owner.evidence
     }
 
     private func armArrivals(in feed: CurrentDesktopWindows, revision token: UInt64) async {
-        guard let session = engine?.session, let granted, let witness else { return }
+        guard !wallpaperPaused, let session = engine?.session, let granted, let witness else { return }
         if session.owner.backend == .spaces {
             let presented = granted.lifetimes.keys.filter {
                 guard let state = witness.state(of: $0) else { return false }
@@ -687,6 +797,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func drainMinimized() {
+        guard !wallpaperPaused else { return }
         guard let key = pendingMinimized.first else { return }
         let window = NativeSpaceWindow(pid:key.pid, birth:key.birth, number:key.number)
         guard minimizeTask == nil, !releasing, !terminationOwnsLane, let engine, engine.canObserve, let session = engine.session,
@@ -700,7 +811,7 @@ import NearpaneOrdinaryWindowRuntime
             guard revision == token, !releasing, !session.isFrozen else { return }
             do {
                 try await engine.retireMinimized(window, in:scope) { [weak self] in
-                    self?.revision == token && self?.releasing == false && !Task.isCancelled
+                    self?.revision == token && self?.releasing == false && self?.wallpaperPaused == false && !Task.isCancelled
                 }
                 pendingMinimized.removeAll { $0 == key }
                 granted = try consent(for:scope, evidence:session.owner.evidence, feed:feed)
@@ -708,7 +819,7 @@ import NearpaneOrdinaryWindowRuntime
                 await armArrivals(in:feed, revision:token)
             } catch {
                 recoveryRequested = engine.coordinator.requiresRecovery
-                if recoveryRequested { systemTakesOver() }
+                if recoveryRequested && !wallpaperPaused { systemTakesOver() }
                 else if (error as? StageSwitchError) != .busy { pendingMinimized.removeAll { $0 == key } }
             }
         }
@@ -719,6 +830,7 @@ import NearpaneOrdinaryWindowRuntime
     func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, in feed: CurrentDesktopWindows, selectionToken: UUID,
                     current: @escaping @MainActor () -> Bool,
                     successor: @escaping @MainActor () -> UUID? = { nil }) async throws {
+        guard !wallpaperPaused else { throw StageSwitchError.busy }
         let continuing = heldSuccessor?.token == selectionToken && heldSuccessor?.card == held
         heldSuccessor = nil
         await heldRefresh?.value

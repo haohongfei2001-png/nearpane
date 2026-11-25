@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import time
 import uuid
@@ -18,9 +19,34 @@ import xml.etree.ElementTree as ET
 
 from build import build, ROOT
 from evaluate import SYSTEM_CHECKS, evaluate
+from host_crash import run_host_crash
 from package import package
 
 HERE = Path(__file__).resolve().parent
+
+
+def select_toolchain(env):
+    """Reuse an installed Cargo; a linked worktree may share its checkout's toolchain."""
+    found = shutil.which("cargo", path=env.get("PATH", ""))
+    if found:
+        return {"status": "AVAILABLE", "cargo": found, "source": "PATH"}
+    candidates = [(ROOT / "build/window-engine/toolchain/portable/bin", "repository"),
+                  (Path.home() / ".cargo/bin", "user")]
+    try:
+        common = Path(subprocess.check_output(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=ROOT, text=True).strip())
+        # Only the actual common Git directory establishes this relationship.
+        # Do not search unrelated checkouts or change an installed toolchain.
+        if common.name == ".git" and common.parent != ROOT:
+            candidates.append((common.parent / "build/window-engine/toolchain/portable/bin", "commonCheckout"))
+    except (OSError, subprocess.SubprocessError):
+        pass
+    for directory, source in candidates:
+        cargo = directory / "cargo"
+        if cargo.is_file() and os.access(cargo, os.X_OK):
+            env["PATH"] = str(directory) + os.pathsep + env.get("PATH", "")
+            return {"status": "AVAILABLE", "cargo": str(cargo), "source": source}
+    return {"status": "BLOCKED", "reason": "installedCargoUnavailable", "cargo": None}
 
 
 def atomic(path, value):
@@ -36,10 +62,13 @@ def execute(command, out, name, env, timeout=900):
             report = {"status": "PASS" if run.returncode == 0 else "FAIL", "exit": run.returncode}
         except subprocess.TimeoutExpired:
             report = {"status": "UNKNOWN", "reason": "timeout"}
+        except FileNotFoundError as error:
+            stderr.write(str(error) + "\n")
+            report = {"status": "BLOCKED", "reason": "requiredExecutableUnavailable", "executable": str(command[0])}
     report.update(log=name + ".log", stderr=name + ".stderr.log")
     atomic(out / (name + ".json"), report)
     print(name, report["status"], flush=True)
-    if report["status"] != "PASS" and name in ("rust", "swift", "build-engine", "build-product"):
+    if report["status"] != "PASS" and name in ("rust", "swift", "build-engine", "build-product", "build-spaces-worker"):
         # Expose a short useful CI failure while retaining the complete original logs.
         for suffix in (".stderr.log", ".log"):
             lines = (out / (name + suffix)).read_text(errors="replace").splitlines()
@@ -55,6 +84,15 @@ def source_checks(out, env):
     checks = {}
     checks["rust"] = execute(["cargo", "test", "--manifest-path", ROOT / "Engine/nearpane-window-engine/Cargo.toml",
         "--locked", "--offline", "--no-default-features", "--features", "corner,spaces,isolated-fixtures"], out, "rust", env)
+    archive_build = execute(["bash", "scripts/build-window-engine.sh"], out, "build-engine", env)
+    checks["spacesWorkerBuild"] = archive_build
+    if archive_build["status"] == "PASS":
+        archive = Path((out / "build-engine.log").read_text().splitlines()[-1])
+        worker = out / "NearpaneSpacesEngine"
+        checks["spacesWorkerBuild"] = execute(["bash", "Engine/nearpane-window-engine/build-spaces-worker.sh", worker, archive],
+                                              out, "build-spaces-worker", env)
+        if checks["spacesWorkerBuild"]["status"] == "PASS":
+            checks["spacesWorkerProtocol"] = execute([worker, "--protocol-selftest"], out, "spaces-worker-protocol", env, 30)
     # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
     pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
                         "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus"))
@@ -186,9 +224,16 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 receipt = product_dir / "product-result.json"
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
+                product["hostCrashRecovery"] = "NOT_RUN"
+                if product.get("status") == "PRODUCT_R4_PASS" and product.get("cleanup") is True:
+                    phase = "productCrash"
+                    crash = run_host_crash(executable, apps["Controller"]["executable"], config, engine,
+                                           out / "product-crash", product_env)
+                    product["hostCrashRecovery"] = crash["status"]
+                    product["hostCrashReceipt"] = crash
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
             failure = {"status": "UNKNOWN", "phase": phase, "reason": type(error).__name__ + ": " + str(error)}
-            if phase == "productCandidate":
+            if phase in ("productCandidate", "productCrash"):
                 product = failure
             else:
                 engine = dict(engine, **failure)
@@ -215,8 +260,10 @@ def main():
     out.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     env.setdefault("NEARPANE_RUN_ID", "independent-" + uuid.uuid4().hex[:12])
+    toolchain = select_toolchain(env)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "source": "NOT_RUN", "runtime": "NOT_RUN",
+    summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "toolchain": toolchain,
+               "source": "NOT_RUN", "runtime": "NOT_RUN",
                "candidate": {"status": "SUPPLIED", "completeApp": str(a.product_host)} if a.product_host else {"status": "NOT_RUN"}}
     print("revision", revision, "buildRunID", env["NEARPANE_RUN_ID"], "scope", a.scope, flush=True)
     if platform.system() != "Darwin":
