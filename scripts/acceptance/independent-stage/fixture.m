@@ -9,6 +9,17 @@ static NSString *directory, *nonce;
 static NSMutableArray<NSWindow *> *documents;
 static NSMutableArray<NSTextField *> *fields;
 static NSInteger commandSequence;
+static NSInteger pendingFocus = -1, lastFocusSequence;
+static double focusDeadline;
+static BOOL lastActivationAccepted;
+static void completeRequestedFocus(void) {
+    if(pendingFocus<0)return;
+    if(NSProcessInfo.processInfo.systemUptime>focusDeadline){pendingFocus=-1;return;}
+    if(!NSApp.isActive)return;
+    NSWindow *window=documents[(NSUInteger)pendingFocus];
+    [window makeKeyAndOrderFront:nil];[window makeFirstResponder:fields[(NSUInteger)pendingFocus]];
+    if(window.isKeyWindow)pendingFocus=-1;
+}
 static uint64_t birth(void) {
     struct proc_bsdinfo p={0};
     return proc_pidinfo(getpid(),PROC_PIDTBSDINFO,0,&p,sizeof(p))==sizeof(p)
@@ -24,7 +35,9 @@ static void writeState(void) {
             @"text":fields[i].stringValue}];
     }
     NSDictionary *state=@{@"schema":@1,@"nonce":nonce,@"pid":@(getpid()),@"birth":@(birth()),
-        @"bundle":NSBundle.mainBundle.bundleIdentifier?:@"",@"commandSequence":@(commandSequence),@"windows":rows};
+        @"bundle":NSBundle.mainBundle.bundleIdentifier?:@"",@"commandSequence":@(commandSequence),@"windows":rows,
+        @"applicationActive":@(NSApp.isActive),@"lastFocusSequence":@(lastFocusSequence),
+        @"focusActivationAccepted":@(lastActivationAccepted)};
     NSData *data=[NSJSONSerialization dataWithJSONObject:state options:NSJSONWritingSortedKeys error:NULL];
     [data writeToFile:[directory stringByAppendingPathComponent:@"state.json"] options:NSDataWritingAtomic error:NULL];
 }
@@ -36,8 +49,14 @@ static void command(void) {
     NSInteger index=[request[@"index"] integerValue]; NSString *action=request[@"action"];
     if (index<0 || (NSUInteger)index>=documents.count || ![action isKindOfClass:NSString.class]) return;
     NSWindow *w=documents[(NSUInteger)index];
+    pendingFocus=-1;
     if ([action isEqual:@"focus"]) {
-        [NSRunningApplication.currentApplication activateWithOptions:0]; [w makeKeyAndOrderFront:nil]; [w makeFirstResponder:fields[(NSUInteger)index]];
+        // This nonce-bound command explicitly requests foreground ownership of
+        // our own fixture. Options 0 cannot displace the currently active app.
+        lastFocusSequence=[request[@"sequence"] integerValue];pendingFocus=index;
+        focusDeadline=NSProcessInfo.processInfo.systemUptime+2.5;
+        lastActivationAccepted=[NSRunningApplication.currentApplication activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+        completeRequestedFocus();
     } else if ([action isEqual:@"minimize"]) {
         // This is the actual AppKit action of the yellow title-bar button, not orderOut.
         [[w standardWindowButton:NSWindowMiniaturizeButton] performClick:nil];
@@ -91,7 +110,7 @@ int main(int argc,const char **argv) {
         [CATransaction flush]; writeState();
         double deadline=NSProcessInfo.processInfo.systemUptime+600;
         NSTimer *timer=[NSTimer timerWithTimeInterval:.04 repeats:YES block:^(NSTimer *t){
-            command();writeState();
+            command();completeRequestedFocus();writeState();
             if(NSProcessInfo.processInfo.systemUptime>=deadline){for(NSWindow *w in documents)[w close];[t invalidate];[NSApp terminate:nil];}
         }];
         [NSRunLoop.mainRunLoop addTimer:timer forMode:NSRunLoopCommonModes];[NSApp run];[timer invalidate];

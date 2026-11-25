@@ -427,7 +427,7 @@ import NearpaneOrdinaryWindowRuntime
         if let original, let originalImage,
            pids.contains(NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1) || NSWorkspace.shared.frontmostApplication?.processIdentifier == getpid(),
            (try? NearpaneCore.OrdinaryProcessImage.read(original.processIdentifier)) == originalImage {
-            _ = original.activate(options: [])
+            _ = original.activate(options: [.activateIgnoringOtherApps])
         }
         save()
         return productPassed && clean ? 0 : (startedWrites ? 1 : 2)

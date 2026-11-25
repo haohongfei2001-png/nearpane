@@ -193,6 +193,21 @@ static BOOL waitFocusedFixture(NSDictionary *target) {
         @"verified":[NSNumber numberWithBool:confirmed.count==2]});
     return confirmed.count==2;
 }
+static BOOL prepareFixtureFocus(NSDictionary *target,NSString *phase) {
+    BOOL acknowledged=ownerCommand(target,@"focus");
+    BOOL ownerKey=waitOwnerState(target,@"key",YES);
+    // Always collect the stronger system focus read, even if the fixture's
+    // local key-window flag disagrees. A failure must identify which fact failed.
+    BOOL exactFocus=waitFocusedFixture(target);
+    int32_t front=frontmostApplication().processIdentifier;
+    NSDictionary *state=readJSON([target[@"directory"] stringByAppendingPathComponent:@"state.json"]);
+    emit(@{@"event":@"fixtureFocusPreparation",@"phase":phase,@"commandAcknowledged":@(acknowledged),
+        @"ownerKey":@(ownerKey),@"exactForegroundFocus":@(exactFocus),@"frontPID":@(front),@"expectedPID":target[@"pid"],
+        @"applicationActive":state[@"applicationActive"]?:NSNull.null,
+        @"activationAccepted":state[@"focusActivationAccepted"]?:NSNull.null,
+        @"commandSequence":state[@"commandSequence"]?:NSNull.null});
+    return acknowledged&&ownerKey&&exactFocus&&front==[target[@"pid"] intValue]&&ownerMatches(target);
+}
 static void check(NSString *name,BOOL passed,NSString *scope) {
     checks[name]=@{@"status":passed?@"PASS":@"FAIL",@"scope":scope};
     emit(@{@"event":@"check",@"name":name,@"status":passed?@"PASS":@"FAIL",@"scope":scope});
@@ -328,11 +343,9 @@ static int runScenario(NSString *configuration) {
         }
         // Establish a real, controlled foreground before the canary captures focus.
         // An idle desktop can legitimately have no AXFocusedApplication at all.
-        if(!ownerCommand(targets[0],@"focus") || !waitOwnerState(targets[0],@"key",YES) ||
-           frontmostApplication().processIdentifier!=[targets[0][@"pid"] intValue]) {
+        if(!prepareFixtureFocus(targets[0],@"beforeLaunchCanary")) {
             reason=@"controlledFixtureFocusUnavailable";goto finish;
         }
-        if(!waitFocusedFixture(targets[0])){reason=@"controlledForegroundFocusUnreadable";goto finish;}
         emit(@{@"event":@"controlledFixtureFocusPrepared",@"pid":targets[0][@"pid"],@"window":targets[0][@"number"]});
         if(np_engine_create_spaces_candidate(&engine)!=NP_OK || np_engine_epoch(engine,&epoch)!=NP_OK){reason=@"candidateHandleUnavailable";goto finish;}
         {
@@ -370,8 +383,7 @@ static int runScenario(NSString *configuration) {
             if(!minimized||!restored){reason=@"yellowButtonFailed";goto finish;}
         }
         {
-            BOOL focused=ownerCommand(targets[0],@"focus")&&waitOwnerState(targets[0],@"key",YES)&&
-                frontmostApplication().processIdentifier==[targets[0][@"pid"] intValue];
+            BOOL focused=prepareFixtureFocus(targets[0],@"afterWindowRestoration");
             check(@"focusRestore",focused,@"fixture-owned focus witness after exact window restoration");
             if(!focused){reason=@"focusReturnFailed";goto finish;}
         }
@@ -393,7 +405,7 @@ static int runScenario(NSString *configuration) {
         int32_t front=frontmostApplication().processIdentifier;
         BOOL testFront=front==getpid();for(NSDictionary *t in targets)testFront=testFront||front==[t[@"pid"] intValue];
         if(testFront&&original&&birth(original.processIdentifier)==originalBirth)
-            dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:0]; });
+            dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:NSApplicationActivateIgnoringOtherApps]; });
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
             @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],

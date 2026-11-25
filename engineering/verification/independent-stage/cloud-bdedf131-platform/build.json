@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "apps": {
+    "FixtureA": {
+      "bundle": "com.holdsnow.stage-engine-fixture-a",
+      "app": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureA.app",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "sha256": "3d064137a0d58cf18351b7a8ffa12db1a5fb93fb19f5b3eef776de6f51802282"
+    },
+    "FixtureB": {
+      "bundle": "com.holdsnow.stage-engine-fixture-b",
+      "app": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureB.app",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "sha256": "5cdc66a9414024d0101e6eb1cc18fec50a9ad6175e0951e6954068c49c8ef821"
+    },
+    "Controller": {
+      "bundle": "com.holdsnow.nearpane.independent-stage-controller",
+      "app": "/Users/runner/work/_temp/independent-runtime/runtime/kit/Controller.app",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/Controller.app/Contents/MacOS/Controller",
+      "sha256": "15b88cb6594595fad56fbcb33d05a3a0f9dce53c3b3b6ccfe488710de33328e1"
+    },
+    "SplitViewHelper": {
+      "bundle": "com.holdsnow.nearpane.independent-stage-split-helper",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/SplitViewHelper",
+      "sha256": "e4b311e739521800c98ab057adefe01a0cf30edeb1558e5f942dd3e17bca98e6"
+    },
+    "CIWorkspace": {
+      "bundle": "com.holdsnow.nearpane.independent-stage-ci-workspace",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/CIWorkspace",
+      "sha256": "a379bf46a7378de296a1c12d37d23ccd5759eea1a3b6d58dc58faef789a0c5ba"
+    }
+  },
+  "archiveSHA256": "2706ab20d788f4fabf72d97b8388863d4ffc8c6984dcd8534d1e4a0f958cc4ef"
+}

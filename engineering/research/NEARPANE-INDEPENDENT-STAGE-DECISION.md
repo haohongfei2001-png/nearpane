@@ -63,6 +63,16 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 6. This repository previously set the product Spaces route to unavailable and selected Corner only.
    The candidate constructor, transport, Core session, independent physical witness and R4 Host now
    have an explicit Spaces path. A successful launch still does not qualify a foreign window.
+7. At `bdedf131c94a85621cd24b8969ebbb3564afe0b1`, the production platform atoms moved two windows
+   belonging to two separate fixture processes from ordinary Space 12 into hidden Space 13 and back.
+   All four moves passed two complete physical observations of all three fixtures; the same-app sibling
+   remained at home. The hidden Space was confirmed empty, destroyed, and the original Space inventory
+   restored. [Original foreign-window evidence](../verification/independent-stage/cloud-bdedf131-platform/README.md).
+   This establishes foreign-process hidden-Space movement on **26A434 / arm64 / SIP disabled**. It does
+   not qualify the target SIP-enabled Mac, the Rust state machine, or R4. The normal engine controller
+   stopped before its canary because the controlled fixture did not become foreground. Separately,
+   removal of the CI-created ordinary Desktop 12 was not confirmed in that run; overall cleanup is not
+   promoted by the successful hidden-Space transaction.
 
 ### Route A: not a product dependency
 

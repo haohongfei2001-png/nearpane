@@ -40,6 +40,7 @@ These are code-completion claims. The evidence below determines which native eff
 | `a73454a1`, native renderer controls | AutoHide left-edge reveal and zero-row baseline both show actual native tilted thumbnails; 13 samples each; complete restoration | Both configurations rejected; [original AX/CG, pixels and restoration](cloud-a73454a1/README.md) |
 | `a73454a1`, desktop initialization | System created ordinary Space 12 with a real UUID; selection became current after the helper's early deadline; cleanup restored original Space 1 | No foreign writes; helper timing failure is not a failed migration |
 | `6558c2d5`, diagnostics | New raw platform diagnostic compiled; temporary native-desktop cleanup failed its first animation-time read, then completed | No fixture/platform move executed; [original preparation and cleanup](cloud-6558c2d5-diagnostics/README.md) |
+| `bdedf131`, hosted platform experiment | Two external processes' windows completed four real hidden/return moves; same-app sibling unchanged; two full observations per stage; owned hidden Space emptied and destroyed | `PLATFORM_FOREIGN_PASS` on 26A434/SIP disabled; [original evidence](cloud-bdedf131-platform/README.md). Engine/R4 not run, target not qualified, separate ordinary-desktop cleanup unconfirmed |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
