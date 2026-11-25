@@ -106,13 +106,14 @@ import NearpaneCore
         let persisted = StageGroupStore(profile: profile)
         try persisted.observe(old)
         try persisted.join(old[1], to: old[0])
-        let windows = old.map { saved in
-            var w = window(saved.identity.number)
+        let windows = old.enumerated().map { rank, saved in
+            var w = window(saved.identity.number, rank: rank)
             w.metadata?.overviewOrdinaryRole = true
             w.metadata?.minimized = false
             w.metadata?.fullScreen = false
             return w
         }
+        try #require(snapshot(windows, accessibility: .partial).isStructurallyValid)
         let feed = CurrentDesktopWindows(read: { request in await self.snapshot(windows, request: request, accessibility: .partial) },
                                          sessionAvailable: { true }, fingerprint: { 0 }, stageGroupProfile: profile)
         feed.observe(true)
