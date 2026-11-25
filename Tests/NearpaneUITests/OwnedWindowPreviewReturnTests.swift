@@ -63,12 +63,15 @@ import Testing
             try #require(windows.first { $0.windowID == panel.windowNumber && $0.owningApplication?.processID == getpid() })
         }
         let birth = try OrdinaryProcessImage.read(getpid()).launch
-        let targets = try sources.map { source in
+        let rows = sources.enumerated().map { index, source in
             let r = source.frame
-            let w = fixture.window(number: source.windowID, pid: getpid(), birth: birth,
-                frame: .init(x: r.minX, y: r.minY, width: r.width, height: r.height))
-            return try #require(DesktopWindowTarget(w, in: fixture.sample([w])))
+            return fixture.window(number: source.windowID, pid: getpid(), birth: birth,
+                frame: .init(x: r.minX, y: r.minY, width: r.width, height: r.height), index: index, id: String(source.windowID))
         }
+        var inventory = fixture.sample(rows)
+        inventory.scopes = [.init(id: "scope", displayID: "display", records: [.init(id: "A", isCurrent: true, ordinaryUUID: UUID())])]
+        let targets = try rows.map { try #require(DesktopWindowTarget($0, in: inventory)) }
+        let originals = targets.map { StagePictureOriginal($0.key, forCard: true) }
         let cache = PreviewPixelCache<DesktopWindowGallery.StillSlot, DesktopWindowGallery.Still>()
         let appearance = UUID(), gallery = DesktopWindowGallery(permitsWindow: { $0.pid == getpid() }, cache: cache, lifetime: { _ in appearance })
         var starts = 0
@@ -118,6 +121,35 @@ import Testing
         try #require(!redInvalidated.withLock { $0 })
         receipt["sourceWindowIDs"] = sources.map(\.windowID)
         receipt["initialWindowServerRGB"] = [try rgb(red), try rgb(blue)]
+        var partial = inventory
+        let evidence = try #require(inventory.native)
+        partial.windows = []
+        partial.native = .init(population: evidence.population, accessibility: evidence.accessibility, spaces: evidence.spaces,
+            rows: evidence.rows, windowLimitReached: true, beganUptime: evidence.beganUptime, endedUptime: evidence.endedUptime,
+            stageManagerEnabled: evidence.stageManagerEnabled, catalogComplete: false)
+        var held = CurrentDesktopWindows.DepartingPictures(snapshot: inventory,
+            appearances: Dictionary(uniqueKeysWithValues: targets.map { ($0.key, appearance) }), groups: [:])
+        let sameHomes = held.retainAcrossCappedInventory(partial)
+        try #require(sameHomes)
+        let ticket = try #require(held.cappedAppearance)
+        let countBeforePartial = starts
+        let cappedPixels = targets.enumerated().map { index, target in
+            DesktopWindowGallery.lastCardPixels(target, in: cache, appearance: ticket, now: ProcessInfo.processInfo.systemUptime,
+                allows: { _ in panels[index].windowNumber == target.key.number && target.lastFrameAccess() == .allowed },
+                originalMatches: { _, _ in originals[index]?.matches(target.key) == true })
+        }
+        receipt["controlledCappedInventory"] = "Injected incomplete metadata and display home; actual owned panel pixels and original AX window identity"
+        receipt["captureStartsDuringCappedInventory"] = starts - countBeforePartial
+        try #require(starts == countBeforePartial)
+        if originals.allSatisfy({ $0 != nil }) {
+            try #require(cappedPixels[0] === red && cappedPixels[1] === blue)
+            receipt["controlledCappedOriginalAXReplay"] = "PASS"
+            receipt["cappedInventoryRGB"] = try cappedPixels.compactMap { $0 }.map(rgb)
+        } else {
+            for i in originals.indices where originals[i] == nil { try #require(cappedPixels[i] == nil) }
+            receipt["controlledCappedOriginalAXReplay"] = "BLOCKED"
+            receipt["cappedBlocker"] = "The test runner could not retain both original AX windows"
+        }
         receipt["surfaces"] = targets.enumerated().map { i, target -> [String: Any] in
             let row = WindowSurfaceRecord(number: target.key.number)
             return ["id": target.key.number, "sameOwnedWindow": panels[i].windowNumber == target.key.number,

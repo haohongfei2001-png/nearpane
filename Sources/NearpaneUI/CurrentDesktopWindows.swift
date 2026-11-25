@@ -19,18 +19,41 @@ import OSLog
         let snapshot: DesktopSnapshot
         let appearances: [DesktopWindowKey: UUID]
         let groups: [String: [NativeSpaceWindow: StageGroupDirectory.Group]]
+        var cappedAppearance: UUID?
+
+        mutating func retainAcrossCappedInventory(_ next: DesktopSnapshot) -> Bool {
+            guard next.native?.windowLimitReached == true, snapshot.sessionID == next.sessionID,
+                  snapshot.topologyConsistent, next.topologyConsistent,
+                  snapshot.topologyFingerprint == next.topologyFingerprint, snapshot.separateSpaces == next.separateSpaces,
+                  snapshot.native?.stageManagerEnabled == next.native?.stageManagerEnabled,
+                  Set(snapshot.displays.map(\.id)) == Set(next.displays.map(\.id)) else { return false }
+            let sameHomes = snapshot.displays.allSatisfy { display in
+                func home(_ sample: DesktopSnapshot) -> SpaceRecord? {
+                    let records = sample.scopes.filter { $0.displayID == display.id }.flatMap(\.records).filter(\.isCurrent)
+                    return records.count == 1 ? records[0] : nil
+                }
+                guard let old = home(snapshot), let new = home(next), old.id == new.id,
+                      old.ordinaryUUID != nil || old.fullscreenUUID != nil else { return false }
+                return old.ordinaryUUID == new.ordinaryUUID && old.fullscreenUUID == new.fullscreenUUID
+            }
+            if sameHomes { cappedAppearance = UUID() }
+            return sameHomes
+        }
     }
     private(set) var departingPictures: DepartingPictures?
 
     private func holdDisplayedRoster() {
-        guard departingPictures == nil, panelRequested, sessionAvailable(), let snapshot,
+        guard departingPictures == nil, panelRequested, sessionAvailable(), let snapshot, snapshot.native?.windowLimitReached == false,
               snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return }
         let groups = Dictionary(uniqueKeysWithValues: snapshot.displays.map { ($0.id, visibleGroups(in: snapshot, on: $0)) })
         departingPictures = DepartingPictures(snapshot: snapshot, appearances: lifetimes, groups: groups)
     }
 
     func pictureAppearance(of key: DesktopWindowKey) -> UUID? {
-        if let departingPictures { return departingPictures.appearances[key] }
+        if let departingPictures {
+            guard let prior = departingPictures.appearances[key] else { return nil }
+            return departingPictures.cappedAppearance ?? prior
+        }
         return lifetimes[key]
     }
     @ObservationIgnored private var retry: Task<Void, Never>?
@@ -318,7 +341,7 @@ import OSLog
                 let next = await readNow()
                 guard !Task.isCancelled, expected == epoch else { continue }
                 snapshot = next
-                if next != nil || !sessionAvailable() { departingPictures = nil }
+                if next?.native?.windowLimitReached == false || !sessionAvailable() { departingPictures = nil }
                 stageEngine.observeEnvironment(next)
                 if next?.native?.stageManagerEnabled == false {
                     stageEngine.ordinaryContextObserved()
@@ -425,6 +448,14 @@ import OSLog
             self.boundSidebarPair?.observe(result)
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
+            if result.native?.windowLimitReached == true {
+                // This inventory cannot replace the visible roster or establish a window lifetime.
+                // Rotate the presentation generation so replay requires the retained original AX object.
+                self.holdDisplayedRoster()
+                if self.departingPictures?.retainAcrossCappedInventory(result) != true { self.departingPictures = nil }
+                self.lifetimes.removeAll()
+                return result
+            }
             let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
             var diagnosticTargets: Set<NativeSidebarWindowLocation>?
             #if NEARPANE_P0_DIAGNOSTIC

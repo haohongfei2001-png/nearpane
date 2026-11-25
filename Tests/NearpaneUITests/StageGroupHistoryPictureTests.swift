@@ -91,6 +91,18 @@ import Testing
         let accepted = try #require(group.parkedMember(stamp, in: read(parked)))
         #expect(accepted.0.id == backMember && accepted.1 == parked)
         let sibling = try #require(group.members.last)
+        let env = StageEngineEnvironment(osBuild: "26A428", engineRevision: String(repeating: "1",count: 40),
+            hostCDHash: String(repeating: "2",count: 40), hardware: "fixture", topology: "fixture",
+            windowClass: "ordinary-standard", sipEnabled: true)
+        let owner = StageEngineOwner(qualification: .init(backend: .corner, environment: env, evidence: UUID(), checks: [:]),
+            generation: group.generation)
+        let card = StageWindowEngineHost.HeldGroup(id: group.group, member: rear.id, scope: group.scope, state: parked,
+            owner: owner, count: 2, departure: group)
+        #expect(card.memberIdentity(nil)?.window == rear.before.window)
+        let exact = try #require(card.memberIdentity(group.stamp(for: sibling)))
+        #expect(exact.member == sibling.id && exact.window == sibling.before.window && exact.lifetime == sibling.before.lifetime)
+        let older = try #require(departure())
+        #expect(card.memberIdentity(older.stamp(for: sibling)) == nil)
         #expect(group.parkedMember(group.stamp(for: sibling), in: read(parked)) == nil)
         #expect(group.parkedMember(stamp, in: read(rear.before)) == nil)
         #expect(group.parkedMember(stamp, in: read(parked, native: 5)) == nil)

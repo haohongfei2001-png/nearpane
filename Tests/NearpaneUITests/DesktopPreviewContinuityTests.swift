@@ -1,10 +1,66 @@
 import AppKit
 import CoreGraphics
 import NearpaneCore
+import os
 import Testing
 @testable import NearpaneUI
 
 @MainActor struct DesktopPreviewContinuityTests {
+    @Test(arguments: [false, true])
+    func cappedInventoryKeepsTheReadOnlyCardOnlyOnItsVerifiedDesktop(changedHome: Bool) async throws {
+        let fixture = StageHostGroupProjectionTests()
+        var row = fixture.window(17)
+        row.metadata?.overviewOrdinaryRole = true
+        row.metadata?.minimized = false
+        let window = row
+        let phase = OSAllocatedUnfairLock(initialState: 0)
+        let alternate = UUID()
+        let feed = CurrentDesktopWindows(read: { request in
+            let step = phase.withLock { $0 }
+            var sample = await fixture.snapshot(step == 0 ? [window] : [], request: request, accessibility: .available)
+            if step == 1 {
+                let original = try #require(sample.native)
+                sample.native = .init(population: original.population, accessibility: original.accessibility, spaces: original.spaces,
+                    rows: original.rows, windowLimitReached: true, beganUptime: original.beganUptime, endedUptime: original.endedUptime,
+                    stageManagerEnabled: false, catalogComplete: false)
+                if changedHome {
+                    let old = try #require(sample.scopes.first)
+                    sample.scopes = [.init(id: old.id, displayID: old.displayID, records: [.init(id:"9", isCurrent:true, ordinaryUUID:alternate)])]
+                }
+            }
+            return sample
+        }, sessionAvailable: { true }, fingerprint: { 0 })
+        feed.observe(true)
+        defer { feed.observe(false) }
+        func wait(_ ready: () -> Bool) async throws {
+            let end = ContinuousClock.now + .seconds(3)
+            while !ready() && ContinuousClock.now < end { try await Task.sleep(for: .milliseconds(10)) }
+            try #require(ready())
+        }
+        try await wait { feed.snapshot?.windows == [window] }
+        let displayed = try #require(feed.snapshot)
+        _ = try #require(DesktopWindowTarget.preview(window, in: displayed))
+        let key = try #require(DesktopWindowKey(window)), original = try #require(feed.lifetime(of: key))
+        phase.withLock { $0 = 1 }
+        feed.changed()
+        try await wait { feed.snapshot?.native?.windowLimitReached == true }
+        #expect(feed.lifetime(of: key) == nil)
+        if changedHome {
+            #expect(feed.departingPictures == nil && feed.pictureAppearance(of: key) == nil)
+        } else {
+            #expect(feed.departingPictures?.snapshot.windows == [window])
+            let presentation = try #require(feed.pictureAppearance(of: key))
+            #expect(presentation != original)
+            feed.changed()
+            try await wait { feed.pictureAppearance(of: key) != presentation }
+            #expect(feed.pictureAppearance(of: key) != nil && feed.lifetime(of: key) == nil)
+            phase.withLock { $0 = 2 }
+            feed.changed()
+            try await wait { feed.snapshot?.native?.windowLimitReached == false }
+            #expect(feed.snapshot?.windows.isEmpty == true && feed.departingPictures == nil && feed.pictureAppearance(of: key) == nil)
+        }
+    }
+
     @Test func aReturningCardUsesTheIdenticalBitmapUntilItsOwnContentChanges() throws {
         let fixture = DesktopGalleryTargetTests(), a = fixture.window(), b = fixture.window(number: 23, index: 1, id: "two")
         let opened = fixture.sample([a, b])
