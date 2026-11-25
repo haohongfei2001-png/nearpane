@@ -65,6 +65,8 @@ def verify_engine_boundary(contents, plist, binary, host_image, sandbox, *, exec
             or digest(bundled/"LICENSE") != provenance["licenseSHA256"]):
         raise ValueError("Unexpected StageGroup source or license")
     origin_files = {p.name: digest(p) for p in (source/"origins").glob("*.json")}
+    for module in ("apple", "minimize"):
+        origin_files[module + ".json"] = digest(source / "src" / module / "upstream.json")
     if {p.name: digest(p) for p in (bundled/"origins").glob("*.json")} != origin_files:
         raise ValueError("Incomplete StageGroup upstream file origins")
     guardian = contents / "Helpers/NearpaneCornerGuardian"
