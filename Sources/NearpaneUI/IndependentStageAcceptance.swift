@@ -97,6 +97,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         panels.update(screens: SystemScreens.geometry())
         var actualInputs = 0
+        var switchLatenciesMS = [Double]()
         var productPassed = false
         var startedWrites = false
         do {
@@ -134,20 +135,26 @@ import NearpaneOrdinaryWindowRuntime
                     "stage-group-select:" + group.uuidString, windowID])
                 guard let button = await waitButton(ids, panel: controller.window) else { throw Failure(reason: "realR4ButtonUnavailable") }
                 startedWrites = true
+                let pressedAt = ProcessInfo.processInfo.systemUptime
                 guard button.accessibilityPerformPress() else { throw Failure(reason: "realR4ButtonRefused") }
                 actualInputs += 1
                 record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
                     "step": phase, "exactMember": exactMember])
                 let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8)
                 guard let readings else { throw Failure(reason: "R4SwitchReadbackFailed") }
-                record("R4SwitchConfirmed", ["window": target.window.number, "step": phase, "observations": readings])
+                let latencyMS = (ProcessInfo.processInfo.systemUptime - pressedAt) * 1000
+                switchLatenciesMS.append(latencyMS)
+                record("R4SwitchConfirmed", ["window": target.window.number, "step": phase, "observations": readings,
+                    "pressToDoubleReadMS": latencyMS])
                 savePanel(controller.window, to: output.appendingPathComponent("r4-\(actualInputs).png"))
                 feed.changed()
                 try await Task.sleep(for: .milliseconds(120))
             }
-            for index in [0, 1, 2, 0] {
+            let cycles = min(50, max(1, config.iterations))
+            let cyclePath = [0] + (0..<cycles).flatMap { _ in [1, 2, 0] }
+            for (step, index) in cyclePath.enumerated() {
                 guard let group = groupIDs[targets[index].window.number] else { throw Failure(reason: "groupIdentityLost") }
-                try await selectR4(index, group: group, visible: [targets[index].window.number], phase: "singletonCycle")
+                try await selectR4(index, group: group, visible: [targets[index].window.number], phase: "singletonCycle/\(step)")
             }
             report["foreignWindowReadback"] = true
 
@@ -222,6 +229,7 @@ import NearpaneOrdinaryWindowRuntime
             report["reason"] = "realR4ButtonsDispatchedAndReadBack"
             // The ordinary system overview must receive restored real windows, never corner proxies.
             if CGPreflightPostEventAccess() {
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeMissionControl")
                 let opened = Process(); opened.executableURL = URL(fileURLWithPath: "/usr/bin/open")
                 opened.arguments = ["-a", "Mission Control"]
                 do {
@@ -242,16 +250,19 @@ import NearpaneOrdinaryWindowRuntime
                         if let read = await panels.observeMissionControl(), read.mode == 0 { ordinary = true; break }
                         try await Task.sleep(for: .milliseconds(80))
                     }
-                    report["missionControl"] = exposed && restored != nil && ordinary ? "PASS" : "FAIL"
-                    record("missionControl", ["exposed": exposed, "realWindowsReturned": restored != nil, "ordinaryReturned": ordinary])
+                    let resumed = ordinary ? await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 8) : nil
+                    report["missionControl"] = exposed && restored != nil && resumed != nil ? "PASS" : "FAIL"
+                    record("missionControl", ["exposed": exposed, "realWindowsReturned": restored != nil,
+                        "ordinaryReturned": ordinary, "focusedGroupAutomaticallyResumed": resumed != nil,
+                        "focusedWindow": resumed?.window ?? 0, "resumeObservations": resumed?.observations ?? []])
                 } catch { report["missionControl"] = "BLOCKED" }
             } else { report["missionControl"] = "BLOCKED" }
             // Real full-screen entry belongs to the fixture AppKit window. The test
             // observes the product yielding its sidebar and returning to the same desktop.
-            await feed.stageEngine.release()
-            if await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 5) != nil,
-               await ownerCommand(first, action: "focus", nonce: config.nonce),
-               await ownerCommand(first, action: "fullscreen", nonce: config.nonce) {
+            if currentDesktop()?.id == first.home {
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeFullScreen")
+            }
+            if currentDesktop()?.id == first.home, await ownerCommand(first, action: "fullscreen", nonce: config.nonce) {
                 var entered = false
                 let enterDeadline = ContinuousClock.now.advanced(by: .seconds(6))
                 while ContinuousClock.now < enterDeadline {
@@ -262,36 +273,38 @@ import NearpaneOrdinaryWindowRuntime
                     }
                     try await Task.sleep(for: .milliseconds(80))
                 }
+                let companions = targets.filter { $0.key != first.key }
+                let yielded = entered ? await waitForState(companions, visible: [], focus: nil, seconds: 5, allAtHome: true) : nil
                 // Always unwind the owned window even when the sidebar observation failed.
                 if ownerFlag(first, "fullScreen") { _ = await ownerCommand(first, action: "fullscreen", nonce: config.nonce) }
-                let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 8)
-                report["nativeFullScreen"] = entered && returned != nil ? "PASS" : "FAIL"
-                record("nativeFullScreen", ["realFullScreenSpace": entered, "sameDesktopAndGeometryReturned": returned != nil])
+                let returned = await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 10)
+                report["nativeFullScreen"] = entered && yielded != nil && returned != nil ? "PASS" : "FAIL"
+                record("nativeFullScreen", ["realFullScreenSpace": entered, "inactiveWindowsReturnedToOriginalDesktop": yielded != nil,
+                    "focusedGroupAutomaticallyResumed": returned != nil, "focusedWindow": returned?.window ?? 0,
+                    "resumeObservations": returned?.observations ?? []])
             } else { report["nativeFullScreen"] = "BLOCKED" }
 
             if CGPreflightPostEventAccess(), let before = currentDesktop(), before.kind == 0,
                before.id == first.home, let adjacent = adjacentOrdinary(to: before.id) {
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeDesktopSwitch")
                 let outbound: CGKeyCode = adjacent.forward ? 124 : 123
                 sendControlArrow(outbound)
                 let arrived = await waitDesktop(adjacent.id, seconds: 5)
-                var sourceWindowsStayedHome = arrived
-                for target in targets {
-                    sourceWindowsStayedHome = sourceWindowsStayedHome &&
-                        (NPReadWindowSpaces(target.window.number) as? [UInt64]) == [target.home] && cg(target.window.number)?.visible == false
-                }
+                let yielded = arrived ? await waitForState(targets, visible: [], focus: nil, seconds: 5, allAtHome: true) : nil
                 // Return only from the exact adjacent desktop we just selected.
                 // A different desktop is preserved if external activity changed it.
                 if currentDesktop()?.id == adjacent.id { sendControlArrow(adjacent.forward ? 123 : 124) }
                 let back = await waitDesktop(before.id, seconds: 5)
-                let returned = back ? await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4) : nil
-                report["nativeDesktopSwitch"] = sourceWindowsStayedHome && returned != nil ? "PASS" : "FAIL"
+                let returned = back ? await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 8) : nil
+                report["nativeDesktopSwitch"] = yielded != nil && returned != nil ? "PASS" : "FAIL"
                 record("nativeDesktopSwitch", ["source": before.id, "destination": adjacent.id,
-                    "sourceWindowMembershipPreserved": sourceWindowsStayedHome, "returned": returned != nil,
+                    "sourceWindowMembershipPreserved": yielded != nil, "focusedGroupAutomaticallyResumed": returned != nil,
+                    "focusedWindow": returned?.window ?? 0, "resumeObservations": returned?.observations ?? [],
                     "input": "existing Control-arrow system shortcut; physical trackpad gesture not asserted"])
             } else { report["nativeDesktopSwitch"] = "BLOCKED" }
 
-            if CGPreflightPostEventAccess(), currentDesktop()?.id == first.home,
-               await ownerCommand(first, action: "focus", nonce: config.nonce) {
+            if CGPreflightPostEventAccess(), currentDesktop()?.id == first.home {
+                try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeAppExpose")
                 sendControlArrow(125) // Existing system App Exposé action.
                 let until = ContinuousClock.now.advanced(by: .seconds(4))
                 var exposed = false
@@ -299,20 +312,33 @@ import NearpaneOrdinaryWindowRuntime
                     if let read = await panels.observeMissionControl(), read.mode == 1 { exposed = true; break }
                     try await Task.sleep(for: .milliseconds(80))
                 }
+                let yielded = exposed ? await waitForState(targets, visible: nil, focus: nil, seconds: 5, allAtHome: true) : nil
                 sendEscape()
-                let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 5)
-                report["appExpose"] = exposed && returned != nil ? "PASS" : "FAIL"
-                record("appExpose", ["nativeOverviewObserved": exposed, "realWindowsReturned": returned != nil])
+                let returned = await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 8)
+                report["appExpose"] = exposed && yielded != nil && returned != nil ? "PASS" : "FAIL"
+                record("appExpose", ["nativeOverviewObserved": exposed, "realWindowsReturned": yielded != nil,
+                    "focusedGroupAutomaticallyResumed": returned != nil, "focusedWindow": returned?.window ?? 0,
+                    "resumeObservations": returned?.observations ?? []])
             } else { report["appExpose"] = "BLOCKED" }
         } catch {
             report["status"] = startedWrites ? "FAIL" : "BLOCKED"
             report["reason"] = (error as? Failure)?.reason ?? String(describing: error)
         }
+        report["windowPreviewMetrics"] = modules.windowPreviewMetrics
         let released = await modules.prepareStageWindowShutdown()
         let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4)
         let clean = released && returned != nil
         panels.stop(); controller.close(); host.stop(); await modules.finishStopping()
         report["actualR4Inputs"] = actualInputs
+        let orderedLatencies = switchLatenciesMS.sorted()
+        if let maximum = orderedLatencies.last {
+            func percentile(_ value: Double) -> Double {
+                orderedLatencies[min(orderedLatencies.count - 1, max(0, Int((Double(orderedLatencies.count) * value).rounded(.up)) - 1))]
+            }
+            let summary: [String: Any] = ["samples": orderedLatencies.count, "p50": percentile(0.5),
+                "p95": percentile(0.95), "max": maximum, "measurement": "R4 press to two matching physical readbacks"]
+            report["switchLatencyMS"] = summary
+        }
         report["cleanup"] = clean
         if !clean { report["status"] = "UNKNOWN"; report["reason"] = "productionRestoreIncomplete" }
         if let original, let originalImage,
@@ -390,7 +416,33 @@ import NearpaneOrdinaryWindowRuntime
         return windows[target.window.index][name] as? Bool == true
     }
 
-    private static func waitForState(_ targets: [Target], visible: Set<UInt32>, focus: Target?, seconds: Double) async -> [[String: Any]]? {
+    private static func waitForFocusedGroup(_ targets: [Target], in feed: CurrentDesktopWindows, scope: StageGroupScope,
+                                           seconds: Double) async -> (window: UInt32, observations: [[String: Any]])? {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        let enrolled = Set(targets.map(\.key))
+        while ContinuousClock.now < until {
+            feed.changed()
+            if let home = targets.first?.home, currentDesktop()?.id == home,
+               let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier, targets.contains(where: { $0.fixture.pid == pid }) {
+                let app = AXUIElementCreateApplication(pid)
+                _ = AXUIElementSetMessagingTimeout(app, 0.1)
+                var focused: CFTypeRef?
+                if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused) == .success,
+                   let focused, let target = targets.first(where: { $0.fixture.pid == pid && NPReadAXWindowNumber(focused) == $0.window.number }),
+                   let group = feed.groups.groups(in: scope).first(where: { $0.members.contains { $0.windowHint == target.key } }),
+                   Set(group.members.map(\.windowHint)).isSubset(of: enrolled),
+                   let readings = await waitForState(targets, visible: Set(group.members.map { $0.windowHint.number }),
+                                                     focus: target, seconds: 0.4) {
+                    return (target.window.number, readings)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        return nil
+    }
+
+    private static func waitForState(_ targets: [Target], visible: Set<UInt32>?, focus: Target?, seconds: Double,
+                                     allAtHome: Bool = false) async -> [[String: Any]]? {
         let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
         var consecutive = [[String: Any]]()
         while ContinuousClock.now < until {
@@ -404,10 +456,12 @@ import NearpaneOrdinaryWindowRuntime
                       let membership = NPReadWindowSpaces(number) as? [UInt64], membership.count == 1,
                       let space = membership.first, let members = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32],
                       members.filter({ $0 == number }).count == 1 else { valid = false; break }
-                let shouldShow = visible.contains(number)
+                let shouldShow = visible?.contains(number)
                 let matchingFrame = abs(observed.frame.minX - target.frame.minX) <= 1 && abs(observed.frame.minY - target.frame.minY) <= 1 &&
                     abs(observed.frame.width - target.frame.width) <= 1 && abs(observed.frame.height - target.frame.height) <= 1
-                valid = valid && observed.visible == shouldShow && (shouldShow ? space == target.home : space != target.home) && matchingFrame
+                let onScreenMatches = shouldShow.map { $0 == observed.visible } ?? true
+                let expectedAtHome = allAtHome || shouldShow == true
+                valid = valid && onScreenMatches && (expectedAtHome ? space == target.home : space != target.home) && matchingFrame
                 observations.append(["number": number, "pid": target.fixture.pid, "space": space,
                     "onScreen": observed.visible, "framePreserved": matchingFrame])
             }

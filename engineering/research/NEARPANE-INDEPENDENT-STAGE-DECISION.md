@@ -31,8 +31,9 @@ the working product modules.
 
 This is an implementation decision, not a claim that the complete macOS 27 product has passed.
 The compiled candidate and the release qualification are separate paths. An explicit, separately
-identified candidate application can run the production R4 path with an enrolled fixture PID set without
-manufacturing a passing qualification or overwriting `/Applications/Nearpane.app`.
+identified candidate application runs the complete Host and R4 with a separate profile. The automated
+acceptance copy additionally restricts dispatch to enrolled fixture PIDs. Neither form manufactures a
+passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### What is established
 
@@ -72,6 +73,14 @@ Its runtime/selector inventory and reversible edge sweep classify contrary obser
 missing evidence as INCONCLUSIVE; absence of AX nodes is never a decoupling PASS. Product code has no
 dependency on a hypothetical strip-suppression interface.
 
+The Pro session has now executed the read-only inventory on the actual 27.0 / 26A428 / arm64 / SIP-on
+Mac. SkyLight, WindowManagement and WindowManager loaded; 394 runtime classes and the inherited
+bridged-operation ABI were recorded. The two migration operations are Objective-C classes, not C
+symbols. The asynchronous `performWithWMBridgeDelegate` returns void and takes no explicit argument;
+the synchronous superclass method returns an object. Swift strip-gesture/layout symbols were present,
+but no callable rendering/edge-suppression separation was proved. Preferences were unchanged throughout.
+[Machine receipt](../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-inventory.json).
+
 ## Runtime and system coordination
 
 - The engine owns only the precise windows it enrolled. The original ordinary desktop is retained for
@@ -81,13 +90,21 @@ dependency on a hypothetical strip-suppression interface.
 - Restore first; then destroy only an empty owned Space. Partial/uncertain moves retain recovery ownership.
 - System overview handling returns windows to their real ordinary desktop and does not park them in corners.
   Fullscreen and native split windows remain outside ordinary group management.
+- Returning from system navigation resumes the group of the independently verified focused window in the
+  same serialized R4 action lane. A newer input supersedes it. Retained read-only AX objects reconnect
+  ordinary sidebar appearances after two observations; old file leases are released before reacquisition.
+- Restore preserves geometry and reads the current WindowServer stacking order. A group keeps its last
+  visible order; only a changed order causes exact-window focus/raise operations, ending with the selected
+  member. This implementation still requires physical group-order verification.
 - Cached thumbnails retain the original window lifetime. They are pictures of actual windows, not a masking
   mechanism. A stale picture cannot authorize a new window mutation.
 
 ## Verification and delivery
 
 Unified entry: `python3 scripts/acceptance/independent-stage/run.py OUTPUT --scope all`.
-The source phase compiles/tests Rust, Swift, the C ABI, diagnostics and the candidate. The runtime phase
+The source phase compiles/tests Rust, Swift Core/Host/UI and the C ABI. In `--scope all`, the same entry
+then builds the complete embedded application, seals its separate workspace package, and supplies the
+full application to product acceptance. The runtime phase
 creates two independently owned fixture applications, one with two windows and one with one window,
 and verifies foreign-window hide/return, bystanders, same-app independence and recovery. Product R4
 acceptance is recorded separately; it may not be inferred from the low-level trial.
@@ -98,3 +115,24 @@ yellow minimize, physical gestures, normal/crash recovery, and end-to-end R4 ope
 
 No unsigned/ad-hoc remote candidate is advertised as a notarized install. Existing signatures, installed
 daily builds and uncommitted work in other checkouts are preserved.
+
+### Executed checkpoints
+
+- macOS source checks: the 147 Rust cases passed on the target Mac and on the hosted macOS runner.
+  A synthetic own-panel wait originally depended on wall-clock CPU scheduling; its fake clock is now
+  deterministic while the real 120 ms deadline is unchanged. Swift errors are being repaired against
+  actual macOS compiler output; a full source PASS is not yet recorded in this checkpoint.
+- The first target runtime at `da51f75` obtained AX permission and independently read three real windows
+  in two fixture processes twice. `NP_LAUNCH` then stopped with detail 217 before any third-party write.
+  [Original receipt and log](../verification/independent-stage/target-da51f75/README.md).
+- The controller's event-loop defect was reproduced with the same own-panel code: manual run-loop pumping
+  failed preparation, whereas a real `NSApplication.run` succeeded at prepare/open/read/close. A subsequent
+  main-queue reentrancy issue was corrected by running the controller scenario on a worker and reserving
+  the main queue for AppKit. These are harness defects, not negative foreign-window migration results.
+  [A/B receipt](../verification/independent-stage/target-own-panel-runloop-20261126.json).
+- Hosted Actions uses macOS 27.0.1 / 26A434 with SIP disabled. Its source/build and available GUI receipts
+  are useful but cannot substitute for the target 27.0 / 26A428 / SIP-on result.
+
+The definitive latest result and candidate commit will be recorded in
+[`engineering/verification/independent-stage/`](../verification/independent-stage/) when the running
+source, full-package and controlled foreign-window experiments complete.

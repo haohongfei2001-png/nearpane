@@ -168,7 +168,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                                            "pid": state["pid"], "birth": state["birth"], "windows": state["windows"]})
             atomic(out / "config.json", config)
             phase = "engineController"
-            result = execute([apps["Controller"]["executable"], out / "config.json"], out, "engine", env, 210)
+            result = execute([apps["Controller"]["executable"], out / "config.json"], out, "engine", env, 210 + iterations * 12)
             path = out / "engine-result.json"
             engine = json.loads(path.read_text()) if path.exists() else {"status": "UNKNOWN", "reason": "controllerTerminalReceiptMissing",
                                                                        "process": result, "cleanup": False}
@@ -182,7 +182,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 executable = candidate_copy(host, product_dir, revision)
                 product_env = dict(env, NEARPANE_SPACES_CANDIDATE_PIDS=",".join(str(p.pid) for _, p in children))
                 product_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
-                                           product_dir / "config.json"], out, "product", product_env, 300)
+                                           product_dir / "config.json"], out, "product", product_env, 240 + iterations * 20)
                 receipt = product_dir / "product-result.json"
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}

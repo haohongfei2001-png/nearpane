@@ -485,9 +485,14 @@ import OSLog
                 self.firstObserved[key] = self.nextOrdinal
             }
             self.lifetimes = next
-            if self.panelRequested, self.groups.loadIssue == nil {
+            // Returning from a native overview may briefly leave every panel hidden.
+            // The existing metadata lease must still reconnect retained AX lifetimes
+            // before the independent engine can resume the actually focused group.
+            if self.panelRequested || (self.stageOwnershipObserved && NativeSidebarNavigation.shared.dispatchAvailable),
+               self.groups.loadIssue == nil {
                 @MainActor func currentDirectory() -> Bool {
-                    !Task.isCancelled && expected == self.epoch && self.panelRequested && self.sessionAvailable()
+                    !Task.isCancelled && expected == self.epoch && self.sessionAvailable() &&
+                        (self.panelRequested || (self.stageOwnershipObserved && NativeSidebarNavigation.shared.dispatchAvailable))
                         && result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime)
                 }
                 await self.stageEngine.updateGroupProjection(result, current: currentDirectory)

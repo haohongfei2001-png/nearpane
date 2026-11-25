@@ -327,49 +327,76 @@ import NearpaneOrdinaryWindowRuntime
         let now = ProcessInfo.processInfo.systemUptime
         guard !resumeEnqueued, !terminationOwnsLane, !resumeScopes.isEmpty,
               navigation.idleGeneration != nil, now - lastResumeAttempt >= 1,
-              let feed, let snapshot = feed.snapshot,
-              let scope = resumeScopes.first(where: { scope in
-                  management?.permitsStageEngine(on: scope.display.uuidString) == true &&
-                  returnedWitnesses[scope]?.homeCatalog(snapshot) != nil &&
-                  returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) == true
-              }) else { return }
+              let feed, let snapshot = feed.snapshot else { return }
+        let scopes = resumeScopes.filter { scope in
+            management?.permitsStageEngine(on: scope.display.uuidString) == true &&
+            returnedWitnesses[scope]?.homeCatalog(snapshot) != nil &&
+            returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) == true
+        }
+        guard !scopes.isEmpty else { return }
         lastResumeAttempt = now
         let input = NativeSelectionPermit.inputCounters(), version = revision
         navigation.submit(stage: true) { [weak self, weak feed] token in
             guard let self, let feed else { return }
             self.resumeEnqueued = true
             defer { self.resumeEnqueued = false }
-            let current: @MainActor () -> Bool = { [weak self] in
-                self?.revision == version && self?.resumeScopes.contains(scope) == true &&
-                navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters() &&
-                self?.management?.permitsStageEngine(on: scope.display.uuidString) == true
+            let sameInput: @MainActor () -> Bool = { [weak self] in
+                self?.revision == version && navigation.isCurrent(token) &&
+                input == NativeSelectionPermit.inputCounters()
             }
-            guard current(), !self.holdsDispatch,
-                  let first = await feed.readAfterAction(), current(),
-                  let catalog = NativeSpaceCatalog(first, displayID: scope.display.uuidString,
-                      now: .now, uptime: ProcessInfo.processInfo.systemUptime),
-                  catalog.current.ordinaryUUID == scope.nativeSpace,
-                  let row = catalog.rows.first(where: { $0.record.isCurrent }),
-                  let source = NativeSidebarDestination(row, in: catalog) else { return }
             let measure = try StageHostAccess.directoryReader()
-            let home = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
-            let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-            for window in row.windows where window.metadata?.pid == frontPID {
-                guard let member = NativeSidebarMember(window, source: source),
-                      let grouped = feed.groupWindow(member, in: first),
-                      let physical = try measure(grouped.identity, home), physical.focus == grouped.identity,
-                      physical.onscreen, !physical.minimized,
-                      let group = feed.groups.groups(in: scope).first(where: { $0.members.contains { $0.windowHint == grouped.identity } }),
-                      let second = await feed.readAfterAction(), current(),
-                      let stable = feed.groupWindow(member, in: second), stable.lifetime == grouped.lifetime,
-                      let confirmed = try measure(grouped.identity, home), confirmed.focus == grouped.identity,
-                      confirmed.onscreen, !confirmed.minimized, confirmed.frame == physical.frame else { continue }
-                _ = try await self.groupChoice(group.id, member: member, selection: .member, in: feed,
-                    snapshot: second, current: current,
-                    successor: { navigation.queuedGroupChoice(after: token, in: navigation.ownershipEpoch) })
-                return
+            // Several returned ordinary desktops can be visible on different displays.
+            // Only the one with the independently confirmed focused window may resume.
+            for scope in scopes {
+                guard sameInput(), !self.holdsDispatch else { return }
+                let current: @MainActor () -> Bool = { [weak self] in
+                    sameInput() && self?.resumeScopes.contains(scope) == true &&
+                    self?.management?.permitsStageEngine(on: scope.display.uuidString) == true
+                }
+                guard current(), let first = await feed.readAfterAction(), current(),
+                      let catalog = NativeSpaceCatalog(self.snapshotForGroups(first), displayID: scope.display.uuidString,
+                          now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+                      catalog.current.ordinaryUUID == scope.nativeSpace,
+                      let row = catalog.rows.first(where: { $0.record.isCurrent }),
+                      let source = NativeSidebarDestination(row, in: catalog) else { continue }
+                let home = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
+                let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+                for window in row.windows where window.metadata?.pid == frontPID {
+                    guard let member = NativeSidebarMember(window, source: source),
+                          let grouped = feed.groupWindow(member, in: first),
+                          let physical = try measure(grouped.identity, home), physical.focus == grouped.identity,
+                          physical.onscreen, !physical.minimized,
+                          let group = feed.groups.groups(in: scope).first(where: { $0.members.contains { $0.windowHint == grouped.identity } }),
+                          let second = await feed.readAfterAction(), current(),
+                          let stable = feed.groupWindow(member, in: second), stable.lifetime == grouped.lifetime,
+                          let confirmed = try measure(grouped.identity, home), confirmed.focus == grouped.identity,
+                          confirmed.onscreen, !confirmed.minimized, confirmed.frame == physical.frame else { continue }
+                    do {
+                        _ = try await self.groupChoice(group.id, member: member, selection: .member, in: feed,
+                            snapshot: second, current: current,
+                            successor: { navigation.queuedGroupChoice(after: token, in: navigation.ownershipEpoch) })
+                    } catch {
+                        // Cancellation can happen after configuring the worker but before
+                        // its first journal entry. Return that idle owner as well, so a
+                        // later settled input can retry. A queued R4 choice keeps its lane.
+                        let inputChanged = input != NativeSelectionPermit.inputCounters() || !navigation.isCurrent(token)
+                        if (error as? StageSwitchError) != .superseded,
+                           self.engine?.session != nil, !self.releasing, !self.terminationOwnsLane {
+                            self.systemTakesOver()
+                        }
+                        if inputChanged { return }
+                        throw error
+                    }
+                    return
+                }
             }
         }
+    }
+
+    private func updateReleasedObservation() {
+        let waitingForResume = !resumeScopes.isEmpty
+        if !waitingForResume && Self.shipped.isEmpty { stopWatching() }
+        feed?.observeStageOwnership(waitingForResume)
     }
 
     private func beginRelease() -> Task<Void,Never>? {
@@ -385,9 +412,8 @@ import NearpaneOrdinaryWindowRuntime
             defer {
                 self?.releaseTask = nil; self?.releaseInput = nil
                 if engine.session == nil {
-                    if Self.shipped.isEmpty { self?.stopWatching() }
                     self?.heldGroups = []
-                    self?.feed?.observeStageOwnership(false)
+                    self?.updateReleasedObservation()
                 }
             }
             do {
@@ -408,6 +434,7 @@ import NearpaneOrdinaryWindowRuntime
     func release() async {
         resumeScopes.removeAll()
         await beginRelease()?.value
+        if !holdsDispatch { updateReleasedObservation() }
     }
 
     private func guardianExited(releasing intent: UUID, owner: StageEngineOwner) {
@@ -425,7 +452,10 @@ import NearpaneOrdinaryWindowRuntime
         resumeScopes.removeAll()
         terminationOwnsLane = true
         guard !unreadableLedger else { return false }
-        guard engine?.holdsWindowDispatch == true || releasing else { return true }
+        guard engine?.holdsWindowDispatch == true || releasing else {
+            updateReleasedObservation()
+            return true
+        }
         let drain = Task { [weak self] in
             guard let self else { return false }
             await self.release()

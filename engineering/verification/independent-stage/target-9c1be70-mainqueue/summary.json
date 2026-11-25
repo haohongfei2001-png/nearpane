@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "sourceCommit": "9c1be70d0ebdec27018ecbe94f91f75106e9c976",
+  "diagnosticOverlay": "NP_SPACES_LAUNCH_TRACE production canary trace",
+  "result": "BLOCKED",
+  "stage": "beforeForeignDispatch",
+  "foreignWindowWrites": 0,
+  "enrolledWindows": 3,
+  "foreignFixtureProcesses": 2,
+  "baselineDoubleReads": "PASS",
+  "engineCleanup": "PASS",
+  "fixtureQuit": "PASS",
+  "candidateLaunchDetail": 217,
+  "observedCause": "main-queue-timeout with NSApplication.isRunning true",
+  "qualificationGranted": false,
+  "sha256": {
+    "engine-result.json": "d28d7c0540b22229eba86f2e4c70f0bfa933b54ae070b2503283ff5f2f461da6",
+    "engine.log": "9aa7a1077e528592618e1ad50257b64c19d0f25730e3c85532cb411bd5ddd8e4",
+    "engine.stderr.log": "13c9f87f81c98afdeb012fe424b09e9e8bcf842dc8c73e618dc0bb8566934adb",
+    "fixture-cleanup.json": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+  }
+}
