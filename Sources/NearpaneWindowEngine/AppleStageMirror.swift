@@ -8,10 +8,30 @@ import Foundation
 package final class AppleStageMirror {
     package struct Stage: Equatable {
         package let current: Bool
-        package let remembered: Bool
+        package let evidence: MembershipEvidence
         package let members: [UInt32]
     }
+    package enum MembershipEvidence: Equatable {
+        case currentWindowList, nativeStripItem, inferredStrip, remembered, unsettled
+    }
+
+    /// Taken only from this sample's AX read. The Rust mirror may retain older
+    /// strip partitions for display when none are available in this sample.
+    struct StripWitness {
+        let items: Set<Set<UInt32>>
+        let windows: Set<UInt32>
+
+        init?(_ raw: [[UInt32]]?) {
+            guard let raw else { return nil }
+            let ids = raw.flatMap { $0 }
+            let windows = Set(ids)
+            guard ids.count == windows.count, !windows.contains(0), raw.allSatisfy({ !$0.isEmpty }) else { return nil }
+            self.windows = windows
+            items = Set(raw.map { Set($0) })
+        }
+    }
     package struct Reading {
+        package let completeMembership: Bool
         package let stages: [Stage]
         package let settled: Bool
         package let contradictory: Bool
@@ -35,8 +55,12 @@ package final class AppleStageMirror {
 
     deinit { _ = np_apple_mirror_destroy(handle) }
 
-    package func read(_ system: AppleStageSystemRead, managed: [UInt32], screen: CGRect,
+    package func read(_ system: AppleStageSystemRead, owners: [UInt32: pid_t], screen: CGRect,
                       transition: Bool = false) -> Reading? {
+        let managed = owners.keys.sorted()
+        guard system.listed.allSatisfy({ row in owners[row.window].map { $0 == row.pid } ?? true }) else {
+            return nil
+        }
         let ax = system.strip(on: screen)
         let axMembers = ax?.enumerated().flatMap { index, item in
             item.members.map { NPAppleAXMember(item: UInt32(index), window: $0, frame: NPAppleRect(item.frame)) }
@@ -73,13 +97,28 @@ package final class AppleStageMirror {
         let groups = Dictionary(grouping: output.prefix(Int(result.member_count)), by: \.ordinal)
         let ranks = Dictionary(system.listed.enumerated().map { ($0.element.window, $0.offset) },
                                uniquingKeysWith: min)
+        let freshStrip = StripWitness(ax?.map(\.members))
+        let settled = result.settled == 1
         let stages = groups.keys.sorted().compactMap { ordinal -> Stage? in
             guard let rows = groups[ordinal], let first = rows.first else { return nil }
             let members = rows.map(\.window).sorted { (ranks[$0] ?? .max, $0) < (ranks[$1] ?? .max, $1) }
-            return Stage(current: first.role == NP_APPLE_CURRENT, remembered: first.role == NP_APPLE_REMEMBERED,
-                         members: members)
+            let current = first.role == NP_APPLE_CURRENT
+            let evidence: MembershipEvidence
+            if !settled { evidence = .unsettled }
+            else if current { evidence = .currentWindowList }
+            else if freshStrip?.items.contains(Set(members)) == true { evidence = .nativeStripItem }
+            else if first.role == NP_APPLE_REMEMBERED { evidence = .remembered }
+            else { evidence = .inferredStrip }
+            return Stage(current: current, evidence: evidence, members: members)
         }
-        return Reading(stages: stages, settled: result.settled == 1, contradictory: result.disagreement == 1 && result.trusted_ax == 0,
+        let active = stages.filter(\.current)
+        let conflictingCurrent = active.contains { !Set($0.members).isDisjoint(with: freshStrip?.windows ?? []) }
+        let contradictory = conflictingCurrent || (ax != nil && freshStrip == nil) || (result.disagreement == 1 && result.trusted_ax == 0)
+        let inactive = stages.filter { !$0.current }
+        let complete = settled && !contradictory && active.count == 1 &&
+            Set(stages.flatMap(\.members)) == Set(managed) && inactive.allSatisfy { $0.evidence == .nativeStripItem } &&
+            freshStrip?.items == Set(inactive.map { Set($0.members) })
+        return Reading(completeMembership: complete, stages: stages, settled: settled, contradictory: contradictory,
                        stripShown: result.strip_shown < 0 ? nil : result.strip_shown == 1)
     }
 }

@@ -10,6 +10,7 @@ import NearpaneWindowEngine
         let id: String
         let current: Bool
         let members: [DesktopWindowKey]
+        var evidence: AppleStageMirror.MembershipEvidence = .unsettled
     }
     private struct Home: Equatable {
         let session: UUID
@@ -49,6 +50,7 @@ import NearpaneWindowEngine
     @ObservationIgnored private var visible: (@MainActor () -> Bool)?
     @ObservationIgnored private var updates: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var latestSystem: AppleStageSystemRead?
+    @ObservationIgnored private var completeMembership = false
     @ObservationIgnored private var lastRead: UInt64 = 0
 
     func matches(_ snapshot: DesktopSnapshot, display: String) -> Bool {
@@ -61,7 +63,7 @@ import NearpaneWindowEngine
         minimize.stop()
         if !groups.isEmpty { groups = [] }
         ready = false; keys = [:]; lastChoice = [:]; mirror = nil; home = nil; lastRead = 0; latestSystem = nil
-        didDispatch = false
+        didDispatch = false; completeMembership = false
     }
 
     func run(display: String, snapshot: @escaping @MainActor () -> DesktopSnapshot?,
@@ -125,8 +127,9 @@ import NearpaneWindowEngine
         minimize.update(targets: Array(Self.roster(sample, display: scope.display, nativeID: String(scope.record), includingMinimized: true).values)) { [weak self] in self?.updates?.yield(()) }
         let transition = didDispatch
         didDispatch = false
-        guard let reading = mirror?.read(raw, managed: known.keys.sorted(), screen: scope.frame, transition: transition)
+        guard let reading = mirror?.read(raw, owners: known.mapValues(\.pid), screen: scope.frame, transition: transition)
         else { ready = false; handoff = nil; return }
+        completeMembership = reading.completeMembership
         let stable = reading.settled && !reading.contradictory
         // A partially classified scan can paint its last group but cannot attest that
         // every member followed a native focus. Reconsider when the catalog is whole.
@@ -143,13 +146,14 @@ import NearpaneWindowEngine
             let members = stage.members.compactMap { known[$0] }
             guard !members.isEmpty, members.count == stage.members.count else { return nil }
             let stamp = members.map { "\($0.pid)-\($0.birth)-\($0.number)" }.sorted().joined(separator: ".")
-            return Group(id: "\(scope.screen.uuidString)/\(scope.desktop.uuidString)/\(stamp)", current: stage.current, members: members)
+            return Group(id: "\(scope.screen.uuidString)/\(scope.desktop.uuidString)/\(stamp)", current: stage.current, members: members, evidence: stage.evidence)
         }
         if groups != next { groups = next }
         if let lastMemberCycle, !next.contains(where: { $0.current && lastMemberCycle.matches($0) }) { self.lastMemberCycle = nil }
         if let handoff, !handoff.permits(next) { self.handoff = nil }
         lastChoice = lastChoice.filter { key, member in next.contains { $0.id == key && $0.members.contains(member) } }
         #if DEBUG
+        guard completeMembership else { return }
         AppleStageMergeFixture.nativeQualification(next) { [weak self] source, target in
             guard let self else { throw StageSwitchError.interrupted }
             try await self.merge(source, into: target) {
@@ -180,7 +184,7 @@ import NearpaneWindowEngine
 
 
     func merge(_ source: Group, into destination: Group, current: @escaping @MainActor () -> Bool) async throws {
-        guard mergeAvailable, source.id != destination.id, let scope = home, let refresh = refreshSnapshot,
+        guard mergeAvailable, completeMembership, source.id != destination.id, let scope = home, let refresh = refreshSnapshot,
               groups.contains(where: { $0.id == source.id }), groups.contains(where: { $0.id == destination.id })
         else { throw StageSwitchError.unavailable }
         let token = generation
@@ -193,7 +197,9 @@ import NearpaneWindowEngine
             guard destination.current, AppleStageMergeFixture.canDrop(Set(source.members), Set(destination.members))
             else { throw StageSwitchError.unavailable }
         }
-        if !destination.current { try await choose(destination, window: nil, current: allowed) }
+        if !destination.current {
+            _ = try await choose(destination, window: nil, requireCompleteMembership: true, current: allowed)
+        }
         guard allowed() else { throw StageSwitchError.interrupted }
         try await AppleStageMerge.perform(source: Set(source.members), destination: Set(destination.members), stillCurrent: allowed) {
             [weak self] remaining, expected in
@@ -204,7 +210,7 @@ import NearpaneWindowEngine
             let prior = self.lastRead
             await self.observe(snapshot, scope: scope, token: token)
             guard allowed(), let system = self.latestSystem, system.timestamp > prior else { return nil }
-            guard self.ready else {
+            guard self.ready && self.completeMembership else {
                 return .init(timestamp: system.timestamp, settled: false, current: [], strip: [], point: nil)
             }
             guard let active = self.groups.first(where: { $0.current }), let items = system.confirmedStrip(on: scope.frame) else { return nil }
@@ -238,8 +244,8 @@ import NearpaneWindowEngine
         return ready ? Selection(predecessor: nil) : nil
     }
 
-    func choose(_ group: Group, window: DesktopWindowKey?, after predecessor: UUID? = nil, repeatCard: Bool = false,
-                current: @escaping @MainActor () -> Bool) async throws {
+    @discardableResult func choose(_ group: Group, window: DesktopWindowKey?, after predecessor: UUID? = nil, repeatCard: Bool = false, requireCompleteMembership: Bool = false,
+                current: @escaping @MainActor () -> Bool) async throws -> AppleStageSelectionHandoff.Outcome {
         let preceding = self.handoff
         guard canFocus(group), let scope = home, ready || (predecessor != nil && preceding?.id == predecessor),
               let refresh = refreshSnapshot, let original = groups.first(where: { $0.id == group.id }),
@@ -272,7 +278,7 @@ import NearpaneWindowEngine
                       let next = await refresh(), scope == Home(next, scope.display), allowed() else { throw StageSwitchError.interrupted }
                 await observe(next, scope: scope, token: token)
                 guard allowed(), self.handoff?.id == predecessor else { throw StageSwitchError.interrupted }
-                if samples.record(lastRead, exact: ready && preceding.finished(groups)) { break }
+                if samples.record(lastRead, exact: ready && preceding.focused(groups)) { break }
                 try await Task.sleep(for: .milliseconds(80))
             }
             guard let next = AppleFocusHandoff(target: target) else { throw StageSwitchError.interrupted }
@@ -281,11 +287,12 @@ import NearpaneWindowEngine
         }
         guard allowed(), let fresh = await refresh(), scope == Home(fresh, scope.display), allowed() else { throw StageSwitchError.interrupted }
         await observe(fresh, scope: scope, token: token)
-        guard allowed(), ready, groups.contains(where: { $0.id == group.id }), keys[target.number] == target,
+        guard allowed(), ready, !requireCompleteMembership || completeMembership,
+              groups.contains(where: { $0.id == group.id }), keys[target.number] == target,
               let focus = AppleStageFocus(target, display: scope.display, record: String(scope.record), uuid: scope.desktop) else {
             throw StageSwitchError.unavailable
         }
-        if let predecessor, self.handoff?.id != predecessor || preceding?.finished(groups) != true {
+        if let predecessor, self.handoff?.id != predecessor || preceding?.focused(groups) != true {
             throw StageSwitchError.interrupted
         }
         if let next {
@@ -297,7 +304,7 @@ import NearpaneWindowEngine
             // Apple may expose only the most recent document. Without another proven member
             // a repeat click must leave its current native focus and document alone.
             if predecessor != nil { self.handoff = nil; lastMemberCycle = cycle }
-            return
+            return .unchanged
         }
         let switchesStage = !groups.contains { $0.id == group.id && $0.current }
         guard let watcher else { throw StageSwitchError.interrupted }
@@ -306,7 +313,7 @@ import NearpaneWindowEngine
         try focus.perform(current: allowed)
         didDispatch = switchesStage
         let memberCycle = AppleStageMemberCycle(group: original, selected: target, previous: cycle, focused: { focus.confirmed() })
-        let dispatched = AppleStageSelectionHandoff(roster: groups, target: group, focusMatches: { focus.confirmed() },
+        let dispatched = AppleStageSelectionHandoff(roster: groups, target: group, originalMembershipConfirmed: completeMembership, focusMatches: { focus.confirmed() },
             ownsForeground: { watcher.current() }, release: { watcher.stop() },
             deadline: .now.advanced(by: .seconds(4)), memberCycle: repeatCard ? memberCycle : nil)
         self.handoff = dispatched
@@ -314,18 +321,20 @@ import NearpaneWindowEngine
         ready = false
         updates?.yield(())
         let deadline = ProcessInfo.processInfo.systemUptime + 4.0
-        var confirmations = AppleStageSelectionHandoff.Confirmations(after: lastRead)
+        var confirmations = AppleStageSelectionHandoff.OutcomeConfirmations(after: lastRead)
         while ProcessInfo.processInfo.systemUptime < deadline {
             try await Task.sleep(for: .milliseconds(100))
             guard allowed(), let sample = await refresh(), scope == Home(sample, scope.display), allowed() else { throw StageSwitchError.interrupted }
             await observe(sample, scope: scope, token: token)
             guard allowed(), self.handoff?.id == dispatched.id else { throw StageSwitchError.interrupted }
-            let exact = ready && dispatched.finished(groups)
-            if confirmations.record(lastRead, exact: exact) {
+            let exact = ready && dispatched.focused(groups)
+            if let outcome = confirmations.record(lastRead, focused: exact,
+                    preserved: dispatched.originalMembershipConfirmed && completeMembership),
+               !requireCompleteMembership || outcome == .preservedRoster {
                 self.handoff = nil
                 lastChoice[group.id] = target
                 lastMemberCycle = repeatCard ? memberCycle : nil
-                return
+                return outcome
             }
         }
         throw StageSwitchError.unavailable

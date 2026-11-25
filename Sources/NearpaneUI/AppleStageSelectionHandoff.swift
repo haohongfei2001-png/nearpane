@@ -8,6 +8,7 @@ import NearpaneCore
     let id = UUID()
     let roster: [Group]
     let target: Group
+    var originalMembershipConfirmed = false
     let focusMatches: @MainActor () -> Bool
     let ownsForeground: @MainActor () -> Bool
     let release: @MainActor () -> Void
@@ -24,8 +25,25 @@ import NearpaneCore
         return active.id == target.id || roster.contains { $0.id == active.id && $0.current }
     }
 
-    func finished(_ groups: [Group]) -> Bool {
-        permits(groups) && groups.contains { $0.current && $0.id == target.id } && focusMatches()
+    func focused(_ groups: [Group]) -> Bool {
+        permits(groups) && groups.contains { $0.current && $0.id == target.id && $0.evidence == .currentWindowList } && focusMatches()
+    }
+
+    enum Outcome { case unchanged, focusedGroup, preservedRoster }
+
+    struct OutcomeConfirmations {
+        private var focus: Confirmations
+        private var membership: Confirmations
+        init(after timestamp: UInt64) {
+            focus = Confirmations(after: timestamp)
+            membership = Confirmations(after: timestamp)
+        }
+        mutating func record(_ timestamp: UInt64, focused: Bool, preserved: Bool) -> Outcome? {
+            let exactTarget = focus.record(timestamp, exact: focused)
+            let exactDirectory = membership.record(timestamp, exact: focused && preserved)
+            if exactDirectory { return .preservedRoster }
+            return exactTarget ? .focusedGroup : nil
+        }
     }
 
     struct Confirmations {

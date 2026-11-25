@@ -12,8 +12,8 @@ package struct AppleStageSystemRead: @unchecked Sendable {
     let sampleTime: UInt64
     package var timestamp: UInt64 { sampleTime }
     let listed: [NPAppleListedWindow]
-    private let strips: [Strip]?
-    private let singleDisplay: Bool
+    let strips: [Strip]?
+    let singleDisplay: Bool
 
     func strip(on screen: CGRect) -> [Item]? {
         guard let strips else { return nil }

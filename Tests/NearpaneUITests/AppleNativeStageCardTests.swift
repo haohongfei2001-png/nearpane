@@ -8,7 +8,8 @@ import Testing
         typealias Group = AppleNativeStages.Group
         let keys = (0..<3).map { DesktopWindowKey(pid: 10, birth: 500, number: UInt32($0 + 1)) }
         func roster(current: Int) -> [Group] {
-            keys.enumerated().map { index, key in Group(id: String(index), current: index == current, members: [key]) }
+            keys.enumerated().map { index, key in Group(id: String(index), current: index == current, members: [key],
+                                             evidence: index == current ? .currentWindowList : .nativeStripItem) }
         }
         let original = roster(current: 0), previous = roster(current: 1), foreign = roster(current: 2)
         @MainActor final class Focus { var exact = false }
@@ -19,12 +20,12 @@ import Testing
         #expect(handoff.includes(original[2]))
         #expect(!handoff.includes(original[2], now: deadline))
         #expect(handoff.permits(original))
-        #expect(!handoff.finished(original))
+        #expect(!handoff.focused(original))
         #expect(!handoff.permits(foreign))
         let recycled = Group(id: original[2].id, current: false, members: [.init(pid: 10, birth: 501, number: 3)])
         #expect(!handoff.includes(recycled))
         var reads = AppleStageSelectionHandoff.Confirmations(after: 15)
-        func record(_ stamp: UInt64, _ groups: [Group]) -> Bool { reads.record(stamp, exact: handoff.finished(groups)) }
+        func record(_ stamp: UInt64, _ groups: [Group]) -> Bool { reads.record(stamp, exact: handoff.focused(groups)) }
         #expect(!record(16, previous))
         focus.exact = true
         #expect(!record(17, previous))
@@ -32,6 +33,28 @@ import Testing
         #expect(!record(18, foreign))
         #expect(!record(19, previous))
         #expect(record(20, previous))
+    }
+
+    @Test func aConfirmedNativeFocusDoesNotPromoteHistoricalPeers() {
+        let a = DesktopWindowKey(pid: 10, birth: 200, number: 1)
+        let b = DesktopWindowKey(pid: 20, birth: 400, number: 2)
+        let old = AppleNativeStages.Group(id: "a", current: true, members: [a], evidence: .currentWindowList)
+        let known = AppleNativeStages.Group(id: "b", current: false, members: [b], evidence: .remembered)
+        let handoff = AppleStageSelectionHandoff(roster: [old, known], target: known, focusMatches: { true },
+            ownsForeground: { true }, release: {}, deadline: .now.advanced(by: .seconds(4)))
+        #expect(handoff.includes(known))
+        #expect(!handoff.originalMembershipConfirmed)
+        let prior = AppleNativeStages.Group(id: "a", current: false, members: [a], evidence: .remembered)
+        var front = AppleNativeStages.Group(id: "b", current: true, members: [b], evidence: .unsettled)
+        #expect(!handoff.focused([prior, front]))
+        front.evidence = .currentWindowList
+        #expect(handoff.focused([prior, front]))
+        var reads = AppleStageSelectionHandoff.OutcomeConfirmations(after: 50)
+        #expect(reads.record(51, focused: true, preserved: false) == nil)
+        #expect(reads.record(51, focused: true, preserved: true) == nil)
+        #expect(reads.record(52, focused: true, preserved: true) == .focusedGroup)
+        #expect(reads.record(53, focused: true, preserved: true) == .preservedRoster)
+        #expect(reads.record(54, focused: false, preserved: true) == nil)
     }
 
     @Test func onlyTheCurrentLocalDragCanMergeTheExactWindowsOnItsOriginalDesktop() async throws {
