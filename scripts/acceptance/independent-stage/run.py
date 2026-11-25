@@ -39,7 +39,7 @@ def execute(command, out, name, env, timeout=900):
     report.update(log=name + ".log", stderr=name + ".stderr.log")
     atomic(out / (name + ".json"), report)
     print(name, report["status"], flush=True)
-    if report["status"] != "PASS" and name in ("rust", "swift", "build-engine"):
+    if report["status"] != "PASS" and name in ("rust", "swift", "build-engine", "build-product"):
         # Expose a short useful CI failure while retaining the complete original logs.
         for suffix in (".stderr.log", ".log"):
             lines = (out / (name + suffix)).read_text(errors="replace").splitlines()
@@ -85,6 +85,29 @@ def source_checks(out, env):
 
 def candidate_copy(source, output, revision):
     return package(source, output / "NearpaneIndependentStage.app", revision, mode="acceptance")
+
+
+def build_candidate(out, env, revision):
+    out.mkdir()
+    result = execute(["bash", "scripts/build-app.sh", "release"], out, "build-product",
+                     dict(env, NEARPANE_FOUNDATION_ONLY="0"), 1800)
+    if result["status"] != "PASS":
+        return result, None
+    run_id = env.get("NEARPANE_RUN_ID", "")
+    products = ROOT / "build" / ("standalone." + run_id) / "products" if run_id else ROOT / "build"
+    source = products / "release/Nearpane.app"
+    workspace = out / "NearpaneIndependentStage.app"
+    try:
+        if not (source / "Contents/MacOS/NearpaneHost").is_file():
+            raise FileNotFoundError("completeReleaseBundleMissing")
+        executable = package(source, workspace, revision, mode="workspace")
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        result.update(status="FAIL", reason=type(error).__name__ + ": " + str(error))
+        return result, None
+    result.update(completeApp=str(source), workspaceCandidate=str(workspace), executable=str(executable),
+                  signature="codesign --verify --strict --deep", launched=False)
+    atomic(out / "candidate.json", result)
+    return result, source
 
 
 def wait_fixture(directory, process, nonce, count):
@@ -184,7 +207,7 @@ def main():
     p.add_argument("output", type=Path, help="new evidence directory")
     p.add_argument("--scope", choices=("source", "runtime", "all"), default="all")
     p.add_argument("--archive", type=Path, help="existing production Rust static archive; built if omitted")
-    p.add_argument("--product-host", type=Path, help="built Nearpane.app to copy to an isolated candidate; never installed")
+    p.add_argument("--product-host", type=Path, help="reuse a complete Nearpane.app; --scope all builds it automatically when omitted")
     p.add_argument("--iterations", type=int, default=3, choices=range(1, 51), metavar="1..50")
     a = p.parse_args()
     os.umask(0o077)
@@ -193,7 +216,8 @@ def main():
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     env.setdefault("NEARPANE_RUN_ID", "independent-" + uuid.uuid4().hex[:12])
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "source": "NOT_RUN", "runtime": "NOT_RUN"}
+    summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "source": "NOT_RUN", "runtime": "NOT_RUN",
+               "candidate": {"status": "SUPPLIED", "completeApp": str(a.product_host)} if a.product_host else {"status": "NOT_RUN"}}
     print("revision", revision, "buildRunID", env["NEARPANE_RUN_ID"], "scope", a.scope, flush=True)
     if platform.system() != "Darwin":
         summary.update(status="BLOCKED", reason="macOSWindowServerRequired")
@@ -201,6 +225,12 @@ def main():
         return 2
     if a.scope in ("source", "all"):
         summary["source"] = source_checks(out / "source", env)
+    product_host = a.product_host
+    if a.scope == "all" and product_host is None:
+        if summary["source"].get("status") == "PASS":
+            summary["candidate"], product_host = build_candidate(out / "candidate", env, revision)
+        else:
+            summary["candidate"] = {"status": "FAIL", "reason": "sourceChecksFailed", "fullBuild": "NOT_RUN"}
     if a.scope in ("runtime", "all"):
         archive = a.archive
         built = None
@@ -209,7 +239,7 @@ def main():
             if built["status"] == "PASS":
                 archive = Path((out / "build-engine.log").read_text().splitlines()[-1])
         if archive and archive.is_file():
-            summary["runtime"] = runtime_checks(out / "runtime", env, archive.resolve(), a.product_host,
+            summary["runtime"] = runtime_checks(out / "runtime", env, archive.resolve(), product_host,
                                                   a.iterations, revision)
         else:
             summary["runtime"] = {"status": "FAIL" if built and built["status"] != "PASS" else "BLOCKED",
@@ -219,9 +249,10 @@ def main():
     # CI fails on an actual source/behavior failure. A blocked GUI is preserved as blocked,
     # never rewritten as a pass because a hosted runner lacks an authorized console session.
     source_failed = isinstance(summary["source"], dict) and summary["source"].get("status") != "PASS"
+    candidate_failed = summary["candidate"].get("status") in ("FAIL", "UNKNOWN")
     runtime = summary["runtime"] if isinstance(summary["runtime"], dict) else {}
     runtime_failed = any(runtime.get(key) in ("FAIL", "UNKNOWN") for key in ("status", "engine", "R4ProductPath", *SYSTEM_CHECKS))
-    return 1 if source_failed or runtime_failed else 0
+    return 1 if source_failed or candidate_failed or runtime_failed else 0
 
 
 if __name__ == "__main__":

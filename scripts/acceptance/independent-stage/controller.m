@@ -61,7 +61,7 @@ static NSDictionary *observe(NSDictionary *target,uint64_t expected,BOOL visible
     return @{@"number":@(n),@"pid":target[@"pid"],@"birth":target[@"birth"],@"expectedSpace":@(expected),
         @"windowSpaceCount":@(count),@"windowSpace":count==1?@(spaces[0]):NSNull.null,@"spaceContainsWindow":@(contains),
         @"onScreen":read==1?@(cg.onboard):NSNull.null,@"expectedOnScreen":@(visible),@"geometryPreserved":@(geometry),
-        @"foreignProcess":@([target[@"pid"] intValue]!=getpid()),@"identityMatches":@(ownerMatches(target)),@"verified":@(verified)};
+        @"foreignProcess":[NSNumber numberWithBool:[target[@"pid"] intValue]!=getpid()],@"identityMatches":@(ownerMatches(target)),@"verified":@(verified)};
 }
 static BOOL verify(NSDictionary *target,uint64_t space,BOOL visible,NSString *phase) {
     unsigned consecutive=0;double end=NSProcessInfo.processInfo.systemUptime+2.5;NSDictionary *row=nil;
@@ -151,20 +151,19 @@ static BOOL selectOnly(NSArray<NSNumber *> *indices,NSString *phase) {
         if(!verify(targets[i],space,visible,[phase stringByAppendingString:@"/all-members"]))return NO;}
     return YES;
 }
-int main(int argc,const char **argv) {
+static int runScenario(NSString *configuration) {
     @autoreleasepool {
-        if(argc!=2)return 2;NSDictionary *config=readJSON(@(argv[1]));outDirectory=config[@"output"];runNonce=config[@"nonce"];
+        NSDictionary *config=readJSON(configuration);outDirectory=config[@"output"];runNonce=config[@"nonce"];
         if(![outDirectory isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:runNonce])return 2;
         timeline=[NSMutableArray array];checks=[NSMutableDictionary dictionary];targets=[NSMutableArray array];generation=NSUUID.UUID;
         for(NSString *name in @[@"launchCanary",@"foreignRoundTrip",@"sameAppIndependent",@"crossAppGroup",@"repeatedSwitch",@"yellowButton",@"focusRestore",@"cleanup"])
             checks[name]=@{@"status":@"NOT_RUN"};
-        [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];[NSApp finishLaunching];
         NSRunningApplication *original=NSWorkspace.sharedWorkspace.frontmostApplication;
         uint64_t originalBirth=original?birth(original.processIdentifier):0;
         char build[64]={0};size_t length=sizeof(build);(void)sysctlbyname("kern.osversion",build,&length,NULL,0);
         int sip=np_stage_sip_enabled();
-        emit(@{@"event":@"environment",@"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:@(sip==1),
-            @"exactTarget":@(np_stage_target_build()==1),@"accessibility":@(AXIsProcessTrusted()),@"controllerPID":@(getpid())});
+        emit(@{@"event":@"environment",@"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:[NSNumber numberWithBool:sip==1],
+            @"exactTarget":[NSNumber numberWithBool:np_stage_target_build()==1],@"accessibility":[NSNumber numberWithBool:AXIsProcessTrusted()],@"controllerPID":@(getpid())});
         NSString *status=@"BLOCKED",*reason=@"ordinaryDesktopUnavailable";BOOL clean=YES,all=NO;
         NSArray *originalSpaces=nil;NPReceipt receipt={0};
         connection=np_stage_connection();NPStageDesktop desktops[512];int n=np_stage_desktops(connection,desktops,512),homes=0;
@@ -253,13 +252,33 @@ int main(int argc,const char **argv) {
         if(testFront&&original&&birth(original.processIdentifier)==originalBirth)[original activateWithOptions:0];
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
-            @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":@(targets.count==3),
-            @"targetEnvironment":@{ @"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:@(sip==1),@"exactTarget":@(np_stage_target_build()==1)},
+            @"cleanup":@(clean),@"windowWrites":@(writeCount),@"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
+            @"targetEnvironment":@{ @"kernelBuild":@(build),@"sipEnabled":sip<0?NSNull.null:[NSNumber numberWithBool:sip==1],
+                @"exactTarget":[NSNumber numberWithBool:np_stage_target_build()==1]},
             @"R4ProductPath":@"NOT_RUN",@"missionControl":@"NOT_RUN",@"desktopGestures":@"NOT_RUN",@"fullScreenSplitView":@"NOT_RUN",
             @"qualificationGranted":@NO};
         NSData *data=[NSJSONSerialization dataWithJSONObject:report options:NSJSONWritingPrettyPrinted|NSJSONWritingSortedKeys error:NULL];
         [data writeToFile:[outDirectory stringByAppendingPathComponent:@"engine-result.json"] options:NSDataWritingAtomic error:NULL];
         emit(@{@"event":@"terminal",@"status":status,@"reason":reason,@"cleanup":@(clean)});
         return [status isEqual:@"FOREIGN_ENGINE_PASS"]?0:([status isEqual:@"BLOCKED"]?2:1);
+    }
+}
+
+int main(int argc,const char **argv) {
+    @autoreleasepool {
+        if(argc!=2)return 2;
+        NSString *configuration=@(argv[1]);
+        [NSApplication sharedApplication];
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+        [NSApp finishLaunching];
+        // AppKit's real application loop is required by the production canary's
+        // focus and window lifecycle checks. A manually pumped NSRunLoop leaves
+        // NSApplication.isRunning false and does not exercise the same contract.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            int result=runScenario(configuration);
+            exit(result);
+        });
+        [NSApp run];
+        return 2;
     }
 }

@@ -1,0 +1,371 @@
+{
+  "schema": 1,
+  "sourceCommit": "7ebb660e984ebd7e44133e9414966d3d415ddb89",
+  "target": {
+    "macOS": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "sipEnabled": true
+  },
+  "scope": "Own transparent panel create/read/close only. No Space creation, no window migration, no third-party qualification.",
+  "nativeApplicationLoop": {
+    "events": [
+      {
+        "accessibility": 1,
+        "event": "ownPanelEnvironment",
+        "supported": 1,
+        "symbols": 7,
+        "token": 1
+      },
+      {
+        "absent": 1,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 1,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 0,
+        "registered": 0,
+        "result": 1
+      },
+      {
+        "absent": 0,
+        "cgRead": -1,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 1,
+        "membership": [],
+        "membershipCount": 0,
+        "number": 118108,
+        "onScreen": 0,
+        "opened": 1,
+        "operation": 1,
+        "registered": 1,
+        "result": 1
+      },
+      {
+        "absent": 0,
+        "cgRead": 1,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 1,
+        "membership": [
+          4
+        ],
+        "membershipCount": 1,
+        "number": 118108,
+        "onScreen": 0,
+        "opened": 1,
+        "operation": 2,
+        "registered": 1,
+        "result": 1
+      },
+      {
+        "absent": 0,
+        "cgRead": 1,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 1,
+        "membership": [
+          4
+        ],
+        "membershipCount": 1,
+        "number": 118108,
+        "onScreen": 0,
+        "opened": 1,
+        "operation": 2,
+        "registered": 1,
+        "result": 1
+      },
+      {
+        "absent": 0,
+        "cgRead": 1,
+        "closeIssued": 1,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [
+          4
+        ],
+        "membershipCount": 1,
+        "number": 118108,
+        "onScreen": 0,
+        "opened": 1,
+        "operation": 3,
+        "registered": 0,
+        "result": 1
+      },
+      {
+        "absent": 1,
+        "cgRead": 0,
+        "closeIssued": 1,
+        "event": "ownPanelCall",
+        "focusSame": 1,
+        "membership": [
+          4
+        ],
+        "membershipCount": 1,
+        "number": 118108,
+        "onScreen": 0,
+        "opened": 1,
+        "operation": 2,
+        "registered": 0,
+        "result": 1
+      }
+    ],
+    "platform": [
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 0,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 1,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 1,
+        "window": 118108,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 1,
+        "window": 118108,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 1,
+        "window": 118108,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 3,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 1,
+        "window": 118108,
+        "closeIssued": 1
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 1,
+        "prepared": 1,
+        "opened": 1,
+        "window": 118108,
+        "closeIssued": 1
+      }
+    ]
+  },
+  "manualRunLoopPump": {
+    "events": [
+      {
+        "accessibility": 1,
+        "event": "ownPanelEnvironment",
+        "supported": 1,
+        "symbols": 7,
+        "token": 1
+      },
+      {
+        "absent": 0,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 0,
+        "registered": 0,
+        "result": 0
+      },
+      {
+        "absent": 0,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 1,
+        "registered": 0,
+        "result": 0
+      },
+      {
+        "absent": 1,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 2,
+        "registered": 0,
+        "result": 1
+      },
+      {
+        "absent": 1,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 2,
+        "registered": 0,
+        "result": 1
+      },
+      {
+        "absent": 1,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 3,
+        "registered": 0,
+        "result": 1
+      },
+      {
+        "absent": 1,
+        "cgRead": -2,
+        "closeIssued": 0,
+        "event": "ownPanelCall",
+        "focusSame": 0,
+        "membership": [],
+        "membershipCount": -2,
+        "number": 0,
+        "onScreen": 0,
+        "opened": 0,
+        "operation": 2,
+        "registered": 0,
+        "result": 1
+      }
+    ],
+    "platform": [
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "prepare-focus",
+        "operation": 0,
+        "result": 0,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "open-precondition",
+        "operation": 1,
+        "result": 0,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 3,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      },
+      {
+        "event": "spacesLaunchPlatform",
+        "phase": "complete",
+        "operation": 2,
+        "result": 1,
+        "mainThread": 1,
+        "appRunning": 0,
+        "prepared": 0,
+        "opened": 0,
+        "window": 0,
+        "closeIssued": 0
+      }
+    ]
+  },
+  "finding": "The original controller's manually pumped NSRunLoop leaves NSApplication.isRunning false and fails the own-panel Prepare focus read. The same production shim succeeds for panel creation/observation/close inside NSApplication.run. This is an admission/runner defect before any foreign-window move.",
+  "qualificationGranted": false
+}
