@@ -69,6 +69,7 @@ import NearpaneWindowEngine
     @ObservationIgnored private var refreshSnapshot: (@MainActor () async -> DesktopSnapshot?)?
     @ObservationIgnored private var visible: (@MainActor () -> Bool)?
     @ObservationIgnored private var updates: AsyncStream<Void>.Continuation?
+    @ObservationIgnored private var needsCatalogRead = false
     @ObservationIgnored private var latestSystem: AppleStageSystemRead?
     @ObservationIgnored private var completeMembership = false
     @ObservationIgnored private var lastRead: UInt64 = 0
@@ -93,6 +94,7 @@ import NearpaneWindowEngine
         generation = token
         updates?.finish()
         clear()
+        needsCatalogRead = false
         currentSnapshot = snapshot; refreshSnapshot = refresh; self.visible = visible
         let (events, wake) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         updates = wake
@@ -101,7 +103,9 @@ import NearpaneWindowEngine
         let listener = NSWorkspace.shared.notificationCenter
         let notices = [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification,
                        NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification].map { name in
-            listener.addObserver(forName: name, object: nil, queue: nil) { _ in wake.yield(()) }
+            listener.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                Task { @MainActor in self?.catalogDidChange(in: token) }
+            }
         }
         defer {
             nextRead?.cancel()
@@ -123,7 +127,11 @@ import NearpaneWindowEngine
                 }
             }
             guard visible(), WindowContentPreview.sessionAvailable() else { clear(); continue }
-            guard let sample = snapshot() else { ready = false; handoff = nil; minimize.stop(); continue }
+            let refreshCatalog = needsCatalogRead
+            needsCatalogRead = false
+            let latest = refreshCatalog ? await refresh() : snapshot()
+            guard generation == token, !Task.isCancelled, visible() else { return }
+            guard let sample = latest else { ready = false; handoff = nil; minimize.stop(); continue }
             guard let scope = Home(sample, display) else {
                 // The surface owns the read-only departing snapshot during brief catalog gaps.
                 if sample.native?.windowLimitReached == true { ready = false; handoff = nil; minimize.stop() }
@@ -134,10 +142,18 @@ import NearpaneWindowEngine
         }
     }
 
+    private func catalogDidChange(in token: UUID) {
+        guard token == generation else { return }
+        needsCatalogRead = true
+        ready = false
+        completeMembership = false
+        updates?.yield(())
+    }
+
     private func observe(_ sample: DesktopSnapshot, scope: Home, token: UUID) async {
         let single = sample.displays.count == 1
         let raw = await Task.detached(priority: .utility) { AppleStageSystemRead.capture(singleDisplay: single) }.value
-        guard generation == token, !Task.isCancelled, visible?() == true,
+        guard generation == token, !Task.isCancelled, !needsCatalogRead, visible?() == true,
               scope == Home(currentSnapshot?(), scope.display) else { return }
         guard let raw else { minimizedMembership = MinimizedMembership(); ready = false; handoff = nil; return }
         // An asynchronous collector from before a selection may finish after the newer read.
@@ -164,7 +180,7 @@ import NearpaneWindowEngine
         latestSystem = raw
         lastRead = raw.timestamp
         keys = known
-        minimize.update(targets: Array(all.values)) { [weak self] in self?.updates?.yield(()) }
+        minimize.update(targets: Array(all.values)) { [weak self] in self?.catalogDidChange(in: token) }
         let transition = didDispatch
         didDispatch = false
         guard let reading = mirror?.read(raw, owners: known.mapValues(\.pid), screen: scope.frame, minimized: Set(admitted.keys.map(\.number)), transition: transition)

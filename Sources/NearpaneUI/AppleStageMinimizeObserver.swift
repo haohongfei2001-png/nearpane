@@ -198,6 +198,13 @@ struct AppleMinimizeReadOrder {
             return true
         }
         guard !elements.isEmpty, (try? OrdinaryProcessImage.read(pid)) == image else { return nil }
+        if observeGeometry {
+            // A new document or a focus change inside the same app need not activate the app.
+            // These notices wake the catalog. Only its independent window read can add a member.
+            for name in [kAXWindowCreatedNotification, kAXFocusedWindowChangedNotification] {
+                _ = AXObserverAddNotification(observer, app, name as CFString, nil)
+            }
+        }
         return Registration(observer, keys, elements)
     }
 
@@ -211,8 +218,17 @@ struct AppleMinimizeReadOrder {
     }
 
     private func receive(_ observer: AXObserver, _ element: AXUIElement, _ event: String) {
-        guard let registration = registrations.values.first(where: { $0.observer === observer }),
-              let (key, _) = registration.elements.first(where: { CFEqual($0.value, element) }), desired[key.pid]?.contains(key) == true else { return }
+        guard let registration = registrations.values.first(where: { $0.observer === observer }) else { return }
+        if event == kAXWindowCreatedNotification || event == kAXFocusedWindowChangedNotification {
+            guard observesGeometry, let enrolled = registration.keys.first else { return }
+            var pid: pid_t = 0
+            guard AXUIElementGetPid(element, &pid) == .success, pid == enrolled.pid,
+                  (try? OrdinaryProcessImage.read(pid).launch) == enrolled.birth else { return }
+            changed?()
+            return
+        }
+        guard let (key, _) = registration.elements.first(where: { CFEqual($0.value, element) }),
+              desired[key.pid]?.contains(key) == true else { return }
         if event == kAXUIElementDestroyedNotification {
             // A destroyed element need not answer any further AX reads. Drop
             // its subscription and ask the independent mirror for the survivors.
