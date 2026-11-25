@@ -91,6 +91,11 @@ but no callable rendering/edge-suppression separation was proved. Preferences we
   each hidden member; hidden-Space IDs never replace the user's ordinary-desktop identity.
 - Each actual move must be read back through both space membership directions and independent CG/AX
   visibility and geometry. No API status, mock, own-window probe or CI compile substitutes for that readback.
+- The ordinary catalogue can still see a hidden window in CG's all-window list. It excludes that row only
+  after two inclusive membership queries agree on exclusively non-managed Spaces, reverse membership
+  confirms the exact window, and both CG observations are offscreen. Missing/empty membership alone
+  remains incomplete. This prevents the Host from revoking its own correct hidden group while retaining
+  all ordinary-desktop and window-identity requirements.
 - Restore first; then destroy only an empty owned Space. Partial/uncertain moves retain recovery ownership.
 - System overview handling returns windows to their real ordinary desktop and does not park them in corners.
   Fullscreen and native split windows remain outside ordinary group management.
@@ -140,6 +145,13 @@ daily builds and uncommitted work in other checkouts are preserved.
   now attempts current arm64 Darwin 26 ABI-family symbol/shape reads, and the physical witness uses
   mask 15 to include classic hidden Spaces. Write qualification remains independent. Subsequent
   diagnostics distinguish the raw native topology, C parser refusal and product cleanup result.
+- Hosted `85762ae0` passed source, full workspace packaging and strict/deep signature verification.
+  Its raw WindowServer dictionary proved a real GUI with a single initial ordinary desktop whose
+  native UUID was empty. Foreign writes remained zero; product cleanup now passed independently.
+  [Original terminal receipts and candidate](../verification/independent-stage/cloud-85762ae0/README.md).
+  The next CI-only preparation uses actual Finder/Mission Control/Dock operations to initialize a
+  native desktop, never a generated identity. An uninitialized inactive desktop may remain in the exact
+  topology but cannot become the current or retained home. Target-machine runs do not perform this CI setup.
 - The first target runtime at `da51f75` obtained AX permission and independently read three real windows
   in two fixture processes twice. `NP_LAUNCH` then stopped with detail 217 before any third-party write.
   [Original receipt and log](../verification/independent-stage/target-da51f75/README.md).

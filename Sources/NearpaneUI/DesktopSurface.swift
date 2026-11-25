@@ -94,7 +94,7 @@ struct DesktopSurface: View {
         // otherwise propagates to sibling text and buttons, including the permission guide.
         .accessibilityElement(children: .contain)
         .accessibilityLabel("本屏窗口总览")
-        .accessibilityHint("选择当前屏幕的一扇窗口可将它置前")
+        .accessibilityHint("选择缩略图可切换窗口组并聚焦所选窗口")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
         .task(id: AppleObservation(display: displayID, visible: panelAvailable && displayingAppleStages)) {

@@ -154,12 +154,21 @@ int32_t np_stage_desktops(int32_t c,NPStageDesktop *out,uint32_t cap) {
             for (id record in spaces) {
                 if (index>=cap || ![record isKindOfClass:NSDictionary.class]) return topologyFailure("roster-capacity-or-record",(int32_t)list.count,-1);
                 NSDictionary *row=record; uint64_t kind=0; NPStageDesktop *s=&out[index++];
+                memset(s,0,sizeof(*s));
                 s->id=nc_space_number(row).unsignedLongLongValue;
                 NSUUID *uuid=nc_uuid(row[@"uuid"]);
-                if (!s->id || !uuid || !exactNumber(row[@"type"],&kind,YES) || kind>INT32_MAX)
+                BOOL absentUUID=!row[@"uuid"] || ([row[@"uuid"] isKindOfClass:NSString.class] && ![row[@"uuid"] length]);
+                s->current=(s->id==current);
+                // Fresh macOS VM accounts can retain an uninitialized, inactive
+                // Desktop 1 with uuid="" after the system creates a real Desktop 2.
+                // Preserve it as an ID/type/order observation, never invent a UUID
+                // or allow it to authorize a current/home window transaction.
+                if (!s->id || (!uuid && (s->current || !absentUUID)) ||
+                    !exactNumber(row[@"type"],&kind,YES) || kind>INT32_MAX)
                     return topologyFailure("roster-record-identity",(int32_t)list.count,-1);
-                [uuid getUUIDBytes:s->uuid]; [display getUUIDBytes:s->display];
-                s->kind=(int32_t)kind; s->current=(s->id==current);
+                if(uuid)[uuid getUUIDBytes:s->uuid];
+                [display getUUIDBytes:s->display];
+                s->kind=(int32_t)kind;
                 if (s->current && (![uuid isEqual:currentUUID] || kind!=currentKind.unsignedLongLongValue))
                     return topologyFailure("current-roster-disagreement",(int32_t)list.count,-1);
                 found+=s->current;

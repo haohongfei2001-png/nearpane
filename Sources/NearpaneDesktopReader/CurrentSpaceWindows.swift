@@ -81,7 +81,8 @@ extension Reader {
         let trusted = AXIsProcessTrusted()
         let backgroundInventory = canRead && trusted ? NPReadInventory().flatMap { SpaceInventory($0 as [AnyObject], displays:topology.displays) } : nil
         let first = try windowList(overview: true, backgroundInventory:backgroundInventory)
-        let activeBefore = activeNumbers()
+        let activeBeforeRead = observedActiveNumbers()
+        let activeBefore = activeBeforeRead ?? []
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
@@ -107,7 +108,10 @@ extension Reader {
                                                            deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
         let second = try windowList(overview: true, backgroundInventory:backgroundInventory)
-        let active = activeBefore.intersection(activeNumbers())
+        let activeAfterRead = observedActiveNumbers()
+        let activeAfter = activeAfterRead ?? []
+        let active = activeBefore.intersection(activeAfter)
+        let observedActive = activeBefore.union(activeAfter)
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
         guard topology == (try Topology()), WindowServerSession.available, !first.limited, !second.limited else {
             throw DesktopActionError.unsupported
@@ -134,6 +138,13 @@ extension Reader {
                   before.process == entry.process,
                   min(entry.frame.width, entry.frame.height) > 1 else { complete = false; continue }
             let visible = active.contains(entry.windowID) && before.isOnscreen == true && entry.isOnscreen == true
+            // Our inactive group windows can remain in CG's all-window list.
+            // Their independently confirmed hidden membership is not a failed
+            // ordinary-desktop read. The retained engine witness still owns and
+            // verifies those windows; no directory row or write lease is minted.
+            if firstBoundary?.excludesNonManagedWindow(entry.windowID, through: lastBoundary,
+                firstOnscreen: before.isOnscreen, lastOnscreen: entry.isOnscreen,
+                active: activeBeforeRead != nil && activeAfterRead != nil ? observedActive.contains(entry.windowID) : nil) == true { continue }
             let left = firstBoundary?.membership[entry.windowID], right = lastBoundary?.membership[entry.windowID]
             guard left == right else { complete = false; continue }
             if right == nil || right == .unknown { complete = false }

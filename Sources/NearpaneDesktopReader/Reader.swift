@@ -162,8 +162,15 @@ struct Reader {
     }
 
     func activeNumbers() -> Set<UInt32> {
+        observedActiveNumbers() ?? []
+    }
+
+    func observedActiveNumbers() -> Set<UInt32>? {
         // The allSpaces flag must stay absent. Only numbers are requested from AppKit.
-        let active = Set((NSWindow.windowNumbers(options: .allApplications) ?? []).compactMap { UInt32(exactly: $0.int64Value) })
+        guard let raw = NSWindow.windowNumbers(options: .allApplications) else { return nil }
+        let numbers = raw.compactMap { UInt32(exactly: $0.int64Value) }
+        let active = Set(numbers)
+        guard numbers.count == raw.count, active.count == raw.count, !active.contains(0) else { return nil }
         if let fixture = request.fixtureWindows { return active.intersection(fixture) }
         return active
     }

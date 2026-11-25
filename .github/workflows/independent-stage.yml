@@ -40,6 +40,8 @@ jobs:
             ${{ runner.temp }}/independent-source/source/windowserver-context.json
             ${{ runner.temp }}/independent-source/source/read-only-context*.log
             ${{ runner.temp }}/independent-source/source/probe-build*.log
+            ${{ runner.temp }}/independent-source/source/swift.stderr.log
+            ${{ runner.temp }}/independent-source/source/build-spaces-worker.stderr.log
           if-no-files-found: warn
           retention-days: 30
       - name: Build complete candidate with embedded tools

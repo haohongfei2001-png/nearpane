@@ -111,11 +111,42 @@ struct SpaceInventory: Equatable {
         guard decoded.count == values.count, Set(decoded).count == decoded.count, Set(decoded).isSubset(of: ids) else { return .unknown }
         return .known(recordIDs: decoded.sorted())
     }
+
+    /// A classic hidden Space is absent from the managed-desktop dictionary. A
+    /// separate inclusive query can prove that a surface belongs exclusively
+    /// outside this catalogue; it cannot identify a home or authorize a writer.
+    func nonManagedMembership(window: UInt32, raw: Any?,
+        occupants: (UInt64) -> [Any]? = { NPReadCatalogSpaceWindowNumbers($0) as? [Any] }) -> [String]? {
+        guard window > 0, let values = raw as? [Any], !values.isEmpty, values.count <= 256 else { return nil }
+        let decoded = values.compactMap(Self.recordID)
+        guard decoded.count == values.count, Set(decoded).count == decoded.count,
+              Set(decoded).isDisjoint(with: ids) else { return nil }
+        for record in decoded {
+            guard let space = UInt64(record), let raw = occupants(space), raw.count <= 8192 else { return nil }
+            let windows = raw.compactMap { Self.integer($0).flatMap { UInt32($0.stringValue) } }
+            guard windows.count == raw.count, !windows.contains(0), Set(windows).count == windows.count,
+                  windows.contains(window) else { return nil }
+        }
+        return decoded.sorted()
+    }
 }
 
 struct SpaceBoundary: Equatable {
     let inventory: SpaceInventory?
     let membership: [UInt32: WindowMembership]
+    var nonManaged: [UInt32: [String]] = [:]
+
+    /// Two exact Space observations and two negative surface observations are
+    /// needed before an internal Space can be omitted from the ordinary roster.
+    func excludesNonManagedWindow(_ window: UInt32, through last: Self?,
+                                  firstOnscreen: Bool?, lastOnscreen: Bool?, active: Bool?) -> Bool {
+        guard firstOnscreen == false, lastOnscreen == false, active == false,
+              let last, let inventory, last.inventory == inventory,
+              membership[window] == .unknown, last.membership[window] == .unknown,
+              let spaces = nonManaged[window], !spaces.isEmpty,
+              spaces == last.nonManaged[window] else { return false }
+        return true
+    }
 
     /// Independent active-Space observation plus a unique, stable current membership on the same display.
     /// Neither scope counts nor the raw type alone identify a user desktop.
@@ -139,10 +170,24 @@ struct SpaceBoundary: Equatable {
         guard let raw = NPReadInventory(), let inventory = SpaceInventory(raw as [AnyObject], displays: displays) else {
             return Self(inventory: nil, membership: [:])
         }
-        var result: [UInt32: WindowMembership] = [:]
+        var result: [UInt32: WindowMembership] = [:], nonManaged: [UInt32: [String]] = [:]
+        var occupantCache: [UInt64: [Any]] = [:], unreadable = Set<UInt64>()
+        func occupants(_ space: UInt64) -> [Any]? {
+            if let cached = occupantCache[space] { return cached }
+            guard !unreadable.contains(space), let raw = NPReadCatalogSpaceWindowNumbers(space) as? [Any] else {
+                unreadable.insert(space); return nil
+            }
+            occupantCache[space] = raw
+            return raw
+        }
         for id in Set(windowIDs) {
             result[id] = NPReadWindowSpaces(id).map { inventory.membership($0 as [AnyObject]) } ?? .unknown
+            if result[id] == .unknown,
+               let raw = NPReadWindowSpacesIncludingHidden(id),
+               let spaces = inventory.nonManagedMembership(window: id, raw: raw as [AnyObject], occupants: occupants) {
+                nonManaged[id] = spaces
+            }
         }
-        return Self(inventory: inventory, membership: result)
+        return Self(inventory: inventory, membership: result, nonManaged: nonManaged)
     }
 }

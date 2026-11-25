@@ -618,7 +618,10 @@ import NearpaneOrdinaryWindowRuntime
         guard permitted() else { throw StageSwitchError.busy }
         let approval = try consent(for: scope, evidence: evidence, feed: feed)
         guard approval.groups[group]?.contains(saved.id) == true else { throw StageSwitchError.ownership }
-        if candidateMode { granted = approval }
+        // Choosing a group is the explicit request to schedule its real windows.
+        // The same already-qualified Spaces route must not ask for a second click
+        // when the candidate is installed with a production attestation.
+        if candidateMode || selected?.backend == .spaces { granted = approval }
         if granted != approval {
             guard !engine.holdsWindowDispatch else { await release(); throw StageSwitchError.recoveryRequired }
             consentRequest = approval

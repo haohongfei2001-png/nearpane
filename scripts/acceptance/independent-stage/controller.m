@@ -2,6 +2,7 @@
 // Each write targets one of three windows created by this run's two fixture apps.
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
+#import <ColorSync/ColorSync.h>
 #import <libproc.h>
 #import <sys/sysctl.h>
 #import <unistd.h>
@@ -221,24 +222,31 @@ static NSDictionary *contextSnapshot(void) {
     NSMutableArray *rows=[NSMutableArray array];
     for(int i=0;i<count;i++){current+=desktop[i].current&&!desktop[i].kind;
         [rows addObject:@{@"id":@(desktop[i].id),@"type":@(desktop[i].kind),@"current":@(desktop[i].current)}];}
-    uint64_t ids[2048];int allCount=np_stage_all_spaces(c,ids,2048),checked=np_stage_checked_inventory(c,ids,2048);
+    uint64_t ids[2048];int allCount=np_stage_all_spaces(c,ids,2048);
+    NSMutableArray *allIDs=[NSMutableArray array];for(int i=0;i<allCount;i++)[allIDs addObject:@(ids[i])];
+    int checked=np_stage_checked_inventory(c,ids,2048);
     NSMutableArray *rawDisplays=[NSMutableArray array];
     void *sky=dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",RTLD_LOCAL|RTLD_NOW);
     CFArrayRef (*managed)(int)=sky?dlsym(sky,"SLSCopyManagedDisplaySpaces"):NULL;
+    uint64_t (*directHome)(int,CFStringRef)=sky?dlsym(sky,"SLSManagedDisplayGetCurrentSpace"):NULL;
     CFTypeRef raw=managed?managed(c):NULL;
     if(raw&&CFGetTypeID(raw)==CFArrayGetTypeID())for(id value in (__bridge NSArray *)raw) {
         if(![value isKindOfClass:NSDictionary.class]){[rawDisplays addObject:@{@"class":NSStringFromClass([value class])}];continue;}
         id token=value[@"Display Identifier"];NSMutableArray *roster=[NSMutableArray array];
         id spaces=value[@"Spaces"];if([spaces isKindOfClass:NSArray.class])for(id item in spaces)[roster addObject:spaceIdentity(item)];
         [rawDisplays addObject:@{@"displayIdentifier":[token isKindOfClass:NSString.class]?token:NSNull.null,
-            @"current":spaceIdentity(value[@"Current Space"]),@"spaces":roster}];
+            @"current":spaceIdentity(value[@"Current Space"]),@"spaces":roster,
+            @"directCurrentID":@([token isKindOfClass:NSString.class]&&directHome?directHome(c,(__bridge CFStringRef)token):0)}];
     }
     BOOL rawReadable=raw&&CFGetTypeID(raw)==CFArrayGetTypeID();if(raw)CFRelease(raw);
     CFDictionaryRef (*sessionReader)(void)=dlsym(RTLD_DEFAULT,"CGSessionCopyCurrentDictionary");
     CFDictionaryRef session=sessionReader?sessionReader():NULL;NSMutableDictionary *sessionFields=[NSMutableDictionary dictionary];
-    if(session&&CFGetTypeID(session)==CFDictionaryGetTypeID())for(NSString *key in
-        @[@"kCGSessionUserIDKey",@"kCGSessionOnConsoleKey",@"kCGSessionLoginDoneKey",@"CGSSessionScreenIsLocked"]) {
-        id value=((__bridge NSDictionary *)session)[key];if([value isKindOfClass:NSNumber.class])sessionFields[key]=value;
+    NSDictionary *sessionKeys=@{@"userID":(__bridge NSString *)kCGSessionUserIDKey,
+        @"onConsole":(__bridge NSString *)kCGSessionOnConsoleKey,@"loginDone":(__bridge NSString *)kCGSessionLoginDoneKey,
+        @"screenLocked":@"CGSSessionScreenIsLocked"};
+    if(session&&CFGetTypeID(session)==CFDictionaryGetTypeID())for(NSString *label in sessionKeys) {
+        id value=((__bridge NSDictionary *)session)[sessionKeys[label]];
+        if([value isKindOfClass:NSNumber.class])sessionFields[label]=value;
     }
     if(session)CFRelease(session);
     CGRect screen=CGDisplayBounds(CGMainDisplayID());__block NSMutableArray *appKitScreens=[NSMutableArray array];
@@ -251,10 +259,14 @@ static NSDictionary *contextSnapshot(void) {
                 [systemProcesses addObject:@{@"bundleIdentifier":app.bundleIdentifier,@"pid":@(app.processIdentifier)}];};
     if(NSThread.isMainThread)readScreens();else dispatch_sync(dispatch_get_main_queue(),readScreens);
     uint32_t active=0,online=0;(void)CGGetActiveDisplayList(0,NULL,&active);(void)CGGetOnlineDisplayList(0,NULL,&online);
+    CFUUIDRef mainUUID=CGDisplayCreateUUIDFromDisplayID(CGMainDisplayID());NSString *uuid=nil;
+    if(mainUUID){uuid=CFBridgingRelease(CFUUIDCreateString(NULL,mainUUID));CFRelease(mainUUID);}
     return @{@"connection":@(c),@"desktopReadCount":@(count),@"ordinaryCurrentCount":@(current),@"desktops":rows,
-        @"allSpaceCount":@(allCount),@"checkedInventoryCount":@(checked),@"rawManagedReadable":@(rawReadable),
+        @"allSpaceCount":@(allCount),@"allSpaceIDs":allIDs,@"checkedInventoryCount":@(checked),@"rawManagedReadable":@(rawReadable),
         @"rawManagedDisplays":rawDisplays,@"session":sessionFields,@"uid":@(getuid()),@"appKitScreens":appKitScreens,
         @"applicationRunning":@(applicationRunning),@"systemProcesses":systemProcesses,
+        @"symbols":@(np_stage_symbols()),@"mainDisplayUUID":uuid?:NSNull.null,
+        @"mainDisplayMirrored":[NSNumber numberWithBool:CGDisplayIsInMirrorSet(CGMainDisplayID())],
         @"activeDisplayCount":@(active),@"onlineDisplayCount":@(online),@"mainDisplay":@(CGMainDisplayID()),
         @"mainDisplayBounds":@[@(screen.origin.x),@(screen.origin.y),@(screen.size.width),@(screen.size.height)]};
 }

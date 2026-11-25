@@ -503,6 +503,40 @@ fn two_exact_siblings_use_one_group_space_and_bystander_never_moves() {
     assert!(s.sys.moved.iter().all(|m| m.1 != 3));
 }
 #[test]
+fn uninitialized_inactive_desktop_is_observed_without_becoming_an_authorized_home() {
+    let (mut s, a) = setup();
+    let home = s.sys.desktops(1).unwrap()[0];
+    s.sys.managed_roster = vec![Desktop { id: 1, uuid: [0; 16], current: 0, ..home }, home];
+    s.sys.spaces.insert(1);
+    assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
+    assert_eq!(s.run(&request(1, HIDE, 2), &a).status, PASS);
+    assert_eq!(s.run(&request(1, SHOW, 3), &a).status, PASS);
+    assert_eq!(s.sys.spaces, Rows::from([1, 10]));
+    assert_eq!(s.sys.managed_roster[0].uuid, [0; 16], "no fabricated native identity");
+    let count = s.sys.moved.len();
+    let mut invented = request(1, HIDE, 4);
+    invented.native_id = 1;
+    invented.native_space = [9; 16];
+    assert_ne!(s.run(&invented, &a).status, PASS);
+    assert_eq!(s.sys.moved.len(), count);
+}
+#[test]
+fn unknown_uuid_never_authorizes_current_or_retained_home_and_stays_in_the_baseline() {
+    let (mut s, a) = setup();
+    let home = s.sys.desktops(1).unwrap()[0];
+    let bound = Lease::from(&request(1, HIDE, 1)).unwrap().slot.home;
+    s.sys.managed_roster = vec![Desktop { id: 1, uuid: [0; 16], current: 0, ..home }, home];
+    let baseline = s.topology(1, bound).unwrap();
+    s.sys.managed_roster[0].uuid = [7; 16];
+    assert!(s.scope(1, bound, &baseline, &a).is_err(), "metadata change is still an interruption");
+    for current in [0, 1] {
+        s.sys.managed_roster = vec![Desktop { uuid: [0; 16], current, ..home },
+            Desktop { id: 11, uuid: [8; 16], current: 1-current, ..home }];
+        assert!(s.topology(1, bound).is_err(), "unknown current={current} home is never actionable");
+    }
+    assert!(s.sys.moved.is_empty());
+}
+#[test]
 fn different_catalogue_generation_cannot_resume_a_parked_window() {
     let (mut s, a) = setup();
     assert_eq!(s.run(&request(1, TRIAL, 1), &a).status, PASS);
@@ -876,4 +910,21 @@ fn changing_external_focus_stops_launch_and_only_original_owner_can_clean_the_ca
     assert_eq!(cleaned.flags & PROBE_CLEAN_FLAGS, PROBE_CLEAN_FLAGS);
     assert!(s.sys.moved.iter().all(|row| row.1 == 77));
     assert!(!s.sys.windows.contains_key(&77) && s.route.is_none());
+}
+#[test]
+fn release_after_host_loss_cleans_the_original_canary_without_focus_or_route_qualification() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.lose_focus_on_hide = true;
+    assert_ne!(s.run(&launch_request(LAUNCH), &guard).status, PASS);
+    assert!(s.sys.focus_changed && !s.owned.is_empty());
+    let released = s.run(&launch_request(RELEASE_SPACES), &guard);
+    assert_eq!((released.status, released.owned), (PASS, 0));
+    assert_eq!(released.flags & (HEALTHY | OWNED), 0);
+    assert!(s.sys.focus_changed, "cleanup must not steal focus back from the user");
+    assert!(s.owned.is_empty() && s.slots.is_empty() && s.route.is_none());
+    assert!(s.sys.moved.iter().all(|row| row.1 == 77));
+    assert!(!s.sys.windows.contains_key(&77));
+    assert_eq!(s.sys.spaces, Rows::from([10]));
+    assert_ne!(s.run(&request(1, HIDE, 9), &guard).status, PASS);
 }

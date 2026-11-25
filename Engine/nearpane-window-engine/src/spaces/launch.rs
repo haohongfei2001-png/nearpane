@@ -187,7 +187,7 @@ impl<P: Platform> State<P> {
             Ok(())
         })();
         // There is no route authority while cleanup is incomplete, even if a move returned success.
-        let cleanup = self.finish_canary(c, route, a);
+        let cleanup = self.finish_canary(c, route, a, true);
         action?;
         cleanup?;
         if self.failed {
@@ -196,7 +196,7 @@ impl<P: Platform> State<P> {
         self.route = Some(route);
         Ok(())
     }
-    pub(super) fn finish_canary(&mut self, c: i32, route: Route, a: &impl Authority) -> Check<()> {
+    pub(super) fn finish_canary(&mut self, c: i32, route: Route, a: &impl Authority, require_focus: bool) -> Check<()> {
         a.active()?;
         let Some(run) = self.launch.as_ref() else {
             // The worker never acquired a panel or created a Space. Independently bound
@@ -213,7 +213,7 @@ impl<P: Platform> State<P> {
                 || !fixed(&top, &self.sys.desktops(c)?)
                 || [panel, after]
                     .iter()
-                    .any(|p| p.opened != 0 || p.absent != 1 || p.focus_same != 1)
+                    .any(|p| p.opened != 0 || p.absent != 1 || (require_focus && p.focus_same != 1))
             {
                 return Err(unknown(Why::Cleanup));
             }
@@ -242,7 +242,7 @@ impl<P: Platform> State<P> {
         let (lease, frame) = (run.lease, run.frame);
         if !run.restored {
             let p = self.sys.canary(PanelOp::Read, a)?;
-            if p.focus_same != 1 {
+            if require_focus && p.focus_same != 1 {
                 return Err(unknown(Why::ProbeFocus));
             }
             if let Some(lease) = lease {
@@ -286,7 +286,7 @@ impl<P: Platform> State<P> {
             let run = self.launch.as_ref().unwrap();
             let p = self.sys.canary(PanelOp::Read, a)?;
             let number = lease.map_or(p.number, |l| l.window.number);
-            if p.focus_same != 1 {
+            if require_focus && p.focus_same != 1 {
                 return Err(unknown(Why::ProbeFocus));
             }
             if p.number != 0 && p.number != number {

@@ -125,6 +125,37 @@ struct SpaceInventoryTests {
         }
         #expect(inventory.scopes[0].records.map(\.isCurrent) == [true,false])
     }
+    @Test func hiddenCatalogueExclusionNeedsBothDirectionsOutsideEveryManagedSpace() throws {
+        let inventory = try #require(SpaceInventory(scope(records), displays: displays))
+        func read(_ raw: Any?, reverse: [Any]? = [42]) -> [String]? {
+            inventory.nonManagedMembership(window: 42, raw: raw, occupants: { _ in reverse })
+        }
+        #expect(read([11]) == ["11"])
+        #expect(read([12,11]) == ["11","12"])
+        for raw: Any in [[], [5], [5,11], [11,11], [true], ["11"], [11.1], [-1], [0]] {
+            #expect(read(raw) == nil)
+        }
+        for reverse: [Any]? in [nil, [], [41], [42,42], [true], ["42"], [42.0], [42,0]] {
+            #expect(read([11], reverse: reverse) == nil)
+        }
+        // Missing ordinary membership by itself remains unknown.
+        #expect(inventory.membership([11]) == .unknown)
+    }
+    @Test func hiddenCatalogueExclusionCannotHideVisibleChangingOrUnmeasuredRows() throws {
+        let inventory = try #require(SpaceInventory(scope(records), displays: displays))
+        let first = SpaceBoundary(inventory: inventory, membership: [42: .unknown], nonManaged: [42:["11"]])
+        func excluded(_ last: SpaceBoundary?, before: Bool? = false, after: Bool? = false, active: Bool? = false) -> Bool {
+            first.excludesNonManagedWindow(42, through: last, firstOnscreen: before, lastOnscreen: after, active: active)
+        }
+        #expect(excluded(first))
+        #expect(!excluded(first, before: true) && !excluded(first, after: true) && !excluded(first, active: true))
+        #expect(!excluded(first, before: nil) && !excluded(first, after: nil) && !excluded(nil))
+        #expect(!excluded(first, active: nil))
+        #expect(!excluded(.init(inventory: inventory, membership: [42:.unknown])))
+        #expect(!excluded(.init(inventory: inventory, membership: [42:.unknown], nonManaged: [42:["12"]])))
+        #expect(!excluded(.init(inventory: inventory, membership: [42:.known(recordIDs:["5"])], nonManaged: [42:["11"]])))
+        #expect(!excluded(.init(inventory: nil, membership: [42:.unknown], nonManaged: [42:["11"]])))
+    }
     @Test func unknownDisplayMalformedCurrentAndReusedIDsRejectInventory() {
         #expect(SpaceInventory(scope(records, current: 7), displays: displays) == nil)
         #expect(SpaceInventory(scope(records + [records[0]]), displays: displays) == nil)

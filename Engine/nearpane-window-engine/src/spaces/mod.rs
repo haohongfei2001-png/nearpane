@@ -349,9 +349,12 @@ impl<P: Platform> State<P> {
         for d in &list {
             if d.id == 0
                 || d.display == [0; 16]
-                || d.uuid == [0; 16]
                 || !ids.insert(d.id)
-                || !scopes.insert((d.display, d.uuid))
+                // An uninitialized inactive Desktop remains part of the exact
+                // topology, but cannot be the current or retained home scope.
+                || (d.uuid == [0; 16] && (d.current != 0 ||
+                    (d.display == home.display && d.id == home.id)))
+                || (d.uuid != [0; 16] && !scopes.insert((d.display, d.uuid)))
             {
                 return Err(unknown(Why::Topology));
             }
@@ -893,7 +896,10 @@ impl<P: Platform> State<P> {
         a.active()?;
         if self.launch.as_ref().is_some_and(|p| !p.cleaned) {
             let route = a.approved_route().ok_or(Fault(UNSUPPORTED, Why::Disabled))?;
-            self.finish_canary(c, route, a)?;
+            // The Host/old foreground can have exited. Release proves only that
+            // our exact panel, windows and Space are gone; it never qualifies a
+            // launch or changes the user's newer focus to recreate the old state.
+            self.finish_canary(c, route, a, false)?;
         }
         self.reap_departed();
         let route = self.route.or_else(|| a.approved_route())
@@ -981,7 +987,7 @@ impl<P: Platform> State<P> {
                 if r.operation == LAUNCH {
                     self.start_canary(c, route, r.intent, a)?;
                 } else {
-                    self.finish_canary(c, route, a)?;
+                    self.finish_canary(c, route, a, true)?;
                 }
                 let proof = self.launch.as_ref().ok_or(unknown(Why::Readback))?;
                 out.native_id = proof.home.map_or(0, |h| h.id);

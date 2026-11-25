@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 ENGINE = ROOT / "Engine/nearpane-window-engine"
 FRAMEWORKS = ("AppKit", "Foundation", "CoreGraphics", "ApplicationServices", "Security", "QuartzCore",
-              "CoreFoundation", "Carbon", "ImageIO", "ScreenCaptureKit")
+              "CoreFoundation", "Carbon", "ImageIO", "ScreenCaptureKit", "ColorSync")
 
 
 def build(archive: Path, out: Path, *, controller_only=False, stdout=None, stderr=None):
@@ -61,6 +61,17 @@ def build(archive: Path, out: Path, *, controller_only=False, stdout=None, stder
         execute(["codesign", "--verify", "--strict", str(helper)])
         apps["SplitViewHelper"] = {"bundle": identifier, "executable": str(helper),
                                    "sha256": hashlib.sha256(helper.read_bytes()).hexdigest()}
+        workspace = out / "CIWorkspace"
+        execute(["xcrun", "swiftc", "-parse-as-library", "-D", "SECONDARY_FOCUS_OBSERVER", "-import-objc-header",
+                 str(read_only / "include/ReadOnlySpaces.h"), str(HERE / "ci-workspace.swift"),
+                 str(HERE.parent / "observe-secondary-space-controls.swift"), str(reader),
+                 "-framework", "ColorSync", "-o", str(workspace)])
+        identifier = "com.holdsnow.nearpane.independent-stage-ci-workspace"
+        execute(["codesign", "--force", "--sign", os.environ.get("NP_ENGINE_FIXTURE_SIGN_IDENTITY", "-"),
+                 "--timestamp=none", "--identifier", identifier, str(workspace)])
+        execute(["codesign", "--verify", "--strict", str(workspace)])
+        apps["CIWorkspace"] = {"bundle": identifier, "executable": str(workspace),
+                               "sha256": hashlib.sha256(workspace.read_bytes()).hexdigest()}
     (out / "build.json").write_text(json.dumps({"schema": 1, "apps": apps,
         "archiveSHA256": hashlib.sha256(archive.read_bytes()).hexdigest()}, indent=2) + "\n")
     return apps

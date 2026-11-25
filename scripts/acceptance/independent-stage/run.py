@@ -95,7 +95,9 @@ def source_checks(out, env):
             checks["spacesWorkerProtocol"] = execute([worker, "--protocol-selftest"], out, "spaces-worker-protocol", env, 30)
         try:
             with (out / "probe-build.log").open("x") as stdout, (out / "probe-build.stderr.log").open("x") as stderr:
-                probe = build(archive, out / "controller-kit", controller_only=True,
+                # Compile every acceptance executable without launching its windows
+                # or system actions. Only Controller's read-only context runs here.
+                probe = build(archive, out / "controller-kit",
                               stdout=stdout, stderr=stderr)["Controller"]["executable"]
             checks["readOnlyContext"] = execute([probe, "--inspect-context", out / "windowserver-context.json"],
                                                 out, "read-only-context", dict(env, NP_SPACES_TOPOLOGY_TRACE="1"), 30)
@@ -103,7 +105,7 @@ def source_checks(out, env):
             checks["readOnlyContext"] = {"status": "FAIL", "reason": type(error).__name__ + ": " + str(error)}
     # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
     pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
-                        "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus"))
+                        "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus", "SpaceInventoryTests"))
     checks["swift"] = execute(["bash", "scripts/test.sh", "--jobs", "4", "--filter", pattern,
                                 "--xunit-output", out / "swift.xml"], out, "swift", env, 1200)
     if checks["swift"]["status"] == "PASS":
@@ -190,6 +192,25 @@ def close_fixture(directory, process, nonce):
         return {"exit": process.returncode, "command": "directChildTermination"}
 
 
+class PreflightBlocked(RuntimeError):
+    pass
+
+
+def ci_workspace(apps, out, env, operation):
+    name = "ci-workspace-" + operation
+    process = execute([apps["CIWorkspace"]["executable"], operation, out / "ci-workspace-state.json"],
+                      out, name, env, 75)
+    try:
+        receipt = json.loads((out / (name + ".log")).read_text())
+        if not isinstance(receipt, dict):
+            raise ValueError("objectReceiptRequired")
+    except (OSError, ValueError):
+        receipt = {"status": "UNKNOWN", "reason": "ciWorkspaceReceiptUnavailable"}
+    receipt["process"] = process
+    atomic(out / (name + "-receipt.json"), receipt)
+    return receipt
+
+
 def runtime_checks(out, env, archive, host, iterations, revision):
     out.mkdir()
     env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1")
@@ -200,9 +221,17 @@ def runtime_checks(out, env, archive, host, iterations, revision):
     children, cleanup = [], []
     engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
     product = None
+    workspace = {"status": "NOT_RUN", "reason": "notGitHubHostedAcceptance"}
+    workspace_cleanup = None
     phase = "fixturePreparation"
     with ExitStack() as files:
         try:
+            if env.get("GITHUB_ACTIONS") == "true" and env.get("GITHUB_REPOSITORY") == "haohongfei2001-png/nearpane":
+                phase = "ciWorkspacePreparation"
+                workspace = ci_workspace(apps, out, env, "prepare")
+                if workspace.get("status") != "READY":
+                    raise PreflightBlocked("ciWorkspace: " + workspace.get("reason", "ordinaryIdentityUnavailable"))
+            phase = "fixturePreparation"
             for name, count, offset in (("FixtureA", 2, 0), ("FixtureB", 1, 560)):
                 directory = out / name
                 directory.mkdir(mode=0o700)
@@ -242,7 +271,8 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                     product["hostCrashRecovery"] = crash["status"]
                     product["hostCrashReceipt"] = crash
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-            failure = {"status": "UNKNOWN", "phase": phase, "reason": type(error).__name__ + ": " + str(error)}
+            failure = {"status": "BLOCKED" if isinstance(error, PreflightBlocked) else "UNKNOWN", "phase": phase,
+                       "reason": type(error).__name__ + ": " + str(error)}
             if phase in ("productCandidate", "productCrash"):
                 product = failure
             else:
@@ -251,8 +281,13 @@ def runtime_checks(out, env, archive, host, iterations, revision):
             for directory, child in reversed(children):
                 cleanup.append(close_fixture(directory, child, nonce))
             atomic(out / "fixture-cleanup.json", cleanup)
+            if (out / "ci-workspace-state.json").is_file():
+                workspace_cleanup = ci_workspace(apps, out, env, "cleanup")
     result = evaluate(engine, product)
-    result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup)
+    result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup,
+                  ciWorkspacePreparation=workspace, ciWorkspaceCleanup=workspace_cleanup)
+    if workspace_cleanup and (workspace_cleanup.get("status") != "READY" or workspace_cleanup.get("cleanup") is not True):
+        result.update(status="UNKNOWN", overall="INCOMPLETE", reason="ciOwnedWorkspaceCleanupUnconfirmed")
     atomic(out / "summary.json", result)
     return result
 

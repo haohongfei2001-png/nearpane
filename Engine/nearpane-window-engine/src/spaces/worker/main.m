@@ -186,8 +186,12 @@ int main(int argc,const char **argv) {
             int flags=fcntl(fd,F_GETFL);if(flags<0 || fcntl(fd,F_SETFL,flags|O_NONBLOCK)<0)return 4;
         }
         [NSApplication sharedApplication];[NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];[NSApp finishLaunching];
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
-            int code=serve();dispatch_async(dispatch_get_main_queue(),^{exit(code);});
+        dispatch_async(dispatch_get_main_queue(),^{
+            // Start only after the native event loop services its first callback.
+            // The callback itself does not wait for Rust, IPC or Accessibility.
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+                int code=serve();dispatch_async(dispatch_get_main_queue(),^{exit(code);});
+            });
         });
         [NSApp run];return 5;
     }

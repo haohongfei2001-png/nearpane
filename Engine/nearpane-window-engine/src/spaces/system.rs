@@ -209,7 +209,10 @@ mod mac {
                 },
                 Witness::Canary(token) => {
                     let p = panel_read(token, launch::PanelOp::Read, None)?;
-                    p.window() == Some(w) && p.registered == 1 && p.focus_same == 1
+                    // Focus is a launch-qualification observation, not part of
+                    // this exact retained panel's identity. Release must still
+                    // restore it after the Host or old foreground has disappeared.
+                    p.window() == Some(w) && p.registered == 1
                 }
             };
             if !valid
