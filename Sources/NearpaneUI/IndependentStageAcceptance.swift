@@ -2,6 +2,7 @@ import AppKit
 import CReadOnlySpaces
 import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
+import QuartzCore
 
 /// An isolated app exercises the real R4 views and their production click handlers.
 /// The configuration names only the two signed fixture processes created by run.py.
@@ -17,6 +18,7 @@ import NearpaneOrdinaryWindowRuntime
         let schema: Int, nonce: UUID, output: String, profile: String, iterations: Int
         let purpose: String?
         let systemHelper: String?
+        let r4Controller: String?
         let fixtures: [Fixture]
     }
     private struct Target {
@@ -100,6 +102,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         panels.update(screens: SystemScreens.geometry())
         var actualInputs = 0
+        var externalR4ClientConfirmed = false
         var switchLatenciesMS = [Double]()
         var productPassed = false
         var startedWrites = false
@@ -215,15 +218,45 @@ import NearpaneOrdinaryWindowRuntime
                                     exactMember: Bool = false) async throws {
                 let target = targets[index]
                 let windowID = "current-desktop-window:\(target.fixture.pid):\(target.window.number)"
-                let ids: Set<String> = exactMember ? [windowID] : Set(["native-held-group:" + group.uuidString,
+                var ids: Set<String> = exactMember ? [windowID] : Set(["native-held-group:" + group.uuidString,
                     "stage-group-select:" + group.uuidString, windowID])
-                guard let button = await waitButton(ids, panel: controller.window) else { throw Failure(reason: "realR4ButtonUnavailable") }
-                startedWrites = true
-                let pressedAt = ProcessInfo.processInfo.systemUptime
-                guard button.accessibilityPerformPress() else { throw Failure(reason: "realR4ButtonRefused") }
-                actualInputs += 1
+                if exactMember, let sample = feed.snapshot,
+                   let observed = sample.windows.first(where: { $0.metadata?.pid == target.fixture.pid && $0.metadata?.number == target.window.number }),
+                   let catalog = NativeSpaceCatalog(sample, displayID: observed.displayID, now: .now, uptime: ProcessInfo.processInfo.systemUptime) {
+                    ids.insert("native-space-window:\(catalog.display.id):\(catalog.current.id):\(target.fixture.pid):\(target.window.number)")
+                }
+                controller.window?.contentView?.layoutSubtreeIfNeeded()
+                controller.window?.contentView?.displayIfNeeded()
+                CATransaction.flush()
+                if actualInputs == 0 { savePanel(controller.window, to: output.appendingPathComponent("r4-baseline.png")) }
+                let button: (any NSAccessibilityProtocol)?
+                if externalR4ClientConfirmed { button = nil }
+                else { button = await waitButton(ids, panel: controller.window) { report["lastR4ButtonSearch"] = $0 } }
+                var pressedAt = ProcessInfo.processInfo.systemUptime
+                var route = "inProcessAccessibilityButton"
+                if let button {
+                    startedWrites = true
+                    guard button.accessibilityPerformPress() else { throw Failure(reason: "realR4ButtonRefused") }
+                    actualInputs += 1
+                } else {
+                    if !externalR4ClientConfirmed { savePanel(controller.window, to: output.appendingPathComponent("r4-button-unavailable.png")) }
+                    guard let helper = config.r4Controller, let panel = controller.window else { throw Failure(reason: "realR4ButtonUnavailable") }
+                    let priorWrites = startedWrites
+                    startedWrites = true
+                    let external = await pressR4Externally(ids, panel: panel, helper: helper, configuration: url,
+                                                          config: config, targets: targets, output: output)
+                    report["lastExternalR4Press"] = external
+                    if external["issued"] as? Bool == false { startedWrites = priorWrites }
+                    if external["issued"] as? Bool == true { actualInputs += 1 }
+                    guard external["status"] as? String == "ISSUED", external["issued"] as? Bool == true,
+                          external["axError"] as? Int == 0 else { throw Failure(reason: "realExternalR4ButtonNotAccepted") }
+                    externalR4ClientConfirmed = true
+                    if let inputUptime = external["inputUptime"] as? Double, inputUptime.isFinite,
+                       inputUptime >= pressedAt, inputUptime <= ProcessInfo.processInfo.systemUptime { pressedAt = inputUptime }
+                    route = "externalAXPress"
+                }
                 record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
-                    "step": phase, "exactMember": exactMember])
+                    "step": phase, "exactMember": exactMember, "route": route])
                 let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8)
                 guard let readings else { throw Failure(reason: "R4SwitchReadbackFailed") }
                 let latencyMS = (ProcessInfo.processInfo.systemUptime - pressedAt) * 1000
@@ -317,13 +350,10 @@ import NearpaneOrdinaryWindowRuntime
                        spaces[0] != first.home, cg(first.window.number)?.visible == false { retired = true; break }
                     feed.changed(); try await Task.sleep(for: .milliseconds(80))
                 }
-                if retired, let group = groupIDs[first.window.number],
-                   let button = await waitButton(["native-held-group:" + group.uuidString], panel: controller.window),
-                   button.accessibilityPerformPress() {
-                    actualInputs += 1
-                    let restored = await waitForState(targets, visible: [first.window.number], focus: first, seconds: 6)
-                    report["yellowButtonRouting"] = restored == nil ? "FAIL" : "PASS"
-                    record("yellowButtonRouting", ["retiredIntoHiddenSpace": retired, "restored": restored != nil])
+                if retired, let group = groupIDs[first.window.number] {
+                    try await selectR4(0, group: group, visible: [first.window.number], phase: "yellowButtonRestore")
+                    report["yellowButtonRouting"] = "PASS"
+                    record("yellowButtonRouting", ["retiredIntoHiddenSpace": true, "restored": true])
                 } else { report["yellowButtonRouting"] = "FAIL" }
             } else { report["yellowButtonRouting"] = "BLOCKED" }
             productPassed = true
@@ -840,27 +870,106 @@ import NearpaneOrdinaryWindowRuntime
         return nil
     }
 
-    private static func waitButton(_ ids: Set<String>, panel: NSWindow?) async -> (any NSAccessibilityProtocol)? {
+    private static func pressR4Externally(_ ids: Set<String>, panel: NSWindow, helper: String,
+                                         configuration: URL, config: Configuration,
+                                         targets: [Target], output: URL) async -> [String: Any] {
+        guard let first = targets.first, panel.isVisible, let number = UInt32(exactly: panel.windowNumber), number > 0,
+              let host = try? NearpaneCore.OrdinaryProcessImage.read(getpid()) else {
+            return ["status": "BLOCKED", "issued": false, "reason": "parentPanelIdentityUnavailable"]
+        }
+        var kit = URL(fileURLWithPath: first.fixture.executable).resolvingSymlinksInPath()
+        for _ in 0..<4 { kit.deleteLastPathComponent() }
+        let binary = URL(fileURLWithPath: helper).resolvingSymlinksInPath()
+        let expected = kit.appendingPathComponent("Controller.app/Contents/MacOS/Controller").resolvingSymlinksInPath()
+        guard binary.path == expected.path else {
+            return ["status": "BLOCKED", "issued": false, "reason": "fixtureScopedControllerRequired"]
+        }
+        let stem = "r4-press-" + UUID().uuidString.lowercased()
+        let requestURL = output.appendingPathComponent(stem + ".request.json")
+        let resultURL = output.appendingPathComponent(stem + ".result.json")
+        let request: [String: Any] = ["schema": 1, "nonce": config.nonce.uuidString.lowercased(),
+            "configuration": configuration.resolvingSymlinksInPath().path, "result": resultURL.path,
+            "host": ["pid": getpid(), "birth": host.launch, "executable": host.executable.path, "number": number],
+            "identifiers": ids.sorted()]
+        let child = Process(); child.executableURL = binary; child.arguments = ["--press-r4", requestURL.path]
+        let logURL = output.appendingPathComponent(stem + ".log"), errorURL = output.appendingPathComponent(stem + ".stderr.log")
+        _ = FileManager.default.createFile(atPath: logURL.path, contents: Data())
+        _ = FileManager.default.createFile(atPath: errorURL.path, contents: Data())
+        let log = try? FileHandle(forWritingTo: logURL), error = try? FileHandle(forWritingTo: errorURL)
+        child.standardOutput = log ?? FileHandle.nullDevice; child.standardError = error ?? FileHandle.nullDevice
+        defer { try? log?.close(); try? error?.close() }
+        var launched = false
+        do {
+            try JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]).write(to: requestURL, options: .withoutOverwriting)
+            try child.run(); launched = true
+            let until = ContinuousClock.now.advanced(by: .seconds(12))
+            while child.isRunning, ContinuousClock.now < until { try await Task.sleep(for: .milliseconds(40)) }
+            guard !child.isRunning else {
+                child.terminate()
+                return ["status": "UNKNOWN", "reason": "externalR4PressTimedOut", "request": requestURL.lastPathComponent]
+            }
+            guard let data = try? Data(contentsOf: resultURL),
+                  var result = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  (result["nonce"] as? String).flatMap(UUID.init(uuidString:)) == config.nonce else {
+                return ["status": "UNKNOWN", "reason": "externalR4PressReceiptUnavailable", "request": requestURL.lastPathComponent]
+            }
+            result["processExit"] = child.terminationStatus; result["receipt"] = resultURL.lastPathComponent
+            if child.terminationReason != .exit || child.terminationStatus != 0 { result["status"] = "UNKNOWN" }
+            return result
+        } catch {
+            if child.isRunning { child.terminate() }
+            var result: [String: Any] = ["status": launched ? "UNKNOWN" : "BLOCKED", "reason": "externalR4PressFailed",
+                                         "detail": String(describing: error), "request": requestURL.lastPathComponent]
+            if !launched { result["issued"] = false }
+            return result
+        }
+    }
+
+    private static func waitButton(_ ids: Set<String>, panel: NSWindow?,
+                                   diagnostic: (([String: Any]) -> Void)? = nil) async -> (any NSAccessibilityProtocol)? {
         guard let panel else { return nil }
         let until = ContinuousClock.now.advanced(by: .seconds(5))
         while ContinuousClock.now < until {
-            if let button = button(ids, panel: panel) { return button }
+            if let button = button(ids, panel: panel, diagnostic: diagnostic) { return button }
             try? await Task.sleep(for: .milliseconds(80))
         }
         return nil
     }
-    private static func button(_ ids: Set<String>, panel: NSWindow) -> (any NSAccessibilityProtocol)? {
-        guard panel.isVisible else { return nil }
+    private static func button(_ ids: Set<String>, panel: NSWindow,
+                               diagnostic: (([String: Any]) -> Void)? = nil) -> (any NSAccessibilityProtocol)? {
+        guard panel.isVisible else {
+            diagnostic?(["panelVisible": false, "expectedIDs": ids.sorted()]); return nil
+        }
         var queue: [AnyObject] = [panel], visited = Set<ObjectIdentifier>()
         var matches = [any NSAccessibilityProtocol]()
+        var rows = [[String: Any]](), nonProtocol = [String: Int](), protocolCount = 0, complete = true
         while let object = queue.popLast() {
             guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
-            guard visited.count <= 1024, let node = object as? any NSAccessibilityProtocol else { continue }
-            if node.accessibilityRole() == .button, node.isAccessibilityEnabled(),
-               ids.contains(node.accessibilityIdentifier() ?? ""), node.accessibilityWindow() as? NSWindow === panel,
-               panel.frame.intersects(node.accessibilityFrame()) { matches.append(node) }
-            queue.append(contentsOf: (node.accessibilityChildren() ?? []).prefix(128).map { $0 as AnyObject })
+            guard visited.count <= 1024 else { complete = false; break }
+            let type = String(reflecting: Swift.type(of: object))
+            guard let node = object as? any NSAccessibilityProtocol else {
+                nonProtocol[type, default: 0] += 1; continue
+            }
+            protocolCount += 1
+            let role = node.accessibilityRole(), id = node.accessibilityIdentifier(), owner = node.accessibilityWindow()
+            let frame = node.accessibilityFrame(), enabled = node.isAccessibilityEnabled()
+            let sameWindow = owner as? NSWindow === panel, intersects = panel.frame.intersects(frame)
+            if role == .button, enabled, ids.contains(id ?? ""), sameWindow, intersects { matches.append(node) }
+            let children = node.accessibilityChildren() ?? []
+            if rows.count < 128 {
+                rows.append(["class": type, "role": role?.rawValue ?? "nil", "identifier": id ?? "nil",
+                    "enabled": enabled, "windowClass": owner.map { String(reflecting: Swift.type(of: $0)) } ?? "nil",
+                    "samePanelWindow": sameWindow, "frame": NSStringFromRect(frame), "intersectsPanel": intersects,
+                    "children": children.count])
+            }
+            guard children.count <= 128 else { complete = false; break }
+            queue.append(contentsOf: children.map { $0 as AnyObject })
         }
+        diagnostic?(["panelVisible": panel.isVisible, "panelNumber": panel.windowNumber,
+            "panelFrame": NSStringFromRect(panel.frame), "expectedIDs": ids.sorted(), "visited": visited.count,
+            "protocolNodes": protocolCount, "nonProtocolClasses": nonProtocol, "completeTraversal": complete,
+            "matchingButtons": matches.count, "nodes": rows])
+        guard complete else { return nil }
         // Prefer the group selector when a member and its group both have an input.
         if let group = matches.first(where: { ($0.accessibilityIdentifier() ?? "").hasPrefix("stage-group-select:") }) { return group }
         return matches.count == 1 ? matches[0] : nil

@@ -229,7 +229,8 @@ def runtime_checks(out, env, archive, host, iterations, revision):
         return result
     nonce = str(uuid.uuid4())
     config = {"schema": 1, "nonce": nonce, "output": str(out), "iterations": iterations, "fixtures": [],
-              "systemHelper": apps["SplitViewHelper"]["executable"]}
+              "systemHelper": apps["SplitViewHelper"]["executable"],
+              "r4Controller": apps["Controller"]["executable"]}
     children, cleanup = [], []
     engine = {"status": "NOT_RUN", "reason": "fixturePreparationIncomplete"}
     product = None

@@ -90,6 +90,16 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
    A separate `afa7b8f8` run reached the canary but returned membership detail 207. The omitted
    upstream own-panel `CATransaction.flush()` has been restored and conditional phase diagnostics
    added; neither change is claimed to have resolved that run before a new physical result exists.
+9. The subsequent `bbc08a09` normal-engine diagnostic passed its launch and all three A→B→C→A
+   cycles, including 22 verified hide/show requests. The aggregate-ownership correction is therefore
+   physically exercised. Yellow-button adoption was then refused because an earlier health read had
+   already stopped scheduling; release failed an AX/minimized-state read and a same-app sibling
+   remained in hidden Space 24. This is a real cleanup failure, not a reporting-only issue. The original
+   failure and retained window are preserved in [the diagnostic evidence](../verification/independent-stage/cloud-bbc08a09-diagnostics/README.md).
+   Precise health/AX diagnostics and bounded release retries retain the original lease and never
+   substitute an unknown attribute with a false value. The separate full `81669d13` R4 run confirmed
+   a complete catalogue, three distinct groups and the visible formal panel; its button search still
+   stopped before any R4 input. Neither result grants a complete product or target-machine qualification.
 
 ### Route A: not a product dependency
 

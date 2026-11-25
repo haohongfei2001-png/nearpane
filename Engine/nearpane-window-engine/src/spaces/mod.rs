@@ -88,6 +88,11 @@ struct Lease {
     lifetime: Id,
     generation: Id,
 }
+fn trace_fault(phase: &str, lease: Lease, parking: u64, Fault(status, why): Fault) {
+    if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_none() { return; }
+    eprintln!("{{\"event\":\"spacesLeaseFault\",\"phase\":\"{phase}\",\"status\":{status},\"detail\":{},\"pid\":{},\"birth\":{},\"window\":{},\"home\":{},\"parking\":{parking}}}",
+        why as u32, lease.window.pid, lease.window.birth, lease.window.number, lease.slot.home.id);
+}
 impl Lease {
     fn from(r: &Request) -> Check<Self> {
         let valid = r.window > 0
@@ -497,7 +502,11 @@ impl<P: Platform> State<P> {
     }
     fn view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64, hidden: bool) -> Check<Seen> {
         let window = lease.window;
-        if self.sys.minimized(w)? { return Err(unknown(Why::MinimizedOrAX)); }
+        if self.sys.minimized(w).inspect_err(|&fault| trace_fault("view-minimized-read", lease, sid, fault))? {
+            let fault = unknown(Why::MinimizedOrAX);
+            trace_fault("view-confirmed-minimized", lease, sid, fault);
+            return Err(fault);
+        }
         let target = if hidden { sid } else { lease.slot.home.id };
         let a = self.sys.see(window, w)?;
         let membership = self.sys.spaces(c, window.number)?;
@@ -740,7 +749,7 @@ impl<P: Platform> State<P> {
         if saved.lease != lease {
             return Err(fail(Why::Identity));
         }
-        if self.sys.minimized(&saved.witness)? {
+        if self.sys.minimized(&saved.witness).inspect_err(|&fault| trace_fault("restore-minimized-read", lease, sid, fault))? {
             // An interrupted mini adoption still belongs to this lease. Return its
             // real Space membership while preserving its existing Dock minimization.
             self.scope(c, lease.slot.home, top, a)?;
@@ -859,17 +868,25 @@ impl<P: Platform> State<P> {
         let index = self.tick_cursor % self.owned.len();
         self.tick_cursor = index + 1;
         let lease = self.owned.values().nth(index).unwrap().lease;
+        let mut phase = "health-connection";
+        let mut parking = 0;
         let result = (|| -> Check<()> {
             let c = self.connection.ok_or(unknown(Why::Connection))?;
             let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
+            parking = sid;
             let deadline = Passive(now + Duration::from_millis(650));
+            phase = "health-occupants";
             self.occupants(c, lease.slot, sid)?;
+            phase = "health-owned-readback";
             if !self.read(c, lease, &deadline)?.1 {
                 return Err(unknown(Why::Membership));
             }
             Ok(())
         })();
-        if result.is_err() {
+        if let Err(fault) = result {
+            // Preserve the first actual failure before the sticky restore-only
+            // state makes a later request report only RestoreFirst.
+            trace_fault(phase, lease, parking, fault);
             self.failed = true;
         }
     }
@@ -879,6 +896,9 @@ impl<P: Platform> State<P> {
             .retain(|t| now.duration_since(*t) < STRIKE_WINDOW);
         self.strikes.push_back(now);
         if self.strikes.len() >= STRIKES {
+            if !self.failed && std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesLateHealthFailure\",\"strikes\":{}}}", self.strikes.len());
+            }
             self.failed = true;
         }
     }
@@ -907,7 +927,10 @@ impl<P: Platform> State<P> {
         let leases: Vec<_> = self.owned.values().map(|b| b.lease).collect();
         let mut error = None;
         for lease in leases {
-            if let Err(e) = self.show(c, lease, route, a) { error = Some(e); }
+            if let Err(e) = self.show(c, lease, route, a) {
+                trace_fault("release-member", lease, self.slots.get(&lease.slot).map_or(0, |s| s.id), e);
+                error = Some(e);
+            }
         }
         let empty: Vec<_> = self.slots.keys().copied()
             .filter(|slot| !self.owned.values().any(|b| b.lease.slot == *slot)).collect();

@@ -22,6 +22,7 @@ static NPStageDesktop home;
 static NSUUID *generation;
 static NSMutableArray<NSMutableDictionary *> *targets;
 static NSUInteger writeCount, setupAXWrites, fixtureFocusCommands;
+static BOOL lastRequestFinished;
 
 static void pump(double seconds) {
     if(NSThread.isMainThread)[NSRunLoop.mainRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:seconds]];
@@ -81,18 +82,22 @@ static BOOL verify(NSDictionary *target,uint64_t space,BOOL visible,NSString *ph
     emit(@{@"event":@"independentReadback",@"phase":phase,@"observations":@(consecutive),@"read":row?:@{}});
     return consecutive==2;
 }
-static BOOL request(NPRequest *r,uint32_t operation,NSString *phase,NPReceipt *result) {
+static BOOL requestBefore(NPRequest *r,uint32_t operation,NSString *phase,NPReceipt *result,double deadline) {
     r->operation=operation;r->epoch=epoch;[NSUUID.UUID getUUIDBytes:r->intent];uint64_t ticket=0;
     uint32_t submitted=np_engine_submit(engine,r,&ticket),polled=NP_INVALID;
     *result=(NPReceipt){.size=sizeof(*result),.version=NP_ENGINE_ABI};
-    double started=NSProcessInfo.processInfo.systemUptime,end=started+7;
+    double started=NSProcessInfo.processInfo.systemUptime,end=MIN(started+7,deadline);
     if(submitted==NP_OK)do {polled=np_engine_poll(engine,ticket,result);if(polled==NP_PENDING)pump(.005);}
         while(polled==NP_PENDING&&NSProcessInfo.processInfo.systemUptime<end);
-    BOOL passed=submitted==NP_OK&&polled==NP_OK&&result->status==NP_PASS;
+    lastRequestFinished=submitted==NP_OK&&polled==NP_OK;
+    BOOL passed=lastRequestFinished&&result->status==NP_PASS;
     emit(@{@"event":@"engineReceipt",@"phase":phase,@"operation":@(operation),@"submit":@(submitted),@"poll":@(polled),
         @"status":@(result->status),@"detail":@(result->detail),@"flags":@(result->flags),@"owned":@(result->owned),
         @"nativeSpace":@(result->native_id),@"seconds":@(NSProcessInfo.processInfo.systemUptime-started),@"verified":@(passed)});
     return passed;
+}
+static BOOL request(NPRequest *r,uint32_t operation,NSString *phase,NPReceipt *result) {
+    return requestBefore(r,operation,phase,result,INFINITY);
 }
 static NPRequest windowRequest(NSDictionary *target) {
     NPRequest r={.size=sizeof(r),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=4000,
@@ -535,8 +540,17 @@ static int runScenario(NSString *configuration) {
         NSString *operationStatus=all?@"PASS":status,*operationReason=reason;
         BOOL releaseVerified=YES,destroyVerified=YES,hadEngine=engine!=0;
         if(engine){
-            NPRequest release={.size=sizeof(release),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=5000,.epoch=epoch};
-            releaseVerified=request(&release,NP_RELEASE_SPACES,@"cleanup-all-spaces",&receipt)&&receipt.owned==0;
+            double releaseDeadline=NSProcessInfo.processInfo.systemUptime+4;NSUInteger attempt=0;
+            do {
+                uint32_t remaining=(uint32_t)MAX(1,(releaseDeadline-NSProcessInfo.processInfo.systemUptime)*1000);
+                NPRequest release={.size=sizeof(release),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=remaining,.epoch=epoch};
+                NSString *phase=[NSString stringWithFormat:@"cleanup-all-spaces/%lu",(unsigned long)++attempt];
+                releaseVerified=requestBefore(&release,NP_RELEASE_SPACES,phase,&receipt,releaseDeadline)&&receipt.owned==0;
+                // A consumed failure can be retried through the same retained
+                // leases. Never enqueue another writer behind an unconsumed call.
+                if(releaseVerified||!lastRequestFinished)break;
+                pump(.05);
+            } while(NSProcessInfo.processInfo.systemUptime<releaseDeadline);
             uint32_t destroyed=np_engine_destroy(engine);destroyVerified=destroyed==NP_OK;
             emit(@{@"event":@"engineDestroyed",@"status":@(destroyed)});
         }
@@ -639,14 +653,16 @@ static int runReadback(NSString *configuration,NSString *resultPath) {
 }
 
 #include "platform-foreign-probe.inc"
+#include "r4-press.inc"
 
 int main(int argc,const char **argv) {
     @autoreleasepool {
         if(argc==4&&!strcmp(argv[1],"--readback"))return runReadback(@(argv[2]),@(argv[3]));
         BOOL inspect=argc==3&&!strcmp(argv[1],"--inspect-context");
         BOOL platformOnly=argc==3&&!strcmp(argv[1],"--platform-only");
-        if(argc!=2&&!inspect&&!platformOnly)return 2;
-        NSString *configuration=@(argv[(inspect||platformOnly)?2:1]);
+        BOOL pressR4=argc==3&&!strcmp(argv[1],"--press-r4");
+        if(argc!=2&&!inspect&&!platformOnly&&!pressR4)return 2;
+        NSString *configuration=@(argv[(inspect||platformOnly||pressR4)?2:1]);
         [NSApplication sharedApplication];
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [NSApp finishLaunching];
@@ -659,7 +675,8 @@ int main(int argc,const char **argv) {
             // Schedule only the worker here, then release the main queue. This
             // proves NSApp.run started without occupying its AppKit callbacks.
             dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                int result=inspect?inspectContext(configuration):(platformOnly?runPlatformForeignProbe(configuration):runScenario(configuration));
+                int result=inspect?inspectContext(configuration):(platformOnly?runPlatformForeignProbe(configuration):
+                    (pressR4?runR4Press(configuration):runScenario(configuration)));
                 dispatch_async(dispatch_get_main_queue(), ^{ exit(result); });
             });
         });

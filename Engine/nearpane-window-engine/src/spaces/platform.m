@@ -393,6 +393,19 @@ int32_t np_stage_is_minimized(void *handle) {
     AXError result=AXUIElementCopyAttributeValue((AXUIElementRef)handle,kAXMinimizedAttribute,&value);
     int32_t state=result==kAXErrorSuccess && value && CFGetTypeID(value)==CFBooleanGetTypeID()
         ? (CFEqual(value,kCFBooleanTrue)?1:0) : -1;
+    if(state<0 && getenv("NP_SPACES_LAUNCH_TRACE")) {
+        // Observe the retained object, not a reconstructed AX writer. Keep a
+        // timeout/invalid object/unsupported attribute distinct in diagnostics;
+        // none is equivalent to a positive AXMinimized=false read.
+        pid_t owner=0;CGWindowID id=0;
+        AXError ownerRead=AXUIElementGetPid((AXUIElementRef)handle,&owner);
+        static AXNumber number;static dispatch_once_t once;
+        dispatch_once(&once,^{number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");});
+        AXError numberRead=number?number((AXUIElementRef)handle,&id):kAXErrorNotImplemented;
+        fprintf(stderr,"{\"event\":\"spacesMinimizedReadFailure\",\"axError\":%d,\"valuePresent\":%s,\"valueType\":%lu,\"booleanValue\":%s,\"retainedPID\":%d,\"pidRead\":%d,\"retainedWindow\":%u,\"windowRead\":%d}\n",
+            (int)result,value?"true":"false",value?(unsigned long)CFGetTypeID(value):0UL,value&&CFGetTypeID(value)==CFBooleanGetTypeID()?"true":"false",
+            (int)owner,(int)ownerRead,(unsigned)id,(int)numberRead);
+    }
     if(value)CFRelease(value);return state;
 }
 int32_t np_stage_set_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t minimized) {

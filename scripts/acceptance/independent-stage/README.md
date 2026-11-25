@@ -122,7 +122,13 @@ let its app exit before opening the interactive copy.
    `StageWindowEngineHost`. The runner locates the production accessibility
    buttons, presses them, and verifies physical foreign-window membership,
    geometry and exact AX focus. It never substitutes a direct engine call for a
-   reported R4 click. Real R4 renders are saved as `r4-N.png`.
+   reported R4 click. Real R4 renders are saved as `r4-N.png`, with an initial
+   `r4-baseline.png` and a bounded in-process accessibility-tree diagnostic. If
+   SwiftUI's virtual elements cannot be selected through that interface, the
+   existing Controller acts as an external accessibility client and presses the
+   exact button in its direct parent acceptance Host's verified R4 window. Its
+   `ISSUED` receipt is followed by the same independent physical window reads;
+   this client never invokes an engine or product handler directly.
 7. The product runner merges the other app's held group into the current group
    through the production context-menu handler, then presses actual R4 buttons to
    retire/restore both members and precisely focus the second app's member. It
