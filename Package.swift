@@ -27,7 +27,7 @@ let engineTriple = "x86_64-apple-darwin"
 let engineArchive = Context.environment["NEARPANE_ENGINE_ARCHIVE"]
     ?? manifestRoot.appendingPathComponent(".build/window-engine/cargo-target/" + engineTriple + "/release/libnearpane_window_engine.a").path
 let engineLink: [LinkerSetting] = [.unsafeFlags([engineArchive]), .linkedLibrary("objc"),
-    .linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("ApplicationServices"),
+    .linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("QuartzCore"), .linkedFramework("ApplicationServices"),
     .linkedFramework("CoreGraphics"), .linkedFramework("CoreFoundation"), .linkedFramework("Carbon"), .linkedFramework("ImageIO"), .linkedFramework("ScreenCaptureKit"), .linkedFramework("Security")]
 // The CLI keeps its own process, TCC identity and signed parent checks. StageGroup links the
 // same checked AX primitives into the Host and uses its sealed in-process binding.

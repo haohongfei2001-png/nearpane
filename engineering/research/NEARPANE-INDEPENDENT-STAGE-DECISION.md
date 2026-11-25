@@ -78,6 +78,18 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
    [Replication and full artifact reference](../verification/independent-stage/cloud-e630b6bc-diagnostics/README.md).
    This removes dependence on the CI bootstrap from the platform mechanism result, without assigning a
    synthetic ordinary UUID or promoting it to a state-machine/product qualification.
+8. At `5607d3b3cddc6711514b16ce3fc7f431b03cd7db`, the normal candidate Rust engine itself passed
+   its own launch canary, the independently observed foreign-window round trip, same-app separation,
+   and a visible cross-app combination. This is stronger than the earlier platform-only result.
+   Repeated switching then failed because the common receipt layer treated the Spaces session's
+   aggregate `OWNED` flag as if the restored target were still hidden. The backend had recorded
+   `ShowVerified`; another group's member remained owned. The corrected receipt contract retains
+   that other member's ownership while accepting the target's verified home return. The original
+   run remains a failure, with nine hide/restore request attempts including a later rejected cleanup
+   request; its R4 path was not executed. [Normal-engine evidence](../verification/independent-stage/cloud-5607d3b3-full/README.md).
+   A separate `afa7b8f8` run reached the canary but returned membership detail 207. The omitted
+   upstream own-panel `CATransaction.flush()` has been restored and conditional phase diagnostics
+   added; neither change is claimed to have resolved that run before a new physical result exists.
 
 ### Route A: not a product dependency
 

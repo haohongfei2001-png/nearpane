@@ -215,7 +215,7 @@ def ci_workspace(apps, out, env, operation, suffix=""):
 
 def runtime_checks(out, env, archive, host, iterations, revision):
     out.mkdir()
-    env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1")
+    env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1", NP_SPACES_LAUNCH_TRACE="1")
     try:
         with (out / "kit-build.log").open("x") as stdout, (out / "kit-build.stderr.log").open("x") as stderr:
             apps = build(archive, out / "kit", stdout=stdout, stderr=stderr)

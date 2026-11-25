@@ -528,19 +528,42 @@ static int runScenario(NSString *configuration) {
             if(!focused){reason=@"focusReturnFailed";goto finish;}
         }
         all=YES;reason=@"verified";
-    finish:
+    finish: ;
+        // Keep the behavior outcome independent of final cleanup. A restore
+        // can return a window home even if later receipt validation rejects it;
+        // release and physical readback can still prove complete cleanup.
+        NSString *operationStatus=all?@"PASS":status,*operationReason=reason;
+        BOOL releaseVerified=YES,destroyVerified=YES,hadEngine=engine!=0;
         if(engine){
-            for(NSMutableDictionary *target in targets)if([target[@"attempted"] boolValue]||[target[@"hidden"] boolValue])
-                clean=show(target,@"cleanup-return")&&clean;
-            if(receipt.owned){NPRequest r={.size=sizeof(r),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=4000,.epoch=epoch};
-                (void)request(&r,NP_CLEAN_LAUNCH,@"cleanup-canary",&receipt);}
             NPRequest release={.size=sizeof(release),.version=NP_ENGINE_ABI,.backend=NP_SPACES,.timeout_ms=5000,.epoch=epoch};
-            clean=request(&release,NP_RELEASE_SPACES,@"cleanup-all-spaces",&receipt)&&clean;
-            uint32_t destroyed=np_engine_destroy(engine);clean=destroyed==NP_OK&&clean;
+            releaseVerified=request(&release,NP_RELEASE_SPACES,@"cleanup-all-spaces",&receipt)&&receipt.owned==0;
+            uint32_t destroyed=np_engine_destroy(engine);destroyVerified=destroyed==NP_OK;
             emit(@{@"event":@"engineDestroyed",@"status":@(destroyed)});
         }
-        for(NSDictionary *target in targets)clean=verify(target,home.id,YES,@"cleanup-final")&&clean;
-        if(originalSpaces)clean=[originalSpaces isEqual:allSpaces()]&&clean;
+        NSMutableArray *finalObservations=[NSMutableArray array];NSDictionary *lastRestorationSample=nil;
+        if(originalSpaces) {
+            double deadline=NSProcessInfo.processInfo.systemUptime+2.5;
+            do {
+                NSArray *before=allSpaces();NSMutableArray *windows=[NSMutableArray array];BOOL windowsHome=YES;
+                for(NSDictionary *target in targets){NSDictionary *row=observe(target,home.id,YES);[windows addObject:row];windowsHome=[row[@"verified"] boolValue]&&windowsHome;}
+                NSArray *after=allSpaces();BOOL inventoryRestored=[before isEqual:originalSpaces]&&[after isEqual:originalSpaces];
+                BOOL verified=inventoryRestored&&windowsHome;
+                NSDictionary *sample=@{@"inventoryBefore":before?:NSNull.null,@"inventoryAfter":after?:NSNull.null,
+                    @"originalInventoryRestored":@(inventoryRestored),@"windows":windows,@"verified":@(verified)};
+                lastRestorationSample=sample;
+                if(verified)[finalObservations addObject:sample];else [finalObservations removeAllObjects];
+                if(finalObservations.count==2)break;
+                pump(.035);
+            } while(NSProcessInfo.processInfo.systemUptime<deadline);
+            clean=finalObservations.count==2&&releaseVerified&&destroyVerified;
+        } else {
+            // The UUID/topology preflight can stop before an engine or any
+            // target lease exists. No Space operation occurred in this case.
+            clean=!hadEngine&&targets.count==0&&writeCount==0;
+        }
+        emit(@{@"event":@"cleanupFinalReadback",@"observations":finalObservations,
+            @"lastObservation":lastRestorationSample?:NSNull.null,
+            @"engineReleaseConfirmed":@(releaseVerified),@"engineDestroyConfirmed":@(destroyVerified),@"verified":@(clean)});
         check(@"cleanup",clean,@"all enrolled foreign windows on their original desktop; no owned Space remains");
         int32_t front=frontmostApplication().processIdentifier;
         BOOL testFront=front==getpid();for(NSDictionary *t in targets)testFront=testFront||front==[t[@"pid"] intValue];
@@ -548,7 +571,8 @@ static int runScenario(NSString *configuration) {
             dispatch_sync(dispatch_get_main_queue(), ^{ [original activateWithOptions:0]; });
         if(!clean){status=@"UNKNOWN";reason=@"cleanupUnconfirmed";}else if(all)status=@"FOREIGN_ENGINE_PASS";
         NSDictionary *report=@{@"schema":@1,@"status":status,@"reason":reason,@"nonce":runNonce,@"checks":checks,
-            @"cleanup":@(clean),@"windowWrites":@(writeCount),@"windowWritesScope":@"engine Space operations only",
+            @"cleanup":@(clean),@"operationStatus":operationStatus,@"operationReason":operationReason,
+            @"windowWrites":@(writeCount),@"windowWritesScope":@"engine hide/restore request attempts, including rejected or unverified requests",
             @"setupAXWrites":@(setupAXWrites),@"fixtureFocusCommands":@(fixtureFocusCommands),
             @"foreignProcesses":[NSNumber numberWithBool:targets.count==3],
             @"enrolledWindows":targets,@"originalSpaceInventory":originalSpaces?:@[],@"ordinaryHome":@(home.id),

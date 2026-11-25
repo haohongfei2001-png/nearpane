@@ -45,6 +45,8 @@ These are code-completion claims. The evidence below determines which native eff
 | `e630b6bc`, diagnostics | Two foreign hidden/return cycles on original home 1, four writes, hidden Space 12 emptied/destroyed; no ordinary desktop created | Independent platform replication with cleanup; engine/R4 remain separate. [Original result references](cloud-e630b6bc-diagnostics/README.md) |
 | `e630b6bc`, full lane | Real ordinary Desktop 12 initialized and later removed; final original inventory restored exactly; full candidate passed | CI-only desktop cleanup fixed and independently verified; [original receipts](cloud-e630b6bc-full/README.md) |
 | `5e458d1d`, full lane | 150 Rust and 154 Swift passed, one explicit skip; complete candidate/signature passed; three real R4 windows correctly identified | Activation request declined before canary; 15 unknown-membership CG surfaces blocked catalogue completeness, no R4 input. [Exact observations](cloud-5e458d1d-full/README.md) |
+| `81669d13`, normal-engine diagnostics | Main/Frontmost writes and final true focus succeeded; an additional preparation requirement still stopped canary | Zero engine hide/restore requests; [original focus and cleanup evidence](cloud-81669d13-engine/README.md) |
+| `5607d3b3`, full lane | 150 Rust, 156 Swift and 17 Python passed, one explicit skip; complete candidate/signature passed; normal engine canary, foreign round trip, same-app separation and cross-app combination passed | Repeated switching exposed aggregate ownership being misread as target ownership; nine hide/restore attempts include a rejected cleanup request. R4 not run. [Original engine and candidate evidence](cloud-5607d3b3-full/README.md) |
 
 Full original source receipts: [cloud-2a0cfbe9](cloud-2a0cfbe9/README.md): 147 Rust, 136 Swift and 8 Python cases passed; one signed live-fixture Swift case was explicitly skipped.
 
@@ -66,6 +68,15 @@ process ID; they are not additional WindowServer experiments. The daily applicat
 were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
 
 ## Complete candidate checkpoints
+
+[5607d3b3 full receipts](cloud-5607d3b3-full/README.md) identify the source-checked complete candidate in
+[artifact 15063654234](https://github.com/haohongfei2001-png/nearpane/actions/runs/45702787052/artifacts/15063654234).
+Its independently checked ZIP SHA-256 is
+`55bee0acc03160712f7f1035d21a16f794891282a151f006f13b289de7ad9949`.
+The normal-engine result is an actual partial behavioral success followed by a failed repeated switch,
+not an overall product pass. The runtime receipt preserves the cleanup classification failure and
+the independently observed final home/geometry of all three windows; later source fixes do not
+rewrite that historical result.
 
 [5e458d1d full receipts](cloud-5e458d1d-full/README.md) identify the source-checked candidate in
 [artifact 15062876476](https://github.com/haohongfei2001-png/nearpane/actions/runs/45697978438/artifacts/15062876476),

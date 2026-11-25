@@ -29,7 +29,7 @@ if [[ "$mode" != prepared ]]; then
 </dict></plist>
 PLIST
     xcrun clang -fobjc-arc -Wall -Wextra -Werror -DNP_BUILD_EXACT_CANARY_TOOL=1 -I "$engine" \
-        "$src/physical-canary.m" "$engine/platform.m" -framework Foundation -framework AppKit \
+        "$src/physical-canary.m" "$engine/platform.m" -framework Foundation -framework AppKit -framework QuartzCore \
         -framework CoreGraphics -framework ApplicationServices -framework Security -o "$app/Contents/MacOS/Canary"
     identity=$(/usr/bin/security find-identity -v -p codesigning | awk '/Developer ID Application:/ && /\(ZB9D4T66QB\)/ {print $2}')
     if [[ -z "$identity" || "$identity" == *$'\n'* ]]; then

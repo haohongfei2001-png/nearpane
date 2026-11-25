@@ -53,6 +53,9 @@ typedef struct {
     uint64_t birth, native_id, epoch;
     NPRect frame, target;
 } NPRequest;
+/* For Spaces, owned and NP_OWNED describe the whole session. NP_VISIBLE and
+ * NP_HIDDEN describe the requested window: returning one window can legitimately
+ * leave NP_OWNED set for a different group's retained window or private Space. */
 typedef struct {
     uint32_t size, version, status, flags, detail, owned;
     uint64_t native_id, epoch, elapsed_ns;

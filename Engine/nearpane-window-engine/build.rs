@@ -84,6 +84,7 @@ fn main() {
         "CoreFoundation",
         "CoreGraphics",
         "AppKit",
+        "QuartzCore",
         "Foundation",
         "ApplicationServices",
         "Carbon",

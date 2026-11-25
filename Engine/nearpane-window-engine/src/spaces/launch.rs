@@ -55,11 +55,21 @@ fn fixed(top: &[Desktop], current: &[Desktop]) -> bool {
     after.sort_by_key(|desktop| desktop.display);
     before == after
 }
+fn trace_result(phase: &str, result: &Check<()>, run: Option<&CanaryRun>) {
+    if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_none() { return; }
+    let (status, detail) = result.as_ref().map_or_else(|Fault(status, why)| (*status, *why as u32), |_| (PASS, Why::Ready as u32));
+    eprintln!("{{\"event\":\"spacesLaunchEngine\",\"phase\":\"{phase}\",\"status\":{status},\"detail\":{detail},\"window\":{},\"home\":{},\"parking\":{}}}",
+        run.and_then(|r| r.opened_window).map_or(0, |w| w.number),
+        run.and_then(|r| r.home).map_or(0, |h| h.id),run.and_then(|r| r.parking).unwrap_or(0));
+}
 impl<P: Platform> State<P> {
     fn panel_home(&mut self, c: i32, window: Window, a: &impl Authority) -> Check<Home> {
-        let deadline = self.sys.now() + DEADLINE;
+        let started = self.sys.now();
+        let deadline = started + DEADLINE;
         let mut previous = None;
+        let mut iteration = 0u32;
         loop {
+            iteration += 1;
             a.active()?;
             let panel = self.sys.canary(PanelOp::Read, a)?;
             if panel.window() != Some(window) || panel.registered != 1 || panel.focus_same != 1 {
@@ -70,11 +80,17 @@ impl<P: Platform> State<P> {
                 return Err(unknown(Why::Topology));
             }
             let ids = self.sys.spaces(c, window.number)?;
+            if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"membership\",\"window\":{},\"memberships\":{:?},\"currentOrdinary\":{:?}}}",
+                    window.number,ids.iter().copied().collect::<Vec<_>>(),
+                    baseline.topology.iter().filter(|d| d.kind==0 && d.current==1).map(|d| d.id).collect::<Vec<_>>());
+            }
             if ids.len() > 1 {
                 return Err(unknown(Why::Membership));
             }
             // On 26A428 orderFront can register a panel before its first WindowServer membership exists.
             let mut confirmed = None;
+            let mut reverse_contains = None;
             if let Some(&id) = ids.first() {
                 let mut matches = baseline
                     .topology
@@ -84,7 +100,9 @@ impl<P: Platform> State<P> {
                 if matches.next().is_some() || !baseline.initial.contains(&id) {
                     return Err(unknown(Why::Scope));
                 }
-                if self.sys.members(c, id)?.contains(&u64::from(window.number)) {
+                let contains = self.sys.members(c, id)?.contains(&u64::from(window.number));
+                reverse_contains = Some(contains);
+                if contains {
                     confirmed = Some(Home {
                         display: desktop.display,
                         uuid: desktop.uuid,
@@ -92,7 +110,15 @@ impl<P: Platform> State<P> {
                     });
                 }
             }
-            if self.sys.now() >= deadline {
+            let now = self.sys.now();
+            let expired = now >= deadline;
+            if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"sample\",\"window\":{},\"confirmedHome\":{},\"previousHome\":{},\"deadlineReached\":{},\"twoMatchingHomes\":{},\"iteration\":{},\"elapsedMS\":{},\"reverseContains\":{}}}",
+                    window.number,confirmed.map_or(0,|h|h.id),previous.map_or(0,|h:Home|h.id),expired,
+                    confirmed.is_some() && confirmed==previous,iteration,now.saturating_duration_since(started).as_millis(),
+                    reverse_contains.map_or("null".to_owned(),|value|value.to_string()));
+            }
+            if expired {
                 return Err(unknown(Why::Membership));
             }
             if let (Some(first), Some(second)) = (previous, confirmed) {
@@ -148,6 +174,7 @@ impl<P: Platform> State<P> {
             closed: false,
             cleaned: false,
         });
+        let mut phase = "open";
         let action = (|| -> Check<()> {
             a.active()?;
             let p = self.sys.canary(PanelOp::Open, a)?;
@@ -156,6 +183,7 @@ impl<P: Platform> State<P> {
                 return Err(unknown(Why::ProbeFocus));
             }
             self.launch.as_mut().unwrap().opened_window = Some(window);
+            phase = "panel-home";
             let home = self.panel_home(c, window, a)?;
             let lease = Lease {
                 window,
@@ -169,25 +197,31 @@ impl<P: Platform> State<P> {
             };
             self.launch.as_mut().unwrap().home = Some(home);
             self.launch.as_mut().unwrap().lease = Some(lease);
+            phase = "bind";
             let w = self.sys.bind(window)?;
             if !self.sys.transparent_canary(&w) {
                 return Err(fail(Why::TrialOwnWindow));
             }
+            phase = "initial-visible-view";
             let original = self.view(c, lease, &w, 0, false)?;
             self.launch.as_mut().unwrap().frame = Some(original.rect);
+            phase = "hide";
             let hidden = self.hide(c, lease, original.rect, route, a);
             let sid = self.slots.get(&lease.slot).map(|s| s.id);
             self.launch.as_mut().unwrap().parking = sid;
             hidden?;
             let sid = sid.ok_or(unknown(Why::Unowned))?;
+            phase = "hidden-view";
             let read = self.view(c, lease, &w, sid, true)?;
             if read.rect != original.rect {
                 return Err(unknown(Why::Identity));
             }
             Ok(())
         })();
+        trace_result(phase, &action, self.launch.as_ref());
         // There is no route authority while cleanup is incomplete, even if a move returned success.
         let cleanup = self.finish_canary(c, route, a, true);
+        trace_result("finish-canary", &cleanup, self.launch.as_ref());
         action?;
         cleanup?;
         if self.failed {

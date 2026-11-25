@@ -16,7 +16,7 @@ class InstalledJournalTests(unittest.TestCase):
         cls.probe = Path(cls.build.name) / "journal-unit"
         cmd = ["xcrun", "clang", "-fobjc-arc", "-Wall", "-Werror=return-type",
                HERE / "installed-journal-offline.m", "-o", cls.probe]
-        for framework in ["AppKit", "ApplicationServices", "CoreGraphics", "Security", "Carbon"]:
+        for framework in ["AppKit", "QuartzCore", "ApplicationServices", "CoreGraphics", "Security", "Carbon"]:
             cmd.extend(["-framework", framework])
         subprocess.run(cmd, check=True)
 

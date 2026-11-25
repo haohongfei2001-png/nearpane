@@ -170,11 +170,18 @@ impl State {
         }
         let restoring = matches!(request.operation, RESTORE | SHOW);
         let visible = VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID;
+        // Spaces reports aggregate session ownership: another group's hidden
+        // member can remain owned after this exact window was returned home.
+        // Corner's OWNED flag still forbids treating its target as released.
+        let forbidden = HIDDEN | if request.backend == SPACES { 0 } else { OWNED };
+        let ownership_consistent = request.backend != SPACES ||
+            (result.flags & OWNED != 0) == (result.owned > 0);
         if restoring
             && result.status == PASS
             && (request.native_id == 0
                 || result.native_id != request.native_id
-                || result.flags & (visible | HIDDEN | OWNED) != visible)
+                || result.flags & (visible | forbidden) != visible
+                || !ownership_consistent)
         {
             result.status = UNKNOWN;
         }
@@ -590,6 +597,38 @@ mod tests {
         state.record_write(&request, Outcome { status: PASS, flags: MEMBERSHIP_VALID, ..Default::default() });
         assert_eq!(state.owner, None);
         assert!(!state.health_lost && state.unresolved.is_empty());
+    }
+
+    #[test]
+    fn spaces_return_of_one_member_keeps_the_other_owned_without_downgrading_the_return() {
+        let first = Request { backend: SPACES, operation: HIDE, native_id: 12, pid: 41, birth: 90,
+            window: 53, member: [1; 16], lifetime: [2; 16], group: [3; 16], generation: [4; 16],
+            display: [5; 16], native_space: [6; 16], ..Default::default() };
+        let second = Request { window: 56, member: [7; 16], lifetime: [8; 16], group: [9; 16], ..first };
+        let visible = Outcome { status: PASS, flags: VISIBLE | AX_VALID | CG_VALID | MEMBERSHIP_VALID,
+            native_id: first.native_id, ..Default::default() };
+        for prior in [PASS, UNKNOWN] {
+            for operation in [SHOW, RESTORE] {
+                let mut state = State::default();
+                state.record_write(&first, Outcome { status: prior, flags: HIDDEN | OWNED, owned: 1, ..Default::default() });
+                state.record_write(&second, Outcome { status: prior, flags: HIDDEN | OWNED, owned: 2, ..Default::default() });
+                let returned = state.record_write(&Request { operation, ..first },
+                    Outcome { flags: visible.flags | OWNED, owned: 1, ..visible });
+                assert_eq!(returned.status, PASS, "a verified home return can coexist with another hidden member");
+                assert_eq!(returned.owned, 1);
+                assert_eq!(state.owner, Some(SPACES));
+                assert!(!state.unresolved.contains(&Lease::from(&first)));
+                assert_eq!(state.unresolved.contains(&Lease::from(&second)), prior == UNKNOWN);
+                assert_eq!(state.record_write(&Request { operation: RESTORE, ..second }, visible).status, PASS);
+                assert!(state.owner.is_none() && state.unresolved.is_empty());
+            }
+        }
+        for inconsistent in [Outcome { flags: visible.flags | OWNED, owned: 0, ..visible },
+                             Outcome { owned: 1, ..visible }] {
+            let mut state = State::default();
+            assert_eq!(state.record_write(&Request { operation: RESTORE, ..first }, inconsistent).status, UNKNOWN);
+            assert!(state.unresolved.contains(&Lease::from(&first)));
+        }
     }
 
     fn idle_corner_lane() -> (Session, mpsc::Receiver<Job>, Request) {

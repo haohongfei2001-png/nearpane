@@ -1,6 +1,7 @@
 // Included by platform.m so the same Apple SDK shim and symbol policy serves both routes.
 // Only this class can be a production launch probe. No caller supplies an NSWindow or CGWindowID.
 #import <AppKit/AppKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <Security/Security.h>
 #import <stdatomic.h>
 #import <stdio.h>
@@ -166,6 +167,10 @@ static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,v
         if(p.windowNumber>0 && p.windowNumber<=UINT32_MAX)t->window=(uint32_t)p.windowNumber;
         if(!allowed() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-before-order");
         [p orderFront:nil];
+        // Commit the own probe's pending order-in before Rust reads its Space.
+        // Upstream's launch probe explicitly flushes here; a registered AppKit
+        // number alone does not establish WindowServer membership.
+        [CATransaction flush];
         if(p.windowNumber<=0 || p.windowNumber>UINT32_MAX)return launchTrace(t,op,0,"open-window-number");
         t->window=(uint32_t)p.windowNumber;
     } else if(op==3 && t->panel) {
