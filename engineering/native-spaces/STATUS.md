@@ -2,6 +2,8 @@
 
 ## 5.22（90）Apple 原生工作集合与 R4
 
+**内部签名候选为 `08e1d97`，回滚包为 `a63dd14`。** 两包均从 GitHub 草稿独立下载并核对完整 SHA-256。候选的 14 个可执行文件通过验签。完整 Swift 回归 842 项通过、5 项跳过，Rust 138 项通过。该源码的原生协议与引擎 CI 通过。首次打包校验因校验器漏列两份已装入包内的上游来源清单而失败，补齐校验后的嵌入工具 CI 通过。另行签封的原生验收 Host 和两款普通窗口夹具已做静态验签。[签名候选与回滚收据](../verification/window-engine/apple-native/signed-delivery.json) · [测试与 CI](../verification/window-engine/apple-native/source-validation.json) · [原始回归输出](../verification/window-engine/apple-native/source-validation.zip) · [隔离夹具签封](../verification/window-engine/apple-native/sealed-fixture.json)
+
 R4 读取每块显示器上 WindowManager 的实际工作集合，在同一张平面卡片中展示成员窗口。Swift 保留侧栏选择和事务协调，Rust 复用固定上游的原生分组与变化判定。苹果负责活动窗口、原生最小化和布局。当前优先在 Apple 原生模式上验收。内部隐藏 Space 和 Corner 均未取得替代它的生产资格。[产品裁决](../research/NEARPANE-STAGE-MANAGER-PRODUCT-DEFINITION.md) · [原生集成源码](https://github.com/haohongfei2001-png/nearpane/commit/d3fb818f88c0781e382bbfb52d7f5848e6d4e62a)
 
 - **实机通过**。26A428 上，团队签名的普通应用创建了两扇窗口。目标窗自行最小化和恢复时，生产观察器两次收到通知并独立核对 AX 状态。同应用旁窗、前台焦点和桌面保持稳定，目标恢复原几何，两扇夹具窗已关闭。此前注册 AX 通知时发生的 Swift 线程隔离崩溃已修复。[失败栈](../verification/window-engine/apple-native/minimize-registration-crash.json) · [复验结果](../verification/window-engine/apple-native/minimize-result.json) · [受测源码、签名和收据哈希](../verification/window-engine/apple-native/minimize-coverage.json)

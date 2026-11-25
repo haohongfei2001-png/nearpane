@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import uuid
 
 spec = importlib.util.spec_from_file_location('lab', Path(__file__).with_name('merge-lab.py'))
 lab = importlib.util.module_from_spec(spec)
@@ -34,6 +35,18 @@ class RestrictedLabTests(unittest.TestCase):
     def test_prepare_refuses_daily_path_before_signing_or_launching(self):
         with self.assertRaises((ValueError,OSError)):
             lab.prepare('/Applications/Nearpane.app')
+
+    def test_finder_metadata_cleanup_refuses_a_link_to_another_bundle(self):
+        root = Path('/private/tmp') / ('nearpane-apple-merge.' + str(uuid.uuid4()))
+        root.mkdir(mode=0o700)
+        try:
+            with tempfile.TemporaryDirectory(dir='/private/tmp') as other:
+                app = root / 'Nearpane.app'
+                app.symlink_to(other, target_is_directory=True)
+                try:
+                    with self.assertRaises(ValueError): lab.normalize_build_copy(app)
+                finally: app.unlink()
+        finally: root.rmdir()
 
     def test_receipt_directory_rejects_unsealed_and_foreign_location(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -43,6 +43,31 @@ def safe_root(root):
     return nonce
 
 
+def normalize_build_copy(app):
+    """Strip only Finder display metadata from a newly copied private build.
+    An existing quarantine record must survive unchanged, including on symlinks.
+    """
+    if app.name != 'Nearpane.app' or app.resolve(strict=True) != app or not app.is_dir():
+        raise ValueError('expected new guarded staging bundle')
+    safe_root(app.parent)
+    count = 0
+    for node in [app, *app.rglob('*')]:
+        if node.is_symlink() and not node.resolve(strict=True).is_relative_to(app):
+            raise ValueError('external bundle symlink')
+        names = call('/usr/bin/xattr','-s',node).splitlines()
+        if 'com.apple.FinderInfo' not in names:
+            continue
+        quarantine = ('com.apple.quarantine' in names)
+        value = call('/usr/bin/xattr','-s','-px','com.apple.quarantine',node) if quarantine else None
+        call('/usr/bin/xattr','-s','-d','com.apple.FinderInfo',node)
+        after = call('/usr/bin/xattr','-s',node).splitlines()
+        if sorted(after) != sorted(x for x in names if x != 'com.apple.FinderInfo') or (
+                quarantine and call('/usr/bin/xattr','-s','-px','com.apple.quarantine',node) != value):
+            raise ValueError('unexpected change in staged metadata')
+        count += 1
+    return count
+
+
 def prepare(source):
     source = Path(source).absolute()
     if source.resolve(strict=True) != source or ROOT / 'build' not in source.parents or source.name != 'Nearpane.app':
@@ -60,6 +85,7 @@ def prepare(source):
     safe_root(root)
     app = root / 'Nearpane.app'
     call('/usr/bin/ditto','--rsrc','--extattr','--qtn',source,app)
+    normalized=normalize_build_copy(app)
     dev.seal(app, False)
     p = app / 'Contents/Info.plist'
     plist = plistlib.loads(p.read_bytes())
@@ -86,7 +112,7 @@ def prepare(source):
     call('/usr/bin/codesign','--verify','--deep','--strict','--all-architectures',app)
     if dev.fields(app).get('TeamIdentifier')!=TEAM or any(v.get('TeamIdentifier')!=TEAM for v in hashes.values()):
         raise ValueError('unexpected signer')
-    save(root/'seal.json',dict(nonce=nonce,source=revision,host=dev.fields(app),fixtures=hashes,scope='R4 native fixture drop'))
+    save(root/'seal.json',dict(nonce=nonce,source=revision,host=dev.fields(app),fixtures=hashes,scope='R4 native fixture drop',normalizedStagingFinderInfo=normalized,quarantinePreserved=True))
     print(root)
 
 
