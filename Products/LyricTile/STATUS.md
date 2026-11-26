@@ -47,3 +47,4 @@ Apple Music 首次连接期间实测系统弹出自动化授权窗口。修正�
 - 专用钥匙串已为上述最终 ZIP 和空更新目录完成 Sparkle 签名。已用 App 内置公钥独立校验 ZIP 签名。
 - 集成包 b28d988 的 120.20 秒逐行复测为 2.79% 单核、RSS 中位/峰值 81.56/81.86 MiB，13 次读回均保持同一曲目且歌词可见。CPU 仍高于 1% 目标。采样器已支持八小时混合工况。
 - 已在本机从配置产品公钥的隔离 build 1 实装升级至原始公证 ZIP build 2，安装文件与 DMG 比对通过，见 `Documentation/Verification/2026-11-26-local/upgrade-to-build2.json`。
+- [其他客户端](Documentation/Verification/2026-11-26-local/additional-clients.md)：Spotify 本机客户端进入扫码登录页，网易官方 DMG 返回 HTTP 403。两者当前缺少实际歌曲证据。
