@@ -44,7 +44,10 @@ struct PlaybackSelectionTracker: Sendable {
             let session = processChanged ? UUID() : (selection?.sessionID ?? UUID())
             selection = LyricDomain.Selection(playerBundleID: observation.process.player.bundleID,
                 sessionID: session, generation: generation, recording: Self.recording(identity))
-        } else if let old = selection {
+        } else if let old = selection, let previous = lastObservation,
+                  identity.title != previous.title || identity.artist != previous.artist ||
+                  identity.album != previous.album || identity.platformID != previous.platformID ||
+                  identity.durationMS != previous.durationMS {
             // Preserve fingerprint and generation when optional metadata arrives.
             let enriched = Self.recording(identity, fingerprint: old.recording.fingerprint)
             selection = LyricDomain.Selection(playerBundleID: old.playerBundleID,
@@ -58,7 +61,7 @@ struct PlaybackSelectionTracker: Sendable {
               lhs.mediaProcessStart == rhs.mediaProcessStart else { return false }
         if let a = lhs.platformID, let b = rhs.platformID, !a.isEmpty, !b.isEmpty, a != b { return false }
         for (a, b) in [(lhs.title, rhs.title), (lhs.artist, rhs.artist), (lhs.album, rhs.album)] {
-            if let a, let b, !a.isEmpty, !b.isEmpty, normalized(a) != normalized(b) { return false }
+            if let a, let b, !a.isEmpty, !b.isEmpty, a != b, normalized(a) != normalized(b) { return false }
         }
         if let a = lhs.durationMS, let b = rhs.durationMS, abs(a - b) > 2000 { return false }
         // Complete metadata disappearing must not retain an old recording.

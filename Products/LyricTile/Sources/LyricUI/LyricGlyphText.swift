@@ -60,6 +60,7 @@ public final class LyricGlyphView: NSView {
     private var totalHeight: CGFloat = 0
     private var verticalOffset: CGFloat = 0
     private var manuallyScrolled = false
+    private var drewUpcomingCue = false
     private var timer: Timer?
     private var browse: (@MainActor (Int) -> Void)?
     private var lastBrowseAt: TimeInterval = 0
@@ -77,6 +78,9 @@ public final class LyricGlyphView: NSView {
                           tokenHighlight: Bool, animate: Bool, fontSize: CGFloat, dark: Bool,
                           browse: @escaping @MainActor (Int) -> Void) {
         let changed = self.cue != cue || self.fontSize != fontSize
+        let clockChanged = self.usesTokens != tokenHighlight || self.animate != animate ||
+            (tokenHighlight && (self.anchor != anchor || self.advance != advance))
+        let redraw = changed || clockChanged || self.dark != dark
         self.cue = cue; self.anchor = anchor; self.advance = advance
         self.usesTokens = tokenHighlight; self.animate = animate; self.fontSize = fontSize
         self.dark = dark; self.browse = browse
@@ -84,8 +88,9 @@ public final class LyricGlyphView: NSView {
             cachedWidth = -1; verticalOffset = 0; manuallyScrolled = false
             setAccessibilityLabel(cue.text)
         }
-        needsDisplay = true
-        scheduleClock()
+        let upcoming = cue.sourceStartMS.flatMap { start in lookup().map { $0 < start } } ?? false
+        if redraw || upcoming != drewUpcomingCue { needsDisplay = true }
+        if changed || clockChanged { scheduleClock() }
     }
     public override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); scheduleClock() }
     public override func layout() {
@@ -200,6 +205,7 @@ public final class LyricGlyphView: NSView {
         context.clip(to: bounds)
         context.translateBy(x: 0, y: -verticalOffset)
         let upcoming = cue?.sourceStartMS.flatMap { start in time.map { $0 < start } } ?? false
+        drewUpcomingCue = upcoming
         drawRows(context, color: highlightTokens || upcoming ? LyricPalette.secondary(dark: dark) : LyricPalette.primary(dark: dark))
         if highlightTokens, let time, let cue {
             var mask: [CGRect] = []

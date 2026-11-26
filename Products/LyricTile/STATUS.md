@@ -34,3 +34,7 @@
 - macOS 27.0 实际 Sparkle 安装器验证通过：错误签名保留 build 1、正确签名替换到 build 2，签名完整性通过。使用隔离副本和临时密钥。已修复包内残留本机 CLT 路径，详见 `Documentation/Verification/2026-11-26-local/sparkle-install.md`。
 - 已核对 LRCLIB 官方 API 和授权询问，确认客户端识别要求，未找到歌词显示、适用地域或作品署名授权；详见 `Documentation/THIRD_PARTY_NOTICES.md`。
 - 持有者签名 App 默认连接本分支 LyricTile 专属空更新目录，下载在解压前校验 Ed25519 签名。更新密钥保存在本机专用钥匙串条目。
+
+## 本机逐行渲染
+
+初版在 M5 实际显示 Apple Music 的本地逐行歌词，120.13 秒 CPU 单核均值 3.59%，RSS 中位 88.88 MiB。按同一进程的采样优化了隐藏控制区、静态文本重绘和重复录音身份计算，保留原有播放读回频率、时钟规则和转场。本机 release 编译通过，最终包资源数据以本机验收记录为准。

@@ -7,6 +7,7 @@ public struct LyricPanelView: View {
     @ObservedObject private var model: LyricAppModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var pointerInside = false
@@ -34,6 +35,10 @@ public struct LyricPanelView: View {
                 .strokeBorder(contrast == .increased ? secondary.opacity(0.6) : dark ? Color.white.opacity(0.13) : Color.white.opacity(0.85), lineWidth: 1) }
             .contentShape(RoundedRectangle(cornerRadius: model.idle ? 18 : 22))
             .onHover(perform: pointerChanged)
+            .onChange(of: voiceOverEnabled, initial: true) { _, enabled in
+                if enabled { revealControls() }
+                else if !pointerInside { scheduleHide() }
+            }
             .onChange(of: controlsFocused) { _, focused in
                 if focused { revealControls() } else if !pointerInside { scheduleHide() }
             }
@@ -83,9 +88,10 @@ public struct LyricPanelView: View {
                 Image(nsImage: image).resizable().scaledToFill().frame(width: width, height: 70)
                     .blur(radius: 30).opacity(0.08).clipped().allowsHitTesting(false)
             }
-            metadata.frame(height: 32).padding(.horizontal, 15).offset(y: 14)
-                .opacity(model.controlsVisible ? 1 : 0).allowsHitTesting(model.controlsVisible)
-                .accessibilityHidden(!model.controlsVisible)
+            if model.controlsVisible {
+                metadata.frame(height: 32).padding(.horizontal, 15).offset(y: 14)
+                    .transition(.opacity)
+            }
 
             if let ownership = model.ownershipMessage {
                 emptyState(title: "歌词已经在旁", detail: ownership).offset(y: 88)
@@ -95,7 +101,7 @@ public struct LyricPanelView: View {
                 lyricContent(fontSize: font)
             }
 
-            if model.snapshot.selection != nil {
+            if model.controlsVisible && model.snapshot.selection != nil {
                 VStack(spacing: 6) {
                     transport
                     progress
@@ -103,9 +109,7 @@ public struct LyricPanelView: View {
                 .padding(.horizontal, 16)
                 .frame(width: width)
                 .offset(y: max(195, height - 80))
-                .opacity(model.controlsVisible ? 1 : 0)
-                .allowsHitTesting(model.controlsVisible)
-                .accessibilityHidden(!model.controlsVisible)
+                .transition(.opacity)
             }
             HStack(spacing: 6) {
                 Circle().fill(secondary.opacity(0.65)).frame(width: 4, height: 4)
@@ -115,6 +119,7 @@ public struct LyricPanelView: View {
             .opacity(model.controlsVisible ? 0 : 1).allowsHitTesting(!model.controlsVisible)
             .accessibilityHidden(model.controlsVisible)
         }
+        .frame(width: width, height: height, alignment: .topLeading)
     }
 
     private var metadata: some View {
@@ -291,7 +296,7 @@ public struct LyricPanelView: View {
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
             do { try await Task.sleep(for: .milliseconds(280)) } catch { return }
-            guard !pointerInside, !isSeeking, model.presentation == nil, !controlsFocused,
+            guard !voiceOverEnabled, !pointerInside, !isSeeking, model.presentation == nil, !controlsFocused,
                   !model.songMenuIsOpen, model.seekPreviewMS == nil else { return }
             withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.18)) { model.setControlsVisible(false) }
         }
