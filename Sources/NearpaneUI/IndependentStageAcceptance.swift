@@ -40,6 +40,17 @@ import Security
     }
     private struct Failure: Error { let reason: String }
 
+    static func configurationDirectoriesMatch(configuration: URL, output: URL, profile: URL) -> Bool {
+        func canonical(_ url: URL) -> URL { url.resolvingSymlinksInPath().standardizedFileURL }
+        func parent(_ url: URL) -> String { canonical(canonical(url).deletingLastPathComponent()).path }
+        // Resolve the existing parent as well as the child. On 26A428 an absent
+        // profile can retain /private/tmp while its existing output becomes /tmp.
+        // A resolved child that actually escapes the output still fails.
+        let directory = canonical(output).path
+        return configuration.isFileURL && output.isFileURL && profile.isFileURL &&
+            parent(configuration) == directory && parent(profile) == directory
+    }
+
     public static func run(configuration url: URL) async -> Int32 {
         let config: Configuration
         do { config = try JSONDecoder().decode(Configuration.self, from: Data(contentsOf: url)) }
@@ -69,8 +80,8 @@ import Security
         guard IndependentStagePolicy.candidateRequested, config.schema == 1,
               pids.count == 2, config.fixtures.count == 2, pids == IndependentStagePolicy.candidatePIDs,
               !pids.contains(getpid()), config.fixtures.map(\.windows.count).sorted() == [1, 2],
-              url.standardizedFileURL.deletingLastPathComponent() == output,
-              URL(fileURLWithPath: config.profile).standardizedFileURL.deletingLastPathComponent() == output else {
+              configurationDirectoriesMatch(configuration: url, output: output,
+                  profile: URL(fileURLWithPath: config.profile)) else {
             report["reason"] = "isolatedFixtureConfigurationRequired"; save(); return 2
         }
         guard AXIsProcessTrusted(), NPProbeReadOnlyCatalog() == 1 else {

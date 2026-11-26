@@ -5,12 +5,15 @@ import NearpaneOrdinaryWindowRuntime
 /// The signed desktop reader supplies CG and Space metadata. The installed Host retains and checks
 /// the original AX object for each member, and rechecks CG, global focus and both membership maps.
 @MainActor final class StageWindowEngineWitness: StageEngineWindowWitness {
-    struct Binding {
+    struct Binding: Equatable {
         let lifetime: UUID
         let monitor: StageHostWindow
         let readOnly: Bool
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.lifetime == rhs.lifetime && lhs.monitor === rhs.monitor && lhs.readOnly == rhs.readOnly
+        }
     }
-    struct VisibilityClaim {
+    struct VisibilityClaim: Equatable {
         let backend: StageWindowBackend, frame: SurfaceRect, member: UInt64
     }
     private weak var feed: CurrentDesktopWindows?
@@ -86,7 +89,9 @@ import NearpaneOrdinaryWindowRuntime
 
     func closedWindows() async throws -> [StageWindowDeparture] {
         guard let feed, let snapshot = await feed.readAfterAction(), let access = hostAccess else { return [] }
-        let (_, present) = try roster(snapshot, access: access)
+        let (_, present) = try await roster(snapshot, access: access) {
+            !Task.isCancelled && (self.available() || self.restoreAvailable())
+        }
         let absent = bindings.filter {
             !present.contains($0.key)
         }
@@ -162,13 +167,22 @@ import NearpaneOrdinaryWindowRuntime
         Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology)
     }
 
-    private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess) throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
+    private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess,
+                        current: @MainActor () -> Bool) async throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
         guard let catalog = homeCatalog(snapshot) else { throw StageSwitchError.incomplete }
-        let keys = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { key in
+        let originalBindings = bindings, originalClaims = claims, originalHome = home, originalOwner = owner
+        let candidates = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { _ in true }
+        var keys = Set<NativeSpaceWindow>()
+        for key in candidates {
+            guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
+                  home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
             // An already retained standard window can be unlisted after our same-desktop action.
             // Its original AX object and current physical state are still verified in the binding loop.
-            if bindings[key] != nil { return true }
-            return try access.role(of: key)
+            if bindings[key] != nil { keys.insert(key); continue }
+            let ordinary = try await Task.detached(priority: .userInitiated) { try access.role(of: key) }.value
+            guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
+                  home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
+            if ordinary { keys.insert(key) }
         }
         return (catalog,keys)
     }
@@ -243,11 +257,21 @@ import NearpaneOrdinaryWindowRuntime
         step = "host-access"
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
         hostAccess = access
+        var expectedBindings = bindings
+        let expectedClaims = claims, expectedLeases = Set(leases.keys)
+        var expectedHome = home, expectedOwner = self.owner
+        let expectedReleaseInput = releaseInput
+        func unchanged() -> Bool {
+            !Task.isCancelled && bindings == expectedBindings && claims == expectedClaims &&
+                Set(leases.keys) == expectedLeases && home == expectedHome && self.owner == expectedOwner &&
+                releaseInput == expectedReleaseInput &&
+                (permits(owner, restoring: false) || permits(owner, restoring: true))
+        }
         step = "opening-roster"
-        let (opening,keys) = try roster(first, access: access)
+        let (opening,keys) = try await roster(first, access: access, current: unchanged)
         step = "opening-scope"
         let initial = enrolledTopology ?? first.scopes
-        guard first.scopes == initial else { throw StageSwitchError.interrupted }
+        guard unchanged(), first.scopes == initial else { throw StageSwitchError.interrupted }
         guard (!keys.isEmpty || !bindings.isEmpty), keys.count <= 64, let native = UInt64(opening.current.id), native > 0, let usable = opening.display.usable
         else { throw StageSwitchError.incomplete }
         let desktop = OrdinaryDesktopIdentity(display:display,record:opening.current.id,uuid:scope.nativeSpace)
@@ -256,13 +280,15 @@ import NearpaneOrdinaryWindowRuntime
             for key in keys {
                 step = "initial-window-binding"; reading = key
                 let k = DesktopWindowKey(pid:key.pid,birth:key.birth,number:key.number)
-                guard let life = feed.groupLifetime(of:k), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
-                let monitor = try DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
-                guard monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
+                guard let life = feed.groupLifetime(of:k), unchanged(), permits(owner,restoring:false) else { throw StageSwitchError.interrupted }
+                let monitor = try await DesktopWindowSelection.bindStage(k, lifetime: life, home: desktop, owner: owner, access: access)
+                guard unchanged(), permits(owner,restoring:false),
+                      monitor.id.pid == key.pid, monitor.id.launch == key.birth, monitor.id.number == key.number,
                       feed.groupLifetime(of:k) == life else { throw StageSwitchError.ownership }
                 enrolling[key] = .init(lifetime:life,monitor:monitor,readOnly:authorizedLifetimes[key] != life)
             }
             bindings = enrolling; self.owner = owner.backend; home = desktop; enrolledTopology = initial
+            expectedBindings = bindings; expectedOwner = self.owner; expectedHome = home
         }
         var observedBindings = bindings
         if let (key, binding) = candidate {
@@ -273,9 +299,10 @@ import NearpaneOrdinaryWindowRuntime
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
         for (key,b) in observedBindings {
             step = "physical-window-observation"; reading = key
-            await Task.yield()
-            guard permits(owner, restoring: false) || permits(owner, restoring: true) else { throw StageSwitchError.interrupted }
-            let observed = try b.monitor.observation(home: desktop)
+            guard unchanged() else { throw StageSwitchError.interrupted }
+            let observed = try await b.monitor.observationAsync(home: desktop)
+            let sameBinding = bindings[key] == b || (bindings[key] == nil && candidate?.0 == key && candidate?.1 == b)
+            guard unchanged(), sameBinding else { throw StageSwitchError.interrupted }
             step = "physical-window-classification"
             if let (target, landing) = measured, key == target {
                 let frame = CGRect(x: landing.x, y: landing.y, width: landing.width, height: landing.height)
@@ -300,7 +327,8 @@ import NearpaneOrdinaryWindowRuntime
             focuses.append(observed.focus)
         }
         step = "closing-roster"; reading = nil
-        guard let last = await feed.readAfterAction(), let closing = try? roster(last, access: access), closing.1 == keys,
+        guard let last = await feed.readAfterAction(), unchanged(),
+              let closing = try? await roster(last, access: access, current: unchanged), unchanged(), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]

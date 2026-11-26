@@ -124,8 +124,8 @@ extension DesktopWindowTarget {
 
     /// Stage operations use a retained Host AX object. The ordinary sidebar continues to use its signed controller.
     static func bindStage(_ key: DesktopWindowKey, lifetime: UUID, home: OrdinaryDesktopIdentity,
-                          owner: StageEngineOwner, access: StageHostAccess) throws -> StageHostWindow {
-        try StageHostWindow.bind(.init(pid: key.pid, birth: key.birth, number: key.number), lifetime: lifetime,
+                          owner: StageEngineOwner, access: StageHostAccess) async throws -> StageHostWindow {
+        try await StageHostWindow.bind(.init(pid: key.pid, birth: key.birth, number: key.number), lifetime: lifetime,
                                  home: home, engine: owner, access: access)
     }
 

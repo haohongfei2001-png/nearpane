@@ -1,0 +1,72 @@
+{
+  "fixtures": [
+    {
+      "birth": 1795721648837192,
+      "directory": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/FixtureA",
+      "executable": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "pid": 46117,
+      "windows": [
+        {
+          "frame": [
+            120,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 121077,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        },
+        {
+          "frame": [
+            400,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 1,
+          "key": false,
+          "miniaturized": false,
+          "number": 121079,
+          "text": "Fixture 1 / ready",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "birth": 1795721649689680,
+      "directory": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/FixtureB",
+      "executable": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "pid": 46121,
+      "windows": [
+        {
+          "frame": [
+            680,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 121082,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        }
+      ]
+    }
+  ],
+  "iterations": 3,
+  "nonce": "bdb4f1f9-bd19-4b90-8543-85f65e9cb96c",
+  "output": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/product",
+  "profile": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/product/profile",
+  "r4Controller": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/kit/Controller.app/Contents/MacOS/Controller",
+  "schema": 1,
+  "systemHelper": "/private/tmp/nearpane-independent-350e-product-20261127/runtime/kit/SplitViewHelper"
+}

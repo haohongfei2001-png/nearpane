@@ -1,6 +1,6 @@
 # Nearpane — independent Stage Manager replacement
 
-Current authority, 2026-11-26. Baseline: PR #15, `6ac5eb63c97b7597e662770bac485be61f571bb8`.
+Current authority, 2026-11-27 (Asia/Shanghai). Baseline: PR #15, `6ac5eb63c97b7597e662770bac485be61f571bb8`.
 Work branch: `pro/independent-stage-engine-20261126`.
 
 ## Product contract
@@ -42,45 +42,77 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 ### Current verification checkpoint
 
 The latest completed source/full-package checkpoint is
-`3437abd5b545cfd25f6eda2ee943c242908ac956`: **164 Rust /174 Swift pass, one explicit skip**,
-including the canary-close and first-departure image regressions. Complete workspace and strict/deep
-bundle verification pass. The diagnostics, fast and full VMs each independently pass the normal
-foreign-window engine sequence and cleanup. The diagnostics close succeeds without encountering
-Readback217; the new close retry branch is therefore source-tested but not directly exercised there.
-[Full original candidate and result](../verification/independent-stage/cloud-3437abd5-full/README.md).
+`8805a3dbd22c44ff0f95a53476357b4dd45a2ef3`: **164 Rust /174 Swift pass, one explicit skip**.
+Complete workspace, companion resources and strict/deep ad-hoc bundle signatures pass. The full,
+fast and diagnostics VMs independently pass the normal foreign-window engine and cleanup. These
+are hosted **27.0.1 /26A434 /SIP disabled** results, not target qualification.
+[Full candidate and original result](../verification/independent-stage/cloud-8805-full/README.md).
 
-Actual full R4 input now reaches fresh three-window bindings and a ready, configured worker. The
-Swift Finder desktop witness positively confirms the same focused AXScrollArea is its AXWindow,
-occurs exactly once in the complete list and has the original Finder application parent. The C
-launch predicate is still not executed: opening-roster validation rejects system ownership after
-UI delivery has stalled, before NP_LAUNCH. Full cleanup succeeds with no worker-owned windows.
-The fast VM stops before input when a repeated AXWindow canonical mapping is not confirmed; its
-original receipt does not distinguish the canonical error from positive mismatch.
-[Separate fast original](../verification/independent-stage/cloud-3437abd5-r4-fast/README.md).
+Fast product input now confirms the actual button's AXWindow is the retained panel, issues exactly
+one successful AXPress and completes the first witness with three actual windows and three managed
+members. The real Dock sample then arrives at total age 1133.81 ms, so ownership is withdrawn before
+NP_LAUNCH. The full VM stops before input when its last retained-panel canonical identity read is
+unconfirmed. Its original receipt lacks that inner call's error and does not prove a wrong window
+or an AX timeout. Both product runs confirm cleanup; neither is a successful R4 switch.
+[Separate fast originals](../verification/independent-stage/cloud-8805-r4-fast/README.md).
 
-Complete, actual Host samples identify concrete synchronous work, without attributing all elapsed
-time to one stack. Fast has 14/83 main-thread leaf samples in first-frame creation of an unused
-ordinary AX history object. Full has 104/114 samples in the two complete rebinding physical reads
-on the UI actor. Repeated per-row navigation presentation also re-reads the CG session; actual
-Metal compilation appears separately. The current source removes only unused ordinary-frame AX
-materialization, reuses navigation presentation within one render, and moves pure per-window
-rebinding reads to detached tasks returning Sendable values. Host authorization and all writers
-remain on MainActor. Input/epoch/cancellation/ownership are checked again after every await;
-two complete scope/frame/home/identity comparisons and the final atomic rebind remain unchanged.
-No cross-frame permission cache or 750 ms relaxation is introduced.
+The new full Host samples retain the complete stacks. Fast has 10 of 86 main-thread observations
+in the initial witness: opening-roster role reads, original-window binding and physical observation.
+This identifies synchronous UI-actor work, not a quantitative allocation of the 1133.81 ms delay.
+The Dock reader already runs on its own actor. The previous 3437 full sample independently identified
+the two synchronous physical rebinding passes (104/114 samples), which 8805 moves off MainActor.
+Fast already had bindings this time; it does not prove that cold rebinding was physically exercised.
+Every await still rechecks current input/epoch, cancellation, directory and ownership before use.
+No cross-frame permission cache, missing original-AX check, or 750 ms relaxation is permitted.
 
-The input helper now compares each button's actual AXWindow directly with the already confirmed,
-retained AX panel, retaining fresh bounds, owner, identifier, enabled and sole-action checks. This
-removes a redundant IPC instead of interpreting its unobserved failure as success.
+The target Mac became reachable again on 2026-11-26 at 19:13 UTC. Its clean isolated clone was
+fast-forwarded to 8805; the daily installation and working checkout were preserved. The actual
+**27.0 /26A428 /SIP enabled** runtime created and independently verified three foreign windows.
+Own-panel home discovery then obtained the same complete home4 at 3 and208 ms, but rejected the
+second read against its120 ms discovery budget. There were **zero foreign hide/restore requests**
+and no hidden Space creation. The original panel, fixture windows and Space inventory were
+completely restored and both fixture processes exited normally. This is an executed pre-migration
+engineering blocker, not a negative hidden-Space API result. The next source correction separates
+own-panel discovery timing from real mutation acknowledgement and adds actual phase durations.
+[Target originals and exact hashes](../verification/independent-stage/target-8805-panel-home/README.md).
 
-The first-frame source fix uses the existing gallery and one original pending departure. A new
-case in the existing lifecycle run turns the ordinary image preference off and drains the gallery
-before creating A2, uses a real R4 switch to hide that never-captured window, then enables images
-within the original five-second interval. PASS requires its real original held CGImage and two
-physical reads showing the same hidden Space, before any later R4 restore of A2. Original settings
-are restored. An unconfirmed cold baseline remains UNKNOWN while other lifecycle work continues;
-no synthetic frame, separate capture pipeline or restore-for-image fallback exists. This native
-cold case still awaits the main R4/crash prerequisites and is not promoted from source tests.
+The follow-up `350e848cc30106c32156ddba2c222ab639ab141f` now **passes the complete
+normal foreign-window engine on the actual target27.0 /26A428 /arm64 /SIP enabled**.
+It obtains34/34 verified receipts,10/10 checks and26 actual hide/restore requests across
+two independent fixture apps/three windows: same-app independence, cross-app combinations,
+three A→B→C→A cycles, first and later yellow actions and exact focus. First release returns
+owned0; two complete final reads restore every original frame/home and the exact16-entry
+Space inventory. Both fixtures exit0. The first and later yellow actions finish two
+complete hidden/offscreen/nonminimized reads at925/927ms. Own-close actually encounters
+Readback217 and recovers inside its existing observation loop.166 Rust regressions also
+pass on this target, and the separate350e cloud source run passes166 Rust/174 Swift, one skip.
+[Decisive SIP-enabled foreign-engine originals](../verification/independent-stage/target-350e-engine/README.md).
+
+This confirms the route's foreign-window mechanism on the requested target, without claiming
+all third-party applications or the formal R4 path. A second350e product invocation finds the
+console locked with loginwindow foreground and correctly performs zero foreign moves. Its
+product preflight also exposes Foundation canonicalizing existing output to/tmp while an
+absent profile's parent remains/private/tmp. Canonicalizing both real parents fixes that
+read-only configuration error; exact PID and directory scope constraints remain. The original
+blocked invocation stays blocked and its fixture cleanup succeeds. No locked-session UI input
+is attempted after that condition is identified.
+[Separate original blocked run and path/console probe](../verification/independent-stage/target-350e-product-preflight/README.md).
+
+The next R4 source correction isolates retained original-AX reads from the UI actor. A narrow
+immutable AX receiver crosses executors, while the mutable owner, monitor and writers remain
+on MainActor; per-window read/write phases exclude concurrent native access. All original
+window/owner/lifetime/claim/home/lease/permission checks remain before and after awaits.
+Initial role enumeration, initial binding's full read and ongoing observations use this path.
+The input helper now logs exact canonical read errors and may rediscover only an explicitly
+incomplete pre-action read in its original6s budget; no issued action is repeated. These
+source changes still require their own Swift code-generation and actual product results.
+
+The existing lifecycle experiment now creates a window that has never been captured, selects a
+real R4 card to hide it, then enables pictures within the original five-second pending interval.
+A cold-preview PASS requires the original real held image and two physical reads of that same
+hidden Space before any restore; blank images or a later successful restore cannot qualify it.
+Main R4, crash/restart, cold-preview and lifecycle prerequisites remain separately NOT_RUN until
+executed. Their completed source code is not promoted into a native result.
 
 ### What is established
 
@@ -91,10 +123,14 @@ cold case still awaits the main R4/crash prerequisites and is not promoted from 
 2. That run executed **zero third-party window actions**. Its admission/Host restrictions blocked them.
    Subsequent unexecuted trials are not a negative WindowServer result.
    [External admission](../verification/window-engine/single-version-26A428/11-external-admission.json).
-3. Upstream has advanced from v1.9.1 `69a73665488243bf78982c6d523ac4e0850c1ddb` to v1.9.2
-   `19e6e490bc91e65cef6a782075b5450e3159fd2d`.
-   [Release](https://github.com/eugene-tea/stage-manager/releases/tag/v1.9.2),
-   [fixed implementation](https://github.com/eugene-tea/stage-manager/tree/19e6e490bc91e65cef6a782075b5450e3159fd2d/src/platform/spaces).
+3. Upstream has advanced from the fixed v1.9.1 through v1.9.2 to **v1.10.0**,
+   `204d8de1ac2b682d147389c31a07b0a485ef9368`, published2026-11-26 at17:23:02UTC.
+   The actual118-file incremental diff has been audited. Hidden bridge/create/destroy/masks,
+   engine selection and own-panel probe semantics are unchanged; notification and Cmd-Tab
+   ordering changes supply specific compatibility cases, not a new renderer-decoupling route.
+   Corner screenshot/cover performance claims are not imported into Nearpane.
+   [Release](https://github.com/eugene-tea/stage-manager/releases/tag/v1.10.0),
+   [fixed incremental audit](INDEPENDENT-SPACES-SOURCE-AUDIT.md#v1100-delta-audit).
 4. Its hidden-Space route uses `SLSSpaceCreate`, bridged add/remove (`options=7` to hide,
    `options=0xf` to return), `SLSCopySpacesForWindows`, reverse membership and `SLSSpaceDestroy`.
    `SLSBridgedMoveWindowsToManagedSpaceOperation` serves ordinary managed-desktop movement; it is not
@@ -355,8 +391,9 @@ and verifies foreign-window hide/return, bystanders, same-app independence and r
 acceptance is recorded separately; it may not be inferred from the low-level trial.
 
 Results are appended here and under `engineering/verification/independent-stage/` after execution.
-Until a result is actually recorded, it is **NOT_RUN**, including third-party success, native overview,
-yellow minimize, physical gestures, normal/crash recovery, and end-to-end R4 operation on the target Mac.
+The target foreign engine and its yellow actions now have completed350e receipts. Formal R4,
+native overview, physical gestures, product yellow routing and crash/lifecycle paths remain **NOT_RUN**
+until their own completed results exist; engine-only evidence does not qualify them.
 
 No unsigned/ad-hoc remote candidate is advertised as a notarized install. Existing signatures, installed
 daily builds and uncommitted work in other checkouts are preserved.

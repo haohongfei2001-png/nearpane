@@ -108,7 +108,7 @@ import NearpaneCore
 
     /// Read only the returned exact PID/window identity. The complete current-Space candidate
     /// roster and its two membership samples come independently from the signed desktop reader.
-    package func role(of window: NativeSpaceWindow) throws -> Bool {
+    nonisolated package func role(of window: NativeSpaceWindow) throws -> Bool {
         try check()
         let (owner, bundle, element) = try Self.original(window)
         let measured = try Self.role(element)
@@ -161,12 +161,38 @@ import NearpaneCore
     }
 }
 
+/// Only this immutable AX receiver crosses the executor boundary. Its timeout
+/// was fixed during the original bind. The owning StageHostWindow excludes all
+/// other reads/writes of that receiver while a background read is outstanding;
+/// its mutable monitor, observer and owner witness never enter this wrapper.
+private struct StageOriginalAXReceiver: @unchecked Sendable {
+    let element: AXUIElement
+}
+
+private actor StageHostPhysicalReader {
+    private let original: StageOriginalAXReceiver
+    init(_ original: StageOriginalAXReceiver) { self.original = original }
+    func read(_ id: ManagedWindowID, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation {
+        try Task.checkCancellation()
+        return try StageWindowPhysicalReader.read(id, original: original.element, home: home, retainedStandardWindow: true)
+    }
+}
+
+private struct StagePreparedHostWindow: Sendable {
+    let id: ManagedWindowID, original: StageOriginalAXReceiver, bundle: String
+    let image: OrdinaryProcessImage, digest: Data
+    let observation: StageWindowPhysicalObservation
+}
+
 @MainActor package final class StageHostWindow {
     package let id: ManagedWindowID
     private let access: StageHostAccess, owner: OrdinaryOwnerIdentity, bundle: String, monitor: WindowMonitor
     private let home: OrdinaryDesktopIdentity, engine: StageEngineOwner, lifetime: UUID?
     private var creation: CreatedWindowWatch?
     private var spent = Set<UUID>()
+    private let physicalReader: StageHostPhysicalReader
+    private enum AccessPhase { case idle, reading, writing }
+    private var accessPhase: AccessPhase = .idle
 
     struct PrimitiveFence {
         let deadline: TimeInterval, originalInput: [UInt32]
@@ -191,15 +217,36 @@ import NearpaneCore
     }
 
     package static func bind(_ window: NativeSpaceWindow, lifetime: UUID, home: OrdinaryDesktopIdentity,
-                             engine: StageEngineOwner, access: StageHostAccess) throws -> StageHostWindow {
+                             engine: StageEngineOwner, access: StageHostAccess) async throws -> StageHostWindow {
         try access.check()
-        let (owner, bundle, element) = try StageHostAccess.original(window)
-        guard try StageHostAccess.role(element) else { throw StageSwitchError.ownership }
-        let binding = StageHostWindow(id: .init(pid: window.pid, launch: window.birth, number: window.number, element: UUID()),
-            original: element, bundle: bundle, owner: owner, lifetime: lifetime, home: home, engine: engine, access: access)
-        let evidence = try binding.observation(home: home)
-        guard evidence.membership == UInt64(home.record) else { throw StageSwitchError.ownership }
-        return binding
+        let prepared = try await Task.detached(priority: .userInitiated) {
+            try Task.checkCancellation()
+            try access.check()
+            let image = try OrdinaryProcessImage.read(window.pid), digest = try OrdinaryProcessImage.signingDigest(window.pid)
+            let (owner, bundle, element) = try StageHostAccess.original(window)
+            guard try StageHostAccess.role(element) else { throw StageSwitchError.ownership }
+            let id = ManagedWindowID(pid: window.pid, launch: window.birth, number: window.number, element: UUID())
+            let observed = try StageWindowPhysicalReader.read(id, original: element, home: home, retainedStandardWindow: true)
+            try checkOwner(owner, pid: window.pid, launch: window.birth, bundle: bundle)
+            guard try OrdinaryProcessImage.read(window.pid) == image,
+                  try OrdinaryProcessImage.signingDigest(window.pid) == digest else { throw StageSwitchError.ownership }
+            try access.check()
+            return StagePreparedHostWindow(id: id, original: .init(element: element), bundle: bundle,
+                image: image, digest: digest, observation: observed)
+        }.value
+        guard !Task.isCancelled, prepared.id.pid == window.pid, prepared.id.launch == window.birth,
+              prepared.id.number == window.number, prepared.observation.id == prepared.id,
+              prepared.observation.membership == UInt64(home.record) else { throw StageSwitchError.interrupted }
+        try access.check()
+        // The mutable owner witness is created on the owning UI actor. The
+        // prepared original AX object is installed directly, never looked up
+        // again by its number after the executor handoff.
+        let owner = OrdinaryOwnerIdentity()
+        try checkOwner(owner, pid: window.pid, launch: window.birth, bundle: prepared.bundle)
+        guard try OrdinaryProcessImage.read(window.pid) == prepared.image,
+              try OrdinaryProcessImage.signingDigest(window.pid) == prepared.digest else { throw StageSwitchError.ownership }
+        return StageHostWindow(id: prepared.id, original: prepared.original.element, bundle: prepared.bundle,
+            owner: owner, lifetime: lifetime, home: home, engine: engine, access: access)
     }
 
     private init(id: ManagedWindowID, original: AXUIElement, bundle: String, owner: OrdinaryOwnerIdentity,
@@ -207,9 +254,11 @@ import NearpaneCore
         self.id = id; self.bundle = bundle; self.owner = owner; self.lifetime = lifetime
         self.home = home; self.engine = engine; self.access = access
         monitor = WindowMonitor(id: id, bundle: bundle, element: original, parent: getppid(), owner: owner, signalParent: false)
+        physicalReader = StageHostPhysicalReader(.init(element: original))
     }
 
     package func observation(home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation {
+        guard accessPhase != .reading else { throw StageSwitchError.interrupted }
         try access.check()
         guard self.home == home, monitor.canListAgain else { throw StageSwitchError.ownership }
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
@@ -218,7 +267,28 @@ import NearpaneCore
         return sample
     }
 
+    /// Keep native AX/CG/Space IPC off the UI executor without sharing mutable
+    /// observer or process-binding state. The same original AX receiver is used
+    /// for every read, including while its owner's AXWindows list is empty.
+    package func observationAsync(home: OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation {
+        guard !Task.isCancelled, accessPhase == .idle, self.home == home, monitor.canListAgain else {
+            throw StageSwitchError.interrupted
+        }
+        try access.check()
+        try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+        accessPhase = .reading
+        defer { accessPhase = .idle }
+        let sample = try await physicalReader.read(id, home: home)
+        guard !Task.isCancelled, accessPhase == .reading, self.home == home, monitor.canListAgain else {
+            throw StageSwitchError.interrupted
+        }
+        try access.check()
+        try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+        return sample
+    }
+
     package func departure() throws -> StageWindowDeparture? {
+        guard accessPhase == .idle else { throw StageSwitchError.interrupted }
         try access.check()
         guard let lifetime else { return nil }
         return StageWindowDeparture.confirmed(try monitor.stageClosure(), original: id, lifetime: lifetime)
@@ -230,6 +300,7 @@ import NearpaneCore
     /// positive closure evidence. A failed yellow-button transaction may retain native minimization.
     package func returnedHome(home: OrdinaryDesktopIdentity, frame: SurfaceRect, allowMinimized: Bool = false) -> Bool {
         do {
+            guard accessPhase == .idle else { return false }
             try access.check()
             guard self.home == home, lifetime != nil, monitor.canListAgain else { return false }
             try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
@@ -242,6 +313,7 @@ import NearpaneCore
     }
 
     package func beginCreation(_ token: UUID) throws {
+        guard accessPhase == .idle else { throw StageSwitchError.interrupted }
         let observed = try observation(home: home)
         guard lifetime != nil, observed.onscreen, !observed.minimized, observed.membership == UInt64(home.record),
               observed.focus == .init(pid: id.pid, birth: id.launch, number: id.number) else { throw StageSwitchError.ownership }
@@ -251,6 +323,7 @@ import NearpaneCore
     package func endCreation(_ token: UUID) { if creation?.grant == token { creation = nil } }
 
     package func nextCreation(_ token: UUID) throws -> StageHostWindow? {
+        guard accessPhase == .idle else { throw StageSwitchError.interrupted }
         try access.check()
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         guard let creation, creation.grant == token, creation.anchor == id, monitor.canListAgain else { throw StageSwitchError.ownership }
@@ -265,6 +338,9 @@ import NearpaneCore
     /// Limits are identical for placement and focus. Every AX primitive rechecks the original
     /// intent and actual HID counters immediately before the existing physical verification.
     package func perform(_ command: StageWindowCommand, scope: OrdinaryFocusScope, current: @escaping @MainActor () -> Bool) throws {
+        guard accessPhase == .idle else { throw StageSwitchError.interrupted }
+        accessPhase = .writing
+        defer { accessPhase = .idle }
         let window = NativeSpaceWindow(pid: id.pid, birth: id.launch, number: id.number)
         guard Self.matches(command, id: id, lifetime: lifetime, home: home, owner: engine), scope.desktop == home,
               current() else { throw StageSwitchError.ownership }

@@ -124,10 +124,19 @@ static BOOL r4CGPanel(NSDictionary *host,CGRect *frame) {
     if(found!=1 || !r4HostMatches(host))return NO;*frame=result;return YES;
 }
 typedef AXError (*R4WindowNumber)(AXUIElementRef,CGWindowID *);
-static BOOL r4MapsToPanel(AXUIElementRef element,NSDictionary *host,R4WindowNumber reader) {
+static BOOL r4MapsToPanel(AXUIElementRef element,NSDictionary *host,R4WindowNumber reader,NSMutableDictionary *diagnostic) {
     pid_t pid=0;CGWindowID number=0;
-    return element && reader && AXUIElementGetPid(element,&pid)==kAXErrorSuccess && pid==[host[@"pid"] intValue] &&
-        reader(element,&number)==kAXErrorSuccess && number==[host[@"number"] unsignedIntValue];
+    AXError ownerError=element?AXUIElementGetPid(element,&pid):kAXErrorInvalidUIElement;
+    BOOL ownerMatches=ownerError==kAXErrorSuccess && pid==[host[@"pid"] intValue];
+    BOOL attempted=element && reader && ownerMatches;
+    AXError numberError=attempted?reader(element,&number):kAXErrorFailure;
+    if(diagnostic) {
+        diagnostic[@"ownerRead"]=@(ownerError);diagnostic[@"ownerMatches"]=@(ownerMatches);
+        diagnostic[@"canonicalNumberRead"]=attempted?@(numberError):@"NOT_RUN";
+        diagnostic[@"canonicalNumber"]=attempted && numberError==kAXErrorSuccess?@(number):NSNull.null;
+        diagnostic[@"expectedNumber"]=host[@"number"];
+    }
+    return attempted && numberError==kAXErrorSuccess && number==[host[@"number"] unsignedIntValue];
 }
 static AXUIElementRef r4CopyPanel(AXUIElementRef application,NSDictionary *host,R4WindowNumber reader,AXError *error) CF_RETURNS_RETAINED;
 static AXUIElementRef r4CopyPanel(AXUIElementRef application,NSDictionary *host,R4WindowNumber reader,AXError *error) {
@@ -137,7 +146,7 @@ static AXUIElementRef r4CopyPanel(AXUIElementRef application,NSDictionary *host,
     for(id row in rows) {
         if(!r4Element(row))return NULL;
         AXUIElementRef element=(__bridge AXUIElementRef)row;
-        if(r4MapsToPanel(element,host,reader)) {
+        if(r4MapsToPanel(element,host,reader,nil)) {
             if(found && !CFEqual(found,element))return NULL;found=element;
         }
     }
@@ -304,11 +313,14 @@ static int runR4Press(NSString *requestPath) {
                     NSMutableDictionary *context=[@{@"configurationBytes":@"NOT_RUN",@"parentSignatureAndIdentity":@"NOT_RUN",
                         @"onScreenCGPanel":@"NOT_RUN",@"retainedAXPanelIdentity":@"NOT_RUN",@"panelFrameChanged":@"NOT_RUN"} mutableCopy];
                     report[@"prePressContext"]=context;
+                    [report removeObjectForKey:@"prePressContextFailure"];
+                    NSMutableDictionary *panelIdentity=[NSMutableDictionary dictionary];
+                    report[@"prePressPanelIdentity"]=panelIdentity;
                     NSString *contextFailure=nil;
                     if(!r4ContextCheck(context,@"configurationBytes",[configBytes isEqual:freshBytes]))contextFailure=@"configurationBytesChangedOrUnreadable";
                     else if(!r4ContextCheck(context,@"parentSignatureAndIdentity",r4HostSignature(host)))contextFailure=@"parentSignatureOrIdentityUnconfirmed";
                     else if(!r4ContextCheck(context,@"onScreenCGPanel",r4CGPanel(host,&freshFrame)))contextFailure=@"onScreenCGPanelUnconfirmed";
-                    else if(!r4ContextCheck(context,@"retainedAXPanelIdentity",r4MapsToPanel(panel,host,reader)))contextFailure=@"retainedAXPanelIdentityUnconfirmed";
+                    else if(!r4ContextCheck(context,@"retainedAXPanelIdentity",r4MapsToPanel(panel,host,reader,panelIdentity)))contextFailure=@"retainedAXPanelIdentityUnconfirmed";
                     if(!CGRectIsNull(freshFrame)) {
                         report[@"prePressPanelFrame"]=r4Frame(freshFrame);
                         // Semantic AXPress uses the same object, not an old point.
@@ -317,7 +329,20 @@ static int runR4Press(NSString *requestPath) {
                     }
                     if(contextFailure) {
                         report[@"prePressContextFailure"]=contextFailure;
-                        report[@"reason"]=@"prePressContextChanged";selected=nil;break;
+                        report[@"reason"]=@"prePressContextChanged";selected=nil;
+                        int numberError=[panelIdentity[@"canonicalNumberRead"] intValue];
+                        BOOL incomplete=[contextFailure isEqual:@"retainedAXPanelIdentityUnconfirmed"] &&
+                            [panelIdentity[@"ownerMatches"] isEqual:@YES] &&
+                            (numberError==kAXErrorCannotComplete || numberError==kAXErrorInvalidUIElement);
+                        if(!incomplete)break;
+                        // No action was issued. Repeat complete discovery only for
+                        // an explicitly incomplete read, within the same deadline.
+                        // A positively different panel number remains a rejection.
+                        report[@"prePressRediscoveries"]=@([report[@"prePressRediscoveries"] unsignedIntegerValue]+1);
+                        NSMutableArray *failures=report[@"prePressIncompleteReads"];
+                        if(!failures){failures=[NSMutableArray array];report[@"prePressIncompleteReads"]=failures;}
+                        if(failures.count<8)[failures addObject:@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"panelIdentity":panelIdentity}];
+                        pump(.06);continue;
                     }
                     // Selection retains the exact AX element whose discovery read
                     // already confirmed AXPress. Recheck its mutable attributes,

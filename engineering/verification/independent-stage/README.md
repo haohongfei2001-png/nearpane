@@ -85,6 +85,14 @@ These are code-completion claims. The evidence below determines which native eff
 | `3437abd5`, R4-fast and profile | Source164 Rust/174 Swift pass, one skip. First-frame AX history creation occupies14/83 main-thread leaf samples; button's final canonical mapping is unconfirmed before input | Product BLOCKED/input0, cleanup PASS. The entire sample is retained, not only chosen stacks. [Actual original sample and receipts](cloud-3437abd5-r4-fast/README.md) |
 | `3437abd5`, full release and profile | Full package/signature pass; actual input1, exact Finder self/listed-once structure, fresh3-window bindings and ready worker. Two synchronous physical rebinding passes occupy104/114 sampled main-thread paths; opening-roster then rejects stale system ownership | Product FAIL before NP_LAUNCH, cleanup PASS, worker owns zero. C Finder predicate remains unexecuted. [Complete candidate, entire sample, Finder/worker and physical receipts](cloud-3437abd5-full/README.md) |
 
+| `8805a3db`, source/full package and normal engines |164 Rust/174 Swift pass, one skip; complete workspace/signatures pass. All three VMs independently pass the complete normal foreign engine and cleanup | Latest source-checked full candidate; diagnostics34/34 receipts,10checks, first/later yellow595/613ms, firstrelease74.134ms/owned0. [Full original](cloud-8805-full/README.md); diagnostics [artifact15081238976](https://github.com/haohongfei2001-png/nearpane/actions/runs/45742189742/artifacts/15081238976), SHA256 `e9796baf049b34205d52089dcf0d572cf3d3f44a4359721469cba74280986664` |
+| `8805a3db`, fast actual R4 | Same retained panel confirmed, input1/AXPress0, first witness completes3 windows/3 managed. Actual Dock sample age1133.81ms revokes ownership before NP_LAUNCH;10/86 sampled main-thread paths identify witness reads | Product FAIL/cleanup PASS. Initial binding existed; this run does not physically cover cold rebinding. [Full sample and receipts](cloud-8805-r4-fast/README.md) |
+| `8805a3db`, full actual R4 | Discovery same-panel succeeds, final retainedAXPanelIdentity unconfirmed before button validation/input; its inner call's specific error was not recorded | BLOCKED/input0/cleanup PASS; neither wrong-window nor timeout inferred. [Full original](cloud-8805-full/README.md) |
+| `8805a3db`, target26A428/SIPon | Own panel obtains matching complete home4 at3/208ms; second exceeds120ms discovery budget. No hidden Space created, foreign requests0; original inventory/windows and both fixture exits confirmed | Executed engineering blocker, not bridge failure. [Original target trace and hashes](target-8805-panel-home/README.md) |
+
+| **350e848c, actual target26A428/SIP enabled** | **34/34 engine receipts,10/10 checks,26 hide/restore requests,68 two-observation foreign readbacks PASS**; same-app/cross-app/three cycles/first and later yellow/focus. Firstrelease537.5ms/owned0; original3 windows and16-entry inventory restored twice | **Target foreign engine established**, cleanupPASS, both fixture exits0. Actual own-close217 recovery exercised. R4NOT_RUN/overallINCOMPLETE remains explicit. [Raw target evidence and166 Rust PASS](target-350e-engine/README.md) |
+|350e848c, separate hosted diagnostics/source |166 Rust/174 Swift pass, one skip. Diagnostics34/34receipts and10checks PASS, first/later yellow759/670ms, firstrelease151.5ms/owned0, fullcleanupPASS; own-close217 retry actually executes | Independent hosted result, not merged with target/product evidence. [artifact15148512070](https://github.com/haohongfei2001-png/nearpane/actions/runs/45883578306/artifacts/15148512070), SHA256 `0700985ae5399aeecccd19205fa6ba022ecf50b5c2bfed99a630ff10fe710cd0` |
+
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
 visible standard AX window through the existing readback operation, retains that exact identity across
@@ -95,7 +103,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `3437abd5` source run passed **164 Rust and 174 Swift cases, with one explicit skip**;
+The latest completed `350e848c` source run passed **166 Rust and174 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -130,13 +138,24 @@ Original target receipts:
 - [Read-only native-engine/strip inventory](../../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-inventory.json)
 - [Read-only front-focus contrast](../../../tools/native-stage-decoupling/evidence/macos-27.0-26A428-focus-readback.json)
 
-The target connector subsequently stopped responding. The unstarted calls returned timeouts without a
-process ID; they are not additional WindowServer experiments. The daily application and its checkout
-were not replaced. All target experiment fixture cleanup that completed is preserved in its receipts.
+The target connector previously stopped responding; those unstarted calls have no WindowServer result.
+It returned online on2026-11-26 at19:13UTC. The clean isolated clone was fast-forwarded to8805 and
+the blocked8805 trial and complete successful350e foreign-engine trial above executed. The daily application and its checkout were not replaced.
+The initial missing-Cargo PATH attempt stopped before creating any fixture; the recorded trial reused
+the existing portable compiler. Target cleanup is preserved separately from hosted results.
 
 ## Complete candidate checkpoints
 
-[3437abd5 full receipts](cloud-3437abd5-full/README.md) identify the latest source-checked complete
+[8805a3db full receipts](cloud-8805-full/README.md) identify the latest source-checked complete
+candidate in [artifact15081848172](https://github.com/haohongfei2001-png/nearpane/actions/runs/45742189742/artifacts/15081848172).
+The independently rehashed inner ZIP is25,366,035 bytes, SHA256
+`9c5c7619b97917a30b6a4a0de846c3bd0890c6b2178e60e1c65a7fe0359ee1f5`.
+164 Rust/174 Swift pass, one skip; full workspace/resources/strict deep signature pass.
+This VM's ordinary foreign engine passes, but its formal R4 helper stops before input on an
+unconfirmed retained-panel identity. Product cleanup passes. This is a development candidate,
+not a completed R4 product, Developer ID notarization or target-SIP qualification.
+
+[3437abd5 full receipts](cloud-3437abd5-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15080378771](https://github.com/haohongfei2001-png/nearpane/actions/runs/45738564830/artifacts/15080378771).
 Its independently rehashed ZIP is 25,337,823 bytes, SHA-256
 `dfedb4a4377fa250bca3a46358b4e763625878602947fcf7e628066b24f49d0c`.
