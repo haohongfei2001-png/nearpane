@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<testsuites>
+<testsuite name="TestResults" errors="0" tests="13" failures="0" time="2.6151533739999997">
+<testcase classname="TileKitTests.TileKitTests" name="testCustomOrderSurvivesCleanExitAndMultipleRelaunches" time="0.207547375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testAReconnectedPreferredScreenDoesNotStealCurrentPlacement" time="0.208189333">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testCorruptRegistryIsNotSilentlyReplacedWithAnEmptyPlan" time="0.207659959">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLeaseAgeAloneNeverReclaimsVisibleMember" time="0.184612">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testInvalidModuleCannotAliasAnUnrelatedSessionLock" time="0.184749125">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testDefaultOrderAndOverflowDoNotIntersectOrLeaveScreen" time="0.184839375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLifetimeLeaseCannotBeAcquiredBySecondInstance" time="0.266285083">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock" time="0.266234166">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLegacyWindowIsAvoidedAndNewMemberAppendsToUserOrder" time="0.266305375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testSharedWidthUsesPointsAndReadableClamps" time="0.156786125">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testReorderWaitsForExplicitHideAndIndependentWindowAbsence" time="0.168549583">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathDuringWithdrawalDoesNotRestorePendingReservation" time="0.168506875">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathReclaimsReservationAndStillWaitsForSurvivorWithdrawal" time="0.144889">
+</testcase>
+</testsuite>
+</testsuites>

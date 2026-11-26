@@ -1,0 +1,17 @@
+{
+  "artworkAcceptanceTested" : false,
+  "controlsPresented" : true,
+  "darkAppearance" : false,
+  "image" : "fixture-light-lyrics-hover.png",
+  "kind" : "authored-native-layout-fixture",
+  "limitations" : "Authored test input. No session lease: transport is disabled and cover acceptance is not exercised. Hover presentation is pinned; no mouse event is claimed.",
+  "logicalHeight" : 204,
+  "logicalWidth" : 208,
+  "maximumAlpha" : 1,
+  "nativeGlyphViews" : 1,
+  "networkStarted" : false,
+  "realPlayerTest" : false,
+  "scenario" : "light-lyrics-hover",
+  "sessionLeaseAcquired" : false,
+  "transportCommandsTested" : false
+}

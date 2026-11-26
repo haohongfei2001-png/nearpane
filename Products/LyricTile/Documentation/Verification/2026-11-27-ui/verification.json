@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-27 Asia/Shanghai",
+  "sourceCommit": "39dabc3ae676471a334dcb07112ee9e825f9b574",
+  "workflow": {
+    "id": 45875877384,
+    "number": 30,
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384",
+    "conclusion": "success",
+    "completedAtUTC": "2026-11-26T18:33:45Z"
+  },
+  "host": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\narm64\nXcode 27.1\nBuild version 27A9275\nApple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0\n39dabc3ae676471a334dcb07112ee9e825f9b574\n",
+  "verification": {
+    "productionAppBuild": "PASS",
+    "hostModuleBuild": "PASS",
+    "swiftTestingGroups": [
+      {
+        "tests": 13,
+        "suites": 4,
+        "durationSeconds": 1.881
+      },
+      {
+        "tests": 25,
+        "suites": 2,
+        "durationSeconds": 0.282
+      },
+      {
+        "tests": 24,
+        "suites": 0,
+        "durationSeconds": 0.134
+      },
+      {
+        "tests": 13,
+        "suites": 2,
+        "durationSeconds": 0.004
+      }
+    ],
+    "swiftTestingTotal": 75,
+    "xctestCases": 13,
+    "xctestFailures": 0,
+    "xctestErrors": 0,
+    "totalTestDefinitions": 88,
+    "authoredNativeLayoutScenarios": 7,
+    "layoutReview": "PASS",
+    "nativeSmoke": {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "observation": {
+        "check": "native-ui-load",
+        "height": 112,
+        "idlePanelHidden": true,
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 620,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 450,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    "packagedMediaHelperLoad": "PASS",
+    "adHocCandidateBundle": "PASS"
+  },
+  "idle": {
+    "scope": "actual_candidate_idle_no_player",
+    "status": "MEASURED",
+    "durationSeconds": 121.15266754200002,
+    "samples": 105,
+    "cpuMeanPercentOneCore": 0.1568273497536664,
+    "rssMedianMiB": 55.0625,
+    "rssPeakMiB": 55.15625,
+    "withinTargets": true,
+    "qualification": "Hosted idle baseline only; no real-player/line/word/8-hour performance claim."
+  },
+  "artifacts": [
+    {
+      "id": 15145262728,
+      "name": "LyricTile-ui-30",
+      "sha256": "sha256:3966a2bd88f2fcd6aed4d320dfdbb0371fecb8f36f84b9cf164756957c5ee952",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384/artifacts/15145262728"
+    },
+    {
+      "id": 15145053476,
+      "name": "LyricTile-candidate-30",
+      "sha256": "sha256:e4109b2c20463ccbc91b03c20ad18bc898b0806a26a3bdcba58e69717d658f3f",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384/artifacts/15145053476"
+    }
+  ],
+  "imageSHA256": {
+    "fixture-compact-hover.png": "439f448c55f8a6e9be856c8bc7ec3446d27b0e4cde4de21d0c39abaa5845aee2",
+    "fixture-compact.png": "a5797f5ca5187c45f92d2622d6a17978d15ea37f559288debec61f1f16877913",
+    "fixture-light-lyrics-hover.png": "6829414780a35db5a95e6c29dc90876db4de1ff9724716a0696d6fb9a763540d",
+    "fixture-light-lyrics.png": "da3ced53f9f80bbf66982d852cef4968d1fea4509611a2ca3a80981477f66e48",
+    "fixture-missing-metadata.png": "9ba9212379709a9e8d2bafdc0c90a470b01c792161f110ecd28cf5e0d4c9b505",
+    "fixture-narrow-dark-long-lyrics.png": "6822f86a5ad5085daf810677662c5f51d1c6f6ce22aecdedf60ee15ed311f7aa",
+    "fixture-no-song-transparent.png": "a19192a74b6f8ec646bd2f3708ecdc291d08606817ec5397285305d50f6fe392"
+  },
+  "limitations": [
+    "Layout images use authored test input only; no production session lease or player is started.",
+    "Fixture transport controls are disabled, artwork acceptance and actual pointer events are not exercised.",
+    "Real-player playback/pause/leave/resume and lyric-arrival resizing on the updated signed app remain not run.",
+    "Desktop wallpaper/material contrast and the updated Developer ID signed/notarized installer remain unverified in this round."
+  ]
+}
