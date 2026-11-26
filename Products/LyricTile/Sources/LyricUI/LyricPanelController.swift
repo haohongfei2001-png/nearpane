@@ -16,7 +16,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private let model: LyricAppModel
     private let defaults: UserDefaults
     private var subscriptions: Set<AnyCancellable> = []
-    private var dragTask: Task<Void, Never>?
+    private var dragging = false
     private var hideTask: Task<Void, Never>?
     private var hideRevision: UInt64 = 0
     private var userHidden = false
@@ -44,7 +44,10 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         panel.title = "LyricTile"
         panel.setAccessibilityLabel("LyricTile 歌词板")
         let hosting = NSHostingView(rootView: LyricPanelView(model: model))
-        let container = LyricPanelContainer(hosting: hosting, onDragBegin: { [weak self] in self?.beganDragging() })
+        let container = LyricPanelContainer(hosting: hosting, onDragBegin: { [weak self] in
+            self?.cancelIdleHide()
+            self?.dragging = true
+        }, onDragEnd: { [weak self] point in self?.finishedDragging(at: point) })
         panel.contentView = container
         applyCollectionBehavior(model.settings)
         NotificationCenter.default.addObserver(self, selector: #selector(displaysChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -92,7 +95,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         if !permitted { withdraw() }
     }
     public func withdraw() {
-        dragTask?.cancel(); dragTask = nil
+        dragging = false
         panel.orderOut(nil)
         model.isVisible = false
         model.setControlsVisible(false)
@@ -141,13 +144,13 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         } else { cancelIdleHide(); show() }
     }
     private func resizeVisibleSurface() {
-        guard dragTask == nil, slotFrame != .zero else { return }
+        guard !dragging, slotFrame != .zero else { return }
         let height: CGFloat = model.idle && model.ownershipMessage == nil ? 62 : 272
         let frame = NSRect(x: slotFrame.minX, y: slotFrame.maxY - height, width: slotFrame.width, height: height)
         if panel.frame != frame { panel.setFrame(frame, display: true, animate: false) }
     }
     private func scheduleIdleHide() {
-        guard dragTask == nil, model.settings.hideWhenIdle, hideTask == nil else { return }
+        guard !dragging, model.settings.hideWhenIdle, hideTask == nil else { return }
         hideRevision &+= 1
         let expected = hideRevision
         hideTask = Task { [weak self] in
@@ -171,24 +174,12 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         behavior.insert(settings.showInFullScreen ? .fullScreenAuxiliary : .fullScreenNone)
         panel.collectionBehavior = behavior
     }
-    private func beganDragging() {
-        cancelIdleHide()
-        dragTask?.cancel()
-        // performDrag returns immediately and AppKit may withhold mouseUp while
-        // WindowServer owns the drag. Keep playback updates off the moving frame.
-        dragTask = Task { @MainActor [weak self] in
-            repeat {
-                do { try await Task.sleep(for: .milliseconds(32)) } catch { return }
-            } while NSEvent.pressedMouseButtons & 1 != 0
-            guard let self, !Task.isCancelled else { return }
-            self.dragTask = nil
-            guard self.panel.isVisible, self.model.ownsSession, self.placementPermitted else { return }
-            self.finishedDragging()
-            if self.model.idle && self.model.settings.hideWhenIdle { self.scheduleIdleHide() }
-        }
-    }
-    private func finishedDragging() {
-        guard !surrendered, let screen = panel.screen else { return }
+    private func finishedDragging(at point: NSPoint) {
+        guard dragging else { return }
+        dragging = false
+        guard !surrendered, placementPermitted, panel.isVisible,
+              let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? panel.screen else { return }
+        if model.idle && model.settings.hideWhenIdle { scheduleIdleHide() }
         let visible = screen.visibleFrame
         let width = TileGeometry.standaloneWidth(visibleWidth: visible.width)
         guard visible.width >= width + 32, visible.height >= 304 else { restorePosition(reset: false); return }
@@ -243,8 +234,8 @@ private final class LyricPanelContainer: NSView {
     private let hosting: NSView
     private let drag: LyricDragStrip
     override var isFlipped: Bool { true }
-    init(hosting: NSView, onDragBegin: @escaping @MainActor () -> Void) {
-        self.hosting = hosting; drag = LyricDragStrip(onBegin: onDragBegin)
+    init(hosting: NSView, onDragBegin: @escaping @MainActor () -> Void, onDragEnd: @escaping @MainActor (NSPoint) -> Void) {
+        self.hosting = hosting; drag = LyricDragStrip(onBegin: onDragBegin, onEnd: onDragEnd)
         super.init(frame: .zero)
         addSubview(hosting); addSubview(drag)
     }
@@ -258,11 +249,30 @@ private final class LyricPanelContainer: NSView {
 @MainActor
 private final class LyricDragStrip: NSView {
     let onBegin: @MainActor () -> Void
-    init(onBegin: @escaping @MainActor () -> Void) {
-        self.onBegin = onBegin; super.init(frame: .zero)
+    let onEnd: @MainActor (NSPoint) -> Void
+    private var offset = NSPoint.zero
+    private var tracking = false
+    init(onBegin: @escaping @MainActor () -> Void, onEnd: @escaping @MainActor (NSPoint) -> Void) {
+        self.onBegin = onBegin; self.onEnd = onEnd
+        super.init(frame: .zero)
         toolTip = "拖动以调整右侧列顺序，或移到另一显示器"
     }
     required init?(coder: NSCoder) { return nil }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseDown(with event: NSEvent) { onBegin(); window?.performDrag(with: event) }
+    override var mouseDownCanMoveWindow: Bool { false }
+    override func mouseDown(with event: NSEvent) {
+        offset = event.locationInWindow
+        tracking = false
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard let window, window.isVisible else { return }
+        if !tracking { tracking = true; onBegin() }
+        let point = window.convertPoint(toScreen: event.locationInWindow)
+        window.setFrameOrigin(NSPoint(x: point.x - offset.x, y: point.y - offset.y))
+    }
+    override func mouseUp(with event: NSEvent) {
+        guard tracking, let window else { return }
+        tracking = false
+        onEnd(window.convertPoint(toScreen: event.locationInWindow))
+    }
 }
