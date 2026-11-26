@@ -44,3 +44,4 @@ Apple Music 首次连接期间实测系统弹出自动化授权窗口。修正�
 - 源码 `b28d988` 的 1.0.0 (2) App、DMG 公证均为 Accepted，安装副本验签、Gatekeeper 和 HTTPS 更新目录实测通过。文件哈希、公证编号及验收范围见 `Documentation/Verification/2026-11-26-local/notarized-candidate.md`。
 - Apple Music 1.7 实机完成播放、暂停、前后 seek、手动/自然切歌与进程重启；已验证本地歌词导入、逐行同步与真实 LRCLIB 查询。数字输出参考的 10 场/130 点绝对差 P95 为 139.2 ms，声学精度未认证。见 [证据](Documentation/Verification/2026-11-26-local-media/README.md)。
 - 专用钥匙串已为上述最终 ZIP 和空更新目录完成 Sparkle 签名。已用 App 内置公钥独立校验 ZIP 签名。
+- 集成包 b28d988 的 120.20 秒逐行复测为 2.79% 单核、RSS 中位/峰值 81.56/81.86 MiB，13 次读回均保持同一曲目且歌词可见。CPU 仍高于 1% 目标。采样器已支持八小时混合工况。

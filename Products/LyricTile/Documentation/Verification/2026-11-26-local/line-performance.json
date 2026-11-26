@@ -1,0 +1,41 @@
+{
+  "platform": "macOS 27.0 (26A428), Apple M5, 24 GiB",
+  "method": "process-tree CPU time over monotonic elapsed time, 100% per core; RSS summed at ~1 Hz",
+  "lineCPUbudgetPercent": 1,
+  "lineRSSbudgetMedianPeakMiB": [
+    120,
+    180
+  ],
+  "runs": {
+    "initial": {
+      "source": "2e515ada576c",
+      "mode": "line",
+      "status": "MEASURED",
+      "durationSeconds": 120.12863083300181,
+      "samples": 114,
+      "cpuMeanPercentOneCore": 3.587831691940989,
+      "cpuP95PercentOneCore": 5.63266327838157,
+      "rssMedianMiB": 88.875,
+      "rssPeakMiB": 89.203125,
+      "processesExitedBetweenSamples": 0
+    },
+    "integrated": {
+      "source": "b28d9881a0c8",
+      "mode": "line",
+      "status": "MEASURED",
+      "durationSeconds": 120.19980208296329,
+      "samples": 114,
+      "cpuMeanPercentOneCore": 2.7870309381154463,
+      "cpuP95PercentOneCore": 4.7755670543688,
+      "rssMedianMiB": 81.5625,
+      "rssPeakMiB": 81.859375,
+      "processesExitedBetweenSamples": 0
+    }
+  },
+  "integratedUIReadbacks": {
+    "count": 13,
+    "authoredLyricsPresentAtAllChecks": true,
+    "samePlayingTrackAtAllChecks": true
+  },
+  "conditions": "Three-minute authored WAV in real Apple Music, imported authored timed LRC, built-in 2x screen. Integrated run sampled panel accessibility and player position roughly every ten seconds. An earlier integrated run crossed a track boundary and is excluded from the steady-line comparison. Both valid runs exceed the CPU target."
+}

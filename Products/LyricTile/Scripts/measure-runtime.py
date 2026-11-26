@@ -11,7 +11,7 @@ from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('--pid', type=int, required=True)
 p.add_argument('--seconds', type=int, default=120)
-p.add_argument('--mode', choices=['idle','line','word'], required=True)
+p.add_argument('--mode', choices=['idle','line','word','mixed'], required=True)
 p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
 if not 10 <= a.seconds <= 28800: p.error('Duration must be 10 seconds to 8 hours.')
@@ -44,13 +44,14 @@ def sample():
         children=new
     return {pid:rows[pid] for pid in children if pid in rows}
 start=time.monotonic(); previous=sample(); previous_time=start
-rss=[]; cpu=[]; disappeared=set(); complete=False; cumulative_cpu_seconds=0.0
+rss=[]; cpu=[]; longest_interval=0.0; disappeared=set(); complete=False; cumulative_cpu_seconds=0.0
 try:
     with (a.output/'samples.ndjson').open('w') as trace:
         while time.monotonic()-start<a.seconds:
             time.sleep(1)
             if ps('-p',str(a.pid),'-o','lstart=') != root_start: raise RuntimeError('Root process ended or its PID was reused.')
             current=sample(); now=time.monotonic(); elapsed=now-previous_time
+            longest_interval=max(longest_interval, elapsed)
             disappeared.update(set(previous)-set(current))
             delta=sum(max(0,r['cpu']-previous.get(pid,{'cpu':0})['cpu']) for pid,r in current.items())
             percent=100*delta/elapsed
@@ -69,7 +70,8 @@ finally:
         cpuMeasurementMethod='aggregate CPU-time delta / actual monotonic observation interval; one core = 100%',
         cpuP95PercentOneCore=percentile(cpu,.95),rssMedianMiB=statistics.median(rss) if rss else None,
         rssPeakMiB=max(rss) if rss else None,processesExitedBetweenSamples=len(disappeared),
-        cpuBudgetPercentOneCore={'idle':.3,'line':1,'word':3}[a.mode],rssMedianBudgetMiB=120,rssPeakBudgetMiB=180,
+        longestSampleIntervalSeconds=longest_interval,
+        cpuBudgetPercentOneCore={'idle':.3,'line':1,'word':3}.get(a.mode),rssMedianBudgetMiB=120,rssPeakBudgetMiB=180,
         limitation='ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result.')
     (a.output/'summary.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     for f in a.output.iterdir():
