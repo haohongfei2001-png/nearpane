@@ -149,6 +149,81 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(restartedSelection?.sessionID != b.sessionID)
 }
 
+@Test func sparseMetadataRetainsIdentityUntilAConflictingRecordingArrives() throws {
+    let omittedIDs: [String?] = [nil, ""]
+    for omittedID in omittedIDs {
+        var tracker = PlaybackSelectionTracker(); var first = observation()
+        first.platformID = "fixture-track-a"; first.album = "Fixture album A"
+        let initialValue = tracker.update(first)
+        let initial = try #require(initialValue)
+        var sparse = first
+        sparse.platformID = omittedID; sparse.artist = nil; sparse.album = nil; sparse.durationMS = nil
+        let retainedValue = tracker.update(sparse)
+        let retained = try #require(retainedValue)
+        #expect(retained.generation == initial.generation)
+        #expect(retained.recording == initial.recording)
+        // Equal titles do not make two different platform recordings identical.
+        sparse.platformID = "fixture-track-b"
+        let changedValue = tracker.update(sparse)
+        let changed = try #require(changedValue)
+        #expect(changed.generation != initial.generation)
+        #expect(changed.recording.fingerprint != initial.recording.fingerprint)
+        #expect(changed.recording.album == nil)
+    }
+}
+
+@Test func sparseMetadataRetainsTitleAndMetadataOnlyIdentity() throws {
+    var tracker = PlaybackSelectionTracker(); var first = observation()
+    first.album = "Fixture album A"
+    let initialValue = tracker.update(first)
+    let initial = try #require(initialValue)
+    var sparse = first; sparse.album = nil
+    let missingAlbum = tracker.update(sparse)
+    #expect(missingAlbum?.generation == initial.generation)
+    sparse.album = "Fixture album B"
+    let changedAlbum = tracker.update(sparse)
+    #expect(changedAlbum?.generation != initial.generation)
+    sparse.platformID = "fixture-track-b"
+    let identifiedValue = tracker.update(sparse)
+    let identified = try #require(identifiedValue)
+    sparse.title = nil
+    let missingTitleValue = tracker.update(sparse)
+    let missingTitle = try #require(missingTitleValue)
+    #expect(missingTitle.generation == identified.generation)
+    #expect(missingTitle.recording.title == identified.recording.title)
+    sparse.platformID = nil
+    let empty = tracker.update(sparse)
+    #expect(empty == nil)
+}
+
+@Test func emptyPlatformIDsDoNotCollapseDifferentRecordingFingerprints() throws {
+    var tracker = PlaybackSelectionTracker(); var value = observation()
+    value.platformID = ""
+    let firstValue = tracker.update(value)
+    let first = try #require(firstValue)
+    value.title = "Synthetic test B"
+    let nextValue = tracker.update(value)
+    let next = try #require(nextValue)
+    #expect(next.recording.fingerprint != first.recording.fingerprint)
+    #expect(first.recording.platformIDs.isEmpty)
+    #expect(next.recording.platformIDs.isEmpty)
+}
+
+@Test func restartedMediaProcessCreatesANewSourceSession() throws {
+    var tracker = PlaybackSelectionTracker(); var value = observation()
+    let firstValue = tracker.update(value)
+    let first = try #require(firstValue)
+    value.mediaProcessStart += 1
+    let restartedValue = tracker.update(value)
+    let restarted = try #require(restartedValue)
+    #expect(restarted.sessionID != first.sessionID)
+    #expect(restarted.generation != first.generation)
+    value.mediaPID += 1
+    let replacedValue = tracker.update(value)
+    let replaced = try #require(replacedValue)
+    #expect(replaced.sessionID != restarted.sessionID)
+}
+
 @Test func routeRejectsGlobalOwnershipStaleClockAndWrongSelection() throws {
     var tracker = PlaybackSelectionTracker(); var value = observation()
     let updatedSelection = tracker.update(value)
@@ -185,6 +260,35 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(CommandReadback.confirms(.seek(milliseconds: 50_000), before: paused, after: after, sentAt: stamp()))
     after.title = "Synthetic test B"
     #expect(CommandReadback.confirms(.next, before: before, after: after, sentAt: stamp()))
+}
+
+@Test func readbackRejectsOldObservationsAndLostGlobalOwnership() {
+    let before = observation()
+    var after = before; after.state = .paused; after.stamp = stamp(9_999)
+    #expect(!CommandReadback.confirms(.pause, before: before, after: after, sentAt: stamp()))
+    after.stamp = .init(nanoseconds: stamp(10_200).nanoseconds, clockDomainID: UUID())
+    #expect(!CommandReadback.confirms(.pause, before: before, after: after, sentAt: stamp()))
+    after.stamp = stamp(10_200); after.quality = .stale
+    #expect(!CommandReadback.confirms(.pause, before: before, after: after, sentAt: stamp()))
+    after.quality = .unavailable; after.positionMS = nil
+    #expect(CommandReadback.confirms(.pause, before: before, after: after, sentAt: stamp()))
+    after.sourceIsCurrent = false
+    #expect(!CommandReadback.confirms(.pause, before: before, after: after, sentAt: stamp()))
+    let nativeBefore = observation(player: .appleMusic)
+    var nativeAfter = nativeBefore; nativeAfter.state = .paused
+    nativeAfter.stamp = stamp(10_200); nativeAfter.sourceIsCurrent = false
+    #expect(CommandReadback.confirms(.pause, before: nativeBefore, after: nativeAfter, sentAt: stamp()))
+}
+
+@Test func seekReadbackUsesObservedRateAndTrackEnd() {
+    let before = observation()
+    var faster = before; faster.stamp = stamp(14_000); faster.rate = 2; faster.positionMS = 58_000
+    #expect(CommandReadback.confirms(.seek(milliseconds: 50_000), before: before, after: faster, sentAt: stamp()))
+    faster.positionMS = 70_000
+    #expect(!CommandReadback.confirms(.seek(milliseconds: 50_000), before: before, after: faster, sentAt: stamp()))
+    let nativeBefore = observation(player: .appleMusic)
+    var ended = nativeBefore; ended.stamp = stamp(12_000); ended.positionMS = 180_000
+    #expect(CommandReadback.confirms(.seek(milliseconds: 179_500), before: nativeBefore, after: ended, sentAt: stamp()))
 }
 
 @Test func clockProfileNeverInventsCertification() throws {
@@ -253,3 +357,4 @@ private func remoteFields() -> [String: JSONValue] {
     }
     #expect(try Data(contentsOf: marker) == data("fixture-must-remain"))
 }
+

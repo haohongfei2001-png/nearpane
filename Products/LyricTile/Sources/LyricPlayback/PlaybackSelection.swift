@@ -26,25 +26,37 @@ struct PlaybackSelectionTracker: Sendable {
     mutating func update(_ observation: PlayerObservation) -> LyricDomain.Selection? {
         guard observation.hasRecording, observation.state != .stopped else { clear(); return nil }
         let processChanged = processIdentity != observation.process.identity || selection?.playerBundleID != observation.process.player.bundleID
+            || lastObservation.map { $0.mediaPID != observation.mediaPID || $0.mediaProcessStart != observation.mediaProcessStart } == true
         let recordingChanged = lastObservation.map { !Self.sameRecording($0, observation) } ?? true
+        var identity = observation
+        if !processChanged, !recordingChanged, let previous = lastObservation {
+            // Sparse refreshes may omit metadata that already identified this
+            // recording. Keep that evidence until an actual transition, so an
+            // omitted ID cannot hide the next track's different ID.
+            if identity.title?.isEmpty != false { identity.title = previous.title }
+            if identity.artist?.isEmpty != false { identity.artist = previous.artist }
+            if identity.album?.isEmpty != false { identity.album = previous.album }
+            if identity.platformID?.isEmpty != false { identity.platformID = previous.platformID }
+            if identity.durationMS == nil { identity.durationMS = previous.durationMS }
+        }
         if processChanged || recordingChanged || selection == nil {
             generation &+= 1
             let session = processChanged ? UUID() : (selection?.sessionID ?? UUID())
             selection = LyricDomain.Selection(playerBundleID: observation.process.player.bundleID,
-                sessionID: session, generation: generation, recording: Self.recording(observation))
+                sessionID: session, generation: generation, recording: Self.recording(identity))
         } else if let old = selection {
             // Preserve fingerprint and generation when optional metadata arrives.
-            let enriched = Self.recording(observation, fingerprint: old.recording.fingerprint)
+            let enriched = Self.recording(identity, fingerprint: old.recording.fingerprint)
             selection = LyricDomain.Selection(playerBundleID: old.playerBundleID,
                 sessionID: old.sessionID, generation: old.generation, recording: enriched)
         }
-        processIdentity = observation.process.identity; lastObservation = observation
+        processIdentity = observation.process.identity; lastObservation = identity
         return selection
     }
     static func sameRecording(_ lhs: PlayerObservation, _ rhs: PlayerObservation) -> Bool {
         guard lhs.process == rhs.process, lhs.mediaPID == rhs.mediaPID,
               lhs.mediaProcessStart == rhs.mediaProcessStart else { return false }
-        if let a = lhs.platformID, let b = rhs.platformID, a != b { return false }
+        if let a = lhs.platformID, let b = rhs.platformID, !a.isEmpty, !b.isEmpty, a != b { return false }
         for (a, b) in [(lhs.title, rhs.title), (lhs.artist, rhs.artist), (lhs.album, rhs.album)] {
             if let a, let b, !a.isEmpty, !b.isEmpty, normalized(a) != normalized(b) { return false }
         }
@@ -60,8 +72,9 @@ struct PlaybackSelectionTracker: Sendable {
     }
     private static func recording(_ observation: PlayerObservation, fingerprint: String? = nil) -> LyricDomain.RecordingIdentity {
         let source = observation.process.player.bundleID
+        let platformID = observation.platformID.flatMap { $0.isEmpty ? nil : $0 }
         let parts = [observation.title ?? "", observation.artist ?? "", observation.album ?? "", observation.durationMS.map(String.init) ?? ""]
-        let key = observation.platformID.map { "id:\($0)" } ?? "metadata:" + parts.map { "\($0.utf8.count):\(normalized($0))" }.joined(separator: "|")
+        let key = platformID.map { "id:\($0)" } ?? "metadata:" + parts.map { "\($0.utf8.count):\(normalized($0))" }.joined(separator: "|")
         let id = fingerprint ?? "\(source):\(key)"
         let title = observation.title ?? ""
         let text = title + " " + (observation.album ?? "")
@@ -71,7 +84,7 @@ struct PlaybackSelectionTracker: Sendable {
             }
             return text.contains(tag)
         }
-        let ids = observation.platformID.map { [LyricDomain.PlatformTrackID(namespace: source + ".playerTrack", value: $0)] } ?? []
+        let ids = platformID.map { [LyricDomain.PlatformTrackID(namespace: source + ".playerTrack", value: $0)] } ?? []
         return LyricDomain.RecordingIdentity(fingerprint: id, platformIDs: ids, isrc: nil,
             title: observation.title, artists: observation.artist.map { [$0] } ?? [], album: observation.album,
             durationMS: observation.durationMS, versionTags: tags)
@@ -101,7 +114,11 @@ enum CommandReadback {
     static func confirms(_ command: TransportCommand, before: PlayerObservation, after: PlayerObservation,
                          sentAt: LyricDomain.MonotonicStamp) -> Bool {
         guard before.process == after.process, before.mediaPID == after.mediaPID,
-              before.mediaProcessStart == after.mediaProcessStart else { return false }
+              before.mediaProcessStart == after.mediaProcessStart,
+              after.quality != .stale,
+              sentAt.clockDomainID == after.stamp.clockDomainID,
+              after.stamp.nanoseconds >= sentAt.nanoseconds,
+              after.process.player.usesAppleEvents || after.sourceIsCurrent else { return false }
         let same = PlaybackSelectionTracker.sameRecording(before, after)
         switch command {
         case .play: return same && after.state == .playing
@@ -111,14 +128,13 @@ enum CommandReadback {
             return (!same && after.hasRecording) || (same && (before.positionMS ?? 0) > 3000 && (after.positionMS ?? Int64.max) < 1500)
         case .seek(let target):
             guard same, let position = after.positionMS,
-                  before.state != .paused || after.state == .paused,
-                  sentAt.clockDomainID == after.stamp.clockDomainID,
-                  after.stamp.nanoseconds >= sentAt.nanoseconds else { return false }
-            let elapsed = Int64(min((after.stamp.nanoseconds - sentAt.nanoseconds) / 1_000_000, UInt64(Int64.max)))
-            let (expected, overflow) = target.addingReportingOverflow(after.state == .playing ? min(elapsed, 6000) : 0)
-            guard !overflow else { return false }
+                  before.state != .paused || after.state == .paused else { return false }
+            let elapsed = Double(after.stamp.nanoseconds - sentAt.nanoseconds) / 1_000_000
+            let projected = Double(target) + (after.state == .playing ? elapsed * after.rate : 0)
+            guard let expected = MediaTime.clampedMilliseconds(projected, duration: after.durationMS) else { return false }
             let tolerance: Int64 = after.process.player.usesAppleEvents ? 700 : 1500
             return abs(position - expected) <= tolerance
         }
     }
 }
+
