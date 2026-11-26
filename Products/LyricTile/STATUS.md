@@ -11,7 +11,7 @@
 
 ## 发行与下一步
 
-M5、24 GiB，macOS 27.0（26A428）。单核逐行 CPU 从 3.59% 降至 2.79%，复测 RSS 中位/峰值 81.56/81.86 MiB。1% 逐行 CPU 目标仍未达到。最终安装实例自北京时间 19:20 开始八小时采样。Spotify 没有可用登录会话，网易客户端官方下载返回 403，物理外屏尚未接入。公开歌词使用的权利与地域仍待确认。[本机总报告](Documentation/Verification/local-2026-11-26.md) · [CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45809025341)
+M5、24 GiB，macOS 27.0（26A428）。单核逐行 CPU 从 3.59% 降至 2.79%，复测 RSS 中位/峰值 81.56/81.86 MiB。1% 逐行 CPU 目标仍未达到。最终包十分钟空闲实测为 0.61% 单核，RSS 中位/峰值 80.50/80.58 MiB，高于 0.3% CPU 目标。运行时代码 81 项测试全过。最终安装实例自北京时间 19:20 开始八小时采样。Spotify 没有可用登录会话，网易客户端官方下载返回 403，物理外屏尚未接入。公开歌词使用的权利与地域仍待确认。[本机总报告](Documentation/Verification/local-2026-11-26.md) · [CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45809025341)
 
 ## 继续开发
 

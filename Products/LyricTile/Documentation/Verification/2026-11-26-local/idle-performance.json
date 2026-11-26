@@ -1,0 +1,31 @@
+{
+  "mode": "idle",
+  "bundleBuild": 4,
+  "source": "8bc782c",
+  "durationSeconds": 600.8091668330599,
+  "samples": 564,
+  "noPlayerInventoryChecks": 41,
+  "sampledProcessesPerObservation": 1,
+  "cpuMeanPercentOneCore": 0.6125072990143849,
+  "rssMedianMiB": 80.5,
+  "rssPeakMiB": 80.578125,
+  "longestSampleIntervalSeconds": 1.0876889169448987,
+  "mixedTraceBeginSeconds": 284.3727086249273,
+  "mixedTraceEndSeconds": 885.1818754579872,
+  "method": "Selected this predeclared 10-minute no-player window from the same already-running process-tree sampler. Verified player bundle IDs at entry, after warm-up and at 15-second intervals.",
+  "postWindowProfile": {
+    "seconds": 10,
+    "mainThreadSamples": 7638,
+    "mainEventWaitSamples": 7542,
+    "lyricGlyphDrawStackObserved": false,
+    "profileSHA256": "123a3647851dd8abbeed49882e5fb195c93d9bd2c36a4aaaa282e37216296b67",
+    "finding": "Scheduled desktop coordination and player discovery were observed; main thread predominantly waited for events. No continuous lyric redraw was observed while idle."
+  },
+  "separateDiscoveryProbe": {
+    "roundsPerMethod": 9,
+    "matchingCompanions": 0,
+    "medianCPUMillisecondsForThreeBundleIDQueries": 0.088,
+    "medianCPUMillisecondsForFullWorkspaceFilter": 0.673,
+    "scope": "Alternated native discovery calls in a standalone process; this probe measures per-call cost only, not a candidate-level improvement."
+  }
+}
