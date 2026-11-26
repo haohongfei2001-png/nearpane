@@ -32,6 +32,7 @@ let package = Package(
         .testTarget(name: "LyricCoreTests", dependencies: ["LyricCore"]),
         .testTarget(name: "LyricServicesTests", dependencies: ["LyricCore", "LyricServices"]),
         .testTarget(name: "LyricPlaybackTests", dependencies: ["LyricCore", "LyricPlayback"]),
+        .testTarget(name: "LyricUITests", dependencies: ["LyricUI"]),
         .testTarget(name: "TileKitTests", dependencies: ["TileKit"])
     ]
 )

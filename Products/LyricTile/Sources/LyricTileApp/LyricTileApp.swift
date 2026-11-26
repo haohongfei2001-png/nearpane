@@ -258,24 +258,42 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         Task { @MainActor [weak self] in
             guard let self else { return }
             // Allow initial production subscriptions to settle. No PlaybackController.start,
-            // repository lookup, fabricated recording, permission request or welcome window.
+            // repository lookup, fabricated recording or permission request.
             try? await Task.sleep(for: .milliseconds(150))
             panelController.panel.orderFrontRegardless()
             panelController.panel.contentView?.layoutSubtreeIfNeeded()
             panelController.panel.contentView?.displayIfNeeded()
             try? await Task.sleep(for: .seconds(2))
             let panel = panelController.panel
-            if let index = CommandLine.arguments.firstIndex(of: "--smoke-screenshot"), CommandLine.arguments.indices.contains(index + 1) {
-                do { try LyricNativeSmoke.capture(window: panel, to: URL(fileURLWithPath: CommandLine.arguments[index + 1])) }
-                catch { print("Native screenshot unavailable: \(error.localizedDescription)") }
+            let screenshotIndex = CommandLine.arguments.firstIndex(of: "--smoke-screenshot")
+            let screenshotURL = screenshotIndex.flatMap { index in
+                CommandLine.arguments.indices.contains(index + 1) ? URL(fileURLWithPath: CommandLine.arguments[index + 1]) : nil
             }
-            let passed = panel.isVisible && panel.contentView?.window === panel
+            var panelCapturePassed = screenshotIndex == nil
+            var report: [String: Any] = ["check": "native-ui-load",
+                                         "width": panel.frame.width, "height": panel.frame.height,
+                                         "realPlayerTest": false, "networkStarted": false,
+                                         "screenshotRequested": screenshotIndex != nil]
+            if let screenshotURL {
+                do { try LyricNativeSmoke.capture(window: panel, to: screenshotURL); panelCapturePassed = true }
+                catch { report["panelScreenshotError"] = error.localizedDescription }
+            }
+            let panelPassed = panel.isVisible && panel.contentView?.window === panel
                 && panel.frame.width >= 176 && panel.frame.width <= 224
                 && panel.frame.height == 62 && model.snapshot.selection == nil && !model.ownsSession
+                && panelCapturePassed
+            report["emptyPanelPassed"] = panelPassed
+            report["panelScreenshotSaved"] = screenshotURL != nil && panelCapturePassed
+            var auxiliaryPassed = true
+            for page in [LyricAuxiliaryPage.welcome, .settings] {
+                let observation = await captureNativeAuxiliaryPage(page, in: screenshotURL?.deletingLastPathComponent())
+                report[page.rawValue] = observation
+                auxiliaryPassed = auxiliaryPassed && (observation["passed"] as? Bool == true)
+            }
+            auxiliary.closeAll()
+            let passed = panelPassed && auxiliaryPassed && model.snapshot.selection == nil && !model.ownsSession
             nativeLoadFailed = !passed
-            let report: [String: Any] = ["check": "native-ui-load", "passed": passed,
-                                         "width": panel.frame.width, "height": panel.frame.height,
-                                         "realPlayerTest": false, "networkStarted": false]
+            report["passed"] = passed
             if let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]) {
                 FileHandle.standardOutput.write(data + Data([10]))
             }
@@ -286,6 +304,32 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
                 MainActor.assumeIsolated { NSApp.terminate(nil) }
             }
         }
+    }
+    private func captureNativeAuxiliaryPage(_ page: LyricAuxiliaryPage, in directory: URL?) async -> [String: Any] {
+        // Exercise the same production presentation subscription used by the menu and
+        // first launch. No button is clicked and no permission or media action is invoked.
+        model.show(page)
+        try? await Task.sleep(for: .milliseconds(300))
+        let window = NSApp.windows.first { $0 !== panelController.panel && $0.title == page.title }
+        window?.contentView?.layoutSubtreeIfNeeded()
+        window?.contentView?.displayIfNeeded()
+        let visible = window?.isVisible == true
+        let mounted = window.map { $0.contentView?.window === $0 } ?? false
+        let bounds = window?.contentView?.bounds ?? .zero
+        var screenshotPassed = directory == nil
+        var observation: [String: Any] = ["exists": window != nil, "visible": visible,
+                                           "contentMounted": mounted,
+                                           "width": bounds.width, "height": bounds.height]
+        if let window, let directory, visible, mounted {
+            do {
+                try LyricNativeSmoke.capture(window: window, to: directory.appendingPathComponent("native-\(page.rawValue).png"))
+                screenshotPassed = true
+            } catch { observation["screenshotError"] = error.localizedDescription }
+        }
+        observation["screenshotSaved"] = directory != nil && screenshotPassed
+        observation["passed"] = window != nil && visible && mounted && bounds.width > 0 && bounds.height > 0 && screenshotPassed
+        auxiliary.closeAll()
+        return observation
     }
     private func nativeShutdownTrace(_ stage: String) {
         guard nativeLoadCheck else { return }

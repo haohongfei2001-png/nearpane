@@ -17,9 +17,14 @@ if os.environ.get('GITHUB_ACTIONS')!='true':
     p.error('This disposable-profile check is for CI only. Use measure-runtime.py against your existing local app instead.')
 if not 30<=a.seconds<=120: p.error('Use 30 to 120 seconds for the hosted idle baseline.')
 a.output.mkdir(parents=True,exist_ok=True)
-apps=subprocess.check_output(['/bin/ps','-axo','comm='],text=True)
-if any(name in apps for name in ['/Music.app/','/Spotify.app/','/QQMusic.app/','/NeteaseMusic.app/','/网易云音乐.app/']):
-    (a.output/'idle-check.json').write_text(json.dumps({'status':'NOT_RUN','reason':'A target player is already running; this is not an empty idle environment.'})+'\n')
+inventory = subprocess.run(['/usr/bin/xcrun','swift',str(Path(__file__).resolve().parent/'running-players.swift')],
+                           capture_output=True,text=True,check=True,timeout=30)
+players=json.loads(inventory.stdout)
+if players:
+    report={'status':'NOT_RUN','reason':'An actual target app is already running; this is not an empty idle environment.',
+            'players':players}
+    (a.output/'idle-check.json').write_text(json.dumps(report)+'\n')
+    print(json.dumps(report))
     raise SystemExit(0)
 settings=dict(appearance='automatic',largeText=False,showTranslation=False,onlineLyrics=False,
               hideWhenIdle=True,showInFullScreen=False,coordinateTiles=True,completedWelcome=True)
