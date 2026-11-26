@@ -4,11 +4,11 @@
 
 LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
 
-**Current channel: engineering candidate.** Start each development session with [STATUS.md](STATUS.md), the compact, current resume entry. Read only the module and tests required for the next task. Real implementations are present; source compilation, fixture tests, package checks, production empty/welcome/settings surface load and real-player qualification are separate evidence classes. Detailed earlier evidence is indexed in [implementation status](Documentation/IMPLEMENTATION_STATE.md).
+**Current channel: notarized release candidate.** The Apple silicon build of LyricTile 1.0.0 (4) runs on macOS 27 or later. Open the DMG, drag LyricTile into Applications and launch it from there. Use the song menu to import lyrics or enable online lookup in settings.
 
 ## Latest native candidate
 
-[Verified source `123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00) · [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041) · [candidate ZIP/DMG](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706) · [preserved evidence](Documentation/Verification/2026-11-26-continuation/README.md). Actual host: macOS 27.0.1 / Xcode 27.1 / Swift 6.4, arm64. **79 tests passed, zero failures or skips**; production app/host facade, three native surfaces, real helper load and ad-hoc package verification passed. Hosted idle CPU was **0.332% of one core**, slightly above the 0.3% target; RSS median/peak were **54.28/61.14 MiB**. The measured budget miss remains recorded, and real-player and release qualification still require the actual environment.
+On macOS 27.0 (26A428), Apple Music 1.7 and QQ Music 11.11.0 played local tracks through their production adapters. The native panel, controls, desktop placement and 2→4 signed update were exercised on a MacBook Air. Spotify requires a logged-in test session and the NetEase client download was unavailable. See the [on-device report](Documentation/Verification/local-2026-11-26.md), [installer checksums and notarization](Documentation/Verification/2026-11-26-local/notarized-build4.json) and [current status](STATUS.md).
 
 ## Start here
 

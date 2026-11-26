@@ -1,54 +1,18 @@
-# LyricTile · 续接入口
+# LyricTile · 当前状态
 
-更新：2026-11-26（北京时间）。分支：`codex/lyrictile-standalone-20261126`；[Draft PR #17](https://github.com/haohongfei2001-png/nearpane/pull/17)。只读本入口及下一任务的必要文件；不检索旧对话、整仓、完整 PR 或测试日志。
+2026-11-26，北京时间。独立原生 macOS 软件，版本 **1.0.0（4）**。开发分支为 `codex/lyrictile-standalone-20261126`，[Draft PR #17](https://github.com/haohongfei2001-png/nearpane/pull/17)。
 
-## 产品与技术决策
-- 独立原生 macOS 歌词板；右侧固定尺寸、悬停同框控制，未来原生嵌入 Nearpane。
-- 架构与 ADR：`Documentation/ARCHITECTURE.md`；API：`IMPLEMENTATION_CONTRACT.md`；设计按需读 `Research/2026-11-26/docs/DESIGN_SPEC.md`。
-- 四播放器适配；真实进度逐行同步，真实词时码加精度证据启用逐字；首版网络源 LRCLIB，本地绑定/导入/缓存可回退。
+## 当前交付
 
-## 当前完成状态
-- App、歌词服务、播放器、原生 UI、TileKit、Host 模块、打包/更新/诊断均已实现。
-- 本轮修复：导入/在线请求及缓存竞争；稀疏或空曲目 ID、媒体进程重启、控制读回与 seek；UI 异步操作、切歌撤销旧选择器/拖动、hover 收起；退出组件的布局死锁；登录项真实状态同步。
-- 增加 14 个回归用例；每个有效开发单元已独立提交。CI 使用临时、仅针对两个已锁定公共依赖的只读认证，版本及权限未扩大。
+- 已将最终 DMG 中的 LyricTile.app 安装至本机用户 Applications。Apple silicon，最低 macOS 27.0。App 与 DMG 均获 Apple 公证，已装订。原样公证构建 2 通过 Sparkle 升级为构建 4。运行时代码 `8bc782c`，包内提交 `3e83b5c` 只多了验证记录。[哈希与票据](Documentation/Verification/2026-11-26-local/notarized-build4.json)
+- 公开仓库内已准备[仅维护者可见的 Release 草稿](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-97927bb5d7506543a099)，含签名 DMG、ZIP、更新签名与校验清单。稳定频道尚未发布。
+- macOS 27.0 真机覆盖 Apple Music 1.7 和 QQ 音乐 11.11.0 的本地曲目、播放控制、切歌、定位与源归属。实际导入、在线 LRC 查询、同步显示和面板交互已有记录。QQ 暂停时禁用定位。独立音频测量 10 个会话、130 点，Apple Music 数字参考 P95 为 139.2 ms，未发放逐字时钟资格。[播放器记录](Documentation/Verification/2026-11-26-local-media/README.md)
+- 实机修复 QQ 变化的 UUID 与暂停时钟、授权初次连接提示、静态歌词重复绘制、跨屏拖动和重启位置恢复、深色外观。悬停、正常退出、登录项、全屏 Space、两块不同缩放的逻辑显示器及 Riftlet/Saytile 共存已验证。[界面与桌面证据](Documentation/Verification/2026-11-26-local/ui/README.md)
 
-## 本机外观与排列恢复
-- [本机界面实测](Documentation/Verification/2026-11-26-local/ui/README.md)：独立 App 欢迎、授权、歌词导入、悬停恢复、Riftlet/Saytile 避让、真实全屏及登录项开关。build 3 已验证跨屏拖动、重启、拔除虚拟外屏、深色/字号和更新菜单。
-- 实机截图发现“深色”已勾选时非激活窗口仍沿用浅色。现将外观同时应用到 NSPanel 与 SwiftUI 子树，跟随系统时保留系统选择。
-- 显式拖动现在保存所选显示器。协调排列保存组件顺序，退出后释放占位，重开仍按用户顺序排列。独立注册表实测通过（两个组件重开后顶边为 16 / 298 pt），新增回归用例。
-- 本机跨屏拖动暴露 AppKit 异步交接：窗口移动仍在进行时旧代码已保存起点并可能被播放刷新拉回。拖动手柄现在通过 AppKit 的拖动和松键事件跟随指针，只在松键后提交目标屏幕和顺序。
+## 发行与下一步
 
-## 最新实际验证
-- 源码 [`123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00)；[macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041)；[ZIP/DMG 候选](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706)。
-- macOS 27.0.1 / Xcode 27.1 / Swift 6.4 / arm64：79 测试通过（12 XCTest + 67 Swift Testing），零失败、零跳过；App/Host 编译、3 个原生界面、真实 helper 装载与 ad-hoc 包检查通过。
-- 120.64 秒 hosted idle：CPU 0.33157% 单核（预算 0.3%，本次未达）；RSS 中位/峰值 54.28/61.14 MiB（达标）。随后 profile 以等待为主，未识别失控循环；不把不同主机的旧数据当作受控回归对照。
-- 摘要与原始小型证据：`Documentation/Verification/2026-11-26-continuation/README.md`。后续纯文档提交不改变以上已测源码与包哈希。
+M5、24 GiB，macOS 27.0（26A428）。单核逐行 CPU 从 3.59% 降至 2.79%，复测 RSS 中位/峰值 81.56/81.86 MiB。1% 逐行 CPU 目标仍未达到。最终安装实例自北京时间 19:20 开始八小时采样。Spotify 没有可用登录会话，网易客户端官方下载返回 403，物理外屏尚未接入。公开歌词使用的权利与地域仍待确认。[本机总报告](Documentation/Verification/local-2026-11-26.md) · [CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45809025341)
 
-## 剩余任务与下一轮起点
-1. P1：真实播放器/TCC、双屏/Spaces/睡眠唤醒、精度及长稳验收；核实实机空闲 CPU。当前没有可由 CI 替代的真实播放通过记录。
-2. P1：持有者 Developer ID、公证、实际 Sparkle 升级及正式发布配置；当前仍为工程候选。
-3. 下一轮 Pro 先读本文件、上述验证摘要及 `Documentation/LOCAL_ONLY_HANDOFF.md` 的具体未完成项。按真实失败证据修复，不重复设计/建工程/全量读取。
-4. 定位入口：歌词 `Sources/LyricServices/LyricRepository.swift`；播放器 `Sources/LyricPlayback/PlaybackSelection.swift`；UI `Sources/LyricUI/LyricAppModel.swift`；布局 `Sources/TileKit/TileRegistry.swift`，各自对应 Tests。性能若有新证据再读 `Sources/LyricPlayback/NativePlayers.swift` 与 `Sources/TileKit/TileDesktopCoordinator.swift` 的进程发现路径。
+## 继续开发
 
-## 必须由本机 Codex 执行
-仅执行上述真实播放器、系统授权、用户显示器/桌面、独立时间参考、长时采样及持有者签名/公证/升级事项，按 `Documentation/LOCAL_ONLY_HANDOFF.md` 保存脱敏证据。普通源码修复、回归与云端编译继续由 Pro 完成。
-
-## 本机打包与更新
-- macOS 27.0 实际 Sparkle 安装器验证通过：错误签名保留 build 1、正确签名替换到 build 2，签名完整性通过。使用隔离副本和临时密钥。已修复包内残留本机 CLT 路径，详见 `Documentation/Verification/2026-11-26-local/sparkle-install.md`。
-- 已核对 LRCLIB 官方 API 和授权询问，确认客户端识别要求，未找到歌词显示、适用地域或作品署名授权；详见 `Documentation/THIRD_PARTY_NOTICES.md`。
-- 持有者签名 App 默认连接本分支 LyricTile 专属空更新目录，下载在解压前校验 Ed25519 签名。更新密钥保存在本机专用钥匙串条目。
-
-## 本机逐行渲染
-
-初版在 M5 实际显示 Apple Music 的本地逐行歌词，120.13 秒 CPU 单核均值 3.59%，RSS 中位 88.88 MiB。按同一进程的采样优化了隐藏控制区、静态文本重绘和重复录音身份计算，保留原有播放读回频率、时钟规则和转场。本机 release 编译通过，最终包资源数据以本机验收记录为准。
-
-## 本机播放器连接
-Apple Music 首次连接期间实测系统弹出自动化授权窗口。修正等待时误显普通超时，保留已拒绝权限的设置入口。
-- 源码 `b28d988` 的 1.0.0 (2) App、DMG 公证均为 Accepted，安装副本验签、Gatekeeper 和 HTTPS 更新目录实测通过。文件哈希、公证编号及验收范围见 `Documentation/Verification/2026-11-26-local/notarized-candidate.md`。
-- Apple Music 1.7 实机完成播放、暂停、前后 seek、手动/自然切歌与进程重启；已验证本地歌词导入、逐行同步与真实 LRCLIB 查询。数字输出参考的 10 场/130 点绝对差 P95 为 139.2 ms，声学精度未认证。见 [证据](Documentation/Verification/2026-11-26-local-media/README.md)。
-- 专用钥匙串已为上述最终 ZIP 和空更新目录完成 Sparkle 签名。已用 App 内置公钥独立校验 ZIP 签名。
-- 集成包 b28d988 的 120.20 秒逐行复测为 2.79% 单核、RSS 中位/峰值 81.56/81.86 MiB，13 次读回均保持同一曲目且歌词可见。CPU 仍高于 1% 目标。采样器已支持八小时混合工况。
-- 已在本机从配置产品公钥的隔离 build 1 实装升级至原始公证 ZIP build 2，安装文件与 DMG 比对通过，见 `Documentation/Verification/2026-11-26-local/upgrade-to-build2.json`。
-- [其他客户端](Documentation/Verification/2026-11-26-local/additional-clients.md)：Spotify 本机客户端进入扫码登录页，网易官方 DMG 返回 HTTP 403。两者当前缺少实际歌曲证据。
-- QQ 音乐 11.11.0（73284）本地 WAV 实测通过播放、暂停、上下曲与播放中 seek；已修正瞬变 UUID、过早的恢复确认和暂停时旧时间锚。见 [QQ 实机证据](Documentation/Verification/2026-11-26-local-media/qq-music.json)。
-- 最终安装候选 1.0.0 (4)，源码标记 `3e83b5c`、运行时代码 `8bc782c`。App 和 DMG 均获 Apple 公证；DMG 复制安装通过。原始公证 build 2 经 Sparkle 实际升级至最终 ZIP build 4，校验签名、票据、可执行文件及 Info.plist 与 DMG 一致。收据及 SHA256 见 `Documentation/Verification/2026-11-26-local/notarized-build4.json`。
+按需读取 [架构](Documentation/ARCHITECTURE.md)、[接口约定](IMPLEMENTATION_CONTRACT.md)或[本机专项步骤](Documentation/LOCAL_ONLY_HANDOFF.md)。保留真实播放器锚点、异步结果归属检查、单会话锁与 TileKit 退出/重排屏障。历史托管环境结果见[续接基线](Documentation/Verification/2026-11-26-continuation/README.md)。
