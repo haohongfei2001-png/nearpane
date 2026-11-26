@@ -14,6 +14,7 @@
 
 ## 本机排列恢复
 - 显式拖动现在保存所选显示器。协调排列保存组件顺序，退出后释放占位，重开仍按用户顺序排列。独立注册表实测通过（两个组件重开后顶边为 16 / 298 pt），新增回归用例。
+- 本机跨屏拖动暴露 AppKit 异步交接：窗口移动仍在进行时旧代码已保存起点并可能被播放刷新拉回。现在只在按键释放后读取落点并提交排列。
 
 ## 最新实际验证
 - 源码 [`123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00)；[macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041)；[ZIP/DMG 候选](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706)。

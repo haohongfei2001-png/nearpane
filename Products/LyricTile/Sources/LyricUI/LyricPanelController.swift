@@ -16,6 +16,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private let model: LyricAppModel
     private let defaults: UserDefaults
     private var subscriptions: Set<AnyCancellable> = []
+    private var dragTask: Task<Void, Never>?
     private var hideTask: Task<Void, Never>?
     private var hideRevision: UInt64 = 0
     private var userHidden = false
@@ -43,7 +44,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         panel.title = "LyricTile"
         panel.setAccessibilityLabel("LyricTile 歌词板")
         let hosting = NSHostingView(rootView: LyricPanelView(model: model))
-        let container = LyricPanelContainer(hosting: hosting, onDragEnd: { [weak self] in self?.finishedDragging() })
+        let container = LyricPanelContainer(hosting: hosting, onDragBegin: { [weak self] in self?.beganDragging() })
         panel.contentView = container
         applyCollectionBehavior(model.settings)
         NotificationCenter.default.addObserver(self, selector: #selector(displaysChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -91,6 +92,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         if !permitted { withdraw() }
     }
     public func withdraw() {
+        dragTask?.cancel(); dragTask = nil
         panel.orderOut(nil)
         model.isVisible = false
         model.setControlsVisible(false)
@@ -139,13 +141,13 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         } else { cancelIdleHide(); show() }
     }
     private func resizeVisibleSurface() {
-        guard slotFrame != .zero else { return }
+        guard dragTask == nil, slotFrame != .zero else { return }
         let height: CGFloat = model.idle && model.ownershipMessage == nil ? 62 : 272
         let frame = NSRect(x: slotFrame.minX, y: slotFrame.maxY - height, width: slotFrame.width, height: height)
         if panel.frame != frame { panel.setFrame(frame, display: true, animate: false) }
     }
     private func scheduleIdleHide() {
-        guard model.settings.hideWhenIdle, hideTask == nil else { return }
+        guard dragTask == nil, model.settings.hideWhenIdle, hideTask == nil else { return }
         hideRevision &+= 1
         let expected = hideRevision
         hideTask = Task { [weak self] in
@@ -168,6 +170,22 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         var behavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         behavior.insert(settings.showInFullScreen ? .fullScreenAuxiliary : .fullScreenNone)
         panel.collectionBehavior = behavior
+    }
+    private func beganDragging() {
+        cancelIdleHide()
+        dragTask?.cancel()
+        // performDrag returns immediately and AppKit may withhold mouseUp while
+        // WindowServer owns the drag. Keep playback updates off the moving frame.
+        dragTask = Task { @MainActor [weak self] in
+            repeat {
+                do { try await Task.sleep(for: .milliseconds(32)) } catch { return }
+            } while NSEvent.pressedMouseButtons & 1 != 0
+            guard let self, !Task.isCancelled else { return }
+            self.dragTask = nil
+            guard self.panel.isVisible, self.model.ownsSession, self.placementPermitted else { return }
+            self.finishedDragging()
+            if self.model.idle && self.model.settings.hideWhenIdle { self.scheduleIdleHide() }
+        }
     }
     private func finishedDragging() {
         guard !surrendered, let screen = panel.screen else { return }
@@ -225,8 +243,8 @@ private final class LyricPanelContainer: NSView {
     private let hosting: NSView
     private let drag: LyricDragStrip
     override var isFlipped: Bool { true }
-    init(hosting: NSView, onDragEnd: @escaping @MainActor () -> Void) {
-        self.hosting = hosting; drag = LyricDragStrip(onEnd: onDragEnd)
+    init(hosting: NSView, onDragBegin: @escaping @MainActor () -> Void) {
+        self.hosting = hosting; drag = LyricDragStrip(onBegin: onDragBegin)
         super.init(frame: .zero)
         addSubview(hosting); addSubview(drag)
     }
@@ -239,12 +257,12 @@ private final class LyricPanelContainer: NSView {
 }
 @MainActor
 private final class LyricDragStrip: NSView {
-    let onEnd: @MainActor () -> Void
-    init(onEnd: @escaping @MainActor () -> Void) {
-        self.onEnd = onEnd; super.init(frame: .zero)
+    let onBegin: @MainActor () -> Void
+    init(onBegin: @escaping @MainActor () -> Void) {
+        self.onBegin = onBegin; super.init(frame: .zero)
         toolTip = "拖动以调整右侧列顺序，或移到另一显示器"
     }
     required init?(coder: NSCoder) { return nil }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseDown(with event: NSEvent) { window?.performDrag(with: event); onEnd() }
+    override func mouseDown(with event: NSEvent) { onBegin(); window?.performDrag(with: event) }
 }
