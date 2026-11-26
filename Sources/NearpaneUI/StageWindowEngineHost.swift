@@ -796,8 +796,8 @@ import NearpaneOrdinaryWindowRuntime
             guard let self, let feed else { return }
             defer { heldRefresh = nil }
             do {
-                try await session.checkHealth()
                 do {
+                    try await session.checkHealth()
                     let sample = try await session.read(scope)
                     guard engine.coordinator.observesActiveGroup(sample, owner: session.owner, mayManage: session.mayManage,
                         requiringActiveFocus: !(wallpaperReturnedWithoutFocus && sample.focus == nil)) else {

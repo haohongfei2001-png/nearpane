@@ -175,6 +175,24 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     process generation must persist. Unknown focus is not converted to desktop focus. Swift and
     the C canary use this same positive structural proof; the next native run must establish that
     the observed object actually has this structure. [Original exact phase](../verification/independent-stage/cloud-48c2ab44-full/README.md).
+19. The `b43d5a93` diagnostic positively excludes the extra Space 16 from the complete managed
+    catalogue and reports raw type 3. During the actual system animation the window is temporarily
+    CG-onscreen with changing geometry; those samples are not hidden PASS. By 621 ms the observed
+    fields have converged to exclusive hidden 15, offscreen, original frame and minimized=false;
+    the next observation at 653 ms exceeds the then-current 650 ms budget, so the operation still
+    fails. The following source gives this active completion 1000 ms for the measured animation
+    and two complete original-witness reads. Health remains 650 ms and Space acknowledgement
+    120 ms, with no repeated write or relaxed final state. [Actual convergence and failed operation](../verification/independent-stage/cloud-b43d5a93-diagnostics/README.md).
+20. The `b43d5a93` early source run passes 160 Rust and 169 Swift cases, with one explicit skip.
+    Its separately labelled foundation/debug R4 run receives a real press but loses dispatch
+    eligibility and its navigation epoch while awaiting native system confirmation, before the
+    group-choice Host or worker starts. It does not exercise the Finder correction. The next
+    read-only trace records the actual Dock reading interval, reason and ownership transition;
+    the 1.265-second interval alone is not sufficient to infer a cause. [Original fast-run boundary](../verification/independent-stage/cloud-b43d5a93-r4-fast/README.md).
+    The complete release build independently reproduces the same pre-worker withdrawal during
+    a 1.400-second system confirmation, with three real previews subsequently rendered and cleanup
+    confirmed. Build and strict bundle verification pass; product scheduling does not.
+    [Complete candidate and separate release receipt](../verification/independent-stage/cloud-b43d5a93-full/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.

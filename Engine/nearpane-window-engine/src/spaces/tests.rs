@@ -68,6 +68,8 @@ struct Fake {
     unminimize_observation_unavailable: bool,
     unminimize_started: Option<(u32, Instant)>,
     unminimize_extra_space: Option<(u64, Duration)>,
+    unminimize_read_cost: Duration,
+    unminimize_animated_reads: Cell<u32>,
 }
 impl Fake {
     fn new() -> Self {
@@ -204,6 +206,7 @@ impl Platform for Fake {
         if *witness >> 32 > 0 {
             let number = *witness as u32;
             if let Some((pending, since)) = self.unminimize_started {
+                if pending == number { self.wait(self.unminimize_read_cost); }
                 if pending == number && self.now().saturating_duration_since(since) < self.unminimize_observation_delay {
                     return if self.unminimize_observation_unavailable { Err(unknown(Why::AXCannotComplete)) } else { Ok(true) };
                 }
@@ -263,10 +266,12 @@ impl Platform for Fake {
         if self.pending_unavailable_read.replace(false) { return Err(unknown(Why::Readback)); }
         let t = self.windows[&w.number];
         if t.0 == w {
+            let animated = self.transition_space(w.number).is_some();
+            if animated { self.unminimize_animated_reads.set(self.unminimize_animated_reads.get() + 1); }
             Ok(Seen {
-                visible: !t.3 && w.number != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
-                    else { self.managed_roster.iter().any(|d| d.id == t.1 && d.current == 1) },
-                rect: [0., 0., 100., 100.],
+                visible: animated || (!t.3 && w.number != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
+                    else { self.managed_roster.iter().any(|d| d.id == t.1 && d.current == 1) }),
+                rect: if animated { [439., 530., 512., 203.] } else { [0., 0., 100., 100.] },
             })
         } else {
             Err(unknown(Why::Identity))
@@ -965,7 +970,7 @@ fn yellow_completion_waits_for_the_original_ax_animation_without_reissuing_write
         assert_eq!(state.sys.moved.len(), writes + 1);
         assert_eq!(state.sys.minimize_writes, vec![(1, result.native_id, false)]);
         let elapsed = state.sys.now() - state.sys.unminimize_started.unwrap().1;
-        assert!(elapsed > DEADLINE && elapsed < AX_OBSERVATION_BUDGET);
+        assert!(elapsed > DEADLINE && elapsed < MINIMIZE_COMPLETION_BUDGET);
         assert_eq!(state.run(&request(1, SHOW, 3), &guard).status, PASS);
         assert_eq!(state.sys.windows[&1].1, 10);
         assert_eq!(state.sys.minimize_writes.len(), 1);
@@ -986,7 +991,7 @@ fn unreadable_yellow_completion_retains_ownership_and_stops_at_its_observation_b
     assert_eq!(result.flags & HIDDEN, 0);
     assert_eq!(state.sys.moved.len(), writes + 1);
     assert_eq!(state.sys.minimize_writes.len(), 1);
-    assert_eq!(state.sys.now() - state.sys.unminimize_started.unwrap().1, AX_OBSERVATION_BUDGET);
+    assert_eq!(state.sys.now() - state.sys.unminimize_started.unwrap().1, MINIMIZE_COMPLETION_BUDGET);
     state.sys.unminimize_started = None; // The same original object becomes readable again.
     let returned = state.run(&launch_request(RELEASE_SPACES), &guard);
     assert_eq!((returned.status, returned.owned), (PASS, 0));
@@ -1017,7 +1022,7 @@ fn yellow_completion_observes_an_internal_extra_membership_but_never_accepts_a_m
         } else {
             assert_eq!(result.status, PASS);
             assert_eq!(result.flags & HIDDEN, HIDDEN);
-            assert!(elapsed >= Duration::from_millis(220) && elapsed < AX_OBSERVATION_BUDGET);
+            assert!(elapsed >= Duration::from_millis(220) && elapsed < MINIMIZE_COMPLETION_BUDGET);
             assert_eq!(state.sys.spaces(1, 1).unwrap(), Rows::from([result.native_id]));
         }
         assert_eq!(state.sys.moved.len(), writes + 1);
@@ -1027,6 +1032,31 @@ fn yellow_completion_observes_an_internal_extra_membership_but_never_accepts_a_m
         assert_eq!((released.status, released.owned), (PASS, 0));
         assert_eq!(state.sys.windows[&1].1, 10);
     }
+}
+
+#[test]
+fn active_deminimize_includes_the_native_animation_and_two_complete_read_costs() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    state.sys.windows.get_mut(&1).unwrap().3 = true;
+    state.sys.unminimize_extra_space = Some((200, Duration::from_millis(600)));
+    state.sys.unminimize_observation_delay = Duration::from_millis(600);
+    state.sys.unminimize_read_cost = Duration::from_millis(20);
+    let moves = state.sys.moved.len();
+    let result = state.run(&request(1, HIDE_MINIMIZED, 2), &guard);
+    let elapsed = state.sys.now() - state.sys.unminimize_started.unwrap().1;
+    assert_eq!(result.status, PASS);
+    assert_eq!(result.flags & HIDDEN, HIDDEN);
+    assert!(state.sys.unminimize_animated_reads.get() > 0);
+    assert!(elapsed > AX_OBSERVATION_BUDGET && elapsed < MINIMIZE_COMPLETION_BUDGET);
+    assert_eq!(state.sys.spaces(1, 1).unwrap(), Rows::from([result.native_id]));
+    let original = &state.owned[&state.sys.windows[&1].0];
+    let settled = state.sys.see(original.lease.window, &original.witness).unwrap();
+    assert!(!settled.visible && settled.rect == original.original);
+    assert_eq!(state.sys.moved.len(), moves + 1);
+    assert_eq!(state.sys.minimize_writes.len(), 1);
+    let released = state.run(&launch_request(RELEASE_SPACES), &guard);
+    assert_eq!((released.status, released.owned), (PASS, 0));
 }
 
 #[test]
@@ -1042,7 +1072,7 @@ fn macos_pulling_an_unminimized_window_home_is_never_reported_as_hidden() {
     assert!(s.failed && !s.owned.is_empty());
     assert_eq!(s.sys.moved.len(), writes + 1);
     assert_eq!(s.sys.minimize_writes.len(), 1);
-    assert!(s.sys.now() - s.sys.unminimize_started.unwrap().1 < AX_OBSERVATION_BUDGET);
+    assert!(s.sys.now() - s.sys.unminimize_started.unwrap().1 < MINIMIZE_COMPLETION_BUDGET);
     let released = s.run(&launch_request(RELEASE_SPACES), &a);
     assert_eq!((released.status, released.owned), (PASS, 0));
     assert!(s.slots.is_empty());

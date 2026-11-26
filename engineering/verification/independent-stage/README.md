@@ -62,6 +62,10 @@ These are code-completion claims. The evidence below determines which native eff
 | `a60c0a3b`, full | 157 Rust and 166 Swift passed, one explicit skip; complete app and strict signature passed; real R4 press reached the worker but activation remained incomplete | Source fixture correction verified; R4 FAIL and cleanup PASS. [Original candidate and product receipt](cloud-a60c0a3b-full/README.md) |
 | `48c2ab44`, diagnostics | Initial visible registrations passed; original minimized window reached hidden 15, then forward membership became `[15,16]` with original home 12 empty | Initial yellow FAIL, cleanup PASS. The original rule stopped before proving extra Space type or later completion. [Original observation and bounded correction](cloud-48c2ab44-diagnostics/README.md) |
 | `48c2ab44`, full | 159 Rust and 166 Swift passed, one explicit skip; complete app/signature passed; actual R4 input reached configuration but initial physical read rejected Finder's AXScrollArea with no ordinary window number | R4 FAIL before NP_LAUNCH, cleanup PASS. Positive desktop structure must be established by the next run; a zero number alone grants no authority. [Original phase and candidate](cloud-48c2ab44-full/README.md) |
+| `b309067f`, compile | Two installed-fixture callers omitted the new internal readFocus argument; worker/archive build stopped before Swift language compilation or GUI work | Compile failure corrected in b43d; no native conclusion. [Original source receipt](cloud-b309067f-build/README.md) |
+| `b43d5a93`, diagnostics | Extra Space 16 is excluded from complete managed roster; actual animation is temporarily onscreen. Fields settle by 621 ms and repeat at 653 ms | Initial yellow FAIL at old 650 ms boundary, cleanup PASS. Dedicated 1000 ms active-completion source follows with final checks unchanged. [Original actual timings](cloud-b43d5a93-diagnostics/README.md) |
+| `b43d5a93`, source and R4-fast | 160 Rust and 169 Swift passed, one explicit skip; actual debug Host built and actual card press entered the queue, then dispatch/epoch were withdrawn during system confirmation | Product FAIL, cleanup PASS, no worker or new Finder structure sample. Fast debug is separate from full workspace release. [Original source and product receipts](cloud-b43d5a93-r4-fast/README.md) |
+| `b43d5a93`, full release | Complete workspace build and strict signature passed; real input independently lost dispatch during a 1.400-second system confirmation, before the group-choice Host or worker | Product FAIL, cleanup PASS. Three real previews appeared later; their rendering does not prove dispatch or recover the rejected click. [Complete candidate and original release phases](cloud-b43d5a93-full/README.md) |
 
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
@@ -73,12 +77,19 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The `48c2ab44` source run passed **159 Rust and 166 Swift cases, with one explicit skip**;
-the new binding and initial-registration tests actually executed. Its complete candidate is recorded
-below. The next source changes also retain the new-window resume intent after recording the new
+The latest completed `b43d5a93` source run passed **160 Rust and 169 Swift cases, with one explicit skip**;
+the new binding, desktop-focus and original minimized-window tests actually executed. The latest
+completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
 Those lifecycle cases run only after the main R4 and same-profile crash/restart cleanup pass; missing
 prerequisites remain NOT_RUN. A later card success cannot erase a failed automatic arrival.
+The existing closed-window proof/return/retirement path now also handles a closure discovered by
+health before the regular snapshot read. This reuses the same original-worker release and independent
+AX/CG closure confirmation; it does not invent a replacement-window writer.
+System-interaction receipts now preserve their already sampled entry states. The generic signed-Dock
+overview alone cannot qualify App Exposé; that subtype stays UNKNOWN until the bounded raw Dock
+metadata proves a distinction. Its controlled comparison continues in cloud. Split View receipts
+separately name the fixture owner's explicit focus command and do not infer native automatic focus.
 The existing foundation/debug configuration now supplies an earlier native R4 feedback lane with
 the same Host, engine and sealed acceptance packaging. Its result is separate from the complete
 workspace/release lane and never replaces that build or its native acceptance.
@@ -107,7 +118,15 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[48c2ab44 full receipts](cloud-48c2ab44-full/README.md) identify the latest source-checked complete
+[b43d5a93 full receipts](cloud-b43d5a93-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15075900553](https://github.com/haohongfei2001-png/nearpane/actions/runs/45726209534/artifacts/15075900553).
+Its independently rehashed ZIP is 25,296,704 bytes, SHA-256
+`0b2736ed4b8f6164a4b606025314cd6bb531d0127c7ac38ea8fd17bca17a388d`.
+160 Rust and 169 Swift cases passed, with one explicit skip; complete workspace build and strict/deep
+bundle verification passed. Yellow and real R4 both remain failed with confirmed cleanup. Its full
+release and faster foundation/debug runs are separate observations, not combined qualification.
+
+[48c2ab44 full receipts](cloud-48c2ab44-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15074000114](https://github.com/haohongfei2001-png/nearpane/actions/runs/45722428165/artifacts/15074000114).
 Its independently rehashed ZIP is 25,205,980 bytes, SHA-256
 `25f8f2fa06e2ecb3134a4518db93a5a1e2d391897c617a493b2bd7a117c03947`.

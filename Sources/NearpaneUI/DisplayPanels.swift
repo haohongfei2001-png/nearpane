@@ -197,7 +197,14 @@ import NearpaneCore
         guard windowDispatchEligible else { return false }
         let generation = sampleGeneration
         let started = ContinuousClock.now
+        let requestUptime = ProcessInfo.processInfo.systemUptime
         let value = await missionControlReader.read()
+        IndependentStageTrace.record("dispatch-dock-confirmation-read", [
+            "visibility": value.visibility.rawValue, "evidence": value.evidence,
+            "readStart": value.startUptime, "readEnd": value.endUptime,
+            "requestMilliseconds": (ProcessInfo.processInfo.systemUptime - requestUptime) * 1000,
+            "sameGeneration": generation == sampleGeneration,
+            "eligibleBeforeAccept": windowDispatchEligible])
         guard generation == sampleGeneration, windowDispatchEligible else { return false }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
         accept(value, started: started)
@@ -207,7 +214,14 @@ import NearpaneCore
     private func accept(_ sample: MissionControlVisibilityReader.Reading, started: ContinuousClock.Instant) {
         if .now - started <= .milliseconds(750) {
             setMissionControl(sample.visibility, evidence: sample.evidence, interval: (sample.startUptime, sample.endUptime))
-        } else { setMissionControl(.unknown, evidence: "sampleExpired") }
+        } else {
+            IndependentStageTrace.record("dispatch-dock-read-expired", [
+                "visibility": sample.visibility.rawValue, "evidence": sample.evidence,
+                "readStart": sample.startUptime, "readEnd": sample.endUptime,
+                "readDurationMilliseconds": (sample.endUptime - sample.startUptime) * 1000,
+                "readAgeMilliseconds": (ProcessInfo.processInfo.systemUptime - sample.endUptime) * 1000])
+            setMissionControl(.unknown, evidence: "sampleExpired")
+        }
     }
 
     private func invalidateObservation() {
@@ -246,6 +260,15 @@ import NearpaneCore
         else { disposition = .system }
         let dispositionChanged = stageDisposition != disposition
         stageDisposition = disposition
+        if previous != eligible || dispositionChanged {
+            IndependentStageTrace.record("system-window-ownership", ["previousEligible": previous,
+                "eligible": eligible, "disposition": String(describing: disposition),
+                "missionControl": missionControl.rawValue, "evidence": missionControlDispatchEvidence,
+                "stopped": stopped, "suspended": suspended, "systemManagesWindows": systemManagesWindows,
+                "wallpaperHeld": wallpaperHeld, "wallpaperAwaitingOrdinary": wallpaperAwaitingOrdinary,
+                "readStart": missionControlReadInterval?.start as Any? ?? NSNull(),
+                "readEnd": missionControlReadInterval?.end as Any? ?? NSNull()])
+        }
         let stage = pointer.windowPreviews?.currentDesktop?.stageEngine
         if dispositionChanged {
             switch disposition {

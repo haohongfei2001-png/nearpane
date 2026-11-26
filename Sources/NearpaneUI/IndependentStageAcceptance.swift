@@ -4,6 +4,7 @@ import Darwin
 import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
 import QuartzCore
+import Security
 
 /// An isolated app exercises the real R4 views and their production click handlers.
 /// The configuration names only the two signed fixture processes created by run.py.
@@ -518,12 +519,16 @@ import QuartzCore
                 do {
                     try opened.run()
                     let until = ContinuousClock.now.advanced(by: .seconds(5))
-                    var exposed = false
+                    var exposed = false, overviewReading = [String: Any]()
                     while ContinuousClock.now < until {
-                        if let read = await panels.observeMissionControl(), read.mode == 1 { exposed = true; break }
+                        if let read = await panels.observeMissionControl() {
+                            overviewReading = ["mode": read.mode, "evidence": read.evidence, "start": read.start, "end": read.end]
+                            if read.mode == 1 { exposed = true; break }
+                        }
                         try await Task.sleep(for: .milliseconds(80))
                     }
                     let restored = exposed ? await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4) : nil
+                    let overviewTree = exposed ? readOverviewTree(targets) : ["status": "NOT_RUN"]
                     let source = CGEventSource(stateID: .privateState)
                     CGEvent(keyboardEventSource: source, virtualKey: 53, keyDown: true)?.post(tap: .cghidEventTap)
                     CGEvent(keyboardEventSource: source, virtualKey: 53, keyDown: false)?.post(tap: .cghidEventTap)
@@ -536,6 +541,7 @@ import QuartzCore
                     let resumed = ordinary ? await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 8) : nil
                     report["missionControl"] = exposed && restored != nil && resumed != nil ? "PASS" : "FAIL"
                     record("missionControl", ["exposed": exposed, "realWindowsReturned": restored != nil,
+                        "overviewReading": overviewReading, "dockOverviewTree": overviewTree, "entryObservations": restored ?? [],
                         "ordinaryReturned": ordinary, "focusedGroupAutomaticallyResumed": resumed != nil,
                         "focusedWindow": resumed?.window ?? 0, "resumeObservations": resumed?.observations ?? []])
                 } catch { report["missionControl"] = "BLOCKED" }
@@ -563,6 +569,7 @@ import QuartzCore
                 let returned = await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 10)
                 report["nativeFullScreen"] = entered && yielded != nil && returned != nil ? "PASS" : "FAIL"
                 record("nativeFullScreen", ["realFullScreenSpace": entered, "inactiveWindowsReturnedToOriginalDesktop": yielded != nil,
+                    "entryObservations": yielded ?? [],
                     "focusedGroupAutomaticallyResumed": returned != nil, "focusedWindow": returned?.window ?? 0,
                     "resumeObservations": returned?.observations ?? []])
             } else { report["nativeFullScreen"] = "BLOCKED" }
@@ -601,16 +608,24 @@ import QuartzCore
                 try await selectR4(0, group: firstGroup, visible: [first.window.number], phase: "beforeAppExpose")
                 sendControlArrow(125) // Existing system App Exposé action.
                 let until = ContinuousClock.now.advanced(by: .seconds(4))
-                var exposed = false
+                var exposed = false, overviewReading = [String: Any]()
                 while ContinuousClock.now < until {
-                    if let read = await panels.observeMissionControl(), read.mode == 1 { exposed = true; break }
+                    if let read = await panels.observeMissionControl() {
+                        overviewReading = ["mode": read.mode, "evidence": read.evidence, "start": read.start, "end": read.end]
+                        if read.mode == 1 { exposed = true; break }
+                    }
                     try await Task.sleep(for: .milliseconds(80))
                 }
                 let yielded = exposed ? await waitForState(targets, visible: nil, focus: nil, seconds: 5, allAtHome: true) : nil
+                let overviewTree = exposed ? readOverviewTree(targets) : ["status": "NOT_RUN"]
                 sendEscape()
                 let returned = await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 8)
-                report["appExpose"] = exposed && yielded != nil && returned != nil ? "PASS" : "FAIL"
+                // The existing signed-Dock reader proves an overview, not its
+                // App Exposé subtype. Preserve the actual tree for cloud analysis.
+                report["appExpose"] = exposed && yielded != nil && returned != nil ? "UNKNOWN" : "FAIL"
                 record("appExpose", ["nativeOverviewObserved": exposed, "realWindowsReturned": yielded != nil,
+                    "reason": "appExposeSubtypeUnconfirmed", "appExposeSubtypeConfirmed": false,
+                    "overviewReading": overviewReading, "dockOverviewTree": overviewTree, "entryObservations": yielded ?? [],
                     "focusedGroupAutomaticallyResumed": returned != nil, "focusedWindow": returned?.window ?? 0,
                     "resumeObservations": returned?.observations ?? []])
             } else { report["appExpose"] = "BLOCKED" }
@@ -713,6 +728,133 @@ import QuartzCore
         }
         result["targets"] = rows
         return result
+    }
+
+    /// Bounded metadata only. An AX node's backing window can be the Dock's own
+    /// surface; numbers/identifiers are recorded, never guessed to be fixture tiles.
+    private static func readOverviewTree(_ targets: [Target]) -> [String: Any] {
+        let started = ProcessInfo.processInfo.systemUptime
+        let docks = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
+        guard docks.count == 1, let pid = docks.first?.processIdentifier,
+              let image = try? NearpaneCore.OrdinaryProcessImage.read(pid),
+              image.executable.path == "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock" else {
+            return ["status": "UNKNOWN", "reason": "uniqueSystemDockUnavailable"]
+        }
+        var code: SecCode?, requirement: SecRequirement?
+        guard SecRequirementCreateWithString("anchor apple and identifier \"com.apple.dock\"" as CFString, [], &requirement) == errSecSuccess,
+              let requirement, SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributePid as String: pid] as CFDictionary, [], &code) == errSecSuccess,
+              let code, SecCodeCheckValidity(code, [], requirement) == errSecSuccess else {
+            return ["status": "UNKNOWN", "reason": "signedDockUnavailable"]
+        }
+        let root = AXUIElementCreateApplication(pid), deadline = started + 0.8
+        var rows = [[String: Any]](), truncated = false
+        func attribute(_ element: AXUIElement, _ key: String) -> (CFTypeRef?, AXError) {
+            var value: CFTypeRef?
+            let error = AXUIElementCopyAttributeValue(element, key as CFString, &value)
+            return (value, error)
+        }
+        func list(_ element: AXUIElement, _ key: String) -> ([AXUIElement], [String: Any]) {
+            var count = 0, raw: CFArray?
+            let countError = AXUIElementGetAttributeValueCount(element, key as CFString, &count)
+            var evidence: [String: Any] = ["countError": countError.rawValue, "reportedCount": count]
+            guard countError == .success, count >= 0 else { return ([], evidence) }
+            let limit = min(count, 96)
+            if count > limit { truncated = true }
+            let error = AXUIElementCopyAttributeValues(element, key as CFString, 0, limit, &raw)
+            evidence["valuesError"] = error.rawValue
+            guard error == .success, let elements = raw as? [AXUIElement], elements.count == limit else { return ([], evidence) }
+            evidence["returnedCount"] = elements.count
+            return (elements, evidence)
+        }
+        let cgRows = CGWindowListCopyWindowInfo(.optionAll, 0) as? [[String: Any]]
+        var cgOwners = [UInt32: Int32]()
+        if let cgRows, cgRows.count <= 8192 {
+            for row in cgRows {
+                if let number = row[kCGWindowNumber as String] as? UInt32, let owner = row[kCGWindowOwnerPID as String] as? Int32 {
+                    cgOwners[number] = owner
+                }
+            }
+        }
+        func numberEvidence(_ element: AXUIElement) -> [String: Any] {
+            let number = NPReadAXWindowNumber(element)
+            var value: [String: Any] = ["canonicalAXWindowNumber": number]
+            let (raw, error) = attribute(element, "AXWindowNumber")
+            value["publicWindowNumberError"] = error.rawValue
+            if let n = raw as? NSNumber { value["publicAXWindowNumber"] = n }
+            if number > 0 { value["cgOwnerPID"] = cgOwners[number] ?? -1 }
+            if let target = targets.first(where: { $0.window.number == number && cgOwners[number] == $0.fixture.pid }),
+               let live = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid), live.launch == target.fixture.birth {
+                value["fixtureWindow"] = ["pid": target.fixture.pid, "birth": target.fixture.birth, "number": number]
+            }
+            return value
+        }
+        guard AXUIElementSetMessagingTimeout(root, 0.025) == .success else { return ["status": "UNKNOWN", "reason": "dockReadTimeoutUnavailable"] }
+        let (children, rootEvidence) = list(root, kAXChildrenAttribute)
+        var roots = [AXUIElement]()
+        for element in children {
+            guard ProcessInfo.processInfo.systemUptime < deadline else { truncated = true; break }
+            guard AXUIElementSetMessagingTimeout(element, 0.025) == .success else { truncated = true; continue }
+            if attribute(element, kAXIdentifierAttribute).0 as? String == "mc" { roots.append(element) }
+        }
+        let (windows, windowsEvidence) = list(root, kAXWindowsAttribute)
+        var pending = roots.map { ($0, 0, -1) }, seen = Set<AXUIElement>()
+        while let (element, depth, parent) = pending.popLast() {
+            guard rows.count < 96, ProcessInfo.processInfo.systemUptime < deadline else { truncated = true; break }
+            guard seen.insert(element).inserted else { continue }
+            var owner: pid_t = 0
+            guard AXUIElementGetPid(element, &owner) == .success, owner == pid,
+                  AXUIElementSetMessagingTimeout(element, 0.025) == .success else { truncated = true; continue }
+            var row = numberEvidence(element)
+            let index = rows.count
+            row["index"] = index; row["parent"] = parent; row["depth"] = depth
+            for (name, key) in [("role", kAXRoleAttribute), ("subrole", kAXSubroleAttribute), ("identifier", kAXIdentifierAttribute)] {
+                let (raw, error) = attribute(element, key)
+                row[name + "Error"] = error.rawValue
+                if let text = raw as? String { row[name] = String(text.prefix(160)) }
+            }
+            if ProcessInfo.processInfo.systemUptime < deadline {
+                var names: CFArray?
+                let error = AXUIElementCopyAttributeNames(element, &names)
+                row["attributeNamesError"] = error.rawValue
+                if error == .success, let values = names as? [String] {
+                    let constants = values.filter { $0.hasPrefix("AX") && $0.count <= 128 &&
+                        $0.utf8.allSatisfy { (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 95 } }
+                    row["attributeNames"] = Array(constants.prefix(64)); row["attributeNamesCount"] = values.count
+                    row["attributeNamesTruncated"] = constants.count > 64 || constants.count != values.count
+                }
+            } else { truncated = true; row["attributeNamesRead"] = "NOT_RUN_DEADLINE" }
+            if ProcessInfo.processInfo.systemUptime < deadline {
+                let (raw, error) = attribute(element, "AXWindowsIDs")
+                row["AXWindowsIDsError"] = error.rawValue
+                if error == .success, let numbers = raw as? [NSNumber] {
+                    let bounded = numbers.prefix(64)
+                    let ids = bounded.compactMap { number -> UInt32? in
+                        guard CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+                        return UInt32(exactly: number.doubleValue)
+                    }
+                    row["AXWindowsIDsCount"] = numbers.count; row["AXWindowsIDsTruncated"] = numbers.count > 64
+                    if ids.count == bounded.count { row["AXWindowsIDs"] = ids }
+                    else { row["AXWindowsIDsValue"] = "unexpectedNonWindowNumber" }
+                } else if error == .success { row["AXWindowsIDsValue"] = "unexpectedNonNumericArray" }
+            } else { truncated = true; row["AXWindowsIDsRead"] = "NOT_RUN_DEADLINE" }
+            let (descendants, evidence) = list(element, kAXChildrenAttribute)
+            row["children"] = evidence; rows.append(row)
+            if depth < 6 { pending += descendants.map { ($0, depth + 1, index) } }
+            else if !descendants.isEmpty { truncated = true }
+        }
+        var windowNumbers = [[String: Any]]()
+        for window in windows.prefix(32) {
+            guard ProcessInfo.processInfo.systemUptime < deadline else { truncated = true; break }
+            guard AXUIElementSetMessagingTimeout(window, 0.025) == .success else { truncated = true; continue }
+            windowNumbers.append(numberEvidence(window))
+        }
+        if windows.count > 32 { truncated = true }
+        let sameOwner = (try? NearpaneCore.OrdinaryProcessImage.read(pid)) == image
+        return ["status": sameOwner ? "OBSERVED" : "UNKNOWN", "subtype": "UNKNOWN", "subtypeClassificationAttempted": false,
+            "dockPID": pid, "dockBirth": image.launch, "ownerUnchanged": sameOwner,
+            "rootChildren": rootEvidence, "overviewRoots": roots.count, "nodes": rows, "truncated": truncated,
+            "axWindows": windowNumbers, "axWindowsRead": windowsEvidence,
+            "cgCatalogAvailable": cgRows != nil, "start": started, "end": ProcessInfo.processInfo.systemUptime]
     }
 
     private static func physicalWindow(at point: CGPoint) -> Int {
@@ -926,7 +1068,9 @@ import QuartzCore
                 try? await Task.sleep(for: .milliseconds(100))
             }
         }
-        _ = await ownerCommand(first, action: "focus", nonce: nonce)
+        var ownerFocusCommandIssued = false
+        let ownerFocusAcknowledged = await ownerCommand(first, action: "focus", nonce: nonce,
+                                                        onIssued: { ownerFocusCommandIssued = true })
         let ordinary = await waitDesktop(first.home, seconds: 7)
         let returned = ordinary ? await waitForFocusedGroup(targets, in: feed, scope: scope, seconds: 9) : nil
         return ["status": paired && handedBack && returned != nil ? "PASS" :
@@ -935,7 +1079,9 @@ import QuartzCore
             "tile": tile, "pair": pair, "nativeFullScreenSpace": halfSpace ?? 0,
             "inactiveWindowsHandedBack": handedBack, "sameNativeSpaceAndSplitGeometry": paired,
             "splitObservations": pairReadbacks,
-            "focusedGroupAutomaticallyResumed": returned != nil, "returnObservations": returned?.observations ?? []]
+            "ownerFocusCommandIssued": ownerFocusCommandIssued, "ownerFocusCommandAcknowledged": ownerFocusAcknowledged,
+            "nativeAutomaticFocusSelection": "NOT_PROVEN", "focusedGroupResumedAfterOwnerFocusCommand": returned != nil,
+            "returnObservations": returned?.observations ?? []]
     }
 
     private static func nativeSpaceKind(_ id: UInt64) -> Int? {
@@ -1319,7 +1465,8 @@ import QuartzCore
         return nil
     }
 
-    private static func ownerCommand(_ target: Target, action: String, nonce: UUID, index: Int? = nil) async -> Bool {
+    private static func ownerCommand(_ target: Target, action: String, nonce: UUID, index: Int? = nil,
+                                     onIssued: (() -> Void)? = nil) async -> Bool {
         let directory = URL(fileURLWithPath: target.fixture.directory)
         guard let before = ownerState(target, nonce: nonce), let previous = before["commandSequence"] as? Int else { return false }
         let sequence = previous + 1
@@ -1327,6 +1474,7 @@ import QuartzCore
                                      "index": index ?? target.window.index, "action": action]
         guard let data = try? JSONSerialization.data(withJSONObject: command),
               (try? data.write(to: directory.appendingPathComponent("command.json"), options: .atomic)) != nil else { return false }
+        onIssued?()
         let until = ContinuousClock.now.advanced(by: .seconds(3))
         while ContinuousClock.now < until {
             if let reply = ownerState(target, nonce: nonce), reply["commandSequence"] as? Int == sequence { return true }

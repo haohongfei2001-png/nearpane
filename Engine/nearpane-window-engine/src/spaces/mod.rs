@@ -15,6 +15,9 @@ type Rows = BTreeSet<u64>;
 const LIMIT: usize = 64;
 const DEADLINE: Duration = Duration::from_millis(120);
 const AX_OBSERVATION_BUDGET: Duration = Duration::from_millis(650);
+// An active AppKit deminiaturization includes the system animation and two full
+// settled observations. It is distinct from passive AX health and Space move ack.
+const MINIMIZE_COMPLETION_BUDGET: Duration = Duration::from_millis(1000);
 #[cfg(not(test))]
 const GRACE: Duration = Duration::from_millis(40);
 const STRIKE_WINDOW: Duration = Duration::from_secs(60);
@@ -755,7 +758,7 @@ impl<P: Platform> State<P> {
         // Observe its completion through the same original witness; never send
         // set_minimized again or conceal a positive return to a managed desktop.
         let started = self.sys.now();
-        let until = started + AX_OBSERVATION_BUDGET;
+        let until = started + MINIMIZE_COMPLETION_BUDGET;
         let mut consecutive = 0;
         let mut last = unknown(Why::Readback);
         loop {
@@ -819,7 +822,12 @@ impl<P: Platform> State<P> {
                 }
                 Err(fault) => return Err(fault),
             }
-            if self.sys.now() >= until { return Err(last); }
+            let expired = self.sys.now() >= until;
+            if (expired || consecutive == 2) && std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesMiniCompletionFinal\",\"window\":{},\"parking\":{sid},\"completeObservations\":{consecutive},\"expired\":{expired},\"elapsedMS\":{},\"budgetMS\":{}}}",
+                    lease.window.number,self.sys.now().saturating_duration_since(started).as_millis(),MINIMIZE_COMPLETION_BUDGET.as_millis());
+            }
+            if expired { return Err(last); }
             if consecutive == 2 { return Ok(()); }
             self.sys.wait(Duration::from_millis(4).min(until.saturating_duration_since(self.sys.now())));
         }
