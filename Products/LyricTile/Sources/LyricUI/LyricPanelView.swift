@@ -73,13 +73,13 @@ public struct LyricPanelView: View {
                 }
                 .onChange(of: model.isVisible) { _, visible in
                     if !visible {
-                        hoverTask?.cancel(); pointerInside = false; controlsFocused = false
+                        hoverTask?.cancel(); pointerInside = false; controlsFocused = false; isSeeking = false
                         model.panelInteractionActive = false
                         model.setControlsVisible(false)
                     } else if voiceOverEnabled { revealControls() }
                 }
                 .onDisappear {
-                    hoverTask?.cancel(); pointerInside = false; controlsFocused = false
+                    hoverTask?.cancel(); pointerInside = false; controlsFocused = false; isSeeking = false
                     model.panelInteractionActive = false
                 }
             } else {
@@ -182,12 +182,12 @@ public struct LyricPanelView: View {
     private var lyricControls: some View {
         VStack(spacing: 0) {
             trackSummary(interactive: true, artworkSize: 32)
-            Spacer(minLength: 0)
             if model.browsedCueIndex != nil {
                 Button("回到当前句") { model.returnToCurrent() }.buttonStyle(.plain)
                     .font(.system(size: 10)).foregroundStyle(secondary)
-                    .focused($controlsFocused).padding(.bottom, 3)
+                    .focused($controlsFocused).padding(.top, 6)
             }
+            Spacer(minLength: 0)
             transport
             progress.padding(.top, 6)
         }

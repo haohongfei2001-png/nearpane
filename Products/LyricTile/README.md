@@ -43,7 +43,7 @@ Tests use clearly authored fixtures under `Tests/`; production startup has no de
 
 ## What the application does
 
-The default surface is a narrow, quiet lyric panel. Pointer dwell reveals the real artwork, title, transport and seek controls without changing the panel's reserved size or removing the lyrics. Settings, lyric version selection, source information, local import, timing adjustment and full lyrics are separate small native windows. Paused, instrumental, interlude, missing lyrics, inaccessible position, permission denial and no playback remain distinct states.
+The panel appears automatically only while an identified song is playing. Its five-line lyric surface is 204 points high: the current cue is central, with two progressively quieter cues above and below. Songs without available lyrics use a 112-point summary with real metadata and a short status. Pointer entry immediately reveals artwork, title, artist, transport and progress in the same outer frame, covering context while retaining the current cue. Missing artwork uses a neutral symbol, missing artists are omitted, and unavailable times stay unknown. No playback leaves no desktop panel. A paused song retains an already-visible panel only while the user is interacting with it. Connection status, local import and settings remain available from the menu bar.
 
 | Player | Implemented route | Runtime limitation to verify on the exact installed build |
 |---|---|---|
@@ -60,7 +60,7 @@ Fresh unmeasured position anchors support ordinary line synchronization. Continu
 
 ## Desktop and future Nearpane integration
 
-TileKit coordinates cooperating apps through short locked transactions and explicit withdrawal acknowledgements. A missing heartbeat never authorizes drawing over a still-visible window. Shared width is 176–224 points; right/top margins are 16 points; spacing is 10 points; a collapsed/idle LyricTile retains its 272-point slot.
+TileKit coordinates cooperating apps through short locked transactions and explicit withdrawal acknowledgements. A missing heartbeat never authorizes drawing over a still-visible window. Shared width is 176–224 points; right/top margins are 16 points; spacing is 10 points; an active LyricTile reserves a maximum 204-point slot so lyric arrival cannot overlap another tile. No playback or manual hiding withdraws the panel and unregisters that slot through the existing withdrawal barrier. Hover does not resize or reorder the panel.
 
 Legacy Saytile and Riftlet versions do not yet implement that protocol. LyricTile reads only their public window geometry and avoids recognizable component windows, without moving them or requiring Accessibility/Screen Recording. This is compatibility avoidance, not a claim that old apps now negotiate reordering. Dragging in coordinated mode requests column order/display changes. Turning coordination off gives explicit local placement.
 

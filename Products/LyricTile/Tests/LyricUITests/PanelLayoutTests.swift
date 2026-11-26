@@ -74,6 +74,7 @@ struct PanelLayoutTests {
             if scenario != .noSong { #expect(model.panelContent == .compact) }
         }
         if scenario == .missingMetadata {
+            #expect(model.title == "未提供曲名")
             #expect(model.artist.isEmpty)
             #expect(model.artwork == nil)
             #expect(model.durationMS == nil)
@@ -192,7 +193,7 @@ private struct PanelLayoutFixture {
         let selection = LyricDomain.Selection(playerBundleID: "test.lyrictile.layout",
             sessionID: sessionID, generation: 1,
             recording: .init(fingerprint: "authored-layout-\(scenario.rawValue)", platformIDs: [], isrc: nil,
-                title: "一盏灯的距离", artists: scenario == .missingMetadata ? [] : ["原创界面夹具"],
+                title: scenario == .missingMetadata ? nil : "一盏灯的距离", artists: scenario == .missingMetadata ? [] : ["原创界面夹具"],
                 album: "仅供布局验证", durationMS: scenario == .missingMetadata ? nil : 40_000, versionTags: []))
         let anchor: LyricDomain.PlaybackAnchor? = scenario == .missingMetadata ? nil : .init(
             selection: selection, positionMS: 12_000, observedAt: PlaybackClock.now(),

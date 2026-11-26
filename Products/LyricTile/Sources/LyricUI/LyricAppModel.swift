@@ -158,7 +158,11 @@ public final class LyricAppModel: ObservableObject {
         await task.value
     }
 
-    public var title: String { snapshot.selection?.recording.title ?? "尚未播放音乐" }
+    public var title: String {
+        guard let selection = snapshot.selection else { return "尚未播放音乐" }
+        let title = selection.recording.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title?.isEmpty == false ? title! : "未提供曲名"
+    }
     public var artist: String { snapshot.selection?.recording.artists.joined(separator: "、") ?? "" }
     public var durationMS: Int64? { snapshot.selection?.recording.durationMS.flatMap { $0 > 0 ? $0 : nil } }
     public var leadCues: [LyricDomain.Cue] { leadCueCache }
@@ -254,6 +258,8 @@ public final class LyricAppModel: ObservableObject {
         seekSelection = snapshot.selection
         seekPreviewMS = playbackPositionMS
     }
+    /// Withdrawal must not leave an unfinished drag ready to seek on reappearance.
+    public func cancelSeek() { seekSelection = nil; seekPreviewMS = nil }
     func previewSeek(to value: Double) {
         guard canSeek, let selection = seekSelection, isCurrent(selection), let durationMS,
               value.isFinite, value >= 0, value < Double(Int64.max) else { seekPreviewMS = nil; return }

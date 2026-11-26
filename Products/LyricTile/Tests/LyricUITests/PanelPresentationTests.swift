@@ -8,44 +8,59 @@ import Testing
 struct PanelPresentationTests {
     @Test func startupPausedDoesNotAppearForAccessibilityControls() {
         var policy = LyricPanelVisibilityPolicy()
-        #expect(!policy.shouldPresent(snapshot(.paused), wasVisible: false, isInteracting: true))
+        let actual1 = policy.shouldPresent(snapshot(.paused), wasVisible: false, isInteracting: true)
+        #expect(!actual1)
     }
 
     @Test func pauseKeepsExistingControlsOnlyUntilInteractionEnds() {
         var policy = LyricPanelVisibilityPolicy()
-        #expect(policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false))
-        #expect(policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: true))
-        #expect(policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: true))
-        #expect(!policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: false))
-        #expect(!policy.shouldPresent(snapshot(.paused), wasVisible: false, isInteracting: true))
-        #expect(policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false))
+        let actual2 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false)
+        #expect(actual2)
+        let actual3 = policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: true)
+        #expect(actual3)
+        let actual4 = policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: true)
+        #expect(actual4)
+        let actual5 = policy.shouldPresent(snapshot(.paused), wasVisible: true, isInteracting: false)
+        #expect(!actual5)
+        let actual6 = policy.shouldPresent(snapshot(.paused), wasVisible: false, isInteracting: true)
+        #expect(!actual6)
+        let actual7 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false)
+        #expect(actual7)
     }
 
     @Test(arguments: [LyricDomain.PlaybackState.stopped, .buffering, .unknown])
     func inactiveMetadataCannotKeepThePanelOpen(_ state: LyricDomain.PlaybackState) {
         var policy = LyricPanelVisibilityPolicy()
-        #expect(policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false))
-        #expect(!policy.shouldPresent(snapshot(state), wasVisible: true, isInteracting: true))
+        let actual8 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: false)
+        #expect(actual8)
+        let actual9 = policy.shouldPresent(snapshot(state), wasVisible: true, isInteracting: true)
+        #expect(!actual9)
     }
 
     @Test func connectionOrAuthorizationStatusNeverCreatesAnEmptyPanel() {
         var policy = LyricPanelVisibilityPolicy()
         let unavailable = PlaybackSnapshot(player: .appleMusic, selection: nil, anchor: nil,
             state: .playing, statusMessage: "Authored authorization status", requiresAuthorization: true)
-        #expect(!policy.shouldPresent(unavailable, wasVisible: true, isInteracting: true))
-        #expect(!policy.shouldPresent(.empty, wasVisible: false, isInteracting: false))
+        let actual10 = policy.shouldPresent(unavailable, wasVisible: true, isInteracting: true)
+        #expect(!actual10)
+        let actual11 = policy.shouldPresent(.empty, wasVisible: false, isInteracting: false)
+        #expect(!actual11)
     }
 
     @Test func pausedRetentionDoesNotFollowADifferentSong() {
         var policy = LyricPanelVisibilityPolicy()
-        #expect(policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: true))
-        #expect(!policy.shouldPresent(snapshot(.paused, generation: 2), wasVisible: true, isInteracting: true))
+        let actual12 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: true)
+        #expect(actual12)
+        let actual13 = policy.shouldPresent(snapshot(.paused, generation: 2), wasVisible: true, isInteracting: true)
+        #expect(!actual13)
     }
 
     @Test func lateMetadataDoesNotDismissPausedControls() {
         var policy = LyricPanelVisibilityPolicy()
-        #expect(policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: true))
-        #expect(policy.shouldPresent(snapshot(.paused, artists: ["Authored artist"]),
+        let actual14 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: true)
+        #expect(actual14)
+        let actual15 = policy.shouldPresent(snapshot(.paused, artists: ["Authored artist"])
+        #expect(actual15)
                                      wasVisible: true, isInteracting: true))
     }
 

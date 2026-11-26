@@ -114,6 +114,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         dragging = false
         panel.orderOut(nil)
         model.isVisible = false
+        model.cancelSeek()
         if model.panelInteractionActive { model.panelInteractionActive = false }
         model.setControlsVisible(false)
     }

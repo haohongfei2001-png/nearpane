@@ -4,10 +4,10 @@
 
 - `LyricUI/LyricAppModel.swift`: real PlaybackController + LyricRepository composition. No recordings or lyrics are injected. A kernel TileSessionLease is acquired before media observation starts. A cancelled/overlapping start and stop share lifecycle barriers; pending transport readback drains before ownership release.
 - `LyricUI/LyricArtworkDecoder.swift`: serial ImageIO decoding outside MainActor. Original artwork is limited to 8 MiB, one frame and 4096 pixels per side before decoding; AppKit receives only a thumbnail of at most 512 pixels per side. Cancelled requests and mismatched session/data tokens cannot publish a cover for a different recording.
-- `LyricUI/LyricPanelView.swift`: fixed reading anchor, 140 ms pointer dwell / 280 ms leave delay, native material, actual cover bytes, correct-source controls, readonly unavailable progress, and distinct initial / permission / lyric / position states. Hover never changes the outer frame.
-- `LyricUI/LyricGlyphText.swift`: native CoreText paragraph and glyph-run shaping. Layout is cached. A one-shot timer updates masks only during a known active word, at up to 60 Hz (30 Hz in Low Power Mode); pauses, hidden views and unknown/stale clocks stop that timer. Source tokens with unknown ends activate discretely. UTF-16 spans are checked against composed-character boundaries. RTL glyph runs retain their native shaping and mask direction. Very long cues can be scrolled without shrinking the font.
+- `LyricUI/LyricPanelView.swift`: five-cue reading layout (current cue with two neighbours on each side), immediate pointer entry / 280 ms control leave delay, native material, actual cover bytes, correct-source controls and readonly unavailable progress. The 204pt lyric surface and 112pt metadata-only surface each keep their frame on hover. No selection draws a transparent root. Missing artists are omitted rather than replaced by a player name.
+- `LyricUI/LyricGlyphText.swift`: native CoreText paragraph and glyph-run shaping. Layout is cached. A one-shot timer updates masks only during a known active word, at up to 60 Hz (30 Hz in Low Power Mode); pauses, hidden views and unknown/stale clocks stop that timer. Source tokens with unknown ends activate discretely. UTF-16 spans are checked against composed-character boundaries. RTL glyph runs retain their native shaping and mask direction. Short cues are vertically centred; the viewport exposes whole rows at rest. Very long cues can be scrolled without shrinking the font.
 - `LyricUI/LyricAuxiliaryController.swift`: real native windows for welcome, settings, candidate search, local import, source provenance, timing adjustment and the full lyric document. A line does not seek on ordinary click; an explicit context-menu action sends a guarded seek. Login start uses SMAppService and is disabled for an unpackaged executable.
-- `LyricUI/LyricPanelController.swift`: nonactivating NSPanel, transparent rounded surface, top-strip drag, stable display UUID placement, sleep/display recovery, compact 62 pt idle surface retaining a 272 pt logical slot. User clicks may establish keyboard focus; pointer entry cannot activate the app.
+- `LyricUI/LyricPanelController.swift`: nonactivating NSPanel, transparent rounded surface, top-strip drag, stable display UUID placement, sleep/display recovery, 204pt lyric / 112pt compact playing surfaces sharing a 204pt maximum slot. No playback has no surface or standalone registration. Playing is the only automatic show state; pausing retains only an existing same-recording pointer/keyboard interaction. Actual interaction is separate from accessibility-driven control visibility. User clicks may establish keyboard focus; pointer entry cannot activate the app.
 - `LyricTileApp`: AppKit lifecycle and menu-bar entry. Normal installation starts with a welcome page and asks only the player's Automation permission when it is connected. Quit withdraws UI and drains the session.
 - `NearpaneLyricsModule`: reusable View + the same domain/service composition. It does not create a second standalone panel or alter the host width.
 
@@ -16,7 +16,9 @@
 The standalone app integrates TileDesktopCoordinator through these public PanelController hooks:
 
 ```swift
-var slotFrame: NSRect { get }       // Always the reserved 272 pt rectangle.
+var slotFrame: NSRect { get }       // Active reservation: maximum 204 pt rectangle.
+var wantsPresentation: Bool { get }
+var visibilityIntentDidChange: ((Bool) -> Void)?
 var displayUUID: String? { get }
 var windowIDs: [Int] { get }
 var placementPermitted: Bool { get }
@@ -42,7 +44,7 @@ Handoff request names and payloads are in `LyricUI/LyricHandoff.swift`. They car
 
 ## Native load check
 
-`LyricTile --smoke-test` constructs the production NSPanel, hosting view and genuine no-playback state; it skips media start, provider calls and permission requests. After the empty-panel check, it opens the production welcome and settings windows through `model.show`, waits once for each layout and checks actual visibility/content attachment. With `--smoke-screenshot <path>`, it writes the empty panel to that path plus `native-welcome.png` and `native-settings.png` in the same directory. Missing windows or failed requested screenshots fail the combined JSON result. The check closes the auxiliary windows and terminates through the normal application lifecycle. It neither supplies fixture music nor proves player control, TCC, material contrast, glyph correctness or physical desktop behavior.
+`LyricTile --smoke-test` constructs the production NSPanel, hosting view and genuine no-playback state; it skips media start, provider calls and permission requests. It checks that the no-playback panel remains hidden even after a user-initiated show request, then opens the production welcome and settings windows through `model.show`, waits once for each layout and checks actual visibility/content attachment. With `--smoke-screenshot <path>`, it writes `native-welcome.png` and `native-settings.png` in that directory; an absent panel has no screenshot. `PanelLayoutTests` separately render authored lyric/metadata fixtures through the real NSHostingView, saving PNG and explicit fixture metadata when `LYRICTILE_UI_EVIDENCE_DIR` is set. These fixtures do not start a player or acquire a session; their transport controls are disabled and artwork acceptance is not exercised. Missing windows or failed requested screenshots fail the combined JSON result. The check closes the auxiliary windows and terminates through the normal application lifecycle. It neither supplies fixture music nor proves player control, TCC, material contrast, glyph correctness or physical desktop behavior.
 
 ## Qualification still requiring physical environments
 
