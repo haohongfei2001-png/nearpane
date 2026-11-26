@@ -1,0 +1,61 @@
+{
+  "source": "a8c470d",
+  "build": 3,
+  "observations": [
+    {
+      "phase": "initial",
+      "displayCount": 1,
+      "panel": {
+        "Height": 272,
+        "Width": 184,
+        "X": 1270,
+        "Y": 49
+      },
+      "windowID": 120197
+    },
+    {
+      "phase": "connected",
+      "displayCount": 2,
+      "panel": {
+        "Height": 272,
+        "Width": 184,
+        "X": 1270,
+        "Y": 49
+      },
+      "windowID": 120197
+    },
+    {
+      "phase": "dragged",
+      "displayCount": 2,
+      "panel": {
+        "Height": 272,
+        "Width": 224,
+        "X": 3150,
+        "Y": 46
+      },
+      "windowID": 120197
+    },
+    {
+      "phase": "reopened",
+      "displayCount": 2,
+      "panel": {
+        "Height": 62,
+        "Width": 224,
+        "X": 3150,
+        "Y": 46
+      },
+      "windowID": 120277
+    },
+    {
+      "phase": "removed",
+      "displayCount": 1,
+      "panel": {
+        "Height": 272,
+        "Width": 184,
+        "X": 1270,
+        "Y": 49
+      },
+      "windowID": 120277
+    }
+  ]
+}
