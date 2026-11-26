@@ -73,6 +73,10 @@ These are code-completion claims. The evidence below determines which native eff
 | `3d79921c`, R4-fast | Initial yellow and group cycles pass; passive health exhausts its 650 ms budget after original hidden sibling AXCannotComplete, before later yellow starts. Product button's six attributes and panel checks succeed, repeated action-name query times out | Engine later-yellow FAIL, product BLOCKED/input zero, cleanup PASS. Neither another VM's engine PASS nor this button discovery changes those results. [Original earliest fault and no-input receipts](cloud-3d79921c-r4-fast/README.md) |
 | `3d79921c`, full release | 161 Rust and 170 Swift pass, one explicit skip; full app/signature and this VM's whole engine sequence pass. Actual button discovery confirms AXPress, but its redundant final action-name query returns AXCannotComplete | Source-checked complete candidate; R4 BLOCKED/input zero, cleanup PASS. The new Finder predicate and worker activation are not reached. [Original source, candidate and runtime evidence](cloud-3d79921c-full/README.md) |
 
+| `2f3eddda`, diagnostics | All engine checks and first-release cleanup pass again; original hidden sibling has AXCannotComplete at 167/482 ms, then two complete reads by 645 ms | FOREIGN_ENGINE_PASS; this VM does not consume the new extra health interval. First active demini completion needs 874 ms. [Original timed result](cloud-2f3eddda-diagnostics/README.md) |
+| `2f3eddda`, R4-fast | Real AXPress input1 reaches group job; actual ordinary Dock read is 1.27 ms, delivery age 483.7 ms, but pre-request clock causes sampleExpired and epoch withdrawal. Three real images render; all windows remain at home | Product FAIL, cleanup PASS; current previews are not held-window proof. This VM's entire normal engine passes independently. [Actual input, read interval and screenshot](cloud-2f3eddda-r4-fast/README.md) |
+| `2f3eddda`, full release | 162 Rust / 170 Swift pass, one skip; complete workspace/signature and this VM's normal engine pass. Product compound pre-press context check declines before input | Latest source-checked complete candidate; product BLOCKED/input0, cleanup PASS. Exact failed context field is unobserved, not assigned the fast VM's cause. [Original candidate and product receipt](cloud-2f3eddda-full/README.md) |
+
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
 visible standard AX window through the existing readback operation, retains that exact identity across
@@ -83,7 +87,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `3d79921c` source run passed **161 Rust and 170 Swift cases, with one explicit skip**;
+The latest completed `2f3eddda` source run passed **162 Rust and 170 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -124,7 +128,15 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[3d79921c full receipts](cloud-3d79921c-full/README.md) identify the latest source-checked complete
+[2f3eddda full receipts](cloud-2f3eddda-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15077963583](https://github.com/haohongfei2001-png/nearpane/actions/runs/45734124458/artifacts/15077963583).
+Its independently rehashed ZIP is 25,323,844 bytes, SHA-256
+`d0c00ccb9da79502c0c44e0037a969bd6b094e8886228b6d612a920cd838af9c`.
+162 Rust and 170 Swift cases passed, with one explicit skip. Complete workspace and strict/deep
+bundle verification passed. The full VM's entire engine sequence passed, but its R4 path stopped
+before input at a compound context check. Cleanup passed; product qualification remains false.
+
+[3d79921c full receipts](cloud-3d79921c-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15077029046](https://github.com/haohongfei2001-png/nearpane/actions/runs/45731326197/artifacts/15077029046).
 Its independently rehashed ZIP is 25,321,984 bytes, SHA-256
 `a9c668757b9f3be3c23763bea03893c4ae072778f62ee8cf135f39c1009af239`.

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "revision": "2f3eddda042e4280d80c3880127422c3819b6ebd",
+  "runID": 45734124458,
+  "jobID": 139623104672,
+  "artifactID": 15077848759,
+  "artifactSHA256": "2012b9a07034fb9bd252b99433f29bfe933ac775f07bc8bdc4d042e40ebb5df6",
+  "qualificationGranted": false,
+  "files": {
+    "engine-result.json": {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "f09ba21a5958e1893225df5cfaff4610705f50ac5f84ba9b68cf6cef2c7eea86"
+    },
+    "engine.log": {
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 44309,
+      "sha256": "9afbefb0d9eaa2a156811b853d4336f3e050b4bb0c84f11f6dbaa4bf7c4b7ce5"
+    },
+    "engine.stderr.log": {
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 16159,
+      "sha256": "fd8d267f4d16f77f980c667a4e1aa1d2dc4d2063d6cf4b6237e0f833ba44ed25"
+    }
+  }
+}

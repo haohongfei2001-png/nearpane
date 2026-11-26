@@ -104,3 +104,37 @@ import Testing
         #expect(writes == ["new gesture"])
     }
 }
+
+@MainActor struct IndependentStageDockFreshnessTests {
+    @Test func queuedDockReadUsesActualObservationAgeWithoutExtendingFreshness() {
+        let host = HostSession(store: MemoryConfigurationStore()), lane = NativeSidebarNavigation()
+        let primary = EdgeWindowController(host: host)
+        let panels = DisplayPanels(host: host, primary: primary, navigation: lane, present: { _ in })
+        defer { panels.stop(); primary.close() }
+        let epoch = lane.ownershipEpoch
+        // Actual 2f3eddda read/rejection-trace timestamps; an earlier request does not age
+        // the observation which the reader has only just made.
+        let sample: MissionControlVisibilityReader.Reading =
+            (.ordinary, "signedDockAXListWithoutMC", 1484.9186721666667, 1484.9199426250002)
+        panels.acceptMissionControl(sample, requestedAt: 1484, now: 1485.4037624166667)
+        #expect(panels.windowDispatchEligible && lane.ownershipEpoch == epoch)
+        #expect(panels.missionControlReadInterval?.start == sample.startUptime)
+        // A recent request cannot renew genuinely old observations.
+        panels.acceptMissionControl(sample, requestedAt: 1485.699, now: 1485.7)
+        #expect(!panels.windowDispatchEligible && lane.ownershipEpoch != epoch)
+        #expect(panels.missionControlDispatchEvidence == "sampleExpired")
+        panels.acceptMissionControl((.ordinary, "signedDockAXListWithoutMC", 1486, 1486.01), requestedAt: 1485, now: 1486.1)
+        #expect(panels.windowDispatchEligible)
+        panels.acceptMissionControl((.exposed, "signedDockMCIdentifier", 1487, 1487.01), requestedAt: 1486, now: 1487.1)
+        #expect(!panels.windowDispatchEligible && panels.missionControlDispatchState == "exposed")
+    }
+
+    @Test func dockFreshnessBoundsTheWholePhysicalReadAndDeliveryInterval() {
+        #expect(DisplayPanels.missionControlReadIsFresh(start: 10, end: 10.2, now: 10.75))
+        #expect(!DisplayPanels.missionControlReadIsFresh(start: 10, end: 10.6, now: 11.2))
+        #expect(!DisplayPanels.missionControlReadIsFresh(start: 10, end: 9, now: 10))
+        #expect(!DisplayPanels.missionControlReadIsFresh(start: 10, end: 10.2, now: 10.1))
+        #expect(!DisplayPanels.missionControlReadIsFresh(start: .nan, end: 10, now: 10))
+        #expect(!DisplayPanels.missionControlReadIsFresh(start: 10, end: .infinity, now: .infinity))
+    }
+}

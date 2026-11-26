@@ -41,28 +41,31 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-At `3d79921c5a9479a92173b4bfec837a08d14b227b`, 161 Rust and 170 Swift cases pass
+At `2f3eddda042e4280d80c3880127422c3819b6ebd`, 162 Rust and 170 Swift cases pass
 (one explicit skip), and the complete workspace candidate passes strict/deep bundle verification.
-The [diagnostics VM](../verification/independent-stage/cloud-3d79921c-diagnostics/README.md) and
-[full-release VM](../verification/independent-stage/cloud-3d79921c-full/README.md) each independently
-pass the entire foreign-window engine sequence and cleanup. The
-[separate fast VM](../verification/independent-stage/cloud-3d79921c-r4-fast/README.md) instead exhausts
-the 650 ms passive health budget after AXCannotComplete on an already hidden same-app sibling;
-its later yellow operation never starts. These results are retained separately.
+The [diagnostics](../verification/independent-stage/cloud-2f3eddda-diagnostics/README.md),
+[fast](../verification/independent-stage/cloud-2f3eddda-r4-fast/README.md) and
+[full](../verification/independent-stage/cloud-2f3eddda-full/README.md) VMs each independently pass
+all foreign-window engine checks and cleanup. The diagnostics health read recovers in 645 ms after
+actual AXCannotComplete; it does not establish native use of the new 1000 ms recovery ceiling.
+The separate `3d79921c` fast-VM health failure remains preserved in its original archive.
 
-Both product VMs find and validate the actual R4 button but stop before sending an action because
-the final repeated action-name query returns AXCannotComplete. The next source retains the exact
-element and its already confirmed AXPress capability, rechecks mutable identity/geometry/state,
-and issues the action once. It does not turn an unknown query into a successful action. Actual R4
-switching, the new Finder self/listed desktop predicate, crash/restart and native-system scenarios
-remain unqualified until a subsequent physical result reaches them.
+The fast product run issues its real R4 action and enters the group job. Its ordinary Dock read takes
+1.27 ms and is delivered 483.7 ms after it ends, yet the old acceptance code rejects it using the
+pre-reader request time. The current correction bounds actual sampling-start through acceptance
+by the same 750 ms, validates finite/ordered timestamps, and retains all ownership/epoch checks.
+A pending monitor request can expire only its genuinely old accepted observation; it cannot age a
+newer actual read merely because that request has queued. The original request start was not logged,
+so the exact queue delay is not asserted. The product still fails with all three windows at home.
+Its screenshot shows three real current-window images, not successful hidden-window previews.
 
-The passive-health correction preserves the ordinary 650 ms budget and gives only an actual
-AXCannotComplete result one recovery deadline at original-start + 1000 ms. It still requires two
-complete reads, stops on positive changed state, retains unresolved leases, and never repeats a move.
-Production tickets include queue time behind that read: only minimized-hide now has a 3000 ms
-ceiling and explicit health 2000 ms; ordinary moves remain 2000 ms. These are upper bounds, not added
-waits. The timing/unchanged-write regression passes locally; new native results must verify the fix.
+The separate full product run stops before input at the compound pre-press context check. The exact
+failed field is not present in that original receipt. New diagnostics name those fields individually.
+Normal panel movement no longer invalidates a semantic AXPress on the same retained button: its
+latest bounds must fit the freshly identified panel. The old/full failure is not attributed to movement.
+No R4 product pass, revised Finder desktop predicate, crash/restart or native-system scenario has
+been qualified yet. The current acceptance action retains one original AX element, revalidates its
+current context and performs AXPress at most once; discovery and action success remain distinct.
 
 ### What is established
 

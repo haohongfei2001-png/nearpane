@@ -22,7 +22,7 @@ import NearpaneCore
     private var occlusionMonitor: NSObjectProtocol?
     private var spaceMonitor: NSObjectProtocol?
     private var sampleGeneration = UUID()
-    private var sampleBegan: ContinuousClock.Instant?
+    private var sampleBegan: TimeInterval?
     private var stopped = false
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
@@ -196,7 +196,6 @@ import NearpaneCore
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
         guard windowDispatchEligible else { return false }
         let generation = sampleGeneration
-        let started = ContinuousClock.now
         let requestUptime = ProcessInfo.processInfo.systemUptime
         let value = await missionControlReader.read()
         IndependentStageTrace.record("dispatch-dock-confirmation-read", [
@@ -207,19 +206,34 @@ import NearpaneCore
             "eligibleBeforeAccept": windowDispatchEligible])
         guard generation == sampleGeneration, windowDispatchEligible else { return false }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
-        accept(value, started: started)
+        acceptMissionControl(value, requestedAt: requestUptime)
         return windowDispatchEligible && generation == sampleGeneration
     }
 
-    private func accept(_ sample: MissionControlVisibilityReader.Reading, started: ContinuousClock.Instant) {
-        if .now - started <= .milliseconds(750) {
+    static func missionControlReadIsFresh(start: TimeInterval, end: TimeInterval, now: TimeInterval) -> Bool {
+        start.isFinite && end.isFinite && now.isFinite && start <= end && end <= now && now - start <= 0.75
+    }
+
+    func acceptMissionControl(_ sample: MissionControlVisibilityReader.Reading, requestedAt: TimeInterval,
+                              now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+        // Actor/main-queue wait is not the age of a later physical observation.
+        // The entire interval from actual sampling start to acceptance stays bounded.
+        if Self.missionControlReadIsFresh(start: sample.startUptime, end: sample.endUptime, now: now) {
+            if now - requestedAt > 0.75 {
+                IndependentStageTrace.record("dispatch-dock-read-accepted-after-queue", [
+                    "requestStart": requestedAt, "requestMilliseconds": (now - requestedAt) * 1000,
+                    "readStart": sample.startUptime, "readEnd": sample.endUptime,
+                    "readAgeMilliseconds": (now - sample.endUptime) * 1000,
+                    "readTotalMilliseconds": (now - sample.startUptime) * 1000])
+            }
             setMissionControl(sample.visibility, evidence: sample.evidence, interval: (sample.startUptime, sample.endUptime))
         } else {
             IndependentStageTrace.record("dispatch-dock-read-expired", [
                 "visibility": sample.visibility.rawValue, "evidence": sample.evidence,
+                "requestStart": requestedAt, "requestMilliseconds": (now - requestedAt) * 1000,
                 "readStart": sample.startUptime, "readEnd": sample.endUptime,
                 "readDurationMilliseconds": (sample.endUptime - sample.startUptime) * 1000,
-                "readAgeMilliseconds": (ProcessInfo.processInfo.systemUptime - sample.endUptime) * 1000])
+                "readAgeMilliseconds": (now - sample.endUptime) * 1000])
             setMissionControl(.unknown, evidence: "sampleExpired")
         }
     }
@@ -235,11 +249,18 @@ import NearpaneCore
         guard !suspended else { return }
         wallpaperMonitor?.poll()
         if let sampleBegan {
-            if .now - sampleBegan > .milliseconds(750) { setMissionControl(.unknown, evidence: "sampleExpired") }
+            let now = ProcessInfo.processInfo.systemUptime
+            if let interval = missionControlReadInterval,
+               !Self.missionControlReadIsFresh(start: interval.start, end: interval.end, now: now) {
+                IndependentStageTrace.record("dispatch-dock-observation-expired", [
+                    "pendingRequestStart": sampleBegan, "readStart": interval.start, "readEnd": interval.end,
+                    "readTotalMilliseconds": (now - interval.start) * 1000])
+                setMissionControl(.unknown, evidence: "sampleExpired")
+            }
             return
         }
         let generation = sampleGeneration
-        sampleBegan = .now
+        sampleBegan = ProcessInfo.processInfo.systemUptime
         Task { [weak self] in
             let value = await missionControlReader.read()
             guard let self else { return }
@@ -247,7 +268,7 @@ import NearpaneCore
             sampleBegan = nil
             guard generation == sampleGeneration, !stopped else { return }
             setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
-            if let started { accept(value, started: started) }
+            if let started { acceptMissionControl(value, requestedAt: started) }
         }
     }
 

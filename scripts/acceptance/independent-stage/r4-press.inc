@@ -101,6 +101,9 @@ static BOOL r4SameFrame(CGRect a,CGRect b) {
     return fabs(a.origin.x-b.origin.x)<=2 && fabs(a.origin.y-b.origin.y)<=2 &&
         fabs(a.size.width-b.size.width)<=2 && fabs(a.size.height-b.size.height)<=2;
 }
+static BOOL r4ContextCheck(NSMutableDictionary *checks,NSString *key,BOOL value) {
+    checks[key]=@(value);return value;
+}
 static BOOL r4CGPanel(NSDictionary *host,CGRect *frame) {
     CFArrayRef raw=CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly,kCGNullWindowID);
     NSArray *rows=CFBridgingRelease(raw);if(![rows isKindOfClass:NSArray.class] || rows.count>16384)return NO;
@@ -297,8 +300,22 @@ static int runR4Press(NSString *requestPath) {
                 if(selected) {
                     NSData *freshBytes=nil;r4ReadFile(configuration,&freshBytes);
                     NSMutableDictionary *last=[NSMutableDictionary dictionary];CGRect freshFrame=CGRectNull;
-                    if(![configBytes isEqual:freshBytes] || !r4HostSignature(host) || !r4CGPanel(host,&freshFrame) ||
-                       !r4SameFrame(frame,freshFrame) || !r4MapsToPanel(panel,host,reader)) {
+                    NSMutableDictionary *context=[@{@"configurationBytes":@"NOT_RUN",@"parentSignatureAndIdentity":@"NOT_RUN",
+                        @"onScreenCGPanel":@"NOT_RUN",@"retainedAXPanelIdentity":@"NOT_RUN",@"panelFrameChanged":@"NOT_RUN"} mutableCopy];
+                    report[@"prePressContext"]=context;
+                    NSString *contextFailure=nil;
+                    if(!r4ContextCheck(context,@"configurationBytes",[configBytes isEqual:freshBytes]))contextFailure=@"configurationBytesChangedOrUnreadable";
+                    else if(!r4ContextCheck(context,@"parentSignatureAndIdentity",r4HostSignature(host)))contextFailure=@"parentSignatureOrIdentityUnconfirmed";
+                    else if(!r4ContextCheck(context,@"onScreenCGPanel",r4CGPanel(host,&freshFrame)))contextFailure=@"onScreenCGPanelUnconfirmed";
+                    else if(!r4ContextCheck(context,@"retainedAXPanelIdentity",r4MapsToPanel(panel,host,reader)))contextFailure=@"retainedAXPanelIdentityUnconfirmed";
+                    if(!CGRectIsNull(freshFrame)) {
+                        report[@"prePressPanelFrame"]=r4Frame(freshFrame);
+                        // Semantic AXPress uses the same object, not an old point.
+                        // The button's latest bounds must still fit the fresh panel.
+                        context[@"panelFrameChanged"]=@(!r4SameFrame(frame,freshFrame));
+                    }
+                    if(contextFailure) {
+                        report[@"prePressContextFailure"]=contextFailure;
                         report[@"reason"]=@"prePressContextChanged";selected=nil;break;
                     }
                     // Selection retains the exact AX element whose discovery read
