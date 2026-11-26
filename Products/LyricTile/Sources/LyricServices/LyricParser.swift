@@ -65,7 +65,13 @@ struct ParsedLyrics {
                     throw invalid("Too many or duplicate lyric cues.")
                 }
                 try validateTimes(start: cue.sourceStartMS, end: cue.sourceEndMS)
-                let boundaries = Set(cue.text.indices.map { $0.utf16Offset(in: cue.text) } + [cue.text.utf16.count])
+                var boundaries: Set<Int> = [0]
+                var utf16Offset = 0
+                for character in cue.text {
+                    utf16Offset += String(character).utf16.count
+                    boundaries.insert(utf16Offset)
+                }
+                let utf16Text = cue.text as NSString
                 for token in cue.tokens {
                     tokenCount += 1
                     guard tokenCount <= ParserLimits.tokens, tokenIDs.insert(token.id).inserted else {
@@ -76,14 +82,22 @@ struct ParsedLyrics {
                     let end = range.location.addingReportingOverflow(range.length)
                     guard range.location >= 0, range.length >= 0, !end.overflow,
                           boundaries.contains(range.location), boundaries.contains(end.partialValue),
-                          let swiftRange = Range(NSRange(location: range.location, length: range.length), in: cue.text),
-                          String(cue.text[swiftRange]) == token.text else {
+                          utf16Text.substring(with: NSRange(location: range.location, length: range.length)) == token.text else {
                         throw invalid("A token does not match complete Unicode graphemes in its line.")
+                    }
+                    if let cueStart = cue.sourceStartMS, token.sourceStartMS < cueStart {
+                        throw invalid("A word starts before its source line.")
+                    }
+                    if let cueEnd = cue.sourceEndMS,
+                       token.sourceStartMS > cueEnd || token.sourceEndMS.map({ $0 > cueEnd }) == true {
+                        throw invalid("A word extends beyond its source line.")
                     }
                 }
             }
         }
-        guard instrumental || cueCount > 0 else { throw invalid("No lyric content was found.") }
+        guard instrumental || lanes.contains(where: { lane in
+            lane.cues.contains { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        }) else { throw invalid("No lyric content was found.") }
         if instrumental && lanes.contains(where: { $0.cues.contains { !$0.text.isEmpty } }) {
             throw invalid("An instrumental declaration cannot contain vocal lyrics.")
         }

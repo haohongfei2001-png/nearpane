@@ -37,6 +37,7 @@ enum SegmentLyricsReader {
             }
             let id = "segment-\(lineIndex)"
             var joined = ""
+            var joinedUTF16Count = 0
             var tokens: [LyricDomain.Token] = []
             var previousEnd = 0
             for (index, match) in matches.enumerated() {
@@ -56,9 +57,10 @@ enum SegmentLyricsReader {
                 previousEnd = NSMaxRange(match.range)
                 if !wordText.isEmpty {
                     tokens.append(.init(id: "\(id)-w\(index)", text: wordText,
-                        rangeInCue: .init(location: joined.utf16.count, length: wordText.utf16.count),
+                        rangeInCue: .init(location: joinedUTF16Count, length: wordText.utf16.count),
                         sourceStartMS: wordStart, sourceEndMS: try checkedAdd(wordStart, wordDuration)))
                     joined += wordText
+                    joinedUTF16Count += wordText.utf16.count
                 }
             }
             if format == .qrcPlaintext && previousEnd != string.length {

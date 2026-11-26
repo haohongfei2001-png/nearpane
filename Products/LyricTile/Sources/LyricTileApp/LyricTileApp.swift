@@ -9,10 +9,12 @@ import TileKit
 @main
 @MainActor
 enum LyricTileEntry {
-    private static var delegate: LyricTileApplicationDelegate?
+    private static var delegate: (any NSApplicationDelegate)?
     static func main() {
         let application = NSApplication.shared
-        let delegate = LyricTileApplicationDelegate()
+        let delegate: any NSApplicationDelegate
+        if LyricDiagnosticApplicationDelegate.requested { delegate = LyricDiagnosticApplicationDelegate() }
+        else { delegate = LyricTileApplicationDelegate() }
         self.delegate = delegate
         application.delegate = delegate
         application.setActivationPolicy(.accessory)
@@ -95,6 +97,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         if nativeLoadCheck && nativeLoadFailed { Darwin.exit(EXIT_FAILURE) }
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if nativeLoadCheck { return false }
         activate(userInitiated: true); return true
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -161,6 +164,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             suspendedForHost = false
             panelController.resumePresentation()
             await configurePlacement()
+            guard !Task.isCancelled, model.ownsSession, !terminating else { return }
             panelController.show(userInitiated: userInitiated)
         }
     }
@@ -173,11 +177,16 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             panelController.surrender(); auxiliary.closeAll()
             guard await LyricHandoff.waitUntilWindowsWithdrawn(ids) else {
                 LyricHandoff.acknowledge(requestID, succeeded: false)
+                guard !Task.isCancelled, !terminating else { return }
                 panelController.resumePresentation()
                 panelController.show()
                 return
             }
-            await tileCoordinator.stop()
+            guard await tileCoordinator.stop() else {
+                LyricHandoff.acknowledge(requestID, succeeded: false)
+                model.actionMessage = "旧桌面占位尚未释放，歌词会话交接仍在等待。"
+                return
+            }
             await model.stop()
             suspendedForHost = true
             LyricHandoff.acknowledge(requestID, succeeded: true)
@@ -209,13 +218,13 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         }
     }
     private func configurePlacement() async {
-        guard model.ownsSession, !terminating else { return }
+        guard model.ownsSession, !terminating, !Task.isCancelled else { return }
         panelController.usesCoordinatedPlacement = model.settings.coordinateTiles
         if model.settings.coordinateTiles {
             await tileCoordinator.start(preferredDisplayID: model.settings.preferredDisplayUUID)
         } else {
-            await tileCoordinator.stop()
-            guard model.ownsSession, !terminating, !Task.isCancelled else { return }
+            guard await tileCoordinator.stop() else { return }
+            guard model.ownsSession, !terminating, !Task.isCancelled, !model.settings.coordinateTiles else { return }
             panelController.restorePosition(reset: false)
             panelController.setPlacementPermission(true)
             panelController.show()

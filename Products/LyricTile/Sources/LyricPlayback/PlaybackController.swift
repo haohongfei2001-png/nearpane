@@ -159,7 +159,7 @@ public actor PlaybackController {
         }
         processes = found
         for id in ambiguous { errors[id] = .ambiguousSession }
-        let hasRemote = found.keys.contains { !$0.usesAppleEvents }
+        let hasRemote = preferred?.usesAppleEvents != true && found.keys.contains { !$0.usesAppleEvents }
         if hasRemote {
             if streamTask == nil, now >= streamRetryAt { beginStream(epoch: epoch) }
             if now >= currentReadDue {
@@ -178,6 +178,7 @@ public actor PlaybackController {
             currentSource = nil; sourcePIDStart = 0
         }
         for id in PlayerID.allCases {
+            if let preferred, preferred != id { continue }
             guard let process = found[id], now >= (due[id] ?? 0) else { continue }
             let selected = preferred == id || snapshot.player == id
             due[id] = now + (id.usesAppleEvents ? (selected ? (observations[id]?.state == .playing ? 1 : 3) : 5) : 6)
@@ -228,7 +229,7 @@ public actor PlaybackController {
     private func accept(_ incoming: PlayerObservation) {
         let observation = qualifications.applying(to: incoming, systemBuild: systemBuild)
         let id = observation.process.player
-        if observation.state == .playing && observations[id]?.state != .playing {
+        if observation.state == .playing, let previous = observations[id], previous.state != .playing {
             transitionCounter &+= 1; lastPlayingTransition[id] = transitionCounter
         }
         observations[id] = observation; errors.removeValue(forKey: id)
@@ -239,7 +240,11 @@ public actor PlaybackController {
         let start: UInt64
         if let pid = payload?.pid { start = await PlayerEnvironment.processStart(pid) } else { start = 0 }
         guard revision == sourceRevision else { return }
+        let previousPlayer = currentSource?.player
         currentSource = payload; sourcePIDStart = start
+        if let player = payload?.player, payload?.state == .playing, player != previousPlayer {
+            transitionCounter &+= 1; lastPlayingTransition[player] = transitionCounter
+        }
         for id in observations.keys where !id.usesAppleEvents {
             guard var observation = observations[id] else { continue }
             let current = payload?.player == id && payload?.pid == observation.mediaPID && sourcePIDStart == observation.mediaProcessStart && sourcePIDStart != 0
@@ -293,13 +298,9 @@ public actor PlaybackController {
         }
     }
     private func chosenPlayer() -> PlayerID? {
-        if let preferred { return preferred }
-        let playing = observations.values.filter { $0.state == .playing && $0.quality != .stale }
-        if let freshest = playing.max(by: { (lastPlayingTransition[$0.process.player] ?? 0) < (lastPlayingTransition[$1.process.player] ?? 0) }) {
-            return freshest.process.player
-        }
-        if let id = snapshot.player, processes[id] != nil { return id }
-        return PlayerID.allCases.first { observations[$0]?.hasRecording == true } ?? PlayerID.allCases.first { processes[$0] != nil }
+        PlaybackSourcePolicy.choose(preferred: preferred, previous: snapshot.player,
+            currentSource: currentSource?.player, observations: observations,
+            available: Set(processes.keys), transitions: lastPlayingTransition)
     }
     private func reconcile() async {
         guard running else { return }

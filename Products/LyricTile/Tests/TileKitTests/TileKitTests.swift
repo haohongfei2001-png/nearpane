@@ -80,6 +80,38 @@ final class TileKitTests: XCTestCase {
         XCTAssertNotNil(plan.placements["saytile"])
         XCTAssertNotNil(try registry.snapshot().members["saytile"])
     }
+    func testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock() throws {
+        let registry = TileRegistry(directory: try temporary())
+        let screen = TileDisplay(id: "main", width: 1470, height: 900)
+        let lyric = TileMember(id: "lyrictile", windowIDs: [101])
+        let first = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: []))
+        let firstPlacement = try XCTUnwrap(first.placements[lyric.id])
+        var presentations = 0
+        XCTAssertTrue(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: first.epoch, generation: first.generation, placement: firstPlacement) {
+            presentations += 1
+            XCTAssertThrowsError(try registry.snapshot()) { error in
+                XCTAssertEqual(error as? TileCoordinationError, .busy)
+            }
+        })
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: UUID(),
+            epoch: first.epoch, generation: first.generation, placement: firstPlacement) { presentations += 1 })
+        let voice = TileMember(id: "saytile", reservedHeight: 62, windowIDs: [102])
+        let moving = try registry.reconcile(voice, displays: [screen], observation: .init(visibleWindowIDs: [101]))
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: first.epoch, generation: first.generation, placement: firstPlacement) { presentations += 1 })
+        let stable = try registry.acknowledgeHidden(id: lyric.id, instanceID: lyric.instanceID,
+            generation: moving.generation, observation: .init(visibleWindowIDs: []))
+        // Withdrawal commit retains the proposal generation; placement must still be compared.
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: stable.epoch, generation: stable.generation, placement: firstPlacement) { presentations += 1 })
+        let current = try XCTUnwrap(stable.placements[lyric.id])
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: UUID(), generation: stable.generation, placement: current) { presentations += 1 })
+        XCTAssertTrue(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: stable.epoch, generation: stable.generation, placement: current) { presentations += 1 })
+        XCTAssertEqual(presentations, 2)
+    }
     func testCorruptRegistryIsNotSilentlyReplacedWithAnEmptyPlan() throws {
         let directory = try temporary(), registry = TileRegistry(directory: directory)
         try Data("invalid JSON".utf8).write(to: directory.appendingPathComponent("registry.json"))

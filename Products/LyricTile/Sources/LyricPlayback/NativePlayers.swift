@@ -26,7 +26,7 @@ final class AppleEventClient: @unchecked Sendable {
             if age >= 0, age <= 2 { position = MediaTime.clampedMilliseconds(Double(raw) + age * 1000, duration: duration) }
             else { position = nil }
         }
-        let artworkData = response.artworkBase64.flatMap(Data.init(base64Encoded:))
+        let artworkData = response.artworkBase64.flatMap { Data(base64Encoded: $0) }
         // Scripts can declare a route while an individual ad/stream cannot execute
         // it. Readback failures revoke that operation for the current recording.
         let hasTrack = response.title?.isEmpty == false || response.trackID?.isEmpty == false
@@ -40,7 +40,7 @@ final class AppleEventClient: @unchecked Sendable {
             durationMS: duration, positionMS: position, state: state, rate: state == .playing ? 1 : 0,
             stamp: received, capabilities: capabilities,
             artwork: artworkData.flatMap { $0.count <= 8 * 1024 * 1024 ? $0 : nil },
-            artworkURL: response.artworkURL.flatMap(URL.init(string:)), sourceIsCurrent: false,
+            artworkURL: response.artworkURL.flatMap { URL(string: $0) }, sourceIsCurrent: false,
             quality: position == nil ? .unavailable : .coarseSourceAnchor, restricted: restricted)
         #else
         throw PlaybackError.unavailable("Apple Events 需要 macOS。")

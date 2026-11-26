@@ -43,6 +43,7 @@ commit="$(git rev-parse HEAD)"
 python3 Scripts/write-bundle-info.py "$app/Contents/Info.plist" \
   --version "${LYRICTILE_VERSION:-1.0.0}" --build "${LYRICTILE_BUILD_NUMBER:-1}" --commit "$commit"
 cp Documentation/THIRD_PARTY_NOTICES.md "$app/Contents/Resources/Notices/"
+if [[ -d Packaging/Notices ]]; then cp Packaging/Notices/* "$app/Contents/Resources/Notices/"; fi
 cp Vendor/mediaremote-adapter/LICENSE "$app/Contents/Resources/Notices/mediaremote-adapter-LICENSE"
 for name in Yams Sparkle; do
   package_dir="$(python3 - "$name" <<'PY'

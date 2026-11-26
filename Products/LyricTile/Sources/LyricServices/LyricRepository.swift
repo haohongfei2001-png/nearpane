@@ -64,18 +64,24 @@ public actor LyricRepository {
         guard onlineEnabled else { return .notFound }
         if let until = index.notFoundUntil[fingerprint], until > Date() { return .notFound }
         let descriptor = await provider.descriptor()
-        try ensureCurrent(selection)
+        try ensureNetworkCurrent(selection)
         guard descriptor.releaseDisposition != .disabled else { throw LyricDomain.SourceFailure.accessUnavailable }
         let request = LyricDomain.Request(requestID: UUID(), selection: selection)
         let epoch = cacheEpoch
+        var exactAlternative: LyricDomain.Candidate?
         if let exact = try await provider.exact(request) {
-            try ensureCurrent(selection)
+            try ensureNetworkCurrent(selection)
             if matcher.mayAutomaticallyAccept(exact.evidence) {
                 return .document(try await fetchAndCache(exact, epoch: epoch))
             }
+            exactAlternative = exact
         }
-        let candidates = try await provider.search(request)
-        try ensureCurrent(selection)
+        try ensureNetworkCurrent(selection)
+        var candidates = try await provider.search(request)
+        try ensureNetworkCurrent(selection)
+        if let exactAlternative, !candidates.contains(where: { $0.providerRecordID == exactAlternative.providerRecordID }) {
+            candidates.append(exactAlternative)
+        }
         let accepted = candidates.filter { matcher.mayAutomaticallyAccept($0.evidence) }
         if accepted.count == 1 { return .document(try await fetchAndCache(accepted[0], epoch: epoch)) }
         if !candidates.isEmpty { return .candidates(candidates) }
@@ -90,10 +96,10 @@ public actor LyricRepository {
         try activate(selection)
         guard onlineEnabled else { throw LyricDomain.SourceFailure.accessUnavailable }
         let descriptor = await provider.descriptor()
-        try ensureCurrent(selection)
+        try ensureNetworkCurrent(selection)
         guard descriptor.releaseDisposition != .disabled else { throw LyricDomain.SourceFailure.accessUnavailable }
         let candidates = try await provider.search(.init(requestID: UUID(), selection: selection))
-        try ensureCurrent(selection)
+        try ensureNetworkCurrent(selection)
         return candidates
     }
 
@@ -158,11 +164,11 @@ public actor LyricRepository {
 
     private func fetchAndCache(_ candidate: LyricDomain.Candidate, epoch: UInt64) async throws -> LyricDomain.Document {
         let selection = candidate.request.selection
+        try ensureNetworkCurrent(selection)
         let document = try await provider.fetch(candidate)
-        try ensureCurrent(selection)
+        try ensureNetworkCurrent(selection)
         let raw = await provider.rawPayload(contentHash: document.contentHash)
-        try ensureCurrent(selection)
-        guard onlineEnabled else { throw CancellationError() }
+        try ensureNetworkCurrent(selection)
         if epoch == cacheEpoch {
             try loadIfNeeded()
             try storeAutomatic(document, raw: raw)
@@ -180,6 +186,10 @@ public actor LyricRepository {
     private func ensureCurrent(_ selection: LyricDomain.Selection) throws {
         try Task.checkCancellation()
         guard active == SelectionKey(selection) else { throw LyricDomain.SourceFailure.staleGeneration }
+    }
+    private func ensureNetworkCurrent(_ selection: LyricDomain.Selection) throws {
+        try ensureCurrent(selection)
+        guard onlineEnabled else { throw CancellationError() }
     }
     private struct SelectionKey: Equatable {
         let bundleID: String; let sessionID: UUID; let generation: UInt64
@@ -224,11 +234,19 @@ public actor LyricRepository {
                 do { saved = try JSONDecoder().decode(StoreIndex.self, from: bytes) }
                 catch { throw LyricRepositoryError.corruptIndex }
                 guard saved.version == 1, saved.automatic.count <= 10_000, saved.bindings.count <= 10_000,
-                      saved.adjustments.count <= 20_000 else { throw LyricRepositoryError.corruptIndex }
+                      saved.adjustments.count <= 20_000, saved.notFoundUntil.count <= 10_000,
+                      saved.automatic.values.allSatisfy({ $0.bytes >= 0 && $0.bytes <= maximumDocumentBytes }) else {
+                    throw LyricRepositoryError.corruptIndex
+                }
                 index = saved
             }
             loaded = true
             try evictAutomatic()
+            // A crash between writing a document and its index must not leak unbounded cache files.
+            let referenced = Set(index.automatic.values.map(\.file))
+            for file in try FileManager.default.contentsOfDirectory(at: automaticURL, includingPropertiesForKeys: nil) {
+                if !referenced.contains(file.lastPathComponent) { try? FileManager.default.removeItem(at: file) }
+            }
         } catch let error as LyricRepositoryError { throw error }
         catch { throw LyricRepositoryError.storageUnavailable }
     }

@@ -34,7 +34,7 @@ enum LyricsfileReader {
             let instrumental = try optionalBool(metadata, "instrumental") ?? false
             let plain = try optionalString(top, "plain")
             var cues: [LyricDomain.Cue] = []
-            if let lines = top["lines"], lines.tag.name != .null {
+            if let lines = top["lines"], lines.tag.rawValue != Tag.Name.null.rawValue {
                 guard let sequence = lines.sequence else { throw invalid("Lyricsfile lines must be a sequence.") }
                 guard sequence.count <= ParserLimits.cues else { throw invalid("Too many Lyricsfile lines.") }
                 for (lineIndex, lineNode) in sequence.enumerated() {
@@ -45,17 +45,19 @@ enum LyricsfileReader {
                     let id = "lyricsfile-\(lineIndex)"
                     var tokens: [LyricDomain.Token] = []
                     var joined = ""
-                    if let words = line["words"], words.tag.name != .null {
+                    var joinedUTF16Count = 0
+                    if let words = line["words"], words.tag.rawValue != Tag.Name.null.rawValue {
                         guard let sequence = words.sequence else { throw invalid("Lyricsfile words must be a sequence.") }
                         guard sequence.count <= ParserLimits.tokens else { throw invalid("Too many word timings.") }
                         for (index, wordNode) in sequence.enumerated() {
                             let word = try mapping(wordNode)
                             let wordText = try requiredString(word, "text")
                             tokens.append(.init(id: "\(id)-w\(index)", text: wordText,
-                                rangeInCue: .init(location: joined.utf16.count, length: wordText.utf16.count),
+                                rangeInCue: .init(location: joinedUTF16Count, length: wordText.utf16.count),
                                 sourceStartMS: try requiredInt(word, "start_ms"),
                                 sourceEndMS: try optionalInt(word, "end_ms")))
                             joined += wordText
+                            joinedUTF16Count += wordText.utf16.count
                         }
                         if !tokens.isEmpty && joined != lineText {
                             throw invalid("Word text does not reconstruct the Lyricsfile line exactly.")
@@ -93,17 +95,17 @@ enum LyricsfileReader {
         switch node {
         case .alias: throw invalid("YAML aliases are disabled.")
         case .scalar:
-            guard [Tag.Name.str, .int, .bool, .null].contains(node.tag.name) else {
+            guard [Tag.Name.str, .int, .bool, .null].map(\.rawValue).contains(node.tag.rawValue) else {
                 throw invalid("Lyricsfile allows only strings, integers, booleans and null scalars.")
             }
         case let .sequence(sequence):
-            guard node.tag.name == .seq else { throw invalid("Custom YAML tags are disabled.") }
+            guard node.tag.rawValue == Tag.Name.seq.rawValue else { throw invalid("Custom YAML tags are disabled.") }
             for child in sequence { try validateYAML(child, depth: depth + 1, count: &count) }
         case let .mapping(mapping):
-            guard node.tag.name == .map else { throw invalid("Custom YAML tags are disabled.") }
+            guard node.tag.rawValue == Tag.Name.map.rawValue else { throw invalid("Custom YAML tags are disabled.") }
             var keys: Set<String> = []
             for pair in mapping {
-                guard pair.key.tag.name == .str, let key = pair.key.string, keys.insert(key).inserted else {
+                guard pair.key.tag.rawValue == Tag.Name.str.rawValue, let key = pair.key.string, keys.insert(key).inserted else {
                     throw invalid("Lyricsfile keys must be unique strings.")
                 }
                 try validateYAML(pair.value, depth: depth + 1, count: &count)
@@ -115,28 +117,28 @@ enum LyricsfileReader {
         return mapping
     }
     private static func requiredString(_ map: Node.Mapping, _ key: String) throws -> String {
-        guard let node = map[key], node.tag.name == .str, let value = node.string else {
+        guard let node = map[key], node.tag.rawValue == Tag.Name.str.rawValue, let value = node.string else {
             throw invalid("\(key) must be a string.")
         }
         return value
     }
     private static func optionalString(_ map: Node.Mapping, _ key: String) throws -> String? {
-        guard let node = map[key], node.tag.name != .null else { return nil }
+        guard let node = map[key], node.tag.rawValue != Tag.Name.null.rawValue else { return nil }
         return try requiredString(map, key)
     }
     private static func requiredInt(_ map: Node.Mapping, _ key: String) throws -> Int64 {
-        guard let node = map[key], node.tag.name == .int, let value = node.int else {
+        guard let node = map[key], node.tag.rawValue == Tag.Name.int.rawValue, let value = node.int else {
             throw invalid("\(key) must be an integer.")
         }
         return Int64(value)
     }
     private static func optionalInt(_ map: Node.Mapping, _ key: String) throws -> Int64? {
-        guard let node = map[key], node.tag.name != .null else { return nil }
+        guard let node = map[key], node.tag.rawValue != Tag.Name.null.rawValue else { return nil }
         return try requiredInt(map, key)
     }
     private static func optionalBool(_ map: Node.Mapping, _ key: String) throws -> Bool? {
-        guard let node = map[key], node.tag.name != .null else { return nil }
-        guard node.tag.name == .bool, let value = node.bool else { throw invalid("\(key) must be a boolean.") }
+        guard let node = map[key], node.tag.rawValue != Tag.Name.null.rawValue else { return nil }
+        guard node.tag.rawValue == Tag.Name.bool.rawValue, let value = node.bool else { throw invalid("\(key) must be a boolean.") }
         return value
     }
 }

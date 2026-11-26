@@ -15,6 +15,7 @@ enum LRCReader {
         var cues: [LyricDomain.Cue] = []
         var extras: [String: [LyricDomain.Cue]] = [:]
         var attachments: [Attachment] = []
+        var tokenBudget = 0
         var timing = LyricDomain.SourceTiming(sourceAdvanceMS: 0, interpretation: .absent, rawOffset: nil)
         for (rowNumber, row) in rows.enumerated() {
             var remaining = row[...]
@@ -51,6 +52,8 @@ enum LRCReader {
             let enhanced = try enhancedSegments(lyricText)
             for (occurrence, stamp) in timestamps.enumerated() {
                 guard cues.count < ParserLimits.cues else { throw invalid("Too many LRC cues.") }
+                tokenBudget += enhanced.tokens.count
+                guard tokenBudget <= ParserLimits.tokens else { throw invalid("Repeated LRC timestamps expand to too many tokens.") }
                 let cueID = "lrc-\(rowNumber)-\(occurrence)"
                 let delta = stamp - timestamps[0]
                 let tokens = try enhanced.tokens.enumerated().map { index, segment in
@@ -73,7 +76,10 @@ enum LRCReader {
             for index in cues.indices where attachment.timestamps.contains(cues[index].sourceStartMS ?? -1) {
                 let cue = cues[index]
                 if attachment.tag == "tt" {
-                    cues[index] = try attachWordBoundaries(attachment.body, to: cue)
+                    let attached = try attachWordBoundaries(attachment.body, to: cue)
+                    tokenBudget += attached.tokens.count - cue.tokens.count
+                    guard tokenBudget <= ParserLimits.tokens else { throw invalid("Too many LRCX tokens.") }
+                    cues[index] = attached
                 } else {
                     let body: String
                     if attachment.tag == "ro" || attachment.tag == "fu" {
@@ -106,6 +112,7 @@ enum LRCReader {
         var activeLocation = 0
         var segmentText = ""
         var lastMarker: Int64?
+        var outputUTF16Count = 0
         while cursor < input.endIndex {
             if input[cursor] == "<", let close = input[cursor...].firstIndex(of: ">") {
                 let raw = String(input[input.index(after: cursor)..<close])
@@ -116,13 +123,14 @@ enum LRCReader {
                         tokens.append(.init(text: segmentText, location: activeLocation, start: start, end: nil))
                     }
                     segmentText = ""; activeStart = stamp; lastMarker = stamp
-                    activeLocation = output.utf16.count
+                    activeLocation = outputUTF16Count
                     cursor = input.index(after: close)
                     continue
                 }
             }
             let character = input[cursor]
             output.append(character)
+            outputUTF16Count += String(character).utf16.count
             if activeStart != nil { segmentText.append(character) }
             cursor = input.index(after: cursor)
         }

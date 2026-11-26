@@ -86,6 +86,7 @@ public final class LyricAppModel: ObservableObject {
         let currentRun = runID
         let task = Task { @MainActor [weak self] () -> Bool in
             guard let self else { return false }
+            defer { startBarrier = nil }
             let stream = await playback.updates()
             guard !stopping, runID == currentRun, !Task.isCancelled else { return false }
             updateTask = Task { [weak self] in
@@ -100,9 +101,7 @@ public final class LyricAppModel: ObservableObject {
             return ownsSession
         }
         startBarrier = task
-        let result = await task.value
-        startBarrier = nil
-        return result
+        return await task.value
     }
 
     /// Callers withdraw their visible surface before awaiting this method.
@@ -113,6 +112,7 @@ public final class LyricAppModel: ObservableObject {
         runID = UUID()
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
+            defer { stopBarrier = nil; stopping = false }
             startBarrier?.cancel()
             if let startBarrier { _ = await startBarrier.value }
             updateTask?.cancel(); updateTask = nil
@@ -130,11 +130,9 @@ public final class LyricAppModel: ObservableObject {
             refreshFrame()
             lease.release()
             ownsSession = false
-            stopping = false
         }
         stopBarrier = task
         await task.value
-        stopBarrier = nil
     }
 
     public var title: String { snapshot.selection?.recording.title ?? "尚未播放音乐" }
@@ -293,7 +291,9 @@ public final class LyricAppModel: ObservableObject {
                 guard self.snapshot.selection == selection else { return }
                 let document = try await repository.importLyrics(bytes, format: Self.format(for: url), for: selection)
                 await self.accept(document, for: selection)
-            } catch { self.actionMessage = Self.message(for: error) }
+            } catch {
+                if self.snapshot.selection == selection { self.actionMessage = Self.message(for: error) }
+            }
         }
     }
     public func clearCache() {
@@ -319,7 +319,8 @@ public final class LyricAppModel: ObservableObject {
         if changed {
             lyricTask?.cancel(); candidateTask?.cancel(); browseTask?.cancel()
             document = nil; adjustment = nil; advanceMS = 0; candidates = []; browsedCueIndex = nil
-            lyricFailure = nil; actionMessage = nil; seekPreviewMS = nil; isResolving = false
+            lyricFailure = nil; actionMessage = nil; seekPreviewMS = nil
+            isResolving = false; isSearchingCandidates = false
             if let selection = update.selection { resolve(selection) }
         }
         refreshFrame(); restartTimeline()

@@ -52,6 +52,16 @@ public actor LRCLIBProvider: LyricSourceProviding {
 
     public func exact(_ request: LyricDomain.Request) async throws -> LyricDomain.Candidate? {
         let recording = request.selection.recording
+        if let platformID = recording.platformIDs.first(where: { $0.namespace == "lrclib" }),
+           let id = Int64(platformID.value), id > 0 {
+            do {
+                let data = try await perform(path: "/api/get/\(id)", query: [])
+                let record = try decodeRecord(data)
+                guard record.id == id else { throw invalid("The lyric service returned a different record.") }
+                remember(record)
+                return candidate(record, request: request)
+            } catch LyricDomain.SourceFailure.notFound { /* Continue with full metadata. */ }
+        }
         guard let title = recording.title, !title.isEmpty, let artist = recording.artists.first, !artist.isEmpty else { return nil }
         var items = [URLQueryItem(name: "track_name", value: title), URLQueryItem(name: "artist_name", value: artist)]
         if let album = recording.album, !album.isEmpty { items.append(.init(name: "album_name", value: album)) }

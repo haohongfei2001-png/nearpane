@@ -171,6 +171,19 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(!ArtworkLoader.allowedSpotifyURL(URL(string: "http://127.0.0.1/a")!))
 }
 
+@Test func sourceArbitrationDoesNotMistakePollingOrderForUserIntent() {
+    let samples: [PlayerID: PlayerObservation] = [.appleMusic: observation(player: .appleMusic), .spotify: observation(player: .spotify)]
+    let available: Set<PlayerID> = [.appleMusic, .spotify]
+    #expect(PlaybackSourcePolicy.choose(preferred: nil, previous: .spotify, currentSource: nil,
+        observations: samples, available: available, transitions: [:]) == .spotify)
+    #expect(PlaybackSourcePolicy.choose(preferred: nil, previous: .spotify, currentSource: .appleMusic,
+        observations: samples, available: available, transitions: [:]) == .appleMusic)
+    #expect(PlaybackSourcePolicy.choose(preferred: .qqMusic, previous: .spotify, currentSource: .appleMusic,
+        observations: samples, available: available, transitions: [:]) == .qqMusic)
+    #expect(PlaybackSourcePolicy.choose(preferred: nil, previous: .appleMusic, currentSource: nil,
+        observations: samples, available: available, transitions: [.spotify: 1]) == .spotify)
+}
+
 @Test func processDrainsBothPipesWithoutDeadlock() async throws {
     let job = BoundedProcess(executable: URL(fileURLWithPath: "/bin/sh"),
         arguments: ["-c", "i=0; while [ $i -lt 5000 ]; do printf abcdefghijklmnop; printf abcdefghijklmnop >&2; i=$((i+1)); done"],
@@ -184,4 +197,22 @@ private func remoteFields() -> [String: JSONValue] {
 @Test func processTimeoutReapsBusyChild() async throws {
     let job = BoundedProcess(executable: URL(fileURLWithPath: "/bin/sh"), arguments: ["-c", "while :; do :; done"], limit: 1024, timeout: 0.1)
     await #expect(throws: PlaybackError.timeout) { try await job.run() }
+}
+
+@Test func explicitDiagnosticCollectionRejectsInvalidDurationWithoutProbing() async {
+    await #expect(throws: DiagnosticCollectionError.self) {
+        try await PlaybackController.collectDiagnostics(seconds: 0, outputDirectory: URL(fileURLWithPath: "/unused-fixture-output"))
+    }
+}
+
+@Test func explicitDiagnosticCollectionNeverOverwritesExistingOutput() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("LyricTile-fixture-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let marker = directory.appendingPathComponent("keep.txt")
+    try data("fixture-must-remain").write(to: marker)
+    await #expect(throws: DiagnosticCollectionError.self) {
+        try await PlaybackController.collectDiagnostics(player: .appleMusic, seconds: 1, outputDirectory: directory)
+    }
+    #expect(try Data(contentsOf: marker) == data("fixture-must-remain"))
 }

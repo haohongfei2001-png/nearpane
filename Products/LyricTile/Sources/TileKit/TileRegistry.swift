@@ -43,6 +43,20 @@ public final class TileRegistry: @unchecked Sendable {
 
     public func snapshot() throws -> TileRegistryState { try transaction { $0 } }
 
+    /// MainActor may use this short nonblocking transaction for native setFrame/orderFront.
+    /// An actor-returned plan is only a snapshot; it cannot authorize a later UI mutation alone.
+    public func withPresentationAuthority(id: String, instanceID: UUID, epoch: UUID,
+                                          generation: UInt64, placement: TilePlacement,
+                                          perform: () -> Void) throws -> Bool {
+        try transaction { state in
+            guard state.members[id]?.instanceID == instanceID,
+                  state.plan.epoch == epoch, state.plan.generation == generation,
+                  state.plan.mayShow(id), state.plan.placements[id] == placement else { return false }
+            perform()
+            return true
+        }
+    }
+
     /// Called after the moving window has been withdrawn and unregistered.
     /// Ranks leave insertion gaps; the next reconciliation applies its usual barrier.
     public func insertionOrder(displayID: String?, top: Double) throws -> Int {
@@ -82,7 +96,7 @@ public final class TileRegistry: @unchecked Sendable {
                 finishWithdrawal(&state, observation)
                 return state.plan
             }
-            let desired = TileGeometry.placements(members: Array(state.members.values()), displays: displays,
+            let desired = TileGeometry.placements(members: Array(state.members.values), displays: displays,
                                                   previous: state.plan.placements, obstacles: obstacles)
             propose(desired, state: &state)
             return state.plan

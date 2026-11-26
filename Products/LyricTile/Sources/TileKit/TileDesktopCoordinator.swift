@@ -6,6 +6,7 @@ import Foundation
 /// reuse TileGeometry directly and does not need separate floating component windows.
 @MainActor
 public final class TileDesktopCoordinator {
+    private let registry: TileRegistry
     private let store: RegistryWorker
     private var member: TileMember
     private let windowIDs: @MainActor () -> [UInt32]
@@ -16,6 +17,9 @@ public final class TileDesktopCoordinator {
     private var loop: Task<Void, Never>?
     private var revision: UInt64 = 0
     private var active = false
+    private var desiredActive = false
+    private var placementRevision: UInt64 = 0
+    private var stopBarrier: Task<Bool, Never>?
     private var lastPlacement: TilePlacement?
     private var presentationGranted = false
 
@@ -26,6 +30,7 @@ public final class TileDesktopCoordinator {
                 place: @escaping @MainActor (NSRect, String) -> Void,
                 show: @escaping @MainActor () -> Void,
                 status: @escaping @MainActor (String?) -> Void) {
+        self.registry = registry
         store = RegistryWorker(registry: registry)
         member = TileMember(id: id, reservedHeight: reservedHeight)
         self.windowIDs = windowIDs; self.permit = permit; self.place = place
@@ -33,9 +38,16 @@ public final class TileDesktopCoordinator {
     }
 
     public func start(preferredDisplayID: String? = nil) async {
-        guard !active else { return }
-        active = true; revision &+= 1
+        guard !Task.isCancelled else { return }
+        desiredActive = true
+        if let stopBarrier { _ = await stopBarrier.value }
+        guard desiredActive, !Task.isCancelled, !active else { return }
         member.preferredDisplayID = preferredDisplayID
+        beginLoop()
+    }
+
+    private func beginLoop() {
+        active = true; revision &+= 1
         revokePresentation()
         let expected = revision
         loop = Task { [weak self] in
@@ -49,23 +61,47 @@ public final class TileDesktopCoordinator {
 
     /// Withdraw before releasing the registry slot. Called before the module lease
     /// is handed to Nearpane, so a stale standalone reservation cannot coexist.
-    public func stop() async {
+    @discardableResult public func stop() async -> Bool {
+        desiredActive = false; placementRevision &+= 1
+        return await stopLoop()
+    }
+
+    /// Reordering suspends the loop without changing the user's enabled intent.
+    /// The independent task drains even if the UI request that started it is cancelled.
+    private func stopLoop() async -> Bool {
+        if let stopBarrier { return await stopBarrier.value }
         active = false; revision &+= 1
-        loop?.cancel(); revokePresentation()
-        await loop?.value; loop = nil
-        for _ in 0..<20 {
-            let observation = Self.observation(members: [member])
-            do { try await store.unregister(member, observation); break }
-            catch TileCoordinationError.busy {
-                do { try await Task.sleep(for: .milliseconds(50)) } catch { break }
-            } catch { break }
+        let oldLoop = loop
+        oldLoop?.cancel(); revokePresentation()
+        let withdrawnMember = member
+        let task = Task { @MainActor [weak self] () -> Bool in
+            guard let self else { return false }
+            await oldLoop?.value
+            var removed = false
+            for _ in 0..<40 {
+                let observation = Self.observation(members: [withdrawnMember])
+                do {
+                    try await store.unregister(withdrawnMember, observation)
+                    removed = true
+                    break
+                } catch TileCoordinationError.busy {
+                    try? await Task.sleep(for: .milliseconds(50))
+                } catch { break }
+            }
+            loop = nil; lastPlacement = nil; stopBarrier = nil
+            if !removed { status("正在等待桌面排列完成。旧占位尚未释放，请稍后再试。") }
+            return removed
         }
-        lastPlacement = nil
+        stopBarrier = task
+        return await task.value
     }
 
     public func invalidateDisplayGeometry() {
         lastPlacement = nil
         revokePresentation()
+        guard active, desiredActive else { return }
+        loop?.cancel()
+        beginLoop()
     }
 
     private func revokePresentation() { presentationGranted = false; permit(false) }
@@ -73,19 +109,26 @@ public final class TileDesktopCoordinator {
     /// Dragging changes the display and insertion order in its right-hand column.
     /// It never transfers ownership by heartbeat or moves another app's window.
     public func requestPlacement(displayID: String?, top: Double) async {
-        guard active else { return }
+        guard desiredActive, !Task.isCancelled, top.isFinite else { return }
+        placementRevision &+= 1
+        let requested = placementRevision
         let state = try? await store.snapshot()
+        guard desiredActive, requested == placementRevision, !Task.isCancelled else { return }
         let neighbours = state?.plan.placements.filter { $0.key != member.id && $0.value.displayID == displayID }
             .sorted { $0.value.rect.y < $1.value.rect.y } ?? []
         let before = neighbours.last { $0.value.rect.y < top }
         let order = before.flatMap { state?.members[$0.key]?.userOrder }
         // Give all existing members explicit ranks before inserting. This keeps a
         // newly installed component after a user's order instead of resetting it.
-        await stop()
-        do { member.userOrder = try await store.insertionOrder(displayID: displayID, top: top) }
-        catch { member.userOrder = order.map { $0 + 1 } ?? 0 }
+        guard await stopLoop() else { return }
+        guard desiredActive, requested == placementRevision, !Task.isCancelled else { return }
+        let insertedOrder: Int
+        do { insertedOrder = try await store.insertionOrder(displayID: displayID, top: top) }
+        catch { insertedOrder = order.map { $0 + 1 } ?? 0 }
+        guard desiredActive, requested == placementRevision, !Task.isCancelled else { return }
+        member.userOrder = insertedOrder
         member.preferredDisplayID = displayID
-        await start(preferredDisplayID: displayID)
+        beginLoop()
     }
 
     private func reconcile(expected: UInt64) async {
@@ -93,15 +136,15 @@ public final class TileDesktopCoordinator {
             let state = try await store.snapshot()
             guard active, revision == expected, !Task.isCancelled else { return }
             let screens = Self.screens()
-            let observation = Self.observation(members: Array(state.members.values()))
-            let obstacles = Self.legacyObstacles(screens: screens, registered: Array(state.members.values()))
+            let observation = Self.observation(members: Array(state.members.values))
+            let obstacles = Self.legacyObstacles(screens: screens, registered: Array(state.members.values))
             member.windowIDs = windowIDs()
             var plan = try await store.reconcile(member, screens.map(\.display), observation, obstacles)
             guard active, revision == expected, !Task.isCancelled else { return }
             if plan.withdraw.contains(member.id) {
                 revokePresentation()
                 await Task.yield()
-                let fresh = Self.observation(members: Array(state.members.values()))
+                let fresh = Self.observation(members: Array(state.members.values))
                 plan = try await store.acknowledge(member, plan.generation, fresh)
             }
             guard active, revision == expected, !Task.isCancelled else { return }
@@ -111,15 +154,23 @@ public final class TileDesktopCoordinator {
                 if plan.phase == .stable { status("右侧暂时没有足够空间，可将歌词板移到另一个显示器。") }
                 return
             }
-            if lastPlacement != placement {
-                revokePresentation()
-                let r = placement.rect, v = screen.visible
-                place(NSRect(x: v.minX + r.x, y: v.maxY - r.y - r.height, width: r.width, height: r.height), placement.displayID)
-                lastPlacement = placement
+            guard Self.screens() == screens else {
+                invalidateDisplayGeometry()
+                return
             }
-            let needsPresentation = !presentationGranted
-            permit(true); presentationGranted = true; status(nil)
-            if needsPresentation { show() }
+            let authorized = try registry.withPresentationAuthority(id: member.id, instanceID: member.instanceID,
+                epoch: plan.epoch, generation: plan.generation, placement: placement) {
+                if lastPlacement != placement {
+                    revokePresentation()
+                    let r = placement.rect, v = screen.visible
+                    place(NSRect(x: v.minX + r.x, y: v.maxY - r.y - r.height, width: r.width, height: r.height), placement.displayID)
+                    lastPlacement = placement
+                }
+                let needsPresentation = !presentationGranted
+                permit(true); presentationGranted = true; status(nil)
+                if needsPresentation { show() }
+            }
+            if !authorized { revokePresentation() }
         } catch TileCoordinationError.busy {
             // The next bounded reconciliation retries; no blocking flock on AppKit.
         } catch TileCoordinationError.staleGeneration {
@@ -130,7 +181,7 @@ public final class TileDesktopCoordinator {
         }
     }
 
-    private struct Screen {
+    private struct Screen: Equatable {
         var display: TileDisplay
         var visible: NSRect
     }
@@ -149,7 +200,7 @@ public final class TileDesktopCoordinator {
         var ended = Set<String>()
         for member in members {
             if let token = TileProcess.token(for: member.pid) {
-                if token != member.processToken { ended.insert(member.processToken) }
+                if !member.processToken.hasPrefix("unknown:"), token != member.processToken { ended.insert(member.processToken) }
             } else if Darwin.kill(member.pid, 0) == -1 && errno == ESRCH { ended.insert(member.processToken) }
         }
         return TileObservation(visibleWindowIDs: visible, endedProcessTokens: ended)

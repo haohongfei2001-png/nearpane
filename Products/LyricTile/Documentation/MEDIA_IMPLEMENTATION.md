@@ -88,3 +88,26 @@ To generate this file on the real Mac: export the actual environment and source 
 `await PlaybackController.diagnosticReport()` returns bounded JSON containing actual observed players, their versions/builds/process starts, current raw MediaRemote metadata (without artwork), source timestamps/units, runtime anchor health, and the last 64 control attempts. It is explicitly invoked and does not upload or persist anything by default. `readback_confirmed` is distinct from `dispatch_attempted_unconfirmed` and rejection before dispatch. Observed system owner before/after a command is useful evidence but cannot establish an absolute absence of a dispatch race.
 
 Fixture tests cover unit conversion/overflow, NDJSON split UTF-8/full/null/restart behavior, explicit capability gating, source timestamp rebase, generation versus seek, process identity, global route refusal, stale/changed selection, readback outcomes, qualification expiry/build mismatch, cover URL scope, concurrent pipe draining and timeout reaping. Run them using the package's macOS Swift 6 test command. Hosted compilation and fixture test results must be recorded separately from the four installed-player acceptance runs. No installed-player success should be inferred from these tests.
+
+## Bounded collection from the actual signed application
+
+`PlaybackController.collectDiagnostics(player:seconds:outputDirectory:)` is a static async throwing API for the application's explicit `--diagnostics` branch. The normal GUI does not start it. A pinned collection reads only that selected player; it does not request Apple Events access to unrelated native players. It launches no music app and sends no transport operation. Use the same complete installed application bundle as the GUI, including its signed helper; verify the actual TCC attribution during the local installation test.
+
+After the application's CLI integration is built, a 120-second QQ observation run can be launched through Launch Services using a new, explicit output directory:
+
+```sh
+open -n /Applications/LyricTile.app --args --diagnostics --player qqMusic --seconds 120 --output "$HOME/Desktop/LyricTile-QQ-R001"
+```
+
+`appleMusic`, `spotify` and `netease` select the other adapters. Direct execution of `LyricTile.app/Contents/MacOS/LyricTile` with the same arguments gives the CLI's success/error exit status, but the local test must confirm that macOS attributes Automation access to the intended signed application. Do not substitute an unsigned standalone probe when qualifying the release package.
+
+The API accepts 1…3600 seconds and a local absolute directory that is absent or empty; it refuses overwriting logs. Newly created directories use mode 0700 and files 0600. The combined stream log limit is 128 MiB. It returns `DiagnosticCollectionResult` after the observation window and bounded cleanup, with actual counts, elapsed time and distinct recording identities. On cancellation it stops and reaps its helpers and finalizes available logs. A caller handling SIGINT/SIGTERM should cancel and await the task before exiting. If no real recording metadata was observed, logs are retained and the API throws `noRealPlayback`; an empty collection is not reported as successful playback support.
+
+The output contains:
+
+- `environment.json`: actual system build, running-player versions/builds/process starts, app identity/version/build, executable SHA-256 where available, SIP query result, requested duration and explicit missing package SHA when not supplied by packaging.
+- `events.ndjson`: complete real snapshots with selection/generation, source-normalized time and monotonic stamps, a paired wall-clock microsecond stamp, runtime capabilities, permission/error state, and artwork byte count rather than cover bytes.
+- `source.ndjson`: bounded raw/current source diagnostics in the same record order. A raw report is read immediately after the corresponding update; it can contain a later observation, so timestamps remain separate and must not be blindly joined as an atomic measurement.
+- `summary.json`: snapshot count, snapshots with an actual recording, observed players, distinct recording identities, elapsed duration and whether the requested window completed. `independentReferenceProvided` is always false for this observer-only collector.
+
+Use actual player controls and lifecycle operations while the capture runs to observe pause, seek, switching, browser media focus and recovery. This observer does not perform the transport test sequence on the user's behalf. One line is not one recording/session, and a 120-second capture is not 120 acceptance samples. Repeated source values and smoother projected positions are not independent timing reference points; no acoustic P95 or passing word qualification is computed by this command. Associate the logs with separately collected independent-reference evidence and the exact signed package hash before making a release qualification claim.

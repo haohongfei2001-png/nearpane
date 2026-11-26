@@ -1,6 +1,22 @@
 import Foundation
 import LyricCore
 
+enum PlaybackSourcePolicy {
+    static func choose(preferred: PlayerID?, previous: PlayerID?, currentSource: PlayerID?,
+                       observations: [PlayerID: PlayerObservation], available: Set<PlayerID>,
+                       transitions: [PlayerID: UInt64]) -> PlayerID? {
+        if let preferred { return preferred }
+        let playing = PlayerID.allCases.filter { observations[$0]?.state == .playing && observations[$0]?.quality != .stale }
+        if let currentSource, playing.contains(currentSource) { return currentSource }
+        let latest = playing.map { transitions[$0] ?? 0 }.max() ?? 0
+        if let previous, playing.contains(previous), (transitions[previous] ?? 0) == latest { return previous }
+        if let best = playing.first(where: { (transitions[$0] ?? 0) == latest }) { return best }
+        if let previous, available.contains(previous) { return previous }
+        return PlayerID.allCases.first { observations[$0]?.hasRecording == true }
+            ?? PlayerID.allCases.first { available.contains($0) }
+    }
+}
+
 struct PlaybackSelectionTracker: Sendable {
     private(set) var selection: LyricDomain.Selection?
     private var processIdentity: String?

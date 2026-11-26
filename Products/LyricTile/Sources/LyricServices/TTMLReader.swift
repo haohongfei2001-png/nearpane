@@ -54,7 +54,8 @@ enum TTMLReader {
     }
 
     private static func validateAndCollect(_ node: XMLLyricNode, depth: Int,
-                                           paragraphs: inout [XMLLyricNode]) throws {
+                                           paragraphs: inout [XMLLyricNode], insideBody: Bool = false,
+                                           parentStart: Int64? = nil, parentEnd: Int64? = nil) throws {
         guard depth <= ParserLimits.depth else { throw invalid("TTML is nested too deeply.") }
         if let timeBase = node.attribute("timeBase"), timeBase != "media" {
             throw LyricDomain.SourceFailure.unsupportedTimingProfile
@@ -66,14 +67,30 @@ enum TTMLReader {
             || node.attribute("clockMode") != nil || node.attribute("dropMode") != nil {
             throw LyricDomain.SourceFailure.unsupportedTimingProfile
         }
+        let isLyricElement = node.namespace.isEmpty || node.namespace == "http://www.w3.org/ns/ttml"
+        let isInsideBody = insideBody || (isLyricElement && node.name == "body")
+        var lower = parentStart
+        var upper = parentEnd
         // Validate grouping bounds even though Apple/AMLL p/span values are media-absolute.
-        if ["body", "div", "p", "span"].contains(node.name) { _ = try times(node) }
-        if node.name == "p" {
+        if isLyricElement && ["body", "div", "p", "span"].contains(node.name) {
+            let own = try times(node)
+            if let start = own.start, let parentStart, start < parentStart {
+                throw LyricDomain.SourceFailure.unsupportedTimingProfile
+            }
+            if let end = own.end, let parentEnd, end > parentEnd {
+                throw LyricDomain.SourceFailure.unsupportedTimingProfile
+            }
+            lower = own.start ?? lower; upper = own.end ?? upper
+        }
+        if isInsideBody && isLyricElement && node.name == "p" {
             guard paragraphs.count < ParserLimits.cues else { throw invalid("Too many TTML cues.") }
             paragraphs.append(node)
         }
         for part in node.content {
-            if case let .child(child) = part { try validateAndCollect(child, depth: depth + 1, paragraphs: &paragraphs) }
+            if case let .child(child) = part {
+                try validateAndCollect(child, depth: depth + 1, paragraphs: &paragraphs,
+                    insideBody: isInsideBody, parentStart: lower, parentEnd: upper)
+            }
         }
     }
 
@@ -94,6 +111,9 @@ enum TTMLReader {
     private static func times(_ node: XMLLyricNode) throws -> (start: Int64?, end: Int64?) {
         let start = try node.attribute("begin").map(time)
         var end = try node.attribute("end").map(time)
+        if node.name == "span", start == nil, end != nil || node.attribute("dur") != nil {
+            throw LyricDomain.SourceFailure.unsupportedTimingProfile
+        }
         if let duration = node.attribute("dur") {
             let base: Int64
             if let start { base = start }
@@ -128,6 +148,7 @@ enum TTMLReader {
             switch part {
             case let .text(text): builder.append(text, timing: timing)
             case let .child(child):
+                guard child.namespace.isEmpty || child.namespace == "http://www.w3.org/ns/ttml" else { continue }
                 if child.name == "br" { builder.append("\n", timing: timing); continue }
                 guard child.name == "span" else { continue }
                 if let role = laneKind(child), role != builder.kind {
@@ -156,6 +177,7 @@ enum TTMLReader {
         let end: Int64?
         let preserveSpace: Bool
         var text = ""
+        var textUTF16Count = 0
         var fragments: [(text: String, offset: Int, start: Int64, end: Int64?)] = []
         var key: LaneKey { .init(kind: kind, language: language, agent: agent) }
         init(kind: LyricDomain.LaneKind, language: String?, agent: String?, start: Int64?, end: Int64?, preserveSpace: Bool) {
@@ -171,8 +193,9 @@ enum TTMLReader {
                 if text.hasSuffix(" "), value.hasPrefix(" ") { value.removeFirst() }
             }
             guard !value.isEmpty else { return }
-            let offset = text.utf16.count
+            let offset = textUTF16Count
             text += value
+            textUTF16Count += value.utf16.count
             if let timing {
                 if let last = fragments.last, last.start == timing.start, last.end == timing.end,
                    last.offset + last.text.utf16.count == offset {
@@ -188,13 +211,13 @@ enum TTMLReader {
                 return first.utf16Offset(in: text)
             }()
             var tokens: [LyricDomain.Token] = []
+            let utf16Text = trimmed as NSString
             for (index, fragment) in fragments.enumerated() {
                 let low = max(prefix, fragment.offset)
                 let high = min(prefix + trimmed.utf16.count, fragment.offset + fragment.text.utf16.count)
                 guard high > low else { continue }
                 let range = NSRange(location: low - prefix, length: high - low)
-                guard let swiftRange = Range(range, in: trimmed) else { throw invalid("Invalid TTML text boundaries.") }
-                tokens.append(.init(id: "\(id)-w\(index)", text: String(trimmed[swiftRange]),
+                tokens.append(.init(id: "\(id)-w\(index)", text: utf16Text.substring(with: range),
                     rangeInCue: .init(location: range.location, length: range.length),
                     sourceStartMS: fragment.start, sourceEndMS: fragment.end))
             }
