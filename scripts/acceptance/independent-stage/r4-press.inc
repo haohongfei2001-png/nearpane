@@ -156,8 +156,8 @@ static id r4BatchField(AXError status,id fields,NSUInteger index,AXError *error)
     if(raw==kCFNull){*error=kAXErrorNoValue;return nil;}
     *error=kAXErrorSuccess;return value;
 }
-static BOOL r4Button(AXUIElementRef element,NSDictionary *host,NSSet<NSString *> *identifiers,
-                     R4WindowNumber reader,CGRect panelFrame,BOOL discoverActions,NSMutableDictionary *diagnostic) {
+static BOOL r4Button(AXUIElementRef element,AXUIElementRef panel,NSDictionary *host,NSSet<NSString *> *identifiers,
+                     CGRect panelFrame,BOOL discoverActions,NSMutableDictionary *diagnostic) {
     // Exported SwiftUI AX reads may briefly wait for the real Host's main queue.
     // This only bounds discovery/readback; it does not retry an issued action.
     AXUIElementSetMessagingTimeout(element,.25f);
@@ -182,8 +182,9 @@ static BOOL r4Button(AXUIElementRef element,NSDictionary *host,NSSet<NSString *>
     BOOL isEnabled=enabledKnown && [enabled boolValue];
     diagnostic[@"enabledRead"]=@(error);diagnostic[@"enabled"]=enabledKnown?enabled:NSNull.null;
     id window=r4BatchField(batch,fields,3,&error);
-    BOOL mapped=r4Element(window) && r4MapsToPanel((__bridge AXUIElementRef)window,host,reader);
+    BOOL mapped=panel && r4Element(window) && CFEqual((__bridge AXUIElementRef)window,panel);
     diagnostic[@"windowRead"]=@(error);diagnostic[@"windowMatches"]=@(mapped);
+    diagnostic[@"sameRetainedPanel"]=@(mapped);
     AXError positionError=kAXErrorFailure,sizeError=kAXErrorFailure;
     id position=r4BatchField(batch,fields,4,&positionError),size=r4BatchField(batch,fields,5,&sizeError);
     diagnostic[@"positionRead"]=@(positionError);diagnostic[@"sizeRead"]=@(sizeError);
@@ -207,7 +208,7 @@ static BOOL r4Button(AXUIElementRef element,NSDictionary *host,NSSet<NSString *>
     return isEnabled && mapped && inside && own && presses;
 }
 static NSArray *r4Buttons(AXUIElementRef panel,NSDictionary *host,NSSet<NSString *> *identifiers,
-                         R4WindowNumber reader,CGRect frame,double deadline,NSMutableDictionary *report) {
+                         CGRect frame,double deadline,NSMutableDictionary *report) {
     NSMutableArray *queue=[NSMutableArray arrayWithObject:(__bridge id)panel],*matches=[NSMutableArray array],*rows=[NSMutableArray array];
     CFMutableSetRef visited=CFSetCreateMutable(NULL,0,&kCFTypeSetCallBacks);BOOL complete=YES;NSUInteger count=0;
     while(queue.count) {
@@ -218,7 +219,7 @@ static NSArray *r4Buttons(AXUIElementRef panel,NSDictionary *host,NSSet<NSString
         if(CFSetContainsValue(visited,node))continue;CFSetAddValue(visited,node);count++;
         pid_t pid=0;if(AXUIElementGetPid(node,&pid)!=kAXErrorSuccess || pid!=[host[@"pid"] intValue]){complete=NO;continue;}
         NSMutableDictionary *row=[NSMutableDictionary dictionary];
-        if(r4Button(node,host,identifiers,reader,frame,YES,row))
+        if(r4Button(node,panel,host,identifiers,frame,YES,row))
             [matches addObject:@{@"element":object,@"identifier":row[@"identifier"]}];
         if(rows.count<48)[rows addObject:row];
         AXError error=kAXErrorFailure;id children=r4Attribute(node,kAXChildrenAttribute,&error);
@@ -286,7 +287,7 @@ static int runR4Press(NSString *requestPath) {
                     if(r4Rect(panel,&axFrame,&error) && r4SameFrame(axFrame,frame)) {
                         report[@"panelFrame"]=r4Frame(frame);
                         NSMutableDictionary *tree=[NSMutableDictionary dictionary];
-                        NSArray *buttons=r4Buttons(panel,host,identifiers,reader,frame,deadline,tree);report[@"tree"]=tree;
+                        NSArray *buttons=r4Buttons(panel,host,identifiers,frame,deadline,tree);report[@"tree"]=tree;
                         NSMutableArray *groups=[NSMutableArray array];
                         for(NSDictionary *button in buttons) {
                             NSString *key=button[@"identifier"];
@@ -323,7 +324,7 @@ static int runR4Press(NSString *requestPath) {
                     // not the same action list. The actual action is attempted once.
                     last[@"sameOriginalElement"]=@YES;last[@"actionsPreviouslyConfirmed"]=@YES;
                     last[@"actionRead"]=@"NOT_REPEATED";
-                    BOOL validButton=r4Button((__bridge AXUIElementRef)selected,host,identifiers,reader,freshFrame,NO,last);
+                    BOOL validButton=r4Button((__bridge AXUIElementRef)selected,panel,host,identifiers,freshFrame,NO,last);
                     BOOL sameParent=r4HostMatches(host);report[@"prePress"]=last;
                     if(!validButton || !sameParent) {
                         // A pre-press attribute read can be incomplete or refer to

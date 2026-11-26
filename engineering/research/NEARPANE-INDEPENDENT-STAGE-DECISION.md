@@ -42,41 +42,45 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 ### Current verification checkpoint
 
 The latest completed source/full-package checkpoint is
-`dd665ed2b9fe46731d518e811e8f98c948d59227`: **162 Rust / 172 Swift pass, one explicit skip**,
-including both actual-observation freshness regressions; complete workspace and strict/deep bundle
-verification pass. [Full original candidate and result](../verification/independent-stage/cloud-dd665ed2-full/README.md).
-Its full and fast VMs each independently pass the complete normal foreign-window engine sequence.
-The separate diagnostic VM closes its own canary but encounters an unsettled CG description/list
-pair; the old code propagates Readback217 immediately instead of using its existing 120 ms close
-observation loop. Foreign actions are NOT_RUN/zero; first-release cleanup passes.
-[Original distinct diagnostic failure](../verification/independent-stage/cloud-dd665ed2-diagnostics/README.md).
-The source correction retries only this unknown read within that original loop, retaining ownership
-and all final absence/empty-Space checks; it does not repeat the close or any move.
+`3437abd5b545cfd25f6eda2ee943c242908ac956`: **164 Rust /174 Swift pass, one explicit skip**,
+including the canary-close and first-departure image regressions. Complete workspace and strict/deep
+bundle verification pass. The diagnostics, fast and full VMs each independently pass the normal
+foreign-window engine sequence and cleanup. The diagnostics close succeeds without encountering
+Readback217; the new close retry branch is therefore source-tested but not directly exercised there.
+[Full original candidate and result](../verification/independent-stage/cloud-3437abd5-full/README.md).
 
-The previous `2f3eddda` fast VM actually used the new health recovery interval: AXCannotComplete at
-300 and 649 ms was followed by two complete positive observations at 735 ms. Its diagnostic VM
-recovered earlier at 645 ms. The [separate originals](../verification/independent-stage/cloud-2f3eddda-r4-fast/README.md)
-remain distinct, as does the earlier `3d79921c` fast health failure.
+Actual full R4 input now reaches fresh three-window bindings and a ready, configured worker. The
+Swift Finder desktop witness positively confirms the same focused AXScrollArea is its AXWindow,
+occurs exactly once in the complete list and has the original Finder application parent. The C
+launch predicate is still not executed: opening-roster validation rejects system ownership after
+UI delivery has stalled, before NP_LAUNCH. Full cleanup succeeds with no worker-owned windows.
+The fast VM stops before input when a repeated AXWindow canonical mapping is not confirmed; its
+original receipt does not distinguish the canonical error from positive mismatch.
+[Separate fast original](../verification/independent-stage/cloud-3437abd5-r4-fast/README.md).
 
-The actual Dock sampling-start through acceptance is still bounded by 750 ms. The `2f3eddda`
-queued-request timing defect is corrected and its specific regression executes in the next source
-run. The new `dd665ed2` reads really arrive late: fast includes 11.14 ms of reading plus 1009.32 ms
-of delivery age; full includes 1.68 ms plus 771.66 ms. These are genuine expiry, not the earlier
-false queue-time classification. Fast sends zero R4 actions after an incomplete AX tree; full sends
-one real R4 action but loses admission before the group job. Neither reaches the revised Finder
-predicate or NP_LAUNCH, and neither proves product switching. Both clean up.
-[Fast original evidence](../verification/independent-stage/cloud-dd665ed2-r4-fast/README.md).
-The next harness samples only its own Host, once for three seconds during the first R4 request,
-without making that Host wait or changing qualification, to identify the actual main-thread work.
+Complete, actual Host samples identify concrete synchronous work, without attributing all elapsed
+time to one stack. Fast has 14/83 main-thread leaf samples in first-frame creation of an unused
+ordinary AX history object. Full has 104/114 samples in the two complete rebinding physical reads
+on the UI actor. Repeated per-row navigation presentation also re-reads the CG session; actual
+Metal compilation appears separately. The current source removes only unused ordinary-frame AX
+materialization, reuses navigation presentation within one render, and moves pure per-window
+rebinding reads to detached tasks returning Sendable values. Host authorization and all writers
+remain on MainActor. Input/epoch/cancellation/ownership are checked again after every await;
+two complete scope/frame/home/identity comparisons and the final atomic rebind remain unchanged.
+No cross-frame permission cache or 750 ms relaxation is introduced.
 
-A separate source audit found that an initial departure before the first displayed image could
-leave a hidden card without pixels: old capture targets disappeared and no later delivery could
-populate the held slot. The correction saves an already delivered real frame without requiring a
-prior draw, or retains the original departure/identity for one bounded first-frame attempt in the
-existing gallery pipeline. Hidden publication requires the original witness and actual hidden claim;
-show/close/revocation invalidates the pending intent even across awaits. Existing eight-stream and
-pixel budgets remain, blank/idle is not an image, and no window is restored to obtain a picture.
-Two targeted gallery regressions are added; native hidden first-frame delivery is not yet proved.
+The input helper now compares each button's actual AXWindow directly with the already confirmed,
+retained AX panel, retaining fresh bounds, owner, identifier, enabled and sole-action checks. This
+removes a redundant IPC instead of interpreting its unobserved failure as success.
+
+The first-frame source fix uses the existing gallery and one original pending departure. A new
+case in the existing lifecycle run turns the ordinary image preference off and drains the gallery
+before creating A2, uses a real R4 switch to hide that never-captured window, then enables images
+within the original five-second interval. PASS requires its real original held CGImage and two
+physical reads showing the same hidden Space, before any later R4 restore of A2. Original settings
+are restored. An unconfirmed cold baseline remains UNKNOWN while other lifecycle work continues;
+no synthetic frame, separate capture pipeline or restore-for-image fallback exists. This native
+cold case still awaits the main R4/crash prerequisites and is not promoted from source tests.
 
 ### What is established
 

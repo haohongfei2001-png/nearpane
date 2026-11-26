@@ -81,6 +81,10 @@ These are code-completion claims. The evidence below determines which native eff
 | `dd665ed2`, R4-fast | 162 Rust /172 Swift pass, one skip; both new freshness regressions execute. Actual Dock delivery age1009.32ms after11.14ms read genuinely expires; helper AX tree remains incomplete before input | Normal engine passes independently, product BLOCKED/input0, cleanup PASS. Main-thread cause requires the newly added external sample. [Original actual timings](cloud-dd665ed2-r4-fast/README.md) |
 | `dd665ed2`, full release | Complete app/signature and this VM's engine pass; real R4 input1, all four pre-press context fields true, no panel movement. Actual Dock read+delivery773.334ms correctly exceeds750ms before group job | Latest source-checked complete candidate; product FAIL/cleanup PASS, no Finder/worker-launch result. [Original full candidate and trace](cloud-dd665ed2-full/README.md) |
 
+| `3437abd5`, normal engines | Diagnostics, fast and full each independently pass the complete foreign engine sequence and cleanup; diagnostics own-close succeeds without the new retry branch firing | FOREIGN_ENGINE_PASS on hosted26A434/SIPoff; no inferred target/R4 qualification. Diagnostics [artifact15080511104](https://github.com/haohongfei2001-png/nearpane/actions/runs/45738564830/artifacts/15080511104), SHA256 `a5cc39da39c8a1112b6eda4ae689c912e47dd3aa7a81b2a3ac216547738a9446`; full/fast originals below |
+| `3437abd5`, R4-fast and profile | Source164 Rust/174 Swift pass, one skip. First-frame AX history creation occupies14/83 main-thread leaf samples; button's final canonical mapping is unconfirmed before input | Product BLOCKED/input0, cleanup PASS. The entire sample is retained, not only chosen stacks. [Actual original sample and receipts](cloud-3437abd5-r4-fast/README.md) |
+| `3437abd5`, full release and profile | Full package/signature pass; actual input1, exact Finder self/listed-once structure, fresh3-window bindings and ready worker. Two synchronous physical rebinding passes occupy104/114 sampled main-thread paths; opening-roster then rejects stale system ownership | Product FAIL before NP_LAUNCH, cleanup PASS, worker owns zero. C Finder predicate remains unexecuted. [Complete candidate, entire sample, Finder/worker and physical receipts](cloud-3437abd5-full/README.md) |
+
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
 visible standard AX window through the existing readback operation, retains that exact identity across
@@ -91,7 +95,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `dd665ed2` source run passed **162 Rust and 172 Swift cases, with one explicit skip**;
+The latest completed `3437abd5` source run passed **164 Rust and 174 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -132,7 +136,16 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[dd665ed2 full receipts](cloud-dd665ed2-full/README.md) identify the latest source-checked complete
+[3437abd5 full receipts](cloud-3437abd5-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15080378771](https://github.com/haohongfei2001-png/nearpane/actions/runs/45738564830/artifacts/15080378771).
+Its independently rehashed ZIP is 25,337,823 bytes, SHA-256
+`dfedb4a4377fa250bca3a46358b4e763625878602947fcf7e628066b24f49d0c`.
+164 Rust and 174 Swift cases passed, one skip; complete workspace and strict/deep signature passed.
+The normal engine passes. Real R4 input reaches Finder confirmation, fresh bindings and ready worker,
+but initial physical witness rejects stale system ownership before NP_LAUNCH. Cleanup passes with
+zero worker ownership. This is a development candidate, not a product or target qualification.
+
+[dd665ed2 full receipts](cloud-dd665ed2-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15079243584](https://github.com/haohongfei2001-png/nearpane/actions/runs/45736296714/artifacts/15079243584).
 Its independently rehashed ZIP is 25,324,809 bytes, SHA-256
 `2a492dd74ef3149aea970ba628c454b24980036b4788ea7bc44be7297955038f`.

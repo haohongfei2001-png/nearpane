@@ -17,7 +17,7 @@ import NearpaneCore
         return (installed || candidate) && expected.count == 40 && expected.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) } && actual == expected
     }
 
-    private static func signing() throws -> String {
+    nonisolated private static func signing() throws -> String {
         try OrdinaryProcessImage.signingDigest(getpid()).map { String(format: "%02x", $0) }.joined()
     }
 
@@ -38,7 +38,7 @@ import NearpaneCore
     }()
 
     /// Expose only a read closure. Possessing the canonical Host's AX permission cannot mint a writer.
-    package static func directoryReader() throws -> (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
+    package static func directoryReader() throws -> @Sendable (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
         guard signedDirectoryReader || IndependentStagePolicy.candidateRequested else { throw StageSwitchError.unavailable }
         let access = try StageHostAccess(expectedCDHash: signing())
         return { window, home in try access.currentSurface(window, home: home) }
@@ -101,7 +101,7 @@ import NearpaneCore
         } catch { return false }
     }
 
-    func check() throws {
+    nonisolated func check() throws {
         guard AXIsProcessTrusted(), try OrdinaryProcessImage.read(getpid()) == image,
               try Self.signing() == digest, !StageManagerPreference.ownsWindowDispatch else { throw StageSwitchError.unavailable }
     }
@@ -117,7 +117,9 @@ import NearpaneCore
         return measured
     }
 
-    package func currentSurface(_ window: NativeSpaceWindow, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
+    // All AX objects and the mutable owner witness are local to this read. Only
+    // the immutable physical observation leaves it; this cannot mint a writer.
+    nonisolated package func currentSurface(_ window: NativeSpaceWindow, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation? {
         try check()
         let (owner, bundle, element) = try Self.original(window)
         let standard = try Self.role(element)
@@ -136,7 +138,7 @@ import NearpaneCore
         return observation
     }
 
-    fileprivate static func role(_ element: AXUIElement) throws -> Bool {
+    nonisolated fileprivate static func role(_ element: AXUIElement) throws -> Bool {
         guard let role = attribute(element, kAXRoleAttribute) as? String else { throw StageSwitchError.incomplete }
         guard role == kAXWindowRole else { return false }
         guard let subrole = attribute(element, kAXSubroleAttribute) as? String else { throw StageSwitchError.incomplete }
@@ -146,7 +148,7 @@ import NearpaneCore
         return !modal && !full
     }
 
-    fileprivate static func original(_ window: NativeSpaceWindow) throws -> (OrdinaryOwnerIdentity, String, AXUIElement) {
+    nonisolated fileprivate static func original(_ window: NativeSpaceWindow) throws -> (OrdinaryOwnerIdentity, String, AXUIElement) {
         guard let app = NSRunningApplication(processIdentifier: window.pid), let bundle = app.bundleIdentifier else {
             throw StageSwitchError.ownership
         }

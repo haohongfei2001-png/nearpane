@@ -94,8 +94,8 @@ import NearpaneCore
         #expect(!feed.stillGroups(second.member, in: group.id, appearance: second.lifetime))
     }
 
-    @Test(arguments: [false, true])
-    func aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(changeUnselectedWindow: Bool) async throws {
+    @Test(arguments: ["none", "unselectedFrame", "newInputDuringRead"])
+    func aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change: String) async throws {
         let profile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: profile) }
         let scope = StageGroupScope(display: try #require(UUID(uuidString: display)), nativeSpace: space)
@@ -133,14 +133,17 @@ import NearpaneCore
         #expect(current.allSatisfy(feed.groups.needsRebinding))
         #expect(zip(old, current).allSatisfy { pair in pair.0.lifetime != pair.1.lifetime })
         var reads = [UInt32]()
+        var inputIsCurrent = true
         do {
-            let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: appearance, current: { true }) { key, home in
+            let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: appearance, current: { inputIsCurrent }) { key, home in
                 #expect(home.uuid == space && home.record == "4")
                 reads.append(key.number)
-                let changed = changeUnselectedWindow && reads.count == 6
+                await Task.yield()
+                if change == "newInputDuringRead", reads.count == 6 { inputIsCurrent = false }
+                let changed = change == "unselectedFrame" && reads.count == 6
                 return seen(key.number, bounds: changed ? .init(x: 25, y: 32, width: 320, height: 200) : rect)
             }
-            #expect(!changeUnselectedWindow)
+            #expect(change == "none")
             #expect(fresh.revision > sample.revision)
             #expect(current.allSatisfy { !feed.groups.needsRebinding($0) })
             #expect(feed.visibleGroups(in: fresh, on: fresh.displays[0]).count == 3)
@@ -150,7 +153,7 @@ import NearpaneCore
                 return nil
             }
         } catch {
-            #expect(changeUnselectedWindow && error is StageSwitchError)
+            #expect(change != "none" && error is StageSwitchError)
             #expect(current.allSatisfy(feed.groups.needsRebinding))
         }
         #expect(reads == [8, 9, 10, 8, 9, 10])

@@ -545,6 +545,9 @@ struct DesktopSurface: View {
         let feed = previews?.currentDesktop
         let members = source.map { dest in windows.compactMap { NativeSidebarMember($0, source: dest) } } ?? []
         let visibleGroups = feed?.departingPictures?.groups[screen.id] ?? feed?.visibleGroups(in: snapshot, on: screen) ?? [:]
+        // Reuse this render's presentation state across rows. Actual selection,
+        // placement and drag preparation still perform their fresh action checks.
+        let rowNavigationAvailable = canNavigate
         return VStack(alignment: .leading, spacing: spacing) {
             ForEach(DesktopWindowRow.rows(windows)) { row in
                 let window = row.window
@@ -589,7 +592,7 @@ struct DesktopSurface: View {
                             }), gallery: gallery,
                             permitted: permitted, workArea: workArea(for: screen),
                             select: { choose($0, group: group.id, lifetime: $1, snapshot: snapshot, feed: feed) },
-                            selectGroup: canNavigate && feed.stageEngine.offersGroupSelection(on: member.source) ? {
+                            selectGroup: rowNavigationAvailable && feed.stageEngine.offersGroupSelection(on: member.source) ? {
                                 guard let preferred, feed.stageEngine.offersGroupSelection(on: member.source) else { return }
                                 choose(preferred, group: group.id, lifetime: preferredLifetime, snapshot: snapshot, feed: feed, intent: .group)
                             } : nil,
@@ -620,7 +623,7 @@ struct DesktopSurface: View {
                         selectable: target != nil, groupHistory:{
                             group.flatMap { gallery?.observedImage(row.id,group:$0.id,snapshot:snapshot,permitted:permitted) }
                         })
-                    .modifier(SidebarWindowDragAndDrop(member: canNavigate ? member : nil, lifetime: lifetime,
+                    .modifier(SidebarWindowDragAndDrop(member: rowNavigationAvailable ? member : nil, lifetime: lifetime,
                         width: width, feed: feed,
                         select: { chooseCurrent() },
                         place: { pair in if let feed { place(pair, feed: feed) } },

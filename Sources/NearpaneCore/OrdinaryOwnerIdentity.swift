@@ -29,7 +29,7 @@ extension NSRunningApplication: OrdinaryApplicationReference {}
 
 /// A PID can be recycled and a running process can exec another binary. Each sample
 /// brackets the live AppKit and signing checks with independent kernel reads.
-package struct OrdinaryProcessImage: Equatable {
+package struct OrdinaryProcessImage: Equatable, Sendable {
     package let pid: pid_t
     package let launch: UInt64
     package let executable: URL

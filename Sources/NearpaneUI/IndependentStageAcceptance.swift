@@ -52,6 +52,7 @@ import Security
             "nativeFullScreen": "NOT_RUN", "nativeDesktopSwitch": "NOT_RUN", "appExpose": "NOT_RUN",
             "nativeDesktopReveal": "NOT_RUN",
             "newWindowLifecycle": "NOT_RUN", "windowCloseLifecycle": "NOT_RUN", "applicationExitLifecycle": "NOT_RUN",
+            "coldHiddenPreview": "NOT_RUN",
             "yellowButtonRouting": "NOT_RUN", "groupMergeSplit": "NOT_RUN", "qualificationGranted": false]
         var events = [[String: Any]]()
         func record(_ phase: String, _ fields: [String: Any] = [:]) {
@@ -348,9 +349,32 @@ import Security
                 else { throw Failure(reason: "lifecycleOriginalGroupsUnavailable") }
                 let scope = StageGroupScope(display: display, nativeSpace: nativeSpace)
                 let gallery = modules.windowPreviews.gallery
-                let exitPicture = await waitForLifecyclePicture(originals[2], in: feed, scope: scope, gallery: gallery, seconds: 4)
+                let originalPictures = host.configuration.showsWindowThumbnails
+                defer {
+                    host.setWindowThumbnails(originalPictures)
+                    if !originalPictures { gallery.clear() }
+                }
                 try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleBeforeCreate")
                 report["foreignWindowReadback"] = true
+                // Use the same image preference and clear operation as Settings.
+                // The ordinary directory and real R4 buttons remain enabled.
+                host.setWindowThumbnails(false)
+                gallery.clear()
+                let drainDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+                while (gallery.activeStreamCount != 0 || gallery.capturesInFlight != 0 ||
+                       gallery.activeCaptureLoops != 0 || gallery.cacheCount != 0), ContinuousClock.now < drainDeadline {
+                    try await Task.sleep(for: .milliseconds(60))
+                }
+                let coldEmpty = gallery.activeStreamCount == 0 && gallery.capturesInFlight == 0 &&
+                    gallery.activeCaptureLoops == 0 && gallery.cacheCount == 0
+                let coldRequests = gallery.captureRequests, coldDelivered = gallery.deliveredFrameCount
+                record("lifecycleColdCaptureBaseline", ["empty": coldEmpty, "captureRequests": coldRequests,
+                    "deliveredFrames": coldDelivered, "activeStreams": gallery.activeStreamCount,
+                    "capturesInFlight": gallery.capturesInFlight, "captureLoops": gallery.activeCaptureLoops,
+                    "cacheEntries": gallery.cacheCount, "picturePreference": host.configuration.showsWindowThumbnails])
+                if !coldEmpty {
+                    report["coldHiddenPreview"] = "UNKNOWN"
+                }
                 let idleUntil = ContinuousClock.now.advanced(by: .seconds(3))
                 while NativeSidebarNavigation.shared.idleGeneration == nil, ContinuousClock.now < idleUntil {
                     try await Task.sleep(for: .milliseconds(80))
@@ -376,17 +400,82 @@ import Security
                 report["lifecycleAutomaticArrival"] = automatic == nil ? "FAIL" : "PASS"
                 record("lifecycleAutomaticArrival", ["window": created.window.number, "commandAcknowledged": createAcknowledged,
                     "status": automatic == nil ? "FAIL" : "PASS", "observations": automatic ?? [], "laterR4InputsIssued": false])
-                let picture = await waitForLifecyclePicture(created, in: feed, scope: scope, gallery: gallery, seconds: 8)
+                let createdGroupDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+                var createdGroup: UUID?
+                while createdGroup == nil, ContinuousClock.now < createdGroupDeadline {
+                    feed.changed()
+                    createdGroup = feed.groups.groups(in: scope).first {
+                        $0.members.count == 1 && $0.members.first?.windowHint == created.key
+                    }?.id
+                    if createdGroup == nil { try await Task.sleep(for: .milliseconds(60)) }
+                }
+                guard let createdGroup else {
+                    report["coldHiddenPreview"] = "UNKNOWN"
+                    throw Failure(reason: "coldCreatedGroupUnavailable")
+                }
+                // This timestamp precedes the actual input, including external
+                // discovery. It is a conservative lower bound for pending age.
+                let coldSelectionStart = ProcessInfo.processInfo.systemUptime
+                try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleColdDeparture")
+                let coldBefore = events.last { $0["phase"] as? String == "R4SwitchConfirmed" &&
+                    $0["step"] as? String == "lifecycleColdDeparture" }?["observations"] as? [[String: Any]] ?? []
+                let coldSpace = hiddenSpace(in: coldBefore, for: created)
+                let requestsAtHidden = gallery.captureRequests, deliveredAtHidden = gallery.deliveredFrameCount
+                let entriesAtHidden = gallery.cacheCount
+                let noEarlierCapture = coldEmpty && !host.configuration.showsWindowThumbnails && requestsAtHidden == coldRequests &&
+                    deliveredAtHidden == coldDelivered && gallery.activeStreamCount == 0 &&
+                    gallery.capturesInFlight == 0 && gallery.activeCaptureLoops == 0 && gallery.cacheCount == 0
+                let enabledAt = ProcessInfo.processInfo.systemUptime
+                let timely = enabledAt >= coldSelectionStart && enabledAt - coldSelectionStart < 5
+                host.setWindowThumbnails(true)
+                let coldImage = noEarlierCapture && timely && coldSpace != nil ?
+                    await waitForColdHeldPicture(created, in: feed, scope: scope, gallery: gallery, seconds: 6) : nil
+                let coldAfter = coldImage != nil ? await waitForState(targets, visible: [originals[0].window.number],
+                    focus: originals[0], seconds: 2) : nil
+                let stayedHidden = coldAfter.flatMap { hiddenSpace(in: $0, for: created) } == coldSpace && coldSpace != nil
+                var imageSaved = false
+                if let image = coldImage?.image,
+                   let bytes = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) {
+                    do {
+                        try bytes.write(to: output.appendingPathComponent("r4-lifecycle-cold-held.png"), options: .atomic)
+                        imageSaved = true
+                    } catch { }
+                }
+                let capturedAfterHiding = gallery.captureRequests > coldRequests && gallery.deliveredFrameCount > coldDelivered
+                report["coldHiddenPreview"] = !noEarlierCapture || !timely || coldSpace == nil ? "UNKNOWN" :
+                    (coldImage != nil && stayedHidden && capturedAfterHiding && imageSaved ? "PASS" : "FAIL")
+                let coldReason = !coldEmpty ? "coldCaptureStopUnconfirmed" : !noEarlierCapture ? "captureOccurredBeforeHiding" : !timely ? "coldCaptureEnableDeadlineExceeded" :
+                    coldSpace == nil ? "coldHiddenMembershipUnconfirmed" : coldImage == nil ? "firstHeldFrameUnavailable" :
+                    !stayedHidden ? "sameHiddenMembershipNotConfirmed" : !capturedAfterHiding ? "captureDeliveryUnconfirmed" :
+                    !imageSaved ? "captureEvidenceWriteFailed" : "realFirstHeldFrameWhileHidden"
+                record("lifecycleColdHiddenPreview", ["status": report["coldHiddenPreview"] ?? "UNKNOWN",
+                    "reason": coldReason,
+                    "window": created.window.number, "pid": created.fixture.pid, "birth": created.fixture.birth,
+                    "group": createdGroup.uuidString, "selectionStarted": coldSelectionStart, "picturesEnabledAt": enabledAt,
+                    "timelyWithinOriginalFiveSeconds": timely, "noEarlierCapture": noEarlierCapture,
+                    "captureRequestsBefore": coldRequests, "captureRequestsAfter": gallery.captureRequests,
+                    "captureRequestsAtHiddenBeforeEnable": requestsAtHidden, "cacheEntriesAtHiddenBeforeEnable": entriesAtHidden,
+                    "deliveredFramesBefore": coldDelivered, "deliveredFramesAfter": gallery.deliveredFrameCount,
+                    "deliveredFramesAtHiddenBeforeEnable": deliveredAtHidden,
+                    "hiddenSpace": coldSpace ?? 0, "beforeObservations": coldBefore, "afterObservations": coldAfter ?? [],
+                    "sameHiddenSpaceAfterFirstFrame": stayedHidden, "heldImageWidth": coldImage?.image.width ?? 0,
+                    "heldImageHeight": coldImage?.image.height ?? 0, "departure": coldImage?.departure.uuidString ?? "unavailable",
+                    "member": coldImage?.member.uuidString ?? "unavailable", "imageSaved": imageSaved,
+                    "imageFile": imageSaved ? "r4-lifecycle-cold-held.png" : "unavailable",
+                    "restoredCreatedWindowToObtainThisImage": false, "evidenceFrozenBeforeLaterRestore": true])
+                savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-cold-sidebar.png"))
+                // Subsequent ordinary lifecycle checks cannot change the frozen
+                // cold result. Restore A2 only through its real R4 card now.
                 var cardSwitch = false
+                do {
+                    try await selectR4(3, group: createdGroup, visible: [created.window.number], phase: "lifecycleSelectNewCard")
+                    cardSwitch = true
+                } catch { record("lifecycleNewCardFailure", ["reason": (error as? Failure)?.reason ?? String(describing: error)]) }
+                let picture = cardSwitch ? await waitForLifecyclePicture(created, in: feed, scope: scope, gallery: gallery, seconds: 8) : nil
                 if let picture {
                     savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-created.png"))
                     record("lifecycleNewThumbnail", ["window": created.window.number, "group": picture.group.uuidString,
                         "frameSequence": picture.sequence, "width": picture.width, "height": picture.height])
-                    do {
-                        try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleLeaveNewWindow")
-                        try await selectR4(3, group: picture.group, visible: [created.window.number], phase: "lifecycleSelectNewCard")
-                        cardSwitch = true
-                    } catch { record("lifecycleNewCardFailure", ["reason": (error as? Failure)?.reason ?? String(describing: error)]) }
                 }
                 report["lifecycleNewCardSwitch"] = cardSwitch ? "PASS" : "FAIL"
                 report["newWindowLifecycle"] = createAcknowledged && automatic != nil && picture != nil && cardSwitch ? "PASS" : "FAIL"
@@ -412,6 +501,12 @@ import Security
                 // B is quit last, after every earlier phase depending on its real
                 // original window. Only its own fixture command closes this app.
                 guard retired != nil, retained != nil else { throw Failure(reason: "lifecycleOriginalThreeAfterCloseUnconfirmed") }
+                guard let exitGroup = feed.groups.groups(in: scope).first(where: {
+                    $0.members.count == 1 && $0.members.first?.windowHint == originals[2].key
+                })?.id else { throw Failure(reason: "lifecycleExitGroupUnavailable") }
+                try await selectR4(2, group: exitGroup, visible: [originals[2].window.number], phase: "lifecycleRefreshBPicture")
+                let exitPicture = await waitForLifecyclePicture(originals[2], in: feed, scope: scope, gallery: gallery, seconds: 4)
+                try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleBeforeQuit")
                 let quitAcknowledged = await ownerCommand(originals[2], action: "quit", nonce: config.nonce)
                 let exited = await waitForLifecycleAbsence(originals[2], processExit: true, seconds: 6)
                 record("lifecycleApplicationExited", ["pid": originals[2].fixture.pid, "birth": originals[2].fixture.birth,
@@ -435,7 +530,7 @@ import Security
                 record("lifecycleExitedGroupRetired", ["retirement": exitRetired ?? [], "survivingR4Switches": survivors,
                     "thumbnailWasObserved": exitPicture != nil])
                 savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-exited.png"))
-                productPassed = ["newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle"].allSatisfy { report[$0] as? String == "PASS" }
+                productPassed = ["newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle", "coldHiddenPreview"].allSatisfy { report[$0] as? String == "PASS" }
                 report["status"] = productPassed ? "PRODUCT_LIFECYCLE_PASS" : "FAIL"
                 report["reason"] = productPassed ? "realCreationClosureExitAndR4SurvivorsConfirmed" : "lifecycleEvidenceIncomplete"
                 report["foreignWindowReadback"] = true
@@ -1422,6 +1517,42 @@ import Security
                image.executable == URL(fileURLWithPath: owner.fixture.executable).resolvingSymlinksInPath(),
                let observed = cg(number), observed.pid == owner.fixture.pid {
                 return .init(fixture: owner.fixture, window: .init(index: 2, number: number), frame: observed.frame, home: owner.home)
+            }
+            try? await Task.sleep(for: .milliseconds(60))
+        }
+        return nil
+    }
+
+    /// Interpret the existing two physical readbacks; no model Space or action
+    /// acknowledgement can stand in for the actual per-window membership.
+    private static func hiddenSpace(in observations: [[String: Any]], for target: Target) -> UInt64? {
+        guard observations.count == 2 else { return nil }
+        var result: UInt64?
+        for observation in observations {
+            guard let windows = observation["windows"] as? [[String: Any]],
+                  let row = windows.first(where: { $0["number"] as? UInt32 == target.window.number }),
+                  row["pid"] as? Int32 == target.fixture.pid, row["home"] as? UInt64 == target.home,
+                  row["onScreen"] as? Bool == false, row["framePreserved"] as? Bool == true,
+                  let space = row["space"] as? UInt64, space > 0, space != target.home,
+                  result == nil || result == space else { return nil }
+            result = space
+        }
+        return result
+    }
+
+    private static func waitForColdHeldPicture(_ target: Target, in feed: CurrentDesktopWindows, scope: StageGroupScope,
+                                               gallery: DesktopWindowGallery, seconds: Double) async
+        -> (image: CGImage, departure: UUID, member: UUID)? {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        while ContinuousClock.now < until {
+            feed.changed()
+            if let sample = feed.snapshot, sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+               let held = feed.stageEngine.heldGroups.first(where: { $0.scope == scope && $0.count == 1 && $0.state.window == target.key }),
+               let departure = held.departure, departure.members.count == 1,
+               let member = departure.members.first, member.before.window == target.key,
+               let image = gallery.heldImage(member, departure: departure, snapshot: sample, permitted: true,
+                    confirmOwner: { feed.stageEngine.confirmsPicture(member, group: held) }), image.width > 0, image.height > 0 {
+                return (image, departure.id, member.id)
             }
             try? await Task.sleep(for: .milliseconds(60))
         }

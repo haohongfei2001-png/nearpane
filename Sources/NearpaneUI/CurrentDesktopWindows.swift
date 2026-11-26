@@ -252,7 +252,7 @@ import OSLog
     /// establish current lifetimes for all participating groups together.
     func prepareGroupSelection(_ member: NativeSidebarMember, group: StageGroupDirectory.Group, appearance: UUID,
                                current: @escaping @MainActor () -> Bool,
-                               measure supplied: ((NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?)? = nil) async throws -> DesktopSnapshot {
+                               measure supplied: (@MainActor (NativeSpaceWindow, OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation?)? = nil) async throws -> DesktopSnapshot {
         let originalEpoch = epoch
         func valid() -> Bool {
             !Task.isCancelled && epoch == originalEpoch && current() &&
@@ -269,11 +269,23 @@ import OSLog
         }
         guard !stageEngine.holdsDispatch else { throw StageSwitchError.recoveryRequired }
         let before = try rebindingRoster(first, source: member.source), directory = groups.directory
-        let measure = try supplied ?? StageHostAccess.directoryReader()
-        func physical(_ roster: RebindingRoster) throws -> [NativeSpaceWindow: StageWindowState] {
+        let native: (@Sendable (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?)?
+        if supplied == nil { native = try StageHostAccess.directoryReader() }
+        else { native = nil }
+        func physical(_ roster: RebindingRoster) async throws -> [NativeSpaceWindow: StageWindowState] {
             var values = [NativeSpaceWindow: StageWindowState]()
             for window in roster.windows {
-                guard valid(), !stageEngine.holdsDispatch, let read = try measure(window.identity, roster.home),
+                guard valid(), !stageEngine.holdsDispatch else { throw StageSwitchError.interrupted }
+                let observed: StageWindowPhysicalObservation?
+                if let supplied {
+                    observed = try await supplied(window.identity, roster.home)
+                } else if let native {
+                    // Pure AX/CG/Space reads must not prevent the UI from
+                    // receiving real input or fresh system-ownership samples.
+                    let identity = window.identity, home = roster.home
+                    observed = try await Task.detached(priority: .userInitiated) { try native(identity, home) }.value
+                } else { throw StageSwitchError.unavailable }
+                guard valid(), !stageEngine.holdsDispatch, let read = observed,
                       read.id.pid == window.identity.pid, read.id.launch == window.identity.birth, read.id.number == window.identity.number,
                       read.membership == UInt64(roster.home.record), read.onscreen, !read.minimized,
                       read.frame == roster.frames[window.identity] else { throw StageSwitchError.interrupted }
@@ -281,11 +293,11 @@ import OSLog
             }
             return values
         }
-        let firstRead = try physical(before)
+        let firstRead = try await physical(before)
         guard let second = await readAfterAction(), second.sessionID == first.sessionID, second.revision > first.revision,
               valid(), !stageEngine.holdsDispatch else { throw StageSwitchError.interrupted }
         let after = try rebindingRoster(second, source: member.source)
-        guard after == before, try physical(after) == firstRead, valid(), !stageEngine.holdsDispatch,
+        guard after == before, try await physical(after) == firstRead, valid(), !stageEngine.holdsDispatch,
               second.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
             throw StageSwitchError.interrupted
         }

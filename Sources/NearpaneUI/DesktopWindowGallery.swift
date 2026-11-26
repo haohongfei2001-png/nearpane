@@ -1139,8 +1139,12 @@ struct DesktopWindowTarget: Equatable {
                 deliveredFrameCount &+= 1
                 let published = ProcessInfo.processInfo.systemUptime
                 live.confirmedAt = published
+                // Current ordinary pixels do not consume an AX history object.
+                // Independent held pictures use their retained engine witness;
+                // observed groups bind their own original when remembering them.
                 let still = Still(target: target, lifetime: live.incarnation, capture: capture,
-                                  time: published, signedOwner: live.owner, original: finalHidden ? nil : live.original)
+                                  time: published, signedOwner: live.owner,
+                                  original: target.stageEnabled && !finalHidden ? live.original : nil)
                 if !finalHidden { stills.store(still, for: .current(key), cost: cost) }
                 if let pending = finalPending, pendingHeld[key] === pending,
                    let held = pending.accepts(still, stream: live.identity, now: published, currentSurface: currentSurface) {

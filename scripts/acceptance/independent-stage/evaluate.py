@@ -2,7 +2,7 @@
 """Keep platform, candidate engine, product UI and exact-target claims separate."""
 ENGINE_CHECKS = frozenset(("launchCanary", "initialVisibleBindings", "initialYellowButton", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
                            "repeatedSwitch", "yellowButton", "focusRestore", "cleanup"))
-LIFECYCLE_CHECKS = ("newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle")
+LIFECYCLE_CHECKS = ("newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle", "coldHiddenPreview")
 SYSTEM_CHECKS = ("yellowButtonRouting", "missionControl", "appExpose", "nativeFullScreen",
                  "nativeDesktopSwitch", "nativeDesktopReveal", "desktopGestures", "fullScreenSplitView",
                  "groupMergeSplit", "hostCrashRecovery") + LIFECYCLE_CHECKS
