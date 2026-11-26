@@ -12,6 +12,10 @@
 
 ## 验证状态
 
-上一轮运行时代码 `39dabc3` 的 [CI30](https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384) 全部通过，历史[截图](Documentation/Verification/2026-11-27-ui/README.md)仅对应 204/112pt 旧布局，不作为本轮验证。本轮需等待对应源码的原生编译、测试、更新后的布局截图、启动与空闲检查。
+上一轮运行时代码 `39dabc3` 的 [CI30](https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384) 全部通过，历史[截图](Documentation/Verification/2026-11-27-ui/README.md)仅对应 204/112pt 旧布局，不作为本轮验证。本轮源码 `ca361e9` 的[原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204) 已通过。
 
 本轮不扩展播放器、歌词服务、Nearpane 架构，不发布新版本。实际歌曲、鼠标交互、壁纸玻璃观感、侧栏联排及签名安装包仍待专项实机验收；已有安装基线 1.0.0（4）不变。详见[本机报告](Documentation/Verification/local-2026-11-26.md)与[界面实现](Documentation/UI_IMPLEMENTATION.md)。
+
+## 已安装构建 4 的发行候选
+
+11 月 27 日 03:20 完成八小时实机长稳。构建 4 在同一进程下记录 27,053 次观测，混合工况 CPU 均值为单核 0.65%，RSS 中位/峰值 33.80/118.42 MiB。该包内源码为 `3e83b5c`，早于本轮界面重做。App 与 DMG 均已公证，构建 2 至 4 的升级通过。正式公开发行仍缺 Spotify 已登录播放验收及在线歌词展示、缓存的适用授权依据。物理 DELL 和整机睡眠唤醒尚未实测。[长稳数据](Documentation/Verification/2026-11-26-local/eight-hour-runtime.json) · [Release 草稿](https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-97927bb5d7506543a099)

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "status": "MEASURED",
+  "mode": "mixed",
+  "durationSeconds": 28800.59751933301,
+  "samples": 27053,
+  "cpuMeanPercentOneCore": 0.6470004718158338,
+  "cpuMeasurementMethod": "aggregate CPU-time delta / actual monotonic observation interval; one core = 100%",
+  "cpuP95PercentOneCore": 1.878532448167278,
+  "rssMedianMiB": 33.796875,
+  "rssPeakMiB": 118.421875,
+  "processesExitedBetweenSamples": 6,
+  "longestSampleIntervalSeconds": 1.2406685840105638,
+  "cpuBudgetPercentOneCore": null,
+  "rssMedianBudgetMiB": 120,
+  "rssPeakBudgetMiB": 180,
+  "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result.",
+  "bundleVersion": "1.0.0",
+  "bundleBuild": 4,
+  "bundleCommit": "3e83b5cfaf944dd1bf51308918d96912cb7b615e",
+  "runtimeCommit": "8bc782ca2bed54e62ea3004e9e92c7706609804b",
+  "localWindow": "2026-11-26 19:20 to 2026-11-27 03:20 Asia/Shanghai (rounded to minute)",
+  "unchangedRootAtEverySample": true,
+  "traceSHA256": "c66b9b4f5987b3be5ddb72d412ec98208977555c0f6bc652cece3d0f21ca3851",
+  "usage": "Two real QQ pause/resume cycles through the installed panel, followed by ordinary background operation; no continuous eight-hour music playback is claimed.",
+  "physicalSleepWake": "Not verified",
+  "maximumSimultaneousProcesses": 3,
+  "hours": [
+    {
+      "hour": 1,
+      "samples": 3379,
+      "cpuMeanPercentOneCore": 0.7763,
+      "rssMedianMiB": 75.625,
+      "rssPeakMiB": 118.421875
+    },
+    {
+      "hour": 2,
+      "samples": 3379,
+      "cpuMeanPercentOneCore": 0.601,
+      "rssMedianMiB": 34.40625,
+      "rssPeakMiB": 46.78125
+    },
+    {
+      "hour": 3,
+      "samples": 3400,
+      "cpuMeanPercentOneCore": 0.5661,
+      "rssMedianMiB": 33.5,
+      "rssPeakMiB": 42.53125
+    },
+    {
+      "hour": 4,
+      "samples": 3387,
+      "cpuMeanPercentOneCore": 0.5904,
+      "rssMedianMiB": 30.203125,
+      "rssPeakMiB": 30.875
+    },
+    {
+      "hour": 5,
+      "samples": 3384,
+      "cpuMeanPercentOneCore": 0.5935,
+      "rssMedianMiB": 30.171875,
+      "rssPeakMiB": 30.484375
+    },
+    {
+      "hour": 6,
+      "samples": 3375,
+      "cpuMeanPercentOneCore": 0.6303,
+      "rssMedianMiB": 32.53125,
+      "rssPeakMiB": 32.609375
+    },
+    {
+      "hour": 7,
+      "samples": 3376,
+      "cpuMeanPercentOneCore": 0.7172,
+      "rssMedianMiB": 65.25,
+      "rssPeakMiB": 81.234375
+    },
+    {
+      "hour": 8,
+      "samples": 3373,
+      "cpuMeanPercentOneCore": 0.7011,
+      "rssMedianMiB": 62.296875,
+      "rssPeakMiB": 65.296875
+    }
+  ]
+}
