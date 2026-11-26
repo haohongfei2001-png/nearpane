@@ -90,6 +90,8 @@ bash Scripts/notarize-candidate.sh dist/LyricTile.app
 
 这些大写值是清楚标注的配置位置，不是可复制的真实凭据。缺少配置时继续使用候选渠道；不要伪造公证票据。`notarize-candidate.sh` 会保存 Apple 返回结果，验证 stapler/Gatekeeper，再生成已公证 ZIP/DMG。
 
+持有者签名构建默认使用此开发分支的 `Products/LyricTile/Updates/appcast.xml` 和专用公钥。渠道依赖该分支的可读性，维护者应保留其 URL。独立测试环境仍可成对指定自有 feed 和公钥。当前空目录表示暂无可安装更新；以后提高 build number，使用 Sparkle `sign_update --account com.holdsnow.lyrictile.updates.v1` 为最终已公证 ZIP 签名，再写入对应的 HTTPS 下载地址与签名。本机钥匙串保管专用私钥。
+
 用与包中公钥对应的真实 Sparkle `sign_update` 工具对最终 ZIP 签名，再用 `Scripts/write-appcast.py --help` 生成 appcast。序列化脚本只检查字段，不声称替你验证私钥归属；必须实际从一个旧签名构建升级到新构建，并验证错误签名被拒绝。无 feed 的候选会明确显示“尚未连接正式更新频道”。
 
 公开稳定发行前记录 LRCLIB API/歌词内容授权适用性、地域与署名条件；代码 BSD/MIT 许可不等于歌词/封面许可。当前包没有内置歌词数据库。此分支不自动创建公共 stable Release；后续发布沿用用户实际授权的渠道与持有者配置。

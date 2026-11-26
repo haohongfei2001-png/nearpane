@@ -14,6 +14,10 @@ p.add_argument("--commit", required=True)
 args = p.parse_args()
 feed = os.environ.get("LYRICTILE_UPDATE_FEED", "")
 key = os.environ.get("LYRICTILE_UPDATE_PUBLIC_KEY", "")
+if not (feed or key) and os.environ.get("LYRICTILE_SIGN_IDENTITY", "-") != "-":
+    feed = ("https://raw.githubusercontent.com/haohongfei2001-png/nearpane/"
+            "refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml")
+    key = "NjwCt0hsJ9Ps97gwa1ZQvHfaVkr69TN0JIjNi7E522w="
 if bool(feed) != bool(key):
     p.error("Update feed and Ed25519 public key must be configured together.")
 if feed:
@@ -39,6 +43,6 @@ info = {
     "SUEnableAutomaticChecks": False, "SUAutomaticallyUpdate": False,
 }
 if feed:
-    info.update(SUFeedURL=feed, SUPublicEDKey=key)
+    info.update(SUFeedURL=feed, SUPublicEDKey=key, SUVerifyUpdateBeforeExtraction=True)
 with open(args.output, "wb") as f:
     plistlib.dump(info, f, sort_keys=True)
