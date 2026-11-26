@@ -259,7 +259,10 @@ public final class LyricAppModel: ObservableObject {
         seekPreviewMS = playbackPositionMS
     }
     /// Withdrawal must not leave an unfinished drag ready to seek on reappearance.
-    public func cancelSeek() { seekSelection = nil; seekPreviewMS = nil }
+    public func cancelSeek() {
+        seekSelection = nil
+        if seekPreviewMS != nil { seekPreviewMS = nil }
+    }
     func previewSeek(to value: Double) {
         guard canSeek, let selection = seekSelection, isCurrent(selection), let durationMS,
               value.isFinite, value >= 0, value < Double(Int64.max) else { seekPreviewMS = nil; return }
