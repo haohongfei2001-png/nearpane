@@ -38,6 +38,26 @@ jobs:
           { sw_vers; uname -m; xcodebuild -version; swift --version; git rev-parse HEAD; } | tee dist/evidence/host.txt
           echo "LYRICTILE_ARCH=$(uname -m)" >> "$GITHUB_ENV"
           echo "LYRICTILE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+      - name: Resolve the pinned public packages
+        env:
+          LYRICTILE_PACKAGE_TOKEN: ${{ github.token }}
+        run: |
+          set +x
+          # Some hosted Git transports challenge even public clones. Use the
+          # existing read-only job token only for these two package URLs and
+          # only in this process; never persist credentials or rewrite remotes.
+          lyrictile_auth=$(printf 'x-access-token:%s' "$LYRICTILE_PACKAGE_TOKEN" | base64 | tr -d '\n')
+          printf '::add-mask::%s\n' "$lyrictile_auth"
+          lyrictile_config_count=${GIT_CONFIG_COUNT:-0}
+          [[ "$lyrictile_config_count" =~ ^[0-9]+$ ]]
+          for lyrictile_package in jpsim/Yams sparkle-project/Sparkle; do
+            export "GIT_CONFIG_KEY_${lyrictile_config_count}=http.https://github.com/${lyrictile_package}.git.extraheader"
+            export "GIT_CONFIG_VALUE_${lyrictile_config_count}=AUTHORIZATION: basic $lyrictile_auth"
+            lyrictile_config_count=$((lyrictile_config_count + 1))
+          done
+          export GIT_CONFIG_COUNT=$lyrictile_config_count
+          swift package resolve
+          git diff --exit-code -- Package.resolved
       - name: Compile the independent app and native host facade
         run: |
           set -o pipefail
@@ -75,3 +95,4 @@ jobs:
             Products/LyricTile/Package.resolved
           if-no-files-found: error
           retention-days: 30
+
