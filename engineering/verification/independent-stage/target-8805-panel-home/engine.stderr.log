@@ -1,0 +1,15 @@
+{"event":"spacesLaunchPlatform","phase":"complete","operation":0,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":0,"window":0,"closeIssued":0}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":1,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":0}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":0}
+{"event":"spacesLaunchHome","phase":"membership","window":121041,"memberships":[4],"currentOrdinary":[4]}
+{"event":"spacesLaunchHome","phase":"sample","window":121041,"confirmedHome":4,"previousHome":0,"deadlineReached":false,"twoMatchingHomes":false,"iteration":1,"elapsedMS":3,"reverseContains":true}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":0}
+{"event":"spacesLaunchHome","phase":"membership","window":121041,"memberships":[4],"currentOrdinary":[4]}
+{"event":"spacesLaunchHome","phase":"sample","window":121041,"confirmedHome":4,"previousHome":4,"deadlineReached":true,"twoMatchingHomes":true,"iteration":2,"elapsedMS":208,"reverseContains":true}
+{"event":"spacesLaunchEngine","phase":"panel-home","status":2,"detail":207,"window":121041,"home":0,"parking":0}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":0}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":0}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":3,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":1}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":1}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":121041,"closeIssued":1}
+{"event":"spacesLaunchEngine","phase":"finish-canary","status":0,"detail":200,"window":121041,"home":0,"parking":0}

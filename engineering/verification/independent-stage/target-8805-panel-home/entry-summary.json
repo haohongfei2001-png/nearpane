@@ -1,0 +1,191 @@
+{
+  "buildRunID": "pro-independent-stage",
+  "candidate": {
+    "status": "NOT_RUN"
+  },
+  "revision": "8805a3dbd22c44ff0f95a53476357b4dd45a2ef3",
+  "runtime": {
+    "R4ProductPath": "NOT_RUN",
+    "appExpose": "NOT_RUN",
+    "applicationExitLifecycle": "NOT_RUN",
+    "ciWorkspaceCleanup": null,
+    "ciWorkspaceCleanupBeforeFixtures": null,
+    "ciWorkspacePreparation": {
+      "reason": "notGitHubHostedAcceptance",
+      "status": "NOT_RUN"
+    },
+    "coldHiddenPreview": "NOT_RUN",
+    "desktopGestures": "NOT_RUN",
+    "engine": "BLOCKED",
+    "engineReceipt": {
+      "R4ProductPath": "NOT_RUN",
+      "checks": {
+        "cleanup": {
+          "scope": "all enrolled foreign windows on their original desktop; no owned Space remains",
+          "status": "PASS"
+        },
+        "crossAppGroup": {
+          "status": "NOT_RUN"
+        },
+        "focusRestore": {
+          "status": "NOT_RUN"
+        },
+        "foreignRoundTrip": {
+          "status": "NOT_RUN"
+        },
+        "initialVisibleBindings": {
+          "status": "NOT_RUN"
+        },
+        "initialYellowButton": {
+          "status": "NOT_RUN"
+        },
+        "launchCanary": {
+          "scope": "controller-owned panel only",
+          "status": "BLOCKED"
+        },
+        "repeatedSwitch": {
+          "status": "NOT_RUN"
+        },
+        "sameAppIndependent": {
+          "status": "NOT_RUN"
+        },
+        "yellowButton": {
+          "status": "NOT_RUN"
+        }
+      },
+      "cleanup": true,
+      "desktopGestures": "NOT_RUN",
+      "enrolledWindows": [
+        {
+          "attempted": false,
+          "birth": 1795720607133135,
+          "directory": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/FixtureA",
+          "executable": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+          "frame": [
+            120,
+            574,
+            250,
+            202
+          ],
+          "group": "5898D8F1-EFAB-43E3-B566-8EF3FE4CA7DD",
+          "hidden": false,
+          "index": 0,
+          "lifetime": "0C06DABF-507E-4D09-9C22-840E493A78B9",
+          "member": "08465592-55F7-4B34-9E7D-7711C4F530D8",
+          "number": 121027,
+          "pid": 41055
+        },
+        {
+          "attempted": false,
+          "birth": 1795720607133135,
+          "directory": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/FixtureA",
+          "executable": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+          "frame": [
+            400,
+            574,
+            250,
+            202
+          ],
+          "group": "E4E8348A-89FA-46BE-9E54-B6DF95865C52",
+          "hidden": false,
+          "index": 1,
+          "lifetime": "1A50702A-F69C-4726-B8DD-9DA7710432CB",
+          "member": "6B4AAB08-FE05-4E16-81E9-AFACB509FCF5",
+          "number": 121029,
+          "pid": 41055
+        },
+        {
+          "attempted": false,
+          "birth": 1795720608109265,
+          "directory": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/FixtureB",
+          "executable": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+          "frame": [
+            680,
+            574,
+            250,
+            202
+          ],
+          "group": "367A583E-B7B1-43AB-B373-D50E3718E5E5",
+          "hidden": false,
+          "index": 0,
+          "lifetime": "D7CC3445-EFE1-422F-B7FC-F82FE72A94E8",
+          "member": "398677AC-5770-4BF9-B59A-19E3FCF0CBE8",
+          "number": 121032,
+          "pid": 41060
+        }
+      ],
+      "fixtureFocusCommands": 1,
+      "foreignProcesses": true,
+      "fullScreenSplitView": "NOT_RUN",
+      "missionControl": "NOT_RUN",
+      "nonce": "2b39b92b-f484-4f34-91c5-056cdf0b5082",
+      "operationReason": "candidateCanaryNotConfirmed",
+      "operationStatus": "BLOCKED",
+      "ordinaryHome": 4,
+      "originalSpaceInventory": [
+        4,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        6628,
+        6629
+      ],
+      "qualificationGranted": false,
+      "reason": "candidateCanaryNotConfirmed",
+      "schema": 1,
+      "setupAXWrites": 2,
+      "status": "BLOCKED",
+      "targetEnvironment": {
+        "exactTarget": true,
+        "kernelBuild": "26A428",
+        "sipEnabled": true
+      },
+      "windowWrites": 0,
+      "windowWritesScope": "engine hide/restore request attempts, including rejected or unverified requests"
+    },
+    "exactTargetEngine": "NOT_PROVEN",
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "fullScreenSplitView": "NOT_RUN",
+    "groupMergeSplit": "NOT_RUN",
+    "hostCrashRecovery": "NOT_RUN",
+    "missionControl": "NOT_RUN",
+    "nativeDesktopReveal": "NOT_RUN",
+    "nativeDesktopSwitch": "NOT_RUN",
+    "nativeFullScreen": "NOT_RUN",
+    "newWindowLifecycle": "NOT_RUN",
+    "overall": "INCOMPLETE",
+    "platformDiagnosticReceipt": null,
+    "platformForeignMechanism": "NOT_RUN",
+    "productReceipt": null,
+    "qualificationGranted": false,
+    "schema": 1,
+    "windowCloseLifecycle": "NOT_RUN",
+    "yellowButtonRouting": "NOT_RUN"
+  },
+  "schema": 1,
+  "source": "NOT_RUN",
+  "toolchain": {
+    "cargo": "/Users/hhf/Documents/GitHub/nearpane/build/window-engine/toolchain/portable/bin/cargo",
+    "source": "PATH",
+    "status": "AVAILABLE"
+  }
+}

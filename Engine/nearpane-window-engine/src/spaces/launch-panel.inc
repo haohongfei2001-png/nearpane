@@ -253,11 +253,20 @@ int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard gua
     NPSpacesLaunchToken *token=(__bridge NPSpacesLaunchToken *)handle;
     NPSpacesMainCall *call=[NPSpacesMainCall new];atomic_init(&call->expired,false);
     dispatch_semaphore_t done=dispatch_semaphore_create(0);
+    double enqueued=CACurrentMediaTime();
     void (^perform)(void)=^{
         @autoreleasepool {
+            double entered=CACurrentMediaTime();
             @try {call->result=panelCall(token,op,call,ctx,guard);}
             @catch(NSException *e) {call->result=launchTrace(token,op,0,"exception");}
-            @finally {if(ctx && release)release(ctx);dispatch_semaphore_signal(done);}
+            @finally {
+                if(getenv("NP_SPACES_LAUNCH_TRACE")) {
+                    fprintf(stderr,"{\"event\":\"spacesLaunchScheduling\",\"operation\":%u,\"result\":%d,\"mainQueueMS\":%.3f,\"panelCallMS\":%.3f}\n",
+                        op,call->result,(entered-enqueued)*1000,(CACurrentMediaTime()-entered)*1000);
+                    fflush(stderr);
+                }
+                if(ctx && release)release(ctx);dispatch_semaphore_signal(done);
+            }
         }
     };
     if(NSThread.isMainThread)perform();else dispatch_async(dispatch_get_main_queue(),perform);

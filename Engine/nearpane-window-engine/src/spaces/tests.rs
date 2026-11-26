@@ -45,6 +45,7 @@ struct Fake {
     opened_probe: bool,
     initial_empty_memberships: Cell<u32>,
     ambiguous_panel_membership: bool,
+    probe_read_costs: VecDeque<Duration>,
     defer_probe_close: bool,
     cg_keeps_closed_probe: bool,
     probe_absence_failures: Cell<u32>,
@@ -231,6 +232,10 @@ impl Platform for Fake {
     }
     fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
         let n = 77;
+        if op == launch::PanelOp::Read {
+            let cost = self.probe_read_costs.pop_front().unwrap_or_default();
+            self.wait(cost);
+        }
         if op == launch::PanelOp::Open {
             guard.active()?;
             if self.opened_probe {
@@ -1114,6 +1119,52 @@ fn macos_pulling_an_unminimized_window_home_is_never_reported_as_hidden() {
     assert_eq!((released.status, released.owned), (PASS, 0));
     assert!(s.slots.is_empty());
     assert_eq!(s.sys.windows[&1].1, 10);
+}
+
+#[test]
+fn initial_home_observations_have_a_budget_separate_from_space_move_acknowledgement() {
+    for (cost, empty, should_move) in [(200, 0, true), (200, 1, true), (300, 1, false)] {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        s.sys.initial_empty_memberships.set(empty);
+        // Charge the actual synchronous observation cost, including a first
+        // empty registration where present. No write is repeated.
+        s.sys.probe_read_costs = vec![Duration::from_millis(cost); empty as usize + 2].into();
+        let began = s.sys.now();
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert!(s.sys.now() - began > DEADLINE);
+        assert_eq!(s.sys.probe_closes, 1);
+        assert_eq!(result.owned, 0);
+        if should_move {
+            assert_eq!(result.status, PASS);
+            assert_eq!(s.sys.moved, vec![(Route::Bridge, 77, 101, 7), (Route::Bridge, 77, 10, 15)]);
+            assert_eq!(s.sys.destroyed, vec![101]);
+            assert_eq!(s.route, Some(Route::Bridge));
+        } else {
+            // Even two positive final reads cannot qualify when their total
+            // observation exceeds the dedicated initial-discovery deadline.
+            assert_eq!((result.status, result.detail), (UNKNOWN, Why::Membership as u32));
+            assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+            assert_eq!(s.sys.next, 100);
+        }
+        assert_eq!(s.sys.spaces, Rows::from([10]));
+    }
+}
+
+#[test]
+fn unknown_or_ambiguous_initial_home_never_creates_a_space() {
+    for (empty, ambiguous) in [(u32::MAX, false), (0, true)] {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        s.sys.initial_empty_memberships.set(empty);
+        s.sys.ambiguous_panel_membership = ambiguous;
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!((result.status, result.detail, result.owned), (UNKNOWN, Why::Membership as u32, 0));
+        assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+        assert_eq!(s.sys.next, 100);
+        assert_eq!(s.sys.probe_closes, 1);
+        assert_eq!(s.sys.spaces, Rows::from([10]));
+    }
 }
 
 #[test]

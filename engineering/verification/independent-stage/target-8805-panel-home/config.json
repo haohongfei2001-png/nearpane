@@ -1,0 +1,71 @@
+{
+  "fixtures": [
+    {
+      "birth": 1795720607133135,
+      "directory": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/FixtureA",
+      "executable": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "pid": 41055,
+      "windows": [
+        {
+          "frame": [
+            120,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 121027,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        },
+        {
+          "frame": [
+            400,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 1,
+          "key": false,
+          "miniaturized": false,
+          "number": 121029,
+          "text": "Fixture 1 / ready",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "birth": 1795720608109265,
+      "directory": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/FixtureB",
+      "executable": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "pid": 41060,
+      "windows": [
+        {
+          "frame": [
+            680,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 121032,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        }
+      ]
+    }
+  ],
+  "iterations": 3,
+  "nonce": "2b39b92b-f484-4f34-91c5-056cdf0b5082",
+  "output": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime",
+  "r4Controller": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/Controller.app/Contents/MacOS/Controller",
+  "schema": 1,
+  "systemHelper": "/private/tmp/nearpane-independent-8805-runtime-20261127-b/runtime/kit/SplitViewHelper"
+}

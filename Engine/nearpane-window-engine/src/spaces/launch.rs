@@ -3,6 +3,11 @@
 // The request names no user window. The retained canary and original inventory also govern recovery.
 use super::*;
 
+// Initial home discovery includes two main-queue AppKit/focus observations,
+// each bounded to 300 ms by np_stage_launch_call, plus Space readback. It is
+// not the 120 ms acknowledgement deadline for an already-issued Space move.
+const HOME_DISCOVERY_BUDGET: Duration = Duration::from_millis(650);
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 #[repr(u32)]
 pub(super) enum PanelOp {
@@ -65,13 +70,16 @@ fn trace_result(phase: &str, result: &Check<()>, run: Option<&CanaryRun>) {
 impl<P: Platform> State<P> {
     fn panel_home(&mut self, c: i32, window: Window, a: &impl Authority) -> Check<Home> {
         let started = self.sys.now();
-        let deadline = started + DEADLINE;
+        let deadline = started + HOME_DISCOVERY_BUDGET;
         let mut previous = None;
         let mut iteration = 0u32;
+        let mut waited = Duration::ZERO;
         loop {
             iteration += 1;
             a.active()?;
+            let panel_began = self.sys.now();
             let panel = self.sys.canary(PanelOp::Read, a)?;
+            let panel_read = self.sys.now();
             if panel.window() != Some(window) || panel.registered != 1 || panel.focus_same != 1 {
                 return Err(unknown(Why::ProbeFocus));
             }
@@ -113,9 +121,11 @@ impl<P: Platform> State<P> {
             let now = self.sys.now();
             let expired = now >= deadline;
             if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
-                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"sample\",\"window\":{},\"confirmedHome\":{},\"previousHome\":{},\"deadlineReached\":{},\"twoMatchingHomes\":{},\"iteration\":{},\"elapsedMS\":{},\"reverseContains\":{}}}",
+                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"sample\",\"window\":{},\"confirmedHome\":{},\"previousHome\":{},\"deadlineReached\":{},\"twoMatchingHomes\":{},\"iteration\":{},\"elapsedMS\":{},\"budgetMS\":{},\"waitMS\":{},\"panelReadMS\":{},\"systemReadMS\":{},\"reverseContains\":{}}}",
                     window.number,confirmed.map_or(0,|h|h.id),previous.map_or(0,|h:Home|h.id),expired,
                     confirmed.is_some() && confirmed==previous,iteration,now.saturating_duration_since(started).as_millis(),
+                    HOME_DISCOVERY_BUDGET.as_millis(),waited.as_millis(),panel_read.saturating_duration_since(panel_began).as_millis(),
+                    now.saturating_duration_since(panel_read).as_millis(),
                     reverse_contains.map_or("null".to_owned(),|value|value.to_string()));
             }
             if expired {
@@ -128,7 +138,9 @@ impl<P: Platform> State<P> {
                 return Ok(second);
             }
             previous = confirmed;
+            let wait_began = self.sys.now();
             self.sys.wait(Duration::from_millis(4));
+            waited = self.sys.now().saturating_duration_since(wait_began);
         }
     }
 
