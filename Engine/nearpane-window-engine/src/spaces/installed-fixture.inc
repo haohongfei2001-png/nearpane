@@ -35,6 +35,7 @@ typedef struct {
   pid_t front;
   uint64_t frontBirth;
   uint32_t frontWindow;
+  AXUIElementRef frontDesktopFocus;
   uint32_t counters[hidCount];
   SecuritySessionId session;
   AXUIElementRef document;
@@ -56,6 +57,8 @@ typedef struct {
   return self;
 }
 - (void)dealloc {
+  if (frontDesktopFocus)
+    CFRelease(frontDesktopFocus);
   if (document)
     CFRelease(document);
   if (channel >= 0)
@@ -316,8 +319,13 @@ uint32_t np_stage_fixture_guard(void *token, uint32_t committing) {
       pid_t pid = 0;
       uint64_t started = 0;
       uint32_t window = 0;
-      if (!readFocus(&pid, &started, &window) || pid != s->front ||
-          started != s->frontBirth || window != s->frontWindow)
+      AXUIElementRef desktop = NULL;
+      BOOL sameFocus = readFocus(&pid, &started, &window, &desktop) && pid == s->front &&
+          started == s->frontBirth && window == s->frontWindow &&
+          ((!s->frontDesktopFocus && !desktop) ||
+           (s->frontDesktopFocus && desktop && CFEqual(s->frontDesktopFocus, desktop)));
+      if (desktop) CFRelease(desktop);
+      if (!sameFocus)
         return 9;
       if (!s->panelOnly && (birth(s->subject.pid) != s->subject.birth || !fixtureImagePath(s) ||
           (committing && !signedFixture(s))))
@@ -462,7 +470,7 @@ void *np_stage_fixture_enroll(const uint8_t nonce[16], uint32_t panelOnly, NPIns
         return NULL;
       }
       *reason = 9;
-      if (!readFocus(&s->front, &s->frontBirth, &s->frontWindow) ||
+      if (!readFocus(&s->front, &s->frontBirth, &s->frontWindow, &s->frontDesktopFocus) ||
           s->front == getpid() || s->front == s->subject.pid)
         return NULL;
       for (unsigned j = 0; j < hidCount; j++)
