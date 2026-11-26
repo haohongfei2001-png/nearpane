@@ -2,7 +2,17 @@ name: LyricTile independent macOS candidate
 on:
   push:
     branches: ['codex/lyrictile-*']
-    paths: ['Products/LyricTile/**', '.github/workflows/lyrictile.yml']
+    paths:
+      - '.github/workflows/lyrictile.yml'
+      - 'Products/LyricTile/Package.swift'
+      - 'Products/LyricTile/Package.resolved'
+      - 'Products/LyricTile/Sources/**'
+      - 'Products/LyricTile/Tests/**'
+      - 'Products/LyricTile/Scripts/**'
+      - 'Products/LyricTile/Packaging/**'
+      - 'Products/LyricTile/Resources/**'
+      - 'Products/LyricTile/Vendor/**'
+      - 'Products/LyricTile/Documentation/THIRD_PARTY_NOTICES.md'
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,7 +60,7 @@ jobs:
         run: python3 Scripts/verify-media-helper.py dist/LyricTile.app/Contents/Resources/MediaRemote --output dist/evidence/media-helper-load.json
       - name: Measure the ordinary candidate at idle on this host
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
-        run: python3 Scripts/check-idle-runtime.py dist/LyricTile.app --output dist/evidence/idle --seconds 60
+        run: python3 Scripts/check-idle-runtime.py dist/LyricTile.app --output dist/evidence/idle --seconds 120
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

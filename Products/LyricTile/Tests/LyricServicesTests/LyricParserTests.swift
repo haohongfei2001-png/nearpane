@@ -65,6 +65,15 @@ struct LyricParserTests {
         for input in bad { #expect(throws: (any Error).self) { try ServiceFixture.parse(input, .ttmlAppleAMLL) } }
     }
 
+    @Test func ttmlBuiltinEntitiesAndExplicitLineBreaksRemainActualText() throws {
+        let xml = "<tt><body><p begin='1s' end='3s'><span begin='1s' end='3s'>A &amp; B<br/>C</span></p></body></tt>"
+        let document = try ServiceFixture.parse(xml, .ttmlAppleAMLL)
+        let cue = try #require(document.lanes.first?.cues.first)
+        #expect(cue.text == "A & B\nC")
+        #expect(cue.tokens.count == 1)
+        #expect(cue.tokens[0].text == cue.text)
+    }
+
     @Test func lyricsfileIsStrictVersionedYAMLAndUnknownOffsetRemainsUnknown() throws {
         let document = try ServiceFixture.parse(ServiceFixture.lyricsfile, .lyricsfileV1Draft)
         #expect(document.timingLevel == .token)
@@ -118,6 +127,46 @@ struct LyricParserTests {
         let yrc = try ServiceFixture.parse("[1000,2000](1000,1000,0)握(2000,1000,0)雪", .yrcPlaintext)
         #expect(qrc.lanes[0].cues[0].text == "握雪")
         #expect(yrc.lanes[0].cues[0].tokens.map(\.sourceEndMS) == [2_000, 3_000])
+    }
+
+    @Test func yamlPlainQuotesCannotHideAnchorsOrComplexKeysFromTheSafetyPass() throws {
+        let plainQuote = """
+        version: '1.0'
+        metadata: {title: Test, artist: Test}
+        plain: Words with a " literal quote and [annotation]
+        """
+        let document = try ServiceFixture.parse(plainQuote, .lyricsfileV1Draft)
+        #expect(document.timingLevel == .none)
+        let JSONStyle = #"{"version":"1.0","metadata":{"title":"Test","artist":"Test"},"plain":"Original"}"#
+        let jsonDocument = try ServiceFixture.parse(JSONStyle, .lyricsfileV1Draft)
+        #expect(jsonDocument.timingLevel == .none)
+        let dangerous = [
+            plainQuote + "\nunknown: &a [x]\nother: &b [*a, *a]\n? [*b, *b]\n: unsafe",
+            """
+            version: '1.0'
+            metadata: {title: Test, artist: Test}
+            unknown: {text: plain
+              " literal quote
+               , a: &a [x], b: &b [*a, *a]}
+            plain: 'Original " text'
+            """,
+            #"{"version":"1.0","metadata":{"title":"Test","artist":"Test"},"unknown":&a [x],"plain":"Original"}"#,
+            "version: '1.0'\nmetadata: {title: Test, artist: Test}\nunknown: {[one, two]: value}\nplain: Original"
+        ]
+        for input in dangerous {
+            #expect(throws: (any Error).self) { try ServiceFixture.parse(input, .lyricsfileV1Draft) }
+        }
+    }
+
+    @Test func lrcxAttachmentExpansionChecksTheGlobalCueBudgetBeforeAllocating() {
+        let repeated = String(repeating: "[00:01]原创测试\n", count: 10_000) + "[00:01][tr:en]Original annotation"
+        do {
+            _ = try ServiceFixture.parse(repeated, .lrcx)
+            Issue.record("Expanded annotations must obey the same 10,000-cue limit.")
+        } catch let error as LyricDomain.SourceFailure {
+            if case let .invalidDocument(reason) = error { #expect(reason == "Too many expanded LRC cues.") }
+            else { Issue.record("Unexpected failure: \(error)") }
+        } catch { Issue.record("Unexpected failure: \(error)") }
     }
 }
 

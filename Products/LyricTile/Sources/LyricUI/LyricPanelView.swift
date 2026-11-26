@@ -103,12 +103,8 @@ public struct LyricPanelView: View {
                 .accessibilityHidden(!model.controlsVisible)
             }
             HStack(spacing: 6) {
-                if model.browsedCueIndex != nil {
-                    Button("回到当前句") { model.returnToCurrent() }.buttonStyle(.plain).font(.system(size: 11))
-                } else {
-                    Circle().fill(secondary.opacity(0.65)).frame(width: 4, height: 4)
-                    Text(model.sourceCaption).font(.system(size: 10))
-                }
+                Circle().fill(secondary.opacity(0.65)).frame(width: 4, height: 4)
+                Text(model.sourceCaption).font(.system(size: 10))
             }
             .foregroundStyle(secondary).offset(x: 18, y: max(0, height - 30))
             .opacity(model.controlsVisible ? 0 : 1).allowsHitTesting(!model.controlsVisible)
@@ -156,7 +152,11 @@ public struct LyricPanelView: View {
             }
             .frame(height: model.settings.largeText ? 87 : 81).padding(.horizontal, 17).offset(y: 87)
             .animation(.timingCurve(0.22, 0.72, 0.18, 1, duration: reduceMotion ? 0.12 : 0.22), value: cue.id)
-            if !model.settings.largeText {
+            if model.browsedCueIndex != nil {
+                Button("回到当前句") { model.returnToCurrent() }.buttonStyle(.plain)
+                    .font(.system(size: 11)).foregroundStyle(secondary)
+                    .padding(.horizontal, 17).offset(y: 175)
+            } else if !model.settings.largeText {
                 let text = model.actionMessage ?? model.translationText ?? model.backgroundText ?? model.nextText
                 if let text {
                     Text(text).font(.system(size: model.translationText == nil ? 12 : 11)).foregroundStyle(secondary)
@@ -186,11 +186,12 @@ public struct LyricPanelView: View {
                         .font(.system(size: 11)).foregroundStyle(primary)
                 }.padding(.horizontal, 17).offset(y: 85)
             case .positionUnavailable:
-                emptyState(title: model.snapshot.anchor?.quality == .stale ? "正在重新连接\n播放器" : "此播放器\n暂不提供进度",
-                           detail: model.document == nil ? model.snapshot.statusMessage : "可打开完整歌词阅读")
+                emptyState(title: model.snapshot.statusMessage ?? (model.snapshot.anchor?.quality == .stale ? "正在重新连接\n播放器" : "此播放器\n暂不提供进度"),
+                           detail: model.document == nil ? nil : "可打开完整歌词阅读")
                     .offset(y: 84)
             case .noPlayback:
-                emptyState(title: "等一首歌", detail: "照常使用你喜欢的播放器").offset(y: 88)
+                emptyState(title: model.snapshot.statusMessage ?? "等一首歌",
+                           detail: model.snapshot.statusMessage == nil ? "照常使用你喜欢的播放器" : nil).offset(y: 88)
             case .syncedLine, .syncedToken, .plainText:
                 emptyState(title: "等待下一句", detail: nil).offset(y: 88)
             }

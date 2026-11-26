@@ -148,8 +148,12 @@ enum LyricsfileReader {
 private enum YAMLPreflight {
     static func check(_ source: String) throws {
         var quote: UInt8?
+        var quoteIndent = 0
         var escaped = false
         var flowDepth = 0
+        var continuedFlowScalar = false
+        var continuedClosedCollection = false
+        var continuedClosedQuote = false
         var indentStack = [0]
         var blockIndent: Int?
         for line in source.split(separator: "\n", omittingEmptySubsequences: false) {
@@ -157,6 +161,11 @@ private enum YAMLPreflight {
             let indent = bytes.prefix { $0 == 32 }.count
             let trimmed = String(line).trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty { continue }
+            if let currentQuote = quote, indent <= quoteIndent, bytes.dropFirst(indent).first != currentQuote {
+                // Limit the accepted profile to indented quoted continuations. This also prevents
+                // a quote inside a YAML plain continuation from hiding a later structural line.
+                throw invalid("Multiline quoted YAML must be indented, or use a block scalar.")
+            }
             if let block = blockIndent {
                 if indent > block { continue }
                 blockIndent = nil
@@ -175,6 +184,9 @@ private enum YAMLPreflight {
             }
             var index = 0
             var visible = ""
+            var scalarStarted = quote != nil || (flowDepth > 0 && continuedFlowScalar)
+            var closedCollection = continuedClosedCollection
+            var closedQuote = continuedClosedQuote
             while index < bytes.count {
                 let byte = bytes[index]
                 if let currentQuote = quote {
@@ -185,28 +197,60 @@ private enum YAMLPreflight {
                             index += 2; continue
                         }
                         quote = nil
+                        scalarStarted = true
+                        closedQuote = true
                     }
                     index += 1; continue
                 }
-                let boundary = index == 0 || [UInt8(32), 9, 58, 44, 91, 123, 45].contains(bytes[index - 1])
                 if byte == 35 && (index == 0 || bytes[index - 1] == 32 || bytes[index - 1] == 9) { break }
-                if (byte == 34 || byte == 39) && boundary { quote = byte; index += 1; continue }
-                if (byte == 38 || byte == 42) && boundary && index + 1 < bytes.count,
-                   ![UInt8(32), 9, 44, 93, 125].contains(bytes[index + 1]) {
-                    throw invalid("YAML anchors and aliases are disabled; quote literal text containing these tokens.")
+                if byte == 32 || byte == 9 || byte == 13 { visible.append(" "); index += 1; continue }
+                if (byte == 34 || byte == 39) && !scalarStarted {
+                    quote = byte; quoteIndent = indent; closedQuote = false; index += 1; continue
                 }
-                if byte == 91 || byte == 123 { flowDepth += 1 }
-                if byte == 93 || byte == 125 { flowDepth -= 1 }
-                guard flowDepth >= 0, flowDepth + indentStack.count <= ParserLimits.depth else {
+                if (byte == 38 || byte == 42) && !scalarStarted && index + 1 < bytes.count,
+                   ![UInt8(32), 9, 44, 93, 125].contains(bytes[index + 1]) {
+                    throw invalid("YAML anchors and aliases are disabled.")
+                }
+                let followedBySpace = index + 1 == bytes.count || [UInt8(32), 9, 13].contains(bytes[index + 1])
+                if byte == 63 && !scalarStarted && followedBySpace { throw invalid("Complex YAML keys are unsupported.") }
+                if byte == 33 && !scalarStarted {
+                    // Tags qualify the next node; they must not conceal an anchor from this pass.
+                    let start = index
+                    while index < bytes.count && ![UInt8(32), 9, 13].contains(bytes[index]) { index += 1 }
+                    let tag = String(decoding: bytes[start..<index], as: UTF8.self)
+                    let allowed = ["!!str", "!!int", "!!bool", "!!null", "!!map", "!!seq"]
+                    guard allowed.contains(tag) else { throw invalid("Unsupported YAML tag.") }
+                    continue
+                }
+                if (byte == 91 || byte == 123) && !scalarStarted {
+                    flowDepth += 1; closedCollection = false
+                } else if (byte == 93 || byte == 125) && flowDepth > 0 {
+                    flowDepth -= 1; scalarStarted = true; closedCollection = true
+                } else if byte == 44 && flowDepth > 0 {
+                    scalarStarted = false; closedCollection = false
+                } else if byte == 58 && (followedBySpace || flowDepth > 0 && (!scalarStarted || closedQuote) || closedCollection) {
+                    guard !closedCollection else { throw invalid("YAML collection keys are unsupported.") }
+                    scalarStarted = false
+                } else if byte == 45 && !scalarStarted && followedBySpace {
+                    closedCollection = false
+                } else {
+                    scalarStarted = true; closedCollection = false
+                }
+                closedQuote = false
+                guard flowDepth + indentStack.count <= ParserLimits.depth else {
                     throw invalid("YAML flow nesting limit exceeded.")
                 }
                 if byte < 128 { visible.append(Character(UnicodeScalar(byte))) }
                 index += 1
             }
+            continuedFlowScalar = flowDepth > 0 && scalarStarted
+            continuedClosedCollection = closedCollection
+            continuedClosedQuote = closedQuote
             if quote == nil && flowDepth == 0,
                visible.range(of: #"(^|[:\-]\s*)[|>][1-9+\-]*\s*$"#, options: .regularExpression) != nil {
                 blockIndent = indent
             }
         }
+        guard quote == nil, flowDepth == 0 else { throw invalid("Unterminated YAML scalar or container.") }
     }
 }

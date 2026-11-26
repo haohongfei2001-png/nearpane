@@ -71,7 +71,7 @@ struct ParsedLyrics {
                     utf16Offset += String(character).utf16.count
                     boundaries.insert(utf16Offset)
                 }
-                let utf16Text = cue.text as NSString
+                let utf16Units = Array(cue.text.utf16)
                 for token in cue.tokens {
                     tokenCount += 1
                     guard tokenCount <= ParserLimits.tokens, tokenIDs.insert(token.id).inserted else {
@@ -82,7 +82,7 @@ struct ParsedLyrics {
                     let end = range.location.addingReportingOverflow(range.length)
                     guard range.location >= 0, range.length >= 0, !end.overflow,
                           boundaries.contains(range.location), boundaries.contains(end.partialValue),
-                          utf16Text.substring(with: NSRange(location: range.location, length: range.length)) == token.text else {
+                          utf16Units[range.location..<end.partialValue].elementsEqual(token.text.utf16) else {
                         throw invalid("A token does not match complete Unicode graphemes in its line.")
                     }
                     if let cueStart = cue.sourceStartMS, token.sourceStartMS < cueStart {

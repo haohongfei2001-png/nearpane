@@ -24,6 +24,7 @@ struct LyricSongMenu: NSViewRepresentable {
     }
     func updateNSView(_ button: NSButton, context: Context) {
         button.title = model.title
+        button.isEnabled = model.snapshot.selection != nil
         button.contentTintColor = LyricPalette.primary(dark: dark)
         button.setAccessibilityLabel("歌曲菜单，\(model.title)")
         button.toolTip = "选择歌词版本、调整时间或导入歌词"

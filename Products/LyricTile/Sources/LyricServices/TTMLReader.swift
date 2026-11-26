@@ -149,7 +149,7 @@ enum TTMLReader {
             case let .text(text): builder.append(text, timing: timing)
             case let .child(child):
                 guard child.namespace.isEmpty || child.namespace == "http://www.w3.org/ns/ttml" else { continue }
-                if child.name == "br" { builder.append("\n", timing: timing); continue }
+                if child.name == "br" { builder.append("\n", timing: timing, explicitLineBreak: true); continue }
                 guard child.name == "span" else { continue }
                 if let role = laneKind(child), role != builder.kind {
                     let ownTimes = try times(child)
@@ -170,6 +170,13 @@ enum TTMLReader {
         var stableID: String { "\(kind.rawValue):\(language ?? "und"):\(agent ?? "main")" }
     }
     private final class CueBuilder {
+        struct Fragment {
+            var text: String
+            let offset: Int
+            var length: Int
+            let start: Int64
+            let end: Int64?
+        }
         let kind: LyricDomain.LaneKind
         let language: String?
         let agent: String?
@@ -178,29 +185,43 @@ enum TTMLReader {
         let preserveSpace: Bool
         var text = ""
         var textUTF16Count = 0
-        var fragments: [(text: String, offset: Int, start: Int64, end: Int64?)] = []
+        var fragments: [Fragment] = []
         var key: LaneKey { .init(kind: kind, language: language, agent: agent) }
         init(kind: LyricDomain.LaneKind, language: String?, agent: String?, start: Int64?, end: Int64?, preserveSpace: Bool) {
             self.kind = kind; self.language = language; self.agent = agent
             self.start = start; self.end = end; self.preserveSpace = preserveSpace
         }
-        func append(_ raw: String, timing: (start: Int64, end: Int64?)?) {
+        func append(_ raw: String, timing: (start: Int64, end: Int64?)?, explicitLineBreak: Bool = false) {
             var value = raw
-            if !preserveSpace {
+            if !preserveSpace && !explicitLineBreak {
                 // Pretty-print indentation is not a lyric. An explicit single space is retained.
                 if value.contains("\n") && value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
-                value = value.replacingOccurrences(of: "[\\t\\r\\n ]+", with: " ", options: .regularExpression)
+                var collapsed = ""
+                var previousSpace = false
+                for character in value {
+                    let whitespace = character == " " || character == "\t" || character == "\r" || character == "\n"
+                    if whitespace {
+                        if !previousSpace { collapsed.append(" ") }
+                    } else { collapsed.append(character) }
+                    previousSpace = whitespace
+                }
+                value = collapsed
                 if text.hasSuffix(" "), value.hasPrefix(" ") { value.removeFirst() }
             }
             guard !value.isEmpty else { return }
             let offset = textUTF16Count
+            let length = value.utf16.count
             text += value
-            textUTF16Count += value.utf16.count
+            textUTF16Count += length
             if let timing {
-                if let last = fragments.last, last.start == timing.start, last.end == timing.end,
-                   last.offset + last.text.utf16.count == offset {
-                    fragments[fragments.count - 1].text += value
-                } else { fragments.append((value, offset, timing.start, timing.end)) }
+                if let index = fragments.indices.last,
+                   fragments[index].start == timing.start, fragments[index].end == timing.end,
+                   fragments[index].offset + fragments[index].length == offset {
+                    fragments[index].text += value
+                    fragments[index].length += length
+                } else {
+                    fragments.append(.init(text: value, offset: offset, length: length, start: timing.start, end: timing.end))
+                }
             }
         }
         func finish(id: String, linked: String?) throws -> LyricDomain.Cue? {
@@ -212,9 +233,10 @@ enum TTMLReader {
             }()
             var tokens: [LyricDomain.Token] = []
             let utf16Text = trimmed as NSString
+            let trimmedLength = utf16Text.length
             for (index, fragment) in fragments.enumerated() {
                 let low = max(prefix, fragment.offset)
-                let high = min(prefix + trimmed.utf16.count, fragment.offset + fragment.text.utf16.count)
+                let high = min(prefix + trimmedLength, fragment.offset + fragment.length)
                 guard high > low else { continue }
                 let range = NSRange(location: low - prefix, length: high - low)
                 tokens.append(.init(id: "\(id)-w\(index)", text: utf16Text.substring(with: range),

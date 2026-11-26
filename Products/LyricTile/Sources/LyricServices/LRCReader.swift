@@ -16,6 +16,7 @@ enum LRCReader {
         var extras: [String: [LyricDomain.Cue]] = [:]
         var attachments: [Attachment] = []
         var tokenBudget = 0
+        var cueBudget = 0
         var timing = LyricDomain.SourceTiming(sourceAdvanceMS: 0, interpretation: .absent, rawOffset: nil)
         for (rowNumber, row) in rows.enumerated() {
             var remaining = row[...]
@@ -51,7 +52,8 @@ enum LRCReader {
             }
             let enhanced = try enhancedSegments(lyricText)
             for (occurrence, stamp) in timestamps.enumerated() {
-                guard cues.count < ParserLimits.cues else { throw invalid("Too many LRC cues.") }
+                cueBudget += 1
+                guard cueBudget <= ParserLimits.cues else { throw invalid("Too many expanded LRC cues.") }
                 tokenBudget += enhanced.tokens.count
                 guard tokenBudget <= ParserLimits.tokens else { throw invalid("Repeated LRC timestamps expand to too many tokens.") }
                 let cueID = "lrc-\(rowNumber)-\(occurrence)"
@@ -66,14 +68,24 @@ enum LRCReader {
                 cues.append(.init(id: cueID, text: enhanced.text, sourceStartMS: stamp,
                                   sourceEndMS: end, tokens: tokens, linkedCueID: nil, agentID: nil))
                 if let translation = inlineTranslation, !translation.isEmpty {
+                    cueBudget += 1
+                    guard cueBudget <= ParserLimits.cues else { throw invalid("Too many expanded LRC cues.") }
                     extras["tr", default: []].append(.init(id: "\(cueID)-tr", text: translation,
                         sourceStartMS: stamp, sourceEndMS: end, tokens: [], linkedCueID: cueID, agentID: nil))
                 }
             }
         }
         guard !cues.isEmpty else { throw invalid("No valid LRC timestamps were found.") }
+        var cueIndexes: [Int64: [Int]] = [:]
+        for index in cues.indices {
+            if let time = cues[index].sourceStartMS { cueIndexes[time, default: []].append(index) }
+        }
+        var attachmentApplications = 0
         for (attachmentIndex, attachment) in attachments.enumerated() {
-            for index in cues.indices where attachment.timestamps.contains(cues[index].sourceStartMS ?? -1) {
+            let indexes = Set(attachment.timestamps).sorted().flatMap { cueIndexes[$0, default: []] }
+            for index in indexes {
+                attachmentApplications += 1
+                guard attachmentApplications <= ParserLimits.tokens else { throw invalid("Too many expanded LRCX attachments.") }
                 let cue = cues[index]
                 if attachment.tag == "tt" {
                     let attached = try attachWordBoundaries(attachment.body, to: cue)
@@ -81,6 +93,8 @@ enum LRCReader {
                     guard tokenBudget <= ParserLimits.tokens else { throw invalid("Too many LRCX tokens.") }
                     cues[index] = attached
                 } else {
+                    cueBudget += 1
+                    guard cueBudget <= ParserLimits.cues else { throw invalid("Too many expanded LRC cues.") }
                     let body: String
                     if attachment.tag == "ro" || attachment.tag == "fu" {
                         body = try rangeAttachmentText(attachment.body, cue: cue)

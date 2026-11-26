@@ -44,7 +44,7 @@ def sample():
         children=new
     return {pid:rows[pid] for pid in children if pid in rows}
 start=time.monotonic(); previous=sample(); previous_time=start
-rss=[]; cpu=[]; disappeared=set(); complete=False
+rss=[]; cpu=[]; disappeared=set(); complete=False; cumulative_cpu_seconds=0.0
 try:
     with (a.output/'samples.ndjson').open('w') as trace:
         while time.monotonic()-start<a.seconds:
@@ -54,6 +54,7 @@ try:
             disappeared.update(set(previous)-set(current))
             delta=sum(max(0,r['cpu']-previous.get(pid,{'cpu':0})['cpu']) for pid,r in current.items())
             percent=100*delta/elapsed
+            cumulative_cpu_seconds+=delta
             resident=sum(r['rssKiB'] for r in current.values())/1024
             cpu.append(percent); rss.append(resident)
             trace.write(json.dumps(dict(elapsedSeconds=now-start,cpuPercentOneCore=percent,rssMiB=resident,processes=current))+'\n')
@@ -64,7 +65,8 @@ finally:
         return sorted(values)[max(0,math.ceil(len(values)*q)-1)] if values else None
     result=dict(schemaVersion=1,status='MEASURED' if complete else 'INTERRUPTED',mode=a.mode,
         rootPID=a.pid,rootStart=root_start,rootCommand=root_command,durationSeconds=time.monotonic()-start,
-        samples=len(cpu),cpuMeanPercentOneCore=statistics.mean(cpu) if cpu else None,
+        samples=len(cpu),cpuMeanPercentOneCore=100*cumulative_cpu_seconds/(previous_time-start) if cpu else None,
+        cpuMeasurementMethod='aggregate CPU-time delta / actual monotonic observation interval; one core = 100%',
         cpuP95PercentOneCore=percentile(cpu,.95),rssMedianMiB=statistics.median(rss) if rss else None,
         rssPeakMiB=max(rss) if rss else None,processesExitedBetweenSamples=len(disappeared),
         cpuBudgetPercentOneCore={'idle':.3,'line':1,'word':3}[a.mode],rssMedianBudgetMiB=120,rssPeakBudgetMiB=180,

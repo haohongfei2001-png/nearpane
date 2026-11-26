@@ -136,7 +136,11 @@ public final class TileDesktopCoordinator {
             let state = try await store.snapshot()
             guard active, revision == expected, !Task.isCancelled else { return }
             let screens = Self.screens()
-            let observation = Self.observation(members: Array(state.members.values))
+            // A stable plan with live owners needs process identity checks, not
+            // a full WindowServer inventory. Withdrawal or a verified dead owner
+            // still requires actual window absence before any slot is reclaimed.
+            let observation = Self.observation(members: Array(state.members.values),
+                                               requireWindowList: state.plan.phase == .withdrawing)
             let obstacles = Self.legacyObstacles(screens: screens, registered: Array(state.members.values))
             member.windowIDs = windowIDs()
             var plan = try await store.reconcile(member, screens.map(\.display), observation, obstacles)
@@ -194,15 +198,16 @@ public final class TileDesktopCoordinator {
                                                isPrimary: number.uint32Value == CGMainDisplayID()), visible: screen.visibleFrame)
         }
     }
-    private static func observation(members: [TileMember]) -> TileObservation {
-        let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
-        let visible = rows.map { Set($0.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value }) }
+    private static func observation(members: [TileMember], requireWindowList: Bool = true) -> TileObservation {
         var ended = Set<String>()
         for member in members {
             if let token = TileProcess.token(for: member.pid) {
                 if !member.processToken.hasPrefix("unknown:"), token != member.processToken { ended.insert(member.processToken) }
             } else if Darwin.kill(member.pid, 0) == -1 && errno == ESRCH { ended.insert(member.processToken) }
         }
+        let rows = requireWindowList || !ended.isEmpty
+            ? CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] : nil
+        let visible = rows.map { Set($0.compactMap { ($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value }) }
         return TileObservation(visibleWindowIDs: visible, endedProcessTokens: ended)
     }
     private static func legacyObstacles(screens: [Screen], registered: [TileMember]) -> [TilePlacement] {

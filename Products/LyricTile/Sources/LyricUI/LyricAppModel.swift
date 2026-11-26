@@ -40,6 +40,7 @@ public final class LyricAppModel: ObservableObject {
     private let playback: PlaybackController
     private let repository: LyricRepository
     private let timeline = LyricTimeline()
+    private let artworkDecoder = LyricArtworkDecoder()
     private let lease: TileSessionLease
     private let defaults: UserDefaults
     private var adjustment: LyricDomain.UserTimingAdjustment?
@@ -49,11 +50,13 @@ public final class LyricAppModel: ObservableObject {
     private var timelineTask: Task<Void, Never>?
     private var commandTask: Task<Void, Never>?
     private var browseTask: Task<Void, Never>?
+    private var artworkTask: Task<Void, Never>?
     private var startBarrier: Task<Bool, Never>?
     private var stopBarrier: Task<Void, Never>?
     private var runID = UUID()
     private var stopping = false
     private var lastArtworkData: Data?
+    private var artworkToken = UUID()
     private var leadCueCache: [LyricDomain.Cue] = []
 
     public init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
@@ -121,10 +124,11 @@ public final class LyricAppModel: ObservableObject {
             candidateTask?.cancel(); candidateTask = nil
             timelineTask?.cancel(); timelineTask = nil
             browseTask?.cancel(); browseTask = nil
+            clearArtwork()
             // Already sent transport commands must drain before the new owner may dispatch.
             if let commandTask { await commandTask.value }
             await playback.stop()
-            snapshot = .empty; document = nil; artwork = nil; lastArtworkData = nil
+            snapshot = .empty; document = nil
             candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil
             isResolving = false; isSearchingCandidates = false; playbackPositionMS = nil
             controlsVisible = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
@@ -163,7 +167,7 @@ public final class LyricAppModel: ObservableObject {
         let focus = currentCue?.id
         return leadCues.first { ids.contains($0.id) && $0.id != focus }?.text
     }
-    public var idle: Bool { snapshot.selection == nil && !snapshot.requiresAuthorization }
+    public var idle: Bool { snapshot.selection == nil && !snapshot.requiresAuthorization && snapshot.statusMessage == nil }
     public var canSeek: Bool {
         ownsSession && !stopping && snapshot.capabilities.canSeek && playbackPositionMS != nil && durationMS != nil && !isPerformingCommand
     }
@@ -318,10 +322,7 @@ public final class LyricAppModel: ObservableObject {
         let metadataChanged = snapshot.selection != update.selection
         let changed = !Self.sameSession(snapshot.selection, update.selection)
         snapshot = update
-        if update.artwork != lastArtworkData {
-            lastArtworkData = update.artwork
-            artwork = update.artwork.flatMap(NSImage.init(data:))
-        }
+        refreshArtwork(from: update, sessionChanged: changed)
         if changed {
             lyricTask?.cancel(); candidateTask?.cancel(); browseTask?.cancel()
             document = nil; adjustment = nil; advanceMS = 0; candidates = []; browsedCueIndex = nil
@@ -335,6 +336,32 @@ public final class LyricAppModel: ObservableObject {
             resolve(selection)
         }
         refreshFrame(); restartTimeline()
+    }
+    private func clearArtwork() {
+        artworkTask?.cancel(); artworkTask = nil
+        artworkToken = UUID()
+        artwork = nil; lastArtworkData = nil
+    }
+    private func refreshArtwork(from update: PlaybackSnapshot, sessionChanged: Bool) {
+        if sessionChanged { clearArtwork() }
+        guard let selection = update.selection, let data = update.artwork,
+              !data.isEmpty, data.count <= LyricArtworkDecoder.maximumInputBytes else {
+            if artworkTask != nil || artwork != nil || lastArtworkData != nil { clearArtwork() }
+            return
+        }
+        guard data != lastArtworkData else { return }
+        artworkTask?.cancel()
+        artworkToken = UUID()
+        let token = artworkToken
+        lastArtworkData = data
+        artwork = nil
+        artworkTask = Task(priority: .utility) { [weak self, artworkDecoder] in
+            let thumbnail = await artworkDecoder.thumbnail(from: data)
+            guard !Task.isCancelled, let self, self.ownsSession, !self.stopping,
+                  self.artworkToken == token, self.isCurrent(selection), self.lastArtworkData == data else { return }
+            self.artwork = thumbnail.flatMap(NSImage.init(data:))
+            self.artworkTask = nil
+        }
     }
     private func rebuildLeadCues() {
         let cues = document?.lanes.filter { $0.kind == .lead }.flatMap(\.cues) ?? []
