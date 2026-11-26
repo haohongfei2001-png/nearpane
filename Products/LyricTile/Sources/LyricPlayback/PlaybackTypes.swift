@@ -128,6 +128,7 @@ struct PlayerObservation: Sendable {
     var quality: LyricDomain.ClockQuality = .coarseSourceAnchor
     var expectedErrorMS: Int64? = nil
     var restricted: Bool = false
+    var clockNeedsReanchor: Bool = false
     var hasRecording: Bool { title?.isEmpty == false || platformID?.isEmpty == false }
     func projectedPosition(at now: LyricDomain.MonotonicStamp) -> Int64? {
         guard let positionMS, now.clockDomainID == stamp.clockDomainID, now.nanoseconds >= stamp.nanoseconds else { return nil }

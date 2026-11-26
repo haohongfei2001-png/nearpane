@@ -62,7 +62,8 @@ public actor LyricRepository {
         }
         if let cached = try cachedDocument(for: selection.recording) { return .document(cached) }
         guard onlineEnabled else { return .notFound }
-        if let until = index.notFoundUntil[fingerprint], until > Date() { return .notFound }
+        let negativeKey = negativeCacheKey(selection.recording)
+        if let until = index.notFoundUntil[negativeKey], until > Date() { return .notFound }
         let descriptor = await provider.descriptor()
         try ensureNetworkCurrent(selection)
         guard descriptor.releaseDisposition != .disabled else { throw LyricDomain.SourceFailure.accessUnavailable }
@@ -85,9 +86,11 @@ public actor LyricRepository {
         let accepted = candidates.filter { matcher.mayAutomaticallyAccept($0.evidence) }
         if accepted.count == 1 { return .document(try await fetchAndCache(accepted[0], epoch: epoch)) }
         if !candidates.isEmpty { return .candidates(candidates) }
-        index.notFoundUntil[fingerprint] = Date().addingTimeInterval(5 * 60)
-        pruneNegativeEntries()
-        try saveIndex()
+        if hasSearchMetadata(selection.recording) {
+            index.notFoundUntil[negativeKey] = Date().addingTimeInterval(5 * 60)
+            pruneNegativeEntries()
+            try saveIndex()
+        }
         return .notFound
     }
 
@@ -340,7 +343,7 @@ public actor LyricRepository {
         index.automatic[document.recording.fingerprint] = .init(file: file, bytes: bytes, accessedAt: Date(),
                                                                expiresAt: Date().addingTimeInterval(lifetime))
         if let old, old.file != file { try? FileManager.default.removeItem(at: safeURL(file: old.file, protected: false)) }
-        index.notFoundUntil.removeValue(forKey: document.recording.fingerprint)
+        index.notFoundUntil.removeValue(forKey: negativeCacheKey(document.recording))
         try evictAutomatic()
         try saveIndex()
     }
@@ -349,7 +352,7 @@ public actor LyricRepository {
         let rebound = rebind(document, to: recording)
         let (file, _) = try writeEnvelope(rebound, raw: raw, protected: true)
         index.bindings[recording.fingerprint] = file
-        index.notFoundUntil.removeValue(forKey: recording.fingerprint)
+        index.notFoundUntil.removeValue(forKey: negativeCacheKey(recording))
         try saveIndex()
     }
     private func evictAutomatic() throws {
@@ -373,5 +376,21 @@ public actor LyricRepository {
     }
     private func adjustmentKey(_ recording: LyricDomain.RecordingIdentity, _ document: LyricDomain.Document) -> String {
         ContentDigest.sha256(recording.fingerprint + "|" + document.contentHash)
+    }
+    private func negativeCacheKey(_ recording: LyricDomain.RecordingIdentity) -> String {
+        // Metadata may arrive late without a generation change. A new real query must not inherit
+        // the failure of an earlier incomplete query for the same persistent recording identity.
+        let identifiers = recording.platformIDs.map {
+            "\($0.namespace):\($0.storefront ?? ""):\($0.value)"
+        }.sorted().joined(separator: "\u{1f}")
+        let fields = [recording.fingerprint, RecordingText.normalize(recording.title ?? ""),
+                      recording.artists.map(RecordingText.normalize).joined(separator: "\u{1f}"),
+                      RecordingText.normalize(recording.album ?? ""),
+                      recording.durationMS.map(String.init) ?? "unknown", identifiers]
+        return ContentDigest.sha256(fields.joined(separator: "\u{1e}"))
+    }
+    private func hasSearchMetadata(_ recording: LyricDomain.RecordingIdentity) -> Bool {
+        recording.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            && recording.artists.first?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 }

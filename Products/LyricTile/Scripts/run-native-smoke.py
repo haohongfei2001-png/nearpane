@@ -12,11 +12,21 @@ a = p.parse_args()
 a.output.mkdir(parents=True, exist_ok=True)
 command = [str(a.app.resolve()/'Contents/MacOS/LyricTile'), '--smoke-test',
            '--smoke-screenshot', str((a.output/'native-empty-panel.png').resolve())]
+process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 try:
-    r = subprocess.run(command, capture_output=True, text=True, timeout=30)
-    code, stdout, stderr = r.returncode, r.stdout, r.stderr
-except subprocess.TimeoutExpired as e:
-    code, stdout, stderr = 124, (e.stdout or b'').decode(), (e.stderr or b'').decode()
+    stdout, stderr = process.communicate(timeout=30)
+    code = process.returncode
+except subprocess.TimeoutExpired:
+    # Preserve an actual stuck stack before killing a failed check. This does
+    # not turn a timed-out app into a passing native load test.
+    try:
+        sample = subprocess.run(['/usr/bin/sample', str(process.pid), '2', '-file', str(a.output/'native-timeout.sample.txt')],
+                                capture_output=True, text=True, timeout=5)
+        (a.output/'sample-command.log').write_text(sample.stdout+sample.stderr)
+    except Exception as error:
+        (a.output/'sample-command.log').write_text(str(error))
+    process.kill(); stdout, stderr = process.communicate(timeout=5)
+    code = 124
 (a.output/'native-smoke.stdout.log').write_text(stdout)
 (a.output/'native-smoke.stderr.log').write_text(stderr)
 rows = []

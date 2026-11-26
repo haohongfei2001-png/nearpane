@@ -63,7 +63,7 @@ public struct LyricPanelView: View {
             Image(systemName: "text.alignleft").font(.system(size: 20, weight: .medium)).foregroundStyle(primary)
             VStack(alignment: .leading, spacing: 3) {
                 Text("等一首歌").font(.system(size: 12, weight: .medium)).foregroundStyle(primary)
-                Text("照常使用你喜欢的播放器").font(.system(size: 10)).foregroundStyle(secondary)
+                Text("播放音乐后显示歌词").font(.system(size: 10)).foregroundStyle(secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
         }

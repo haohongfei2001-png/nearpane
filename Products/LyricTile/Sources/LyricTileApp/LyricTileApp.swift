@@ -94,6 +94,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) {
+        nativeShutdownTrace("application-will-terminate")
         if nativeLoadCheck && nativeLoadFailed { Darwin.exit(EXIT_FAILURE) }
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -101,6 +102,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         activate(userInitiated: true); return true
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        nativeShutdownTrace("termination-delegate-entered")
         if terminateReady { return .terminateNow }
         guard !terminating else { return .terminateLater }
         terminating = true
@@ -109,10 +111,14 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         panelController?.surrender(); auxiliary?.closeAll()
         Task { @MainActor [weak self] in
             guard let self else { return }
+            nativeShutdownTrace("termination-drain-started")
             await tileCoordinator.stop()
+            nativeShutdownTrace("tile-coordinator-stopped")
             await model.stop()
+            nativeShutdownTrace("playback-model-stopped")
             LyricHandoff.announceRelease(from: .standalone)
             terminateReady = true
+            nativeShutdownTrace("replying-to-termination")
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
@@ -270,9 +276,19 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             let report: [String: Any] = ["check": "native-ui-load", "passed": passed,
                                          "width": panel.frame.width, "height": panel.frame.height,
                                          "realPlayerTest": false, "networkStarted": false]
-            if let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]),
-               let json = String(data: data, encoding: .utf8) { print(json) }
-            NSApp.terminate(nil)
+            if let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]) {
+                FileHandle.standardOutput.write(data + Data([10]))
+            }
+            nativeShutdownTrace("smoke-surface-checked")
+            // NSApplication's terminateLater machinery can nest the run loop. Leave the
+            // current MainActor task first, so the delegate's asynchronous drain can run.
+            RunLoop.main.perform(inModes: [.default]) {
+                MainActor.assumeIsolated { NSApp.terminate(nil) }
+            }
         }
+    }
+    private func nativeShutdownTrace(_ stage: String) {
+        guard nativeLoadCheck else { return }
+        FileHandle.standardError.write(Data("LyricTile native smoke: \(stage)\n".utf8))
     }
 }

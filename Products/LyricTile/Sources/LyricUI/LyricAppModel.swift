@@ -206,7 +206,7 @@ public final class LyricAppModel: ObservableObject {
         isPerformingCommand = true; actionMessage = nil
         commandTask = Task { [weak self, playback] in
             do { try await playback.perform(command, expected: expected) }
-            catch { if let self, self.snapshot.selection == expected { self.actionMessage = error.localizedDescription } }
+            catch { if let self, self.isCurrent(expected) { self.actionMessage = error.localizedDescription } }
             guard let self else { return }
             self.isPerformingCommand = false
             self.seekPreviewMS = nil
@@ -238,21 +238,21 @@ public final class LyricAppModel: ObservableObject {
         candidateTask = Task { [weak self, repository] in
             do {
                 let result = try await repository.searchCandidates(for: selection)
-                guard let self, !Task.isCancelled, self.snapshot.selection == selection else { return }
+                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
                 self.candidates = result; self.isSearchingCandidates = false
             } catch {
-                guard let self, !Task.isCancelled, self.snapshot.selection == selection else { return }
+                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
                 self.isSearchingCandidates = false; self.actionMessage = Self.message(for: error)
             }
         }
     }
     public func choose(_ candidate: LyricDomain.Candidate) {
-        guard let selection = snapshot.selection, candidate.request.selection == selection else { return }
+        guard let selection = snapshot.selection, Self.sameSession(candidate.request.selection, selection) else { return }
         lyricTask?.cancel(); isResolving = true
         lyricTask = Task { [weak self, repository] in
             do {
                 let result = try await repository.fetch(candidate)
-                guard !Task.isCancelled, self?.snapshot.selection == selection else { return }
+                guard !Task.isCancelled, self?.isCurrent(selection) == true else { return }
                 try await repository.bind(result, to: selection.recording)
                 await self?.accept(result, for: selection)
             } catch { self?.finishFailure(error, for: selection) }
@@ -265,7 +265,7 @@ public final class LyricAppModel: ObservableObject {
         Task { [weak self, repository] in
             do {
                 try await repository.setAdvance(value, for: selection.recording, document: document)
-                guard let self, self.snapshot.selection == selection, self.document?.contentHash == document.contentHash else {
+                guard let self, self.isCurrent(selection), self.document?.contentHash == document.contentHash else {
                     self?.isSavingAdjustment = false
                     return
                 }
@@ -284,7 +284,7 @@ public final class LyricAppModel: ObservableObject {
             panel.prompt = "导入歌词"
             panel.allowedContentTypes = [.plainText, .xml, .data]
             panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
-            guard await panel.begin() == .OK, let url = panel.url, let self, self.snapshot.selection == selection else { return }
+            guard await panel.begin() == .OK, let url = panel.url, let self, self.isCurrent(selection) else { return }
             do {
                 let bytes = try await Task.detached(priority: .userInitiated) {
                     let scope = url.startAccessingSecurityScopedResource()
@@ -293,11 +293,11 @@ public final class LyricAppModel: ObservableObject {
                     guard size <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: "歌词文件超过 2 MiB") }
                     return try Data(contentsOf: url, options: .mappedIfSafe)
                 }.value
-                guard self.snapshot.selection == selection else { return }
+                guard self.isCurrent(selection) else { return }
                 let document = try await repository.importLyrics(bytes, format: Self.format(for: url), for: selection)
                 await self.accept(document, for: selection)
             } catch {
-                if self.snapshot.selection == selection { self.actionMessage = Self.message(for: error) }
+                if self.isCurrent(selection) { self.actionMessage = Self.message(for: error) }
             }
         }
     }
@@ -315,7 +315,8 @@ public final class LyricAppModel: ObservableObject {
     public func returnToCurrent() { browseTask?.cancel(); browsedCueIndex = nil; refreshFrame() }
 
     private func receive(_ update: PlaybackSnapshot) {
-        let changed = snapshot.selection != update.selection
+        let metadataChanged = snapshot.selection != update.selection
+        let changed = !Self.sameSession(snapshot.selection, update.selection)
         snapshot = update
         if update.artwork != lastArtworkData {
             lastArtworkData = update.artwork
@@ -327,6 +328,11 @@ public final class LyricAppModel: ObservableObject {
             lyricFailure = nil; actionMessage = nil; seekPreviewMS = nil
             isResolving = false; isSearchingCandidates = false
             if let selection = update.selection { resolve(selection) }
+        } else if metadataChanged, document == nil, let selection = update.selection {
+            // Late album/artist/duration fields enrich the same recording; they never erase
+            // a correctly bound document. An unresolved query may use the richer metadata.
+            candidates = []
+            resolve(selection)
         }
         refreshFrame(); restartTimeline()
     }
@@ -344,7 +350,7 @@ public final class LyricAppModel: ObservableObject {
         lyricTask = Task { [weak self, repository] in
             do {
                 let resolution = try await repository.resolve(selection)
-                guard let self, !Task.isCancelled, self.snapshot.selection == selection else { return }
+                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
                 switch resolution {
                 case .document(let document): await self.accept(document, for: selection)
                 case .candidates(let candidates): self.candidates = candidates; self.isResolving = false; self.refreshFrame()
@@ -355,13 +361,13 @@ public final class LyricAppModel: ObservableObject {
     }
     private func accept(_ value: LyricDomain.Document, for selection: LyricDomain.Selection) async {
         let timing = await repository.adjustment(for: selection.recording, document: value)
-        guard !Task.isCancelled, snapshot.selection == selection else { return }
+        guard !Task.isCancelled, isCurrent(selection) else { return }
         document = value; adjustment = timing; advanceMS = timing?.userAdvanceMS ?? 0
         isResolving = false; lyricFailure = nil; browsedCueIndex = nil
         refreshFrame(); restartTimeline()
     }
     private func finishFailure(_ error: Error, for selection: LyricDomain.Selection) {
-        guard !Task.isCancelled, snapshot.selection == selection else { return }
+        guard !Task.isCancelled, isCurrent(selection) else { return }
         isResolving = false; lyricFailure = Self.message(for: error); refreshFrame()
     }
     private func refreshFrame() {
@@ -421,6 +427,14 @@ public final class LyricAppModel: ObservableObject {
             do { try await Task.sleep(for: .seconds(5)) } catch { return }
             self?.returnToCurrent()
         }
+    }
+    private func isCurrent(_ selection: LyricDomain.Selection) -> Bool {
+        Self.sameSession(snapshot.selection, selection)
+    }
+    private static func sameSession(_ left: LyricDomain.Selection?, _ right: LyricDomain.Selection?) -> Bool {
+        guard let left, let right else { return left == nil && right == nil }
+        return left.playerBundleID == right.playerBundleID && left.sessionID == right.sessionID
+            && left.generation == right.generation && left.recording.fingerprint == right.recording.fingerprint
     }
     private func settingsChanged(from previous: LyricSettings) {
         settings.save(to: defaults)

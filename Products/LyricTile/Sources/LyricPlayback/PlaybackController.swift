@@ -40,6 +40,7 @@ public actor PlaybackController {
     private var qualifications = ClockQualifications()
     private var systemBuild = "unknown"
     private var commandTrace: [TransportTrace] = []
+    private var remoteClocks: [PlayerID: RemoteClockContinuity] = [:]
 
     public init() { remote = MediaRemoteClient() }
     // Inject only a local pinned helper layout for tests/development, never a command string.
@@ -83,6 +84,7 @@ public actor PlaybackController {
         processes.removeAll(); observations.removeAll(); errors.removeAll(); due.removeAll()
         currentSource = nil; sourcePIDStart = 0; tracker.clear(); deniedCommands.removeAll()
         lastPlayingTransition.removeAll(); artworkAttempts.removeAll(); currentReadDue = 0
+        remoteClocks.removeAll()
         snapshot = .empty; publish(snapshot)
         await remote.stop(); await oldObserver?.stop(); await apple.release()
         if lifecycle == epoch && !running { await artworkLoader.clear() }
@@ -130,6 +132,7 @@ public actor PlaybackController {
             await reconcile()
         case .wake:
             observationEpoch &+= 1
+            for id in remoteClocks.keys { remoteClocks[id]?.invalidate(wall: Date()) }
             sleeping = false; due.removeAll(); currentReadDue = 0; currentSource = nil; sourcePIDStart = 0
             streamRetryAt = 0; await tick(epoch: lifecycle)
         case .playersChanged:
@@ -235,8 +238,21 @@ public actor PlaybackController {
         let start = await PlayerEnvironment.processStart(pid)
         guard await PlayerEnvironment.processStart(process.pid) == process.startMicros else { throw PlaybackError.playerExited }
         let isCurrent = payload.player == currentSource?.player && payload.pid == currentSource?.pid && start != 0 && start == sourcePIDStart
-        guard let result = payload.observation(process: process, mediaStart: start, isCurrent: isCurrent) else { throw PlaybackError.malformedPayload }
+        guard let result = remoteObservation(payload, process: process, mediaStart: start, isCurrent: isCurrent) else { throw PlaybackError.malformedPayload }
         return result
+    }
+    private func remoteObservation(_ payload: MediaRemotePayload, process: PlayerProcess,
+                                   mediaStart: UInt64, isCurrent: Bool) -> PlayerObservation? {
+        let wall = Date(); let now = PlaybackClock.now()
+        guard var value = payload.observation(process: process, mediaStart: mediaStart, isCurrent: isCurrent, now: now, wallNow: wall) else { return nil }
+        var continuity = remoteClocks[process.player] ?? RemoteClockContinuity()
+        if !continuity.accepts(sourceTimestampMicros: payload.fields["timestampEpochMicros"]?.integer,
+                               state: value.state, now: now, wall: wall) {
+            value.positionMS = nil; value.quality = .unavailable; value.expectedErrorMS = nil
+            value.capabilities.canSeek = false; value.clockNeedsReanchor = true
+        }
+        remoteClocks[process.player] = continuity
+        return value
     }
 
     private func accept(_ incoming: PlayerObservation) {
@@ -290,7 +306,7 @@ public actor PlaybackController {
         streamFailures = 0
         await acceptCurrent(payload)
         if let id = payload.player, !id.usesAppleEvents, let process = processes[id],
-           let observation = payload.observation(process: process, mediaStart: sourcePIDStart, isCurrent: sourcePIDStart != 0) {
+           let observation = remoteObservation(payload, process: process, mediaStart: sourcePIDStart, isCurrent: sourcePIDStart != 0) {
             accept(observation)
         }
         await reconcile()
@@ -351,6 +367,7 @@ public actor PlaybackController {
         guard running, lifecycle == epoch, tracker.selection?.sessionID == selection?.sessionID, tracker.selection?.generation == selection?.generation else { return }
         let message: String?
         if observation.quality == .stale || sleeping { message = "重新连接播放器" }
+        else if observation.clockNeedsReanchor { message = "正在重新同步播放进度" }
         else if observation.positionMS == nil && selection != nil { message = "播放器不提供进度" }
         else { message = nil }
         publish(PlaybackSnapshot(player: chosen, selection: selection, anchor: anchor, state: observation.state,

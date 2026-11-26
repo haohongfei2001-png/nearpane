@@ -38,14 +38,18 @@ jobs:
           set -o pipefail
           swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
       - name: Build independent candidate with real media helper
+        id: bundle
         run: |
           set -o pipefail
           bash Scripts/build-app.sh 2>&1 | tee dist/evidence/build-app.log
       - name: Load the production native panel without fabricated playback
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/run-native-smoke.py dist/LyricTile.app --output dist/evidence
       - name: Verify the actual private framework and packaged helper load
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/verify-media-helper.py dist/LyricTile.app/Contents/Resources/MediaRemote --output dist/evidence/media-helper-load.json
       - name: Measure the ordinary candidate at idle on this host
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-idle-runtime.py dist/LyricTile.app --output dist/evidence/idle --seconds 60
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}

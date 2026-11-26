@@ -102,6 +102,27 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(MediaRemotePayload(fields: fields).observation(process: process, mediaStart: 98765, isCurrent: true)?.positionMS == 0)
 }
 
+@Test func wallClockJumpAndWakeRequireANewRemoteSourceAnchor() {
+    var continuity = RemoteClockContinuity()
+    let initial = continuity.accepts(sourceTimestampMicros: 100_000_000, state: .playing,
+                                    now: stamp(10_000), wall: Date(timeIntervalSince1970: 100))
+    let stable = continuity.accepts(sourceTimestampMicros: 100_000_000, state: .playing,
+                                   now: stamp(11_000), wall: Date(timeIntervalSince1970: 101))
+    let jumped = continuity.accepts(sourceTimestampMicros: 100_000_000, state: .playing,
+                                   now: stamp(12_000), wall: Date(timeIntervalSince1970: 401))
+    let oldAgain = continuity.accepts(sourceTimestampMicros: 100_000_000, state: .playing,
+                                     now: stamp(13_000), wall: Date(timeIntervalSince1970: 402))
+    let fresh = continuity.accepts(sourceTimestampMicros: 402_000_000, state: .playing,
+                                  now: stamp(13_050), wall: Date(timeIntervalSince1970: 402.05))
+    #expect(initial && stable)
+    #expect(!jumped && !oldAgain)
+    #expect(fresh)
+    continuity.invalidate(wall: Date(timeIntervalSince1970: 403))
+    let wakeOld = continuity.accepts(sourceTimestampMicros: 402_000_000, state: .playing,
+                                    now: stamp(14_000), wall: Date(timeIntervalSince1970: 403))
+    #expect(!wakeOld)
+}
+
 @Test func generationChangesOnlyForRecordingOrInstance() throws {
     var tracker = PlaybackSelectionTracker(); var first = observation()
     let initialSelection = tracker.update(first)

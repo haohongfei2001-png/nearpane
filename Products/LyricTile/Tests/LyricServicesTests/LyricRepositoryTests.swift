@@ -138,6 +138,26 @@ struct LyricRepositoryTests {
         #expect(await transport.requests.isEmpty)
     }
 
+    @Test func lateMetadataDoesNotInheritAnEarlierNegativeQueryCache() async throws {
+        let location = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: location) }
+        let transport = QueueTransport([.init(status: 404), ServiceFixture.response(Data("[]".utf8)),
+                                        ServiceFixture.response(try ServiceFixture.record())])
+        let repository = LyricRepository(storageURL: location,
+            provider: LRCLIBProvider(configuration: .init(minimumRequestIntervalMS: 0), transport: transport))
+        let complete = ServiceFixture.selection()
+        let partialIdentity = LyricDomain.RecordingIdentity(fingerprint: complete.recording.fingerprint,
+            platformIDs: [], isrc: nil, title: complete.recording.title, artists: complete.recording.artists,
+            album: nil, durationMS: nil, versionTags: [])
+        let partial = LyricDomain.Selection(playerBundleID: complete.playerBundleID, sessionID: complete.sessionID,
+                                            generation: complete.generation, recording: partialIdentity)
+        let first = try await repository.resolve(partial)
+        guard case .notFound = first else { Issue.record("Expected an initial unmatched query."); return }
+        let second = try await repository.resolve(complete)
+        guard case .document = second else { Issue.record("Late metadata was incorrectly negative-cached."); return }
+        #expect(await transport.requests.count == 3)
+    }
+
     @Test func reentrantProviderCallsStaySequential() async throws {
         let transport = ConcurrentTrackingTransport()
         let provider = LRCLIBProvider(configuration: .init(minimumRequestIntervalMS: 0), transport: transport)
