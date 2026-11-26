@@ -162,6 +162,10 @@ public final class TileDesktopCoordinator {
                 invalidateDisplayGeometry()
                 return
             }
+            // Reconciliation still observes withdrawals and validates the current plan.
+            // Keeping an already-authorized surface unchanged performs no presentation;
+            // every actual move/show below must still re-authorize under the registry lock.
+            if presentationGranted, lastPlacement == placement { return }
             let authorized = try registry.withPresentationAuthority(id: member.id, instanceID: member.instanceID,
                 epoch: plan.epoch, generation: plan.generation, placement: placement) {
                 if lastPlacement != placement {

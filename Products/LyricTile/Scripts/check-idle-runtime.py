@@ -43,6 +43,18 @@ try:
                 app=str(a.app),summary=measured,
                 withinTargets=measured['cpuMeanPercentOneCore']<=.3 and measured['rssMedianMiB']<=120 and measured['rssPeakMiB']<=180,
                 qualification='Hosted idle baseline only; no real-player/line/word/8-hour performance claim.')
+    if not report['withinTargets']:
+        # Observe the real, still-running process after the timed measurement.
+        # Sampling overhead cannot improve or contaminate the recorded baseline.
+        profile=a.output/'idle-process.sample.txt'
+        try:
+            sampled=subprocess.run(['/usr/bin/sample',str(process.pid),'10','-file',str(profile)],
+                                   capture_output=True,text=True,timeout=20)
+            (a.output/'idle-profile-command.log').write_text(sampled.stdout+sampled.stderr)
+            report['postMeasurementProfile']={'file':profile.name,'exitCode':sampled.returncode,
+                                               'saved':profile.is_file()}
+        except subprocess.TimeoutExpired:
+            report['postMeasurementProfile']={'file':profile.name,'status':'TIMEOUT','saved':profile.is_file()}
     (a.output/'idle-check.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report))
     # Preserve measurements even when hosted noise exceeds a target. The report

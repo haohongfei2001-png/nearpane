@@ -41,14 +41,14 @@ public final class TileRegistry: @unchecked Sendable {
     public let directory: URL
     public init(directory: URL = TileStorage.root) { self.directory = directory }
 
-    public func snapshot() throws -> TileRegistryState { try transaction { $0 } }
+    public func snapshot() throws -> TileRegistryState { try transaction(readOnly: true) { $0 } }
 
     /// MainActor may use this short nonblocking transaction for native setFrame/orderFront.
     /// An actor-returned plan is only a snapshot; it cannot authorize a later UI mutation alone.
     public func withPresentationAuthority(id: String, instanceID: UUID, epoch: UUID,
                                           generation: UInt64, placement: TilePlacement,
                                           perform: () -> Void) throws -> Bool {
-        try transaction { state in
+        try transaction(readOnly: true) { state in
             guard state.members[id]?.instanceID == instanceID,
                   state.plan.epoch == epoch, state.plan.generation == generation,
                   state.plan.mayShow(id), state.plan.placements[id] == placement else { return false }
@@ -162,7 +162,7 @@ public final class TileRegistry: @unchecked Sendable {
         state.plan.pendingPlacements = [:]; state.plan.phase = .stable
         state.plan.withdraw = []; state.plan.hiddenAcknowledgements = []
     }
-    private func transaction<T>(_ operation: (inout TileRegistryState) throws -> T) throws -> T {
+    private func transaction<T>(readOnly: Bool = false, _ operation: (inout TileRegistryState) throws -> T) throws -> T {
         try TileStorage.prepare(directory)
         var number: Int32 = 0
         let fd = directory.appendingPathComponent("registry.lock").path.withCString { lt_lock_acquire($0, &number) }
@@ -177,6 +177,9 @@ public final class TileRegistry: @unchecked Sendable {
                   decoded.schemaVersion == 1, decoded.members.count <= 32 else { throw TileCoordinationError.corruptRegistry }
             state = decoded
         } else { state = TileRegistryState() }
+        // Read-only callers retain the same lock, latest disk state and validation.
+        // Their operations cannot require a before/after serialization or disk write.
+        if readOnly { return try operation(&state) }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let before = try encoder.encode(state)
         let result = try operation(&state)
