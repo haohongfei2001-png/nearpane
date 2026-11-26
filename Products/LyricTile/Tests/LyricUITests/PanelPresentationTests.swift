@@ -59,9 +59,9 @@ struct PanelPresentationTests {
         var policy = LyricPanelVisibilityPolicy()
         let actual14 = policy.shouldPresent(snapshot(.playing), wasVisible: false, isInteracting: true)
         #expect(actual14)
-        let actual15 = policy.shouldPresent(snapshot(.paused, artists: ["Authored artist"])
+        let actual15 = policy.shouldPresent(snapshot(.paused, artists: ["Authored artist"]),
+                                            wasVisible: true, isInteracting: true)
         #expect(actual15)
-                                     wasVisible: true, isInteracting: true))
     }
 
     private let session = UUID()
