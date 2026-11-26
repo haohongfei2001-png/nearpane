@@ -42,13 +42,23 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 ### Current verification checkpoint
 
 The latest completed source/full-package checkpoint is
-`8805a3dbd22c44ff0f95a53476357b4dd45a2ef3`: **164 Rust /174 Swift pass, one explicit skip**.
+`350e848cc30106c32156ddba2c222ab639ab141f`: **166 Rust /174 Swift pass, one explicit skip**.
 Complete workspace, companion resources and strict/deep ad-hoc bundle signatures pass. The full,
 fast and diagnostics VMs independently pass the normal foreign-window engine and cleanup. These
 are hosted **27.0.1 /26A434 /SIP disabled** results, not target qualification.
-[Full candidate and original result](../verification/independent-stage/cloud-8805-full/README.md).
+[Full candidate and original result](../verification/independent-stage/cloud-350e-full/README.md).
 
-Fast product input now confirms the actual button's AXWindow is the retained panel, issues exactly
+The350e fast VM issues one confirmed AXPress, then a real native-context total age
+of901.886ms withdraws dispatch before the group job or witness. The full VM stops
+during external button discovery with AXCannotComplete/windowListRead=-25204,
+before input. Both independently confirm cleanup. Their complete Host samples
+identify repeated session reads during SwiftUI rendering, task identity and gallery
+request construction. The following presentation correction reuses already observed
+display/session/permission state for rendering while actual actions, capture and
+pixel admission retain their fresh native checks. It does not widen750ms or
+retry an already issued action. [Separate fast originals](../verification/independent-stage/cloud-350e-r4-fast/README.md).
+
+The preceding8805 fast product input confirms the actual button's AXWindow is the retained panel, issues exactly
 one successful AXPress and completes the first witness with three actual windows and three managed
 members. The real Dock sample then arrives at total age 1133.81 ms, so ownership is withdrawn before
 NP_LAUNCH. The full VM stops before input when its last retained-panel canonical identity read is
@@ -63,7 +73,8 @@ The Dock reader already runs on its own actor. The previous 3437 full sample ind
 the two synchronous physical rebinding passes (104/114 samples), which 8805 moves off MainActor.
 Fast already had bindings this time; it does not prove that cold rebinding was physically exercised.
 Every await still rechecks current input/epoch, cancellation, directory and ownership before use.
-No cross-frame permission cache, missing original-AX check, or 750 ms relaxation is permitted.
+Observed presentation state cannot replace a fresh permission check for actions or pixel
+admission; original-AX checks and the750ms dispatch boundary remain intact.
 
 The target Mac became reachable again on 2026-11-26 at 19:13 UTC. Its clean isolated clone was
 fast-forwarded to 8805; the daily installation and working checkout were preserved. The actual
@@ -98,7 +109,7 @@ blocked invocation stays blocked and its fixture cleanup succeeds. No locked-ses
 is attempted after that condition is identified.
 [Separate original blocked run and path/console probe](../verification/independent-stage/target-350e-product-preflight/README.md).
 
-The next R4 source correction isolates retained original-AX reads from the UI actor. A narrow
+Committed6e5b205d isolates retained original-AX reads from the UI actor. A narrow
 immutable AX receiver crosses executors, while the mutable owner, monitor and writers remain
 on MainActor; per-window read/write phases exclude concurrent native access. All original
 window/owner/lifetime/claim/home/lease/permission checks remain before and after awaits.

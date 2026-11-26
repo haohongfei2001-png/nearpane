@@ -513,6 +513,7 @@ struct DesktopWindowTarget: Equatable {
     /// This never starts capture, publishes a live sequence or grants a click.
     func previousImage(for target: DesktopWindowTarget, permitted: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> CGImage? {
         let key = target.key
+        guard stills.peek(.current(key)) != nil else { return nil }
         guard permitted, permitsWindow(key),
               WindowContentPreview.sessionAvailable(), WindowPermissionProbe.screen.allowed() else { return nil }
         return Self.lastCardPixels(target, in: stills, appearance: pictureAppearance(key), now: now, allows: { still in

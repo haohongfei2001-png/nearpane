@@ -26,12 +26,19 @@ struct DesktopSurface: View {
     @ViewState private var appleStages = AppleNativeStages()
     @ViewState private var appleDrag = AppleNativeStageDrag()
     private let navigation = NativeSidebarNavigation.shared
-    private var panelAvailable: Bool {
+    // Rendering reads the state already observed by the display and permission
+    // monitors. Actual actions and gallery pixel admission recheck native access.
+    private var panelPresented: Bool {
         navigation.dispatchAvailable && enabled && host.isRunning && !host.configuration.surfaceHidden &&
-            display?.interactionVisible == true && display?.id == displayID && WindowContentPreview.sessionAvailable()
+            display?.interactionVisible == true && display?.id == displayID
     }
+    private var currentCardsPresented: Bool {
+        panelPresented && display?.pointer?.windowPreviews?.currentDesktop?.departingPictures == nil
+    }
+    private var navigationPresented: Bool { currentCardsPresented && !displayingAppleStages }
+    private var panelAvailable: Bool { panelPresented && WindowContentPreview.sessionAvailable() }
     private var currentCardsAcceptInput: Bool {
-        panelAvailable && display?.pointer?.windowPreviews?.currentDesktop?.departingPictures == nil
+        currentCardsPresented && WindowContentPreview.sessionAvailable()
     }
     private var canNavigate: Bool { currentCardsAcceptInput && !displayingAppleStages }
     @ViewState private var selectionIssue: String?
@@ -45,7 +52,7 @@ struct DesktopSurface: View {
 
     private var rawOverview: DesktopSnapshot? {
         if let feed = display?.pointer?.windowPreviews?.currentDesktop {
-            return WindowContentPreview.sessionAvailable() ? feed.snapshot : nil
+            return feed.snapshot
         }
         return host.providerFailed ? nil : host.bus.desktop
     }
@@ -84,8 +91,7 @@ struct DesktopSurface: View {
                 Text(selectionIssue).font(.caption2).foregroundStyle(Color(nsColor: SidebarTextColor.secondary)).lineLimit(2)
                     .layoutPriority(1)
             }
-            if enabled, display?.interactionVisible == true, !host.configuration.surfaceHidden,
-               WindowContentPreview.sessionAvailable() {
+            if panelPresented {
                 WindowAccessGuide(showPictures: host.configuration.showsWindowThumbnails)
                     .layoutPriority(1)
             }
@@ -97,20 +103,20 @@ struct DesktopSurface: View {
         .accessibilityHint("选择缩略图可切换窗口组并聚焦所选窗口")
         .accessibilityIdentifier("desktop-reserved-region")
         .refreshWindowPermissions()
-        .task(id: AppleObservation(display: displayID, visible: panelAvailable && displayingAppleStages)) {
+        .task(id: AppleObservation(display: displayID, visible: panelPresented && displayingAppleStages)) {
             guard IndependentStagePolicy.mirrorsAppleStrip, panelAvailable, let displayID, displayingAppleStages,
                   let feed = display?.pointer?.windowPreviews?.currentDesktop else { return }
             await appleStages.run(display: displayID, snapshot: { rawOverview }, refresh: { await feed.readNow() }, visible: {
-                panelAvailable && displayingAppleStages
+                panelPresented && displayingAppleStages
             })
         }
         .task(id: GalleryRun(display: displayID, visible: display?.interactionVisible == true,
-                             permitted: picturesAllowed, generation: display?.pointer?.windowPreviews?.gallery.generation ?? 0)) {
+                             permitted: picturesPresented, generation: display?.pointer?.windowPreviews?.gallery.generation ?? 0)) {
             WindowOverviewAccess.shared.refresh()
-            guard let displayID, picturesAllowed, let previews = display?.pointer?.windowPreviews else { return }
+            guard let displayID, picturesPresented, let previews = display?.pointer?.windowPreviews else { return }
             let feed = previews.currentDesktop
             await previews.gallery.run(on: displayID, snapshot: { overview }, allowed: {
-                picturesAllowed && previews.visibleDisplays.contains(displayID)
+                picturesPresented && previews.visibleDisplays.contains(displayID)
             }, recheck: feed.map { feed in { await feed.readNow() } }, groups: { sample in
                 guard let screen = sample.displays.first(where: { $0.id == displayID }), let area = workArea(for: screen) else { return nil }
                 return feed?.pictureGroups(in: sample, screen: screen, area: area)
@@ -125,10 +131,10 @@ struct DesktopSurface: View {
             let n = display?.pointer?.windowPreviews?.currentDesktop?.stageEngine.consentRequest?.lifetimes.count ?? 0
             Text("允许在此屏当前桌面移出、恢复和排列所选组的 \(n) 扇窗口。")
         }
-        .onChange(of: canNavigate) { _, available in
+        .onChange(of: navigationPresented) { _, available in
             if !available { nameEdit = nil; navigation.windowSwitch.cancel(on: displayID) }
         }
-        .onChange(of: appleStages.ready && currentCardsAcceptInput) { _, available in
+        .onChange(of: appleStages.ready && currentCardsPresented) { _, available in
             if !available { appleDrag.cancel() }
         }
         .onDisappear {
@@ -139,7 +145,7 @@ struct DesktopSurface: View {
 
     @ViewBuilder private var roster: some View {
         let departing = display?.pointer?.windowPreviews?.currentDesktop?.departingPictures
-        if enabled, WindowContentPreview.sessionAvailable(),
+        if panelPresented,
            let snapshot = departing.map({ project($0.snapshot) }) ?? overview, let native = snapshot.native,
            let screen = snapshot.displays.first(where: { $0.id == displayID }) {
             TimelineView(.periodic(from: .now, by: 2)) { _ in
@@ -168,7 +174,7 @@ struct DesktopSurface: View {
                                     } else if let split {
                                         DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,
                                             gallery: feed == nil ? nil : display?.pointer?.windowPreviews?.gallery,
-                                            permitted: picturesAllowed, badges: appBadges, now: now, uptime: uptime)
+                                            permitted: picturesPresented, badges: appBadges, now: now, uptime: uptime)
                                     } else {
                                         Text("使用 Nearpane 窗口组前，请关闭系统台前调度。")
                                             .font(.caption).foregroundStyle(.secondary)
@@ -176,7 +182,7 @@ struct DesktopSurface: View {
                                 } else if let split {
                                     DesktopSplitViewCard(layout: split, snapshot: snapshot, width: innerWidth,
                                         gallery: feed == nil ? nil : display?.pointer?.windowPreviews?.gallery,
-                                        permitted: picturesAllowed, badges: appBadges, now: now, uptime: uptime)
+                                        permitted: picturesPresented, badges: appBadges, now: now, uptime: uptime)
                                 } else {
                                     if !windows.isEmpty { windowList(windows,snapshot:snapshot,screen:screen,width:innerWidth,source:current,now:now,uptime:uptime) }
                                     if let feed, let current {
@@ -184,7 +190,7 @@ struct DesktopSurface: View {
                                             $0.scope.nativeSpace == current.uuid }) { held in
                                             heldCard(held, feed:feed, snapshot:snapshot)
                                         }
-                                        if picturesAllowed, let gallery = feed.stageGallery, let displayID = UUID(uuidString:screen.id) {
+                                        if picturesPresented, let gallery = feed.stageGallery, let displayID = UUID(uuidString:screen.id) {
                                             let scope = StageGroupScope(display:displayID,nativeSpace:current.uuid)
                                             let visible = Set(feed.visibleGroups(in:snapshot,on:screen).values.map(\.id))
                                             let held = Set(feed.stageEngine.heldGroups.map(\.id))
@@ -202,8 +208,8 @@ struct DesktopSurface: View {
                             .padding(inset)
                         }
                         .frame(width: width, alignment: .leading)
-                        .task(id: BadgeRefresh(session: snapshot.sessionID, members: badgeRows(windows, in: snapshot, on: screen).compactMap(DesktopWindowKey.init), visible: currentCardsAcceptInput)) {
-                            if currentCardsAcceptInput {
+                        .task(id: BadgeRefresh(session: snapshot.sessionID, members: badgeRows(windows, in: snapshot, on: screen).compactMap(DesktopWindowKey.init), visible: currentCardsPresented)) {
+                            if currentCardsPresented {
                                 let rows = badgeRows(windows, in: snapshot, on: screen)
                                 let badges = WindowAppBadges.resolve(rows)
                                 appBadges = Dictionary(uniqueKeysWithValues: DesktopWindowRow.rows(rows).compactMap { row in
@@ -226,7 +232,7 @@ struct DesktopSurface: View {
             (held.count == 1 ? "非活动窗口" : "非活动组合 · " + String(held.count))
         let departure = held.departure.flatMap { $0.matches(snapshot) ? $0 : nil }
         var pictures = [UUID:CGImage]()
-        if let departure, picturesAllowed, let gallery = feed.stageGallery {
+        if let departure, picturesPresented, let gallery = feed.stageGallery {
             for member in departure.members {
                 pictures[member.id] = gallery.heldImage(member,departure:departure,snapshot:snapshot,permitted:true) {
                     feed.stageEngine.confirmsPicture(member, group:held)
@@ -274,7 +280,7 @@ struct DesktopSurface: View {
                 }
             }
         }
-        .disabled(!canNavigate)
+        .disabled(!navigationPresented)
     }
 
     private func editHeld(_ held: StageWindowEngineHost.HeldGroup, change: IndependentStageGroupEditing.Change,
@@ -292,7 +298,7 @@ struct DesktopSurface: View {
     @ViewBuilder private func observedCard(_ group: StageGroupDirectory.Group, picture: StageGroupDeparture,
                                            gallery: DesktopWindowGallery, snapshot: DesktopSnapshot) -> some View {
         let pairs = picture.members.compactMap { member in
-            gallery.observedImage(member.key,group:group.id,snapshot:snapshot,permitted:picturesAllowed).map { (member.id,$0) }
+            gallery.observedImage(member.key,group:group.id,snapshot:snapshot,permitted:picturesPresented).map { (member.id,$0) }
         }
         if !pairs.isEmpty {
             let title = group.name ?? (group.members.count == 1 ? "窗口" : "窗口组合")
@@ -308,8 +314,8 @@ struct DesktopSurface: View {
         }
     }
 
-    private var picturesAllowed: Bool {
-        panelAvailable && host.configuration.showsWindowThumbnails && WindowPermissionProbe.screen.allowed()
+    private var picturesPresented: Bool {
+        panelPresented && host.configuration.showsWindowThumbnails && WindowOverviewAccess.shared.grants.contains(.thumbnails)
     }
 
     private func workArea(for screen: DisplayObservation) -> SurfaceRect? {
@@ -455,16 +461,16 @@ struct DesktopSurface: View {
         let rows = Dictionary(uniqueKeysWithValues: DesktopWindowRow.rows(snapshot.windows.filter { $0.displayID == screen.id })
             .map { ($0.id, $0.window) })
         let feed = display?.pointer?.windowPreviews?.currentDesktop
-        let live = currentCardsAcceptInput && !navigation.stageOwnsWindowDispatch()
+        let live = currentCardsPresented && !navigation.stageOwnsWindowDispatch()
         let home = snapshot.scopes.first { $0.displayID == screen.id }?.records.first(where: \.isCurrent)?.ordinaryUUID
         return ForEach(appleStages.groups) { group in
             AppleNativeStageCard(group: group, snapshot: snapshot, screen: screen, width: width,
                 pictureHeight: settings.measures[.spaceRowHeight]?.points(in: width) ?? width * 0.5,
                 border: settings.points(.borderWidth, in: width),
                 fontSize: settings.readableFontSize(.labelSize, in: display?.referenceHeight ?? 600) ?? 10, rows: rows,
-                badges: appBadges, gallery: display?.pointer?.windowPreviews?.gallery, permitted: picturesAllowed,
+                badges: appBadges, gallery: display?.pointer?.windowPreviews?.gallery, permitted: picturesPresented,
                 interactive: live && appleStages.acceptsSelection(group),
-                currentNativeStripItem: currentCardsAcceptInput && appleStages.ready && group.evidence == .nativeStripItem,
+                currentNativeStripItem: currentCardsPresented && appleStages.ready && group.evidence == .nativeStripItem,
                 lifetime: { feed?.departingPictures?.appearances[$0] ?? feed?.lifetime(of: $0) }, choose: { window in
                     guard live, currentCardsAcceptInput, let admitted = appleStages.selection(for: group) else { return }
                     #if DEBUG
@@ -530,8 +536,8 @@ struct DesktopSurface: View {
         let previews = display?.pointer?.windowPreviews
         let gallery = previews?.gallery
         let visible = display?.interactionVisible == true && !host.configuration.surfaceHidden
-        let pictures = visible && host.configuration.showsWindowThumbnails && WindowContentPreview.sessionAvailable()
-        let permitted = pictures && WindowPermissionProbe.screen.allowed()
+        let pictures = visible && host.configuration.showsWindowThumbnails
+        let permitted = pictures && WindowOverviewAccess.shared.grants.contains(.thumbnails)
         var captured = gallery?.capturedSizes(for: windows, in: snapshot, permitted: permitted) ?? [:]
         if pictures, let proof = previews?.binding, captured[proof.number] == nil,
            let window = windows.first(where: { $0.metadata?.number == proof.number }),
@@ -547,7 +553,7 @@ struct DesktopSurface: View {
         let visibleGroups = feed?.departingPictures?.groups[screen.id] ?? feed?.visibleGroups(in: snapshot, on: screen) ?? [:]
         // Reuse this render's presentation state across rows. Actual selection,
         // placement and drag preparation still perform their fresh action checks.
-        let rowNavigationAvailable = canNavigate
+        let rowNavigationAvailable = navigationPresented
         return VStack(alignment: .leading, spacing: spacing) {
             ForEach(DesktopWindowRow.rows(windows)) { row in
                 let window = row.window

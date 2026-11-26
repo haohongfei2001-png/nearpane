@@ -1,0 +1,10 @@
+{
+  "diagnosticOnly": true,
+  "durationSeconds": 3,
+  "exit": 0,
+  "finishedMonotonic": 1198.28052225,
+  "intervalMilliseconds": 10,
+  "pid": 39907,
+  "startedMonotonic": 1187.309612666,
+  "status": "COMPLETE"
+}
