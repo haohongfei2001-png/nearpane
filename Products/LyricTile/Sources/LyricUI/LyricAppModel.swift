@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 @MainActor
 public final class LyricAppModel: ObservableObject {
     @Published public private(set) var snapshot: PlaybackSnapshot = .empty
-    @Published public private(set) var document: LyricDomain.Document?
+    @Published public private(set) var document: LyricDomain.Document? { didSet { rebuildLeadCues() } }
     @Published public private(set) var frame = LyricDomain.Frame(selection: nil, phase: .noPlayback, playbackState: .stopped, lookupMS: nil, presentedCues: [])
     @Published public private(set) var candidates: [LyricDomain.Candidate] = []
     @Published public private(set) var isResolving = false
@@ -54,6 +54,7 @@ public final class LyricAppModel: ObservableObject {
     private var runID = UUID()
     private var stopping = false
     private var lastArtworkData: Data?
+    private var leadCueCache: [LyricDomain.Cue] = []
 
     public init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -138,25 +139,29 @@ public final class LyricAppModel: ObservableObject {
     public var title: String { snapshot.selection?.recording.title ?? "尚未播放音乐" }
     public var artist: String { snapshot.selection?.recording.artists.joined(separator: "、") ?? "" }
     public var durationMS: Int64? { snapshot.selection?.recording.durationMS.flatMap { $0 > 0 ? $0 : nil } }
-    public var leadCues: [LyricDomain.Cue] { document?.lanes.first(where: { $0.kind == .lead })?.cues ?? [] }
+    public var leadCues: [LyricDomain.Cue] { leadCueCache }
     public var currentCue: LyricDomain.Cue? {
         if let browsedCueIndex, leadCues.indices.contains(browsedCueIndex) { return leadCues[browsedCueIndex] }
         let ids = Set(frame.presentedCues.map(\.cueID))
-        return leadCues.first(where: { ids.contains($0.id) }) ?? (document?.timingLevel == .none ? leadCues.first : nil)
+        return leadCues.first(where: { ids.contains($0.id) }) ?? (document?.timingLevel == .some(.none) ? leadCues.first : nil)
     }
     public var currentCueIndex: Int? { currentCue.flatMap { cue in leadCues.firstIndex(where: { $0.id == cue.id }) } }
     public var previousText: String? { currentCueIndex.flatMap { $0 > 0 ? leadCues[$0 - 1].text : nil } }
     public var nextText: String? { currentCueIndex.flatMap { $0 + 1 < leadCues.count ? leadCues[$0 + 1].text : nil } }
     public var translationText: String? {
         guard settings.showTranslation, let cue = currentCue else { return nil }
-        return document?.lanes.filter { $0.kind == .translation }.flatMap(\.cues)
-            .first { $0.linkedCueID == cue.id || ($0.sourceStartMS != nil && $0.sourceStartMS == cue.sourceStartMS) }?.text
+        let translations = document?.lanes.filter { $0.kind == .translation }.flatMap(\.cues) ?? []
+        if let linked = translations.first(where: { $0.linkedCueID == cue.id }) { return linked.text }
+        guard let start = cue.sourceStartMS, leadCues.filter({ $0.sourceStartMS == start }).count == 1 else { return nil }
+        return translations.first { $0.linkedCueID == nil && $0.sourceStartMS == start }?.text
     }
     public var backgroundText: String? {
         guard browsedCueIndex == nil else { return nil }
         let ids = Set(frame.presentedCues.map(\.cueID))
-        return document?.lanes.filter { $0.kind == .background }.flatMap(\.cues)
-            .first { ids.contains($0.id) }?.text
+        if let background = document?.lanes.filter({ $0.kind == .background }).flatMap(\.cues)
+            .first(where: { ids.contains($0.id) }) { return background.text }
+        let focus = currentCue?.id
+        return leadCues.first { ids.contains($0.id) && $0.id != focus }?.text
     }
     public var idle: Bool { snapshot.selection == nil && !snapshot.requiresAuthorization }
     public var canSeek: Bool {
@@ -171,7 +176,7 @@ public final class LyricAppModel: ObservableObject {
     public var sourceCaption: String {
         if browsedCueIndex != nil { return "正在浏览歌词" }
         if snapshot.state == .paused { return "已暂停" }
-        if document?.timingLevel == .none { return "未同步 · 可手动阅读" }
+        if document?.timingLevel == .some(.none) { return "未同步 · 可手动阅读" }
         return snapshot.player?.displayName ?? "LyricTile"
     }
     public var sourceAdvanceMS: Int64 {
@@ -325,6 +330,15 @@ public final class LyricAppModel: ObservableObject {
         }
         refreshFrame(); restartTimeline()
     }
+    private func rebuildLeadCues() {
+        let cues = document?.lanes.filter { $0.kind == .lead }.flatMap(\.cues) ?? []
+        leadCueCache = cues.enumerated().sorted { left, right in
+            if let a = left.element.sourceStartMS, let b = right.element.sourceStartMS, a != b { return a < b }
+            if left.element.sourceStartMS == nil && right.element.sourceStartMS != nil { return false }
+            if left.element.sourceStartMS != nil && right.element.sourceStartMS == nil { return true }
+            return left.offset < right.offset
+        }.map(\.element)
+    }
     private func resolve(_ selection: LyricDomain.Selection) {
         lyricTask?.cancel(); isResolving = true; lyricFailure = nil
         lyricTask = Task { [weak self, repository] in
@@ -364,7 +378,7 @@ public final class LyricAppModel: ObservableObject {
                 frame = .init(selection: selection, phase: lyricFailure == nil ? .notFound : .sourceUnavailable, playbackState: snapshot.state, lookupMS: projected.lookupMS, presentedCues: [])
             } else { frame = projected }
         } else {
-            let phase: LyricDomain.DisplayPhase = isResolving ? .resolving : document?.instrumental == true ? .instrumental : document?.timingLevel == .none ? .plainText : .positionUnavailable
+            let phase: LyricDomain.DisplayPhase = isResolving ? .resolving : document?.instrumental == true ? .instrumental : document?.timingLevel == .some(.none) ? .plainText : .positionUnavailable
             frame = .init(selection: selection, phase: phase, playbackState: snapshot.state, lookupMS: nil, presentedCues: [])
         }
     }

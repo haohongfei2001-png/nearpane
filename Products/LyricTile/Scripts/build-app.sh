@@ -17,8 +17,8 @@ app="$destination/LyricTile.app"
 # Only the known generated bundle is replaced, never a user's installed app.
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/Notices" "$app/Contents/Frameworks"
-swift build --build-system native --configuration "$configuration" --arch "$architecture" --product LyricTile
-binary_path="$(swift build --build-system native --configuration "$configuration" --arch "$architecture" --show-bin-path)"
+swift build --configuration "$configuration" --arch "$architecture" --product LyricTile
+binary_path="$(swift build --configuration "$configuration" --arch "$architecture" --show-bin-path)"
 cp "$binary_path/LyricTile" "$app/Contents/MacOS/LyricTile"
 chmod 755 "$app/Contents/MacOS/LyricTile"
 sparkle_framework="$(python3 - <<'PY'
@@ -32,7 +32,7 @@ PY
 ditto "$sparkle_framework" "$app/Contents/Frameworks/Sparkle.framework"
 # SwiftPM's executable rpath may point only to its build directory. Add the
 # actual bundle-relative framework path before code signing.
-if ! otool -l "$app/Contents/MacOS/LyricTile" | /usr/bin/grep -q '@executable_path/../Frameworks'; then
+if ! otool -l "$app/Contents/MacOS/LyricTile" | /usr/bin/grep -F '@executable_path/../Frameworks' > /dev/null; then
   install_name_tool -add_rpath '@executable_path/../Frameworks' "$app/Contents/MacOS/LyricTile"
 fi
 bash Scripts/build-media-helper.sh "$app/Contents/Resources/MediaRemote" "$architecture"

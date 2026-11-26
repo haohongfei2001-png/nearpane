@@ -247,7 +247,7 @@ private struct LyricAuxiliaryView: View {
                 songHeading
                 Spacer()
                 Button("回到当前句") { followsCurrentLine = true; model.returnToCurrent() }
-                    .font(.system(size: 11)).disabled(model.document?.timingLevel == .none)
+                    .font(.system(size: 11)).disabled(model.document?.timingLevel == .some(.none))
             }.padding(18)
             Divider()
             ScrollViewReader { proxy in

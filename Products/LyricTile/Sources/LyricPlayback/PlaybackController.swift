@@ -67,7 +67,8 @@ public actor PlaybackController {
             while !Task.isCancelled {
                 guard let self else { break }
                 await self.tick(epoch: epoch)
-                do { try await Task.sleep(for: .seconds(1)) } catch { break }
+                let delay = await self.pollDelay()
+                do { try await Task.sleep(for: .seconds(delay)) } catch { break }
             }
         }
     }
@@ -94,6 +95,7 @@ public actor PlaybackController {
         if running { await tick(epoch: lifecycle) }
     }
     public func openPlayer(_ player: PlayerID) async { await PlayerEnvironment.open(player) }
+    private func pollDelay() -> Double { processes.isEmpty ? 5 : 1 }
 
     /// Explicit local diagnostic export. It contains real player metadata and
     /// observed command outcomes, no credentials and no synthetic success rows.
@@ -130,7 +132,18 @@ public actor PlaybackController {
             observationEpoch &+= 1
             sleeping = false; due.removeAll(); currentReadDue = 0; currentSource = nil; sourcePIDStart = 0
             streamRetryAt = 0; await tick(epoch: lifecycle)
-        case .playersChanged, .playbackChanged:
+        case .playersChanged:
+            // NSWorkspace events wake an otherwise five-second idle heartbeat.
+            // Stop the private helper immediately when its native sources exit;
+            // Apple/Spotify observation never needs a replacement global get.
+            let live = await PlayerEnvironment.running()
+            if !live.contains(where: { !$0.player.usesAppleEvents }) {
+                streamTask?.cancel(); streamTask = nil
+                await remote.stop(); await acceptCurrent(nil)
+            }
+            for id in PlayerID.allCases { due[id] = 0 }
+            currentReadDue = 0; await tick(epoch: lifecycle)
+        case .playbackChanged:
             for id in PlayerID.allCases { due[id] = 0 }
             currentReadDue = 0; await tick(epoch: lifecycle)
         }
@@ -346,6 +359,7 @@ public actor PlaybackController {
         if let selection, cover == nil { requestArtwork(observation, selection: selection) }
     }
     private func publish(_ value: PlaybackSnapshot) {
+        if value.player == nil && value == snapshot { return }
         snapshot = value
         for continuation in continuations.values { continuation.yield(value) }
     }

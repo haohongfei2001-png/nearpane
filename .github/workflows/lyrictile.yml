@@ -31,12 +31,12 @@ jobs:
       - name: Compile the independent app and native host facade
         run: |
           set -o pipefail
-          swift build --build-system native --product LyricTile 2>&1 | tee dist/evidence/swift-build.log
-          swift build --build-system native --target NearpaneLyricsModule 2>&1 | tee dist/evidence/host-module-build.log
+          swift build --product LyricTile 2>&1 | tee dist/evidence/swift-build.log
+          swift build --target NearpaneLyricsModule 2>&1 | tee dist/evidence/host-module-build.log
       - name: Run risk-focused tests
         run: |
           set -o pipefail
-          swift test --build-system native --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
+          swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
       - name: Build independent candidate with real media helper
         run: |
           set -o pipefail
@@ -45,6 +45,8 @@ jobs:
         run: python3 Scripts/run-native-smoke.py dist/LyricTile.app --output dist/evidence
       - name: Verify the actual private framework and packaged helper load
         run: python3 Scripts/verify-media-helper.py dist/LyricTile.app/Contents/Resources/MediaRemote --output dist/evidence/media-helper-load.json
+      - name: Measure the ordinary candidate at idle on this host
+        run: python3 Scripts/check-idle-runtime.py dist/LyricTile.app --output dist/evidence/idle --seconds 60
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

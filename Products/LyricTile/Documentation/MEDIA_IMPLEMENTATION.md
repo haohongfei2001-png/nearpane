@@ -59,6 +59,8 @@ NDJSON full snapshots replace all state; diffs merge keys; JSON null removes key
 
 Health snapshots occur at approximately six-second intervals, including targeted reads for off-focus music sessions. Lack of new stream events during stable playback is not itself failure. An observation older than 12 seconds is marked stale; the timeline's 15-second guard is an additional boundary. These intervals and process costs are implementation choices to measure with the real performance budget, not measured performance claims.
 
+When none of the four target players runs, there is **no Perl stream and no periodic MediaRemote get**. The fallback process inventory heartbeat drops to five seconds, while NSWorkspace launch/termination notifications wake observation immediately. Identical empty snapshots are not repeatedly published to the UI. When only Apple Music/Spotify runs—or the user pins either native Apple Events route—the private helper stays stopped. A QQ/NetEase process exiting stops its unnecessary helper through the workspace event path; supported simultaneous-player arbitration is retained.
+
 ## Time, identity and artwork
 
 Positions are normalized into Int64 milliseconds at the boundary. Adapter seek accepts **microseconds**; the `media-control` CLI, which is not shipped, accepts seconds. Overflow, negative values, NaN/infinity and missing values are rejected. An absent time is never represented by zero.

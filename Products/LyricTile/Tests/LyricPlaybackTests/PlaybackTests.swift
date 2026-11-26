@@ -56,7 +56,8 @@ private func data(_ text: String) -> Data { Data(text.utf8) }
 @Test func ndjsonHandlesSplitUTF8AndRejectsUnboundedLine() throws {
     var framer = NDJSONFramer(limit: 32)
     let bytes = data("雪\nA\n")
-    #expect(try framer.append(bytes.prefix(1)).isEmpty)
+    let initialLines = try framer.append(bytes.prefix(1))
+    #expect(initialLines.isEmpty)
     let result = try framer.append(bytes.dropFirst())
     #expect(result == [data("雪"), data("A")])
     #expect(throws: PlaybackError.outputLimit) { try framer.append(Data(repeating: 65, count: 33)) }
@@ -103,28 +104,34 @@ private func remoteFields() -> [String: JSONValue] {
 
 @Test func generationChangesOnlyForRecordingOrInstance() throws {
     var tracker = PlaybackSelectionTracker(); var first = observation()
-    let a = try #require(tracker.update(first))
+    let initialSelection = tracker.update(first)
+    let a = try #require(initialSelection)
     first.positionMS = 100_000
-    let sought = try #require(tracker.update(first))
+    let seekSelection = tracker.update(first)
+    let sought = try #require(seekSelection)
     #expect(a.generation == sought.generation)
     first.album = "Late album metadata"; first.platformID = "late-source-id"
-    let enriched = try #require(tracker.update(first))
+    let enrichedSelection = tracker.update(first)
+    let enriched = try #require(enrichedSelection)
     #expect(enriched.generation == a.generation)
     #expect(enriched.recording.fingerprint == a.recording.fingerprint)
     first.title = "Synthetic test B"; first.platformID = "different-source-id"
-    let b = try #require(tracker.update(first))
+    let changedSelection = tracker.update(first)
+    let b = try #require(changedSelection)
     #expect(b.generation != a.generation)
     #expect(b.sessionID == a.sessionID)
     let restarted = PlayerObservation(process: .init(player: .qqMusic, pid: 123, startMicros: 99999, version: "fixture-1"),
         mediaPID: 123, mediaProcessStart: 99999, title: first.title, artist: first.artist, album: first.album,
         platformID: first.platformID, durationMS: first.durationMS, positionMS: 1, state: .playing, rate: 1,
         stamp: stamp(), capabilities: .init(), artwork: nil, artworkURL: nil, sourceIsCurrent: false)
-    #expect(tracker.update(restarted)?.sessionID != b.sessionID)
+    let restartedSelection = tracker.update(restarted)
+    #expect(restartedSelection?.sessionID != b.sessionID)
 }
 
 @Test func routeRejectsGlobalOwnershipStaleClockAndWrongSelection() throws {
     var tracker = PlaybackSelectionTracker(); var value = observation()
-    let selection = try #require(tracker.update(value))
+    let updatedSelection = tracker.update(value)
+    let selection = try #require(updatedSelection)
     try TransportRoutePolicy.validate(.pause, expected: selection, current: selection, observation: value, now: stamp(10_100))
     value.sourceIsCurrent = false
     #expect(throws: PlaybackError.sourceNotCurrent) {

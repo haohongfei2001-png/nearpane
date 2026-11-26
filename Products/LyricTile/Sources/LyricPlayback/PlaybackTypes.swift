@@ -48,7 +48,7 @@ public struct TransportCapabilities: Sendable, Equatable, Codable {
     }
 }
 
-public struct PlaybackSnapshot: Sendable {
+public struct PlaybackSnapshot: Sendable, Equatable {
     public let player: PlayerID?
     public let selection: LyricDomain.Selection?
     public let anchor: LyricDomain.PlaybackAnchor?
