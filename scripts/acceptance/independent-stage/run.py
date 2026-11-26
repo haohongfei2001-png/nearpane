@@ -428,13 +428,15 @@ def main():
                                   "reason": "engineArchiveUnavailable"}
     atomic(out / "summary.json", summary)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("runtime", "source")}, indent=2))
-    # CI fails on an actual source/behavior failure. A blocked GUI is preserved as blocked,
-    # never rewritten as a pass because a hosted runner lacks an authorized console session.
+    # Preserve blocked/not-run receipts, but a lane that explicitly supplied the
+    # product Host cannot be green without a real R4 product result.
     source_failed = isinstance(summary["source"], dict) and summary["source"].get("status") != "PASS"
     candidate_failed = summary["candidate"].get("status") in ("FAIL", "UNKNOWN")
     runtime = summary["runtime"] if isinstance(summary["runtime"], dict) else {}
     runtime_failed = any(runtime.get(key) in ("FAIL", "UNKNOWN") for key in
                          ("status", "engine", "R4ProductPath", "platformForeignMechanism", *SYSTEM_CHECKS))
+    if a.scope in ("runtime", "all") and product_host is not None and runtime.get("R4ProductPath") != "PASS":
+        runtime_failed = True
     return 1 if source_failed or candidate_failed or runtime_failed else 0
 
 

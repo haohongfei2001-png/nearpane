@@ -193,6 +193,32 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     a 1.400-second system confirmation, with three real previews subsequently rendered and cleanup
     confirmed. Build and strict bundle verification pass; product scheduling does not.
     [Complete candidate and separate release receipt](../verification/independent-stage/cloud-b43d5a93-full/README.md).
+21. The `9cec081f` normal-engine diagnostic passes every required engine check on the **same**
+    26A434/SIP-disabled VM: initial visible registration, the first never-hidden window's real
+    yellow button, third-party round trip, same-app separation, cross-app combination, three full
+    B/C/A cycles, the later yellow button and focus. Its 34 operation receipts are verified,
+    including 26 actual hide/restore requests. The first/later minimized completion each obtains
+    two full original-witness observations at 700/654 ms. The first release returns every surviving
+    window and restores the full original Space inventory in two reads. This is actual
+    `FOREIGN_ENGINE_PASS`, not inference from a successful CI job. It still supplies no R4 product
+    or target-SIP-enabled qualification. [Original complete engine result](../verification/independent-stage/cloud-9cec081f-diagnostics/README.md).
+22. The `9cec081f` complete release independently passes source, build, signature and normal-engine
+    checks. Its real R4 press passes the signed-Dock check in 12.09 ms, reaches the worker and
+    identifies a different Finder desktop representation: the top-level AXScrollArea is included
+    in the full AXWindows list and AXWindow returns another AXScrollArea reference. The old
+    unlisted/empty predicate rejects it. Self equality and exact list count are not established
+    in that original receipt. The next Swift/C branch requires actual CFEqual to the original
+    object and exactly one occurrence before recognizing this listed form.
+    [Original actual structure and complete candidate](../verification/independent-stage/cloud-9cec081f-full/README.md).
+23. The separate `9cec081f` debug run stops before input: the final button attributes return
+    **AXCannotComplete (-25204)**. It does not prove a replaced SwiftUI object. The next helper
+    batches the same six attributes, preserving per-field errors and all identity/frame checks;
+    only a still-unissued transient read may rediscover within the original six-second budget.
+    AXPress remains a single, non-repeated action. The acceptance's synchronous native readback
+    also moves off the UI actor, with immutable samples and read/delivery timestamps, so testing
+    does not itself occupy the actor being measured. This is a confirmed source isolation issue,
+    not proof that it caused the older b43 timing failures.
+    [Original no-input result](../verification/independent-stage/cloud-9cec081f-r4-fast/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.

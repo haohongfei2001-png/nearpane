@@ -5,6 +5,7 @@
 #include <dlfcn.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <sys/sysctl.h>
 
@@ -75,7 +76,8 @@ typedef CGError (*ReadLogicalBounds)(int, uint32_t, CGRect *);
 static ReadLogicalBounds logicalBounds;
 typedef CFArrayRef (*CopySpaceWindowNumbers)(int, uint32_t, CFArrayRef, uint32_t, uint64_t *, uint64_t *);
 static CopySpaceWindowNumbers spaceWindowNumbers;
-static int connection;
+// Read-only sampling can run off the UI thread while another caller probes.
+static _Atomic int connection;
 
 static MainConnection mainConnection;
 static pthread_once_t resolveOnce = PTHREAD_ONCE_INIT;

@@ -66,6 +66,9 @@ These are code-completion claims. The evidence below determines which native eff
 | `b43d5a93`, diagnostics | Extra Space 16 is excluded from complete managed roster; actual animation is temporarily onscreen. Fields settle by 621 ms and repeat at 653 ms | Initial yellow FAIL at old 650 ms boundary, cleanup PASS. Dedicated 1000 ms active-completion source follows with final checks unchanged. [Original actual timings](cloud-b43d5a93-diagnostics/README.md) |
 | `b43d5a93`, source and R4-fast | 160 Rust and 169 Swift passed, one explicit skip; actual debug Host built and actual card press entered the queue, then dispatch/epoch were withdrawn during system confirmation | Product FAIL, cleanup PASS, no worker or new Finder structure sample. Fast debug is separate from full workspace release. [Original source and product receipts](cloud-b43d5a93-r4-fast/README.md) |
 | `b43d5a93`, full release | Complete workspace build and strict signature passed; real input independently lost dispatch during a 1.400-second system confirmation, before the group-choice Host or worker | Product FAIL, cleanup PASS. Three real previews appeared later; their rendering does not prove dispatch or recover the rejected click. [Complete candidate and original release phases](cloud-b43d5a93-full/README.md) |
+| `9cec081f`, diagnostics | Same VM actually passes initial registration, first yellow, foreign round trip, same-app separation, cross-app combination, all three cycles, later yellow and focus; 34 verified receipts include 26 hide/restore requests | FOREIGN_ENGINE_PASS and first-release cleanup PASS; full original inventory restored twice. Product R4 NOT_RUN and target-SIP-enabled qualification remain separate. [Original complete engine evidence](cloud-9cec081f-diagnostics/README.md) |
+| `9cec081f`, R4-fast | This VM also passes the normal engine; final button role/identifier return AXCannotComplete (-25204), before any action is issued | R4 BLOCKED, input zero, cleanup PASS. The original green job is not a product result; product-supplied lanes now require a real R4 PASS to exit zero. [Original no-input receipt](cloud-9cec081f-r4-fast/README.md) |
+| `9cec081f`, full release | 161 Rust and 169 Swift passed, one explicit skip; complete app/signature and this VM's normal engine passed; real R4 input passes native confirmation and reaches worker | Initial Swift witness rejects Finder's listed desktop AXScrollArea form; no NP_LAUNCH, product FAIL, cleanup PASS. Self equality/exact list count are required by the next candidate, not assumed proved. [Original structure and complete candidate](cloud-9cec081f-full/README.md) |
 
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
@@ -77,7 +80,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `b43d5a93` source run passed **160 Rust and 169 Swift cases, with one explicit skip**;
+The latest completed `9cec081f` source run passed **161 Rust and 169 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -118,7 +121,15 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[b43d5a93 full receipts](cloud-b43d5a93-full/README.md) identify the latest source-checked complete
+[9cec081f full receipts](cloud-9cec081f-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15076681435](https://github.com/haohongfei2001-png/nearpane/actions/runs/45728613871/artifacts/15076681435).
+Its independently rehashed ZIP is 25,317,102 bytes, SHA-256
+`cf2f87d7c5bb112947917dedf00ee96098ad965e254720b4cc4679b30752fec8`.
+161 Rust and 169 Swift cases passed, with one explicit skip. Complete workspace and strict/deep
+bundle verification passed. This VM's normal engine also passed all checks; its real R4 input still
+failed at the first Finder desktop witness, with confirmed cleanup. It is not product qualification.
+
+[b43d5a93 full receipts](cloud-b43d5a93-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15075900553](https://github.com/haohongfei2001-png/nearpane/actions/runs/45726209534/artifacts/15075900553).
 Its independently rehashed ZIP is 25,296,704 bytes, SHA-256
 `0b2736ed4b8f6164a4b606025314cd6bb531d0127c7ac38ea8fd17bca17a388d`.

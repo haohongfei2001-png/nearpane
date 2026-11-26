@@ -221,17 +221,23 @@ package struct FrontFocus {
         let parentIsApp = parentError == .success && parent.map {
             CFGetTypeID($0) == AXUIElementGetTypeID() && CFEqual($0, app)
         } == true
+        let windowIsSelf = windowError == .success && containing.map {
+            CFGetTypeID($0) == AXUIElementGetTypeID() && CFEqual($0, element)
+        } == true
         let listed = try? windows(pid)
-        let listedAsWindow = listed.map { $0.contains { CFEqual($0, element) } }
+        let occurrences = listed.map { $0.filter { CFEqual($0, element) }.count }
+        let listedAsWindow = occurrences.map { $0 > 0 }
         let confirmed = Self.finderDesktopMatches(role: roleError == .success ? role as? String : nil,
             parentIsApplication: parentIsApp, containingWindowError: windowError,
-            containingWindowReturnedValue: containing != nil, listedAsWindow: listedAsWindow)
+            containingWindowReturnedValue: containing != nil, containingWindowIsSelf: windowIsSelf,
+            listedOccurrences: occurrences)
         if ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
             var event: [String: Any] = ["event": "stageNonWindowFocusRead", "frontPID": pid,
                 "systemFinder": true, "roleError": roleError.rawValue,
                 "desktopScrollArea": role as? String == kAXScrollAreaRole,
                 "parentError": parentError.rawValue, "parentIsApplication": parentIsApp,
                 "containingWindowError": windowError.rawValue, "containingWindowReturnedValue": containing != nil,
+                "containingWindowIsSelf": windowIsSelf, "listedOccurrences": occurrences as Any? ?? NSNull(),
                 "windowListComplete": listed != nil, "listedAsWindow": listedAsWindow as Any? ?? NSNull(),
                 "confirmedDesktop": confirmed, "uptime": ProcessInfo.processInfo.systemUptime]
             if !confirmed {
@@ -255,10 +261,15 @@ package struct FrontFocus {
 
     static func finderDesktopMatches(role: String?, parentIsApplication: Bool,
                                      containingWindowError: AXError, containingWindowReturnedValue: Bool,
-                                     listedAsWindow: Bool?) -> Bool {
-        role == kAXScrollAreaRole && parentIsApplication &&
-            [.noValue, .attributeUnsupported].contains(containingWindowError) &&
-            !containingWindowReturnedValue && listedAsWindow == false
+                                     containingWindowIsSelf: Bool, listedOccurrences: Int?) -> Bool {
+        let unlisted = [.noValue, .attributeUnsupported].contains(containingWindowError) &&
+            !containingWindowReturnedValue && listedOccurrences == 0
+        // Finder may list the desktop scroll area in AXWindows and return that
+        // very same object for AXWindow. It still has no positive CG window ID;
+        // another containing object or a duplicate/unknown list is not this case.
+        let selfListed = containingWindowError == .success && containingWindowReturnedValue &&
+            containingWindowIsSelf && listedOccurrences == 1
+        return role == kAXScrollAreaRole && parentIsApplication && (unlisted || selfListed)
     }
 
     /// The global AXFocusedApplication attribute can fail on a live console even

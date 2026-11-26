@@ -81,10 +81,7 @@ static id r4Attribute(AXUIElementRef element,CFStringRef attribute,AXError *erro
     return CFBridgingRelease(value);
 }
 static BOOL r4Element(id value) { return value && CFGetTypeID((__bridge CFTypeRef)value)==AXUIElementGetTypeID(); }
-static BOOL r4Rect(AXUIElementRef element,CGRect *frame,AXError *error) {
-    AXError a=kAXErrorFailure,b=kAXErrorFailure;
-    id position=r4Attribute(element,kAXPositionAttribute,&a),size=r4Attribute(element,kAXSizeAttribute,&b);
-    if(error)*error=a!=kAXErrorSuccess?a:b;
+static BOOL r4RectValues(id position,id size,CGRect *frame) {
     CGPoint p=CGPointZero;CGSize s=CGSizeZero;
     if(!position || !size || CFGetTypeID((__bridge CFTypeRef)position)!=AXValueGetTypeID() ||
        CFGetTypeID((__bridge CFTypeRef)size)!=AXValueGetTypeID() ||
@@ -92,6 +89,12 @@ static BOOL r4Rect(AXUIElementRef element,CGRect *frame,AXError *error) {
        !AXValueGetValue((__bridge AXValueRef)size,kAXValueCGSizeType,&s) ||
        !isfinite(p.x) || !isfinite(p.y) || !isfinite(s.width) || !isfinite(s.height) || s.width<=0 || s.height<=0)return NO;
     *frame=CGRectMake(p.x,p.y,s.width,s.height);return YES;
+}
+static BOOL r4Rect(AXUIElementRef element,CGRect *frame,AXError *error) {
+    AXError a=kAXErrorFailure,b=kAXErrorFailure;
+    id position=r4Attribute(element,kAXPositionAttribute,&a),size=r4Attribute(element,kAXSizeAttribute,&b);
+    if(error)*error=a!=kAXErrorSuccess?a:b;
+    return r4RectValues(position,size,frame);
 }
 static NSArray *r4Frame(CGRect frame) { return @[@(frame.origin.x),@(frame.origin.y),@(frame.size.width),@(frame.size.height)]; }
 static BOOL r4SameFrame(CGRect a,CGRect b) {
@@ -137,27 +140,52 @@ static AXUIElementRef r4CopyPanel(AXUIElementRef application,NSDictionary *host,
     }
     return found?(AXUIElementRef)CFRetain(found):NULL;
 }
+static id r4BatchField(AXError status,id fields,NSUInteger index,AXError *error) {
+    if(status!=kAXErrorSuccess || ![fields isKindOfClass:NSArray.class] || [fields count]!=6 || index>=6) {
+        *error=status==kAXErrorSuccess?kAXErrorFailure:status;return nil;
+    }
+    id value=fields[index];CFTypeRef raw=(__bridge CFTypeRef)value;
+    if(CFGetTypeID(raw)==AXValueGetTypeID() && AXValueGetType((AXValueRef)raw)==kAXValueAXErrorType) {
+        AXError actual=kAXErrorFailure;
+        if(!AXValueGetValue((AXValueRef)raw,kAXValueAXErrorType,&actual))actual=kAXErrorFailure;
+        *error=actual;return nil;
+    }
+    if(raw==kCFNull){*error=kAXErrorNoValue;return nil;}
+    *error=kAXErrorSuccess;return value;
+}
 static BOOL r4Button(AXUIElementRef element,NSDictionary *host,NSSet<NSString *> *identifiers,
                      R4WindowNumber reader,CGRect panelFrame,NSMutableDictionary *diagnostic) {
     // Exported SwiftUI AX reads may briefly wait for the real Host's main queue.
     // This only bounds discovery/readback; it does not retry an issued action.
     AXUIElementSetMessagingTimeout(element,.25f);
+    NSArray *keys=@[(__bridge NSString *)kAXRoleAttribute,@"AXIdentifier",(__bridge NSString *)kAXEnabledAttribute,
+        (__bridge NSString *)kAXWindowAttribute,(__bridge NSString *)kAXPositionAttribute,(__bridge NSString *)kAXSizeAttribute];
+    CFArrayRef raw=NULL;
+    AXError batch=AXUIElementCopyMultipleAttributeValues(element,(__bridge CFArrayRef)keys,0,&raw);
+    id fields=CFBridgingRelease(raw);
+    diagnostic[@"batchRead"]=@(batch);
+    diagnostic[@"batchFieldCount"]=@([fields isKindOfClass:NSArray.class]?[fields count]:0);
     AXError error=kAXErrorFailure;
-    id role=r4Attribute(element,kAXRoleAttribute,&error);
+    id role=r4BatchField(batch,fields,0,&error);
     diagnostic[@"role"]=[role isKindOfClass:NSString.class] && [role length]<=64?role:@"unknown";
     diagnostic[@"roleRead"]=@(error);
-    id identifier=r4Attribute(element,CFSTR("AXIdentifier"),&error);
+    id identifier=r4BatchField(batch,fields,1,&error);
     diagnostic[@"identifier"]=r4Identifier(identifier)?identifier:@"<redacted-or-absent>";
     diagnostic[@"identifierRead"]=@(error);
     if(![role isEqual:(__bridge NSString *)kAXButtonRole] || ![identifier isKindOfClass:NSString.class] ||
        ![identifiers containsObject:identifier])return NO;
-    id enabled=r4Attribute(element,kAXEnabledAttribute,&error);
-    BOOL isEnabled=enabled && CFGetTypeID((__bridge CFTypeRef)enabled)==CFBooleanGetTypeID() && [enabled boolValue];
-    diagnostic[@"enabledRead"]=@(error);diagnostic[@"enabled"]=@(isEnabled);
-    id window=r4Attribute(element,kAXWindowAttribute,&error);
+    id enabled=r4BatchField(batch,fields,2,&error);
+    BOOL enabledKnown=enabled && CFGetTypeID((__bridge CFTypeRef)enabled)==CFBooleanGetTypeID();
+    BOOL isEnabled=enabledKnown && [enabled boolValue];
+    diagnostic[@"enabledRead"]=@(error);diagnostic[@"enabled"]=enabledKnown?enabled:NSNull.null;
+    id window=r4BatchField(batch,fields,3,&error);
     BOOL mapped=r4Element(window) && r4MapsToPanel((__bridge AXUIElementRef)window,host,reader);
     diagnostic[@"windowRead"]=@(error);diagnostic[@"windowMatches"]=@(mapped);
-    CGRect bounds=CGRectNull;BOOL framed=r4Rect(element,&bounds,&error);
+    AXError positionError=kAXErrorFailure,sizeError=kAXErrorFailure;
+    id position=r4BatchField(batch,fields,4,&positionError),size=r4BatchField(batch,fields,5,&sizeError);
+    diagnostic[@"positionRead"]=@(positionError);diagnostic[@"sizeRead"]=@(sizeError);
+    error=positionError!=kAXErrorSuccess?positionError:sizeError;
+    CGRect bounds=CGRectNull;BOOL framed=r4RectValues(position,size,&bounds);
     if(framed)diagnostic[@"frame"]=r4Frame(bounds);
     diagnostic[@"frameRead"]=@(error);
     BOOL inside=framed && CGRectContainsRect(CGRectInset(panelFrame,-1,-1),bounds);
@@ -181,7 +209,8 @@ static NSArray *r4Buttons(AXUIElementRef panel,NSDictionary *host,NSSet<NSString
         if(CFSetContainsValue(visited,node))continue;CFSetAddValue(visited,node);count++;
         pid_t pid=0;if(AXUIElementGetPid(node,&pid)!=kAXErrorSuccess || pid!=[host[@"pid"] intValue]){complete=NO;continue;}
         NSMutableDictionary *row=[NSMutableDictionary dictionary];
-        if(r4Button(node,host,identifiers,reader,frame,row))[matches addObject:object];
+        if(r4Button(node,host,identifiers,reader,frame,row))
+            [matches addObject:@{@"element":object,@"identifier":row[@"identifier"]}];
         if(rows.count<48)[rows addObject:row];
         AXError error=kAXErrorFailure;id children=r4Attribute(node,kAXChildrenAttribute,&error);
         if(error==kAXErrorAttributeUnsupported || error==kAXErrorNoValue)continue;
@@ -238,7 +267,7 @@ static int runR4Press(NSString *requestPath) {
             if(!reader){report[@"reason"]=@"windowNumberReaderUnavailable";break;}
             application=AXUIElementCreateApplication([host[@"pid"] intValue]);AXUIElementSetMessagingTimeout(application,.25f);
             double deadline=NSProcessInfo.processInfo.systemUptime+6;id selected=nil;CGRect frame=CGRectNull;
-            report[@"discoveryBudgetMS"]=@6000;report[@"attributeTimeoutMS"]=@250;
+            report[@"discoveryBudgetMS"]=@6000;report[@"attributeTimeoutMS"]=@250;report[@"prePressRediscoveries"]=@0;
             do {
                 if(!r4HostMatches(host)){report[@"reason"]=@"parentChanged";break;}
                 if(panel){CFRelease(panel);panel=NULL;}
@@ -250,24 +279,49 @@ static int runR4Press(NSString *requestPath) {
                         NSMutableDictionary *tree=[NSMutableDictionary dictionary];
                         NSArray *buttons=r4Buttons(panel,host,identifiers,reader,frame,deadline,tree);report[@"tree"]=tree;
                         NSMutableArray *groups=[NSMutableArray array];
-                        for(id button in buttons) {
-                            id key=r4Attribute((__bridge AXUIElementRef)button,CFSTR("AXIdentifier"),NULL);
-                            if([key isKindOfClass:NSString.class] && [key hasPrefix:@"stage-group-select:"])[groups addObject:button];
+                        for(NSDictionary *button in buttons) {
+                            NSString *key=button[@"identifier"];
+                            if([key hasPrefix:@"stage-group-select:"])[groups addObject:button[@"element"]];
                         }
                         if(groups.count==1)selected=groups.firstObject;
-                        else if(groups.count==0 && buttons.count==1)selected=buttons.firstObject;
+                        else if(groups.count==0 && buttons.count==1)selected=[buttons.firstObject objectForKey:@"element"];
                         report[@"reason"]=buttons?@"buttonMissingOrAmbiguous":@"accessibilityTreeIncomplete";
                     } else {report[@"reason"]=@"panelAXGeometryUnconfirmed";report[@"panelFrameRead"]=@(error);}
                 } else report[@"reason"]=@"panelIdentityOrVisibilityUnconfirmed";
-                if(selected)break;pump(.06);
+                if(selected) {
+                    NSData *freshBytes=nil;r4ReadFile(configuration,&freshBytes);
+                    NSMutableDictionary *last=[NSMutableDictionary dictionary];CGRect freshFrame=CGRectNull;
+                    if(![configBytes isEqual:freshBytes] || !r4HostSignature(host) || !r4CGPanel(host,&freshFrame) ||
+                       !r4SameFrame(frame,freshFrame) || !r4MapsToPanel(panel,host,reader)) {
+                        report[@"reason"]=@"prePressContextChanged";selected=nil;break;
+                    }
+                    BOOL validButton=r4Button((__bridge AXUIElementRef)selected,host,identifiers,reader,freshFrame,last);
+                    BOOL sameParent=r4HostMatches(host);report[@"prePress"]=last;
+                    if(!validButton || !sameParent) {
+                        // A pre-press attribute read can be incomplete or refer to
+                        // an invalid AX object. No action has been sent: rediscover
+                        // the exact identifier/panel within the original budget.
+                        // Never retry an attempted AXPress or changed parent/context.
+                        int roleError=[last[@"roleRead"] intValue],idError=[last[@"identifierRead"] intValue];
+                        BOOL transientRead=(roleError==kAXErrorInvalidUIElement || roleError==kAXErrorCannotComplete ||
+                                            idError==kAXErrorInvalidUIElement || idError==kAXErrorCannotComplete);
+                        selected=nil;report[@"reason"]=@"prePressEvidenceChanged";
+                        if(!sameParent || !transientRead)break;
+                        report[@"prePressRediscoveries"]=@([report[@"prePressRediscoveries"] unsignedIntegerValue]+1);
+                        NSMutableArray *failures=report[@"prePressIncompleteReads"];
+                        if(!failures){failures=[NSMutableArray array];report[@"prePressIncompleteReads"]=failures;}
+                        if(failures.count<8)[failures addObject:@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"attributes":last}];
+                    } else {
+                        if(NSProcessInfo.processInfo.systemUptime>=deadline) {
+                            report[@"reason"]=@"discoveryDeadlineBeforePress";selected=nil;
+                        }
+                        break;
+                    }
+                }
+                pump(.06);
             } while(NSProcessInfo.processInfo.systemUptime<deadline);
             if(!selected)break;
-            NSData *freshBytes=nil;r4ReadFile(configuration,&freshBytes);
-            NSMutableDictionary *last=[NSMutableDictionary dictionary];CGRect freshFrame=CGRectNull;
-            if(![configBytes isEqual:freshBytes] || !r4HostSignature(host) || !r4CGPanel(host,&freshFrame) || !r4SameFrame(frame,freshFrame) ||
-               !r4MapsToPanel(panel,host,reader) || !r4Button((__bridge AXUIElementRef)selected,host,identifiers,reader,freshFrame,last) ||
-               !r4HostMatches(host)){report[@"reason"]=@"prePressEvidenceChanged";report[@"prePress"]=last;break;}
-            report[@"prePress"]=last;report[@"issued"]=@YES;
+            report[@"issued"]=@YES;
             report[@"inputUptime"]=@(NSProcessInfo.processInfo.systemUptime);
             AXError pressed=AXUIElementPerformAction((__bridge AXUIElementRef)selected,kAXPressAction);
             report[@"axError"]=@(pressed);report[@"status"]=pressed==kAXErrorSuccess?@"ISSUED":@"BLOCKED";

@@ -11,8 +11,8 @@ import Security
 /// An engine receipt alone never sets PRODUCT_R4_PASS.
 @MainActor public enum IndependentStageAcceptance {
     private struct Configuration: Decodable {
-        struct Window: Decodable { let index: Int; let number: UInt32 }
-        struct Fixture: Decodable {
+        struct Window: Decodable, Sendable { let index: Int; let number: UInt32 }
+        struct Fixture: Decodable, Sendable {
             let directory: String, executable: String
             let pid: Int32, birth: UInt64
             let windows: [Window]
@@ -23,9 +23,20 @@ import Security
         let r4Controller: String?
         let fixtures: [Fixture]
     }
-    private struct Target {
+    private struct Target: Sendable {
         let fixture: Configuration.Fixture, window: Configuration.Window, frame: CGRect, home: UInt64
         var key: NativeSpaceWindow { .init(pid: fixture.pid, birth: fixture.birth, number: window.number) }
+    }
+    private struct WindowPhysicalRead: Sendable {
+        let birth: UInt64?, executable: URL?, expectedExecutable: URL
+        let observed: (pid: Int32, frame: CGRect, visible: Bool)?
+        let membership: [UInt64]?, reverseMembership: [UInt32]?
+    }
+    private struct PhysicalStateRead: Sendable {
+        let start: TimeInterval, end: TimeInterval
+        let windows: [WindowPhysicalRead]
+        let rootTimeoutError: Int32?, focusedWindowError: Int32?, focusedTimeoutError: Int32?
+        let focusedElementTypeConfirmed: Bool, focusedNumber: UInt32?
     }
     private struct Failure: Error { let reason: String }
 
@@ -676,7 +687,7 @@ import Security
         return productPassed && clean ? 0 : (startedWrites ? 1 : 2)
     }
 
-    private static func cg(_ number: UInt32) -> (pid: Int32, frame: CGRect, visible: Bool)? {
+    nonisolated private static func cg(_ number: UInt32) -> (pid: Int32, frame: CGRect, visible: Bool)? {
         guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow, number) as? [[String: Any]], rows.count == 1,
               let row = rows.first, row[kCGWindowNumber as String] as? UInt32 == number,
               let pid = row[kCGWindowOwnerPID as String] as? Int32, row[kCGWindowLayer as String] as? Int == 0,
@@ -1168,31 +1179,82 @@ import Security
         return nil
     }
 
+    /// These synchronous WindowServer and AX reads must not occupy the UI actor
+    /// whose real navigation and freshness checks this acceptance is measuring.
+    /// Only immutable values leave this task; AX objects stay in the reader.
+    nonisolated private static func readPhysicalState(_ targets: [Target], focus: Target?) -> PhysicalStateRead {
+        let start = ProcessInfo.processInfo.systemUptime
+        var windows = [WindowPhysicalRead]()
+        for target in targets {
+            if Task.isCancelled { break }
+            let image = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid)
+            let expected = URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath()
+            let observed = cg(target.window.number)
+            let membership = NPReadWindowSpacesIncludingHidden(target.window.number) as? [UInt64]
+            let reverse: [UInt32]?
+            if let membership, membership.count == 1, let space = membership.first {
+                reverse = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32]
+            } else { reverse = nil }
+            windows.append(.init(birth: image?.launch, executable: image?.executable, expectedExecutable: expected,
+                observed: observed, membership: membership, reverseMembership: reverse))
+        }
+        var rootTimeoutError: Int32?, focusedWindowError: Int32?, focusedTimeoutError: Int32?
+        var focusedElementTypeConfirmed = false
+        var focusedNumber: UInt32?
+        if let focus, !Task.isCancelled {
+            let app = AXUIElementCreateApplication(focus.fixture.pid)
+            let timeout = AXUIElementSetMessagingTimeout(app, 0.1)
+            rootTimeoutError = timeout.rawValue
+            if timeout == .success {
+                var raw: CFTypeRef?
+                let error = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &raw)
+                focusedWindowError = error.rawValue
+                if error == .success, let raw, CFGetTypeID(raw) == AXUIElementGetTypeID() {
+                    focusedElementTypeConfirmed = true
+                    let focused = raw as! AXUIElement
+                    let timeout = AXUIElementSetMessagingTimeout(focused, 0.1)
+                    focusedTimeoutError = timeout.rawValue
+                    if timeout == .success { focusedNumber = NPReadAXWindowNumber(focused) }
+                }
+            }
+        }
+        return .init(start: start, end: ProcessInfo.processInfo.systemUptime, windows: windows,
+            rootTimeoutError: rootTimeoutError, focusedWindowError: focusedWindowError,
+            focusedTimeoutError: focusedTimeoutError, focusedElementTypeConfirmed: focusedElementTypeConfirmed,
+            focusedNumber: focusedNumber)
+    }
+
     private static func waitForState(_ targets: [Target], visible: Set<UInt32>?, focus: Target?, seconds: Double,
                                      allAtHome: Bool = false, preservingFrames: Bool = true,
                                      diagnostic: (([String: Any]) -> Void)? = nil) async -> [[String: Any]]? {
         let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
         var consecutive = [[String: Any]]()
         while ContinuousClock.now < until {
-            var valid = true
+            guard !Task.isCancelled else { return nil }
+            let frontBefore = focus == nil ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
+            let job = Task.detached(priority: .userInitiated) { readPhysicalState(targets, focus: focus) }
+            let sample = await withTaskCancellationHandler { await job.value } onCancel: { job.cancel() }
+            let received = ProcessInfo.processInfo.systemUptime
+            let front = focus == nil ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
+            guard !Task.isCancelled else { return nil }
+            var valid = sample.windows.count == targets.count
             var observations = [[String: Any]]()
-            for target in targets {
+            for (target, reading) in zip(targets, sample.windows) {
                 let number = target.window.number
-                guard let image = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid), image.launch == target.fixture.birth,
-                      image.executable == URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath() else {
+                guard reading.birth == target.fixture.birth, reading.executable == reading.expectedExecutable else {
                     observations.append(["number": number, "pid": target.fixture.pid, "failure": "processIdentityUnavailableOrChanged"])
                     valid = false; break
                 }
-                guard let observed = cg(number), observed.pid == target.fixture.pid else {
+                guard let observed = reading.observed, observed.pid == target.fixture.pid else {
                     observations.append(["number": number, "pid": target.fixture.pid, "failure": "physicalWindowUnavailableOrChanged"])
                     valid = false; break
                 }
-                guard let membership = NPReadWindowSpacesIncludingHidden(number) as? [UInt64], membership.count == 1,
+                guard let membership = reading.membership, membership.count == 1,
                       let space = membership.first else {
                     observations.append(["number": number, "pid": target.fixture.pid, "failure": "singleMembershipUnavailable"])
                     valid = false; break
                 }
-                guard let members = NPReadCatalogSpaceWindowNumbers(space) as? [UInt32], members.filter({ $0 == number }).count == 1 else {
+                guard let members = reading.reverseMembership, members.filter({ $0 == number }).count == 1 else {
                     observations.append(["number": number, "pid": target.fixture.pid, "space": space, "failure": "reverseMembershipUnconfirmed"])
                     valid = false; break
                 }
@@ -1209,20 +1271,24 @@ import Security
             }
             var focusRead: [String: Any] = ["required": focus != nil]
             if let focus {
-                let app = AXUIElementCreateApplication(focus.fixture.pid)
-                _ = AXUIElementSetMessagingTimeout(app, 0.1)
-                var focused: CFTypeRef?
-                let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
-                let error = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused)
-                let number = focused.map { NPReadAXWindowNumber($0) }
-                let confirmed = front == focus.fixture.pid && error == .success && number == focus.window.number
+                let confirmed = frontBefore == front && front == focus.fixture.pid &&
+                    sample.rootTimeoutError == AXError.success.rawValue && sample.focusedWindowError == AXError.success.rawValue &&
+                    sample.focusedElementTypeConfirmed && sample.focusedTimeoutError == AXError.success.rawValue &&
+                    sample.focusedNumber == focus.window.number
                 focusRead = ["required": true, "expectedPID": focus.fixture.pid, "expectedWindow": focus.window.number,
-                    "frontPID": front ?? -1, "focusedWindow": number ?? 0, "focusedWindowRead": error.rawValue, "verified": confirmed]
+                    "frontPIDBefore": frontBefore ?? -1, "frontPID": front ?? -1,
+                    "frontUnchanged": frontBefore == front, "focusedWindow": sample.focusedNumber ?? 0,
+                    "rootTimeoutSetError": sample.rootTimeoutError as Any? ?? NSNull(),
+                    "focusedWindowRead": sample.focusedWindowError as Any? ?? NSNull(),
+                    "focusedElementTypeConfirmed": sample.focusedElementTypeConfirmed,
+                    "focusedTimeoutSetError": sample.focusedTimeoutError as Any? ?? NSNull(), "verified": confirmed]
                 valid = valid && confirmed
             }
-            diagnostic?(["uptime": ProcessInfo.processInfo.systemUptime, "windows": observations, "focus": focusRead, "verified": valid])
+            diagnostic?(["uptime": received, "windows": observations, "focus": focusRead, "verified": valid,
+                "readStart": sample.start, "readEnd": sample.end, "received": received])
             if valid {
-                consecutive.append(["uptime": ProcessInfo.processInfo.systemUptime, "windows": observations])
+                consecutive.append(["uptime": received, "windows": observations,
+                    "readStart": sample.start, "readEnd": sample.end, "received": received])
                 if consecutive.count == 2 { return consecutive }
             } else { consecutive.removeAll() }
             try? await Task.sleep(for: .milliseconds(60))

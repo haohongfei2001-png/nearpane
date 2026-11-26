@@ -105,13 +105,15 @@ static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AX
     BOOL scroll=roleError==kAXErrorSuccess && role && CFEqual(role,kAXScrollAreaRole);
     BOOL root=parentError==kAXErrorSuccess && parent && CFGetTypeID(parent)==AXUIElementGetTypeID() && CFEqual(parent,app);
     BOOL noWindow=(containingError==kAXErrorNoValue || containingError==kAXErrorAttributeUnsupported) && !containing;
+    BOOL windowIsSelf=containingError==kAXErrorSuccess && containing &&
+        CFGetTypeID(containing)==AXUIElementGetTypeID() && CFEqual(containing,focused);
     CFIndex expected=0,actual=-1;
     AXError countError=AXUIElementGetAttributeValueCount(app,kAXWindowsAttribute,&expected);
     BOOL countValid=countError!=kAXErrorAPIDisabled && countError!=kAXErrorInvalidUIElement &&
         (countError!=kAXErrorSuccess || (expected>=0 && expected<=64));
     AXError arrayError=countValid?AXUIElementCopyAttributeValue(app,kAXWindowsAttribute,&rawWindows):kAXErrorFailure;
     BOOL complete=arrayError==kAXErrorSuccess && rawWindows && CFGetTypeID(rawWindows)==CFArrayGetTypeID();
-    BOOL listed=NO;
+    CFIndex occurrences=0;
     if(complete) {
         CFArrayRef windows=(CFArrayRef)rawWindows;actual=CFArrayGetCount(windows);
         complete=actual<=64 && (countError!=kAXErrorSuccess || actual==expected);
@@ -119,14 +121,18 @@ static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AX
             CFTypeRef item=CFArrayGetValueAtIndex(windows,i);pid_t owner=0;
             complete=item && CFGetTypeID(item)==AXUIElementGetTypeID() &&
                 AXUIElementGetPid((AXUIElementRef)item,&owner)==kAXErrorSuccess && owner==front.processIdentifier;
-            if(complete && CFEqual(item,focused))listed=YES;
+            if(complete && CFEqual(item,focused))occurrences++;
         }
     }
-    BOOL accepted=scroll && root && noWindow && complete && !listed;
+    // A listed desktop form requires the very same AX object as its containing
+    // "window" and exactly one occurrence. Matching role/zero CG number alone
+    // does not establish that relationship; incomplete or duplicate lists fail.
+    BOOL accepted=scroll && root && complete &&
+        ((noWindow && occurrences==0) || (windowIsSelf && occurrences==1));
     if(getenv("NP_SPACES_LAUNCH_TRACE")) {
-        fprintf(stderr,"{\"event\":\"spacesLaunchDesktopFocus\",\"systemFinder\":true,\"canonicalError\":%d,\"canonicalNumber\":%u,\"roleError\":%d,\"desktopScrollArea\":%s,\"parentError\":%d,\"parentIsApplication\":%s,\"containingWindowError\":%d,\"containingWindowReturnedValue\":%s,\"countError\":%d,\"reportedCount\":%ld,\"arrayError\":%d,\"actualCount\":%ld,\"windowListComplete\":%s,\"listedAsWindow\":%s,\"confirmedDesktop\":%s}\n",
-            canonicalError,canonicalNumber,roleError,scroll?"true":"false",parentError,root?"true":"false",containingError,containing?"true":"false",
-            countError,(long)expected,arrayError,(long)actual,complete?"true":"false",listed?"true":"false",accepted?"true":"false");
+        fprintf(stderr,"{\"event\":\"spacesLaunchDesktopFocus\",\"systemFinder\":true,\"canonicalError\":%d,\"canonicalNumber\":%u,\"roleError\":%d,\"desktopScrollArea\":%s,\"parentError\":%d,\"parentIsApplication\":%s,\"containingWindowError\":%d,\"containingWindowReturnedValue\":%s,\"containingWindowIsSelf\":%s,\"countError\":%d,\"reportedCount\":%ld,\"arrayError\":%d,\"actualCount\":%ld,\"windowListComplete\":%s,\"listedAsWindow\":%s,\"listedOccurrences\":%ld,\"confirmedDesktop\":%s}\n",
+            canonicalError,canonicalNumber,roleError,scroll?"true":"false",parentError,root?"true":"false",containingError,containing?"true":"false",windowIsSelf?"true":"false",
+            countError,(long)expected,arrayError,(long)actual,complete?"true":"false",occurrences>0?"true":"false",(long)occurrences,accepted?"true":"false");
         fflush(stderr);
     }
     if(role)CFRelease(role);if(parent)CFRelease(parent);if(containing)CFRelease(containing);if(rawWindows)CFRelease(rawWindows);
