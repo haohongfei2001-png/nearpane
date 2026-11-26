@@ -41,3 +41,4 @@
 
 ## 本机播放器连接
 Apple Music 首次连接期间实测系统弹出自动化授权窗口。修正等待时误显普通超时，保留已拒绝权限的设置入口。
+- 源码 `b28d988` 的 1.0.0 (2) App、DMG 公证均为 Accepted，安装副本验签、Gatekeeper 和 HTTPS 更新目录实测通过。文件哈希、公证编号及验收范围见 `Documentation/Verification/2026-11-26-local/notarized-candidate.md`。
