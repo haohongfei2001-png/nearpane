@@ -104,6 +104,78 @@ struct LyricRepositoryTests {
         #expect(document.recording.fingerprint == "new-recording")
     }
 
+    @Test func aLocalImportSupersedesAnInFlightLookupForTheSameRecording() async throws {
+        let location = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: location) }
+        let transport = SuspendedTransport(response: ServiceFixture.response(try ServiceFixture.record()))
+        let repository = LyricRepository(storageURL: location,
+            provider: LRCLIBProvider(configuration: .init(minimumRequestIntervalMS: 0), transport: transport))
+        let selection = ServiceFixture.selection()
+        let lookup = Task { try await repository.resolve(selection) }
+        await transport.waitUntilRequested()
+        let imported = try await repository.importLyrics(Data("[00:02]用户选择的原创歌词".utf8),
+                                                          format: .lrc, for: selection)
+        await transport.finish()
+        do {
+            _ = try await lookup.value
+            Issue.record("An earlier lookup must not replace the user's import.")
+        } catch let error as LyricDomain.SourceFailure {
+            guard case .staleGeneration = error else { Issue.record("Unexpected error: \(error)"); return }
+        }
+        let result = try await repository.resolve(selection)
+        guard case let .document(current) = result else { Issue.record("The local binding is missing."); return }
+        #expect(current.contentHash == imported.contentHash)
+        let automatic = try FileManager.default.contentsOfDirectory(at: location.appendingPathComponent("Automatic"),
+                                                                     includingPropertiesForKeys: nil)
+        #expect(automatic.isEmpty)
+    }
+
+    @Test func reEnablingOnlineLookupDoesNotReviveAnEarlierRequest() async throws {
+        let location = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: location) }
+        let transport = SuspendedTransport([
+            ServiceFixture.response(try ServiceFixture.record(lrc: "[00:01]旧请求的原创歌词")),
+            ServiceFixture.response(try ServiceFixture.record(lrc: "[00:02]新请求的原创歌词"))
+        ])
+        let repository = LyricRepository(storageURL: location,
+            provider: LRCLIBProvider(configuration: .init(minimumRequestIntervalMS: 0), transport: transport))
+        let selection = ServiceFixture.selection()
+        let lookup = Task { try await repository.resolve(selection) }
+        await transport.waitUntilRequested()
+        await repository.setOnlineEnabled(false)
+        await repository.setOnlineEnabled(true)
+        await transport.finish()
+        do {
+            _ = try await lookup.value
+            Issue.record("An offline transition must invalidate work even after lookup is re-enabled.")
+        } catch is CancellationError { }
+        let result = try await repository.resolve(selection)
+        guard case let .document(document) = result else { Issue.record("A new online lookup should recover."); return }
+        #expect(document.lanes[0].cues[0].text == "新请求的原创歌词")
+        #expect(await transport.requests.count == 2)
+    }
+
+    @Test func cacheClearPreventsALateEmptySearchFromRecreatingNegativeCache() async throws {
+        let location = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: location) }
+        let transport = SuspendedTransport([
+            .init(status: 404), ServiceFixture.response(Data("[]".utf8)),
+            ServiceFixture.response(try ServiceFixture.record())
+        ], suspendAt: 1)
+        let repository = LyricRepository(storageURL: location,
+            provider: LRCLIBProvider(configuration: .init(minimumRequestIntervalMS: 0), transport: transport))
+        let selection = ServiceFixture.selection()
+        let lookup = Task { try await repository.resolve(selection) }
+        await transport.waitUntilRequested()
+        try await repository.clearCache()
+        await transport.finish()
+        let oldResult = try await lookup.value
+        guard case .notFound = oldResult else { Issue.record("Expected the original empty search result."); return }
+        let refreshed = try await repository.resolve(selection)
+        guard case .document = refreshed else { Issue.record("The cleared miss was incorrectly restored."); return }
+        #expect(await transport.requests.count == 3)
+    }
+
     @Test func boundedAutomaticEvictionDoesNotEvictProtectedBinding() async throws {
         let location = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: location) }
@@ -189,22 +261,34 @@ private actor QueueTransport: LyricsHTTPTransport {
 }
 
 private actor SuspendedTransport: LyricsHTTPTransport {
-    let response: LyricsHTTPResponse
-    private var pending: CheckedContinuation<LyricsHTTPResponse, Never>?
+    private var responses: [LyricsHTTPResponse]
+    private let suspendAt: Int
+    private(set) var requests: [URLRequest] = []
+    private var pending: CheckedContinuation<Void, Never>?
     private var started = false
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
-    init(response: LyricsHTTPResponse) { self.response = response }
+    init(response: LyricsHTTPResponse) { responses = [response]; suspendAt = 0 }
+    init(_ responses: [LyricsHTTPResponse], suspendAt: Int = 0) {
+        self.responses = responses; self.suspendAt = suspendAt
+    }
     func get(_ request: URLRequest) async throws -> LyricsHTTPResponse {
-        await withCheckedContinuation { continuation in
-            pending = continuation; started = true
-            startWaiters.forEach { $0.resume() }; startWaiters.removeAll()
+        let index = requests.count
+        requests.append(request)
+        guard !responses.isEmpty else { throw LyricDomain.SourceFailure.transportUnavailable }
+        let response = responses.removeFirst()
+        if index == suspendAt {
+            await withCheckedContinuation { continuation in
+                pending = continuation; started = true
+                startWaiters.forEach { $0.resume() }; startWaiters.removeAll()
+            }
         }
+        return response
     }
     func waitUntilRequested() async {
         if started { return }
         await withCheckedContinuation { startWaiters.append($0) }
     }
-    func finish() { pending?.resume(returning: response); pending = nil }
+    func finish() { pending?.resume(); pending = nil }
 }
 
 private actor ConcurrentTrackingTransport: LyricsHTTPTransport {
@@ -217,3 +301,4 @@ private actor ConcurrentTrackingTransport: LyricsHTTPTransport {
         return ServiceFixture.response(Data("[]".utf8))
     }
 }
+

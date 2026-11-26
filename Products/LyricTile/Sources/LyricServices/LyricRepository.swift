@@ -43,6 +43,8 @@ public actor LyricRepository {
     private var loaded = false
     private var index = StoreIndex()
     private var active: SelectionKey?
+    private var selectionRevision: UInt64 = 0
+    private var onlineRevision: UInt64 = 0
     private var cacheEpoch: UInt64 = 0
 
     public init(storageURL: URL, onlineEnabled: Bool = true,
@@ -51,7 +53,11 @@ public actor LyricRepository {
         self.provider = provider; self.policy = cachePolicy
     }
 
-    public func setOnlineEnabled(_ enabled: Bool) { onlineEnabled = enabled }
+    public func setOnlineEnabled(_ enabled: Bool) {
+        guard onlineEnabled != enabled else { return }
+        onlineEnabled = enabled
+        onlineRevision &+= 1
+    }
 
     public func resolve(_ selection: LyricDomain.Selection) async throws -> LyricResolution {
         try activate(selection)
@@ -64,29 +70,29 @@ public actor LyricRepository {
         guard onlineEnabled else { return .notFound }
         let negativeKey = negativeCacheKey(selection.recording)
         if let until = index.notFoundUntil[negativeKey], until > Date() { return .notFound }
+        let state = networkRequestState
         let descriptor = await provider.descriptor()
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         guard descriptor.releaseDisposition != .disabled else { throw LyricDomain.SourceFailure.accessUnavailable }
         let request = LyricDomain.Request(requestID: UUID(), selection: selection)
-        let epoch = cacheEpoch
         var exactAlternative: LyricDomain.Candidate?
         if let exact = try await provider.exact(request) {
-            try ensureNetworkCurrent(selection)
+            try ensureNetworkCurrent(selection, state: state)
             if matcher.mayAutomaticallyAccept(exact.evidence) {
-                return .document(try await fetchAndCache(exact, epoch: epoch))
+                return .document(try await fetchAndCache(exact, state: state))
             }
             exactAlternative = exact
         }
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         var candidates = try await provider.search(request)
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         if let exactAlternative, !candidates.contains(where: { $0.providerRecordID == exactAlternative.providerRecordID }) {
             candidates.append(exactAlternative)
         }
         let accepted = candidates.filter { matcher.mayAutomaticallyAccept($0.evidence) }
-        if accepted.count == 1 { return .document(try await fetchAndCache(accepted[0], epoch: epoch)) }
+        if accepted.count == 1 { return .document(try await fetchAndCache(accepted[0], state: state)) }
         if !candidates.isEmpty { return .candidates(candidates) }
-        if hasSearchMetadata(selection.recording) {
+        if state.cacheEpoch == cacheEpoch, hasSearchMetadata(selection.recording) {
             index.notFoundUntil[negativeKey] = Date().addingTimeInterval(5 * 60)
             pruneNegativeEntries()
             try saveIndex()
@@ -98,18 +104,19 @@ public actor LyricRepository {
     public func searchCandidates(for selection: LyricDomain.Selection) async throws -> [LyricDomain.Candidate] {
         try activate(selection)
         guard onlineEnabled else { throw LyricDomain.SourceFailure.accessUnavailable }
+        let state = networkRequestState
         let descriptor = await provider.descriptor()
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         guard descriptor.releaseDisposition != .disabled else { throw LyricDomain.SourceFailure.accessUnavailable }
         let candidates = try await provider.search(.init(requestID: UUID(), selection: selection))
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         return candidates
     }
 
     public func fetch(_ candidate: LyricDomain.Candidate) async throws -> LyricDomain.Document {
         try ensureCurrent(candidate.request.selection)
         guard onlineEnabled else { throw LyricDomain.SourceFailure.accessUnavailable }
-        return try await fetchAndCache(candidate, epoch: cacheEpoch)
+        return try await fetchAndCache(candidate, state: networkRequestState)
     }
 
     public func importLyrics(_ data: Data, format: LyricDomain.Format,
@@ -165,14 +172,14 @@ public actor LyricRepository {
 
     public func sourceDescriptor() async -> LyricDomain.ProviderDescriptor { await provider.descriptor() }
 
-    private func fetchAndCache(_ candidate: LyricDomain.Candidate, epoch: UInt64) async throws -> LyricDomain.Document {
+    private func fetchAndCache(_ candidate: LyricDomain.Candidate, state: NetworkRequestState) async throws -> LyricDomain.Document {
         let selection = candidate.request.selection
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         let document = try await provider.fetch(candidate)
-        try ensureNetworkCurrent(selection)
+        try ensureNetworkCurrent(selection, state: state)
         let raw = await provider.rawPayload(contentHash: document.contentHash)
-        try ensureNetworkCurrent(selection)
-        if epoch == cacheEpoch {
+        try ensureNetworkCurrent(selection, state: state)
+        if state.cacheEpoch == cacheEpoch {
             try loadIfNeeded()
             try storeAutomatic(document, raw: raw)
         }
@@ -184,20 +191,33 @@ public actor LyricRepository {
         let key = SelectionKey(selection)
         if let active, active.bundleID == key.bundleID, active.sessionID == key.sessionID,
            key.generation < active.generation { throw LyricDomain.SourceFailure.staleGeneration }
+        if active != key { selectionRevision &+= 1 }
         active = key
     }
     private func ensureCurrent(_ selection: LyricDomain.Selection) throws {
         try Task.checkCancellation()
         guard active == SelectionKey(selection) else { throw LyricDomain.SourceFailure.staleGeneration }
     }
-    private func ensureNetworkCurrent(_ selection: LyricDomain.Selection) throws {
+    private func ensureNetworkCurrent(_ selection: LyricDomain.Selection, state: NetworkRequestState) throws {
         try ensureCurrent(selection)
-        guard onlineEnabled else { throw CancellationError() }
+        guard selectionRevision == state.selectionRevision else { throw LyricDomain.SourceFailure.staleGeneration }
+        // Re-enabling lookup must not revive work from before the user's offline choice.
+        guard onlineEnabled, onlineRevision == state.onlineRevision else { throw CancellationError() }
+    }
+    private var networkRequestState: NetworkRequestState {
+        .init(selectionRevision: selectionRevision, onlineRevision: onlineRevision, cacheEpoch: cacheEpoch)
+    }
+    private struct NetworkRequestState {
+        let selectionRevision: UInt64
+        let onlineRevision: UInt64
+        let cacheEpoch: UInt64
     }
     private struct SelectionKey: Equatable {
         let bundleID: String; let sessionID: UUID; let generation: UInt64
+        let fingerprint: String
         init(_ selection: LyricDomain.Selection) {
             bundleID = selection.playerBundleID; sessionID = selection.sessionID; generation = selection.generation
+            fingerprint = selection.recording.fingerprint
         }
     }
 
@@ -354,6 +374,8 @@ public actor LyricRepository {
         index.bindings[recording.fingerprint] = file
         index.notFoundUntil.removeValue(forKey: negativeCacheKey(recording))
         try saveIndex()
+        // Explicit user ownership wins over an automatic request already suspended on the provider.
+        if active?.fingerprint == recording.fingerprint { selectionRevision &+= 1 }
     }
     private func evictAutomatic() throws {
         let now = Date()
@@ -394,3 +416,4 @@ public actor LyricRepository {
             && recording.artists.first?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 }
+
