@@ -462,7 +462,9 @@ public actor PlaybackController {
         else { try await remote.send(command) }
         var lastFailure: PlaybackError = .notConfirmed("尚未读到目标状态")
         // Commands are sent once. Repeated reads are safe; previous/next retries are not.
-        for delay in [120, 250, 400, 650] {
+        // QQ may publish its resumed play state more than two seconds after dispatch.
+        let delays = id == .qqMusic ? [120, 250, 400, 650, 850, 1_100] : [120, 250, 400, 650]
+        for delay in delays {
             try await Task.sleep(for: .milliseconds(delay))
             guard running, lifecycle == epoch, !sleeping, observationEpoch == sampleEpoch else { throw CancellationError() }
             do {

@@ -358,3 +358,27 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(try Data(contentsOf: marker) == data("fixture-must-remain"))
 }
 
+
+@Test func qqTransientContentUUIDCannotConfirmSkipOrInvalidateLocalBinding() throws {
+    let process = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1, version: "11.11.0", build: "73284")
+    var fields = remoteFields()
+    func scopedObservation() throws -> PlayerObservation {
+        try #require(MediaRemotePayload(fields: fields).observation(process: process, mediaStart: 1, isCurrent: true))
+    }
+    fields["contentItemIdentifier"] = .string(UUID().uuidString)
+    let first = try scopedObservation()
+    fields["contentItemIdentifier"] = .string(UUID().uuidString)
+    let resumed = try scopedObservation()
+    #expect(first.platformID == nil)
+    #expect(PlaybackSelectionTracker.sameRecording(first, resumed))
+    #expect(!CommandReadback.confirms(.next, before: first, after: resumed, sentAt: first.stamp))
+    fields["title"] = .string("Another fixture")
+    #expect(!PlaybackSelectionTracker.sameRecording(first, try scopedObservation()))
+    fields["contentItemIdentifier"] = .string("catalog-track-123")
+    #expect(try scopedObservation().platformID == "catalog-track-123")
+    fields["playing"] = .bool(false)
+    #expect(try scopedObservation().positionMS == nil)
+    #expect(try scopedObservation().clockNeedsReanchor)
+    fields["playbackRate"] = .double(0)
+    #expect(try scopedObservation().positionMS == 30_000)
+}

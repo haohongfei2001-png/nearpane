@@ -1,0 +1,41 @@
+{
+  "player": "QQ Music 11.11.0 (73284)",
+  "platform": "arm64 macOS 27.0 (26A428)",
+  "method": "Official client playing two original WAVs from its local library. Production PlaybackController performed each action once and read the actual helper reply; concurrent read-only global snapshots identified transitions. No account login. No manufactured Now Playing metadata.",
+  "offFocus": "With Music as current system owner, the QQ pinned selection correctly observed its real title and progress and blocked transport. An explicit QQ file-open granted the system source to QQ.",
+  "before": "Equal title, same track, multiple observed content UUIDs, including updates before actual next-track title and after resume. Resume command at Unix 1795691451.383, global playing became true between 1795691453.37 and 1795691453.70, beyond the former confirmation window. Paused snapshots retained advancing playbackRate=1 with elapsed=0 from the beginning of that track.",
+  "after": "Ignore ephemeral UUID only on the observed QQ build, keep other catalog IDs. Treat contradictory paused/positive-rate anchor as temporarily unavailable. The confirmation window allows slower QQ reads while commands are still sent once.",
+  "rawEvidenceSHA256": {
+    "qq-source-series.txt": "f0c4cc27b7790e05fd5f9436caffa3f2f16de71d416099bfc95268231d846ab9",
+    "qq-order-controls.txt": "f894e54c168d502b401088ce29dbfdc76287a78a8f4cf70d08376a0d86b3a95c",
+    "qq-fixed-controls.txt": "ca0226d925a3b0e4217a25fe12abe3e176ba1e04a3a956b4809dd446f71b4354",
+    "qq-fixed-seek.txt": "89146694a913d5271903f1458a47fb6259c934af5209d828fbef57133305f3e5"
+  },
+  "fixedControllerTransport": [
+    "before 1795691565.2796788 LyricTile Lab 1126 Track 2 paused Optional(6000) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
+    "Unconfirmed seek(milliseconds: 25000) 当前播放器或歌曲不提供此项控制。",
+    "before 1795691567.341284 LyricTile Lab 1126 Track 1 playing Optional(5017) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed next",
+    "before 1795691570.334649 LyricTile Lab 1126 Track 2 playing Optional(300) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed previous",
+    "before 1795691573.324799 LyricTile Lab 1126 Track 1 playing Optional(1849) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed pause",
+    "before 1795691575.562798 LyricTile Lab 1126 Track 1 paused Optional(0) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
+    "Unconfirmed seek(milliseconds: 10000) 当前播放器或歌曲不提供此项控制。",
+    "before 1795691577.584741 LyricTile Lab 1126 Track 1 paused Optional(0) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
+    "Confirmed play",
+    "before 1795691581.177952 LyricTile Lab 1126 Track 1 playing Optional(5036) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed pause"
+  ],
+  "fixedControllerPlayingSeek": [
+    "before 1795691634.554878 LyricTile Lab 1126 Track 1 paused nil TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
+    "Confirmed play",
+    "before 1795691639.0614572 LyricTile Lab 1126 Track 1 playing Optional(9124) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed seek(milliseconds: 25000)",
+    "before 1795691643.533136 LyricTile Lab 1126 Track 1 playing Optional(27111) TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: true)",
+    "Confirmed pause",
+    "before 1795691645.791337 LyricTile Lab 1126 Track 1 paused nil TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
+    "Unconfirmed seek(milliseconds: 10000) 当前播放器或歌曲不提供此项控制。"
+  ],
+  "limits": "When paused, seek stays unavailable. No QQ independent word-clock calibration, online-account playback, or acoustic measurement."
+}

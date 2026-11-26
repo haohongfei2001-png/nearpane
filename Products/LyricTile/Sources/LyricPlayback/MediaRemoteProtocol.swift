@@ -126,7 +126,11 @@ struct MediaRemotePayload: Sendable {
         let elapsed = MediaTime.micros(fields["elapsedTimeMicros"]?.integer)
         let rawRate = fields["playbackRate"]?.number
         let rate = state == .playing ? ((rawRate?.isFinite == true && rawRate! > 0 && rawRate! <= 8) ? rawRate! : 1) : 0
-        var currentPosition: Int64? = elapsed
+        let qqPublishesTransientItems = process.player == .qqMusic && process.build == "73284"
+        // QQ can flip the global playing flag before refreshing the playing
+        // anchor. Presenting its old elapsed field would rewind on pause.
+        let awaitingPauseAnchor = qqPublishesTransientItems && state == .paused && (rawRate ?? 0) > 0
+        var currentPosition: Int64? = awaitingPauseAnchor ? nil : elapsed
         if state == .playing {
             // A quiet stream can carry an old *valid* source anchor. Rebase that
             // anchor at the fresh health response, not at the next display frame.
@@ -137,15 +141,24 @@ struct MediaRemotePayload: Sendable {
                 } else { currentPosition = nil }
             } else { currentPosition = nil } // A missing timestamp is not a new zero anchor.
         }
-        let identifier = fields["contentItemIdentifier"]?.string ?? fields["uniqueIdentifier"]?.string
+        var itemID = fields["contentItemIdentifier"]?.string
+        let alternateID = fields["uniqueIdentifier"]?.string
+        // This QQ build publishes a new content UUID on pause/resume and before
+        // new metadata arrives on skip. It identifies an update, not a recording.
+        if qqPublishesTransientItems,
+           let value = itemID, UUID(uuidString: value) != nil {
+            itemID = alternateID == value ? nil : alternateID
+        } else {
+            itemID = itemID ?? alternateID
+        }
         var controls = capabilities(isCurrent: isCurrent)
         if currentPosition == nil { controls.canSeek = false }
         return PlayerObservation(process: process, mediaPID: pid, mediaProcessStart: mediaStart,
             title: fields["title"]?.string, artist: fields["artist"]?.string, album: fields["album"]?.string,
-            platformID: identifier, durationMS: duration, positionMS: currentPosition, state: state, rate: rate,
+            platformID: itemID, durationMS: duration, positionMS: currentPosition, state: state, rate: rate,
             stamp: now, capabilities: controls, artwork: artwork, artworkURL: nil,
             sourceIsCurrent: isCurrent, quality: currentPosition == nil ? .unavailable : .coarseSourceAnchor,
-            restricted: restricted)
+            restricted: restricted, clockNeedsReanchor: awaitingPauseAnchor)
     }
     static func decodeGet(_ data: Data, target: PlayerID?) throws -> [MediaRemotePayload] {
         guard data.count <= 12 * 1024 * 1024 else { throw PlaybackError.outputLimit }
