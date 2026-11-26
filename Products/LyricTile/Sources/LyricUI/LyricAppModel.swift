@@ -44,9 +44,17 @@ public final class LyricAppModel: ObservableObject {
     private let lease: TileSessionLease
     private let defaults: UserDefaults
     private var adjustment: LyricDomain.UserTimingAdjustment?
+    private var seekSelection: LyricDomain.Selection?
     private var updateTask: Task<Void, Never>?
-    private var lyricTask: Task<Void, Never>?
-    private var candidateTask: Task<Void, Never>?
+    private(set) var lyricTask: Task<Void, Never>?
+    private(set) var candidateTask: Task<Void, Never>?
+    private(set) var adjustmentTask: Task<Void, Never>?
+    private var importPanel: NSOpenPanel?
+    private var lyricRequestID = UUID()
+    private var candidateRequestID = UUID()
+    private var adjustmentRequestID = UUID()
+    private enum LyricRequestKind { case automatic, candidate, localImport }
+    private var lyricRequestKind = LyricRequestKind.automatic
     private var timelineTask: Task<Void, Never>?
     private var commandTask: Task<Void, Never>?
     private var browseTask: Task<Void, Never>?
@@ -59,14 +67,20 @@ public final class LyricAppModel: ObservableObject {
     private var artworkToken = UUID()
     private var leadCueCache: [LyricDomain.Cue] = []
 
-    public init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    public convenience init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
         let settings = LyricSettings.load(from: defaults)
-        self.settings = settings
         let directory = storageURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("HOLDSNOW/LyricTile", isDirectory: true)
+        self.init(repository: LyricRepository(storageURL: directory, onlineEnabled: settings.onlineLyrics), defaults: defaults)
+    }
+
+    // Internal composition keeps async regression tests on the real repository without
+    // starting a player or acquiring the production session lease.
+    init(repository: LyricRepository, defaults: UserDefaults) {
+        self.defaults = defaults
+        settings = LyricSettings.load(from: defaults)
         playback = PlaybackController()
-        repository = LyricRepository(storageURL: directory, onlineEnabled: settings.onlineLyrics)
+        self.repository = repository
         lease = TileSessionLease(moduleID: "lyrics")
     }
 
@@ -120,8 +134,10 @@ public final class LyricAppModel: ObservableObject {
             startBarrier?.cancel()
             if let startBarrier { _ = await startBarrier.value }
             updateTask?.cancel(); updateTask = nil
-            lyricTask?.cancel(); lyricTask = nil
-            candidateTask?.cancel(); candidateTask = nil
+            cancelLyricRequest()
+            cancelCandidateSearch()
+            cancelAdjustment()
+            importPanel?.cancel(nil); importPanel = nil
             timelineTask?.cancel(); timelineTask = nil
             browseTask?.cancel(); browseTask = nil
             clearArtwork()
@@ -129,7 +145,7 @@ public final class LyricAppModel: ObservableObject {
             if let commandTask { await commandTask.value }
             await playback.stop()
             snapshot = .empty; document = nil
-            candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil
+            candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil; seekSelection = nil
             isResolving = false; isSearchingCandidates = false; playbackPositionMS = nil
             controlsVisible = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
             refreshFrame()
@@ -219,9 +235,22 @@ public final class LyricAppModel: ObservableObject {
         }
     }
     public func togglePlayback() { perform(snapshot.state == .playing ? .pause : .play) }
-    public func beginSeek() { if canSeek { seekPreviewMS = playbackPositionMS } }
+    public func beginSeek() {
+        guard canSeek else { return }
+        seekSelection = snapshot.selection
+        seekPreviewMS = playbackPositionMS
+    }
+    func previewSeek(to value: Double) {
+        guard canSeek, let selection = seekSelection, isCurrent(selection), let durationMS,
+              value.isFinite, value >= 0, value < Double(Int64.max) else { seekPreviewMS = nil; return }
+        seekPreviewMS = min(durationMS, Int64(value))
+    }
     public func finishSeek() {
-        guard canSeek, let seekPreviewMS else { self.seekPreviewMS = nil; return }
+        defer { seekSelection = nil }
+        guard canSeek, let selection = seekSelection, isCurrent(selection), let seekPreviewMS else {
+            self.seekPreviewMS = nil
+            return
+        }
         perform(.seek(milliseconds: seekPreviewMS))
     }
     public func seek(to cue: LyricDomain.Cue) {
@@ -237,72 +266,98 @@ public final class LyricAppModel: ObservableObject {
     }
     public func retryLyrics() { if let selection = snapshot.selection { resolve(selection) } }
     public func searchCandidates() {
-        guard let selection = snapshot.selection else { return }
-        candidateTask?.cancel(); isSearchingCandidates = true
+        guard !stopping, let selection = snapshot.selection else { return }
+        cancelCandidateSearch()
+        let requestID = candidateRequestID
+        isSearchingCandidates = true; actionMessage = nil
         candidateTask = Task { [weak self, repository] in
             do {
                 let result = try await repository.searchCandidates(for: selection)
-                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
+                guard let self, !Task.isCancelled, self.candidateRequestID == requestID, self.isCurrent(selection) else { return }
                 self.candidates = result; self.isSearchingCandidates = false
             } catch {
-                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
+                guard let self, !Task.isCancelled, self.candidateRequestID == requestID, self.isCurrent(selection) else { return }
                 self.isSearchingCandidates = false; self.actionMessage = Self.message(for: error)
             }
         }
     }
     public func choose(_ candidate: LyricDomain.Candidate) {
-        guard let selection = snapshot.selection, Self.sameSession(candidate.request.selection, selection) else { return }
-        lyricTask?.cancel(); isResolving = true
+        guard !stopping, let selection = snapshot.selection, Self.sameSession(candidate.request.selection, selection) else { return }
+        let requestID = beginLyricRequest(kind: .candidate)
+        cancelCandidateSearch()
         lyricTask = Task { [weak self, repository] in
             do {
                 let result = try await repository.fetch(candidate)
-                guard !Task.isCancelled, self?.isCurrent(selection) == true else { return }
+                guard self?.isCurrent(selection, lyricRequest: requestID) == true else { return }
                 try await repository.bind(result, to: selection.recording)
-                await self?.accept(result, for: selection)
-            } catch { self?.finishFailure(error, for: selection) }
+                await self?.accept(result, for: selection, requestID: requestID)
+            } catch { self?.finishFailure(error, for: selection, requestID: requestID, reportAction: true) }
         }
     }
     public func changeAdvance(to value: Int64) {
-        guard !isSavingAdjustment, let selection = snapshot.selection, let document else { return }
+        guard !stopping, !isSavingAdjustment, let selection = snapshot.selection, let document else { return }
         let value = min(10_000, max(-10_000, value))
-        isSavingAdjustment = true
-        Task { [weak self, repository] in
+        adjustmentRequestID = UUID()
+        let requestID = adjustmentRequestID
+        isSavingAdjustment = true; actionMessage = nil
+        adjustmentTask = Task { [weak self, repository] in
+            defer {
+                if let self, self.adjustmentRequestID == requestID {
+                    self.isSavingAdjustment = false
+                    self.adjustmentTask = nil
+                }
+            }
             do {
                 try await repository.setAdvance(value, for: selection.recording, document: document)
-                guard let self, self.isCurrent(selection), self.document?.contentHash == document.contentHash else {
-                    self?.isSavingAdjustment = false
-                    return
-                }
+                guard let self, !Task.isCancelled, self.adjustmentRequestID == requestID,
+                      self.isCurrent(selection), self.document?.contentHash == document.contentHash else { return }
                 self.advanceMS = value
                 self.adjustment = .init(recordingFingerprint: selection.recording.fingerprint, documentContentHash: document.contentHash, userAdvanceMS: value)
                 self.refreshFrame(); self.restartTimeline()
-            } catch { self?.actionMessage = Self.message(for: error) }
-            self?.isSavingAdjustment = false
+            } catch {
+                guard let self, !Task.isCancelled, self.adjustmentRequestID == requestID,
+                      self.isCurrent(selection), self.document?.contentHash == document.contentHash else { return }
+                self.actionMessage = Self.message(for: error)
+            }
         }
     }
     public func importLyrics() {
-        guard let selection = snapshot.selection else { return }
-        Task { [weak self, repository] in
-            let panel = NSOpenPanel()
-            panel.title = "为当前歌曲导入歌词"
-            panel.prompt = "导入歌词"
-            panel.allowedContentTypes = [.plainText, .xml, .data]
-            panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
-            guard await panel.begin() == .OK, let url = panel.url, let self, self.isCurrent(selection) else { return }
+        guard !stopping, let selection = snapshot.selection else { return }
+        importPanel?.cancel(nil)
+        let panel = NSOpenPanel()
+        importPanel = panel
+        panel.title = "为当前歌曲导入歌词"
+        panel.prompt = "导入歌词"
+        panel.allowedContentTypes = [.plainText, .xml, .data]
+        panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
+        Task { [weak self] in
+            let response = await panel.begin()
+            guard let self, self.importPanel === panel else { return }
+            self.importPanel = nil
+            guard response == .OK, let url = panel.url, self.isCurrent(selection) else { return }
+            self.importLyrics(from: url, for: selection)
+        }
+    }
+
+    func importLyrics(from url: URL, for selection: LyricDomain.Selection) {
+        guard isCurrent(selection) else { return }
+        let requestID = beginLyricRequest(kind: .localImport)
+        cancelCandidateSearch(); candidates = []
+        lyricTask = Task { [weak self, repository] in
             do {
                 let bytes = try await Task.detached(priority: .userInitiated) {
                     let scope = url.startAccessingSecurityScopedResource()
                     defer { if scope { url.stopAccessingSecurityScopedResource() } }
                     let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
                     guard size <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: "歌词文件超过 2 MiB") }
-                    return try Data(contentsOf: url, options: .mappedIfSafe)
+                    let data = try Data(contentsOf: url, options: .mappedIfSafe)
+                    guard data.count <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: "歌词文件超过 2 MiB") }
+                    return data
                 }.value
-                guard self.isCurrent(selection) else { return }
+                guard let self, self.isCurrent(selection, lyricRequest: requestID) else { return }
                 let document = try await repository.importLyrics(bytes, format: Self.format(for: url), for: selection)
-                await self.accept(document, for: selection)
-            } catch {
-                if self.isCurrent(selection) { self.actionMessage = Self.message(for: error) }
-            }
+                await self.accept(document, for: selection, requestID: requestID)
+            } catch { self?.finishFailure(error, for: selection, requestID: requestID, reportAction: true) }
         }
     }
     public func clearCache() {
@@ -318,23 +373,27 @@ public final class LyricAppModel: ObservableObject {
     }
     public func returnToCurrent() { browseTask?.cancel(); browsedCueIndex = nil; refreshFrame() }
 
-    private func receive(_ update: PlaybackSnapshot) {
+    func receive(_ update: PlaybackSnapshot) {
         let metadataChanged = snapshot.selection != update.selection
         let changed = !Self.sameSession(snapshot.selection, update.selection)
         snapshot = update
         refreshArtwork(from: update, sessionChanged: changed)
         if changed {
-            lyricTask?.cancel(); candidateTask?.cancel(); browseTask?.cancel()
+            cancelLyricRequest(); cancelCandidateSearch(); cancelAdjustment(); browseTask?.cancel()
+            importPanel?.cancel(nil); importPanel = nil
             document = nil; adjustment = nil; advanceMS = 0; candidates = []; browsedCueIndex = nil
-            lyricFailure = nil; actionMessage = nil; seekPreviewMS = nil
+            lyricFailure = nil; actionMessage = nil; seekPreviewMS = nil; seekSelection = nil
             isResolving = false; isSearchingCandidates = false
             if let selection = update.selection { resolve(selection) }
-        } else if metadataChanged, document == nil, let selection = update.selection {
+        } else if metadataChanged, let selection = update.selection {
             // Late album/artist/duration fields enrich the same recording; they never erase
             // a correctly bound document. An unresolved query may use the richer metadata.
+            cancelCandidateSearch()
             candidates = []
-            resolve(selection)
+            if document == nil, lyricRequestKind == .automatic || !isResolving { resolve(selection) }
         }
+        if (changed || metadataChanged), presentation == .candidates,
+           lyricRequestKind == .automatic || !isResolving { searchCandidates() }
         refreshFrame(); restartTimeline()
     }
     private func clearArtwork() {
@@ -373,29 +432,56 @@ public final class LyricAppModel: ObservableObject {
         }.map(\.element)
     }
     private func resolve(_ selection: LyricDomain.Selection) {
-        lyricTask?.cancel(); isResolving = true; lyricFailure = nil
+        guard isCurrent(selection) else { return }
+        let requestID = beginLyricRequest()
+        let candidateID = candidateRequestID
         lyricTask = Task { [weak self, repository] in
             do {
                 let resolution = try await repository.resolve(selection)
-                guard let self, !Task.isCancelled, self.isCurrent(selection) else { return }
+                guard let self, self.isCurrent(selection, lyricRequest: requestID) else { return }
                 switch resolution {
-                case .document(let document): await self.accept(document, for: selection)
-                case .candidates(let candidates): self.candidates = candidates; self.isResolving = false; self.refreshFrame()
+                case .document(let document): await self.accept(document, for: selection, requestID: requestID)
+                case .candidates(let candidates):
+                    if self.candidateRequestID == candidateID { self.candidates = candidates }
+                    self.isResolving = false; self.refreshFrame()
                 case .notFound: self.isResolving = false; self.document = nil; self.refreshFrame()
                 }
-            } catch { self?.finishFailure(error, for: selection) }
+            } catch { self?.finishFailure(error, for: selection, requestID: requestID) }
         }
     }
-    private func accept(_ value: LyricDomain.Document, for selection: LyricDomain.Selection) async {
+    private func accept(_ value: LyricDomain.Document, for selection: LyricDomain.Selection, requestID: UUID) async {
         let timing = await repository.adjustment(for: selection.recording, document: value)
-        guard !Task.isCancelled, isCurrent(selection) else { return }
+        guard isCurrent(selection, lyricRequest: requestID) else { return }
+        if document?.contentHash != value.contentHash { cancelAdjustment() }
         document = value; adjustment = timing; advanceMS = timing?.userAdvanceMS ?? 0
-        isResolving = false; lyricFailure = nil; browsedCueIndex = nil
+        isResolving = false; lyricFailure = nil; actionMessage = nil; browsedCueIndex = nil
         refreshFrame(); restartTimeline()
     }
-    private func finishFailure(_ error: Error, for selection: LyricDomain.Selection) {
-        guard !Task.isCancelled, isCurrent(selection) else { return }
+    private func finishFailure(_ error: Error, for selection: LyricDomain.Selection, requestID: UUID, reportAction: Bool = false) {
+        guard isCurrent(selection, lyricRequest: requestID) else { return }
         isResolving = false; lyricFailure = Self.message(for: error); refreshFrame()
+        if reportAction { actionMessage = Self.message(for: error) }
+    }
+    private func beginLyricRequest(kind: LyricRequestKind = .automatic) -> UUID {
+        cancelLyricRequest()
+        lyricRequestKind = kind
+        isResolving = true; lyricFailure = nil; actionMessage = nil
+        refreshFrame()
+        return lyricRequestID
+    }
+    private func cancelLyricRequest() {
+        lyricRequestID = UUID()
+        lyricTask?.cancel(); lyricTask = nil
+    }
+    private func cancelCandidateSearch() {
+        candidateRequestID = UUID()
+        candidateTask?.cancel(); candidateTask = nil
+        isSearchingCandidates = false
+    }
+    private func cancelAdjustment() {
+        adjustmentRequestID = UUID()
+        adjustmentTask?.cancel(); adjustmentTask = nil
+        isSavingAdjustment = false
     }
     private func refreshFrame() {
         guard let selection = snapshot.selection else {
@@ -456,7 +542,10 @@ public final class LyricAppModel: ObservableObject {
         }
     }
     private func isCurrent(_ selection: LyricDomain.Selection) -> Bool {
-        Self.sameSession(snapshot.selection, selection)
+        !stopping && Self.sameSession(snapshot.selection, selection)
+    }
+    private func isCurrent(_ selection: LyricDomain.Selection, lyricRequest requestID: UUID) -> Bool {
+        !Task.isCancelled && lyricRequestID == requestID && isCurrent(selection)
     }
     private static func sameSession(_ left: LyricDomain.Selection?, _ right: LyricDomain.Selection?) -> Bool {
         guard let left, let right else { return left == nil && right == nil }
@@ -468,12 +557,16 @@ public final class LyricAppModel: ObservableObject {
         if settings.onlineLyrics != previous.onlineLyrics {
             let enabled = settings.onlineLyrics
             if !enabled {
-                lyricTask?.cancel(); candidateTask?.cancel()
-                isResolving = false; isSearchingCandidates = false
+                if lyricRequestKind != .localImport { cancelLyricRequest(); isResolving = false }
+                cancelCandidateSearch(); candidates = []
             }
             Task { [weak self, repository] in
+                guard let self, self.settings.onlineLyrics == enabled else { return }
                 await repository.setOnlineEnabled(enabled)
-                if enabled { self?.retryLyrics() } else { self?.refreshFrame() }
+                guard self.settings.onlineLyrics == enabled else { return }
+                guard self.lyricRequestKind != .localImport || !self.isResolving else { self.refreshFrame(); return }
+                if enabled || (self.document == nil && !self.isResolving) { self.retryLyrics() }
+                else { self.refreshFrame() }
             }
         }
         if settings.preferredPlayer != previous.preferredPlayer, ownsSession {
@@ -505,3 +598,4 @@ public final class LyricAppModel: ObservableObject {
         }
     }
 }
+

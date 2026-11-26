@@ -11,7 +11,7 @@ public struct LyricPanelView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var pointerInside = false
     @State private var hoverTask: Task<Void, Never>?
-    @State private var interactionHeld = false
+    @State private var isSeeking = false
     @FocusState private var controlsFocused: Bool
 
     public init(model: LyricAppModel) { self.model = model }
@@ -38,11 +38,16 @@ public struct LyricPanelView: View {
                 if focused { revealControls() } else if !pointerInside { scheduleHide() }
             }
             .onChange(of: model.presentation) { _, page in
-                interactionHeld = page != nil
                 if page != nil { revealControls() } else if !pointerInside { scheduleHide() }
             }
             .onChange(of: model.songMenuIsOpen) { _, open in
                 if open { revealControls() } else if !pointerInside { scheduleHide() }
+            }
+            .onChange(of: model.seekPreviewMS) { _, position in
+                if position == nil {
+                    isSeeking = false
+                    if !pointerInside { scheduleHide() }
+                }
             }
             .onDisappear { hoverTask?.cancel() }
         }
@@ -242,9 +247,9 @@ public struct LyricPanelView: View {
         VStack(spacing: 2) {
             if model.snapshot.capabilities.canSeek, let duration = model.durationMS, model.playbackPositionMS != nil {
                 Slider(value: Binding(get: { Double(model.seekPreviewMS ?? model.playbackPositionMS ?? 0) },
-                                      set: { model.seekPreviewMS = Int64($0) }),
+                                      set: { model.previewSeek(to: $0) }),
                        in: 0...Double(duration), onEditingChanged: { editing in
-                    interactionHeld = editing
+                    isSeeking = editing
                     if editing { model.beginSeek() } else { model.finishSeek(); if !pointerInside { scheduleHide() } }
                 }).controlSize(.mini).tint(primary).disabled(!model.canSeek)
                     .accessibilityLabel("歌曲进度").focused($controlsFocused)
@@ -286,7 +291,8 @@ public struct LyricPanelView: View {
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
             do { try await Task.sleep(for: .milliseconds(280)) } catch { return }
-            guard !pointerInside, !interactionHeld, !controlsFocused, !model.songMenuIsOpen, model.seekPreviewMS == nil else { return }
+            guard !pointerInside, !isSeeking, model.presentation == nil, !controlsFocused,
+                  !model.songMenuIsOpen, model.seekPreviewMS == nil else { return }
             withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.18)) { model.setControlsVisible(false) }
         }
     }
@@ -300,3 +306,4 @@ private struct LyricMaterial: NSViewRepresentable {
     }
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
+
