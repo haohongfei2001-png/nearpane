@@ -49,14 +49,14 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
             self?.dragging = true
         }, onDragEnd: { [weak self] point in self?.finishedDragging(at: point) })
         panel.contentView = container
-        applyCollectionBehavior(model.settings)
+        applyWindowSettings(model.settings)
         NotificationCenter.default.addObserver(self, selector: #selector(displaysChanged), name: NSApplication.didChangeScreenParametersNotification, object: nil)
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
         model.$snapshot.sink { [weak self] _ in
             Task { @MainActor [weak self] in self?.refreshForPlayback() }
         }.store(in: &subscriptions)
         model.$settings.sink { [weak self] settings in
-            self?.applyCollectionBehavior(settings)
+            self?.applyWindowSettings(settings)
             Task { @MainActor [weak self] in self?.refreshForPlayback() }
         }.store(in: &subscriptions)
         restorePosition(reset: false)
@@ -169,7 +169,12 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         hideRevision &+= 1
         hideTask?.cancel(); hideTask = nil
     }
-    private func applyCollectionBehavior(_ settings: LyricSettings) {
+    private func applyWindowSettings(_ settings: LyricSettings) {
+        switch settings.appearance {
+        case .automatic: panel.appearance = nil
+        case .light: panel.appearance = NSAppearance(named: .aqua)
+        case .dark: panel.appearance = NSAppearance(named: .darkAqua)
+        }
         var behavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         behavior.insert(settings.showInFullScreen ? .fullScreenAuxiliary : .fullScreenNone)
         panel.collectionBehavior = behavior

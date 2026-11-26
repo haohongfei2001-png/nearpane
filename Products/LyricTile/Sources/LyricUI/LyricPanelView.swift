@@ -16,7 +16,7 @@ public struct LyricPanelView: View {
     @FocusState private var controlsFocused: Bool
 
     public init(model: LyricAppModel) { self.model = model }
-    private var dark: Bool { colorScheme == .dark }
+    private var dark: Bool { (forcedScheme ?? colorScheme) == .dark }
     private var primary: Color { Color(nsColor: LyricPalette.primary(dark: dark)) }
     private var secondary: Color { Color(nsColor: LyricPalette.secondary(dark: dark)) }
     private var forcedScheme: ColorScheme? {
@@ -56,7 +56,7 @@ public struct LyricPanelView: View {
             }
             .onDisappear { hoverTask?.cancel() }
         }
-        .preferredColorScheme(forcedScheme)
+        .environment(\.colorScheme, forcedScheme ?? colorScheme)
     }
 
     @ViewBuilder private var surface: some View {
