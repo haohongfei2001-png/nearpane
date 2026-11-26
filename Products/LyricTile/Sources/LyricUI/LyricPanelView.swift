@@ -104,6 +104,7 @@ public struct LyricPanelView: View {
 
     private func lyrics(width: CGFloat) -> some View {
         let supplement = model.translationText ?? model.backgroundText
+            ?? (model.document?.timingLevel == .some(.none) ? "未同步歌词" : nil)
         let hasSupplement = supplement != nil
         let font: CGFloat = model.settings.largeText ? 22 : width <= 184 ? 18 : 20
         return VStack(alignment: .leading, spacing: hasSupplement ? 5 : 8) {
@@ -267,7 +268,7 @@ public struct LyricPanelView: View {
         }
         .buttonStyle(.plain).foregroundStyle(primary)
         .disabled(!enabled || model.isPerformingCommand || !model.ownsSession)
-        .accessibilityLabel(label).help(label).focused($controlsFocused)
+        .accessibilityLabel(label).help(model.actionMessage ?? label).focused($controlsFocused)
     }
 
     private var progress: some View {
