@@ -64,6 +64,13 @@ struct PanelLayoutTests {
             // and remains inside the window, including long text at 176 pt.
             #expect(frame.width > 80)
             #expect(frame.height > 20)
+            if scenario == .lightLyrics || scenario == .lightLyricsHover {
+                #expect(frame.height <= 30)
+            }
+            if scenario == .narrowDarkLongLyrics {
+                #expect(frame.height >= 58)
+                #expect(glyph.toolTip == scenario.currentLine)
+            }
             #expect(frame.minX >= -0.5 && frame.maxX <= size.width + 0.5)
             #expect(frame.minY >= -0.5 && frame.maxY <= size.height + 0.5)
             if scenario == .narrowDarkLongLyrics {
@@ -151,7 +158,7 @@ enum PanelLayoutScenario: String, CaseIterable, Sendable {
     case noSong = "no-song-transparent"
 
     var width: CGFloat { self == .narrowDarkLongLyrics ? 176 : 208 }
-    var height: CGFloat { hasLyrics || self == .noSong ? 204 : 112 }
+    var height: CGFloat { hasLyrics || self == .noSong ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight }
     var dark: Bool { self == .narrowDarkLongLyrics }
     var hover: Bool { self == .lightLyricsHover || self == .compactHover || self == .missingMetadata }
     var hasLyrics: Bool { self == .lightLyrics || self == .lightLyricsHover || self == .narrowDarkLongLyrics }

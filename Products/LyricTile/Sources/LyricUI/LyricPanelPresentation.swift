@@ -1,4 +1,4 @@
-import CoreGraphics
+import AppKit
 import LyricCore
 import LyricPlayback
 
@@ -7,9 +7,27 @@ public enum LyricPanelContent: Equatable, Sendable {
 }
 
 public enum LyricPanelLayout {
-    public static let lyricsHeight: CGFloat = 204
-    public static let compactHeight: CGFloat = 112
-    public static let maximumHeight: CGFloat = 204
+    public static let lyricsHeight: CGFloat = 192
+    public static let compactHeight: CGFloat = 104
+    public static let maximumHeight: CGFloat = lyricsHeight
+
+    static func lineHeight(for fontSize: CGFloat) -> CGFloat {
+        fontSize >= 22 ? 29 : fontSize <= 18 ? 25 : 27
+    }
+
+    /// A single short cue does not reserve an unused second row. The outer
+    /// tile is stable; the native glyph viewport uses one or two whole rows.
+    @MainActor static func lyricViewportHeight(for text: String?, fontSize: CGFloat,
+                                               availableWidth: CGFloat) -> CGFloat {
+        let row = lineHeight(for: fontSize)
+        guard let text, !text.isEmpty else { return row }
+        let singleWidth = (text as NSString).size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: fontSize, weight: .medium)
+        ]).width
+        let fits = text.rangeOfCharacter(from: .newlines) == nil
+            && singleWidth <= max(0, availableWidth - 8)
+        return row * (fits ? 1 : 2)
+    }
 }
 
 @MainActor

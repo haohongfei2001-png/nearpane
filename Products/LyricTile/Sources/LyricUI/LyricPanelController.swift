@@ -71,7 +71,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         model.$browsedCueIndex.sink { [weak self] _ in
             Task { @MainActor [weak self] in self?.refreshForPlayback() }
         }.store(in: &subscriptions)
-        model.$panelInteractionActive.combineLatest(model.$songMenuIsOpen, model.$seekPreviewMS, model.$presentation)
+        model.$panelInteractionActive.combineLatest(model.$songMenuIsOpen, model.$seekPreviewMS)
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in self?.refreshForPlayback() }
             }.store(in: &subscriptions)
@@ -160,7 +160,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     }
     private func updateVisibilityIntent() {
         let interacting = dragging || model.panelInteractionActive || model.songMenuIsOpen
-            || model.seekPreviewMS != nil || model.presentation != nil
+            || model.seekPreviewMS != nil
         let playingOrRetained = visibilityPolicy.shouldPresent(model.snapshot,
             wasVisible: panel.isVisible, isInteracting: interacting)
         let desired = model.ownsSession && !surrendered && !userHidden && playingOrRetained

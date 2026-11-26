@@ -97,15 +97,16 @@ private struct LyricAuxiliaryView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: "text.alignleft").font(.system(size: 30, weight: .medium))
-                .frame(width: 64, height: 64).background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
-            Text("让歌词，留在手边。").font(.system(size: 25, weight: .medium))
-            Text("用你喜欢的播放器放一首歌。LyricTile 会在桌面右侧显示歌词，需要时就近控制播放器。")
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable().interpolation(.high).scaledToFit()
+                .frame(width: 64, height: 64)
+            Text("歌词，自然在旁。").font(.system(size: 25, weight: .medium))
+            Text("播放音乐时，歌词会自动出现在桌面右侧；停止播放后自动收起。鼠标移到歌词板上即可控制播放。")
                 .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(5)
-            Text("连接 Apple Music 或 Spotify 时，系统可能询问自动化权限。允许后可读取当前歌曲和进度，并响应播放按钮。")
+            Text("首次连接 Apple Music 或 Spotify 时，macOS 可能请求自动化权限，用于读取歌曲与控制播放。")
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(4)
             Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics).toggleStyle(.checkbox).font(.system(size: 12))
-            Text("查找在线歌词时，会向歌词服务发送歌曲名称、艺人、专辑与时长等匹配信息。")
+            Text("在线查找会向歌词服务发送歌曲、歌手、专辑和时长，用于匹配歌词。")
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(4)
             Spacer(minLength: 0)
             HStack {
@@ -128,7 +129,7 @@ private struct LyricAuxiliaryView: View {
                     Text("浅色").tag(LyricSettings.Appearance.light)
                     Text("深色").tag(LyricSettings.Appearance.dark)
                 }
-                Toggle("较大歌词文字", isOn: $model.settings.largeText)
+                Toggle("大号歌词", isOn: $model.settings.largeText)
                 Picker("显示器", selection: Binding(get: { model.settings.preferredDisplayUUID ?? "" }, set: {
                     model.settings.preferredDisplayUUID = $0.isEmpty ? nil : $0
                     model.requestReposition?()
@@ -137,8 +138,11 @@ private struct LyricAuxiliaryView: View {
                     ForEach(LyricScreenIdentity.screens, id: \.id) { screen in Text(screen.name).tag(screen.id) }
                 }
                 Button("恢复右上角位置") { model.requestReposition?() }
-                Toggle("与兼容的 HOLDSNOW 组件协调排列", isOn: $model.settings.coordinateTiles)
+                Toggle("与其他 HOLDSNOW 工具自动排列", isOn: $model.settings.coordinateTiles)
+                    .help("与支持自动排列的 HOLDSNOW 工具共享右侧空间")
                 Toggle("在全屏时显示", isOn: $model.settings.showInFullScreen)
+                Text("播放时自动显示，停止后自动收起。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("播放与歌词") {
                 Picker("跟随播放器", selection: Binding(get: { model.settings.preferredPlayer ?? "" }, set: {
@@ -147,11 +151,11 @@ private struct LyricAuxiliaryView: View {
                     Text("自动").tag("")
                     ForEach(PlayerID.allCases, id: \.rawValue) { Text($0.displayName).tag($0.rawValue) }
                 }
-                Toggle("显示已有翻译", isOn: $model.settings.showTranslation)
-                DisclosureGroup("歌词来源与缓存", isExpanded: $sourceExpanded) {
-                    Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
-                    Text("在线检索会发送歌曲名称、艺人、专辑与时长。关闭后仍可使用本地绑定的歌词。")
-                        .font(.caption).foregroundStyle(.secondary)
+                Toggle("显示歌词翻译（如有）", isOn: $model.settings.showTranslation)
+                Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
+                Text("在线查找会发送歌曲、歌手、专辑与时长；关闭后仍可使用本地歌词。")
+                    .font(.caption).foregroundStyle(.secondary)
+                DisclosureGroup("来源与缓存", isExpanded: $sourceExpanded) {
                     HStack {
                         Button("查看当前来源") { model.show(.source) }.disabled(model.document == nil)
                         Button("清理自动缓存") { model.clearCache() }

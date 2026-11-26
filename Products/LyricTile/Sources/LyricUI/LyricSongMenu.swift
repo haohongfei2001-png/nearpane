@@ -11,7 +11,7 @@ struct LyricSongMenu: NSViewRepresentable {
         button.isBordered = false
         button.bezelStyle = .inline
         button.setButtonType(.momentaryPushIn)
-        button.font = .systemFont(ofSize: 11, weight: .medium)
+        button.font = .systemFont(ofSize: 12, weight: .medium)
         button.alignment = .left
         button.cell?.lineBreakMode = .byTruncatingTail
         button.image = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)?
@@ -37,6 +37,7 @@ struct LyricSongMenu: NSViewRepresentable {
             let menu = NSMenu()
             menu.delegate = self
             menu.autoenablesItems = false
+            add("打开播放器", "player", to: menu, enabled: model.snapshot.player != nil)
             add("完整歌词", "full", to: menu, enabled: model.document != nil)
             menu.addItem(.separator())
             add("选择歌词版本…", "versions", to: menu)
@@ -54,6 +55,7 @@ struct LyricSongMenu: NSViewRepresentable {
         func menuDidClose(_ menu: NSMenu) { model.songMenuIsOpen = false }
         @objc private func invoke(_ item: NSMenuItem) {
             switch item.representedObject as? String {
+            case "player": model.openPlayer()
             case "full": model.show(.fullLyrics)
             case "versions": model.show(.candidates)
             case "timing": model.show(.adjustment)

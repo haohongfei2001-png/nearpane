@@ -20,7 +20,7 @@ public struct LyricPanelView: View {
     private var primary: Color { Color(nsColor: LyricPalette.primary(dark: dark)) }
     private var secondary: Color { Color(nsColor: LyricPalette.secondary(dark: dark)) }
     private var compact: Bool { model.panelContent == .compact }
-    private var cornerRadius: CGFloat { compact ? 18 : 20 }
+    private let cornerRadius: CGFloat = 18
     private var forcedScheme: ColorScheme? {
         switch model.settings.appearance { case .automatic: nil; case .light: .light; case .dark: .dark }
     }
@@ -31,8 +31,7 @@ public struct LyricPanelView: View {
                 ZStack {
                     surface
                     if compact {
-                        if model.controlsVisible { compactControls }
-                        else { compactSummary }
+                        compactPanel
                     } else {
                         lyrics(width: geometry.size.width)
                         if model.controlsVisible { lyricControls.transition(.opacity) }
@@ -42,7 +41,7 @@ public struct LyricPanelView: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(contrast == .increased ? secondary.opacity(0.6)
-                                      : dark ? Color.white.opacity(0.13) : Color.white.opacity(0.80), lineWidth: 1)
+                                      : dark ? Color.white.opacity(0.14) : Color.white.opacity(0.65), lineWidth: 1)
                 }
                 .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .onHover(perform: pointerChanged)
@@ -54,10 +53,9 @@ public struct LyricPanelView: View {
                     updateInteraction()
                     if focused { revealControls() } else if !pointerInside { scheduleHide() }
                 }
-                .onChange(of: model.presentation) { _, page in
-                    updateInteraction()
-                    if page != nil { revealControls() }
-                    else if !pointerInside { releasePointerFocus(); scheduleHide() }
+                .onChange(of: model.presentation) { _, _ in
+                    // Auxiliary windows are independent; they must not pin the tile.
+                    if !pointerInside { releasePointerFocus(); scheduleHide() }
                 }
                 .onChange(of: model.songMenuIsOpen) { _, open in
                     updateInteraction()
@@ -97,8 +95,8 @@ public struct LyricPanelView: View {
                  : Color(red: 0.965, green: 0.965, blue: 0.961)
         } else {
             LyricMaterial()
-                .overlay(dark ? Color(red: 0.141, green: 0.161, blue: 0.196).opacity(0.90)
-                         : Color(red: 0.98, green: 0.98, blue: 0.976).opacity(0.87))
+                .overlay(dark ? Color(red: 0.125, green: 0.137, blue: 0.161).opacity(0.78)
+                         : Color(red: 0.99, green: 0.99, blue: 0.986).opacity(0.72))
         }
     }
 
@@ -107,11 +105,15 @@ public struct LyricPanelView: View {
             ?? (model.document?.timingLevel == .some(.none) ? "未同步歌词" : nil)
         let hasSupplement = supplement != nil
         let font: CGFloat = model.settings.largeText ? 22 : width <= 184 ? 18 : 20
-        return VStack(alignment: .leading, spacing: hasSupplement ? 5 : 8) {
+        let rowHeight = LyricPanelLayout.lineHeight(for: font)
+        let viewport = LyricPanelLayout.lyricViewportHeight(for: model.currentCue?.text,
+            fontSize: font, availableWidth: width - 28)
+        let gap: CGFloat = viewport > rowHeight ? 5 : (hasSupplement ? 9 : 11)
+        return VStack(alignment: .leading, spacing: gap) {
             contextLine(at: -2)
             contextLine(at: -1)
             VStack(alignment: .leading, spacing: 3) {
-                currentLine(fontSize: font).frame(height: 64)
+                currentLine(fontSize: font).frame(height: viewport)
                 if let supplement {
                     Text(supplement).font(.system(size: 11)).foregroundStyle(secondary)
                         .lineLimit(1).frame(height: 13).help(supplement)
@@ -122,8 +124,8 @@ public struct LyricPanelView: View {
             contextLine(at: 1)
             contextLine(at: 2)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, hasSupplement ? 16 : 18)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
@@ -132,7 +134,7 @@ public struct LyricPanelView: View {
         let text = model.contextText(at: distance)
         return Text(text ?? " ")
             .font(.system(size: near ? 14 : 12, weight: .regular))
-            .foregroundStyle(contrast == .increased ? secondary : primary.opacity(near ? 0.57 : 0.32))
+            .foregroundStyle(contrast == .increased ? secondary : primary.opacity(near ? 0.78 : 0.64))
             .lineLimit(1).truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: near ? 20 : 16)
@@ -155,15 +157,23 @@ public struct LyricPanelView: View {
         }
     }
 
-    private var compactSummary: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            trackSummary(interactive: false, artworkSize: 40)
-            Text(compactCaption).font(.system(size: 11)).foregroundStyle(secondary)
-                .lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
+    /// Keep the artwork and title at the same position in both compact states.
+    private var compactPanel: some View {
+        VStack(spacing: 4) {
+            trackSummary(interactive: model.controlsVisible, artworkSize: 36)
+            if model.controlsVisible {
+                transport
+                progress
+            } else {
+                Text(compactCaption).font(.system(size: 11)).foregroundStyle(secondary)
+                    .lineLimit(1)
+                    .padding(.leading, 44)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            }
         }
         .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .accessibilityElement(children: .combine)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var compactCaption: String {
@@ -182,32 +192,23 @@ public struct LyricPanelView: View {
 
     private var lyricControls: some View {
         VStack(spacing: 0) {
-            trackSummary(interactive: true, artworkSize: 32)
-            if model.browsedCueIndex != nil {
-                Button("回到当前句") { model.returnToCurrent() }.buttonStyle(.plain)
-                    .font(.system(size: 10)).foregroundStyle(secondary)
-                    .focused($controlsFocused).padding(.top, 6)
-            }
+            trackSummary(interactive: true, artworkSize: 34)
             Spacer(minLength: 0)
             transport
-            progress.padding(.top, 6)
+            progress.padding(.top, 5)
         }
-        .padding(.horizontal, 14).padding(.vertical, 14)
-    }
-
-    private var compactControls: some View {
-        VStack(spacing: 4) {
-            trackSummary(interactive: true, artworkSize: 32)
-            transport
-            progress
-        }
-        .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.horizontal, 14).padding(.vertical, 12)
     }
 
     private func trackSummary(interactive: Bool, artworkSize: CGFloat) -> some View {
         HStack(spacing: 8) {
-            artwork(size: artworkSize)
+            if interactive, model.snapshot.player != nil {
+                Button { model.openPlayer() } label: { artwork(size: artworkSize) }
+                    .buttonStyle(.plain)
+                    .help("打开\(model.snapshot.player?.displayName ?? "播放器")")
+                    .accessibilityLabel("打开\(model.snapshot.player?.displayName ?? "播放器")")
+                    .focused($controlsFocused)
+            } else { artwork(size: artworkSize) }
             VStack(alignment: .leading, spacing: 2) {
                 if interactive { LyricSongMenu(model: model, dark: dark).frame(height: 16) }
                 else {
@@ -216,19 +217,18 @@ public struct LyricPanelView: View {
                 }
                 // A missing artist is absent. A player name is never presented as an artist.
                 if !model.artist.isEmpty {
-                    Text(model.artist).font(.system(size: 10)).foregroundStyle(secondary)
+                    Text(model.artist).font(.system(size: 11)).foregroundStyle(secondary)
                         .lineLimit(1).help(model.artist)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if interactive {
-                Button { model.openPlayer() } label: {
-                    Image(systemName: "arrow.up.forward").font(.system(size: 11, weight: .medium))
+            if interactive, !compact, model.browsedCueIndex != nil {
+                Button { model.returnToCurrent() } label: {
+                    Image(systemName: "arrow.uturn.backward").font(.system(size: 11, weight: .medium))
                         .frame(width: 22, height: 26)
                 }
                 .buttonStyle(.plain).foregroundStyle(secondary)
-                .help("返回\(model.snapshot.player?.displayName ?? "播放器")")
-                .accessibilityLabel("返回\(model.snapshot.player?.displayName ?? "播放器")")
+                .help("回到当前句").accessibilityLabel("回到当前句")
                 .focused($controlsFocused)
             }
         }
@@ -263,7 +263,7 @@ public struct LyricPanelView: View {
                                  primaryButton: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: compact ? 14 : 16, weight: .medium))
-                .frame(width: compact ? 26 : 32, height: compact ? 26 : 32)
+                .frame(width: compact ? 26 : 30, height: compact ? 26 : 30)
                 .background(primaryButton ? (dark ? Color.white.opacity(0.08) : Color.white.opacity(0.6)) : .clear, in: Circle())
         }
         .buttonStyle(.plain).foregroundStyle(primary)
@@ -303,7 +303,7 @@ public struct LyricPanelView: View {
             }.frame(maxWidth: .infinity)
             Text(Self.time(model.durationMS))
         }
-        .font(.system(size: 9, design: .monospaced)).foregroundStyle(secondary)
+        .font(.system(size: 10, design: .monospaced)).foregroundStyle(secondary)
         .frame(height: 14)
     }
     public static func time(_ milliseconds: Int64?) -> String {
@@ -323,7 +323,7 @@ public struct LyricPanelView: View {
     }
     private func updateInteraction() {
         model.panelInteractionActive = pointerInside || controlsFocused || isSeeking
-            || model.songMenuIsOpen || model.presentation != nil
+            || model.songMenuIsOpen
     }
     private func revealControls() {
         withAnimation(.easeOut(duration: reduceMotion ? 0 : 0.14)) { model.setControlsVisible(true) }
@@ -332,7 +332,7 @@ public struct LyricPanelView: View {
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
             do { try await Task.sleep(for: .milliseconds(280)) } catch { return }
-            guard !voiceOverEnabled, !pointerInside, !isSeeking, model.presentation == nil, !controlsFocused,
+            guard !voiceOverEnabled, !pointerInside, !isSeeking, !controlsFocused,
                   !model.songMenuIsOpen, model.seekPreviewMS == nil else { return }
             withAnimation(.easeOut(duration: reduceMotion ? 0 : 0.16)) { model.setControlsVisible(false) }
         }

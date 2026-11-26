@@ -96,10 +96,11 @@ public final class LyricGlyphView: NSView {
     public override func layout() {
         super.layout()
         if abs(cachedWidth - bounds.width) > 0.5 { rebuildLayout(); needsDisplay = true }
+        toolTip = totalHeight > viewportHeight + 0.5 ? cue?.text : nil
     }
     public func stopClock() { timer?.invalidate(); timer = nil }
 
-    private var lineHeight: CGFloat { fontSize >= 22 ? 29 : fontSize <= 18 ? 25 : 27 }
+    private var lineHeight: CGFloat { LyricPanelLayout.lineHeight(for: fontSize) }
     /// Short lines sit in the middle of the lyric band. Longer cues expose whole
     /// rows at rest, while the existing native scroll gesture can reveal the rest.
     private var viewportHeight: CGFloat {
@@ -122,7 +123,7 @@ public final class LyricGlyphView: NSView {
         ])
         let setter = CTFramesetterCreateWithAttributedString(attributed)
         let contentHeight: CGFloat = 65_536
-        let path = CGPath(rect: CGRect(x: 0, y: 0, width: bounds.width, height: contentHeight), transform: nil)
+        let path = CGPath(rect: CGRect(x: 0, y: 0, width: max(1, bounds.width - 5), height: contentHeight), transform: nil)
         let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
         let lines = CTFrameGetLines(frame) as! [CTLine]
         var origins = Array(repeating: CGPoint.zero, count: lines.count)
@@ -164,6 +165,7 @@ public final class LyricGlyphView: NSView {
             }
         }
         totalHeight = CGFloat(rows.count) * lineHeight
+        toolTip = totalHeight > viewportHeight + 0.5 ? cue.text : nil
         let text = cue.text as NSString
         for token in cue.tokens {
             let range = NSRange(location: token.rangeInCue.location, length: token.rangeInCue.length)
@@ -244,6 +246,18 @@ public final class LyricGlyphView: NSView {
             }
         }
         context.restoreGState()
+        // Native overflow affordance, outside the shaped text area. It reports
+        // real scroll geometry rather than adding fabricated lyric characters.
+        if totalHeight > viewportHeight + 0.5, viewportHeight > 0 {
+            let thumb = min(viewportHeight, max(8, viewportHeight * viewportHeight / totalHeight))
+            let fraction = verticalOffset / (totalHeight - viewportHeight)
+            let rect = CGRect(x: bounds.maxX - 2.5,
+                              y: inset + (viewportHeight - thumb) * fraction,
+                              width: 2, height: thumb)
+            context.setFillColor(LyricPalette.secondary(dark: dark).withAlphaComponent(0.55).cgColor)
+            context.addPath(CGPath(roundedRect: rect, cornerWidth: 1, cornerHeight: 1, transform: nil))
+            context.fillPath()
+        }
     }
     private func drawRows(_ context: CGContext, color: NSColor) {
         context.setFillColor(color.cgColor)
