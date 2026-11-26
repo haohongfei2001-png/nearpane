@@ -110,7 +110,8 @@ struct MediaRemotePayload: Sendable {
         // Paused MediaRemote seek remains off until a non-resuming route is qualified.
         return .init(canPlay: ids.contains(0), canPause: ids.contains(1),
                      canNext: ids.contains(4) && !restricted, canPrevious: ids.contains(5) && !restricted,
-                     canSeek: ids.contains(24) && state == .playing && !restricted && durationMS != nil)
+                     canSeek: ids.contains(24) && state == .playing && !restricted && (durationMS ?? 0) > 0
+                        && MediaTime.micros(fields["elapsedTimeMicros"]?.integer) != nil)
     }
     var durationMS: Int64? { MediaTime.micros(fields["durationMicros"]?.integer) }
     var artwork: Data? {
@@ -137,10 +138,12 @@ struct MediaRemotePayload: Sendable {
             } else { currentPosition = nil } // A missing timestamp is not a new zero anchor.
         }
         let identifier = fields["contentItemIdentifier"]?.string ?? fields["uniqueIdentifier"]?.string
+        var controls = capabilities(isCurrent: isCurrent)
+        if currentPosition == nil { controls.canSeek = false }
         return PlayerObservation(process: process, mediaPID: pid, mediaProcessStart: mediaStart,
             title: fields["title"]?.string, artist: fields["artist"]?.string, album: fields["album"]?.string,
             platformID: identifier, durationMS: duration, positionMS: currentPosition, state: state, rate: rate,
-            stamp: now, capabilities: capabilities(isCurrent: isCurrent), artwork: artwork, artworkURL: nil,
+            stamp: now, capabilities: controls, artwork: artwork, artworkURL: nil,
             sourceIsCurrent: isCurrent, quality: currentPosition == nil ? .unavailable : .coarseSourceAnchor,
             restricted: restricted)
     }

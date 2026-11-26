@@ -80,6 +80,8 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(payload.capabilities(isCurrent: true).canSeek)
     fields["playing"] = .bool(false)
     #expect(!MediaRemotePayload(fields: fields).capabilities(isCurrent: true).canSeek)
+    fields["playing"] = .bool(true); fields.removeValue(forKey: "elapsedTimeMicros")
+    #expect(!MediaRemotePayload(fields: fields).capabilities(isCurrent: true).canSeek)
     fields.removeValue(forKey: "supportedCommands")
     #expect(MediaRemotePayload(fields: fields).capabilities(isCurrent: true) == TransportCapabilities())
 }

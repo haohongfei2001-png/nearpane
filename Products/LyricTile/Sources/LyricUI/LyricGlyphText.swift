@@ -24,8 +24,9 @@ public struct LyricGlyphText: NSViewRepresentable {
     }
     public func makeNSView(context: Context) -> LyricGlyphView { LyricGlyphView(frame: .zero) }
     public func updateNSView(_ view: LyricGlyphView, context: Context) {
-        view.configure(cue: cue, anchor: anchor, advance: sourceAdvanceMS + userAdvanceMS,
-                       tokenHighlight: tokenHighlight, animate: animate, fontSize: fontSize,
+        let sum = sourceAdvanceMS.addingReportingOverflow(userAdvanceMS)
+        view.configure(cue: cue, anchor: sum.overflow ? nil : anchor, advance: sum.overflow ? 0 : sum.partialValue,
+                       tokenHighlight: tokenHighlight && !sum.overflow, animate: animate && !sum.overflow, fontSize: fontSize,
                        dark: dark, browse: browse)
     }
     public static func dismantleNSView(_ view: LyricGlyphView, coordinator: ()) { view.stopClock() }
@@ -253,7 +254,7 @@ public final class LyricGlyphView: NSView {
         let interval: TimeInterval
         if active { interval = 1 / (ProcessInfo.processInfo.isLowPowerModeEnabled ? 30.0 : 60.0) }
         else if let start = cue.tokens.map(\.sourceStartMS).filter({ $0 > time }).min() {
-            interval = max(0.008, Double(start - time) / 1000)
+            interval = min(2, max(0.008, (Double(start) - Double(time)) / 1000))
         } else { return }
         let timer = Timer(timeInterval: interval, target: self, selector: #selector(clockTick), userInfo: nil, repeats: false)
         self.timer = timer

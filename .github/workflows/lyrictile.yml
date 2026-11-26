@@ -28,10 +28,15 @@ jobs:
           { sw_vers; uname -m; xcodebuild -version; swift --version; git rev-parse HEAD; } | tee dist/evidence/host.txt
           echo "LYRICTILE_ARCH=$(uname -m)" >> "$GITHUB_ENV"
           echo "LYRICTILE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
-      - name: Compile all modules and run risk-focused tests
+      - name: Compile the independent app and native host facade
         run: |
           set -o pipefail
-          swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
+          swift build --build-system native --product LyricTile 2>&1 | tee dist/evidence/swift-build.log
+          swift build --build-system native --target NearpaneLyricsModule 2>&1 | tee dist/evidence/host-module-build.log
+      - name: Run risk-focused tests
+        run: |
+          set -o pipefail
+          swift test --build-system native --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
       - name: Build independent candidate with real media helper
         run: |
           set -o pipefail

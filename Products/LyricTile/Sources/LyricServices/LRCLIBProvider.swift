@@ -171,13 +171,16 @@ public actor LRCLIBProvider: LyricSourceProviding {
         request.setValue(configuration.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let appID = configuration.publicAppID { request.setValue(appID, forHTTPHeaderField: "Lrclib-App-Id") }
+        defer {
+            // A failed transfer still consumes a request interval; outages must not cause a burst.
+            nextRequestUptime = ProcessInfo.processInfo.systemUptime + Double(configuration.minimumRequestIntervalMS) / 1_000
+        }
         let response: LyricsHTTPResponse
         do { response = try await transport.get(request) }
         catch {
             if error is CancellationError || Task.isCancelled { throw CancellationError() }
             throw LyricDomain.SourceFailure.transportUnavailable
         }
-        nextRequestUptime = ProcessInfo.processInfo.systemUptime + Double(configuration.minimumRequestIntervalMS) / 1_000
         if response.status == 429 || response.status == 503 {
             let retry = retryDelay(response.headers["retry-after"])
             let jitter = min(30, retry * Double.random(in: 0...0.3))

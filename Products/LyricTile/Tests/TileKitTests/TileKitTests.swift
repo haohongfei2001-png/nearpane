@@ -90,7 +90,10 @@ final class TileKitTests: XCTestCase {
         XCTAssertTrue(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
             epoch: first.epoch, generation: first.generation, placement: firstPlacement) {
             presentations += 1
-            XCTAssertThrowsError(try registry.snapshot()) { error in
+            do {
+                _ = try registry.snapshot()
+                XCTFail("Presentation must retain the nonblocking registry lock.")
+            } catch {
                 XCTAssertEqual(error as? TileCoordinationError, .busy)
             }
         })

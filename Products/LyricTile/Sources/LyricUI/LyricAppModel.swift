@@ -397,7 +397,8 @@ public final class LyricAppModel: ObservableObject {
         if controlsVisible { return 0.25 }
         guard let lookup = frame.lookupMS else { return 1 }
         let boundary = leadCues.flatMap { [$0.sourceStartMS, $0.sourceEndMS].compactMap { $0 } }.filter { $0 > lookup }.min()
-        return min(1, max(0.025, Double((boundary ?? (lookup + 1000)) - lookup) / 1000))
+        let delay = boundary.map { (Double($0) - Double(lookup)) / 1000 } ?? 1
+        return min(1, max(0.025, delay))
     }
     private func scheduleReturnToCurrent() {
         browseTask?.cancel()

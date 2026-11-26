@@ -17,8 +17,8 @@ app="$destination/LyricTile.app"
 # Only the known generated bundle is replaced, never a user's installed app.
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/Notices" "$app/Contents/Frameworks"
-swift build --configuration "$configuration" --arch "$architecture" --product LyricTile
-binary_path="$(swift build --configuration "$configuration" --arch "$architecture" --show-bin-path)"
+swift build --build-system native --configuration "$configuration" --arch "$architecture" --product LyricTile
+binary_path="$(swift build --build-system native --configuration "$configuration" --arch "$architecture" --show-bin-path)"
 cp "$binary_path/LyricTile" "$app/Contents/MacOS/LyricTile"
 chmod 755 "$app/Contents/MacOS/LyricTile"
 sparkle_framework="$(python3 - <<'PY'

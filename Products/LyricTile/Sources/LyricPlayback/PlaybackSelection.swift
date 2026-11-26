@@ -91,7 +91,8 @@ enum TransportRoutePolicy {
         guard observation.process.player.usesAppleEvents || observation.sourceIsCurrent else { throw PlaybackError.sourceNotCurrent }
         guard observation.capabilities.allows(command) else { throw PlaybackError.unsupported }
         if case .seek(let ms) = command {
-            guard ms >= 0, let duration = observation.durationMS, ms <= duration else { throw PlaybackError.unsupported }
+            guard ms >= 0, observation.positionMS != nil, observation.quality != .unavailable,
+                  let duration = observation.durationMS, duration > 0, ms <= duration else { throw PlaybackError.unsupported }
         }
     }
 }
@@ -114,7 +115,8 @@ enum CommandReadback {
                   sentAt.clockDomainID == after.stamp.clockDomainID,
                   after.stamp.nanoseconds >= sentAt.nanoseconds else { return false }
             let elapsed = Int64(min((after.stamp.nanoseconds - sentAt.nanoseconds) / 1_000_000, UInt64(Int64.max)))
-            let expected = target + (after.state == .playing ? min(elapsed, 6000) : 0)
+            let (expected, overflow) = target.addingReportingOverflow(after.state == .playing ? min(elapsed, 6000) : 0)
+            guard !overflow else { return false }
             let tolerance: Int64 = after.process.player.usesAppleEvents ? 700 : 1500
             return abs(position - expected) <= tolerance
         }

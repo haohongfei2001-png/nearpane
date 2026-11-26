@@ -57,6 +57,7 @@ public enum TileProcess {
     public static func token(for pid: Int32 = ProcessInfo.processInfo.processIdentifier) -> String? {
         var buffer = [CChar](repeating: 0, count: 128)
         let result = buffer.withUnsafeMutableBufferPointer { lt_process_token(pid, $0.baseAddress, $0.count) }
-        return result == 1 ? String(cString: buffer) : nil
+        guard result == 1 else { return nil }
+        return String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
     }
 }

@@ -250,6 +250,8 @@ public actor PlaybackController {
             let current = payload?.player == id && payload?.pid == observation.mediaPID && sourcePIDStart == observation.mediaProcessStart && sourcePIDStart != 0
             observation.sourceIsCurrent = current
             observation.capabilities = current ? (payload?.capabilities(isCurrent: true) ?? .init()) : .init()
+            if observation.positionMS == nil || observation.quality == .unavailable { observation.capabilities.canSeek = false }
+            if observation.quality == .stale { observation.capabilities = .init() }
             observations[id] = observation
         }
     }
@@ -301,6 +303,7 @@ public actor PlaybackController {
         PlaybackSourcePolicy.choose(preferred: preferred, previous: snapshot.player,
             currentSource: currentSource?.player, observations: observations,
             available: Set(processes.keys), transitions: lastPlayingTransition)
+            ?? PlayerID.allCases.first { errors[$0] != nil }
     }
     private func reconcile() async {
         guard running else { return }
