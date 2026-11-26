@@ -86,6 +86,11 @@ public final class TileRegistry: @unchecked Sendable {
             for (id, old) in state.members where canRemove(old, observation) {
                 state.members.removeValue(forKey: id); state.lastSeen.removeValue(forKey: id)
                 // A verified dead process with absent windows is an independent withdrawal proof.
+                // Remove its reservations too: a new proposal cannot wait for an
+                // acknowledgement from a member that no longer exists.
+                if state.plan.phase == .stable { state.plan.generation &+= 1 }
+                state.plan.placements.removeValue(forKey: id)
+                state.plan.pendingPlacements.removeValue(forKey: id)
                 state.plan.hiddenAcknowledgements.insert(id)
             }
             var accepted = member
@@ -190,3 +195,4 @@ public final class TileRegistry: @unchecked Sendable {
         return result
     }
 }
+

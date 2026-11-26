@@ -80,6 +80,55 @@ final class TileKitTests: XCTestCase {
         XCTAssertNotNil(plan.placements["saytile"])
         XCTAssertNotNil(try registry.snapshot().members["saytile"])
     }
+    func testVerifiedDeathReclaimsReservationAndStillWaitsForSurvivorWithdrawal() throws {
+        let registry = TileRegistry(directory: try temporary())
+        let screen = TileDisplay(id: "main", width: 1470, height: 900)
+        let voice = TileMember(id: "saytile", processToken: "fixture-dead-voice", reservedHeight: 62, windowIDs: [99])
+        let lyric = TileMember(id: "lyrictile", processToken: "fixture-live-lyrics", windowIDs: [101])
+        _ = try registry.reconcile(voice, displays: [screen], observation: .init(visibleWindowIDs: []))
+        let original = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: [99]))
+        let originalPlacement = try XCTUnwrap(original.placements[lyric.id])
+        XCTAssertEqual(original.phase, .stable)
+        // Process death alone still cannot reclaim a visible window.
+        let stillVisible = try registry.reconcile(lyric, displays: [screen],
+            observation: .init(visibleWindowIDs: [99, 101], endedProcessTokens: [voice.processToken]))
+        XCTAssertNotNil(stillVisible.placements[voice.id])
+        let moving = try registry.reconcile(lyric, displays: [screen],
+            observation: .init(visibleWindowIDs: [101], endedProcessTokens: [voice.processToken]))
+        XCTAssertEqual(moving.phase, .withdrawing)
+        XCTAssertEqual(moving.withdraw, [lyric.id])
+        XCTAssertNil(moving.placements[voice.id])
+        XCTAssertNil(moving.pendingPlacements[voice.id])
+        let premature = try registry.acknowledgeHidden(id: lyric.id, instanceID: lyric.instanceID,
+            generation: moving.generation, observation: .init(visibleWindowIDs: [101]))
+        XCTAssertEqual(premature.phase, .withdrawing)
+        let stable = try registry.acknowledgeHidden(id: lyric.id, instanceID: lyric.instanceID,
+            generation: moving.generation, observation: .init(visibleWindowIDs: []))
+        XCTAssertEqual(stable.phase, .stable)
+        XCTAssertEqual(stable.placements[lyric.id]?.rect.y, 16)
+        XCTAssertNil(try registry.snapshot().members[voice.id])
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: original.epoch, generation: original.generation, placement: originalPlacement) {})
+    }
+    func testVerifiedDeathDuringWithdrawalDoesNotRestorePendingReservation() throws {
+        let registry = TileRegistry(directory: try temporary())
+        let screen = TileDisplay(id: "main", width: 1470, height: 900)
+        let voice = TileMember(id: "saytile", processToken: "fixture-live-voice", reservedHeight: 62, windowIDs: [99])
+        let lyric = TileMember(id: "lyrictile", processToken: "fixture-dead-lyrics", windowIDs: [101])
+        let riftlet = TileMember(id: "riftlet", processToken: "fixture-live-riftlet", reservedHeight: 62, windowIDs: [102])
+        _ = try registry.reconcile(voice, displays: [screen], observation: .init(visibleWindowIDs: []))
+        _ = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: [99]))
+        let moving = try registry.reconcile(riftlet, displays: [screen], observation: .init(visibleWindowIDs: [99, 101]))
+        XCTAssertEqual(moving.phase, .withdrawing)
+        XCTAssertEqual(moving.withdraw, [lyric.id])
+        let stable = try registry.reconcile(voice, displays: [screen],
+            observation: .init(visibleWindowIDs: [99], endedProcessTokens: [lyric.processToken]))
+        XCTAssertEqual(stable.phase, .stable)
+        XCTAssertEqual(stable.generation, moving.generation)
+        XCTAssertNil(stable.placements[lyric.id])
+        XCTAssertTrue(stable.mayShow(riftlet.id))
+        XCTAssertNil(try registry.snapshot().members[lyric.id])
+    }
     func testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock() throws {
         let registry = TileRegistry(directory: try temporary())
         let screen = TileDisplay(id: "main", width: 1470, height: 900)
@@ -121,3 +170,4 @@ final class TileKitTests: XCTestCase {
         XCTAssertThrowsError(try registry.snapshot()) { XCTAssertEqual($0 as? TileCoordinationError, .corruptRegistry) }
     }
 }
+
