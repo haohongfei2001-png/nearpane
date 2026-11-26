@@ -37,5 +37,59 @@
     "before 1795691645.791337 LyricTile Lab 1126 Track 1 paused nil TransportCapabilities(canPlay: true, canPause: true, canNext: true, canPrevious: true, canSeek: false)",
     "Unconfirmed seek(milliseconds: 10000) 当前播放器或歌曲不提供此项控制。"
   ],
-  "limits": "When paused, seek stays unavailable. No QQ independent word-clock calibration, online-account playback, or acoustic measurement."
+  "limits": "When paused, seek stays unavailable. No QQ independent word-clock calibration, online-account playback, or acoustic measurement.",
+  "notarizedBuild4": {
+    "appBundleID": "com.holdsnow.lyrictile",
+    "appVersion": "1.0.0",
+    "appBuild": "4",
+    "executableSHA256": "8bc552c4b76962adb8cb7eb5ba349185136a93fadb6001b78940304f5d7a8645",
+    "summary": {
+      "completedRequestedWindow": true,
+      "distinctRecordingIdentities": 1,
+      "elapsedSeconds": 12.029330791672692,
+      "independentReferenceProvided": false,
+      "observedPlayers": [
+        "qqMusic"
+      ],
+      "requestedSeconds": 12,
+      "snapshotCount": 13,
+      "snapshotsWithRecording": 12
+    },
+    "pausedAwaitingRealAnchor": 6,
+    "playingWithPosition": 6,
+    "sourceSHA256": "7233c721928c3f2d66cf94c1f214b06abdf34ebf8bdbd8decf08383e6c02e1d4"
+  },
+  "finalDMGInstall": {
+    "app": "~/Applications/LyricTile.app",
+    "pid": 39063,
+    "test": "User-facing AX button press on ordinary installed panel; independent global MediaRemote QQ ownership, fixture title and playing flag read back on every press. Re-hovered for final resume after controls withdrew.",
+    "observedReadbacks": [
+      {
+        "label": "暂停",
+        "playing": false,
+        "elapsedSeconds": 0.318
+      },
+      {
+        "label": "播放",
+        "playing": true,
+        "elapsedSeconds": 1.651
+      },
+      {
+        "label": "暂停",
+        "playing": false,
+        "elapsedSeconds": 0.315
+      },
+      {
+        "label": "播放",
+        "playing": true,
+        "elapsedSeconds": 0.947
+      }
+    ],
+    "cleanup": "Test-created QQ client profile restored out of application support. Music library yielded zero fixture tracks and both test playlists removed. Exact authored LRC binding removed. Test players exited and installed LyricTile stayed running."
+  },
+  "localLyricPlaybackTests": {
+    "passed": 24,
+    "failed": 0,
+    "logSHA256": "d4e358db882fc028c092b2e4eeddcb55c712095f5bbecbeb9196e341d16c5f0f"
+  }
 }
