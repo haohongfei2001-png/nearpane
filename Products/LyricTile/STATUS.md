@@ -29,3 +29,4 @@
 
 ## 本机打包与更新
 - macOS 27.0 实际 Sparkle 安装器验证通过：错误签名保留 build 1、正确签名替换到 build 2，签名完整性通过。使用隔离副本和临时密钥。已修复包内残留本机 CLT 路径，详见 `Documentation/Verification/2026-11-26-local/sparkle-install.md`。
+- 已核对 LRCLIB 官方 API 和授权询问，确认客户端识别要求，未找到歌词显示、适用地域或作品署名授权；详见 `Documentation/THIRD_PARTY_NOTICES.md`。

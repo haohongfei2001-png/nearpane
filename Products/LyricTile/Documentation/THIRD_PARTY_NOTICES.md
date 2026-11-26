@@ -18,6 +18,9 @@ The implementation does not link LyricsX, LyricsKit, Lyrimuse, Lyrics-Plus, Lyri
 
 The [LRCLIB API documentation](https://lrclib.net/docs) describes a public lyrics lookup API. Access to that API does **not** establish a blanket copyright license for every returned lyric. Source provenance and unresolved content rights remain attached to documents. The candidate performs user-enabled, on-device lookup and private caching; it neither includes a lyric catalog nor uploads cached or imported lyrics. Public stable distribution must record the applicable provider/content terms separately from code-license review. A compiler's Release optimization setting does not constitute public distribution approval or silently disable lookup.
 
+**Distribution review, 2026-11-26.** LRCLIB requires an identifying request header and permits unregistered client-side API access. LyricTile sends its name, version and project URL and keeps imported files and cached results on the device. The public reference gives no territory list, lyric-display license or work-specific attribution terms for the returned text. The upstream issue tracker still has an unanswered request about on-demand display, attribution and caching in a commercial app. The release record therefore lists these rights and territories as unconfirmed. The downloadable app contains no third-party lyric repertoire. [Official client requirements](https://lrclib.net/docs.txt) · [Upstream rights inquiry](https://github.com/tranxuanthang/lrclib/issues/134)
+
+
 Player artwork is used for the current recording, bounded and privately cached. It is not exported as product marketing material. User-imported LRC, TTML, Lyricsfile and text remain local. The test fixtures contain authored neutral examples, not a copyrighted song catalog.
 
 ## Private platform API
