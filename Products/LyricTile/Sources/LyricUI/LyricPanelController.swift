@@ -13,12 +13,14 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     /// Fired after an explicit drag or completed placement, never on every mouse frame.
     public var placementDidChange: (@MainActor (NSRect, String?, Bool) -> Void)?
     public var usesCoordinatedPlacement = false
+    /// Playback intent is separate from registry permission and window occlusion.
+    public private(set) var wantsPresentation = false
+    public var visibilityIntentDidChange: (@MainActor (Bool) -> Void)?
     private let model: LyricAppModel
     private let defaults: UserDefaults
     private var subscriptions: Set<AnyCancellable> = []
     private var dragging = false
-    private var hideTask: Task<Void, Never>?
-    private var hideRevision: UInt64 = 0
+    private var visibilityPolicy = LyricPanelVisibilityPolicy()
     private var userHidden = false
     private var surrendered = false
     private var saved: [String: SavedPlacement]
@@ -32,7 +34,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         self.model = model; self.defaults = defaults
         saved = defaults.data(forKey: "LyricTile.placement.v1")
             .flatMap { try? JSONDecoder().decode([String: SavedPlacement].self, from: $0) } ?? [:]
-        let panel = LyricNonactivatingPanel(contentRect: NSRect(x: 0, y: 0, width: 208, height: 272),
+        let panel = LyricNonactivatingPanel(contentRect: NSRect(x: 0, y: 0, width: 208, height: LyricPanelLayout.maximumHeight),
                                           styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         self.panel = panel
         super.init()
@@ -45,7 +47,6 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         panel.setAccessibilityLabel("LyricTile 歌词板")
         let hosting = NSHostingView(rootView: LyricPanelView(model: model))
         let container = LyricPanelContainer(hosting: hosting, onDragBegin: { [weak self] in
-            self?.cancelIdleHide()
             self?.dragging = true
         }, onDragEnd: { [weak self] point in self?.finishedDragging(at: point) })
         panel.contentView = container
@@ -59,36 +60,51 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
             self?.applyWindowSettings(settings)
             Task { @MainActor [weak self] in self?.refreshForPlayback() }
         }.store(in: &subscriptions)
+        // A lyric response can arrive between player polls. Resize on its own
+        // publication; controls also determine whether a paused panel can remain.
+        model.$frame.sink { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshForPlayback() }
+        }.store(in: &subscriptions)
+        model.$document.sink { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshForPlayback() }
+        }.store(in: &subscriptions)
+        model.$browsedCueIndex.sink { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshForPlayback() }
+        }.store(in: &subscriptions)
+        model.$panelInteractionActive.combineLatest(model.$songMenuIsOpen, model.$seekPreviewMS, model.$presentation)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in self?.refreshForPlayback() }
+            }.store(in: &subscriptions)
         restorePosition(reset: false)
     }
 
     public var windowIDs: [Int] { panel.windowNumber > 0 ? [panel.windowNumber] : [] }
     public func show(userInitiated: Bool = false) {
-        guard model.ownsSession, !surrendered, placementPermitted else { return }
-        if userInitiated { userHidden = false; cancelIdleHide() }
-        guard !userHidden else { return }
+        if userInitiated { userHidden = false }
+        updateVisibilityIntent()
+        guard wantsPresentation, placementPermitted else { return }
         if slotFrame == .zero { restorePosition(reset: false) }
         guard slotFrame != .zero else { return }
         resizeVisibleSurface()
         if !panel.isVisible { panel.orderFrontRegardless() }
         model.isVisible = panel.occlusionState.contains(.visible)
-        if model.idle {
-            if model.settings.hideWhenIdle { scheduleIdleHide() }
-            else { cancelIdleHide() }
-        }
     }
     public func hide(userInitiated: Bool = false) {
         if userInitiated { userHidden = true }
         withdraw()
+        updateVisibilityIntent()
     }
     /// Stops input and removes the old panel before session ownership is released.
     public func surrender() {
         surrendered = true
-        cancelIdleHide()
         panel.ignoresMouseEvents = true
         withdraw()
+        updateVisibilityIntent()
     }
-    public func resumePresentation() { surrendered = false; panel.ignoresMouseEvents = false; userHidden = false }
+    public func resumePresentation() {
+        surrendered = false; panel.ignoresMouseEvents = false; userHidden = false
+        updateVisibilityIntent()
+    }
     /// A pending TileKit withdrawal barrier must not be bypassed by a playback update.
     public func setPlacementPermission(_ permitted: Bool) {
         placementPermitted = permitted
@@ -98,6 +114,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         dragging = false
         panel.orderOut(nil)
         model.isVisible = false
+        if model.panelInteractionActive { model.panelInteractionActive = false }
         model.setControlsVisible(false)
     }
     /// Root's TileKit transaction may call this only while withdrawn, then present after its barrier.
@@ -115,15 +132,15 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         guard let selected else { withdraw(); return }
         let visible = selected.screen.visibleFrame
         let width = TileGeometry.standaloneWidth(visibleWidth: visible.width)
-        guard visible.width >= width + 32, visible.height >= 304 else {
+        guard visible.width >= width + 32, visible.height >= LyricPanelLayout.maximumHeight + 32 else {
             withdraw(); model.actionMessage = "这个显示器的可用空间不足，请在设置中选择其他显示器。"; return
         }
         let stored = reset ? nil : saved[selected.id]
         let x = stored.map { visible.minX + 16 + (visible.width - width - 32) * min(1, max(0, $0.horizontalFraction)) }
             ?? (visible.maxX - width - 16)
-        let y = stored.map { visible.maxY - 16 - 272 - (visible.height - 272 - 32) * min(1, max(0, $0.verticalFractionFromTop)) }
-            ?? (visible.maxY - 272 - 16)
-        slotFrame = NSRect(x: x.rounded(), y: y.rounded(), width: width, height: 272)
+        let y = stored.map { visible.maxY - 16 - LyricPanelLayout.maximumHeight - (visible.height - LyricPanelLayout.maximumHeight - 32) * min(1, max(0, $0.verticalFractionFromTop)) }
+            ?? (visible.maxY - LyricPanelLayout.maximumHeight - 16)
+        slotFrame = NSRect(x: x.rounded(), y: y.rounded(), width: width, height: LyricPanelLayout.maximumHeight)
         displayUUID = selected.id
         resizeVisibleSurface()
         if reset { saveCurrentPosition() }
@@ -136,38 +153,25 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         (panel as? LyricNonactivatingPanel)?.permitsKeyInteraction = false
     }
     private func refreshForPlayback() {
-        guard model.ownsSession, !surrendered, placementPermitted else { withdraw(); return }
-        resizeVisibleSurface()
-        if model.idle {
-            if model.settings.hideWhenIdle { scheduleIdleHide() }
-            else { cancelIdleHide(); if !userHidden { show() } }
-        } else { cancelIdleHide(); show() }
+        updateVisibilityIntent()
+        guard wantsPresentation, placementPermitted else { withdraw(); return }
+        show()
+    }
+    private func updateVisibilityIntent() {
+        let interacting = dragging || model.panelInteractionActive || model.songMenuIsOpen
+            || model.seekPreviewMS != nil || model.presentation != nil
+        let playingOrRetained = visibilityPolicy.shouldPresent(model.snapshot,
+            wasVisible: panel.isVisible, isInteracting: interacting)
+        let desired = model.ownsSession && !surrendered && !userHidden && playingOrRetained
+        guard desired != wantsPresentation else { return }
+        wantsPresentation = desired
+        visibilityIntentDidChange?(desired)
     }
     private func resizeVisibleSurface() {
         guard !dragging, slotFrame != .zero else { return }
-        let height: CGFloat = model.idle && model.ownershipMessage == nil ? 62 : 272
+        let height = model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight
         let frame = NSRect(x: slotFrame.minX, y: slotFrame.maxY - height, width: slotFrame.width, height: height)
         if panel.frame != frame { panel.setFrame(frame, display: true, animate: false) }
-    }
-    private func scheduleIdleHide() {
-        guard !dragging, model.settings.hideWhenIdle, hideTask == nil else { return }
-        hideRevision &+= 1
-        let expected = hideRevision
-        hideTask = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(15)) }
-            catch {
-                if let self, self.hideRevision == expected { self.hideTask = nil }
-                return
-            }
-            guard let self, self.hideRevision == expected else { return }
-            self.hideTask = nil
-            guard self.model.idle, self.model.settings.hideWhenIdle else { return }
-            self.withdraw()
-        }
-    }
-    private func cancelIdleHide() {
-        hideRevision &+= 1
-        hideTask?.cancel(); hideTask = nil
     }
     private func applyWindowSettings(_ settings: LyricSettings) {
         switch settings.appearance {
@@ -184,14 +188,13 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         dragging = false
         guard !surrendered, placementPermitted, panel.isVisible,
               let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }) ?? panel.screen else { return }
-        if model.idle && model.settings.hideWhenIdle { scheduleIdleHide() }
         let visible = screen.visibleFrame
         let width = TileGeometry.standaloneWidth(visibleWidth: visible.width)
-        guard visible.width >= width + 32, visible.height >= 304 else { restorePosition(reset: false); return }
+        guard visible.width >= width + 32, visible.height >= LyricPanelLayout.maximumHeight + 32 else { restorePosition(reset: false); return }
         // A drag proposes a column order/display. The coordinator commits the final slot.
         let x = visible.maxX - width - 16
-        let top = min(visible.maxY - 16, max(visible.minY + 272 + 16, panel.frame.maxY))
-        slotFrame = NSRect(x: x.rounded(), y: (top - 272).rounded(), width: width, height: 272)
+        let top = min(visible.maxY - 16, max(visible.minY + LyricPanelLayout.maximumHeight + 16, panel.frame.maxY))
+        slotFrame = NSRect(x: x.rounded(), y: (top - LyricPanelLayout.maximumHeight).rounded(), width: width, height: LyricPanelLayout.maximumHeight)
         displayUUID = LyricScreenIdentity.id(for: screen)
         if usesCoordinatedPlacement { setPlacementPermission(false) }
         else { resizeVisibleSurface() }
@@ -203,7 +206,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         guard let displayUUID, let screen = LyricScreenIdentity.screens.first(where: { $0.id == displayUUID })?.screen else { return }
         let visible = screen.visibleFrame
         saved[displayUUID] = SavedPlacement(horizontalFraction: (slotFrame.minX - visible.minX - 16) / max(1, visible.width - slotFrame.width - 32),
-                                           verticalFractionFromTop: (visible.maxY - 16 - slotFrame.maxY) / max(1, visible.height - 272 - 32))
+                                           verticalFractionFromTop: (visible.maxY - 16 - slotFrame.maxY) / max(1, visible.height - LyricPanelLayout.maximumHeight - 32))
         if let data = try? JSONEncoder().encode(saved) { defaults.set(data, forKey: "LyricTile.placement.v1") }
     }
     @objc private func displaysChanged() {

@@ -100,6 +100,11 @@ public final class LyricGlyphView: NSView {
     public func stopClock() { timer?.invalidate(); timer = nil }
 
     private var lineHeight: CGFloat { fontSize >= 22 ? 29 : fontSize <= 18 ? 25 : 27 }
+    /// Short lines sit in the middle of the lyric band. Longer cues expose whole
+    /// rows at rest, while the existing native scroll gesture can reveal the rest.
+    private var viewportHeight: CGFloat {
+        min(totalHeight, max(lineHeight, floor(bounds.height / lineHeight) * lineHeight), bounds.height)
+    }
 
     private func rebuildLayout() {
         cachedWidth = bounds.width
@@ -199,11 +204,13 @@ public final class LyricGlyphView: NSView {
         if highlightTokens, !manuallyScrolled, let time, let cue,
            let active = cue.tokens.last(where: { $0.sourceStartMS <= time }),
            let row = tokenBoxes[active.id]?.first?.row {
-            verticalOffset = min(max(0, totalHeight - bounds.height), CGFloat(max(0, row - 1)) * lineHeight)
+            verticalOffset = min(max(0, totalHeight - viewportHeight), CGFloat(max(0, row - 1)) * lineHeight)
         }
+        verticalOffset = min(verticalOffset, max(0, totalHeight - viewportHeight))
+        let inset = max(0, (bounds.height - viewportHeight) / 2)
         context.saveGState()
-        context.clip(to: bounds)
-        context.translateBy(x: 0, y: -verticalOffset)
+        context.clip(to: CGRect(x: 0, y: inset, width: bounds.width, height: viewportHeight))
+        context.translateBy(x: 0, y: inset - verticalOffset)
         let upcoming = cue?.sourceStartMS.flatMap { start in time.map { $0 < start } } ?? false
         drewUpcomingCue = upcoming
         drawRows(context, color: highlightTokens || upcoming ? LyricPalette.secondary(dark: dark) : LyricPalette.primary(dark: dark))
@@ -240,7 +247,7 @@ public final class LyricGlyphView: NSView {
     }
     private func drawRows(_ context: CGContext, color: NSColor) {
         context.setFillColor(color.cgColor)
-        for row in rows where row.baseline >= verticalOffset - lineHeight && row.baseline < verticalOffset + bounds.height + lineHeight {
+        for row in rows where row.baseline >= verticalOffset - lineHeight && row.baseline < verticalOffset + viewportHeight + lineHeight {
             context.saveGState()
             context.translateBy(x: row.x, y: row.baseline)
             context.scaleBy(x: 1, y: -1)
@@ -269,7 +276,7 @@ public final class LyricGlyphView: NSView {
     @objc private func clockTick() { needsDisplay = true; scheduleClock() }
     public override func scrollWheel(with event: NSEvent) {
         let previous = verticalOffset
-        verticalOffset = min(max(0, totalHeight - bounds.height), max(0, verticalOffset - event.scrollingDeltaY))
+        verticalOffset = min(max(0, totalHeight - viewportHeight), max(0, verticalOffset - event.scrollingDeltaY))
         if abs(previous - verticalOffset) > 0.1 {
             manuallyScrolled = true; needsDisplay = true
         } else if abs(event.scrollingDeltaY) > 0.5, ProcessInfo.processInfo.systemUptime - lastBrowseAt > 0.25 {

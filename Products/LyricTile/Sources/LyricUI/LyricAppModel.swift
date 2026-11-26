@@ -26,6 +26,8 @@ public final class LyricAppModel: ObservableObject {
     @Published public var lyricFailure: String?
     @Published public var presentation: LyricAuxiliaryPage?
     @Published public var controlsVisible = false
+    /// Actual pointer/keyboard interaction, separate from accessibility's always-visible controls.
+    @Published public var panelInteractionActive = false
     @Published public var songMenuIsOpen = false
     @Published public var isVisible = false { didSet { if oldValue != isVisible { restartTimeline() } } }
     @Published public var seekPreviewMS: Int64?
@@ -147,7 +149,7 @@ public final class LyricAppModel: ObservableObject {
             snapshot = .empty; document = nil
             candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil; seekSelection = nil
             isResolving = false; isSearchingCandidates = false; playbackPositionMS = nil
-            controlsVisible = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
+            controlsVisible = false; panelInteractionActive = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
             refreshFrame()
             lease.release()
             ownsSession = false
@@ -166,8 +168,20 @@ public final class LyricAppModel: ObservableObject {
         return leadCues.first(where: { ids.contains($0.id) }) ?? (document?.timingLevel == .some(.none) ? leadCues.first : nil)
     }
     public var currentCueIndex: Int? { currentCue.flatMap { cue in leadCues.firstIndex(where: { $0.id == cue.id }) } }
-    public var previousText: String? { currentCueIndex.flatMap { $0 > 0 ? leadCues[$0 - 1].text : nil } }
-    public var nextText: String? { currentCueIndex.flatMap { $0 + 1 < leadCues.count ? leadCues[$0 + 1].text : nil } }
+    public var previousText: String? { contextText(at: -1) }
+    public var nextText: String? { contextText(at: 1) }
+    /// Neighbouring authored cues stay distinct from translations and status messages.
+    /// During an authored interlude the centre is a gap, with real lines on either side.
+    public func contextText(at distance: Int) -> String? {
+        guard distance != 0, (-2...2).contains(distance) else { return nil }
+        let index: Int
+        if let currentCueIndex { index = currentCueIndex + distance }
+        else if frame.phase == .interlude, let lookup = frame.lookupMS,
+                let next = leadCues.firstIndex(where: { ($0.sourceStartMS ?? Int64.min) > lookup }) {
+            index = next + (distance > 0 ? distance - 1 : distance)
+        } else { return nil }
+        return leadCues.indices.contains(index) ? leadCues[index].text : nil
+    }
     public var translationText: String? {
         guard settings.showTranslation, let cue = currentCue else { return nil }
         let translations = document?.lanes.filter { $0.kind == .translation }.flatMap(\.cues) ?? []

@@ -11,7 +11,7 @@ p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
 a.output.mkdir(parents=True, exist_ok=True)
 command = [str(a.app.resolve()/'Contents/MacOS/LyricTile'), '--smoke-test',
-           '--smoke-screenshot', str((a.output/'native-empty-panel.png').resolve())]
+           '--smoke-screenshot', str((a.output/'native-ui.png').resolve())]
 process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 try:
     stdout, stderr = process.communicate(timeout=30)

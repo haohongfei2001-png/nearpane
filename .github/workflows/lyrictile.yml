@@ -64,9 +64,19 @@ jobs:
           swift build --product LyricTile 2>&1 | tee dist/evidence/swift-build.log
           swift build --target NearpaneLyricsModule 2>&1 | tee dist/evidence/host-module-build.log
       - name: Run risk-focused tests
+        env:
+          LYRICTILE_UI_EVIDENCE_DIR: ${{ github.workspace }}/Products/LyricTile/dist/evidence/layout
         run: |
           set -o pipefail
           swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
+      - name: Preserve authored native layout fixtures
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LyricTile-ui-${{ github.run_number }}
+          path: Products/LyricTile/dist/evidence/layout
+          if-no-files-found: warn
+          retention-days: 30
       - name: Build independent candidate with real media helper
         id: bundle
         run: |

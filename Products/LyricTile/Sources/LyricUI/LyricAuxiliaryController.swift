@@ -139,7 +139,6 @@ private struct LyricAuxiliaryView: View {
                 Button("恢复右上角位置") { model.requestReposition?() }
                 Toggle("与兼容的 HOLDSNOW 组件协调排列", isOn: $model.settings.coordinateTiles)
                 Toggle("在全屏时显示", isOn: $model.settings.showInFullScreen)
-                Toggle("没有播放时隐藏", isOn: $model.settings.hideWhenIdle)
             }
             Section("播放与歌词") {
                 Picker("跟随播放器", selection: Binding(get: { model.settings.preferredPlayer ?? "" }, set: {

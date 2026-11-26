@@ -8,6 +8,7 @@ public struct LyricSettings: Codable, Equatable, Sendable {
     public var largeText = false
     public var showTranslation = false
     public var onlineLyrics = true
+    // Retained only to decode existing preferences; visibility now follows playback.
     public var hideWhenIdle = true
     public var showInFullScreen = false
     public var coordinateTiles = true

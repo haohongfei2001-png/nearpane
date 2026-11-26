@@ -43,12 +43,17 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     func applicationDidFinishLaunching(_ notification: Notification) {
         panelController = LyricPanelController(model: model)
         if !nativeLoadCheck { panelController.setPlacementPermission(false) }
-        tileCoordinator = TileDesktopCoordinator(id: "com.holdsnow.lyrictile", reservedHeight: 272,
+        tileCoordinator = TileDesktopCoordinator(id: "com.holdsnow.lyrictile", reservedHeight: Double(LyricPanelLayout.maximumHeight),
             windowIDs: { [weak self] in self?.panelController.windowIDs.compactMap { UInt32(exactly: $0) } ?? [] },
             permit: { [weak self] allowed in self?.panelController.setPlacementPermission(allowed) },
             place: { [weak self] frame, display in self?.panelController.placeHidden(slot: frame, displayUUID: display) },
             show: { [weak self] in self?.panelController.show() },
             status: { [weak self] message in if let message { self?.model.actionMessage = message } })
+        panelController.visibilityIntentDidChange = { [weak self] _ in
+            guard let self, !nativeLoadCheck, !terminating else { return }
+            placementTask?.cancel()
+            placementTask = Task { [weak self] in await self?.configurePlacement() }
+        }
         panelController.placementDidChange = { [weak self] frame, display, explicit in
             guard let self, model.settings.coordinateTiles, model.ownsSession else { return }
             if explicit {
@@ -126,8 +131,23 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     func menuNeedsUpdate(_ menu: NSMenu) { rebuildMenu(menu) }
     private func rebuildMenu(_ menu: NSMenu) {
         menu.removeAllItems()
-        add(menu, panelController?.panel.isVisible == true ? "隐藏歌词板" : "显示歌词板", #selector(togglePanel))
-        if suspendedForHost { add(menu, "歌词正在 Nearpane 中显示", nil, enabled: false) }
+        if suspendedForHost {
+            add(menu, "歌词正在 Nearpane 中显示", nil, enabled: false)
+        } else if model.snapshot.state == .playing, model.snapshot.selection != nil {
+            add(menu, panelController.wantsPresentation ? "隐藏歌词板" : "显示歌词板", #selector(togglePanel))
+        } else {
+            add(menu, model.snapshot.state == .paused ? "已暂停 · 播放后显示歌词" : "播放音乐时自动显示", nil, enabled: false)
+            if model.snapshot.selection != nil, model.snapshot.capabilities.canPlay {
+                add(menu, "继续播放", #selector(resumePlayback), enabled: model.ownsSession)
+            }
+        }
+        if model.snapshot.requiresAuthorization {
+            add(menu, "连接\(model.snapshot.player?.displayName ?? "播放器")", #selector(reconnect), enabled: model.ownsSession)
+            add(menu, "允许访问播放器…", #selector(automationSettings))
+        } else if let status = model.snapshot.statusMessage {
+            add(menu, status, nil, enabled: false)
+            add(menu, "重新连接", #selector(reconnect), enabled: model.ownsSession)
+        }
         let source = NSMenuItem(title: "跟随的播放器", action: nil, keyEquivalent: "")
         let sourceMenu = NSMenu(); sourceMenu.autoenablesItems = false
         let automatic = add(sourceMenu, "自动", #selector(selectPlayer(_:)))
@@ -137,6 +157,10 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             item.representedObject = player.rawValue; item.state = model.settings.player == player ? .on : .off
         }
         source.submenu = sourceMenu; source.isEnabled = !suspendedForHost; menu.addItem(source)
+        if model.snapshot.selection != nil {
+            add(menu, "为当前歌曲导入歌词…", #selector(importLyrics), enabled: model.ownsSession)
+            add(menu, "选择歌词版本…", #selector(chooseLyrics), enabled: model.ownsSession)
+        }
         if model.document != nil { add(menu, "完整歌词", #selector(fullLyrics)) }
         menu.addItem(.separator())
         add(menu, "设置…", #selector(settings), key: ",")
@@ -213,12 +237,17 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         activate(userInitiated: false)
     }
     @objc private func togglePanel() {
-        if panelController.panel.isVisible { panelController.hide(userInitiated: true) }
+        if panelController.wantsPresentation { panelController.hide(userInitiated: true) }
         else { activate(userInitiated: true) }
     }
     @objc private func selectPlayer(_ sender: NSMenuItem) {
         model.selectPlayer((sender.representedObject as? String).flatMap(PlayerID.init(rawValue:)))
     }
+    @objc private func resumePlayback() { model.perform(.play) }
+    @objc private func reconnect() { model.reconnect() }
+    @objc private func automationSettings() { model.openAutomationSettings() }
+    @objc private func importLyrics() { model.importLyrics() }
+    @objc private func chooseLyrics() { model.show(.candidates) }
     @objc private func settings() { model.show(.settings) }
     @objc private func fullLyrics() { model.show(.fullLyrics) }
     @objc private func update() { checkForUpdates() }
@@ -235,11 +264,18 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     private func configurePlacement() async {
         guard model.ownsSession, !terminating, !Task.isCancelled else { return }
         panelController.usesCoordinatedPlacement = model.settings.coordinateTiles
+        guard panelController.wantsPresentation else {
+            // Idle is absent from both the desktop and the shared tile column.
+            // stop() retains TileKit's withdrawal/readback barrier before removal.
+            await tileCoordinator.stop()
+            return
+        }
         if model.settings.coordinateTiles {
             await tileCoordinator.start(preferredDisplayID: model.settings.preferredDisplayUUID)
         } else {
             guard await tileCoordinator.stop() else { return }
-            guard model.ownsSession, !terminating, !Task.isCancelled, !model.settings.coordinateTiles else { return }
+            guard model.ownsSession, !terminating, !Task.isCancelled, !model.settings.coordinateTiles,
+                  panelController.wantsPresentation else { return }
             panelController.restorePosition(reset: false)
             panelController.setPlacementPermission(true)
             panelController.show()
@@ -260,7 +296,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             // Allow initial production subscriptions to settle. No PlaybackController.start,
             // repository lookup, fabricated recording or permission request.
             try? await Task.sleep(for: .milliseconds(150))
-            panelController.panel.orderFrontRegardless()
+            panelController.show(userInitiated: true)
             panelController.panel.contentView?.layoutSubtreeIfNeeded()
             panelController.panel.contentView?.displayIfNeeded()
             try? await Task.sleep(for: .seconds(2))
@@ -269,21 +305,19 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             let screenshotURL = screenshotIndex.flatMap { index in
                 CommandLine.arguments.indices.contains(index + 1) ? URL(fileURLWithPath: CommandLine.arguments[index + 1]) : nil
             }
-            var panelCapturePassed = screenshotIndex == nil
             var report: [String: Any] = ["check": "native-ui-load",
                                          "width": panel.frame.width, "height": panel.frame.height,
                                          "realPlayerTest": false, "networkStarted": false,
                                          "screenshotRequested": screenshotIndex != nil]
-            if let screenshotURL {
-                do { try LyricNativeSmoke.capture(window: panel, to: screenshotURL); panelCapturePassed = true }
-                catch { report["panelScreenshotError"] = error.localizedDescription }
-            }
-            let panelPassed = panel.isVisible && panel.contentView?.window === panel
+            let panelPassed = !panel.isVisible && !panelController.wantsPresentation
+                && panel.contentView?.window === panel
                 && panel.frame.width >= 176 && panel.frame.width <= 224
-                && panel.frame.height == 62 && model.snapshot.selection == nil && !model.ownsSession
-                && panelCapturePassed
-            report["emptyPanelPassed"] = panelPassed
-            report["panelScreenshotSaved"] = screenshotURL != nil && panelCapturePassed
+                && panel.frame.height == LyricPanelLayout.compactHeight
+                && model.snapshot.selection == nil && !model.ownsSession
+            report["idlePanelHidden"] = panelPassed
+            // No screenshot of an intentionally absent panel. Capture actual settings
+            // and welcome windows below; test-authored lyric renderings live in Tests.
+            report["panelScreenshotSaved"] = false
             var auxiliaryPassed = true
             for page in [LyricAuxiliaryPage.welcome, .settings] {
                 let observation = await captureNativeAuxiliaryPage(page, in: screenshotURL?.deletingLastPathComponent())
