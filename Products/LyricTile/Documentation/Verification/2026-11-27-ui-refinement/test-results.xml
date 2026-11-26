@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<testsuites>
+<testsuite name="TestResults" errors="0" tests="13" failures="0" time="1.096652002">
+<testcase classname="TileKitTests.TileKitTests" name="testCustomOrderSurvivesCleanExitAndMultipleRelaunches" time="0.091244625">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testAReconnectedPreferredScreenDoesNotStealCurrentPlacement" time="0.091252292">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testCorruptRegistryIsNotSilentlyReplacedWithAnEmptyPlan" time="0.091252709">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testDefaultOrderAndOverflowDoNotIntersectOrLeaveScreen" time="0.082533959">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLeaseAgeAloneNeverReclaimsVisibleMember" time="0.082489375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testInvalidModuleCannotAliasAnUnrelatedSessionLock" time="0.082519416">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLifetimeLeaseCannotBeAcquiredBySecondInstance" time="0.084323125">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLegacyWindowIsAvoidedAndNewMemberAppendsToUserOrder" time="0.084349459">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock" time="0.084298875">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testSharedWidthUsesPointsAndReadableClamps" time="0.083126042">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testReorderWaitsForExplicitHideAndIndependentWindowAbsence" time="0.08313675">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathDuringWithdrawalDoesNotRestorePendingReservation" time="0.083121875">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathReclaimsReservationAndStillWaitsForSurvivorWithdrawal" time="0.0730035">
+</testcase>
+</testsuite>
+</testsuites>

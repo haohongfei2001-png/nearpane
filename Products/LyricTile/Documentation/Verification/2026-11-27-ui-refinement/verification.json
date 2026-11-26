@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-27 Asia/Shanghai",
+  "sourceCommit": "ca361e9b8c81f93c790bcb77033203c55f4c0d36",
+  "workflow": {
+    "id": 45881886204,
+    "number": 31,
+    "jobID": 140122977848,
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204",
+    "conclusion": "success"
+  },
+  "host": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\narm64\nXcode 27.1\nBuild version 27A9275\nApple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0\nca361e9b8c81f93c790bcb77033203c55f4c0d36\n",
+  "layout": {
+    "lyricsHeightPT": 192,
+    "compactHeightPT": 104,
+    "cornerRadiusPT": 18,
+    "authoredNativeScenarios": 7,
+    "manualScreenshotReview": "PASS"
+  },
+  "verification": {
+    "productionAppBuild": "PASS",
+    "hostModuleBuild": "PASS",
+    "swiftTestingGroups": [
+      {
+        "tests": 13,
+        "durationSeconds": 1.530276
+      },
+      {
+        "tests": 25,
+        "durationSeconds": 0.243842583
+      },
+      {
+        "tests": 24,
+        "durationSeconds": 0.132585667
+      },
+      {
+        "tests": 13,
+        "durationSeconds": 0.002308584
+      }
+    ],
+    "swiftTestingTotal": 75,
+    "xctestCases": 13,
+    "xctestFailures": 0,
+    "xctestErrors": 0,
+    "totalTestDefinitions": 88,
+    "nativeSmoke": {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "observation": {
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 620,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 450,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    "packagedMediaHelperLoad": "PASS",
+    "adHocCandidateBundle": "PASS"
+  },
+  "idle": {
+    "scope": "actual_candidate_idle_no_player",
+    "status": "MEASURED",
+    "withinTargets": true,
+    "qualification": "Hosted idle baseline only; no real-player/line/word/8-hour performance claim.",
+    "durationSeconds": 120.81485262499999,
+    "samples": 110,
+    "cpuMeanPercentOneCore": 0.09932577200374303,
+    "rssMedianMiB": 55.25,
+    "rssPeakMiB": 55.265625
+  },
+  "artifacts": [
+    {
+      "id": 15148460413,
+      "name": "LyricTile-ui-31",
+      "sha256": "6a9ee867c9221482650ff4a256eed0bd0f4ad6d676c76fb746ceb60bdf64e0c8",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204/artifacts/15148460413"
+    },
+    {
+      "id": 15147656859,
+      "name": "LyricTile-candidate-31",
+      "sha256": "0ad8016947a38b6f8631736ecc0b6f6970040627ea01417b692747dfa6d0489c",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204/artifacts/15147656859"
+    }
+  ],
+  "imageSHA256": {
+    "fixture-compact-hover.png": "f538cb42a2e2a36cb6e2c6f20d06abf2863222234cd97f438dcd1f8af276b67c",
+    "fixture-compact.png": "887b40dc686d24a6db3c044887872f84b5d7ed84774dc95f9ad91d0205b766c6",
+    "fixture-light-lyrics-hover.png": "3aa539670769465fde6d5c43404611980326381ac725e24b66494b999c1f8679",
+    "fixture-light-lyrics.png": "46d8d910122b01ea9a61b2865cdf05a159fe059f1f0d50372fe72560a364f625",
+    "fixture-missing-metadata.png": "a4208a9540d00edacf64f7fb1c39f4907151f29c1729500dc696a9bbc73785a1",
+    "fixture-narrow-dark-long-lyrics.png": "a958b57fbd323066edacafd6f3f73dd53d633a97a66381831d7637e706ee363b",
+    "fixture-no-song-transparent.png": "97e5bd1497288b938e7405b71c0c5d3adb1052147659ec2490a89109115f18b9",
+    "native-settings.png": "00686039773747a51bd25e6d10127303aa290badc16934b9809fefe3c1994fc9",
+    "native-welcome.png": "57babe42dfb08816f2d15b8335c6a7138e1859474edf2e2833ac84d70424ac38"
+  },
+  "limitations": [
+    "Layout screenshots use authored test input only; no player or production session lease is started.",
+    "Fixture transport controls are disabled. Real artwork acceptance, pointer events and transport readback are not exercised.",
+    "Real desktop playback/pause/leave/resume, late lyric arrivals, wallpaper material contrast and cooperating sidebar layout on the updated signed app remain unverified.",
+    "The active reservation remains 192pt, leaving up to 88pt unpainted in the coordinated sidebar while compact. Dynamic slot contraction is not implemented.",
+    "This candidate is ad-hoc signed; this round does not supply a new Developer ID signed/notarized installer or a real-playback/8-hour performance claim."
+  ]
+}

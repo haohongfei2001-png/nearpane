@@ -12,7 +12,7 @@
 
 ## 验证状态
 
-上一轮运行时代码 `39dabc3` 的 [CI30](https://github.com/haohongfei2001-png/nearpane/actions/runs/45875877384) 全部通过，历史[截图](Documentation/Verification/2026-11-27-ui/README.md)仅对应 204/112pt 旧布局，不作为本轮验证。本轮源码 `ca361e9` 的[原生 CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204) 已通过。
+本轮运行时代码 `ca361e9` 的 [CI31](https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204) 全部通过：生产编译、75 个 Swift Testing 测试定义与 13 个 XCTest 用例、候选包启动及无播放隐藏、helper 加载。七种原生布局及欢迎/设置截图已复审；192/104pt 尺寸、短句一行、长句两完整行、紧凑 hover 对齐、无歌曲透明均通过。实际无播放器候选空闲采样 121 秒、110 点，单核 CPU 均值 0.099%，RSS 中位 55.25 MiB。[本轮截图与证据](Documentation/Verification/2026-11-27-ui-refinement/README.md)。此前 204/112pt 截图保留为历史证据。
 
 本轮不扩展播放器、歌词服务、Nearpane 架构，不发布新版本。实际歌曲、鼠标交互、壁纸玻璃观感、侧栏联排及签名安装包仍待专项实机验收；已有安装基线 1.0.0（4）不变。详见[本机报告](Documentation/Verification/local-2026-11-26.md)与[界面实现](Documentation/UI_IMPLEMENTATION.md)。
 

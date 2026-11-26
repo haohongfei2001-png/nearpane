@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="0.000261166"/>
+    <testsuite name="TestResults" errors="0" tests="13" failures="0" skipped="0" time="1.530276">
+        <testcase classname="LyricUITests.PanelLayoutTests" name="productionViewFitsItsSurface(_:)" time="1.498967833"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="lateMetadataDoesNotDismissPausedControls()" time="0.030927542"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="pauseKeepsExistingControlsOnlyUntilInteractionEnds()" time="0.030944833"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="pausedRetentionDoesNotFollowADifferentSong()" time="0.031051084"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="inactiveMetadataCannotKeepThePanelOpen(_:)" time="0.031036334"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="connectionOrAuthorizationStatusNeverCreatesAnEmptyPanel()" time="0.030947875"/>
+        <testcase classname="LyricUITests.PanelPresentationTests" name="startupPausedDoesNotAppearForAccessibilityControls()" time="0.031218542"/>
+        <testcase classname="LyricUITests.AppModelTests" name="localImportInvalidatesAnOutstandingVersionSearch()" time="0.501472542"/>
+        <testcase classname="LyricUITests.AppModelTests" name="failedTimingSaveCannotReportAnErrorOnTheNextRecording()" time="0.048498584"/>
+        <testcase classname="LyricUITests.AppModelTests" name="localImportSurvivesLateAutomaticResolution()" time="0.499974458"/>
+        <testcase classname="LyricUITests.ArtworkTests" name="decodedCoverIsBoundedWithoutChangingItsAspectRatio()" time="0.045851167"/>
+        <testcase classname="LyricUITests.ArtworkTests" name="animationAndNonImageDataRemainMissingArtwork()" time="0.030957792"/>
+        <testcase classname="LyricUITests.ArtworkTests" name="smallCompressedDataCannotBypassThePixelDimensionBoundary()" time="0.031137583"/>
+    </testsuite>
+    <testsuite name="TestResults" errors="0" tests="25" failures="0" skipped="0" time="0.243842583">
+        <testcase classname="LyricServicesTests.LyricParserTests" name="lrcPreservesRepeatedOccurrencesAndOffsetWithoutInventedEnds()" time="0.019059625"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="enhancedLRCOnlyGivesAnEndWhereAnEndMarkerExists()" time="0.019067792"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="yamlPlainQuotesCannotHideAnchorsOrComplexKeysFromTheSafetyPass()" time="0.019052166"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="ttmlKeepsWordTimesTranslationLanguageAndBackgroundOverlap()" time="0.019077417"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="ttmlBuiltinEntitiesAndExplicitLineBreaksRemainActualText()" time="0.019084042"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="decodedQRCAndYRCPreserveAbsoluteWordDurations()" time="0.019032625"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="lyricsfileIsStrictVersionedYAMLAndUnknownOffsetRemainsUnknown()" time="0.018686583"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="lrcxUsesUTF16GraphemeBoundariesAndKeepsTranslationSeparate()" time="0.019045625"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="lyricsfilePlainBlockIsDataAndInstrumentalMustBeExplicit()" time="0.019067542"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="plaintextDoesNotAcquireAnyTimeAndLimitsRejectBeforeLargeTrees()" time="0.039863708"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="lrcxAttachmentExpansionChecksTheGlobalCueBudgetBeforeAllocating()" time="0.06989125"/>
+        <testcase classname="LyricServicesTests.LyricParserTests" name="ttmlRejectsEntitiesAndUnimplementedTimeBasesInsteadOfReturningZero()" time="0.019067458"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="boundedAutomaticEvictionDoesNotEvictProtectedBinding()" time="0.0187095"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="importsBindingsAndVersionSpecificOffsetsSurviveClearAndRestart()" time="0.018734209"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="trueEmptySearchCanBeNegativeCachedAndDoesNotMeanInstrumental()" time="0.018161584"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="rateLimitIsNotNegativeCachedAndRetryAfterIsEnforcedBeforeNextRequest()" time="0.019136625"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="aLateNetworkResponseCannotReplaceANewerRecording()" time="0.026520542"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="reEnablingOnlineLookupDoesNotReviveAnEarlierRequest()" time="0.026431709"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="offlinePreferenceMakesNoRequests()" time="0.018167291"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="explicitVersionSearchBypassesExistingLocalBinding()" time="0.018225083"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="cacheClearPreventsALateEmptySearchFromRecreatingNegativeCache()" time="0.026498709"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="aLocalImportSupersedesAnInFlightLookupForTheSameRecording()" time="0.0263835"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="providerIdentifiesClientAndFallsBackFromInvalidDraftToActualLRC()" time="0.018691375"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="reentrantProviderCallsStaySequential()" time="0.243230458"/>
+        <testcase classname="LyricServicesTests.LyricRepositoryTests" name="lateMetadataDoesNotInheritAnEarlierNegativeQueryCache()" time="0.018714042"/>
+    </testsuite>
+    <testsuite name="TestResults" errors="0" tests="24" failures="0" skipped="0" time="0.132585667">
+        <testcase classname="LyricPlaybackTests" name="qqTransientContentUUIDCannotConfirmSkipOrInvalidateLocalBinding()" time="0.010615959"/>
+        <testcase classname="LyricPlaybackTests" name="processDrainsBothPipesWithoutDeadlock()" time="0.101046167"/>
+        <testcase classname="LyricPlaybackTests" name="sparseMetadataRetainsIdentityUntilAConflictingRecordingArrives()" time="0.010876709"/>
+        <testcase classname="LyricPlaybackTests" name="processTimeoutReapsBusyChild()" time="0.131865125"/>
+        <testcase classname="LyricPlaybackTests" name="currentSourceAndExplicitCommandEvidenceAreRequired()" time="0.01068525"/>
+        <testcase classname="LyricPlaybackTests" name="noCurrentMediaIsAValidEmptyGetNotCorruptProtocol()" time="0.010709166"/>
+        <testcase classname="LyricPlaybackTests" name="explicitDiagnosticCollectionRejectsInvalidDurationWithoutProbing()" time="0.010713792"/>
+        <testcase classname="LyricPlaybackTests" name="readbackRequiresActualDesiredStateAndPreservesPausedSeek()" time="0.010624666"/>
+        <testcase classname="LyricPlaybackTests" name="generationChangesOnlyForRecordingOrInstance()" time="0.013009917"/>
+        <testcase classname="LyricPlaybackTests" name="sourceTimestampRebaseUsesMicrosWithoutInventingMissingClock()" time="0.010781208"/>
+        <testcase classname="LyricPlaybackTests" name="ndjsonHandlesSplitUTF8AndRejectsUnboundedLine()" time="0.010674833"/>
+        <testcase classname="LyricPlaybackTests" name="explicitDiagnosticCollectionNeverOverwritesExistingOutput()" time="0.011010833"/>
+        <testcase classname="LyricPlaybackTests" name="spotifyArtworkHasBoundedOfficialURLScope()" time="0.010641458"/>
+        <testcase classname="LyricPlaybackTests" name="exactMediaTimeUnitsAndUnknowns()" time="0.010586834"/>
+        <testcase classname="LyricPlaybackTests" name="seekReadbackUsesObservedRateAndTrackEnd()" time="0.010665416"/>
+        <testcase classname="LyricPlaybackTests" name="clockProfileNeverInventsCertification()" time="0.010735417"/>
+        <testcase classname="LyricPlaybackTests" name="routeRejectsGlobalOwnershipStaleClockAndWrongSelection()" time="0.010768625"/>
+        <testcase classname="LyricPlaybackTests" name="emptyPlatformIDsDoNotCollapseDifferentRecordingFingerprints()" time="0.010734709"/>
+        <testcase classname="LyricPlaybackTests" name="readbackRejectsOldObservationsAndLostGlobalOwnership()" time="0.010703541"/>
+        <testcase classname="LyricPlaybackTests" name="sourceArbitrationDoesNotMistakePollingOrderForUserIntent()" time="0.01076025"/>
+        <testcase classname="LyricPlaybackTests" name="wallClockJumpAndWakeRequireANewRemoteSourceAnchor()" time="0.010771291"/>
+        <testcase classname="LyricPlaybackTests" name="sparseMetadataRetainsTitleAndMetadataOnlyIdentity()" time="0.011045417"/>
+        <testcase classname="LyricPlaybackTests" name="fullDiffNullAndRestartAreDistinct()" time="0.010828458"/>
+        <testcase classname="LyricPlaybackTests" name="restartedMediaProcessCreatesANewSourceSession()" time="0.012443708"/>
+    </testsuite>
+    <testsuite name="TestResults" errors="0" tests="13" failures="0" skipped="0" time="0.002308584">
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="overlappingCuesRemainSimultaneous()" time="0.001759459"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="staleOrUnavailableOrExpiredAnchorsDoNotRunSyntheticProgress()" time="0.001781167"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="aHealthyUnmeasuredAnchorAllowsLinesButNeverInventsWordAccuracy()" time="0.001771667"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="differentMonotonicDomainsAndDifferentRecordingAreRejected()" time="0.001829"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="unknownEndsStayUnknownWhileDisplayCanHoldUntilNextCue()" time="0.001803875"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="unknownFormatOffsetAndDifferentDocumentAdjustmentAreNotApplied()" time="0.0017795"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="appliesSignedSourceAndPerDocumentUserAdvance()" time="0.001786417"/>
+        <testcase classname="LyricCoreTests.LyricTimelineTests" name="pauseFreezesAndSeekRebasesWithoutNewGeneration()" time="0.001790416"/>
+        <testcase classname="LyricCoreTests.LyricMatcherTests" name="durationMismatchCannotImproveAutomaticAcceptance()" time="0.001803208"/>
+        <testcase classname="LyricCoreTests.LyricMatcherTests" name="absentDurationIsNotPerfectEvidence()" time="0.001798834"/>
+        <testcase classname="LyricCoreTests.LyricMatcherTests" name="aSharedGuestIsNotAConfirmedMainArtistMatch()" time="0.001791833"/>
+        <testcase classname="LyricCoreTests.LyricMatcherTests" name="platformNamespaceAndStorefrontArePartOfIdentity()" time="0.001777667"/>
+        <testcase classname="LyricCoreTests.LyricMatcherTests" name="versionAndArtistConflictsOverrideMatchingID()" time="0.001804125"/>
+    </testsuite>
+</testsuites>
