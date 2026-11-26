@@ -25,7 +25,11 @@ struct LyricTimelineTests {
         #expect(paused.lookupMS == 900)
         let sought = try timeline.frame(anchor: CoreFixture.anchor(position: 3_500),
             at: CoreFixture.stamp(1_000), document: document, adjustment: nil)
-        #expect(sought.selection.generation == paused.selection.generation)
+        let soughtSelection: LyricDomain.Selection = try #require(sought.selection)
+        let pausedSelection: LyricDomain.Selection = try #require(paused.selection)
+        let soughtGeneration: UInt64 = soughtSelection.generation
+        let pausedGeneration: UInt64 = pausedSelection.generation
+        #expect(soughtGeneration == pausedGeneration)
         #expect(sought.presentedCues.map(\.cueID) == ["b"])
     }
 

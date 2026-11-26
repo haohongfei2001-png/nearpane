@@ -38,6 +38,8 @@ jobs:
           bash Scripts/build-app.sh 2>&1 | tee dist/evidence/build-app.log
       - name: Load the production native panel without fabricated playback
         run: python3 Scripts/run-native-smoke.py dist/LyricTile.app --output dist/evidence
+      - name: Verify the actual private framework and packaged helper load
+        run: python3 Scripts/verify-media-helper.py dist/LyricTile.app/Contents/Resources/MediaRemote --output dist/evidence/media-helper-load.json
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

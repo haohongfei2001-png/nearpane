@@ -27,7 +27,11 @@ enum JSONValue: Codable, Sendable, Equatable {
         }
     }
     var string: String? { if case .string(let v) = self { return v }; return nil }
-    var integer: Int64? { if case .int(let v) = self { return v }; return nil }
+    var integer: Int64? {
+        if case .int(let v) = self { return v }
+        if case .double(let v) = self, v.isFinite, v.rounded() == v, v >= Double(Int64.min), v < Double(Int64.max) { return Int64(v) }
+        return nil
+    }
     var number: Double? {
         switch self { case .int(let v): Double(v); case .double(let v): v; default: nil }
     }
@@ -143,6 +147,7 @@ struct MediaRemotePayload: Sendable {
     static func decodeGet(_ data: Data, target: PlayerID?) throws -> [MediaRemotePayload] {
         guard data.count <= 12 * 1024 * 1024 else { throw PlaybackError.outputLimit }
         let value = try JSONDecoder().decode(JSONValue.self, from: data)
+        if value == .null && target == nil { return [] }
         if target != nil {
             guard let list = value.array, list.count <= 32 else { throw PlaybackError.malformedPayload }
             return try list.map {

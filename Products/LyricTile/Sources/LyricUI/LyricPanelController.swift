@@ -17,6 +17,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private let defaults: UserDefaults
     private var subscriptions: Set<AnyCancellable> = []
     private var hideTask: Task<Void, Never>?
+    private var hideRevision: UInt64 = 0
     private var userHidden = false
     private var surrendered = false
     private var saved: [String: SavedPlacement]
@@ -60,7 +61,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     public var windowIDs: [Int] { panel.windowNumber > 0 ? [panel.windowNumber] : [] }
     public func show(userInitiated: Bool = false) {
         guard model.ownsSession, !surrendered, placementPermitted else { return }
-        if userInitiated { userHidden = false; hideTask?.cancel() }
+        if userInitiated { userHidden = false; cancelIdleHide() }
         guard !userHidden else { return }
         if slotFrame == .zero { restorePosition(reset: false) }
         guard slotFrame != .zero else { return }
@@ -69,7 +70,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         model.isVisible = panel.occlusionState.contains(.visible)
         if model.idle {
             if model.settings.hideWhenIdle { scheduleIdleHide() }
-            else { hideTask?.cancel(); hideTask = nil }
+            else { cancelIdleHide() }
         }
     }
     public func hide(userInitiated: Bool = false) {
@@ -79,7 +80,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     /// Stops input and removes the old panel before session ownership is released.
     public func surrender() {
         surrendered = true
-        hideTask?.cancel()
+        cancelIdleHide()
         panel.ignoresMouseEvents = true
         withdraw()
     }
@@ -132,8 +133,10 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private func refreshForPlayback() {
         guard model.ownsSession, !surrendered, placementPermitted else { withdraw(); return }
         resizeVisibleSurface()
-        if model.idle { scheduleIdleHide() }
-        else { hideTask?.cancel(); hideTask = nil; show() }
+        if model.idle {
+            if model.settings.hideWhenIdle { scheduleIdleHide() }
+            else { cancelIdleHide(); if !userHidden { show() } }
+        } else { cancelIdleHide(); show() }
     }
     private func resizeVisibleSurface() {
         guard slotFrame != .zero else { return }
@@ -143,12 +146,23 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     }
     private func scheduleIdleHide() {
         guard model.settings.hideWhenIdle, hideTask == nil else { return }
+        hideRevision &+= 1
+        let expected = hideRevision
         hideTask = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(15)) } catch { return }
-            guard let self, self.model.idle, self.model.settings.hideWhenIdle else { return }
-            self.withdraw()
+            do { try await Task.sleep(for: .seconds(15)) }
+            catch {
+                if let self, self.hideRevision == expected { self.hideTask = nil }
+                return
+            }
+            guard let self, self.hideRevision == expected else { return }
             self.hideTask = nil
+            guard self.model.idle, self.model.settings.hideWhenIdle else { return }
+            self.withdraw()
         }
+    }
+    private func cancelIdleHide() {
+        hideRevision &+= 1
+        hideTask?.cancel(); hideTask = nil
     }
     private func applyCollectionBehavior(_ settings: LyricSettings) {
         var behavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]

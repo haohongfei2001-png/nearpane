@@ -2,6 +2,7 @@
 #import <AppKit/AppKit.h>
 #import <ScriptingBridge/ScriptingBridge.h>
 #import <math.h>
+#import <float.h>
 #import <libproc.h>
 #import <sys/sysctl.h>
 
@@ -34,6 +35,9 @@
 @property (nonatomic, strong) SBApplication *application;
 @property (nonatomic, strong) LTPErrorDelegate *errorDelegate;
 @property (nonatomic, strong, nullable) NSDate *launchDate;
+@property (nonatomic, copy, nullable) NSString *metadataIdentity;
+@property (nonatomic, copy, nullable) NSDictionary *metadata;
+@property (nonatomic, strong, nullable) NSDate *metadataReadAt;
 @end
 @implementation LTPEntry
 @end
@@ -106,28 +110,48 @@ NSData *LTPReadPlayer(int32_t pid, BOOL spotify, BOOL includeArtwork) {
                 id<LTPApplication> app = (id<LTPApplication>)entry.application;
                 unsigned int state = app.playerState;
                 NSMutableDictionary *result = [@{@"pid": @(pid), @"state": stateString(state)} mutableCopy];
-                if (state == 0x6b505353) return json(result);
+                if (state == 0x6b505353) { entry.metadata = nil; return json(result); }
                 SBObject *track = app.currentTrack;
-                NSDictionary *properties = [track valueForKey:@"properties"];
-                if (![properties isKindOfClass:NSDictionary.class]) properties = @{};
-                NSDictionary *mapping = @{@"name": @"title", @"artist": @"artist", @"album": @"album",
-                                           @"persistentID": @"persistentID", @"id": @"trackID",
-                                           @"spotifyUrl": @"spotifyURL", @"artworkUrl": @"artworkURL"};
-                for (NSString *key in mapping) {
-                    NSString *value = stringValue(properties[key]);
-                    if (value) result[mapping[key]] = value;
+                NSString *identityKey = spotify ? @"id" : @"persistentID";
+                NSString *beforeID = stringValue([track valueForKey:identityKey]);
+                if (!spotify && beforeID.length && [beforeID stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"0"]].length == 0) beforeID = nil;
+                NSString *identity = beforeID.length ? beforeID : stringValue([track valueForKey:@"name"]);
+                BOOL sameCachedTrack = identity.length && [entry.metadataIdentity isEqualToString:identity];
+                NSTimeInterval age = entry.metadataReadAt ? -entry.metadataReadAt.timeIntervalSinceNow : DBL_MAX;
+                BOOL missingTitle = [entry.metadata[@"title"] length] == 0;
+                BOOL missingCoverURL = spotify && [entry.metadata[@"artworkURL"] length] == 0;
+                if (!sameCachedTrack || !entry.metadata || age > 15 || ((missingTitle || missingCoverURL) && age > 2)) {
+                    NSMutableDictionary *metadata = [NSMutableDictionary dictionary];
+                    // Read only the metadata actually needed by LyricTile. A bulk
+                    // `properties` query would also request lyrics and purchaser
+                    // identity from Music and repeat large metadata every second.
+                    NSDictionary *mapping = @{@"name": @"title", @"artist": @"artist", @"album": @"album"};
+                    for (NSString *key in mapping) {
+                        NSString *value = stringValue([track valueForKey:key]);
+                        if (value) metadata[mapping[key]] = value;
+                    }
+                    if (beforeID.length) metadata[spotify ? @"trackID" : @"persistentID"] = beforeID;
+                    NSNumber *duration = numberValue([track valueForKey:@"duration"]);
+                    if (duration && duration.doubleValue >= 0) metadata[@"duration"] = duration;
+                    if (spotify) {
+                        NSString *url = stringValue([track valueForKey:@"artworkUrl"]);
+                        if (url) metadata[@"artworkURL"] = url;
+                    }
+                    entry.metadata = metadata; entry.metadataIdentity = identity; entry.metadataReadAt = NSDate.date;
                 }
-                NSNumber *duration = numberValue(properties[@"duration"]);
-                if (duration && duration.doubleValue >= 0) result[@"duration"] = duration;
+                [result addEntriesFromDictionary:entry.metadata ?: @{}];
                 double position = app.playerPosition;
                 result[@"sampleEpochMicros"] = @((int64_t)(NSDate.date.timeIntervalSince1970 * 1000000));
                 if (isfinite(position) && position >= 0) result[@"positionSeconds"] = @(position);
                 // Do not combine the old track's metadata with the next track's
                 // position if a transition occurs during the Apple Events round trip.
-                NSString *identityKey = spotify ? @"id" : @"persistentID";
-                NSString *beforeID = stringValue(properties[identityKey]);
                 NSString *afterID = stringValue([app.currentTrack valueForKey:identityKey]);
-                if (beforeID.length && afterID.length && ![beforeID isEqualToString:afterID]) {
+                if (beforeID.length && ![beforeID isEqualToString:afterID]) {
+                    entry.metadata = nil;
+                    return failure(-10001, @"Track changed during probe");
+                }
+                if (!beforeID.length && identity.length && ![identity isEqualToString:stringValue([app.currentTrack valueForKey:@"name"])]) {
+                    entry.metadata = nil;
                     return failure(-10001, @"Track changed during probe");
                 }
                 result[@"state"] = stateString(app.playerState);
@@ -143,6 +167,9 @@ NSData *LTPReadPlayer(int32_t pid, BOOL spotify, BOOL includeArtwork) {
                                 result[@"artworkBase64"] = [raw base64EncodedStringWithOptions:0];
                             }
                         }
+                        NSString *artIdentity = stringValue([app.currentTrack valueForKey:identityKey]);
+                        if (!beforeID.length) artIdentity = stringValue([app.currentTrack valueForKey:@"name"]);
+                        if (!identity.length || ![identity isEqualToString:artIdentity]) [result removeObjectForKey:@"artworkBase64"];
                     } @catch (NSException *artError) {
                         // Artwork is optional. Preserve valid metadata, not a fake image.
                         entry.errorDelegate.lastError = nil;

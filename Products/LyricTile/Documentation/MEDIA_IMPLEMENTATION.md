@@ -6,7 +6,7 @@ This module contains real implementations, not demonstration playback data. The 
 
 | Player | Observation | Transport | Important boundary |
 |---|---|---|---|
-| Apple Music | PID-directed ScriptingBridge, bulk track properties, actual position/state, on-demand raw artwork | PID-directed play/pause/previous/next/position assignment | Automation permission required. No MusicKit SystemMusicPlayer claim. Subscription synchronized lyrics are not read through the scripting bridge. |
+| Apple Music | PID-directed ScriptingBridge, cached required track metadata, actual position/state, on-demand raw artwork | PID-directed play/pause/previous/next/position assignment | Automation permission required. No MusicKit SystemMusicPlayer claim. Subscription synchronized lyrics are not read through the scripting bridge. |
 | Spotify desktop | PID-directed ScriptingBridge; duration **milliseconds**, position **seconds**; bounded official cover CDN request | PID-directed explicit commands and position assignment | No cookie, OAuth token or web playback API. Spotify Connect / ads must be physically qualified; unsupported actions fail or lose that recording's capability after failed readback. |
 | QQ Music | Bundled MediaRemote helper, current-source stream and targeted snapshots | Enabled supportedCommands on the **current system media source**, followed by real readback | Targeted read is not targeted send. No global NowPlaying override. Paused seek is disabled, as some versions resume audio when seeking. |
 | NetEase Music | Same isolated helper, per-application reads when another source owns Now Playing | Same current-source gate | Off-focus global transport/seek is disabled. Missing timing remains missing. |
@@ -19,7 +19,7 @@ No probe activates an application. Only the explicit `openPlayer` action may ope
 
 `CPlayerBridge` links Foundation, AppKit and ScriptingBridge and is compiled with ARC. It caches only the two native scriptable applications, uses `SBApplication.applicationWithProcessIdentifier`, a 90-tick (1.5-second) Apple Event timeout, catches Objective-C exceptions, and exits a failed probe at the first delegate error. Each successful probe checks the track ID again after reading position to avoid joining old metadata with a new track's time. Error values distinguish Automation denial, timeout, process exit, unsupported command and mid-probe track transition.
 
-Calls execute on a serial utility queue. There is no `osascript` process per position read and no per-frame Apple Event. The selected playing native app is normally calibrated once a second; paused selected apps every three seconds and unselected apps every five seconds. Distributed playback notifications request earlier refreshes. A TCC denial backs off for 15 seconds; source selection or playback notifications can recheck sooner.
+Calls execute on a serial utility queue. There is no `osascript` process per position read and no per-frame Apple Event. Stable track metadata is cached, refreshed on identity change and at least every 15 seconds; the bridge requests only title/artist/album/duration/identifier/cover URL, not Music's entire property dictionary containing lyric text and purchaser details. Identity is checked every probe and again after reading artwork. The selected playing native app is normally calibrated once a second; paused selected apps every three seconds and unselected apps every five seconds in automatic mode. Pinned mode probes only the requested player. Distributed playback notifications request earlier refreshes. A TCC denial backs off for 15 seconds; source selection or playback notifications can recheck sooner.
 
 ## MediaRemote helper and package layout
 
@@ -42,6 +42,14 @@ LyricTile.app/Contents/Resources/MediaRemote/
 ```
 
 The build's ad-hoc signature is only for development. The distribution pipeline must replace it with Developer ID, sign the enclosing app, notarize and test the **same package**. The main application must have `NSAppleEventsUsageDescription` and the Hardened Runtime Apple Events entitlement. It does not require microphone, screen recording, Full Disk Access or Accessibility permission for these routes. App Sandbox / Mac App Store distribution is not the current route.
+
+After packaging, hosted macOS can exercise the real loader without music or fake media:
+
+```sh
+python3 Scripts/verify-media-helper.py /absolute/LyricTile.app/Contents/Resources/MediaRemote --output /absolute/results/helper-load.json
+```
+
+This bounded (default 4.5-second) check invokes the actual packaged Perl/script/framework `get`, validates its JSON including legitimate `null` when no media is active, and resolves the private API symbols used by the implemented routes without calling their transport functions. Missing symbols, load errors, invalid protocol or timeout return nonzero. The report uses `scope=helper_load_only`, records actual exit statuses/stderr/hashes/platform, and always sets `playerSupportCertified=false`. Empty media may pass loader verification; it cannot pass player/transport/timing qualification. Run this against the final signed package as well as the hosted development package.
 
 Debug builds can resolve a local helper directory using `LYRICTILE_MEDIA_HELPER=/absolute/path/MediaRemote`; the value is a directory containing the expected fixed filenames, not a command. Release builds ignore this environment variable and use their bundled resources. A missing helper produces an installation error, never synthetic Now Playing data. No Homebrew process or downloaded executable is launched at runtime.
 

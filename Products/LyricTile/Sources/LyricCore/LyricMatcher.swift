@@ -10,9 +10,9 @@ public struct LyricMatcher: LyricMatching {
         let candidateArtists = Set(candidate.artists.map(RecordingText.normalize).filter { !$0.isEmpty })
         let targetArtists = Set(recording.artists.map(RecordingText.normalize).filter { !$0.isEmpty })
         let artistKnown = !candidateArtists.isEmpty && !targetArtists.isEmpty
-        let artistMatch = artistKnown ? !candidateArtists.isDisjoint(with: targetArtists) : nil
-        let primaryConflict = artistKnown && candidate.artists.first.map(RecordingText.normalize)
-            != recording.artists.first.map(RecordingText.normalize) && artistMatch == false
+        let artistMatch = artistKnown ? candidate.artists.first.map(RecordingText.normalize)
+            == recording.artists.first.map(RecordingText.normalize) : nil
+        let primaryConflict = artistKnown && candidateArtists.isDisjoint(with: targetArtists)
         let titleSimilarity = leftTitle.flatMap { left in rightTitle.map { similarity(left, $0) } }
         let albumMatch: Bool? = {
             guard let left = candidate.album, let right = recording.album,
@@ -60,7 +60,7 @@ public struct LyricMatcher: LyricMatching {
     }
 
     private func versionMarkers(_ recording: LyricDomain.RecordingIdentity) -> Set<String> {
-        let source = RecordingText.normalize(([recording.title ?? ""] + recording.versionTags).joined(separator: " "))
+        let source = RecordingText.normalize(([recording.title ?? "", recording.album ?? ""] + recording.versionTags).joined(separator: " "))
         let padded = " " + source + " "
         let groups: [(String, [String])] = [
             ("live", [" live ", "现场", "現場", "演唱会", "演唱會", "ライブ"]),

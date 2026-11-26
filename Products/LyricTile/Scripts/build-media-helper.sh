@@ -9,6 +9,10 @@ if [[ "$(uname -s)" != Darwin ]]; then
 fi
 lyrictile_root="$(cd "$(dirname "$0")/.." && pwd)"
 source_dir="$lyrictile_root/Vendor/mediaremote-adapter"
+if ! (cd "$source_dir" && /usr/bin/shasum -a 256 -c SHA256SUMS >/dev/null); then
+  echo "Pinned mediaremote-adapter source hash verification failed." >&2
+  exit 1
+fi
 output_dir="${1:-$lyrictile_root/.build/media-helper/MediaRemote}"
 framework_dir="$output_dir/MediaRemoteAdapter.framework"
 mkdir -p "$framework_dir/Versions/A/Resources" "$framework_dir/Versions/A/Headers"

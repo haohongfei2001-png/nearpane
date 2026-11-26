@@ -46,6 +46,13 @@ private func data(_ text: String) -> Data { Data(text.utf8) }
     #expect(reducer.payload == nil)
 }
 
+@Test func noCurrentMediaIsAValidEmptyGetNotCorruptProtocol() throws {
+    #expect(try MediaRemotePayload.decodeGet(data("null"), target: nil).isEmpty)
+    #expect(try MediaRemotePayload.decodeGet(data("[]"), target: .qqMusic).isEmpty)
+    #expect(JSONValue.double(1_800_000_000_000_000).integer == 1_800_000_000_000_000)
+    #expect(JSONValue.double(1.5).integer == nil)
+}
+
 @Test func ndjsonHandlesSplitUTF8AndRejectsUnboundedLine() throws {
     var framer = NDJSONFramer(limit: 32)
     let bytes = data("雪\nA\n")

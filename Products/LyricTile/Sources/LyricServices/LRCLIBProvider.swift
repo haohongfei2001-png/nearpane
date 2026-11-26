@@ -14,7 +14,7 @@ public struct LRCLIBConfiguration: Sendable {
         self.userAgent = userAgent; self.publicAppID = publicAppID
         self.rights = rights ?? .init(apiAccess: .publishedTerms,
             apiEvidenceURL: URL(string: "https://lrclib.net/docs.txt"), contentRights: .unresolved,
-            contentEvidenceURL: nil, reviewedAt: Date(), evidenceRevision: "docs-2026-11-26",
+            contentEvidenceURL: nil, reviewedAt: Date(timeIntervalSince1970: 1_795_651_200), evidenceRevision: "docs-2026-11-26",
             territories: [], expiry: nil, cacheMaxAgeSeconds: nil, attributionText: "Lyrics via LRCLIB")
         self.releaseDisposition = releaseDisposition
         self.minimumRequestIntervalMS = max(0, minimumRequestIntervalMS)

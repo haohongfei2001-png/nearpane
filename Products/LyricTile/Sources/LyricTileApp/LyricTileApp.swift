@@ -182,12 +182,21 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
                 panelController.show()
                 return
             }
+            guard !Task.isCancelled, !terminating else {
+                LyricHandoff.acknowledge(requestID, succeeded: false)
+                return
+            }
             guard await tileCoordinator.stop() else {
                 LyricHandoff.acknowledge(requestID, succeeded: false)
                 model.actionMessage = "旧桌面占位尚未释放，歌词会话交接仍在等待。"
                 return
             }
+            guard !Task.isCancelled, !terminating else {
+                LyricHandoff.acknowledge(requestID, succeeded: false)
+                return
+            }
             await model.stop()
+            guard !Task.isCancelled, !terminating else { return }
             suspendedForHost = true
             LyricHandoff.acknowledge(requestID, succeeded: true)
         }

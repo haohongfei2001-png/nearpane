@@ -37,4 +37,12 @@ struct LyricMatcherTests {
         #expect(evidence.durationDeltaMS == nil)
         #expect(!matcher.mayAutomaticallyAccept(evidence))
     }
+    @Test func aSharedGuestIsNotAConfirmedMainArtistMatch() {
+        let matcher = LyricMatcher()
+        let a = CoreFixture.recording(artists: ["Primary one", "Shared guest"])
+        let b = CoreFixture.recording(artists: ["Primary two", "Shared guest"])
+        let evidence = matcher.evidence(for: a, against: b)
+        #expect(evidence.mainArtistMatch == false)
+        #expect(!matcher.mayAutomaticallyAccept(evidence))
+    }
 }
