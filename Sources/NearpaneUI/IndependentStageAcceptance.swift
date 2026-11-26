@@ -1,5 +1,6 @@
 import AppKit
 import CReadOnlySpaces
+import Darwin
 import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
 import QuartzCore
@@ -33,10 +34,12 @@ import QuartzCore
         catch { return 2 }
         let output = URL(fileURLWithPath: config.output).standardizedFileURL
         var report: [String: Any] = ["schema": 1, "status": "BLOCKED", "reason": "preflight",
+            "nonce": config.nonce.uuidString.lowercased(), "purpose": config.purpose ?? "product",
             "actualR4Inputs": 0, "foreignWindowReadback": false, "cleanup": true,
             "missionControl": "NOT_RUN", "desktopGestures": "NOT_RUN", "fullScreenSplitView": "NOT_RUN",
             "nativeFullScreen": "NOT_RUN", "nativeDesktopSwitch": "NOT_RUN", "appExpose": "NOT_RUN",
             "nativeDesktopReveal": "NOT_RUN",
+            "newWindowLifecycle": "NOT_RUN", "windowCloseLifecycle": "NOT_RUN", "applicationExitLifecycle": "NOT_RUN",
             "yellowButtonRouting": "NOT_RUN", "groupMergeSplit": "NOT_RUN", "qualificationGranted": false]
         var events = [[String: Any]]()
         func record(_ phase: String, _ fields: [String: Any] = [:]) {
@@ -106,6 +109,8 @@ import QuartzCore
         var switchLatenciesMS = [Double]()
         var productPassed = false
         var startedWrites = false
+        var lifecycleCreated: Target?
+        var lifecycleCreationUnresolved = false
         scenario: do {
             guard let feed = modules.windowPreviews.currentDesktop else { throw Failure(reason: "packagedOverviewReaderUnavailable") }
             // Let the existing focus request settle before proving the live R4
@@ -315,6 +320,115 @@ import QuartzCore
                 productPassed = true
                 break scenario
             }
+            if config.purpose == "lifecycle" {
+                // This purpose runs only after the earlier three-window product
+                // and crash/restart passes have returned their original windows.
+                let originals = targets
+                guard originals[0].fixture.pid == originals[1].fixture.pid,
+                      originals[0].fixture.pid != originals[2].fixture.pid,
+                      let firstGroup = groupIDs[originals[0].window.number],
+                      let siblingGroup = groupIDs[originals[1].window.number],
+                      let sample = feed.snapshot,
+                      let displayID = sample.windows.first(where: { $0.metadata?.pid == originals[0].fixture.pid &&
+                          $0.metadata?.number == originals[0].window.number })?.displayID,
+                      let display = UUID(uuidString: displayID),
+                      let nativeSpace = sample.scopes.first(where: { $0.displayID == displayID })?.records.first(where: \.isCurrent)?.ordinaryUUID
+                else { throw Failure(reason: "lifecycleOriginalGroupsUnavailable") }
+                let scope = StageGroupScope(display: display, nativeSpace: nativeSpace)
+                let gallery = modules.windowPreviews.gallery
+                let exitPicture = await waitForLifecyclePicture(originals[2], in: feed, scope: scope, gallery: gallery, seconds: 4)
+                try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleBeforeCreate")
+                report["foreignWindowReadback"] = true
+                let idleUntil = ContinuousClock.now.advanced(by: .seconds(3))
+                while NativeSidebarNavigation.shared.idleGeneration == nil, ContinuousClock.now < idleUntil {
+                    try await Task.sleep(for: .milliseconds(80))
+                }
+                guard NativeSidebarNavigation.shared.idleGeneration != nil,
+                      let before = ownerState(originals[0], nonce: config.nonce),
+                      let priorSequence = before["commandSequence"] as? Int,
+                      (before["windows"] as? [[String: Any]])?.count == 2,
+                      before["lastCreatedIndex"] as? Int == -1 else { throw Failure(reason: "lifecycleCreationPreconditionUnavailable") }
+                lifecycleCreationUnresolved = true
+                let createAcknowledged = await ownerCommand(originals[0], action: "create", nonce: config.nonce)
+                guard let created = await waitForCreatedWindow(originals[0], nonce: config.nonce, after: priorSequence,
+                                                               excluding: Set(originals.map { $0.window.number })) else {
+                    report["newWindowLifecycle"] = "FAIL"
+                    record("lifecycleCreateUnconfirmed", ["commandAcknowledged": createAcknowledged])
+                    throw Failure(reason: "lifecycleCreatedWindowIdentityUnconfirmed")
+                }
+                lifecycleCreationUnresolved = false; lifecycleCreated = created; targets.append(created)
+                // Observe automatic scheduling before sending any subsequent R4
+                // input. A later explicit card press cannot erase this failure.
+                let automatic = await waitForState(targets, visible: [created.window.number], focus: created, seconds: 8,
+                                                   diagnostic: { report["lastLifecycleArrivalReadback"] = $0 })
+                report["lifecycleAutomaticArrival"] = automatic == nil ? "FAIL" : "PASS"
+                record("lifecycleAutomaticArrival", ["window": created.window.number, "commandAcknowledged": createAcknowledged,
+                    "status": automatic == nil ? "FAIL" : "PASS", "observations": automatic ?? [], "laterR4InputsIssued": false])
+                let picture = await waitForLifecyclePicture(created, in: feed, scope: scope, gallery: gallery, seconds: 8)
+                var cardSwitch = false
+                if let picture {
+                    savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-created.png"))
+                    record("lifecycleNewThumbnail", ["window": created.window.number, "group": picture.group.uuidString,
+                        "frameSequence": picture.sequence, "width": picture.width, "height": picture.height])
+                    do {
+                        try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleLeaveNewWindow")
+                        try await selectR4(3, group: picture.group, visible: [created.window.number], phase: "lifecycleSelectNewCard")
+                        cardSwitch = true
+                    } catch { record("lifecycleNewCardFailure", ["reason": (error as? Failure)?.reason ?? String(describing: error)]) }
+                }
+                report["lifecycleNewCardSwitch"] = cardSwitch ? "PASS" : "FAIL"
+                report["newWindowLifecycle"] = createAcknowledged && automatic != nil && picture != nil && cardSwitch ? "PASS" : "FAIL"
+                // Close an inactive real window so the original A0 focus remains
+                // independently testable through retirement and app termination.
+                try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleBeforeClose")
+                let closeAcknowledged = await ownerCommand(created, action: "close", nonce: config.nonce)
+                let closed = await waitForLifecycleAbsence(created, processExit: false, seconds: 6)
+                record("lifecycleWindowClosed", ["window": created.window.number, "commandAcknowledged": closeAcknowledged,
+                    "observations": closed ?? []])
+                guard closed != nil else {
+                    report["windowCloseLifecycle"] = "FAIL"
+                    throw Failure(reason: "lifecycleClosedWindowAbsenceUnconfirmed")
+                }
+                targets.removeAll { $0.key == created.key }; lifecycleCreated = nil
+                let retired = await waitForLifecycleRetirement(created, picture: picture?.target, in: feed, scope: scope,
+                                                               gallery: gallery, seconds: 6)
+                let retained = await waitForState(targets, visible: [originals[0].window.number], focus: originals[0], seconds: 6)
+                report["windowCloseLifecycle"] = closeAcknowledged && retired != nil && retained != nil && picture != nil ? "PASS" : "FAIL"
+                record("lifecycleWindowRetired", ["window": created.window.number, "retirement": retired ?? [],
+                    "originalThreePreserved": retained ?? [], "thumbnailWasObserved": picture != nil])
+                savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-closed.png"))
+                // B is quit last, after every earlier phase depending on its real
+                // original window. Only its own fixture command closes this app.
+                guard retired != nil, retained != nil else { throw Failure(reason: "lifecycleOriginalThreeAfterCloseUnconfirmed") }
+                let quitAcknowledged = await ownerCommand(originals[2], action: "quit", nonce: config.nonce)
+                let exited = await waitForLifecycleAbsence(originals[2], processExit: true, seconds: 6)
+                record("lifecycleApplicationExited", ["pid": originals[2].fixture.pid, "birth": originals[2].fixture.birth,
+                    "commandAcknowledged": quitAcknowledged, "observations": exited ?? []])
+                guard exited != nil else {
+                    report["applicationExitLifecycle"] = "FAIL"
+                    throw Failure(reason: "lifecycleExitedOwnerGenerationUnconfirmed")
+                }
+                targets.removeAll { $0.fixture.pid == originals[2].fixture.pid && $0.fixture.birth == originals[2].fixture.birth }
+                let exitRetired = await waitForLifecycleRetirement(originals[2], picture: exitPicture?.target, in: feed,
+                    scope: scope, gallery: gallery, seconds: 6)
+                var survivors = false
+                if exitRetired != nil {
+                    do {
+                        try await selectR4(1, group: siblingGroup, visible: [originals[1].window.number], phase: "lifecycleSurvivingA1")
+                        try await selectR4(0, group: firstGroup, visible: [originals[0].window.number], phase: "lifecycleSurvivingA0")
+                        survivors = true
+                    } catch { record("lifecycleSurvivingCardFailure", ["reason": (error as? Failure)?.reason ?? String(describing: error)]) }
+                }
+                report["applicationExitLifecycle"] = quitAcknowledged && exitRetired != nil && exitPicture != nil && survivors ? "PASS" : "FAIL"
+                record("lifecycleExitedGroupRetired", ["retirement": exitRetired ?? [], "survivingR4Switches": survivors,
+                    "thumbnailWasObserved": exitPicture != nil])
+                savePanel(controller.window, to: output.appendingPathComponent("r4-lifecycle-exited.png"))
+                productPassed = ["newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle"].allSatisfy { report[$0] as? String == "PASS" }
+                report["status"] = productPassed ? "PRODUCT_LIFECYCLE_PASS" : "FAIL"
+                report["reason"] = productPassed ? "realCreationClosureExitAndR4SurvivorsConfirmed" : "lifecycleEvidenceIncomplete"
+                report["foreignWindowReadback"] = true
+                break scenario
+            }
             let cyclePath = [0] + (0..<cycles).flatMap { _ in [1, 2, 0] }
             for (step, index) in cyclePath.enumerated() {
                 guard let group = groupIDs[targets[index].window.number] else { throw Failure(reason: "groupIdentityLost") }
@@ -511,9 +625,20 @@ import QuartzCore
         report["statusBeforeCleanup"] = report["status"]
         report["reasonBeforeCleanup"] = report["reason"]
         report["windowPreviewMetrics"] = modules.windowPreviewMetrics
+        if let created = lifecycleCreated {
+            _ = await ownerCommand(created, action: "close", nonce: config.nonce)
+            let gone = await waitForLifecycleAbsence(created, processExit: false, seconds: 3)
+            record("lifecycleExtraWindowCleanup", ["number": created.window.number, "observations": gone ?? []])
+            if gone != nil { targets.removeAll { $0.key == created.key }; lifecycleCreated = nil }
+        }
+        if lifecycleCreationUnresolved, let first = targets.first {
+            // Cancel the bounded create command even when no authoritative new
+            // window identity was obtained. Unknown cleanup stays unknown.
+            _ = await ownerCommand(first, action: "close", nonce: config.nonce, index: 2)
+        }
         let released = await modules.prepareStageWindowShutdown()
         let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4)
-        let clean = released && returned != nil
+        let clean = released && returned != nil && lifecycleCreated == nil && !lifecycleCreationUnresolved
         panels.stop(); controller.close(); host.stop(); await modules.finishStopping()
         report["actualR4Inputs"] = actualInputs
         let orderedLatencies = switchLatenciesMS.sorted()
@@ -1064,22 +1189,147 @@ import QuartzCore
         return matches.count == 1 ? matches[0] : nil
     }
 
-    private static func ownerCommand(_ target: Target, action: String, nonce: UUID) async -> Bool {
-        let directory = URL(fileURLWithPath: target.fixture.directory)
-        func state() -> [String: Any]? {
-            guard let data = try? Data(contentsOf: directory.appendingPathComponent("state.json")),
-                  let value = try? JSONSerialization.jsonObject(with: data) else { return nil }
-            return value as? [String: Any]
+    private static func ownerState(_ target: Target, nonce: UUID) -> [String: Any]? {
+        let path = URL(fileURLWithPath: target.fixture.directory).appendingPathComponent("state.json")
+        guard let data = try? Data(contentsOf: path), let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (value["nonce"] as? String).flatMap(UUID.init(uuidString:)) == nonce,
+              value["pid"] as? Int32 == target.fixture.pid, value["birth"] as? UInt64 == target.fixture.birth else { return nil }
+        return value
+    }
+
+    private static func waitForCreatedWindow(_ owner: Target, nonce: UUID, after sequence: Int,
+                                             excluding originalNumbers: Set<UInt32>) async -> Target? {
+        let until = ContinuousClock.now.advanced(by: .seconds(3))
+        while ContinuousClock.now < until {
+            if let state = ownerState(owner, nonce: nonce), let createdSequence = state["lastCreatedSequence"] as? Int,
+               createdSequence > sequence, state["commandSequence"] as? Int == createdSequence,
+               state["lastCreatedIndex"] as? Int == 2, let rows = state["windows"] as? [[String: Any]], rows.count == 3,
+               let row = rows.first(where: { $0["index"] as? Int == 2 }), let number = row["number"] as? UInt32,
+               number > 0, !originalNumbers.contains(number),
+               let image = try? NearpaneCore.OrdinaryProcessImage.read(owner.fixture.pid), image.launch == owner.fixture.birth,
+               image.executable == URL(fileURLWithPath: owner.fixture.executable).resolvingSymlinksInPath(),
+               let observed = cg(number), observed.pid == owner.fixture.pid {
+                return .init(fixture: owner.fixture, window: .init(index: 2, number: number), frame: observed.frame, home: owner.home)
+            }
+            try? await Task.sleep(for: .milliseconds(60))
         }
-        guard let before = state(), (before["nonce"] as? String).flatMap(UUID.init(uuidString:)) == nonce,
-              let previous = before["commandSequence"] as? Int else { return false }
+        return nil
+    }
+
+    private static func waitForLifecyclePicture(_ target: Target, in feed: CurrentDesktopWindows, scope: StageGroupScope,
+                                                gallery: DesktopWindowGallery, seconds: Double) async
+        -> (group: UUID, target: DesktopWindowTarget, sequence: UInt64, width: Int, height: Int)? {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        while ContinuousClock.now < until {
+            feed.changed()
+            if let sample = feed.snapshot, sample.native?.catalogComplete == true,
+               sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
+               let row = sample.windows.first(where: { $0.metadata?.pid == target.fixture.pid &&
+                   $0.metadata?.number == target.window.number && $0.metadata?.launchMicroseconds == target.fixture.birth }),
+               let picture = DesktopWindowTarget.preview(row, in: sample),
+               let group = feed.groups.groups(in: scope).first(where: { $0.members.count == 1 && $0.members.first?.windowHint == target.key }),
+               gallery.frameSequence(for: picture) > 0,
+               let image = gallery.image(for: picture, permitted: true), image.width > 0, image.height > 0 {
+                return (group.id, picture, gallery.frameSequence(for: picture), image.width, image.height)
+            }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        return nil
+    }
+
+    private static func waitForLifecycleAbsence(_ target: Target, processExit: Bool, seconds: Double) async -> [[String: Any]]? {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        var consecutive = [[String: Any]]()
+        while ContinuousClock.now < until {
+            var observation: [String: Any] = ["uptime": ProcessInfo.processInfo.systemUptime,
+                "pid": target.fixture.pid, "birth": target.fixture.birth, "number": target.window.number]
+            let image = try? NearpaneCore.OrdinaryProcessImage.read(target.fixture.pid)
+            let sameOwner = image?.launch == target.fixture.birth &&
+                image?.executable == URL(fileURLWithPath: target.fixture.executable).resolvingSymlinksInPath()
+            var ownerExited = image.map { $0.launch != target.fixture.birth } ?? false
+            if !ownerExited {
+                errno = 0
+                ownerExited = kill(target.fixture.pid, 0) == -1 && errno == ESRCH
+            }
+            let cgPresence = NPReadWindowNumberPresence(target.window.number)
+            observation["cgPresence"] = cgPresence
+            observation["originalOwnerGenerationExited"] = ownerExited
+            let app = AXUIElementCreateApplication(target.fixture.pid)
+            _ = AXUIElementSetMessagingTimeout(app, 0.1)
+            var value: CFTypeRef?
+            let error = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value)
+            observation["axWindowsRead"] = error.rawValue
+            var completeAXAbsence = false
+            if error == .success, let windows = value as? [AXUIElement], windows.count <= 16 {
+                var numbers = [UInt32](), complete = true
+                for window in windows {
+                    var pid: pid_t = 0
+                    let number = NPReadAXWindowNumber(window)
+                    if AXUIElementGetPid(window, &pid) != .success || pid != target.fixture.pid || number == 0 {
+                        complete = false; break
+                    }
+                    numbers.append(number)
+                }
+                observation["axWindowNumbers"] = numbers
+                observation["axWindowsComplete"] = complete
+                completeAXAbsence = complete && !numbers.contains(target.window.number)
+            }
+            // After positive process-generation exit, the original AX server
+            // no longer exists. An AX timeout alone is never disappearance.
+            observation["axAbsenceBasis"] = processExit ? "originalOwnerGenerationExited" : "completeLiveOwnerAXWindows"
+            observation["axWindowAbsentInCompleteRead"] = completeAXAbsence
+            let valid = cgPresence == 0 && (processExit ? ownerExited : sameOwner && !ownerExited && completeAXAbsence)
+            if valid {
+                consecutive.append(observation)
+                if consecutive.count == 2 { return consecutive }
+            } else { consecutive.removeAll() }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        return nil
+    }
+
+    private static func waitForLifecycleRetirement(_ target: Target, picture: DesktopWindowTarget?, in feed: CurrentDesktopWindows,
+                                                   scope: StageGroupScope, gallery: DesktopWindowGallery,
+                                                   seconds: Double) async -> [[String: Any]]? {
+        let until = ContinuousClock.now.advanced(by: .milliseconds(Int64(seconds * 1000)))
+        let key = DesktopWindowKey(pid: target.fixture.pid, birth: target.fixture.birth, number: target.window.number)
+        var consecutive = [[String: Any]]()
+        while ContinuousClock.now < until {
+            guard let sample = await feed.readAfterAction(), sample.native?.catalogComplete == true,
+                  sample.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
+                consecutive.removeAll(); try? await Task.sleep(for: .milliseconds(80)); continue
+            }
+            let catalogGone = !sample.windows.contains { $0.metadata?.pid == target.fixture.pid &&
+                $0.metadata?.number == target.window.number && $0.metadata?.launchMicroseconds == target.fixture.birth }
+            let groupGone = !feed.groups.groups(in: scope).contains { $0.members.contains { $0.windowHint == target.key } }
+            let heldGone = !feed.stageEngine.heldGroups.contains { $0.state.window == target.key ||
+                $0.departure?.members.contains(where: { $0.before.window == target.key }) == true }
+            let lifetimeGone = feed.lifetime(of: key) == nil && feed.groupLifetime(of: key) == nil
+            let thumbnailGone = picture.map { gallery.frameSequence(for: $0) == 0 &&
+                gallery.image(for: $0, permitted: true) == nil && gallery.previousImage(for: $0, permitted: true) == nil } ?? true
+            if catalogGone && groupGone && heldGone && lifetimeGone && thumbnailGone {
+                consecutive.append(["uptime": ProcessInfo.processInfo.systemUptime, "revision": sample.revision,
+                    "catalogAbsent": catalogGone, "groupAbsent": groupGone, "heldCardAbsent": heldGone,
+                    "lifetimeRetired": lifetimeGone, "thumbnailUnavailable": thumbnailGone,
+                    "thumbnailPreviouslyObserved": picture != nil])
+                if consecutive.count == 2 { return consecutive }
+            } else { consecutive.removeAll() }
+            try? await Task.sleep(for: .milliseconds(80))
+        }
+        return nil
+    }
+
+    private static func ownerCommand(_ target: Target, action: String, nonce: UUID, index: Int? = nil) async -> Bool {
+        let directory = URL(fileURLWithPath: target.fixture.directory)
+        guard let before = ownerState(target, nonce: nonce), let previous = before["commandSequence"] as? Int else { return false }
         let sequence = previous + 1
-        let command: [String: Any] = ["nonce": nonce.uuidString.lowercased(), "sequence": sequence, "index": target.window.index, "action": action]
+        let command: [String: Any] = ["nonce": nonce.uuidString.lowercased(), "sequence": sequence,
+                                     "index": index ?? target.window.index, "action": action]
         guard let data = try? JSONSerialization.data(withJSONObject: command),
               (try? data.write(to: directory.appendingPathComponent("command.json"), options: .atomic)) != nil else { return false }
         let until = ContinuousClock.now.advanced(by: .seconds(3))
         while ContinuousClock.now < until {
-            if let reply = state(), reply["commandSequence"] as? Int == sequence { return true }
+            if let reply = ownerState(target, nonce: nonce), reply["commandSequence"] as? Int == sequence { return true }
             try? await Task.sleep(for: .milliseconds(50))
         }
         return false

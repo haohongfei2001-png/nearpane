@@ -9,7 +9,7 @@ package struct OrdinaryFocusAttributes {
     package let frame: CGRect
     package let minimized: Bool?
 
-    package init?(_ element: AXUIElement) {
+    package init?(_ element: AXUIElement, retainedStandardWindow: Bool = false) {
         self.init(batch: {
             var items: CFArray?
             guard AXUIElementCopyMultipleAttributeValues(element, Self.keys as CFArray, [], &items) == .success else { return nil }
@@ -17,10 +17,10 @@ package struct OrdinaryFocusAttributes {
         }, individual: { key in
             var value: CFTypeRef?
             return AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success ? value : nil
-        })
+        }, retainedStandardWindow: retainedStandardWindow)
     }
 
-    init?(batch: () -> [AnyObject]?, individual: (String) -> AnyObject?) {
+    init?(batch: () -> [AnyObject]?, individual: (String) -> AnyObject?, retainedStandardWindow: Bool = false) {
         let values = batch()
         func field(_ i: Int) -> AnyObject? {
             if let values, values.count == Self.keys.count {
@@ -31,7 +31,13 @@ package struct OrdinaryFocusAttributes {
             }
             return individual(Self.keys[i])
         }
-        guard field(0) as? String == kAXWindowRole, field(1) as? String == kAXStandardWindowSubrole,
+        let mini = field(3) as? Bool, subrole = field(1) as? String
+        // AppKit can report the original standard window as AXDialog while it is
+        // miniaturized. Only an existing binding can retain that identity; a fresh
+        // ordinary-window selection must still prove AXStandardWindow.
+        guard field(0) as? String == kAXWindowRole,
+              subrole == kAXStandardWindowSubrole ||
+                  (retainedStandardWindow && mini == true && subrole == kAXDialogSubrole),
               field(2) as? Bool == false, field(4) as? Bool == false,
               let position = field(5), CFGetTypeID(position) == AXValueGetTypeID(),
               let dimensions = field(6), CFGetTypeID(dimensions) == AXValueGetTypeID() else { return nil }
@@ -40,6 +46,6 @@ package struct OrdinaryFocusAttributes {
               AXValueGetValue(dimensions as! AXValue, .cgSize, &s),
               p.x.isFinite, p.y.isFinite, s.width.isFinite, s.height.isFinite, s.width > 0, s.height > 0 else { return nil }
         frame = CGRect(origin: p, size: s)
-        minimized = field(3) as? Bool
+        minimized = mini
     }
 }

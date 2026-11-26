@@ -59,6 +59,9 @@ These are code-completion claims. The evidence below determines which native eff
 | `3e197761`, diagnostics | All six initial readbacks passed with zero hidden ownership; the first never-hidden window retained its original AX identity through real minimization and reported AXDialog | Initial registration is physically proven. The earlier AXUnknown-only transition check refused this actual state before any foreign mini move; cleanup passed. The narrow follow-up admits the observed state only on that original registered window. [Original receipts](cloud-3e197761-diagnostics/README.md) |
 | `44bc3759`, diagnostics | Original minimized AXDialog accepted; engine reached hidden Space 15 membership, then the single AX demini request did not finish within the old Space deadline | Initial yellow remains FAIL; cleanup passed. The next source change separately bounds completion observations and rejects any observed escape. [Original boundary](cloud-44bc3759-diagnostics/README.md) |
 | `44bc3759`, full R4 | Actual AXPress reached current-card handling, fresh complete/bound groups and a real configured worker; all three window previews rendered; activation rejected before NP_LAUNCH | Product switch FAIL with cleanup PASS. New read-only phases distinguish the initial witness and coordinator guards. Its source fixture had two failed cases, so this binary is not promoted. [Original product trace and image](cloud-44bc3759-full/README.md) |
+| `a60c0a3b`, full | 157 Rust and 166 Swift passed, one explicit skip; complete app and strict signature passed; real R4 press reached the worker but activation remained incomplete | Source fixture correction verified; R4 FAIL and cleanup PASS. [Original candidate and product receipt](cloud-a60c0a3b-full/README.md) |
+| `48c2ab44`, diagnostics | Initial visible registrations passed; original minimized window reached hidden 15, then forward membership became `[15,16]` with original home 12 empty | Initial yellow FAIL, cleanup PASS. The original rule stopped before proving extra Space type or later completion. [Original observation and bounded correction](cloud-48c2ab44-diagnostics/README.md) |
+| `48c2ab44`, full | 159 Rust and 166 Swift passed, one explicit skip; complete app/signature passed; actual R4 input reached configuration but initial physical read rejected Finder's AXScrollArea with no ordinary window number | R4 FAIL before NP_LAUNCH, cleanup PASS. Positive desktop structure must be established by the next run; a zero number alone grants no authority. [Original phase and candidate](cloud-48c2ab44-full/README.md) |
 
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
@@ -70,9 +73,16 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The corrected `a60c0a3b` source run passed **157 Rust and 166 Swift cases, with one explicit skip**;
-the new binding and initial-registration tests actually executed. Its full candidate and native results
-are recorded separately when complete. Repeated native AutoHide/zero-row controls are now an explicit
+The `48c2ab44` source run passed **159 Rust and 166 Swift cases, with one explicit skip**;
+the new binding and initial-registration tests actually executed. Its complete candidate is recorded
+below. The next source changes also retain the new-window resume intent after recording the new
+singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
+Those lifecycle cases run only after the main R4 and same-profile crash/restart cleanup pass; missing
+prerequisites remain NOT_RUN. A later card success cannot erase a failed automatic arrival.
+The existing foundation/debug configuration now supplies an earlier native R4 feedback lane with
+the same Host, engine and sealed acceptance packaging. Its result is separate from the complete
+workspace/release lane and never replaces that build or its native acceptance.
+Repeated native AutoHide/zero-row controls are now an explicit
 workflow input: their already committed negative renderer evidence is not rerun on every unrelated
 engine fix, and the diagnostic tools and full cleanup conditions remain available.
 
@@ -97,7 +107,15 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[33d65484 full receipts](cloud-33d65484-full/README.md) identify the latest source-checked complete
+[48c2ab44 full receipts](cloud-48c2ab44-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15074000114](https://github.com/haohongfei2001-png/nearpane/actions/runs/45722428165/artifacts/15074000114).
+Its independently rehashed ZIP is 25,205,980 bytes, SHA-256
+`25f8f2fa06e2ecb3134a4518db93a5a1e2d391897c617a493b2bd7a117c03947`.
+159 Rust and 166 Swift cases passed, with one explicit skip; complete build and strict/deep bundle
+verification passed. Yellow and R4 both remain failed with confirmed cleanup. This is a development
+candidate, not a target qualification or a complete product acceptance.
+
+[33d65484 full receipts](cloud-33d65484-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15070133110](https://github.com/haohongfei2001-png/nearpane/actions/runs/45715629275/artifacts/15070133110).
 Its independently rehashed ZIP is 25,105,091 bytes, SHA-256
 `5a5fbeda6d9356c12486987a72a0031d5946c342f2c5a0b9e10774d3f83dd64f`.

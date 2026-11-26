@@ -211,7 +211,7 @@ import NearpaneCore
         try access.check()
         guard self.home == home, monitor.canListAgain else { throw StageSwitchError.ownership }
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
-        let sample = try StageWindowPhysicalReader.read(id, original: monitor.element, home: home)
+        let sample = try StageWindowPhysicalReader.read(id, original: monitor.element, home: home, retainedStandardWindow: true)
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         return sample
     }
@@ -232,7 +232,7 @@ import NearpaneCore
             guard self.home == home, lifetime != nil, monitor.canListAgain else { return false }
             try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
             let returned = try StageWindowPhysicalReader.returnedHome(id, original: monitor.element, home: home,
-                frame: frame, allowMinimized: allowMinimized)
+                frame: frame, allowMinimized: allowMinimized, retainedStandardWindow: true)
             try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
             try access.check()
             return returned

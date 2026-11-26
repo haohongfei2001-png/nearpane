@@ -1,6 +1,6 @@
 import copy
 import unittest
-from evaluate import ENGINE_CHECKS, SYSTEM_CHECKS, evaluate
+from evaluate import ENGINE_CHECKS, LIFECYCLE_CHECKS, SYSTEM_CHECKS, attach_lifecycle, evaluate
 
 
 class EvidenceTests(unittest.TestCase):
@@ -63,6 +63,35 @@ class EvidenceTests(unittest.TestCase):
                            ("windowWrites", 0), ("engineStateMachine", "PASS")):
             malformed = dict(platform, **{key: value})
             self.assertEqual(evaluate({"status": "BLOCKED"}, platform_diagnostic=malformed)["platformForeignMechanism"], "UNKNOWN")
+
+    def test_later_card_success_does_not_replace_failed_automatic_creation(self):
+        main = {"status": "PRODUCT_R4_PASS", "cleanup": True, "actualR4Inputs": 9, "foreignWindowReadback": True,
+                **{key: "PASS" for key in SYSTEM_CHECKS if key not in LIFECYCLE_CHECKS}}
+        later = {"purpose": "lifecycle", "status": "FAIL", "cleanup": True, "actualR4Inputs": 6,
+                 "foreignWindowReadback": True, "newWindowLifecycle": "FAIL", "windowCloseLifecycle": "PASS",
+                 "applicationExitLifecycle": "PASS", "lifecycleAutomaticArrival": "FAIL", "lifecycleNewCardSwitch": "PASS"}
+        combined = attach_lifecycle(main, later, {"exit": 1})
+        self.assertEqual(combined["actualR4Inputs"], 9)
+        self.assertEqual(combined["newWindowLifecycle"], "FAIL")
+        self.assertEqual(combined["windowCloseLifecycle"], "PASS")
+        self.assertEqual(evaluate(self.engine, combined)["R4ProductPath"], "PASS")
+        self.assertEqual(evaluate(self.engine, combined)["overall"], "INCOMPLETE")
+        inconsistent = attach_lifecycle(main, dict(later, newWindowLifecycle="PASS"), {"exit": 1})
+        self.assertEqual(inconsistent["newWindowLifecycle"], "UNKNOWN")
+
+    def test_lifecycle_requires_terminal_cleanup_and_preserves_prior_r4_failure(self):
+        later = {"purpose": "lifecycle", "status": "PRODUCT_LIFECYCLE_PASS", "cleanup": True,
+                 "actualR4Inputs": 6, "foreignWindowReadback": True, "lifecycleAutomaticArrival": "PASS",
+                 "lifecycleNewCardSwitch": "PASS", **{key: "PASS" for key in LIFECYCLE_CHECKS}}
+        prior = {"status": "FAIL", "cleanup": True, "reason": "R4SwitchReadbackFailed", "hostCrashRecovery": "NOT_RUN"}
+        combined = attach_lifecycle(prior, later, {"exit": 0})
+        self.assertEqual(combined["status"], "FAIL")
+        self.assertEqual(combined["reason"], prior["reason"])
+        self.assertEqual(combined["hostCrashRecovery"], "NOT_RUN")
+        self.assertEqual(evaluate(self.engine, combined)["R4ProductPath"], "FAIL")
+        for receipt, process in ((dict(later, cleanup=False), {"exit": 0}), (later, {"exit": -9}), (later, {})):
+            incomplete = attach_lifecycle(prior, receipt, process)
+            self.assertTrue(all(incomplete[key] == "UNKNOWN" for key in LIFECYCLE_CHECKS))
 
 
 if __name__ == "__main__":

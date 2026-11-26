@@ -38,6 +38,7 @@ mod mac {
         fn np_stage_checked_inventory(c: i32, out: *mut u64, n: u32) -> i32;
         fn np_stage_membership(c: i32, w: u32, out: *mut u64, n: u32) -> i32;
         fn np_stage_occupants(c: i32, s: u64, out: *mut u64, n: u32) -> i32;
+        fn np_stage_space_type(c: i32, s: u64, kind: *mut i32) -> i32;
         fn np_stage_window(w: u32, out: *mut WindowRow) -> i32;
         fn np_stage_bind(w: u32, pid: i32, birth: u64) -> *mut c_void;
         fn np_stage_adopt_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64) -> i32;
@@ -170,6 +171,10 @@ mod mac {
         fn spaces(&self, c: i32, w: u32) -> Check<Rows> {
             numbers::<128>(|p, n| unsafe { np_stage_membership(c, w, p, n) })
         }
+        fn space_type(&self, c: i32, space: u64) -> Option<i32> {
+            let mut kind = -1;
+            (unsafe { np_stage_space_type(c, space, &mut kind) } == 1).then_some(kind)
+        }
         fn bind(&self, w: Window) -> Check<Witness> {
             if let Some(token) = &self.token {
                 if self.canary_number == Some(w.number) {
@@ -184,7 +189,7 @@ mod mac {
                 .map(|reference| Witness::Document(Arc::new(Reference(reference))))
                 .ok_or(unknown(Why::MinimizedOrAX))
         }
-        fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
+        fn surface(&self, w: Window) -> Check<Seen> {
             let mut row = WindowRow::default();
             let read = unsafe { np_stage_window(w.number, &mut row) };
             if read != 1 {
@@ -209,6 +214,11 @@ mod mac {
                 }
                 return Err(unknown(Why::Identity));
             }
+            Ok(Seen { visible: row.onboard == 1, rect: row.rect })
+        }
+        fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
+            let observed = self.surface(w)?;
+            let on_screen = u32::from(observed.visible);
             let valid = match lease {
                 Witness::Document(reference) => unsafe {
                     np_stage_check_bound(
@@ -216,11 +226,11 @@ mod mac {
                         w.number,
                         w.pid,
                         w.birth,
-                        row.onboard,
+                        on_screen,
                     ) == 1
                 },
                 Witness::Minimized(reference) => unsafe {
-                    np_stage_check_bound_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth, row.onboard) == 1
+                    np_stage_check_bound_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth, on_screen) == 1
                 },
                 Witness::Canary(token) => {
                     let p = panel_read(token, launch::PanelOp::Read, None)?;
@@ -240,7 +250,7 @@ mod mac {
                     w == session.window()
                         && match lease {
                             Witness::Document(reference) | Witness::Minimized(reference) => {
-                                !session.same_document(reference.0.as_ptr(), &row.rect)
+                                !session.same_document(reference.0.as_ptr(), &observed.rect)
                             }
                             Witness::Canary(_) => true,
                         }
@@ -248,14 +258,11 @@ mod mac {
             {
                 if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
                     eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"retained-binding\",\"window\":{},\"pid\":{},\"bindingValid\":{},\"onscreen\":{}}}",
-                        w.number,w.pid,valid,row.onboard);
+                        w.number,w.pid,valid,on_screen);
                 }
                 return Err(unknown(Why::Identity));
             }
-            Ok(Seen {
-                visible: row.onboard == 1,
-                rect: row.rect,
-            })
+            Ok(observed)
         }
         fn adopt_minimized(&self, w: Window, original: &Witness) -> Check<Witness> {
             let reference = match original {
@@ -434,6 +441,9 @@ impl Platform for System {
         Err(Fault(UNSUPPORTED, Why::Build))
     }
     fn bind(&self, _: Window) -> Check<()> {
+        Err(Fault(UNSUPPORTED, Why::Build))
+    }
+    fn surface(&self, _: Window) -> Check<Seen> {
         Err(Fault(UNSUPPORTED, Why::Build))
     }
     fn see(&self, _: Window, _: &()) -> Check<Seen> {

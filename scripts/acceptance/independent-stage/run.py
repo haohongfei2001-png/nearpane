@@ -18,7 +18,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 from build import build, ROOT
-from evaluate import SYSTEM_CHECKS, evaluate
+from evaluate import LIFECYCLE_CHECKS, SYSTEM_CHECKS, attach_lifecycle, evaluate
 from host_crash import run_host_crash
 from package import package
 
@@ -55,11 +55,28 @@ def atomic(path, value):
     pending.replace(path)
 
 
-def execute(command, out, name, env, timeout=900):
+def execute(command, out, name, env, timeout=900, reap_children=()):
     with (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
         try:
-            run = subprocess.run([str(x) for x in command], cwd=ROOT, env=env, stdout=stdout, stderr=stderr, timeout=timeout)
-            report = {"status": "PASS" if run.returncode == 0 else "FAIL", "exit": run.returncode}
+            if reap_children:
+                # The lifecycle Host must observe a positively exited fixture
+                # generation. Reap only these direct children so a zombie cannot
+                # masquerade as a still-live AX owner while the Host is running.
+                with subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env, stdout=stdout, stderr=stderr) as running:
+                    deadline = time.monotonic() + timeout
+                    while running.poll() is None and time.monotonic() < deadline:
+                        for child in reap_children:
+                            child.poll()
+                        time.sleep(.05)
+                    if running.poll() is None:
+                        running.kill()
+                        running.wait()
+                        raise subprocess.TimeoutExpired(command, timeout)
+                    code = running.returncode
+            else:
+                run = subprocess.run([str(x) for x in command], cwd=ROOT, env=env, stdout=stdout, stderr=stderr, timeout=timeout)
+                code = run.returncode
+            report = {"status": "PASS" if code == 0 else "FAIL", "exit": code}
         except subprocess.TimeoutExpired:
             report = {"status": "UNKNOWN", "reason": "timeout"}
         except FileNotFoundError as error:
@@ -310,17 +327,39 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
                 product["hostCrashRecovery"] = "NOT_RUN"
+                product.update({key: "NOT_RUN" for key in LIFECYCLE_CHECKS})
+                product["lifecycleReceipt"] = {"status": "NOT_RUN", "reason": "mainR4AndCrashRestartCleanupRequired"}
                 if product.get("status") == "PRODUCT_R4_PASS" and product.get("cleanup") is True:
                     phase = "productCrash"
                     crash = run_host_crash(executable, apps["Controller"]["executable"], config, engine,
                                            out / "product-crash", product_env)
                     product["hostCrashRecovery"] = crash["status"]
                     product["hostCrashReceipt"] = crash
+                    if crash.get("status") == "PASS" and crash.get("cleanup") is True:
+                        phase = "productLifecycle"
+                        lifecycle_dir = out / "product-lifecycle"
+                        lifecycle_dir.mkdir(mode=0o700)
+                        lifecycle_config = dict(config, purpose="lifecycle", output=str(lifecycle_dir),
+                                                profile=str(lifecycle_dir / "profile"))
+                        atomic(lifecycle_dir / "config.json", lifecycle_config)
+                        lifecycle_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
+                                                     lifecycle_dir / "config.json"], out, "product-lifecycle", product_env,
+                                                    150, reap_children=tuple(p for _, p in children))
+                        lifecycle_path = lifecycle_dir / "product-result.json"
+                        lifecycle = json.loads(lifecycle_path.read_text()) if lifecycle_path.is_file() else {
+                            "status": "UNKNOWN", "reason": "lifecycleTerminalReceiptMissing", "cleanup": False}
+                        if (not isinstance(lifecycle, dict) or lifecycle.get("nonce") != nonce
+                                or lifecycle.get("purpose") != "lifecycle"):
+                            lifecycle = {"status": "UNKNOWN", "reason": "lifecycleReceiptIdentityUnconfirmed", "cleanup": False}
+                        product = attach_lifecycle(product, lifecycle, lifecycle_process)
+                        atomic(out / "product-with-lifecycle.json", product)
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
             failure = {"status": "BLOCKED" if isinstance(error, PreflightBlocked) else "UNKNOWN", "phase": phase,
                        "reason": type(error).__name__ + ": " + str(error)}
             if phase == "platformDiagnostic":
                 platform_diagnostic = dict(failure, cleanup=False)
+            elif phase == "productLifecycle":
+                product = attach_lifecycle(product, dict(failure, cleanup=False), {})
             elif phase in ("productCandidate", "productCrash"):
                 product = failure
             else:

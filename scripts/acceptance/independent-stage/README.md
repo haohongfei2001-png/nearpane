@@ -168,6 +168,29 @@ let its app exit before opening the interactive copy.
     Space inventory. `crashRecovery`, `sameProfileRestart`, the original ledger
     copy, lifecycle manifest and worker JSONL remain separate evidence; a
     kill-and-return success alone cannot pass `hostCrashRecovery`.
+11. Only after that crash/restart pass and its cleanup succeed, the same acceptance
+    executable runs `purpose=lifecycle` with the same Fixture A/B processes and a
+    fresh output-local profile. A creates one additional real AppKit document
+    while A0 is active. Before another R4 input, two physical observations must
+    show the new window focused at home and all three old windows genuinely held
+    away. The new singleton group must have a mounted, real captured thumbnail;
+    the runner then switches away and selects its actual R4 card. These are
+    separate receipts: a successful later card press cannot repair a failed
+    automatic arrival. A closes only this added window while A0 is active; two
+    complete CG/AX absence observations, group/lifetime/thumbnail retirement and
+    preservation of the original three windows are required.
+12. The lifecycle pass finally asks B itself to quit. The Python parent reaps only
+    its own fixture children while the Host observes positive original PID/birth
+    disappearance and complete CG absence. AX error/timeout is not an absence
+    proof: the receipt distinguishes complete live-owner `AXWindows` exclusion
+    for close from the positively exited original AX owner generation for quit.
+    B's group and previously observed thumbnail must retire. Actual R4 presses
+    then switch A0/A1 independently before normal restoration. All earlier
+    three-window checks therefore finish before B exits. `newWindowLifecycle`,
+    `windowCloseLifecycle` and `applicationExitLifecycle` remain `NOT_RUN` when
+    prerequisites are missing; each result and its PNG/readback evidence lives
+    under `product-lifecycle`. The main product/crash results retain their own
+    original verdicts. None of these cases is reported as passed before execution.
 
 ### Native desktop reveal and Split View
 

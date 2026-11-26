@@ -206,6 +206,61 @@ package struct FrontFocus {
                     (element != nil && now.element != nil && CFEqual(element!, now.element!))), "前台应用或窗口焦点已变化。")
     }
 
+    /// Finder can expose an AXScrollArea as AXFocusedWindow. Accept a non-window
+    /// desktop focus only when its actual parent, containing-window attribute and
+    /// complete window list prove that structure; a missing number proves nothing.
+    package func isFinderDesktop() -> Bool {
+        guard let element,
+              image.executable.path == "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder",
+              NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == "com.apple.finder" else { return false }
+        let app = AXUIElementCreateApplication(pid)
+        var role: CFTypeRef?, parent: CFTypeRef?, containing: CFTypeRef?
+        let roleError = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+        let parentError = AXUIElementCopyAttributeValue(element, kAXParentAttribute as CFString, &parent)
+        let windowError = AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &containing)
+        let parentIsApp = parentError == .success && parent.map {
+            CFGetTypeID($0) == AXUIElementGetTypeID() && CFEqual($0, app)
+        } == true
+        let listed = try? windows(pid)
+        let listedAsWindow = listed.map { $0.contains { CFEqual($0, element) } }
+        let confirmed = Self.finderDesktopMatches(role: roleError == .success ? role as? String : nil,
+            parentIsApplication: parentIsApp, containingWindowError: windowError,
+            containingWindowReturnedValue: containing != nil, listedAsWindow: listedAsWindow)
+        if ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+            var event: [String: Any] = ["event": "stageNonWindowFocusRead", "frontPID": pid,
+                "systemFinder": true, "roleError": roleError.rawValue,
+                "desktopScrollArea": role as? String == kAXScrollAreaRole,
+                "parentError": parentError.rawValue, "parentIsApplication": parentIsApp,
+                "containingWindowError": windowError.rawValue, "containingWindowReturnedValue": containing != nil,
+                "windowListComplete": listed != nil, "listedAsWindow": listedAsWindow as Any? ?? NSNull(),
+                "confirmedDesktop": confirmed, "uptime": ProcessInfo.processInfo.systemUptime]
+            if !confirmed {
+                for (name, raw) in [("parent", parent), ("containingWindow", containing)] {
+                    guard let raw, CFGetTypeID(raw) == AXUIElementGetTypeID() else { continue }
+                    let item = raw as! AXUIElement
+                    var value: CFTypeRef?
+                    let error = AXUIElementCopyAttributeValue(item, kAXRoleAttribute as CFString, &value)
+                    let text = value as? String
+                    event[name + "RoleError"] = error.rawValue
+                    event[name + "Role"] = text.map { $0.hasPrefix("AX") && $0.count <= 64 ? $0 : "nonconstant" } ?? "unavailable"
+                    event[name + "WindowNumber"] = number(item) as Any? ?? NSNull()
+                }
+            }
+            if var data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]) {
+                data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+            }
+        }
+        return confirmed
+    }
+
+    static func finderDesktopMatches(role: String?, parentIsApplication: Bool,
+                                     containingWindowError: AXError, containingWindowReturnedValue: Bool,
+                                     listedAsWindow: Bool?) -> Bool {
+        role == kAXScrollAreaRole && parentIsApplication &&
+            [.noValue, .attributeUnsupported].contains(containingWindowError) &&
+            !containingWindowReturnedValue && listedAsWindow == false
+    }
+
     /// The global AXFocusedApplication attribute can fail on a live console even
     /// when this application's exact focused window is readable. A PID alone is
     /// insufficient: bracket its AX observation with process and focus continuity.

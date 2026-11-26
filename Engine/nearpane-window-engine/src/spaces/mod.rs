@@ -183,6 +183,9 @@ trait Platform {
     fn all(&self, c: i32) -> Check<Vec<u64>>;
     fn members(&self, c: i32, space: u64) -> Check<Rows>;
     fn spaces(&self, c: i32, number: u32) -> Check<Rows>;
+    /// Optional diagnostic query; no numeric private type grants write authority.
+    fn space_type(&self, _c: i32, _space: u64) -> Option<i32> { None }
+    fn surface(&self, window: Window) -> Check<Seen>;
     fn bind(&self, window: Window) -> Check<Self::Witness>;
     fn adopt_minimized(&self, _window: Window, _original: &Self::Witness) -> Check<Self::Witness> { Err(unknown(Why::MinimizedOrAX)) }
     fn see(&self, w: Window, witness: &Self::Witness) -> Check<Seen>;
@@ -750,7 +753,7 @@ impl<P: Platform> State<P> {
         }
         // AX deminiaturization is an AppKit animation, not a Space move ack.
         // Observe its completion through the same original witness; never send
-        // set_minimized again or conceal a positive return to another Space.
+        // set_minimized again or conceal a positive return to a managed desktop.
         let started = self.sys.now();
         let until = started + AX_OBSERVATION_BUDGET;
         let mut consecutive = 0;
@@ -761,22 +764,50 @@ impl<P: Platform> State<P> {
             let reverse = self.sys.members(c, sid);
             let home = self.sys.members(c, lease.slot.home.id);
             let wid = u64::from(lease.window.number);
-            let escaped = forward.as_ref().is_ok_and(|ids| ids.iter().any(|id| *id != sid))
-                || home.as_ref().is_ok_and(|ids| ids.contains(&wid));
+            let managed = self.topology(c, lease.slot.home)?;
+            if managed != top { return Err(unknown(Why::Topology)); }
+            let managed_ids: Rows = managed.iter().map(|desktop| desktop.id).collect();
+            let managed_members: Vec<_> = managed.iter().map(|desktop| (desktop.id,
+                if desktop.id == lease.slot.home.id { home.clone() } else { self.sys.members(c, desktop.id) })).collect();
+            let escaped = forward.as_ref().is_ok_and(|ids| ids.iter().any(|id| managed_ids.contains(id)))
+                || managed_members.iter().any(|(_, ids)| ids.as_ref().is_ok_and(|ids| ids.contains(&wid)));
+            let lost_hidden = forward.as_ref().is_ok_and(|ids| !ids.contains(&sid))
+                || reverse.as_ref().is_ok_and(|ids| !ids.contains(&wid));
+            let managed_clear = managed_members.iter().all(|(_, ids)| ids.as_ref().is_ok_and(|ids| !ids.contains(&wid)));
             let confined = forward.as_ref().is_ok_and(|ids| *ids == Rows::from([sid]))
                 && reverse.as_ref().is_ok_and(|ids| ids.contains(&wid))
-                && home.as_ref().is_ok_and(|ids| !ids.contains(&wid));
+                && managed_clear;
+            let surface = self.sys.surface(lease.window);
+            let minimized = self.sys.minimized(&bound.witness);
             if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
-                eprintln!("{{\"event\":\"spacesMiniCompletionMembership\",\"window\":{},\"parking\":{sid},\"home\":{},\"forward\":{},\"hiddenContains\":{},\"homeContains\":{},\"escaped\":{escaped},\"elapsedMS\":{}}}",
+                let additional = forward.as_ref().map_or(Vec::new(), |ids| ids.iter().filter(|&&id| id != sid).map(|&id|
+                    format!("{{\"space\":{id},\"reportedType\":{}}}", self.sys.space_type(c,id).map_or("null".to_owned(), |kind| kind.to_string()))).collect::<Vec<_>>());
+                let roster = managed.iter().map(|d| format!("[{},{}]",d.id,d.kind)).collect::<Vec<_>>().join(",");
+                let presence = managed_members.iter().map(|(id,ids)| format!("{{\"space\":{id},\"contains\":{}}}",
+                    ids.as_ref().map_or("null".to_owned(), |ids| ids.contains(&wid).to_string()))).collect::<Vec<_>>().join(",");
+                eprintln!("{{\"event\":\"spacesMiniCompletionMembership\",\"window\":{},\"parking\":{sid},\"home\":{},\"forward\":{},\"hiddenContains\":{},\"homeContains\":{},\"escaped\":{escaped},\"lostHidden\":{lost_hidden},\"managedClear\":{managed_clear},\"managedRoster\":[{roster}],\"managedPresence\":[{presence}],\"additional\":[{}],\"cg\":{},\"cgError\":{},\"minimized\":{},\"minimizedError\":{},\"elapsedMS\":{}}}",
                     lease.window.number,lease.slot.home.id,
                     forward.as_ref().map_or("null".to_owned(),|ids|format!("{:?}",ids.iter().copied().collect::<Vec<_>>())),
                     reverse.as_ref().map_or("null".to_owned(),|ids|ids.contains(&wid).to_string()),
                     home.as_ref().map_or("null".to_owned(),|ids|ids.contains(&wid).to_string()),
+                    additional.join(","),
+                    surface.as_ref().map_or("null".to_owned(), |s|format!("{{\"onscreen\":{},\"frame\":{:?}}}",s.visible,s.rect)),
+                    surface.as_ref().err().map_or("null".to_owned(), |e|(e.1 as u32).to_string()),
+                    minimized.as_ref().map_or("null".to_owned(), |m|m.to_string()),
+                    minimized.as_ref().err().map_or("null".to_owned(), |e|(e.1 as u32).to_string()),
                     self.sys.now().saturating_duration_since(started).as_millis());
             }
-            if escaped { return Err(unknown(Why::Membership)); }
-            let sample = if confined { self.view(c, lease, &bound.witness, sid, true) }
-                else { Err(unknown(Why::Readback)) };
+            if let Err(fault @ Fault(_, Why::Identity)) = surface { return Err(fault); }
+            if escaped || lost_hidden { return Err(unknown(Why::Membership)); }
+            // A second internal membership is only an unfinished observation.
+            // The original hidden membership remains in both directions and the
+            // complete managed catalogue has no target; no partial sample passes.
+            let sample = match (surface, minimized) {
+                (Err(fault), _) | (_, Err(fault)) => Err(fault),
+                (_, Ok(true)) => Err(unknown(Why::MinimizedOrAX)),
+                (Ok(_), Ok(false)) if confined => self.view(c, lease, &bound.witness, sid, true),
+                _ => Err(unknown(Why::Readback)),
+            };
             match sample {
                 Ok(seen) if seen.rect == before.rect => consecutive += 1,
                 Ok(seen) => {

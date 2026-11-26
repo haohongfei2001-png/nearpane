@@ -20,9 +20,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ inputs.diagnostics_only == true && fromJSON('["diagnostics"]') || fromJSON('["full", "diagnostics"]') }}
+        lane: ${{ inputs.diagnostics_only == true && fromJSON('["diagnostics"]') || fromJSON('["full", "r4-fast", "diagnostics"]') }}
     concurrency:
-      group: independent-stage-${{ github.ref }}-${{ github.event_name }}-${{ matrix.lane }}-${{ matrix.lane == 'full' && github.run_id || 'sequential' }}
+      group: independent-stage-${{ github.ref }}-${{ github.event_name }}-${{ matrix.lane }}-${{ matrix.lane != 'diagnostics' && github.run_id || 'sequential' }}
       cancel-in-progress: false
     runs-on: xcode-27
     timeout-minutes: 45
@@ -85,12 +85,24 @@ jobs:
           (root / 'Nearpane-independent-candidate.json').write_text(json.dumps(receipt, indent=2) + '\n')
           PY
           printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
+      - name: Build the same R4 Host for earlier native feedback
+        id: fast_candidate
+        if: ${{ !cancelled() && matrix.lane == 'r4-fast' }}
+        # Existing foundation configuration, same Host/R4/engine sources and the
+        # same sealed acceptance packager. This debug result never qualifies the
+        # complete companion-workspace release built and tested in the full lane.
+        run: |
+          NEARPANE_FOUNDATION_ONLY=1 bash scripts/build-app.sh debug
+          app="$PWD/build/standalone.$NEARPANE_RUN_ID/products/foundation/debug/Nearpane.app"
+          printf 'app=%s\n' "$app" >> "$GITHUB_OUTPUT"
       - name: Foreign-window Spaces and production R4 receipts
         if: ${{ !cancelled() }}
         run: |
           arguments=("$RUNNER_TEMP/independent-runtime" --scope runtime --iterations 3)
           if [[ '${{ steps.candidate.outcome }}' == success ]]; then
             arguments+=(--product-host '${{ steps.candidate.outputs.app }}')
+          elif [[ '${{ steps.fast_candidate.outcome }}' == success ]]; then
+            arguments+=(--product-host '${{ steps.fast_candidate.outputs.app }}')
           fi
           python3 -B scripts/acceptance/independent-stage/run.py "${arguments[@]}"
       - name: Compile native rendering-decoupling diagnostic

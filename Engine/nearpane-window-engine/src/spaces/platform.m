@@ -28,6 +28,7 @@ static struct {
     int (*connection)(void);
     CopyManaged managed; CopySpaces spaces; CopyForWindow membership; CopyWindowIDs occupants;
     CreateSpace create; DestroySpace destroy; AddRemove add;
+    int (*space_type)(int,uint64_t);
     Class cls; SEL init, perform; bool returnsObject; uint32_t flags;
 } api;
 
@@ -61,6 +62,7 @@ int32_t np_stage_symbols(void) {
         LOAD(connection,"SLSMainConnectionID"); LOAD(managed,"SLSCopyManagedDisplaySpaces"); LOAD(spaces,"SLSCopySpaces");
         LOAD(membership,"SLSCopySpacesForWindows"); LOAD(occupants,"SLSCopyWindowsWithOptionsAndTags");
         LOAD(create,"SLSSpaceCreate"); LOAD(destroy,"SLSSpaceDestroy"); LOAD(add,"SLSSpaceAddWindowsAndRemoveFromSpaces");
+        LOAD(space_type,"SLSSpaceGetType");
 #undef LOAD
         if (api.connection && api.managed && api.spaces && api.membership && api.occupants && api.create && api.destroy) api.flags |= 1;
         if (api.add) api.flags |= 2;
@@ -183,6 +185,14 @@ int32_t np_stage_desktops(int32_t c,NPStageDesktop *out,uint32_t cap) {
 int32_t np_stage_all_spaces(int32_t c,uint64_t *out,uint32_t cap) {
     @autoreleasepool { @try { return same(c)&&api.spaces ? copyNumbers(copied(api.spaces(c,15)),out,cap) : -1; }
         @catch(NSException *e) { return -1; } }
+}
+int32_t np_stage_space_type(int32_t c,uint64_t space,int32_t *out) {
+    @try {
+        if(!same(c)||!api.space_type||!space||!out)return 0;
+        int kind=api.space_type(c,space);
+        if(kind<0||!same(c))return 0;
+        *out=kind;return 1;
+    } @catch(NSException *e) { return 0; }
 }
 static int compareIDs(const void *a, const void *b) {
     uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;

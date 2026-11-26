@@ -39,14 +39,14 @@ enum StageWindowPhysicalReader {
     /// Unlike admission and normal switching, this read does not require the home desktop to
     /// be current. It observes only the retained AX window and the real Space membership.
     static func returnedHome(_ id: ManagedWindowID, original: AXUIElement, home: OrdinaryDesktopIdentity,
-                             frame: SurfaceRect, allowMinimized: Bool) throws -> Bool {
+                             frame: SurfaceRect, allowMinimized: Bool, retainedStandardWindow: Bool = false) throws -> Bool {
         guard AXIsProcessTrusted(), NPProbeReadOnlyCatalog() == 1, let homeNumber = UInt64(home.record), homeNumber > 0 else {
             throw StageSwitchError.unavailable
         }
         func read() -> Bool {
             var pid: pid_t = 0
             guard AXUIElementGetPid(original, &pid) == .success, pid == id.pid, number(original) == id.number,
-                  let fields = OrdinaryFocusAttributes(original),
+                  let fields = OrdinaryFocusAttributes(original, retainedStandardWindow: retainedStandardWindow),
                   let inventory = NPReadInventory() as? [[String: Any]],
                   let forward = NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64],
                   let reverse = NPReadCatalogSpaceWindowNumbers(homeNumber) as? [UInt32],
@@ -79,7 +79,8 @@ enum StageWindowPhysicalReader {
         return true
     }
 
-    static func read(_ id: ManagedWindowID, original: AXUIElement, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation {
+    static func read(_ id: ManagedWindowID, original: AXUIElement, home: OrdinaryDesktopIdentity,
+                     retainedStandardWindow: Bool = false) throws -> StageWindowPhysicalObservation {
         var step = "environment", completed = false, frontPID: pid_t = 0
         var frontNumber: UInt32 = 0, frontHasElement = false, frontNumberReadAttempted = false
         var diagnosticFocus: AXUIElement?
@@ -122,7 +123,8 @@ enum StageWindowPhysicalReader {
         var pid: pid_t = 0
         step = "original-ax-attributes"
         guard AXUIElementGetPid(original,&pid) == .success, pid == id.pid, number(original) == id.number,
-              let fields = OrdinaryFocusAttributes(original), let minimized = fields.minimized else { throw StageSwitchError.incomplete }
+              let fields = OrdinaryFocusAttributes(original, retainedStandardWindow: retainedStandardWindow),
+              let minimized = fields.minimized else { throw StageSwitchError.incomplete }
         step = "cg-identity-and-geometry"
         guard let rows = CGWindowListCopyWindowInfo(.optionIncludingWindow,id.number) as? [[String:Any]], rows.count == 1,
               let row = rows.first, row[kCGWindowNumber as String] as? UInt32 == id.number, row[kCGWindowOwnerPID as String] as? Int32 == id.pid,
@@ -154,17 +156,24 @@ enum StageWindowPhysicalReader {
             guard candidates.count == 1, CFEqual(candidates[0],original) else { throw StageSwitchError.ownership }
         }
         let focused: NativeSpaceWindow?
+        var desktopFocus = false
         step = "focused-window-identity"
         if let element = focus.element {
             var receiver: pid_t = 0
             let n = number(element); frontNumber = n ?? 0; frontNumberReadAttempted = true
-            guard AXUIElementGetPid(element,&receiver) == .success, receiver == focus.pid, let n,
-                  let birth = try? OrdinaryProcessImage.read(receiver).launch else { throw StageSwitchError.incomplete }
-            focused = .init(pid:receiver,birth:birth,number:n)
-            if receiver == id.pid, n == id.number, !CFEqual(element,original) { throw StageSwitchError.ownership }
+            guard AXUIElementGetPid(element,&receiver) == .success, receiver == focus.pid else { throw StageSwitchError.incomplete }
+            if let n {
+                guard let birth = try? OrdinaryProcessImage.read(receiver).launch else { throw StageSwitchError.incomplete }
+                focused = .init(pid:receiver,birth:birth,number:n)
+                if receiver == id.pid, n == id.number, !CFEqual(element,original) { throw StageSwitchError.ownership }
+            } else {
+                guard focus.isFinderDesktop() else { throw StageSwitchError.incomplete }
+                desktopFocus = true; focused = nil
+            }
         } else { focused = nil }
         step = "final-continuity"
         try focus.check()
+        guard !desktopFocus || focus.isFinderDesktop() else { throw StageSwitchError.interrupted }
         guard number(original) == id.number, NPReadWindowSpacesIncludingHidden(id.number) as? [UInt64] == forward,
               NPReadInventory() as? NSArray == inventory as NSArray, StageManagerPreference.read() == false else {
             throw StageSwitchError.interrupted

@@ -2,9 +2,27 @@
 """Keep platform, candidate engine, product UI and exact-target claims separate."""
 ENGINE_CHECKS = frozenset(("launchCanary", "initialVisibleBindings", "initialYellowButton", "foreignRoundTrip", "sameAppIndependent", "crossAppGroup",
                            "repeatedSwitch", "yellowButton", "focusRestore", "cleanup"))
+LIFECYCLE_CHECKS = ("newWindowLifecycle", "windowCloseLifecycle", "applicationExitLifecycle")
 SYSTEM_CHECKS = ("yellowButtonRouting", "missionControl", "appExpose", "nativeFullScreen",
                  "nativeDesktopSwitch", "nativeDesktopReveal", "desktopGestures", "fullScreenSplitView",
-                 "groupMergeSplit", "hostCrashRecovery")
+                 "groupMergeSplit", "hostCrashRecovery") + LIFECYCLE_CHECKS
+
+
+def attach_lifecycle(product, lifecycle, process):
+    """Preserve the earlier R4/crash verdict and each independent later failure."""
+    result = dict(product, lifecycleReceipt=lifecycle, lifecycleProcess=process)
+    terminal = (type(process.get("exit")) is int and process["exit"] in (0, 1)
+                and lifecycle.get("purpose") == "lifecycle" and lifecycle.get("cleanup") is True
+                and lifecycle.get("foreignWindowReadback") is True and lifecycle.get("actualR4Inputs", 0) > 0)
+    for key in LIFECYCLE_CHECKS:
+        value = lifecycle.get(key, "UNKNOWN")
+        if value not in ("PASS", "FAIL", "BLOCKED", "NOT_RUN", "UNKNOWN"):
+            value = "UNKNOWN"
+        if value == "PASS" and (not terminal or (key == "newWindowLifecycle" and
+                (lifecycle.get("lifecycleAutomaticArrival") != "PASS" or lifecycle.get("lifecycleNewCardSwitch") != "PASS"))):
+            value = "UNKNOWN"
+        result[key] = value
+    return result
 
 
 def evaluate(engine, product=None, platform_diagnostic=None):

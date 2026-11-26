@@ -16,6 +16,8 @@ int32_t np_stage_all_spaces(int32_t connection, uint64_t *out, uint32_t capacity
 int32_t np_stage_checked_inventory(int32_t connection, uint64_t *out, uint32_t capacity);
 int32_t np_stage_membership(int32_t connection, uint32_t number, uint64_t *out, uint32_t capacity);
 int32_t np_stage_occupants(int32_t connection, uint64_t space, uint64_t *out, uint32_t capacity);
+/* Optional read-only diagnostics, not a qualification of a numeric private Space type. */
+int32_t np_stage_space_type(int32_t connection, uint64_t space, int32_t *out);
 int32_t np_stage_window(uint32_t number, NPStageWindow *out);
 int32_t np_stage_create(int32_t connection, uint64_t *created);
 int32_t np_stage_destroy(int32_t connection, uint64_t space);

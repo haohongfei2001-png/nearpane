@@ -67,6 +67,7 @@ struct Fake {
     unminimize_observation_delay: Duration,
     unminimize_observation_unavailable: bool,
     unminimize_started: Option<(u32, Instant)>,
+    unminimize_extra_space: Option<(u64, Duration)>,
 }
 impl Fake {
     fn new() -> Self {
@@ -91,6 +92,11 @@ impl Fake {
                 false,
             ),
         );
+    }
+    fn transition_space(&self, number: u32) -> Option<u64> {
+        let (window, started) = self.unminimize_started?;
+        let (space, duration) = self.unminimize_extra_space?;
+        (window == number && self.now().saturating_duration_since(started) < duration).then_some(space)
     }
 }
 impl Platform for Fake {
@@ -150,6 +156,9 @@ impl Platform for Fake {
         if self.bystander && s != 10 {
             set.insert(999);
         }
+        for &window in self.windows.keys() {
+            if self.transition_space(window) == Some(s) { set.insert(u64::from(window)); }
+        }
         Ok(set)
     }
     fn spaces(&self, _: i32, w: u32) -> Check<Rows> {
@@ -163,11 +172,13 @@ impl Platform for Fake {
                 return Ok(Rows::new());
             }
         }
-        Ok(self
+        let mut spaces = self
             .windows
             .get(&w)
             .map(|r| Rows::from([r.1]))
-            .unwrap_or_default())
+            .unwrap_or_default();
+        if let Some(extra) = self.transition_space(w) { spaces.insert(extra); }
+        Ok(spaces)
     }
     fn bind(&self, w: Window) -> Check<u64> {
         let t = self.windows[&w.number];
@@ -248,18 +259,24 @@ impl Platform for Fake {
     fn transparent_canary(&self, w: &u64) -> bool {
         *w == 77
     }
-    fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
+    fn surface(&self, w: Window) -> Check<Seen> {
         if self.pending_unavailable_read.replace(false) { return Err(unknown(Why::Readback)); }
         let t = self.windows[&w.number];
-        if t.0 == w && ((t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2)) {
+        if t.0 == w {
             Ok(Seen {
-                visible: !t.3 && *lease != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
+                visible: !t.3 && w.number != 77 && if self.managed_roster.is_empty() { t.1 == 10 }
                     else { self.managed_roster.iter().any(|d| d.id == t.1 && d.current == 1) },
                 rect: [0., 0., 100., 100.],
             })
         } else {
             Err(unknown(Why::Identity))
         }
+    }
+    fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
+        let surface = self.surface(w)?;
+        let t = self.windows[&w.number];
+        if (t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2) { Ok(surface) }
+        else { Err(unknown(Why::Identity)) }
     }
     fn create(&mut self, _: i32) -> Check<u64> {
         self.next += 1;
@@ -975,6 +992,41 @@ fn unreadable_yellow_completion_retains_ownership_and_stops_at_its_observation_b
     assert_eq!((returned.status, returned.owned), (PASS, 0));
     assert_eq!(state.sys.windows[&1].1, 10);
     assert_eq!(state.sys.minimize_writes.len(), 1);
+}
+
+#[test]
+fn yellow_completion_observes_an_internal_extra_membership_but_never_accepts_a_managed_one() {
+    for managed in [false, true] {
+        let (mut state, guard) = setup();
+        if managed {
+            state.sys.managed_roster = vec![
+                Desktop { display: [5; 16], uuid: [6; 16], id: 10, kind: 0, current: 1 },
+                Desktop { display: [5; 16], uuid: [7; 16], id: 200, kind: 0, current: 0 },
+            ];
+        }
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        state.sys.windows.get_mut(&1).unwrap().3 = true;
+        state.sys.unminimize_extra_space = Some((200, Duration::from_millis(220)));
+        let writes = state.sys.moved.len();
+        let result = state.run(&request(1, HIDE_MINIMIZED, 2), &guard);
+        let elapsed = state.sys.now() - state.sys.unminimize_started.unwrap().1;
+        if managed {
+            assert_eq!((result.status, result.detail), (UNKNOWN, Why::Membership as u32));
+            assert_eq!(result.flags & HIDDEN, 0);
+            assert!(elapsed < DEADLINE && state.failed && !state.owned.is_empty());
+        } else {
+            assert_eq!(result.status, PASS);
+            assert_eq!(result.flags & HIDDEN, HIDDEN);
+            assert!(elapsed >= Duration::from_millis(220) && elapsed < AX_OBSERVATION_BUDGET);
+            assert_eq!(state.sys.spaces(1, 1).unwrap(), Rows::from([result.native_id]));
+        }
+        assert_eq!(state.sys.moved.len(), writes + 1);
+        assert_eq!(state.sys.minimize_writes.len(), 1);
+        state.sys.unminimize_extra_space = None;
+        let released = state.run(&launch_request(RELEASE_SPACES), &guard);
+        assert_eq!((released.status, released.owned), (PASS, 0));
+        assert_eq!(state.sys.windows[&1].1, 10);
+    }
 }
 
 #[test]

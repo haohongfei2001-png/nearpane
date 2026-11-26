@@ -20,10 +20,12 @@
     uint32_t window, originalFocus;
     pid_t foreground;
     uint64_t foregroundBirth;
+    AXUIElementRef originalDesktopFocus;
     BOOL prepared, opened, closed, closeIssued;
 }
 @end
 @implementation NPSpacesLaunchToken
+- (void)dealloc { if(originalDesktopFocus)CFRelease(originalDesktopFocus); }
 @end
 
 static int launchTrace(NPSpacesLaunchToken *t,unsigned op,int result,const char *phase) {
@@ -85,7 +87,54 @@ static BOOL focusSession(void) {
         (!locked || (CFGetTypeID((__bridge CFTypeRef)locked)==CFBooleanGetTypeID() && ![locked boolValue]));
     return active || focusFailure("inactive-console",kAXErrorSuccess,NO);
 }
-static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window) {
+static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AXUIElementRef focused,
+                               AXError canonicalError,CGWindowID canonicalNumber) {
+    // Match FrontFocus.isFinderDesktop. A zero or unavailable canonical number
+    // proves nothing; only the independent positive AX structure proves desktop.
+    char executable[PROC_PIDPATHINFO_MAXSIZE]={0};
+    BOOL finder=[front.bundleIdentifier isEqualToString:@"com.apple.finder"] &&
+        proc_pidpath(front.processIdentifier,executable,sizeof(executable))>0 &&
+        !strcmp(executable,"/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder");
+    if(!finder)return focusFailure("desktop-system-finder",kAXErrorSuccess,YES);
+    AXError timeout=AXUIElementSetMessagingTimeout(focused,.08f);
+    if(timeout!=kAXErrorSuccess)return focusFailure("desktop-timeout",timeout,YES);
+    CFTypeRef role=NULL,parent=NULL,containing=NULL,rawWindows=NULL;
+    AXError roleError=AXUIElementCopyAttributeValue(focused,kAXRoleAttribute,&role);
+    AXError parentError=AXUIElementCopyAttributeValue(focused,kAXParentAttribute,&parent);
+    AXError containingError=AXUIElementCopyAttributeValue(focused,kAXWindowAttribute,&containing);
+    BOOL scroll=roleError==kAXErrorSuccess && role && CFEqual(role,kAXScrollAreaRole);
+    BOOL root=parentError==kAXErrorSuccess && parent && CFGetTypeID(parent)==AXUIElementGetTypeID() && CFEqual(parent,app);
+    BOOL noWindow=(containingError==kAXErrorNoValue || containingError==kAXErrorAttributeUnsupported) && !containing;
+    CFIndex expected=0,actual=-1;
+    AXError countError=AXUIElementGetAttributeValueCount(app,kAXWindowsAttribute,&expected);
+    BOOL countValid=countError!=kAXErrorAPIDisabled && countError!=kAXErrorInvalidUIElement &&
+        (countError!=kAXErrorSuccess || (expected>=0 && expected<=64));
+    AXError arrayError=countValid?AXUIElementCopyAttributeValue(app,kAXWindowsAttribute,&rawWindows):kAXErrorFailure;
+    BOOL complete=arrayError==kAXErrorSuccess && rawWindows && CFGetTypeID(rawWindows)==CFArrayGetTypeID();
+    BOOL listed=NO;
+    if(complete) {
+        CFArrayRef windows=(CFArrayRef)rawWindows;actual=CFArrayGetCount(windows);
+        complete=actual<=64 && (countError!=kAXErrorSuccess || actual==expected);
+        for(CFIndex i=0;complete && i<actual;i++) {
+            CFTypeRef item=CFArrayGetValueAtIndex(windows,i);pid_t owner=0;
+            complete=item && CFGetTypeID(item)==AXUIElementGetTypeID() &&
+                AXUIElementGetPid((AXUIElementRef)item,&owner)==kAXErrorSuccess && owner==front.processIdentifier;
+            if(complete && CFEqual(item,focused))listed=YES;
+        }
+    }
+    BOOL accepted=scroll && root && noWindow && complete && !listed;
+    if(getenv("NP_SPACES_LAUNCH_TRACE")) {
+        fprintf(stderr,"{\"event\":\"spacesLaunchDesktopFocus\",\"systemFinder\":true,\"canonicalError\":%d,\"canonicalNumber\":%u,\"roleError\":%d,\"desktopScrollArea\":%s,\"parentError\":%d,\"parentIsApplication\":%s,\"containingWindowError\":%d,\"containingWindowReturnedValue\":%s,\"countError\":%d,\"reportedCount\":%ld,\"arrayError\":%d,\"actualCount\":%ld,\"windowListComplete\":%s,\"listedAsWindow\":%s,\"confirmedDesktop\":%s}\n",
+            canonicalError,canonicalNumber,roleError,scroll?"true":"false",parentError,root?"true":"false",containingError,containing?"true":"false",
+            countError,(long)expected,arrayError,(long)actual,complete?"true":"false",listed?"true":"false",accepted?"true":"false");
+        fflush(stderr);
+    }
+    if(role)CFRelease(role);if(parent)CFRelease(parent);if(containing)CFRelease(containing);if(rawWindows)CFRelease(rawWindows);
+    return accepted;
+}
+static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementRef *desktop) {
+    if(desktop)*desktop=NULL;
+    AXUIElementRef retainedDesktop=NULL;
     if(!focusSession())return NO;
     NSRunningApplication *front=NSWorkspace.sharedWorkspace.frontmostApplication;
     pid_t owner=front.processIdentifier; uint64_t generation=birth(owner); CGWindowID n=0;
@@ -116,23 +165,30 @@ static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window) {
                 if(names)CFRelease(names);n=0;
             } else {
                 AXNumber number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
-                valid=error==kAXErrorSuccess && focused && CFGetTypeID(focused)==AXUIElementGetTypeID() && number;
+                valid=error==kAXErrorSuccess && focused && CFGetTypeID(focused)==AXUIElementGetTypeID();
                 if(valid){phase="focused-window-owner";error=AXUIElementGetPid((AXUIElementRef)focused,&axOwner);
                     valid=error==kAXErrorSuccess && axOwner==owner;}
-                if(valid){phase="focused-window-number";error=number((AXUIElementRef)focused,&n);valid=error==kAXErrorSuccess && n>0;}
+                if(valid){phase="focused-window-number";error=number?number((AXUIElementRef)focused,&n):kAXErrorNotImplemented;
+                    valid=error==kAXErrorSuccess && n>0;
+                    if(!valid){phase="focused-desktop-structure";valid=finderDesktopFocus(front,app,(AXUIElementRef)focused,error,n);
+                        if(valid){retainedDesktop=(AXUIElementRef)CFRetain(focused);n=0;}}}
             }
         }
         if(focused)CFRelease(focused);if(active)CFRelease(active);if(app)CFRelease(app);
         if(!valid)return focusFailure(phase,error,axOwner==owner);
     }
-    if(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier!=owner || birth(owner)!=generation || !focusSession())
-        return focusFailure("foreground-changed",kAXErrorSuccess,NO);
+    if(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier!=owner || birth(owner)!=generation || !focusSession()) {
+        if(retainedDesktop)CFRelease(retainedDesktop);return focusFailure("foreground-changed",kAXErrorSuccess,NO);
+    }
+    if(desktop)*desktop=retainedDesktop;else if(retainedDesktop)CFRelease(retainedDesktop);
     *pid=owner;*started=generation;*window=n;return YES;
 }
 static BOOL originalFocus(NPSpacesLaunchToken *t) {
-    pid_t pid=0;uint64_t started=0;uint32_t number=0;
-    return t->prepared && readFocus(&pid,&started,&number) && pid==t->foreground &&
-        started==t->foregroundBirth && number==t->originalFocus;
+    pid_t pid=0;uint64_t started=0;uint32_t number=0;AXUIElementRef desktop=NULL;
+    BOOL same=t->prepared && readFocus(&pid,&started,&number,&desktop) && pid==t->foreground &&
+        started==t->foregroundBirth && number==t->originalFocus &&
+        ((!t->originalDesktopFocus && !desktop) || (t->originalDesktopFocus && desktop && CFEqual(t->originalDesktopFocus,desktop)));
+    if(desktop)CFRelease(desktop);return same;
 }
 static BOOL truePanel(NPSpacesLaunchToken *t) {
     NSWindow *p=t->panel;
@@ -148,7 +204,7 @@ static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,v
     BOOL (^allowed)(void)=^BOOL{ return !atomic_load(&call->expired) && guard && guard(authorization); };
     if (!NSApp || !NSThread.isMainThread || atomic_load(&call->expired))return launchTrace(t,op,0,"entry");
     if(op==0 && !t->prepared) {
-        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus))return launchTrace(t,op,0,"prepare-focus");
+        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus,&t->originalDesktopFocus))return launchTrace(t,op,0,"prepare-focus");
         t->prepared=YES;
     }
     if(op==1) {
@@ -256,6 +312,6 @@ void *np_stage_launch_development_token(void) {
     return [np_stage_development_checks()[@"identityAccepted"] boolValue] ? (void *)CFBridgingRetain([NPSpacesLaunchToken new]) : NULL;
 }
 int32_t np_stage_development_focus(int32_t *pid,uint64_t *started,uint32_t *window) {
-    return readFocus(pid,started,window);
+    return readFocus(pid,started,window,NULL);
 }
 #endif

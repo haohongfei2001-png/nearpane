@@ -9,6 +9,7 @@ static NSString *directory, *nonce;
 static NSMutableArray<NSWindow *> *documents;
 static NSMutableArray<NSTextField *> *fields;
 static NSInteger commandSequence;
+static NSInteger lastCreatedSequence, lastCreatedIndex = -1;
 static NSInteger pendingFocus = -1, lastFocusSequence;
 static double focusDeadline;
 static BOOL lastActivationRequested;
@@ -37,9 +38,28 @@ static void writeState(void) {
     NSDictionary *state=@{@"schema":@1,@"nonce":nonce,@"pid":@(getpid()),@"birth":@(birth()),
         @"bundle":NSBundle.mainBundle.bundleIdentifier?:@"",@"commandSequence":@(commandSequence),@"windows":rows,
         @"applicationActive":@(NSApp.isActive),@"lastFocusSequence":@(lastFocusSequence),
-        @"focusActivationRequested":@(lastActivationRequested)};
+        @"focusActivationRequested":@(lastActivationRequested),
+        @"lastCreatedSequence":@(lastCreatedSequence),@"lastCreatedIndex":@(lastCreatedIndex)};
     NSData *data=[NSJSONSerialization dataWithJSONObject:state options:NSJSONWritingSortedKeys error:NULL];
     [data writeToFile:[directory stringByAppendingPathComponent:@"state.json"] options:NSDataWritingAtomic error:NULL];
+}
+static NSWindow *appendDocument(NSRect rect, NSColor *color) {
+    NSUInteger index=documents.count;
+    NSWindow *w=[[NSWindow alloc] initWithContentRect:rect
+        styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
+        backing:NSBackingStoreBuffered defer:NO];
+    w.releasedWhenClosed=NO;w.tabbingMode=NSWindowTabbingModeDisallowed;
+    w.title=[NSString stringWithFormat:@"Nearpane Fixture %@ %@ %lu",nonce.lowercaseString,NSBundle.mainBundle.bundleIdentifier,(unsigned long)index];
+    w.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorFullScreenAllowsTiling;
+    w.contentView.wantsLayer=YES;w.contentView.layer.backgroundColor=color.CGColor;
+    NSTextField *field=[[NSTextField alloc] initWithFrame:NSMakeRect(12,70,226,26)];
+    field.stringValue=[NSString stringWithFormat:@"Fixture %lu / ready",(unsigned long)index];
+    NSTextField *marker=[NSTextField wrappingLabelWithString:w.title];
+    marker.frame=NSMakeRect(12,112,226,40);marker.font=[NSFont systemFontOfSize:8];
+    NSString *suffix=index==0?@"a":(index==1?@"b":@"c");
+    [marker setAccessibilityIdentifier:[NSString stringWithFormat:@"nearpane-split-marker-%@-%@",nonce.lowercaseString,suffix]];
+    [w.contentView addSubview:marker];[w.contentView addSubview:field];
+    [documents addObject:w];[fields addObject:field];[w orderFront:nil];return w;
 }
 static void command(void) {
     NSData *data=[NSData dataWithContentsOfFile:[directory stringByAppendingPathComponent:@"command.json"]];
@@ -64,8 +84,25 @@ static void command(void) {
         [w deminiaturize:nil];
     } else if ([action isEqual:@"fullscreen"]) {
         [w toggleFullScreen:nil];
+    } else if ([action isEqual:@"create"]) {
+        // One real additional AppKit document, only in the existing two-window
+        // fixture. Stable indices keep the earlier three-window checks intact.
+        if(index!=0 || documents.count!=2 || lastCreatedSequence!=0 ||
+           ![NSBundle.mainBundle.bundleIdentifier isEqual:@"com.holdsnow.stage-engine-fixture-a"])return;
+        NSRect rect=NSMakeRect(NSMinX(w.frame)+30,NSMinY(w.frame)+80,250,170);
+        NSScreen *screen=w.screen;
+        if(screen){NSRect limit=screen.visibleFrame;
+            rect.origin.x=MAX(NSMinX(limit),MIN(rect.origin.x,NSMaxX(limit)-rect.size.width));
+            rect.origin.y=MAX(NSMinY(limit),MIN(rect.origin.y,NSMaxY(limit)-rect.size.height-32));}
+        NSWindow *created=appendDocument(rect,NSColor.systemPurpleColor);
+        lastCreatedSequence=[request[@"sequence"] integerValue];lastCreatedIndex=(NSInteger)documents.count-1;
+        [created makeKeyAndOrderFront:nil];[created makeFirstResponder:fields.lastObject];[CATransaction flush];
     } else if ([action isEqual:@"close"]) {
         [w close];
+        // Release only the extra trailing document after closing it. Retaining
+        // its NSWindow could retain a WindowServer device; screen removal alone
+        // cannot satisfy the independent CG/AX destruction observation.
+        if(index==2 && documents.count==3){[documents removeLastObject];[fields removeLastObject];}
     } else if ([action isEqual:@"quit"]) {
         for (NSWindow *document in documents) [document close];
         commandSequence=[request[@"sequence"] integerValue]; writeState(); [NSApp terminate:nil]; return;
@@ -91,21 +128,8 @@ int main(int argc,const char **argv) {
         [NSApp finishLaunching];
         documents=[NSMutableArray array];fields=[NSMutableArray array];
         for(NSInteger i=0;i<count;i++) {
-            NSWindow *w=[[NSWindow alloc] initWithContentRect:NSMakeRect(120+offset+i*280,180,250,170)
-                styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
-                backing:NSBackingStoreBuffered defer:NO];
-            w.releasedWhenClosed=NO;w.tabbingMode=NSWindowTabbingModeDisallowed;
-            w.title=[NSString stringWithFormat:@"Nearpane Fixture %@ %@ %ld",nonce.lowercaseString,NSBundle.mainBundle.bundleIdentifier,(long)i];
-            w.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorFullScreenAllowsTiling;
-            w.contentView.wantsLayer=YES;
-            w.contentView.layer.backgroundColor=(i==0?(offset==0?NSColor.systemRedColor:NSColor.systemGreenColor):NSColor.systemBlueColor).CGColor;
-            NSTextField *field=[[NSTextField alloc] initWithFrame:NSMakeRect(12,70,226,26)];
-            field.stringValue=[NSString stringWithFormat:@"Fixture %ld / ready",(long)i];
-            NSTextField *marker=[NSTextField wrappingLabelWithString:w.title];
-            marker.frame=NSMakeRect(12,112,226,40);marker.font=[NSFont systemFontOfSize:8];
-            [marker setAccessibilityIdentifier:[NSString stringWithFormat:@"nearpane-split-marker-%@-%@",nonce.lowercaseString,i==0?@"a":@"b"]];
-            [w.contentView addSubview:marker];
-            [w.contentView addSubview:field]; [documents addObject:w];[fields addObject:field];[w orderFront:nil];
+            appendDocument(NSMakeRect(120+offset+i*280,180,250,170),
+                i==0?(offset==0?NSColor.systemRedColor:NSColor.systemGreenColor):NSColor.systemBlueColor);
         }
         [CATransaction flush]; writeState();
         double deadline=NSProcessInfo.processInfo.systemUptime+600;

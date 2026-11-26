@@ -1,0 +1,36 @@
+{
+  "revision": "a60c0a3b47b5bc688d6bac9c1c9ecb579d32bdf2",
+  "run": 45719769396,
+  "job": 139574853763,
+  "artifact": 15073135122,
+  "artifactBytes": 52101991,
+  "artifactSHA256": "02bf22168841e743969e5c4dadbf3f692ca0ad72dde0d5b6233af6b7cc7fb609",
+  "candidateBytes": 25181765,
+  "candidateSHA256": "892cdc1539594473c6a50e2b0d645d4a1a508cbaa5eff5d6731b7f126b1d3150",
+  "files": [
+    {
+      "file": "source-summary.json",
+      "artifactPath": "independent-source/source/summary.json",
+      "bytes": 1253,
+      "sha256": "02aff8c8cfc530adeccf758dd760c5e68f9e0b378c2db72c30aafc966493dbee"
+    },
+    {
+      "file": "candidate.json",
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "35eea5d0a175208740858d473b37827d37328bb5db5efe2a84ba32a8a1075a3f"
+    },
+    {
+      "file": "candidate.sha256",
+      "artifactPath": "Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "b1c8cd9cdf8d92b474879861e5810b162411aeec67736e281bbf481c6238a373"
+    },
+    {
+      "file": "product-result.json",
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 13244,
+      "sha256": "87951ee932522bf09847ad6df28fa37ef08bbd136a7657bf9ce06d8a1eecc009"
+    }
+  ]
+}

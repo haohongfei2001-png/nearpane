@@ -158,6 +158,23 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
     Swift witness/prelaunch boundary, not the hidden-Space API. Read-only phase diagnostics now
     distinguish original binding, AX/CG geometry, membership, actual focus and a successfully
     returned witness from later coordinator checks. [Original product, worker and screenshot](../verification/independent-stage/cloud-44bc3759-full/README.md).
+17. At `48c2ab44`, yellow's one deminiaturization request produced forward memberships `[15,16]`
+    while original hidden 15 still contained the window and home 12 did not. The previous rule
+    stopped on any extra membership after about 54 ms. This does not prove desktop escape or the
+    type of Space 16. The next implementation observes the complete managed catalogue and every
+    managed reverse membership. Additional non-managed membership remains unfinished, never PASS;
+    actual managed membership or loss of the original hidden membership stops. Final completion
+    still needs two original-witness samples with exclusive original hidden membership, true CG
+    invisibility, unchanged frame and minimized=false, with no repeated move or AX write.
+    [Original membership and cleanup evidence](../verification/independent-stage/cloud-48c2ab44-diagnostics/README.md).
+18. The full `48c2ab44` R4 trace identifies `focused-window-identity` as its first failed physical
+    read: the actual front process was Finder, whose focused object was AXScrollArea with no CG
+    window number. No NP_LAUNCH occurred. The source correction requires the exact system Finder,
+    an original AXScrollArea whose parent is that application, a positively absent containing
+    window and its exclusion from the complete AXWindows list. The same original AX element and
+    process generation must persist. Unknown focus is not converted to desktop focus. Swift and
+    the C canary use this same positive structural proof; the next native run must establish that
+    the observed object actually has this structure. [Original exact phase](../verification/independent-stage/cloud-48c2ab44-full/README.md).
 
 Cold Host startup now has a read-only reconciliation path for a completed Spaces worker. A durable
 record binds the original owner, nonce, boot, Host and worker generations before the first launch.

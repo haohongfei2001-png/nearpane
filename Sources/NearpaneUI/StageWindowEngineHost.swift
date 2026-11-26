@@ -824,6 +824,9 @@ import NearpaneOrdinaryWindowRuntime
                     guard recorded else { throw failure }
                     // A new singleton has no part in the current grant. Preserve the user's focus and
                     // return the confirmed hides to their owners before accepting a different roster.
+                    // Recording a focused creation clears the old active-group marker.
+                    // Keep this verified scope's resume intent before that marker is consulted.
+                    resumeScopes.insert(scope)
                     systemTakesOver()
                     ordinaryContextObserved()
                     return
