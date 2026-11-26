@@ -30,6 +30,14 @@ print(p[0].resolve())
 PY
 )"
 ditto "$sparkle_framework" "$app/Contents/Frameworks/Sparkle.framework"
+# SwiftPM may embed its local toolchain or build directory, neither of which
+# belongs to an installed app's framework search path. Keep system paths.
+while IFS= read -r local_rpath; do
+  [[ -z "$local_rpath" ]] || install_name_tool -delete_rpath "$local_rpath" "$app/Contents/MacOS/LyricTile"
+done < <(otool -l "$app/Contents/MacOS/LyricTile" | awk '
+  $1 == "cmd" { in_rpath = ($2 == "LC_RPATH") }
+  in_rpath && $1 == "path" { sub(/^ *path /, ""); sub(/ \(offset [0-9]+\)$/, ""); if ($0 ~ /^\// && $0 !~ /^\/(usr\/lib|System\/Library)(\/|$)/) print }
+')
 # SwiftPM's executable rpath may point only to its build directory. Add the
 # actual bundle-relative framework path before code signing.
 if ! otool -l "$app/Contents/MacOS/LyricTile" | /usr/bin/grep -F '@executable_path/../Frameworks' > /dev/null; then

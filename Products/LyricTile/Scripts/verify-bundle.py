@@ -3,6 +3,7 @@
 import argparse
 import json
 import platform
+import re
 import plistlib
 import subprocess
 from pathlib import Path
@@ -45,7 +46,9 @@ code, entitlements = command('codesign', '-d', '--entitlements', ':-', str(a.app
 check('apple-events-entitlement', code == 0 and 'com.apple.security.automation.apple-events' in entitlements)
 check('no-app-sandbox', 'com.apple.security.app-sandbox' not in entitlements)
 code, text = command('otool', '-l', str(a.app/required[0]))
-check('bundle-framework-rpath', code == 0 and '@executable_path/../Frameworks' in text)
+rpaths = re.findall(r'cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset \d+\)', text)
+check('bundle-framework-rpath', code == 0 and '@executable_path/../Frameworks' in rpaths)
+check('portable-rpaths', all(not path.startswith('/') or path.startswith(('/usr/lib/', '/System/Library/')) for path in rpaths))
 report = dict(schemaVersion=1, status='PASS' if all(x['passed'] for x in checks) else 'FAIL',
               app=str(a.app), commit=info.get('LyricTileBuildCommit'), host=platform.platform(),
               signingIdentity=identity, realPlayerQualification='NOT_RUN', notarization='NOT_RUN', checks=checks)

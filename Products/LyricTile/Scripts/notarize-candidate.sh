@@ -42,6 +42,8 @@ if r.get('status') != 'Accepted': raise SystemExit('DMG notarization was not Acc
 PY
 xcrun stapler staple "$output/LyricTile-notarized.dmg"
 xcrun stapler validate "$output/LyricTile-notarized.dmg" | tee "$output/stapler-dmg.txt"
+spctl --assess --type open --context context:primary-signature --verbose=4 \
+  "$output/LyricTile-notarized.dmg" 2> "$output/gatekeeper-dmg.txt"
 python3 - "$output" <<'PY'
 import hashlib,sys
 from pathlib import Path
