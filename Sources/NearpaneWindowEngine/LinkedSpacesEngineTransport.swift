@@ -65,7 +65,12 @@ import NearpaneCore
             member: command.member, lifetime: command.before.lifetime, generation: command.generation,
             window: command.before.window, nativeID: command.nativeID ?? 0,
             frame: command.before.frame, target: command.restoreFrame)
-        let result = try await engine.submit(request, timeoutMilliseconds: 2_000, expectedEpoch: expected)
+        // The ticket starts when enqueued: an in-flight passive health read can
+        // use 1000 ms before this command starts. Active deminiaturization then
+        // needs its own 1000 ms plus the 120 ms Space ack and AX/readback work.
+        // These share one deadline; this upper bound adds no fixed wait.
+        let timeout: UInt32 = nativeOperation == UInt32(NP_HIDE_MINIMIZED) ? 3_000 : 2_000
+        let result = try await engine.submit(request, timeoutMilliseconds: timeout, expectedEpoch: expected)
         guard try engine.currentEpoch() == expected else { throw StageSwitchError.interrupted }
         return Self.reply(result)
     }
@@ -90,8 +95,9 @@ import NearpaneCore
 
     func health(_ owner: StageEngineOwner, intent: UUID) async throws -> StageEngineReply {
         let expected = try epoch(for: owner)
+        // Include queue time behind an in-flight passive health read.
         let result = try await engine.submit(.init(backend: UInt32(NP_SPACES), operation: UInt32(NP_HEALTH),
-                                                  intent: intent), expectedEpoch: expected)
+                                                  intent: intent), timeoutMilliseconds: 2_000, expectedEpoch: expected)
         guard try engine.currentEpoch() == expected else { throw StageSwitchError.interrupted }
         return Self.reply(result)
     }

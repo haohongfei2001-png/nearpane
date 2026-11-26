@@ -39,6 +39,31 @@ identified candidate application runs the complete Host and R4 with a separate p
 acceptance copy additionally restricts dispatch to enrolled fixture PIDs. Neither form manufactures a
 passing qualification or overwrites `/Applications/Nearpane.app`.
 
+### Current verification checkpoint
+
+At `3d79921c5a9479a92173b4bfec837a08d14b227b`, 161 Rust and 170 Swift cases pass
+(one explicit skip), and the complete workspace candidate passes strict/deep bundle verification.
+The [diagnostics VM](../verification/independent-stage/cloud-3d79921c-diagnostics/README.md) and
+[full-release VM](../verification/independent-stage/cloud-3d79921c-full/README.md) each independently
+pass the entire foreign-window engine sequence and cleanup. The
+[separate fast VM](../verification/independent-stage/cloud-3d79921c-r4-fast/README.md) instead exhausts
+the 650 ms passive health budget after AXCannotComplete on an already hidden same-app sibling;
+its later yellow operation never starts. These results are retained separately.
+
+Both product VMs find and validate the actual R4 button but stop before sending an action because
+the final repeated action-name query returns AXCannotComplete. The next source retains the exact
+element and its already confirmed AXPress capability, rechecks mutable identity/geometry/state,
+and issues the action once. It does not turn an unknown query into a successful action. Actual R4
+switching, the new Finder self/listed desktop predicate, crash/restart and native-system scenarios
+remain unqualified until a subsequent physical result reaches them.
+
+The passive-health correction preserves the ordinary 650 ms budget and gives only an actual
+AXCannotComplete result one recovery deadline at original-start + 1000 ms. It still requires two
+complete reads, stops on positive changed state, retains unresolved leases, and never repeats a move.
+Production tickets include queue time behind that read: only minimized-hide now has a 3000 ms
+ceiling and explicit health 2000 ms; ordinary moves remain 2000 ms. These are upper bounds, not added
+waits. The timing/unchanged-write regression passes locally; new native results must verify the fix.
+
 ### What is established
 
 1. At `9509bd0`, Nearpane's own panel entered hidden Space 5643 and returned to ordinary desktop 4 on

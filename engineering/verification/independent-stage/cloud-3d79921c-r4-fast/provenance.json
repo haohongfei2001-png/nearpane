@@ -1,0 +1,69 @@
+{
+  "revision": "3d79921c5a9479a92173b4bfec837a08d14b227b",
+  "run": 45731326197,
+  "fastJob": 139613767581,
+  "sourceJob": 139613766890,
+  "artifacts": [
+    {
+      "id": 15076852792,
+      "bytes": 24126873,
+      "sha256": "79c3fa72b0d3064b7dced663734fa8389adb6b22b96a10ed3b4c39e40def8c48"
+    },
+    {
+      "id": 15077072113,
+      "bytes": 20818,
+      "sha256": "651a9884b2e8eba044a1c0e3612f4bff0019a4bb321dd8e6f7707e4977c73da7"
+    }
+  ],
+  "files": [
+    {
+      "file": "source-summary.json",
+      "artifact": 15077072113,
+      "artifactPath": "source/summary.json",
+      "bytes": 1253,
+      "sha256": "b331e02b1fc83c12782ae9dea892678223d6e63458cc64d7ec03a3f9777a687c"
+    },
+    {
+      "file": "engine-result.json",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4382,
+      "sha256": "8820a284ae96a46fd4d4271649e797732ecb34a46154c6279b68235f8de36716"
+    },
+    {
+      "file": "engine.log",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 42474,
+      "sha256": "65ec61c53a3ace61685f30e62e46d558b2d2dc372aa13324b37bf72f1af72fcf"
+    },
+    {
+      "file": "product-result.json",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 12612,
+      "sha256": "565715787cb4e8eb30c1f5dd572efc830d40243d5cfa5b9d1791a75369f2c48c"
+    },
+    {
+      "file": "product.stderr.log",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 1137,
+      "sha256": "e616c058ba66041af86295ae6413086059bc6e3b99ee82acfe4ef9af8ddbe066"
+    },
+    {
+      "file": "r4-press-result.json",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-881e32bb-b9b5-405d-817b-4cdaa9857f6c.result.json",
+      "bytes": 2928,
+      "sha256": "fb6f668f526d1c6369f535156f3797911838e8c190831e27ab81e2de8e2cf37c"
+    },
+    {
+      "file": "engine.stderr.log",
+      "artifact": 15076852792,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 11629,
+      "sha256": "3406dcc7e55a4a00b86b800679248334aa1d5cf13d53464627b83736dd7bf5b2"
+    }
+  ]
+}

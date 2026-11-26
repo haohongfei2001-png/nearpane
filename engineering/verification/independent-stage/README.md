@@ -69,6 +69,9 @@ These are code-completion claims. The evidence below determines which native eff
 | `9cec081f`, diagnostics | Same VM actually passes initial registration, first yellow, foreign round trip, same-app separation, cross-app combination, all three cycles, later yellow and focus; 34 verified receipts include 26 hide/restore requests | FOREIGN_ENGINE_PASS and first-release cleanup PASS; full original inventory restored twice. Product R4 NOT_RUN and target-SIP-enabled qualification remain separate. [Original complete engine evidence](cloud-9cec081f-diagnostics/README.md) |
 | `9cec081f`, R4-fast | This VM also passes the normal engine; final button role/identifier return AXCannotComplete (-25204), before any action is issued | R4 BLOCKED, input zero, cleanup PASS. The original green job is not a product result; product-supplied lanes now require a real R4 PASS to exit zero. [Original no-input receipt](cloud-9cec081f-r4-fast/README.md) |
 | `9cec081f`, full release | 161 Rust and 169 Swift passed, one explicit skip; complete app/signature and this VM's normal engine passed; real R4 input passes native confirmation and reaches worker | Initial Swift witness rejects Finder's listed desktop AXScrollArea form; no NP_LAUNCH, product FAIL, cleanup PASS. Self equality/exact list count are required by the next candidate, not assumed proved. [Original structure and complete candidate](cloud-9cec081f-full/README.md) |
+| `3d79921c`, diagnostics | Initial and later yellow, foreign round trip, same-app independence, cross-app combination, all three cycles and focus pass with 34 verified receipts; complete original inventory restored twice | Independent FOREIGN_ENGINE_PASS and first-release cleanup PASS; no R4/target qualification. [Original complete engine receipts](cloud-3d79921c-diagnostics/README.md) |
+| `3d79921c`, R4-fast | Initial yellow and group cycles pass; passive health exhausts its 650 ms budget after original hidden sibling AXCannotComplete, before later yellow starts. Product button's six attributes and panel checks succeed, repeated action-name query times out | Engine later-yellow FAIL, product BLOCKED/input zero, cleanup PASS. Neither another VM's engine PASS nor this button discovery changes those results. [Original earliest fault and no-input receipts](cloud-3d79921c-r4-fast/README.md) |
+| `3d79921c`, full release | 161 Rust and 170 Swift pass, one explicit skip; full app/signature and this VM's whole engine sequence pass. Actual button discovery confirms AXPress, but its redundant final action-name query returns AXCannotComplete | Source-checked complete candidate; R4 BLOCKED/input zero, cleanup PASS. The new Finder predicate and worker activation are not reached. [Original source, candidate and runtime evidence](cloud-3d79921c-full/README.md) |
 
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
@@ -80,7 +83,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `9cec081f` source run passed **161 Rust and 169 Swift cases, with one explicit skip**;
+The latest completed `3d79921c` source run passed **161 Rust and 170 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -121,7 +124,15 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[9cec081f full receipts](cloud-9cec081f-full/README.md) identify the latest source-checked complete
+[3d79921c full receipts](cloud-3d79921c-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15077029046](https://github.com/haohongfei2001-png/nearpane/actions/runs/45731326197/artifacts/15077029046).
+Its independently rehashed ZIP is 25,321,984 bytes, SHA-256
+`a9c668757b9f3be3c23763bea03893c4ae072778f62ee8cf135f39c1009af239`.
+161 Rust and 170 Swift cases passed, with one explicit skip. Complete workspace and strict/deep
+bundle verification passed. This VM's entire engine sequence also passed; its R4 path stopped
+before input at the repeated AX action-name query. Cleanup passed; product qualification remains false.
+
+[9cec081f full receipts](cloud-9cec081f-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15076681435](https://github.com/haohongfei2001-png/nearpane/actions/runs/45728613871/artifacts/15076681435).
 Its independently rehashed ZIP is 25,317,102 bytes, SHA-256
 `cf2f87d7c5bb112947917dedf00ee96098ad965e254720b4cc4679b30752fec8`.

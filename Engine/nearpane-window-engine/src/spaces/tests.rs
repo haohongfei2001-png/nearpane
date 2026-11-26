@@ -59,6 +59,8 @@ struct Fake {
     pending_unavailable_read: Cell<bool>,
     replace_fixture_on_return: bool,
     cannot_complete_minimized_reads: Cell<u32>,
+    cannot_complete_read_cost: Duration,
+    surface_read_cost: Duration,
     minimized_observations: Cell<u32>,
     confirmed_document_minimized: bool,
     minimize_writes: Vec<(u32, u64, bool)>,
@@ -201,6 +203,7 @@ impl Platform for Fake {
         let unavailable = self.cannot_complete_minimized_reads.get();
         if unavailable > 0 {
             self.cannot_complete_minimized_reads.set(unavailable - 1);
+            self.wait(self.cannot_complete_read_cost);
             return Err(unknown(Why::AXCannotComplete));
         }
         if *witness >> 32 > 0 {
@@ -263,6 +266,7 @@ impl Platform for Fake {
         *w == 77
     }
     fn surface(&self, w: Window) -> Check<Seen> {
+        self.wait(self.surface_read_cost);
         if self.pending_unavailable_read.replace(false) { return Err(unknown(Why::Readback)); }
         let t = self.windows[&w.number];
         if t.0 == w {
@@ -731,6 +735,29 @@ fn health_rereads_only_cannot_complete_on_the_original_witness_until_two_complet
 }
 
 #[test]
+fn native_animation_transport_time_includes_both_complete_health_samples() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    let window = state.sys.windows[&1].0;
+    let witness = state.owned[&window].witness;
+    let writes = state.sys.moved.len();
+    state.sys.minimized_observations.set(0);
+    state.sys.cannot_complete_minimized_reads.set(2);
+    state.sys.cannot_complete_read_cost = Duration::from_millis(300);
+    state.sys.surface_read_cost = Duration::from_millis(20);
+    let started = state.sys.now();
+    state.observe_health();
+    let elapsed = state.sys.now() - started;
+    assert!(!state.failed);
+    assert!(elapsed > AX_OBSERVATION_BUDGET && elapsed < AX_UNAVAILABLE_RECOVERY_BUDGET);
+    assert_eq!(state.sys.minimized_observations.get(), 4, "two transport timeouts then two complete physical samples");
+    assert_eq!(state.owned[&window].witness, witness);
+    assert_eq!(state.sys.moved.len(), writes);
+    assert!(state.sys.minimize_writes.is_empty());
+}
+
+#[test]
 fn persistent_ax_unavailability_keeps_the_original_lease_and_exhausts_only_the_health_budget() {
     let (mut state, guard) = setup();
     assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
@@ -741,7 +768,7 @@ fn persistent_ax_unavailability_keeps_the_original_lease_and_exhausts_only_the_h
     let start = state.sys.now();
     state.observe_health();
     assert!(state.failed && state.owned.contains_key(&window));
-    assert_eq!(state.sys.now().duration_since(start), Duration::from_millis(650));
+    assert_eq!(state.sys.now().duration_since(start), AX_UNAVAILABLE_RECOVERY_BUDGET);
     assert_eq!(state.sys.moved.len(), writes);
 }
 
@@ -755,6 +782,7 @@ fn a_positive_bad_health_observation_stops_even_after_a_transport_retry() {
             let writes = state.sys.moved.len();
             state.sys.minimized_observations.set(0);
             state.sys.cannot_complete_minimized_reads.set(unavailable);
+            state.sys.cannot_complete_read_cost = Duration::from_millis(300);
             match changed {
                 0 => state.sys.confirmed_document_minimized = true,
                 1 => state.sys.windows.get_mut(&1).unwrap().2 += 1,

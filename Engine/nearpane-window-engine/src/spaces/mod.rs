@@ -15,6 +15,10 @@ type Rows = BTreeSet<u64>;
 const LIMIT: usize = 64;
 const DEADLINE: Duration = Duration::from_millis(120);
 const AX_OBSERVATION_BUDGET: Duration = Duration::from_millis(650);
+// A same-app native animation can keep the original AX object temporarily
+// unresponsive. Only that transport result permits this total read-only budget;
+// it is measured from the original tick, never extended after each failed read.
+const AX_UNAVAILABLE_RECOVERY_BUDGET: Duration = Duration::from_millis(1000);
 // An active AppKit deminiaturization includes the system animation and two full
 // settled observations. It is distinct from passive AX health and Space move ack.
 const MINIMIZE_COMPLETION_BUDGET: Duration = Duration::from_millis(1000);
@@ -989,7 +993,7 @@ impl<P: Platform> State<P> {
         let lease = self.owned.values().nth(index).unwrap().lease;
         let mut phase = "health-connection";
         let mut parking = 0;
-        let deadline = Passive(now + AX_OBSERVATION_BUDGET);
+        let mut deadline = Passive(now + AX_OBSERVATION_BUDGET);
         let mut unavailable = None;
         let mut confirmed = 0;
         let result = loop {
@@ -1014,8 +1018,14 @@ impl<P: Platform> State<P> {
                     // AppKit's minimize animation can temporarily stop answering
                     // AX for a different, already hidden window in the same app.
                     // Retry only this absent transport observation, on the original
-                    // witness, inside the existing health budget. Never resend a move.
+                    // witness, inside one bounded recovery interval. Never resend
+                    // a move or interpret the absent response as healthy.
+                    if unavailable.is_none() { deadline.0 = now + AX_UNAVAILABLE_RECOVERY_BUDGET; }
                     trace_fault("health-ax-unavailable", lease, parking, fault);
+                    if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                        eprintln!("{{\"event\":\"spacesHealthReadUnavailable\",\"window\":{},\"pid\":{},\"parking\":{parking},\"elapsedMS\":{},\"budgetMS\":{}}}",
+                            lease.window.number,lease.window.pid,self.sys.now().saturating_duration_since(now).as_millis(),AX_UNAVAILABLE_RECOVERY_BUDGET.as_millis());
+                    }
                     unavailable = Some(fault);
                     confirmed = 0;
                 }
@@ -1024,7 +1034,8 @@ impl<P: Platform> State<P> {
                     confirmed += 1;
                     if confirmed == 2 {
                         if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
-                            eprintln!("{{\"event\":\"spacesHealthReadRecovered\",\"window\":{},\"pid\":{},\"completeObservations\":2}}", lease.window.number, lease.window.pid);
+                            eprintln!("{{\"event\":\"spacesHealthReadRecovered\",\"window\":{},\"pid\":{},\"completeObservations\":2,\"elapsedMS\":{},\"budgetMS\":{}}}",
+                                lease.window.number,lease.window.pid,self.sys.now().saturating_duration_since(now).as_millis(),AX_UNAVAILABLE_RECOVERY_BUDGET.as_millis());
                         }
                         break Ok(());
                     }
@@ -1040,6 +1051,10 @@ impl<P: Platform> State<P> {
             // Preserve the first actual failure before the sticky restore-only
             // state makes a later request report only RestoreFirst.
             trace_fault(phase, lease, parking, fault);
+            if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+                eprintln!("{{\"event\":\"spacesHealthReadFailed\",\"window\":{},\"pid\":{},\"parking\":{parking},\"detail\":{},\"completeObservations\":{confirmed},\"elapsedMS\":{},\"budgetMS\":{}}}",
+                    lease.window.number,lease.window.pid,fault.1 as u32,self.sys.now().saturating_duration_since(now).as_millis(),deadline.0.saturating_duration_since(now).as_millis());
+            }
             self.failed = true;
         }
     }
