@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "build": 4,
+  "product": "com.holdsnow.lyrictile",
+  "architecture": "arm64",
+  "minimumMacOS": "27.0",
+  "bundleCommit": "3e83b5cfaf944dd1bf51308918d96912cb7b615e",
+  "runtimeSourceCommit": "8bc782c",
+  "sourceNote": "The intervening 3e83b5c commit only added STATUS and UI evidence.",
+  "developerIDTeam": "ZB9D4T66QB",
+  "appNotarization": {
+    "message": "Processing complete",
+    "status": "Accepted",
+    "id": "8e0e51db-bcb9-4f5d-85b8-12345915ceba"
+  },
+  "dmgNotarization": {
+    "id": "aa2036d2-71f9-4f69-9427-17e743f4cba3",
+    "message": "Processing complete",
+    "status": "Accepted"
+  },
+  "appGatekeeper": "Notarized Developer ID",
+  "dmgGatekeeper": "Notarized Developer ID",
+  "installedCopy": "Mounted read-only, copied LyricTile.app, ejected image, verified Gatekeeper, strictly verified nested codesign and validated staple.",
+  "files": {
+    "LyricTile-1.0.0-4-arm64.dmg": {
+      "bytes": 4332006,
+      "sha256": "a69e3fb5190b7c82446017dc33763b29072cfe0832831f7e58510f5f82dc32d1"
+    },
+    "LyricTile-1.0.0-4-arm64.zip": {
+      "bytes": 3934299,
+      "sha256": "a060a53fcf0535102a5e3cac7c13da871fa1dca2a7dd7fd226ca551af0ec1eb6",
+      "edSignature": "mKclAH+ucI30LHpsFj2ZsdSEMAZEt9Qy45xpBpdjqkpRoDor/Y62lgzRSidYSYPZHOwzIANbbNFTsbkn8o/lBA=="
+    }
+  },
+  "sparkleUpgrade": {
+    "from": "2",
+    "to": "4",
+    "commit": "3e83b5cfaf944dd1bf51308918d96912cb7b615e",
+    "appExecutableSHA256": "8bc552c4b76962adb8cb7eb5ba349185136a93fadb6001b78940304f5d7a8645",
+    "archiveSHA256": "a060a53fcf0535102a5e3cac7c13da871fa1dca2a7dd7fd226ca551af0ec1eb6",
+    "gatekeeper": "accepted",
+    "stapler": "verified",
+    "codeSignature": "verified",
+    "identicalPlistAndExecutableToDMG": true,
+    "driver": "Sparkle 2.10.1 CLI / signed loopback feed / real product Ed25519 key & archive",
+    "prior": "unmodified notarized build 2 copied from its final mounted installer"
+  }
+}
