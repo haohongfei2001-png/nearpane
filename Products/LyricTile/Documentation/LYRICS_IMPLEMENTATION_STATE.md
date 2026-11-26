@@ -14,7 +14,7 @@
 
 ## Validation status
 
-Local Linux workspace has no Swift compiler. Hosted macOS compilation/test is owned by root; do not mark these tests passed until the CI results are recorded. No real player/TCC/clock-accuracy certification is inferred from injected transports.
+The actual production package and authored parser/provider tests have passed hosted macOS compilation and execution. Exact tested commits, toolchain output, test counts and final evidence are recorded in [IMPLEMENTATION_STATE.md](IMPLEMENTATION_STATE.md). Injected transports validate service behavior; they do not certify installed players, TCC or independent playback-clock accuracy.
 
 ## Stable API additions
 

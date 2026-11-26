@@ -1,0 +1,31 @@
+{
+  "testedCommit": "6f7b73c88805b103881fa404d39e10071573ea63",
+  "workflowRun": 45746365429,
+  "measurement": {
+    "scope": "actual_candidate_idle_no_player",
+    "status": "MEASURED",
+    "recordingsUsed": 0,
+    "app": "dist/LyricTile.app",
+    "summary": {
+      "schemaVersion": 1,
+      "status": "MEASURED",
+      "mode": "idle",
+      "rootPID": 8208,
+      "rootStart": "Thu Nov 26 03:06:53 2026",
+      "rootCommand": "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile",
+      "durationSeconds": 61.01599141700001,
+      "samples": 53,
+      "cpuMeanPercentOneCore": 0.3103343092311674,
+      "cpuP95PercentOneCore": 0.9150261354477229,
+      "rssMedianMiB": 60.890625,
+      "rssPeakMiB": 60.890625,
+      "processesExitedBetweenSamples": 0,
+      "cpuBudgetPercentOneCore": 0.3,
+      "rssMedianBudgetMiB": 120,
+      "rssPeakBudgetMiB": 180,
+      "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+    },
+    "withinTargets": false,
+    "qualification": "Hosted idle baseline only; no real-player/line/word/8-hour performance claim."
+  }
+}

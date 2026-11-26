@@ -4,7 +4,11 @@
 
 LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
 
-**Current channel: engineering candidate.** Real implementations are present; source compilation, fixture tests, package checks, production empty-window load and real-player qualification are separate evidence classes. See [implementation status](Documentation/IMPLEMENTATION_STATE.md) for actual outcomes and commit links. This README does not certify all installed player versions.
+**Current channel: engineering candidate.** Real implementations are present; source compilation, fixture tests, package checks, production empty/welcome/settings surface load and real-player qualification are separate evidence classes. See [implementation status](Documentation/IMPLEMENTATION_STATE.md) for actual outcomes and commit links. This README does not certify all installed player versions.
+
+## Latest native candidate
+
+[Verified source `75d9e60cb8a0`](https://github.com/haohongfei2001-png/nearpane/commit/75d9e60cb8a0eced93ed1c01f99ee109c315a7fe) · [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678) · [candidate ZIP/DMG](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678/artifacts/15085886100) · [preserved evidence](Documentation/Verification/2026-11-26/README.md). Actual host: macOS 27.0.1 / Xcode 27.1 / Swift 6.4, arm64. **65 tests passed**; production app/host facade, three native surfaces, real helper load and ad-hoc package verification passed. Real-player and release qualifications remain explicit in the evidence.
 
 ## Start here
 

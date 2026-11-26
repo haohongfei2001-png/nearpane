@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "observedDate": "2026-11-26 Asia/Shanghai",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "testedCommit": "75d9e60cb8a0eced93ed1c01f99ee109c315a7fe",
+  "workflowRun": 45750660678,
+  "workflowURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678",
+  "artifactID": 15085886100,
+  "artifactURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678/artifacts/15085886100",
+  "artifactSHA256": "959287ae135650e285ec98cac5293cd4bedc52263b0facfaf3ba151ec448f3bf",
+  "artifactRetentionDays": 30,
+  "tests": {
+    "XCTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "SwiftTesting": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "totalTestCases": 65,
+  "productionAppCompile": "PASS",
+  "hostFacadeCompile": "PASS",
+  "bundleChecks": "PASS",
+  "signingIdentity": "ad-hoc",
+  "nativeUI": {
+    "check": "native-ui-load",
+    "emptyPanelPassed": true,
+    "height": 62,
+    "networkStarted": false,
+    "panelScreenshotSaved": true,
+    "passed": true,
+    "realPlayerTest": false,
+    "screenshotRequested": true,
+    "settings": {
+      "contentMounted": true,
+      "exists": true,
+      "height": 620,
+      "passed": true,
+      "screenshotSaved": true,
+      "visible": true,
+      "width": 450
+    },
+    "welcome": {
+      "contentMounted": true,
+      "exists": true,
+      "height": 450,
+      "passed": true,
+      "screenshotSaved": true,
+      "visible": true,
+      "width": 400
+    },
+    "width": 176
+  },
+  "captureMethod": "Existing production NSView cacheDisplay bitmap, no fictional media. Not a compositor/glass-contrast qualification.",
+  "privateFramework": {
+    "scope": "helper_load_only",
+    "success": true,
+    "mediaState": "empty",
+    "symbolCount": 17,
+    "playerSupportCertified": false
+  },
+  "idle": {
+    "scope": "actual_candidate_idle_no_player",
+    "status": "MEASURED",
+    "recordingsUsed": 0,
+    "app": "dist/LyricTile.app",
+    "summary": {
+      "schemaVersion": 1,
+      "status": "MEASURED",
+      "mode": "idle",
+      "rootPID": 6661,
+      "rootStart": "Thu Nov 26 03:46:00 2026",
+      "rootCommand": "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile",
+      "durationSeconds": 120.175875625,
+      "samples": 108,
+      "cpuMeanPercentOneCore": 0.23299257522070432,
+      "cpuMeasurementMethod": "aggregate CPU-time delta / actual monotonic observation interval; one core = 100%",
+      "cpuP95PercentOneCore": 0.9384997588641864,
+      "rssMedianMiB": 61.609375,
+      "rssPeakMiB": 61.625,
+      "processesExitedBetweenSamples": 0,
+      "cpuBudgetPercentOneCore": 0.3,
+      "rssMedianBudgetMiB": 120,
+      "rssPeakBudgetMiB": 180,
+      "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+    },
+    "withinTargets": true,
+    "qualification": "Hosted idle baseline only; no real-player/line/word/8-hour performance claim."
+  },
+  "packages": [
+    {
+      "filename": "LyricTile-1.0.0-candidate-arm64.dmg",
+      "sha256": "4152859c0bf21f308b15692e5b88402fece2f445e2970ad5d34c27925832c390",
+      "bytes": 4196589
+    },
+    {
+      "filename": "LyricTile-1.0.0-candidate-arm64.zip",
+      "sha256": "54092f4a436fb469c53ab1a40665b78b4f6d355c218dcda4a4c42e81631c7bd4",
+      "bytes": 3819078
+    }
+  ],
+  "notRun": [
+    "installed four-player/TCC/actual command qualification",
+    "independent playback clock precision",
+    "user M5/macOS 27.0/DELL display",
+    "line/word/8-hour resource qualification",
+    "Developer ID/notarization/Gatekeeper release acceptance",
+    "signed Sparkle end-to-end upgrade"
+  ],
+  "notes": [
+    "Documentation-only delivery commits may follow; this tested source commit identifies the actual candidate.",
+    "Hosted idle measurements are process-tree estimates and cannot certify real-player performance."
+  ]
+}

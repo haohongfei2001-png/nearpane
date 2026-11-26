@@ -1,0 +1,7 @@
+LyricTile native smoke: smoke-surface-checked
+LyricTile native smoke: termination-delegate-entered
+LyricTile native smoke: termination-drain-started
+LyricTile native smoke: tile-coordinator-stopped
+LyricTile native smoke: playback-model-stopped
+LyricTile native smoke: replying-to-termination
+LyricTile native smoke: application-will-terminate

@@ -1,0 +1,8 @@
+{
+  "testedCommit": "b14f8c3ac65fa99cc82065815060a65778d62715",
+  "workflowRun": 45747785088,
+  "measurement": {
+    "status": "NOT_RUN",
+    "reason": "A target player is already running; this is not an empty idle environment."
+  }
+}
