@@ -322,6 +322,7 @@ impl<P: Platform> State<P> {
         // prove the exact AppKit window and its CG number both disappeared.
         let end = self.sys.now() + DEADLINE;
         let mut streak = 0;
+        let mut last_absence_fault = None;
         loop {
             a.observation()?;
             let run = self.launch.as_ref().unwrap();
@@ -336,7 +337,26 @@ impl<P: Platform> State<P> {
             if !fixed(&run.topology, &self.sys.desktops(c)?) {
                 return Err(unknown(Why::Topology));
             }
-            if p.registered == 0 && p.absent == 1 && (number == 0 || self.sys.absent(number)?) {
+            let cg_absent = if p.registered == 0 && p.absent == 1 {
+                match if number == 0 { Ok(true) } else { self.sys.absent(number) } {
+                    Ok(absent) => {
+                        last_absence_fault = None;
+                        absent
+                    }
+                    Err(fault @ Fault(UNKNOWN, Why::Readback)) => {
+                        // The CG description and on-screen list can disagree just
+                        // after this one issued close. Unknown is not absence:
+                        // retain the Space and observe within the original budget.
+                        trace_result("close-cg-readback", &Err(fault), Some(run));
+                        last_absence_fault = Some(fault);
+                        false
+                    }
+                    Err(fault) => return Err(fault),
+                }
+            } else {
+                false
+            };
+            if cg_absent {
                 self.launch.as_mut().unwrap().closed = true;
                 // Only reclaim the private Space after both AppKit and WindowServer
                 // acknowledge the close. A pending close retains the slot for recovery.
@@ -358,7 +378,7 @@ impl<P: Platform> State<P> {
                 streak = 0;
             }
             if self.sys.now() >= end {
-                return Err(unknown(Why::Cleanup));
+                return Err(last_absence_fault.unwrap_or(unknown(Why::Cleanup)));
             }
             self.sys.wait(Duration::from_millis(4));
         }

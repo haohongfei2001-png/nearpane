@@ -36,6 +36,11 @@ import NearpaneOrdinaryWindowRuntime
     func preparePictures(leavingFor target: UUID) { pendingDeparture = (target, sequence) }
     func endPicturePreparation() { pendingDeparture = nil }
 
+    func retainsPictureIdentity(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture) -> Bool {
+        generation == departure.generation && scope == departure.scope && departures[departure.group] == departure &&
+            bindings[member.before.window]?.lifetime == member.before.lifetime && mayManage(member.before)
+    }
+
     func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture) -> Bool {
         let window = member.before.window
         guard generation == departure.generation, scope == departure.scope, departures[departure.group] == departure,
@@ -74,6 +79,7 @@ import NearpaneOrdinaryWindowRuntime
     func hasVisibilityClaim(_ window: NativeSpaceWindow) -> Bool { claims[window] != nil }
     func discard(_ departure: StageWindowDeparture) {
         guard claims[departure.window] == nil, bindings[departure.window]?.lifetime == departure.lifetime else { return }
+        feed?.stageGallery?.cancelPendingPicture(departure.window, lifetime: departure.lifetime)
         bindings.removeValue(forKey: departure.window)
         leases.removeValue(forKey: departure.window)
     }
@@ -327,9 +333,13 @@ import NearpaneOrdinaryWindowRuntime
                     departures[group.id] = nil
                     guard let captured = StageGroupDeparture.read(group:group,first:previous,second:sample,
                         opening:opening,closing:last,appearances:stable,authorized:authorizedLifetimes) else { continue }
-                    if gallery.remember(captured, in:feed.stageEngine.snapshotForGroups(last)) {
-                        departures[group.id] = captured
-                    }
+                    departures[group.id] = captured
+                    _ = gallery.remember(captured, in:feed.stageEngine.snapshotForGroups(last), current: { [weak self] member in
+                        self?.retainsPictureIdentity(member, of: captured) == true
+                    }, confirmsHidden: { [weak self] member in
+                        self?.state(of: member.before.window)?.visibility == .stageSpace &&
+                            self?.confirmsHistoricalMember(member, of: captured) == true
+                    })
                 }
                 departures = departures.filter { gallery.retains($0.value) }
             }
@@ -434,7 +444,10 @@ import NearpaneOrdinaryWindowRuntime
         guard c.scope == scope, c.generation == generation, let b = bindings[c.before.window], b.lifetime == c.before.lifetime,
               let owner, let frame else { return }
         if c.action == .hide { claims[c.before.window] = .init(backend:owner,frame:frame,member:nativeID) }
-        if c.action == .show { claims.removeValue(forKey:c.before.window) }
+        if c.action == .show {
+            claims.removeValue(forKey:c.before.window)
+            feed?.stageGallery?.cancelPendingPicture(c.before.window, lifetime: c.before.lifetime)
+        }
     }
 
     func confirmsSystemReturn(_ returned: StageWindowReturn) async -> Bool {

@@ -41,31 +41,42 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-At `2f3eddda042e4280d80c3880127422c3819b6ebd`, 162 Rust and 170 Swift cases pass
-(one explicit skip), and the complete workspace candidate passes strict/deep bundle verification.
-The [diagnostics](../verification/independent-stage/cloud-2f3eddda-diagnostics/README.md),
-[fast](../verification/independent-stage/cloud-2f3eddda-r4-fast/README.md) and
-[full](../verification/independent-stage/cloud-2f3eddda-full/README.md) VMs each independently pass
-all foreign-window engine checks and cleanup. The diagnostics health read recovers in 645 ms after
-actual AXCannotComplete; it does not establish native use of the new 1000 ms recovery ceiling.
-The separate `3d79921c` fast-VM health failure remains preserved in its original archive.
+The latest completed source/full-package checkpoint is
+`dd665ed2b9fe46731d518e811e8f98c948d59227`: **162 Rust / 172 Swift pass, one explicit skip**,
+including both actual-observation freshness regressions; complete workspace and strict/deep bundle
+verification pass. [Full original candidate and result](../verification/independent-stage/cloud-dd665ed2-full/README.md).
+Its full and fast VMs each independently pass the complete normal foreign-window engine sequence.
+The separate diagnostic VM closes its own canary but encounters an unsettled CG description/list
+pair; the old code propagates Readback217 immediately instead of using its existing 120 ms close
+observation loop. Foreign actions are NOT_RUN/zero; first-release cleanup passes.
+[Original distinct diagnostic failure](../verification/independent-stage/cloud-dd665ed2-diagnostics/README.md).
+The source correction retries only this unknown read within that original loop, retaining ownership
+and all final absence/empty-Space checks; it does not repeat the close or any move.
 
-The fast product run issues its real R4 action and enters the group job. Its ordinary Dock read takes
-1.27 ms and is delivered 483.7 ms after it ends, yet the old acceptance code rejects it using the
-pre-reader request time. The current correction bounds actual sampling-start through acceptance
-by the same 750 ms, validates finite/ordered timestamps, and retains all ownership/epoch checks.
-A pending monitor request can expire only its genuinely old accepted observation; it cannot age a
-newer actual read merely because that request has queued. The original request start was not logged,
-so the exact queue delay is not asserted. The product still fails with all three windows at home.
-Its screenshot shows three real current-window images, not successful hidden-window previews.
+The previous `2f3eddda` fast VM actually used the new health recovery interval: AXCannotComplete at
+300 and 649 ms was followed by two complete positive observations at 735 ms. Its diagnostic VM
+recovered earlier at 645 ms. The [separate originals](../verification/independent-stage/cloud-2f3eddda-r4-fast/README.md)
+remain distinct, as does the earlier `3d79921c` fast health failure.
 
-The separate full product run stops before input at the compound pre-press context check. The exact
-failed field is not present in that original receipt. New diagnostics name those fields individually.
-Normal panel movement no longer invalidates a semantic AXPress on the same retained button: its
-latest bounds must fit the freshly identified panel. The old/full failure is not attributed to movement.
-No R4 product pass, revised Finder desktop predicate, crash/restart or native-system scenario has
-been qualified yet. The current acceptance action retains one original AX element, revalidates its
-current context and performs AXPress at most once; discovery and action success remain distinct.
+The actual Dock sampling-start through acceptance is still bounded by 750 ms. The `2f3eddda`
+queued-request timing defect is corrected and its specific regression executes in the next source
+run. The new `dd665ed2` reads really arrive late: fast includes 11.14 ms of reading plus 1009.32 ms
+of delivery age; full includes 1.68 ms plus 771.66 ms. These are genuine expiry, not the earlier
+false queue-time classification. Fast sends zero R4 actions after an incomplete AX tree; full sends
+one real R4 action but loses admission before the group job. Neither reaches the revised Finder
+predicate or NP_LAUNCH, and neither proves product switching. Both clean up.
+[Fast original evidence](../verification/independent-stage/cloud-dd665ed2-r4-fast/README.md).
+The next harness samples only its own Host, once for three seconds during the first R4 request,
+without making that Host wait or changing qualification, to identify the actual main-thread work.
+
+A separate source audit found that an initial departure before the first displayed image could
+leave a hidden card without pixels: old capture targets disappeared and no later delivery could
+populate the held slot. The correction saves an already delivered real frame without requiring a
+prior draw, or retains the original departure/identity for one bounded first-frame attempt in the
+existing gallery pipeline. Hidden publication requires the original witness and actual hidden claim;
+show/close/revocation invalidates the pending intent even across awaits. Existing eight-stream and
+pixel budgets remain, blank/idle is not an image, and no window is restored to obtain a picture.
+Two targeted gallery regressions are added; native hidden first-frame delivery is not yet proved.
 
 ### What is established
 

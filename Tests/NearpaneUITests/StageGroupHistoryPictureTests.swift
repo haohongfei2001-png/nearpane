@@ -240,6 +240,47 @@ import Testing
         #expect(!group.containsOriginal(member,in:snapshot(3,stage:true),appearance:member.appearance))
         #expect(!host.routesGroupChoice && !host.holdsDispatch)
     }
+    @Test func firstCompositorFrameAfterDepartureBecomesHistoryWithoutAnEarlierDraw() throws {
+        let group = try #require(departure()), member = try #require(group.members.first)
+        var delivered = try still(member, in: group)
+        delivered.departure = nil
+        let pending = DesktopWindowGallery.PendingHeldPicture(departure: group, member: member, target: delivered.target,
+            current: { true }, confirmsHidden: { true }, requested: 99)
+        let stream = UUID(), cache = Cache()
+        #expect(pending.canStart(at: 99) && !pending.canStart(at: 105))
+        #expect(pending.bind(stream, started: 99) && !pending.bind(UUID(), started: 100))
+        #expect(!pending.canStart(at: 100) && cache.count == 0)
+        let saved = try #require(pending.accepts(delivered, stream: stream, now: 101))
+        cache.store(saved, for: .held(member.key), cost: try #require(PreviewPixelBudget.charge(saved.capture.image)))
+        var hidden = snapshot(3)
+        hidden.windows.removeAll()
+        let actual = DesktopWindowGallery.heldPixels(member, departure: group, snapshot: hidden, cache: cache,
+            appearance: nil, now: 102) { _ in true }
+        #expect(actual === delivered.capture.image)
+        #expect(pending.accepts(delivered, stream: stream, now: 105) == nil)
+        #expect(pending.bind(stream, started: 200) && pending.started == 99)
+        // The hidden first-frame budget must not discard a new, independently
+        // admitted current-surface frame while window dispatch is still running.
+        let current = DesktopWindowGallery.Still(target: delivered.target, lifetime: member.appearance,
+            capture: delivered.capture, time: 105)
+        #expect(pending.accepts(current, stream: stream, now: 105, currentSurface: true)?.capture.image === delivered.capture.image)
+    }
+
+    @Test func pendingFirstFrameRejectsChangedLifetimeStreamAndRevokedOriginal() throws {
+        let group = try #require(departure()), member = try #require(group.members.first), delivered = try still(member, in: group)
+        var current = true
+        let pending = DesktopWindowGallery.PendingHeldPicture(departure: group, member: member, target: delivered.target,
+            current: { current }, confirmsHidden: { true }, requested: 99)
+        let stream = UUID()
+        #expect(pending.bind(stream, started: 99))
+        let replaced = DesktopWindowGallery.Still(target: delivered.target, lifetime: UUID(), capture: delivered.capture, time: 100)
+        #expect(pending.accepts(replaced, stream: stream, now: 101) == nil)
+        #expect(!pending.matches(delivered.target, appearance: UUID()))
+        #expect(pending.accepts(delivered, stream: UUID(), now: 101) == nil)
+        current = false
+        #expect(pending.accepts(delivered, stream: stream, now: 101) == nil)
+    }
+
     @Test func heldPixelsOutliveTheCaptureButRejectReusedIdentityWrongSpaceAndLostPermission() throws {
         let group = try #require(departure()), m = try #require(group.members.first), saved = try still(m,in:group)
         let cache = Cache(maxCount:2,maxBytes:400_000)

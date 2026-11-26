@@ -12,6 +12,13 @@ three switch cycles, same-app independence, cross-app grouping, focus and
 cleanup all passing. This does not qualify the complete workspace package or
 the user's build 26A428 / SIP-on target.
 
+The raw backend trace also exercises the narrow health-read grace: the original
+hidden window 57 in owned Space 27 returned AXCannotComplete at 300 and 649 ms,
+then completed both positive health observations at **735 ms**, within the
+existing-start 1000 ms recovery bound. This is an actual recovery beyond the
+former 650 ms deadline. No extra window move or AX setter was issued by that
+health recovery.
+
 ## Actual product path
 
 The external client issued one real AXPress at uptime 1483.599970 and received

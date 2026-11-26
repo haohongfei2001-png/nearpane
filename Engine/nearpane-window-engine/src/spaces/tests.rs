@@ -47,6 +47,8 @@ struct Fake {
     ambiguous_panel_membership: bool,
     defer_probe_close: bool,
     cg_keeps_closed_probe: bool,
+    probe_absence_failures: Cell<u32>,
+    probe_absence_reads: Cell<u32>,
     managed_roster: Vec<Desktop>,
     reverse_managed_after_hide: bool,
     repeated_fullscreen: Option<u64>,
@@ -257,6 +259,13 @@ impl Platform for Fake {
         })
     }
     fn absent(&self, n: u32) -> Check<bool> {
+        if n == 77 && self.probe_closes > 0 && !self.windows.contains_key(&n) {
+            self.probe_absence_reads.set(self.probe_absence_reads.get() + 1);
+            if self.probe_absence_failures.get() > 0 {
+                self.probe_absence_failures.set(self.probe_absence_failures.get() - 1);
+                return Err(unknown(Why::Readback));
+            }
+        }
         Ok(!self.windows.contains_key(&n) && !(n == 77 && self.cg_keeps_closed_probe))
     }
     fn departed(&self, w: Window) -> Check<bool> {
@@ -1168,6 +1177,43 @@ fn windowserver_close_lag_keeps_owned_space_and_only_cleanup_can_release_it() {
     s.sys.cg_keeps_closed_probe = false;
     assert_eq!(s.run(&launch_request(CLEAN_LAUNCH), &guard).status, PASS);
     assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.destroyed, vec![101]);
+    assert!(s.route.is_none());
+}
+#[test]
+fn canary_close_observes_unsettled_cg_then_two_complete_absence_reads() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.probe_absence_failures.set(2);
+    let result = s.run(&launch_request(LAUNCH), &guard);
+    assert_eq!((result.status, result.owned), (PASS, 0));
+    assert_eq!(s.sys.probe_absence_reads.get(), 4);
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.moved, vec![(Route::Bridge, 77, 101, 7), (Route::Bridge, 77, 10, 15)]);
+    assert_eq!(s.sys.destroyed, vec![101]);
+    assert_eq!(s.route, Some(Route::Bridge));
+}
+#[test]
+fn canary_close_unknown_reaches_original_deadline_and_retains_space_for_cleanup() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.probe_absence_failures.set(u32::MAX);
+    let began = s.sys.now();
+    let result = s.run(&launch_request(LAUNCH), &guard);
+    assert_eq!((result.status, result.detail), (UNKNOWN, Why::Readback as u32));
+    assert!(s.sys.now() - began >= DEADLINE);
+    assert!(s.sys.now() - began < DEADLINE * 2);
+    assert!(result.owned > 0 && s.route.is_none());
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.moved.len(), 2);
+    assert!(s.sys.destroyed.is_empty() && s.sys.spaces.contains(&101));
+    s.sys.probe_absence_failures.set(0);
+    let reads = s.sys.probe_absence_reads.get();
+    let clean = s.run(&launch_request(CLEAN_LAUNCH), &guard);
+    assert_eq!((clean.status, clean.owned), (PASS, 0));
+    assert_eq!(s.sys.probe_absence_reads.get() - reads, 2);
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.moved.len(), 2);
     assert_eq!(s.sys.destroyed, vec![101]);
     assert!(s.route.is_none());
 }

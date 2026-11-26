@@ -55,10 +55,12 @@ def atomic(path, value):
     pending.replace(path)
 
 
-def execute(command, out, name, env, timeout=900, reap_children=()):
-    with (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
+def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=None):
+    with ExitStack() as sampling_files, (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
+        sampler = None
+        sample_report = {"status": "NOT_RUN", "reason": "firstR4RequestNotObserved", "diagnosticOnly": True}
         try:
-            if reap_children:
+            if reap_children or sample_host is not None:
                 # The lifecycle Host must observe a positively exited fixture
                 # generation. Reap only these direct children so a zombie cannot
                 # masquerade as a still-live AX owner while the Host is running.
@@ -67,6 +69,21 @@ def execute(command, out, name, env, timeout=900, reap_children=()):
                     while running.poll() is None and time.monotonic() < deadline:
                         for child in reap_children:
                             child.poll()
+                        if sample_host is not None and sample_report["status"] == "NOT_RUN" and next(sample_host.glob("r4-press-*.request.json"), None):
+                            # Observe only this directly launched acceptance Host at
+                            # its first real R4 interaction. The Host never waits for
+                            # this separate, bounded, read-only sampling process.
+                            sample_report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
+                                             "durationSeconds": 3, "intervalMilliseconds": 10,
+                                             "startedMonotonic": time.monotonic()}
+                            try:
+                                sample_log = sampling_files.enter_context((sample_host / "host-main-thread-sample.log").open("x"))
+                                sample_error = sampling_files.enter_context((sample_host / "host-main-thread-sample.stderr.log").open("x"))
+                                sampler = subprocess.Popen(["/usr/bin/sample", str(running.pid), "3", "10", "-file",
+                                                            str(sample_host / "host-main-thread.sample.txt")],
+                                                           stdout=sample_log, stderr=sample_error)
+                            except OSError as error:
+                                sample_report.update(status="BLOCKED", reason=type(error).__name__ + ": " + str(error))
                         time.sleep(.05)
                     if running.poll() is None:
                         running.kill()
@@ -82,6 +99,25 @@ def execute(command, out, name, env, timeout=900, reap_children=()):
         except FileNotFoundError as error:
             stderr.write(str(error) + "\n")
             report = {"status": "BLOCKED", "reason": "requiredExecutableUnavailable", "executable": str(command[0])}
+        finally:
+            if sampler is not None:
+                try:
+                    sampler.wait(timeout=4)
+                except subprocess.TimeoutExpired:
+                    sample_report["reason"] = "samplerDeadline"
+                    sampler.terminate()
+                    try:
+                        sampler.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        sampler.kill()
+                        try:
+                            sampler.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            sample_report["reason"] = "samplerReapUnavailable"
+                sample_report.update(status="COMPLETE" if sampler.returncode == 0 else "INCOMPLETE", exit=sampler.returncode,
+                                     finishedMonotonic=time.monotonic())
+            if sample_host is not None:
+                atomic(sample_host / "host-main-thread-sample.json", sample_report)
     report.update(log=name + ".log", stderr=name + ".stderr.log")
     atomic(out / (name + ".json"), report)
     print(name, report["status"], flush=True)
@@ -322,7 +358,8 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 executable = candidate_copy(host, product_dir, revision)
                 product_env = dict(env, NEARPANE_SPACES_CANDIDATE_PIDS=",".join(str(p.pid) for _, p in children))
                 product_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
-                                           product_dir / "config.json"], out, "product", product_env, 240 + iterations * 20)
+                                           product_dir / "config.json"], out, "product", product_env, 240 + iterations * 20,
+                                          sample_host=product_dir)
                 receipt = product_dir / "product-result.json"
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}

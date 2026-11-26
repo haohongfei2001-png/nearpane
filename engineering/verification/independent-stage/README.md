@@ -77,6 +77,10 @@ These are code-completion claims. The evidence below determines which native eff
 | `2f3eddda`, R4-fast | Real AXPress input1 reaches group job; actual ordinary Dock read is 1.27 ms, delivery age 483.7 ms, but pre-request clock causes sampleExpired and epoch withdrawal. Three real images render; all windows remain at home | Product FAIL, cleanup PASS; current previews are not held-window proof. This VM's entire normal engine passes independently. [Actual input, read interval and screenshot](cloud-2f3eddda-r4-fast/README.md) |
 | `2f3eddda`, full release | 162 Rust / 170 Swift pass, one skip; complete workspace/signature and this VM's normal engine pass. Product compound pre-press context check declines before input | Latest source-checked complete candidate; product BLOCKED/input0, cleanup PASS. Exact failed context field is unobserved, not assigned the fast VM's cause. [Original candidate and product receipt](cloud-2f3eddda-full/README.md) |
 
+| `dd665ed2`, diagnostics | Own-panel hidden and return pass, then first close-time CG description/on-screen disagreement returns Readback217; existing observation loop exits early | BLOCKED, zero foreign actions, first-release and double physical cleanup PASS. Follow-up keeps unknown reads inside the original120ms loop. [Exact canary fault](cloud-dd665ed2-diagnostics/README.md) |
+| `dd665ed2`, R4-fast | 162 Rust /172 Swift pass, one skip; both new freshness regressions execute. Actual Dock delivery age1009.32ms after11.14ms read genuinely expires; helper AX tree remains incomplete before input | Normal engine passes independently, product BLOCKED/input0, cleanup PASS. Main-thread cause requires the newly added external sample. [Original actual timings](cloud-dd665ed2-r4-fast/README.md) |
+| `dd665ed2`, full release | Complete app/signature and this VM's engine pass; real R4 input1, all four pre-press context fields true, no panel movement. Actual Dock read+delivery773.334ms correctly exceeds750ms before group job | Latest source-checked complete candidate; product FAIL/cleanup PASS, no Finder/worker-launch result. [Original full candidate and trace](cloud-dd665ed2-full/README.md) |
+
 The specific AXCannotComplete health correction has now executed successfully, inside its original
 650 ms budget and on the same retained witness. The next yellow correction registers every initially
 visible standard AX window through the existing readback operation, retains that exact identity across
@@ -87,7 +91,7 @@ restart scenario still needs to prove actual worker return, old-ledger retiremen
 The normal card path also now refreshes and atomically rebinds a complete live scope when an explicit
 current click encounters new session lifetimes, without requiring an extra menu action or silently
 substituting ordinary focus. These later source changes are not yet a product acceptance result.
-The latest completed `2f3eddda` source run passed **162 Rust and 170 Swift cases, with one explicit skip**;
+The latest completed `dd665ed2` source run passed **162 Rust and 172 Swift cases, with one explicit skip**;
 the new binding, desktop-focus and original minimized-window tests actually executed. The latest
 completed full candidate is separately recorded below. Source changes also retain the new-window resume intent after recording the new
 singleton clears the old active marker, and add real creation/closure/application-exit acceptance.
@@ -128,7 +132,16 @@ were not replaced. All target experiment fixture cleanup that completed is prese
 
 ## Complete candidate checkpoints
 
-[2f3eddda full receipts](cloud-2f3eddda-full/README.md) identify the latest source-checked complete
+[dd665ed2 full receipts](cloud-dd665ed2-full/README.md) identify the latest source-checked complete
+candidate in [artifact 15079243584](https://github.com/haohongfei2001-png/nearpane/actions/runs/45736296714/artifacts/15079243584).
+Its independently rehashed ZIP is 25,324,809 bytes, SHA-256
+`2a492dd74ef3149aea970ba628c454b24980036b4788ea7bc44be7297955038f`.
+162 Rust and 172 Swift cases passed, with one explicit skip; both freshness regressions actually ran.
+Complete workspace and strict/deep bundle verification passed. This VM's entire engine sequence
+passed, but real R4 input failed admission on a genuinely old Dock observation. Cleanup passed;
+this remains a development candidate without product qualification.
+
+[2f3eddda full receipts](cloud-2f3eddda-full/README.md) identify an earlier source-checked complete
 candidate in [artifact 15077963583](https://github.com/haohongfei2001-png/nearpane/actions/runs/45734124458/artifacts/15077963583).
 Its independently rehashed ZIP is 25,323,844 bytes, SHA-256
 `d0c00ccb9da79502c0c44e0037a969bd6b094e8886228b6d612a920cd838af9c`.

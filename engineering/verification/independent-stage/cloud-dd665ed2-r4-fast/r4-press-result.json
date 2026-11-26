@@ -1,0 +1,31 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : -25200,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "issued" : false,
+  "nonce" : "92c3b6de-615c-4f9f-a28c-1a5ce0f3b092",
+  "panelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "panelFrameRead" : -25204,
+  "physicalPointerGesture" : false,
+  "prePressRediscoveries" : 0,
+  "qualificationGranted" : false,
+  "reason" : "accessibilityTreeIncomplete",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "tree" : {
+    "complete" : false,
+    "matchingButtons" : 0,
+    "nodes" : [
+
+    ],
+    "visited" : 0
+  },
+  "uptime" : 612.84699554166673,
+  "windowListRead" : 0
+}
