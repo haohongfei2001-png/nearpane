@@ -1,0 +1,30 @@
+{
+  "observed_at_utc": "2026-11-25T18:52:46.811828+00:00",
+  "url": "https://lrclib.net/api/get?artist_name=Borislav+Slavov&track_name=I+Want+to+Live&album_name=Baldur%27s+Gate+3+(Original+Game+Soundtrack)&duration=233",
+  "status": 200,
+  "content_type": "application/json",
+  "fields": [
+    "albumName",
+    "artistName",
+    "duration",
+    "hasWordSync",
+    "id",
+    "instrumental",
+    "lyricsfile",
+    "name",
+    "plainLyrics",
+    "syncedLyrics",
+    "trackName"
+  ],
+  "id": 3396226,
+  "trackName": "I Want to Live",
+  "artistName": "Borislav Slavov",
+  "duration": 233.0,
+  "instrumental": false,
+  "hasWordSync": false,
+  "lyric_lengths": {
+    "plainLyrics": 1041,
+    "syncedLyrics": 1558,
+    "lyricsfile": 4378
+  }
+}

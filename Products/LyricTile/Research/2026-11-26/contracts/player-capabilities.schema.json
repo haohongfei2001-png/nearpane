@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:holdsnow:lyrictile:player-capabilities:1",
+  "title": "LyricTile player capability evaluation",
+  "description": "One exact environment/profile evaluation plus current runtime health. A populated control is not evidence of support. Schema validation does not replace macOS testing or independent timing measurement.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "evaluationID", "dataOrigin", "releaseEligible", "environment", "capabilities", "clockProfile", "runtime", "publishedLyricsMode", "evidencePaths"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "evaluationID": {"type": "string", "minLength": 1},
+    "dataOrigin": {"enum": ["real_player", "synthetic_fixture", "source_review"]},
+    "releaseEligible": {"type": "boolean"},
+    "environment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["macOSVersion", "macOSBuild", "bundleID", "playerVersion", "playerBuild", "appCommit", "packageSHA256", "adapterRevision", "observedAt"],
+      "properties": {
+        "macOSVersion": {"type": "string", "minLength": 1}, "macOSBuild": {"type": "string", "minLength": 1},
+        "bundleID": {"enum": ["com.apple.Music", "com.spotify.client", "com.tencent.QQMusicMac", "com.netease.163music"]},
+        "playerVersion": {"type": "string", "minLength": 1}, "playerBuild": {"type": ["string", "null"]},
+        "appCommit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "packageSHA256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "adapterRevision": {"type": "string", "minLength": 1}, "observedAt": {"type": "string", "format": "date-time"}
+      }
+    },
+    "capabilities": {
+      "type": "object", "additionalProperties": false,
+      "required": ["metadata", "position", "artwork", "playPause", "previous", "next", "seek", "openPlayer"],
+      "properties": {
+        "metadata": {"$ref": "#/$defs/readCapability"}, "position": {"$ref": "#/$defs/readCapability"}, "artwork": {"$ref": "#/$defs/readCapability"},
+        "playPause": {"$ref": "#/$defs/controlCapability"}, "previous": {"$ref": "#/$defs/controlCapability"}, "next": {"$ref": "#/$defs/controlCapability"},
+        "seek": {"allOf": [{"$ref": "#/$defs/controlCapability"}, {"properties": {"route": {"enum": ["appleEvents", "mediaRemoteCurrent", "none"]}}}]},
+        "openPlayer": {"allOf": [{"$ref": "#/$defs/capability"}, {"properties": {"route": {"enum": ["workspace", "none"]}}}]}
+      }
+    },
+    "clockProfile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["basis", "sourceClass", "sourceQuantumMs", "clockErrorP95Ms", "reference", "referenceUncertaintyMs", "calibrationPoints", "recordingCount"],
+      "properties": {
+        "basis": {"enum": ["mac_verified", "source_only", "not_run"]}, "sourceClass": {"enum": ["precise", "quantized", "missing", "unknown"]},
+        "sourceQuantumMs": {"type": ["number", "null"], "minimum": 0}, "clockErrorP95Ms": {"type": ["number", "null"], "minimum": 0, "description": "Conservative P95 observed error plus bounded independent reference uncertainty; unknown is null, never zero."},
+        "referenceUncertaintyMs": {"type": ["number", "null"], "minimum": 0},
+        "reference": {"enum": ["independent_audio_timecode", "independent_player_observation", "same_adapter_only", "none"]},
+        "calibrationPoints": {"type": "integer", "minimum": 0}, "recordingCount": {"type": "integer", "minimum": 0}
+      }
+    },
+    "runtime": {
+      "type": "object", "additionalProperties": false,
+      "required": ["playerSession", "trackGeneration", "clockHealth", "lyricTiming", "sourcePositionMs", "uncertaintyMs", "conditions"],
+      "properties": {
+        "playerSession": {"type": ["string", "null"]}, "trackGeneration": {"type": "integer", "minimum": 0},
+        "clockHealth": {"enum": ["healthy", "degraded", "stale", "unavailable", "unknown"]}, "lyricTiming": {"enum": ["none", "text", "line", "word"]},
+        "sourcePositionMs": {"type": ["number", "null"], "minimum": 0}, "uncertaintyMs": {"type": ["number", "null"], "minimum": 0},
+        "conditions": {"type": "object", "description": "Before every command, all its named preconditions must evaluate true; omitted means unknown. This cross-field evaluation is mandatory beyond JSON Schema.", "propertyNames": {"$ref": "#/$defs/condition"}, "additionalProperties": {"enum": ["true", "false", "unknown"]}}
+      }
+    },
+    "publishedLyricsMode": {"enum": ["none", "text", "line", "word"]},
+    "evidencePaths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  },
+  "allOf": [
+    {"if": {"properties": {"dataOrigin": {"enum": ["synthetic_fixture", "source_review"]}}}, "then": {"properties": {"releaseEligible": {"const": false}, "capabilities": {"additionalProperties": {"properties": {"basis": {"enum": ["source_only", "not_run"]}, "status": {"enum": ["unverified", "unsupported"]}}}}}}},
+    {"if": {"properties": {"releaseEligible": {"const": true}}}, "then": {"properties": {"dataOrigin": {"const": "real_player"}, "environment": {"properties": {"packageSHA256": {"type": "string"}}}, "evidencePaths": {"minItems": 1}}}},
+    {"if": {"properties": {"publishedLyricsMode": {"enum": ["line", "word"]}}}, "then": {"properties": {
+      "dataOrigin": {"const": "real_player"},
+      "clockProfile": {"properties": {"basis": {"const": "mac_verified"}, "clockErrorP95Ms": {"type": "number", "maximum": 750}, "referenceUncertaintyMs": {"type": "number", "maximum": 750}, "reference": {"enum": ["independent_audio_timecode", "independent_player_observation"]}, "calibrationPoints": {"minimum": 100}, "recordingCount": {"minimum": 10}}},
+      "runtime": {"properties": {"clockHealth": {"const": "healthy"}, "lyricTiming": {"enum": ["line", "word"]}, "sourcePositionMs": {"type": "number"}, "uncertaintyMs": {"type": "number", "maximum": 750}}},
+      "capabilities": {"properties": {"position": {"properties": {"status": {"enum": ["supported", "conditional"]}, "availability": {"const": "available"}}}}}
+    }}},
+    {"if": {"properties": {"publishedLyricsMode": {"const": "word"}}}, "then": {"properties": {
+      "clockProfile": {"properties": {"clockErrorP95Ms": {"type": "number", "maximum": 250}, "referenceUncertaintyMs": {"type": "number", "maximum": 250}}},
+      "runtime": {"properties": {"lyricTiming": {"const": "word"}, "uncertaintyMs": {"type": "number", "maximum": 250}}}
+    }}}
+  ],
+  "$defs": {
+    "condition": {"enum": ["playerRunning", "automationGranted", "accessibilityGranted", "systemMediaOwnerMatches", "durationKnown", "notAdvertisement", "seekWhilePausedVerified", "positionHealthy"]},
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "availability", "basis", "route", "preconditions", "evidencePaths", "reason"],
+      "properties": {
+        "status": {"enum": ["supported", "conditional", "unsupported", "unverified"]},
+        "availability": {"enum": ["available", "unavailable", "unknown"]}, "basis": {"enum": ["mac_verified", "source_only", "not_run"]},
+        "route": {"enum": ["appleEvents", "mediaRemoteRead", "mediaRemoteCurrent", "axMenu", "workspace", "none"]},
+        "preconditions": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/condition"}},
+        "evidencePaths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "reason": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"status": {"enum": ["supported", "conditional"]}}}, "then": {"properties": {"basis": {"const": "mac_verified"}, "evidencePaths": {"minItems": 1}, "route": {"not": {"const": "none"}}}}},
+        {"if": {"properties": {"status": {"enum": ["unsupported", "unverified"]}}}, "then": {"properties": {"availability": {"enum": ["unavailable", "unknown"]}, "reason": {"type": "string", "minLength": 1}}}},
+        {"if": {"properties": {"status": {"const": "conditional"}}}, "then": {"properties": {"preconditions": {"minItems": 1}}}},
+        {"if": {"properties": {"route": {"const": "mediaRemoteCurrent"}}}, "then": {"properties": {"status": {"enum": ["conditional", "unverified", "unsupported"]}, "preconditions": {"contains": {"const": "systemMediaOwnerMatches"}}}}}
+      ]
+    },
+    "readCapability": {"allOf": [{"$ref": "#/$defs/capability"}, {"properties": {"route": {"enum": ["appleEvents", "mediaRemoteRead", "none"]}}}]},
+    "controlCapability": {"allOf": [{"$ref": "#/$defs/capability"}, {"properties": {"route": {"enum": ["appleEvents", "mediaRemoteCurrent", "axMenu", "none"]}}}]}
+  }
+}

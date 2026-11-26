@@ -1,0 +1,182 @@
+{
+  "status": "acceptance_design_not_test_execution",
+  "syntheticParserFixturesOnly": true,
+  "productionUseForbidden": true,
+  "fixtures": [
+    {
+      "id": "lrc_multi_timestamp",
+      "format": "lrc",
+      "input": "[00:01.00][00:03.00]窗外有光",
+      "expect": {
+        "cueStartsMS": [
+          1000,
+          3000
+        ],
+        "timingLevel": "line",
+        "sourceEndsMS": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "lrc_no_fake_words",
+      "format": "lrc",
+      "input": "[00:01.00]窗外有光\n[00:05.00]风停下来",
+      "expect": {
+        "tokens": [],
+        "behavior": "line highlight only"
+      }
+    },
+    {
+      "id": "plain_not_instrumental",
+      "format": "plainText",
+      "input": "窗外有光\n风停下来",
+      "expect": {
+        "timingLevel": "none",
+        "availability": "available",
+        "autoScroll": false
+      }
+    },
+    {
+      "id": "ttml_no_external_entity",
+      "format": "ttmlAppleAmll",
+      "input": "<!DOCTYPE tt [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><tt><body><p begin='1s' end='2s'>&x;</p></body></tt>",
+      "expect": {
+        "error": "forbiddenDTD",
+        "fileAccess": false
+      }
+    },
+    {
+      "id": "ttml_known_time_units",
+      "format": "ttmlAppleAmll",
+      "input": "<tt xmlns='http://www.w3.org/ns/ttml'><body><div><p begin='1500ms' end='2.5s'>窗外有光</p></div></body></tt>",
+      "expect": {
+        "startMS": 1500,
+        "sourceEndMS": 2500
+      }
+    },
+    {
+      "id": "ttml_unsupported_tick",
+      "format": "ttmlAppleAmll",
+      "input": "<tt xmlns='http://www.w3.org/ns/ttml'><body><p begin='25t' end='50t'>窗外有光</p></body></tt>",
+      "expect": {
+        "error": "unsupportedTimingProfile",
+        "mustNotCoerceToZero": true
+      }
+    },
+    {
+      "id": "lyricsfile_unknown_version",
+      "format": "lyricsfileV1Draft",
+      "input": "version: '2.0'\nmetadata:\n  title: Test\n  artist: HOLDSNOW\nlines: []\n",
+      "expect": {
+        "error": "unsupportedVersion"
+      }
+    },
+    {
+      "id": "lyricsfile_duplicate_key",
+      "format": "lyricsfileV1Draft",
+      "input": "version: '1.0'\nversion: '2.0'\nmetadata:\n  title: Test\n  artist: HOLDSNOW\n",
+      "expect": {
+        "error": "duplicateKey"
+      }
+    },
+    {
+      "id": "late_old_response",
+      "events": [
+        "Track A generation 1 starts request",
+        "Track B generation 2 selected",
+        "A request completes"
+      ],
+      "expect": {
+        "currentRecording": "B",
+        "acceptOldLyrics": false
+      }
+    },
+    {
+      "id": "source_missing_position",
+      "events": [
+        "Metadata received",
+        "No elapsed position supplied"
+      ],
+      "expect": {
+        "state": "positionUnavailable",
+        "progressMoves": false
+      }
+    },
+    {
+      "id": "pause_holds",
+      "events": [
+        "Real anchor at 12500 ms playing",
+        "Pause observed at 13000 ms",
+        "Wait 30 seconds"
+      ],
+      "expect": {
+        "displayPositionMS": 13000
+      }
+    },
+    {
+      "id": "seek_immediate",
+      "events": [
+        "Current lyric at 10000 ms",
+        "Player reports seek to 160000 ms"
+      ],
+      "expect": {
+        "oldAnimationsCancelled": true,
+        "rebase": true,
+        "noAnimatedSweepAcrossAllInterveningLines": true
+      }
+    },
+    {
+      "id": "same_title_live_mismatch",
+      "recording": {
+        "title": "测试曲 Live",
+        "artist": "Artist A",
+        "durationMS": 264000
+      },
+      "candidate": {
+        "title": "测试曲",
+        "artist": "Artist A",
+        "durationMS": 216000
+      },
+      "expect": {
+        "autoApply": false
+      }
+    },
+    {
+      "id": "right_line_wrong_words",
+      "events": [
+        "Correct line-synced recording accepted",
+        "Different recording with word sync returned"
+      ],
+      "expect": {
+        "replaceCurrent": false
+      }
+    }
+  ],
+  "realWorldValidation": {
+    "minimumRecordings": 120,
+    "minimumVersionConfusionCases": 30,
+    "dimensions": [
+      "Chinese",
+      "English",
+      "Japanese",
+      "Korean",
+      "covers",
+      "live",
+      "remaster",
+      "clean/explicit",
+      "acoustic/remix",
+      "same title different artists"
+    ],
+    "report": [
+      "accepted count",
+      "auto-match coverage",
+      "accepted precision",
+      "wrong-version count",
+      "word-timing availability",
+      "source hit rate"
+    ],
+    "warning": "These are future validation targets, not measured results."
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+<title>LyricTile tinted vector icon master — HOLDSNOW</title>
+<defs><linearGradient id="base" x1="160" y1="60" x2="900" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#ECECF0"/><stop offset="1" stop-color="#D5D5E0"/></linearGradient><linearGradient id="rim" x1="300" y1="50" x2="750" y2="980" gradientUnits="userSpaceOnUse"><stop stop-color="white" stop-opacity=".85"/><stop offset="1" stop-color="white" stop-opacity=".12"/></linearGradient></defs>
+<rect x="40" y="40" width="944" height="944" rx="218" fill="url(#base)"/>
+<rect x="42" y="42" width="940" height="940" rx="216" stroke="url(#rim)" stroke-width="4"/>
+<g transform="translate(135 135) scale(5.89)"><path d="M39 37H91M39 64H104M39 91H79" stroke="#4F4C67" stroke-width="10" stroke-linecap="round"/><circle cx="23" cy="64" r="5" fill="#4F4C67"/></g>
+</svg>

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "design-specification-not-runtime-proof",
+  "product": "LyricTile",
+  "brand": "HOLDSNOW",
+  "selectedDirection": "mist-reading-sheet",
+  "unit": "macOS-point",
+  "geometry": {
+    "widthFormula": "clamp(176,224,4*round(visibleFrame.width/32))",
+    "referenceWidth": 208,
+    "height": 272,
+    "cornerRadius": 22,
+    "screenEdgeInset": 16,
+    "railGap": 10,
+    "contentInset": 17,
+    "coverSize": 32,
+    "coverRadius": 7,
+    "transportHitArea": 32,
+    "returnHitArea": 28,
+    "hoverChangesExternalFootprint": false,
+    "idleManuallyOpenedHeight": 62,
+    "fullLyricsPreferredSize": [360,520]
+  },
+  "typography": {
+    "family": "system / SF Pro Text / PingFang SC fallback",
+    "currentSizeNarrow": 18,
+    "currentSizeStandard": 20,
+    "currentSizeLarge": 22,
+    "currentWeight": 500,
+    "contextSize": 12,
+    "trackSize": 11,
+    "artistSize": 10,
+    "timeSize": 10,
+    "translationSize": 11,
+    "minimumActionTextSize": 11,
+    "bodyContrastTarget": 4.5
+  },
+  "color": {
+    "light": {"text":"#272A31","secondary":"#656A73","context":"#70747C","surfaceReference":"rgba(250,250,249,0.87)","opaqueSurface":"#F6F6F5","accent":"#7566CE"},
+    "dark": {"text":"#F1F1F3","secondary":"#C2C6CF","context":"#B0B6C1","surfaceReference":"rgba(36,41,50,0.90)","opaqueSurface":"#282C34","accent":"#A59BDC"}
+  },
+  "motionMS": {"hoverDwell":140,"hoverEnter":160,"leaveDwell":280,"hoverExit":180,"cueTransition":220,"oldTrackFade":120,"newTrackFade":160,"artworkCrossfade":220,"seekSettleMaximum":120,"layoutTransition":180},
+  "curve": {"cue":[0.22,0.72,0.18,1],"layout":[0.2,0.8,0.2,1],"wordMask":"linear-real-media-position"},
+  "reduceMotion": {"translation":0,"continuousDecorativeAnimation":false,"fadeMaximumMS":100},
+  "idle": {"hideAfterNoPlaybackSeconds":15,"pausedCountsAsNoPlayback":false},
+  "samples": {"lyrics":"original-design-only","artwork":"generated-original-design-only","livePlayerConnection":false}
+}

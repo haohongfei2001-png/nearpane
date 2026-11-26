@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-26 Asia/Shanghai",
+  "purpose": "Research lock, not a runtime dependency manifest. Pins require license/release asset review before actual vendoring.",
+  "repositories": [
+    {
+      "repository": "haohongfei2001-png/nearpane",
+      "url": "https://github.com/haohongfei2001-png/nearpane",
+      "commit": "6ac5eb63c97b7597e662770bac485be61f571bb8",
+      "latest_stable_observed": null,
+      "license_observed": "no repository license detected by GitHub",
+      "decision": "Read existing native domain-module and host integration conventions; no upstream modification in this research turn.",
+      "verified_by": "source inspection; no macOS 27 runtime",
+      "notes": "Nearpane PR #15 inspected, not default branch."
+    },
+    {
+      "repository": "haohongfei2001-png/saytile",
+      "url": "https://github.com/haohongfei2001-png/saytile",
+      "commit": "f3baa0a255931dbb16291690699790e3d54f8bde",
+      "latest_stable_observed": "v1.0.0",
+      "license_observed": "no repository license detected by GitHub",
+      "decision": "Read panel/material/geometry; future small TileKit adoption required.",
+      "verified_by": "source inspection; no macOS 27 runtime",
+      "notes": null
+    },
+    {
+      "repository": "haohongfei2001-png/Riftlet",
+      "url": "https://github.com/haohongfei2001-png/Riftlet",
+      "commit": "2b270aec5cf57d2b4165acd52bcc730fa1052a02",
+      "latest_stable_observed": "v1.0.11",
+      "license_observed": "no repository license detected by GitHub",
+      "decision": "Read panel/stack/geometry; capture-only elevated windows are not a lyric-panel template.",
+      "verified_by": "source inspection; no macOS 27 runtime",
+      "notes": null
+    },
+    {
+      "repository": "Yudaotor/lyrimuse",
+      "url": "https://github.com/Yudaotor/lyrimuse",
+      "commit": "9d74d785be00faca056bc9b5b1575abe7b7820ea",
+      "latest_stable_observed": "v1.14.0",
+      "license_observed": "GPL-3.0",
+      "decision": "Behavior and architecture reference only; do not copy GPL app/engine into a differently licensed product.",
+      "verified_by": "source inspection; no macOS 27 runtime",
+      "notes": null
+    },
+    {
+      "repository": "afeibukaixin/Lyrics-Plus",
+      "url": "https://github.com/afeibukaixin/Lyrics-Plus",
+      "commit": "a6f5a32814fee2f3914414fd7fdfe0aeea4d2917",
+      "latest_stable_observed": "v2.2.20",
+      "license_observed": "MIT",
+      "decision": "Selective MIT reference; do not adopt the naive TTML parser or old adapter pin.",
+      "verified_by": "source inspection; no macOS 27 runtime",
+      "notes": null
+    },
+    {
+      "repository": "ungive/mediaremote-adapter",
+      "url": "https://github.com/ungive/mediaremote-adapter",
+      "commit": "2ef957c736256cee7905c9f3f1c7e279087bf195",
+      "latest_stable_observed": "v0.9.0",
+      "license_observed": "BSD-3-Clause",
+      "decision": "Reuse pinned isolated helper for QQ/NetEase observation and conditional controls; --micros, no global override.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "ungive/media-control",
+      "url": "https://github.com/ungive/media-control",
+      "commit": "507575ce288a9238372b7f39fde44988612700d4",
+      "latest_stable_observed": "v0.9.0",
+      "license_observed": "BSD-3-Clause declaration in script/README; root LICENSE missing in inspected tree",
+      "decision": "Diagnostic tool only, not product runtime dependency.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "ddddxxx/LyricsX",
+      "url": "https://github.com/ddddxxx/LyricsX",
+      "commit": "c16b6a413dda7bc0b793b897522e0c4ee0ffc716",
+      "latest_stable_observed": "v1.6.3",
+      "license_observed": "MPL-2.0",
+      "decision": "Behavior/reference only; do not transplant old window/rendering system.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "ddddxxx/LyricsKit",
+      "url": "https://github.com/ddddxxx/LyricsKit",
+      "commit": "8a61b97cfc853858537e4ff0890d0ba16f20ebc9",
+      "latest_stable_observed": null,
+      "license_observed": "MPL-2.0",
+      "decision": "Isolate reusable LyricsCore LRC/LRCX parser with file-level source obligations; replace matcher/providers.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "amll-dev/applemusic-like-lyrics",
+      "url": "https://github.com/amll-dev/applemusic-like-lyrics",
+      "commit": "f3297962e138038c8f14ec83580bc21b1e2f9beb",
+      "latest_stable_observed": null,
+      "license_observed": "AGPL-3.0-only for audited relevant packages",
+      "decision": "Motion/format behavior reference; no WebView/WASM engine embedding or code translation to evade license.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "amll-dev/amll-ttml-db",
+      "url": "https://github.com/amll-dev/amll-ttml-db",
+      "commit": "533e9c52796db48f8bbde4394aee2b7d9db5d068",
+      "latest_stable_observed": null,
+      "license_observed": "CC0 repository declaration; foreign lyrics retain original provider conditions",
+      "decision": "Optional exact-ID/candidate reference subject to source rights; never treat root license as all-song authorization.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "aviwad/LyricFever",
+      "url": "https://github.com/aviwad/LyricFever",
+      "commit": "20a44f0fc18a39f28824bf288dc8f368b17b9a99",
+      "latest_stable_observed": null,
+      "license_observed": "MIT",
+      "decision": "Selective scripting bridge reference only; reject magic offsets, playback drift fix, and cookie-based primary lyrics.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "apoint123/ttml-processor-rs",
+      "url": "https://github.com/apoint123/ttml-processor-rs",
+      "commit": "4b01f5ab8ce040b4b26413c414654d8b9833a293",
+      "latest_stable_observed": "crate 0.4.0",
+      "license_observed": "MIT",
+      "decision": "Semantic/parser fixture reference; native Swift XMLParser implementation of explicit Apple/AMLL TTML profile.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "ddddxxx/MusicPlayer",
+      "url": "https://github.com/ddddxxx/MusicPlayer",
+      "commit": "f2090c48cecf12b86ddb3fc98f2fe90ed4dbb82f",
+      "latest_stable_observed": null,
+      "license_observed": "MPL-2.0",
+      "decision": "Additional interface evidence; not an automatic dependency. Preserve file-level license and source obligations if used.",
+      "verified_by": "source inspection; no macOS 27 runtime"
+    },
+    {
+      "repository": "tranxuanthang/lyricsfile",
+      "url": "https://github.com/tranxuanthang/lyricsfile",
+      "commit": "348cd04b9d002fac8f5f67694064605026f9d030",
+      "latest_stable_observed": "1.0 draft specification",
+      "license_observed": "CC0-1.0 specification; lyric content rights separate",
+      "decision": "Strict feature-detected Lyricsfile reader for LRCLIB; unknown version/offset semantics must not be guessed.",
+      "verified_by": "specification/source inspection; LRCLIB response fields probed, no word-sync player runtime"
+    }
+  ],
+  "services": [
+    {
+      "name": "LRCLIB",
+      "documentation": "https://lrclib.net/docs.txt",
+      "observed_at": "2026-11-26 Asia/Shanghai",
+      "verified": "Public GET returned HTTP 200; response fields include hasWordSync and lyricsfile. Does not verify corpus-wide lyric rights.",
+      "evidence": "research/lyrics/lrclib-live-probe.json"
+    }
+  ],
+  "platform_verification": "macOS 27 / player versions / signed packaged app: NOT_RUN"
+}

@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "status": "design_contract_not_implemented",
+  "timeUnit": "integer_milliseconds",
+  "recordingIdentity": {
+    "required": [
+      "playerBundleID",
+      "sessionID",
+      "generation",
+      "title",
+      "artists"
+    ],
+    "optional": [
+      "platformTrackIDs",
+      "isrc",
+      "album",
+      "durationMS",
+      "versionTags"
+    ],
+    "rules": [
+      "IDs are namespaced by provider and storefront where applicable",
+      "A title/artist string is not a stable recording identity",
+      "Changing tracks invalidates pending source requests immediately"
+    ]
+  },
+  "lyricDocument": {
+    "required": [
+      "documentID",
+      "schemaVersion",
+      "source",
+      "originalFormat",
+      "timingLevel",
+      "availability",
+      "lanes",
+      "contentHash"
+    ],
+    "timingLevel": [
+      "none",
+      "line",
+      "token"
+    ],
+    "availability": [
+      "available",
+      "instrumental",
+      "notFound",
+      "failed",
+      "unsupported"
+    ],
+    "source": {
+      "fields": [
+        "providerID",
+        "providerRecordID",
+        "sourceURL",
+        "retrievedAt",
+        "revisionOrETag",
+        "contributorCredit",
+        "sourceLicense",
+        "contentRightsStatus"
+      ],
+      "contentRightsStatus": [
+        "userProvided",
+        "explicitGrant",
+        "providerTerms",
+        "unresolved"
+      ]
+    },
+    "languages": "BCP-47 codes; original text preserved",
+    "format": [
+      "lrc",
+      "lrcx",
+      "enhancedLrc",
+      "ttmlAppleAmll",
+      "qrcPlaintext",
+      "yrcPlaintext",
+      "lyricsfileV1Draft",
+      "plainText"
+    ]
+  },
+  "lyricLane": {
+    "fields": [
+      "laneID",
+      "kind",
+      "language",
+      "agentID",
+      "linkedLaneID",
+      "cues"
+    ],
+    "kind": [
+      "lead",
+      "background",
+      "translation",
+      "romanization",
+      "ruby"
+    ],
+    "rules": [
+      "Simultaneous cues are allowed",
+      "Translations reference original cue ID; duplicate timestamps alone do not prove translation"
+    ]
+  },
+  "lyricCue": {
+    "fields": {
+      "cueID": "Stable within the document; occurrence-sensitive",
+      "startMS": "Int64?; nil for plain text",
+      "sourceEndMS": "Int64?; unknown is not zero",
+      "displayHoldUntilMS": "Int64?; computed UI policy, never written back as source time",
+      "text": "Exact source text, including intentional spaces",
+      "tokens": "Optional [LyricToken]",
+      "linkedCueIDs": "[String]",
+      "section": "String?",
+      "agentID": "String?"
+    }
+  },
+  "lyricToken": {
+    "fields": {
+      "tokenID": "String",
+      "startMS": "Int64",
+      "sourceEndMS": "Int64?",
+      "text": "String",
+      "originalUTF16Range": "Range with grapheme-boundary checks",
+      "timingProvenance": "explicitStartAndEnd | explicitStartOnly"
+    },
+    "rules": [
+      "No equal division of a line to fabricate token times",
+      "If end is unknown, activate at actual start without claiming measured continuous word duration",
+      "Preserve ligature/grapheme/RTL shaping; map logical ranges to actual glyph runs"
+    ]
+  },
+  "renderState": {
+    "values": [
+      "noPlayback",
+      "resolving",
+      "syncedLine",
+      "syncedToken",
+      "plainText",
+      "instrumental",
+      "interlude",
+      "notFound",
+      "sourceUnavailable",
+      "positionUnavailable",
+      "paused"
+    ],
+    "rules": [
+      "Pause is orthogonal to lyric availability",
+      "Interlude requires known timing gap, or conservative waiting state for LRC",
+      "404 never means instrumental",
+      "Hide old lyrics immediately on recording-generation change",
+      "Manual scroll freezes automatic alignment until explicit resume or documented timeout"
+    ]
+  },
+  "clock": {
+    "fields": [
+      "positionMS",
+      "observedAtMonotonic",
+      "rate",
+      "playbackState",
+      "sessionID",
+      "generation",
+      "positionConfidence",
+      "sourceID"
+    ],
+    "formula": "lookupMS = anchorPositionMS + (nowMonotonic-anchorObservedAt)*rate + sourceAdvanceMS + userAdvanceMS",
+    "rules": [
+      "Only extrapolate from trusted real position while playing",
+      "Pause freezes; seek and new recording rebase immediately",
+      "Wake/reconnect requires fresh state",
+      "Do not integrate frame deltas",
+      "Output-device latency adjustment is separate from source lyric offset"
+    ]
+  },
+  "matching": {
+    "precedence": [
+      "userBoundLocal",
+      "confirmedCache",
+      "trustedNamespacedID",
+      "isrcPlusMetadata",
+      "metadataExact",
+      "metadataSearchManual"
+    ],
+    "rules": [
+      "Identity correctness precedes word timing or translation quality",
+      "Do not strip all version tags or assume absent tag means studio",
+      "Known duration differences >5000 ms cannot auto-apply metadata-only match",
+      "<=2000 ms is a preferred gate, not evidence of unique identity",
+      "All async responses must match current generation"
+    ],
+    "auditFields": [
+      "candidateID",
+      "titleSimilarity",
+      "mainArtistMatch",
+      "versionConflict",
+      "durationDeltaMS",
+      "platformIdentity",
+      "acceptedBy",
+      "sourceCapabilities"
+    ]
+  },
+  "formatProfiles": {
+    "ttml": {
+      "scope": "Apple/AMLL lyric profile with validated common TTML time expressions",
+      "allow": [
+        "namespaces",
+        "body/div/p/span",
+        "begin/end",
+        "translation/romanization roles",
+        "agent",
+        "background vocals",
+        "explicit overlap"
+      ],
+      "rejectIfUnimplemented": [
+        "frame/tick time",
+        "timeContainer seq",
+        "unsupported inherited timing"
+      ],
+      "mustReject": [
+        "DOCTYPE",
+        "external entity",
+        "network resolution"
+      ],
+      "limits": {
+        "decodedBytes": 2097152,
+        "maxDepth": 32,
+        "maxCues": 10000,
+        "maxTokens": 100000
+      }
+    },
+    "lyricsfile": {
+      "version": "1.0",
+      "status": "draft",
+      "mustReject": [
+        "unknown version",
+        "duplicate YAML key",
+        "custom YAML tag",
+        "alias expansion",
+        "negative times",
+        "end before start"
+      ],
+      "offsetPolicy": "Preserve unresolved offset_ms diagnostically; do not apply a guessed sign",
+      "fallback": [
+        "syncedLyrics",
+        "plainLyrics"
+      ]
+    }
+  },
+  "cache": {
+    "key": [
+      "providerID",
+      "recordID",
+      "recordingFingerprint",
+      "contentHash",
+      "parserSchemaVersion"
+    ],
+    "rules": [
+      "User binding and adjustment outrank network refresh",
+      "Do not persist invented source end times",
+      "Keep immutable raw content separate from normalized display model",
+      "Refresh via ETag or source revision",
+      "Do not download full corpus on song changes"
+    ]
+  },
+  "implementation": {
+    "preferred": "Swift domain + Foundation XMLParser + AppKit/Core Text rendering",
+    "licensedReuse": [
+      "MPL-isolated LyricsCore LRC/LRCX fork",
+      "MIT Lyrics-Plus matching features with attribution",
+      "MIT ttml-processor-rs semantic port as required"
+    ],
+    "excluded": [
+      "AGPL AMLL code copied into closed combined app",
+      "Unmodified old LyricsKit online providers",
+      "LyricsX fullscreen transparent window architecture"
+    ],
+    "macOS27Verified": false
+  }
+}

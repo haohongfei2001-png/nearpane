@@ -1,0 +1,65 @@
+{
+  "queried_date": "2026-11-26 Asia/Shanghai",
+  "verification": "GitHub API metadata plus local shallow source checkout; no target macOS execution",
+  "repositories": [
+    {
+      "repository": "haohongfei2001-png/nearpane",
+      "default_branch": "main",
+      "default_sha": "e3f26bbaa1ba4da87da56b475f5fa6fa5daa8766",
+      "default_commit_date": "2026-11-09T23:21:21Z",
+      "pushed_at": "2026-11-25T18:44:41Z",
+      "license": "no repository license detected by GitHub",
+      "archived": false,
+      "inspected_sha": "6ac5eb63c97b7597e662770bac485be61f571bb8",
+      "pr": {
+        "number": 15,
+        "head": "6ac5eb63c97b7597e662770bac485be61f571bb8",
+        "branch": "codex/r4-native-candidate-20261120"
+      }
+    },
+    {
+      "repository": "haohongfei2001-png/saytile",
+      "default_branch": "main",
+      "default_sha": "f3baa0a255931dbb16291690699790e3d54f8bde",
+      "default_commit_date": "2026-11-23T17:02:19Z",
+      "pushed_at": "2026-11-25T12:09:34Z",
+      "license": "no repository license detected by GitHub",
+      "archived": false,
+      "latest_stable": "v1.0.0",
+      "inspected_sha": "f3baa0a255931dbb16291690699790e3d54f8bde"
+    },
+    {
+      "repository": "haohongfei2001-png/Riftlet",
+      "default_branch": "main",
+      "default_sha": "2b270aec5cf57d2b4165acd52bcc730fa1052a02",
+      "default_commit_date": "2026-11-25T10:35:18Z",
+      "pushed_at": "2026-11-25T17:37:00Z",
+      "license": "no repository license detected by GitHub",
+      "archived": false,
+      "latest_stable": "v1.0.11",
+      "inspected_sha": "2b270aec5cf57d2b4165acd52bcc730fa1052a02"
+    },
+    {
+      "repository": "Yudaotor/lyrimuse",
+      "default_branch": "main",
+      "default_sha": "9d74d785be00faca056bc9b5b1575abe7b7820ea",
+      "default_commit_date": "2026-11-19T10:19:38Z",
+      "pushed_at": "2026-11-25T05:15:42Z",
+      "license": "GPL-3.0",
+      "archived": false,
+      "latest_stable": "v1.14.0",
+      "inspected_sha": "9d74d785be00faca056bc9b5b1575abe7b7820ea"
+    },
+    {
+      "repository": "afeibukaixin/Lyrics-Plus",
+      "default_branch": "main",
+      "default_sha": "a6f5a32814fee2f3914414fd7fdfe0aeea4d2917",
+      "default_commit_date": "2026-09-30T10:16:37Z",
+      "pushed_at": "2026-09-30T10:17:40Z",
+      "license": "MIT",
+      "archived": false,
+      "latest_stable": "v2.2.20",
+      "inspected_sha": "a6f5a32814fee2f3914414fd7fdfe0aeea4d2917"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "scope": "HTML design prototype and artifact QA only. macOS 27 / native app: NOT_RUN.",
+  "date": "2026-11-26 Asia/Shanghai",
+  "checks": {
+    "all_image_elements_loaded": true,
+    "cover_background_loaded": true,
+    "hover_outer_frame_unchanged": true,
+    "hover_current_lyric_anchor_unchanged": true,
+    "hover_controls_visible": true,
+    "song_menu_opens": true,
+    "escape_closes_song_menu": true,
+    "positionUnavailable_seek_disabled": true,
+    "positionUnavailable_time_unknown": true,
+    "unknown_seek_disabled": true,
+    "unknown_time_unknown": true,
+    "play_preview_removes_pause_badge": true,
+    "rendered_state_and_typography_cards": 16,
+    "mobile_review_no_horizontal_overflow": true,
+    "visual_book_pages": 11,
+    "book_windows_clear_footer": true,
+    "no_javascript_errors": true,
+    "json_artifacts_parse": true
+  },
+  "page_errors": [],
+  "visual_book_geometry": [
+    {
+      "page": "01",
+      "title": "三个方向，一个正式选择。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "02",
+      "title": "雾白词页 · 歌词，自然在旁。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "03",
+      "title": "常态、悬停与暂停，始终是一张词页。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "04",
+      "title": "音乐的每种停顿，都有准确表达。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "05",
+      "title": "能力不足时，保持诚实也保持可用。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "06",
+      "title": "中文、长句与多语言。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "07",
+      "title": "同一阅读层，适应不同桌面。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "08",
+      "title": "首次使用，只解释当下需要的权限。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "09",
+      "title": "设置保持简单，修正留在这首歌。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "10",
+      "title": "独立成列，原生归入 Nearpane。",
+      "bodyBottom": 697.84375,
+      "footerTop": 764.640625
+    },
+    {
+      "page": "11",
+      "title": "LyricTile · 阅读中的音乐。",
+      "bodyBottom": 747.59375,
+      "footerTop": 764.640625
+    }
+  ],
+  "motion_review": {
+    "source": "delegated implementation plus root screenshot/source inspection",
+    "duration_seconds": 9,
+    "frame_points": [
+      208,
+      272
+    ],
+    "auto_starts": false,
+    "checks_passed": [
+      "fixed frame and lyric anchor",
+      "pause freezes word masks and cue transition",
+      "replay resets",
+      "ends after authored timeline",
+      "system Reduce Motion",
+      "390px no horizontal overflow",
+      "zero JavaScript errors",
+      "zero network requests"
+    ],
+    "scope": "Original timed design study, not real playback evidence."
+  }
+}
