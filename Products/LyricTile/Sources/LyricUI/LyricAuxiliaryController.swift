@@ -60,7 +60,7 @@ private struct LyricAuxiliaryView: View {
     @ObservedObject var model: LyricAppModel
     let page: LyricAuxiliaryPage
     let close: () -> Void
-    @State private var loginEnabled = SMAppService.mainApp.status == .enabled
+    @State private var loginStatus = SMAppService.mainApp.status
     @State private var loginBusy = false
     @State private var sourceExpanded = false
     @State private var followsCurrentLine = true
@@ -87,6 +87,12 @@ private struct LyricAuxiliaryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear { refreshLoginStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // System Settings can approve or revoke the service while this window
+            // stays open. Always show the system's current state when returning.
+            refreshLoginStatus()
+        }
     }
 
     private var welcome: some View {
@@ -154,9 +160,13 @@ private struct LyricAuxiliaryView: View {
                 }
             }
             Section("通用") {
-                Toggle("登录时启动", isOn: Binding(get: { loginEnabled }, set: updateLogin))
-                    .disabled(loginBusy || Bundle.main.bundleURL.pathExtension != "app")
-                if SMAppService.mainApp.status == .requiresApproval {
+                Toggle("登录时启动", isOn: Binding(get: {
+                    loginStatus == .enabled || loginStatus == .requiresApproval
+                }, set: updateLogin))
+                    .disabled(loginBusy || !canManageLoginItem)
+                if canManageLoginItem && loginStatus == .requiresApproval {
+                    Text("等待系统允许，尚未启用。也可以关闭上方开关取消登录启动。")
+                        .font(.caption).foregroundStyle(.secondary)
                     Button("在系统设置中允许登录启动") { SMAppService.openSystemSettingsLoginItems() }
                 }
                 HStack {
@@ -282,8 +292,19 @@ private struct LyricAuxiliaryView: View {
             if !model.artist.isEmpty { Text(model.artist).font(.system(size: 11)).foregroundStyle(.secondary) }
         }
     }
-    private func updateLogin(_ enabled: Bool) {
+    private var canManageLoginItem: Bool {
+        // The reusable lyrics UI must never register its Nearpane host as LyricTile.
+        Bundle.main.bundleIdentifier == "com.holdsnow.lyrictile" && Bundle.main.bundleURL.pathExtension == "app"
+    }
+    private func refreshLoginStatus() {
         guard !loginBusy else { return }
+        loginStatus = SMAppService.mainApp.status
+    }
+    private func updateLogin(_ enabled: Bool) {
+        guard canManageLoginItem, !loginBusy else { return }
+        loginStatus = SMAppService.mainApp.status
+        let registered = loginStatus == .enabled || loginStatus == .requiresApproval
+        guard enabled != registered else { return }
         loginBusy = true
         Task { @MainActor in
             do {
@@ -296,7 +317,7 @@ private struct LyricAuxiliaryView: View {
                     }
                 }
             } catch { model.actionMessage = "登录启动未能更新：\(error.localizedDescription)" }
-            loginEnabled = SMAppService.mainApp.status == .enabled
+            loginStatus = SMAppService.mainApp.status
             loginBusy = false
         }
     }
@@ -338,3 +359,4 @@ public enum LyricScreenIdentity {
     }
     public static func id(for screen: NSScreen) -> String? { screens.first { $0.screen === screen }?.id }
 }
+
