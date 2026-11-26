@@ -342,8 +342,15 @@ public actor PlaybackController {
         }
         guard let observation = observations[chosen] else {
             tracker.clear()
+            let message: String
+            if errors[chosen] == .timeout && chosen.usesAppleEvents {
+                // The first Apple Event can time out while the system consent sheet is open.
+                message = "正在连接 \(chosen.displayName)。若系统询问自动化权限，请选择“允许”。"
+            } else {
+                message = errors[chosen]?.localizedDescription ?? (processes[chosen] == nil ? "打开 \(chosen.displayName) 开始播放" : "正在连接播放器")
+            }
             publish(PlaybackSnapshot(player: chosen, selection: nil, anchor: nil, state: .unknown,
-                statusMessage: errors[chosen]?.localizedDescription ?? (processes[chosen] == nil ? "打开 \(chosen.displayName) 开始播放" : "正在连接播放器"),
+                statusMessage: message,
                 requiresAuthorization: errors[chosen] == .authorizationDenied)); return
         }
         let previous = tracker.selection
