@@ -179,7 +179,10 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         let top = min(visible.maxY - 16, max(visible.minY + 272 + 16, panel.frame.maxY))
         slotFrame = NSRect(x: x.rounded(), y: (top - 272).rounded(), width: width, height: 272)
         displayUUID = LyricScreenIdentity.id(for: screen)
-        resizeVisibleSurface(); saveCurrentPosition()
+        if usesCoordinatedPlacement { setPlacementPermission(false) }
+        else { resizeVisibleSurface() }
+        model.settings.preferredDisplayUUID = displayUUID
+        saveCurrentPosition()
         placementDidChange?(slotFrame, displayUUID, true)
     }
     private func saveCurrentPosition() {

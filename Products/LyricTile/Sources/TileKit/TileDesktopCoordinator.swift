@@ -123,7 +123,7 @@ public final class TileDesktopCoordinator {
         guard await stopLoop() else { return }
         guard desiredActive, requested == placementRevision, !Task.isCancelled else { return }
         let insertedOrder: Int
-        do { insertedOrder = try await store.insertionOrder(displayID: displayID, top: top) }
+        do { insertedOrder = try await store.insertionOrder(id: member.id, displayID: displayID, top: top) }
         catch { insertedOrder = order.map { $0 + 1 } ?? 0 }
         guard desiredActive, requested == placementRevision, !Task.isCancelled else { return }
         member.userOrder = insertedOrder
@@ -256,7 +256,7 @@ private actor RegistryWorker {
     func unregister(_ member: TileMember, _ observation: TileObservation) throws {
         try registry.unregister(id: member.id, instanceID: member.instanceID, observation: observation)
     }
-    func insertionOrder(displayID: String?, top: Double) throws -> Int {
-        try registry.insertionOrder(displayID: displayID, top: top)
+    func insertionOrder(id: String, displayID: String?, top: Double) throws -> Int {
+        try registry.insertionOrder(displayID: displayID, top: top, movingID: id)
     }
 }

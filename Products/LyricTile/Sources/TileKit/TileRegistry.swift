@@ -31,6 +31,8 @@ public struct TileRegistryState: Codable, Sendable {
     public var schemaVersion: Int = 1
     public var members: [String: TileMember] = [:]
     public var lastSeen: [String: Date] = [:]
+    /// A user arrangement outlives process reservations. Absent from legacy v1 files.
+    public var orderedMemberIDs: [String]?
     public var plan = TilePlan()
     public init() {}
 }
@@ -57,21 +59,38 @@ public final class TileRegistry: @unchecked Sendable {
         }
     }
 
-    /// Called after the moving window has been withdrawn and unregistered.
-    /// Ranks leave insertion gaps; the next reconciliation applies its usual barrier.
-    public func insertionOrder(displayID: String?, top: Double) throws -> Int {
-        try transaction { state in
-            let ordered = state.plan.placements.sorted {
+    /// Preserve the relative order of offline tiles while inserting against the
+    /// visible neighbours. Only explicit placement requests change the saved list.
+    public func insertionOrder(displayID: String?, top: Double, movingID id: String? = nil) throws -> Int {
+        guard id.map(TileStorage.valid) != false, top.isFinite else { throw TileCoordinationError.invalidIdentifier }
+        return try transaction { state in
+            let visible = state.plan.placements.sorted {
                 if $0.value.displayID != $1.value.displayID { return $0.value.displayID < $1.value.displayID }
                 return $0.value.rect.y == $1.value.rect.y ? $0.key < $1.key : $0.value.rect.y < $1.value.rect.y
             }
-            for (index, entry) in ordered.enumerated() { state.members[entry.key]?.userOrder = index * 2 }
-            let sameDisplay = ordered.filter { $0.value.displayID == displayID }
-            if let next = sameDisplay.first(where: { $0.value.rect.y >= top }) {
-                return (state.members[next.key]?.userOrder ?? 0) - 1
+            guard let id else {
+                for (index, entry) in visible.enumerated() { state.members[entry.key]?.userOrder = index * 2 }
+                let neighbours = visible.filter { $0.value.displayID == displayID }
+                if let next = neighbours.first(where: { $0.value.rect.y >= top }) {
+                    return (state.members[next.key]?.userOrder ?? 0) - 1
+                }
+                if let previous = neighbours.last { return (state.members[previous.key]?.userOrder ?? 0) + 1 }
+                return visible.count * 2
             }
-            if let previous = sameDisplay.last { return (state.members[previous.key]?.userOrder ?? 0) + 1 }
-            return ordered.count * 2
+            var order = state.orderedMemberIDs ?? []
+            order.removeAll { $0 == id }
+            for member in visible where member.key != id && !order.contains(member.key) { order.append(member.key) }
+            let neighbours = visible.filter { $0.key != id && $0.value.displayID == displayID }
+            let index: Int
+            if let next = neighbours.first(where: { $0.value.rect.y >= top }), let before = order.firstIndex(of: next.key) {
+                index = before
+            } else if let previous = neighbours.last, let after = order.firstIndex(of: previous.key) {
+                index = after + 1
+            } else { index = order.count }
+            order.insert(id, at: index)
+            state.orderedMemberIDs = order
+            for (rank, key) in order.enumerated() { state.members[key]?.userOrder = rank }
+            return index
         }
     }
 
@@ -94,7 +113,7 @@ public final class TileRegistry: @unchecked Sendable {
                 state.plan.hiddenAcknowledgements.insert(id)
             }
             var accepted = member
-            if let existingOrder = state.members[member.id]?.userOrder { accepted.userOrder = existingOrder }
+            if let existingOrder = state.orderedMemberIDs?.firstIndex(of: member.id) ?? state.members[member.id]?.userOrder { accepted.userOrder = existingOrder }
             state.members[member.id] = accepted
             if now.timeIntervalSince(state.lastSeen[member.id] ?? .distantPast) >= 30 { state.lastSeen[member.id] = now }
             if state.plan.phase == .withdrawing {

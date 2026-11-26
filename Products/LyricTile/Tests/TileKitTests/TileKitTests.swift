@@ -45,6 +45,22 @@ final class TileKitTests: XCTestCase {
         XCTAssertEqual(result["saytile"]?.rect.y, 520)
         XCTAssertFalse(result["lyrictile"]!.rect.intersects(oldWindow.rect))
     }
+    func testCustomOrderSurvivesCleanExitAndMultipleRelaunches() throws {
+        let directory = try temporary()
+        let registry = TileRegistry(directory: directory)
+        let displays = [TileDisplay(id: "main", width: 1470, height: 923)]
+        let hidden = TileObservation(visibleWindowIDs: [])
+        let voice = TileMember(id: "saytile", reservedHeight: 62)
+        _ = try registry.reconcile(voice, displays: displays, observation: hidden)
+        XCTAssertEqual(try registry.insertionOrder(displayID: "main", top: 16, movingID: "lyrictile"), 0)
+        try registry.unregister(id: voice.id, instanceID: voice.instanceID, observation: hidden)
+        let reopened = TileRegistry(directory: directory)
+        _ = try reopened.reconcile(TileMember(id: "lyrictile"), displays: displays, observation: hidden)
+        let result = try reopened.reconcile(TileMember(id: "saytile", reservedHeight: 62), displays: displays, observation: hidden)
+        XCTAssertEqual(result.phase, .stable)
+        XCTAssertEqual(result.placements["lyrictile"]?.rect.y, 16)
+        XCTAssertEqual(result.placements["saytile"]?.rect.y, 298)
+    }
     func testInvalidModuleCannotAliasAnUnrelatedSessionLock() throws {
         let lease = TileSessionLease(moduleID: "../../other", directory: try temporary())
         XCTAssertThrowsError(try lease.acquire()) { XCTAssertEqual($0 as? TileCoordinationError, .invalidIdentifier) }

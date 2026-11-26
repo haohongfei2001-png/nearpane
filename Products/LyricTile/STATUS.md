@@ -12,6 +12,9 @@
 - 本轮修复：导入/在线请求及缓存竞争；稀疏或空曲目 ID、媒体进程重启、控制读回与 seek；UI 异步操作、切歌撤销旧选择器/拖动、hover 收起；退出组件的布局死锁；登录项真实状态同步。
 - 增加 14 个回归用例；每个有效开发单元已独立提交。CI 使用临时、仅针对两个已锁定公共依赖的只读认证，版本及权限未扩大。
 
+## 本机排列恢复
+- 显式拖动现在保存所选显示器。协调排列保存组件顺序，退出后释放占位，重开仍按用户顺序排列。独立注册表实测通过（两个组件重开后顶边为 16 / 298 pt），新增回归用例。
+
 ## 最新实际验证
 - 源码 [`123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00)；[macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041)；[ZIP/DMG 候选](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706)。
 - macOS 27.0.1 / Xcode 27.1 / Swift 6.4 / arm64：79 测试通过（12 XCTest + 67 Swift Testing），零失败、零跳过；App/Host 编译、3 个原生界面、真实 helper 装载与 ad-hoc 包检查通过。
