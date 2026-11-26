@@ -12,3 +12,5 @@ Apple 返回 App 提交 `98b9ab70-9c90-4da0-9b66-49b87fb76094` 和 DMG 提交 `1
 从该安装副本的 Info.plist 取得真实公开 HTTPS 频道，并通过上游 Sparkle 2.10.1 的 `sparkle-cli --probe` 直接查询，回报 `No new update available!`。公开 appcast HTTP 200，当前条目为 0，验证时的 SHA256 为 `a3da4ec90bf664670bfa4f860924702307f4e9c9858c0b427a72b489c6e4a445`。隔离安装测试的范围见 [Sparkle 实机记录](sparkle-install.md)。正式 ZIP 已使用 LyricTile 专属 Ed25519 密钥签名，CryptoKit 使用 App 内公钥独立验签通过。空目录随后也已签名。公开下载待发行决定。
 
 最终 ZIP 的 Sparkle `edSignature` 为 `E7gRSCzxuVzpXAERoX3FQGE409QSfAxNE4+b6gX2uwHICsyUbJjrGTj/Y/wxPwt6ONMA0mV3CBzHUneStFGCCw==`。
+
+实装升级已完成。用最初的本机 build 1 制作隔离副本，加上产品正式公钥和 feed 后重新进行 Developer ID 签名。上游 Sparkle 安装器读取经产品密钥签名的回环测试目录，安装上述原封不动的公证 ZIP。读回 build 2 的 Info.plist 和可执行文件字节与 DMG 内副本一致，安装后的签名、stapler、Gatekeeper 全部通过。详见 [安装读回](upgrade-to-build2.json)。公网空目录签名后重新获取为 HTTP 200，SHA256 为 `816dddb628be95e46b3b46e57e4fc6be337be5ee4c1ac93102c3467f275a49c0`。

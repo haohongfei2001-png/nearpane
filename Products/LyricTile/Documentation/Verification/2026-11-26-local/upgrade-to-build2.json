@@ -1,0 +1,13 @@
+{
+  "from": "1",
+  "to": "2",
+  "commit": "b28d9881a0c87b83eb00995072c6155da699b01c",
+  "appExecutableSHA256": "b7215b88bafa1621d11e5f194e73c5b496b331d54e924fef61d2f1e5e9486c3c",
+  "archiveSHA256": "235b69918ede4180d6138eb9a729d42e97108add3045da27356f0695a51ea168",
+  "gatekeeper": "accepted",
+  "stapler": "verified",
+  "codeSignature": "verified",
+  "identicalPlistAndExecutableToDMG": true,
+  "driver": "Sparkle 2.10.1 CLI / signed loopback feed / real product Ed25519 key & archive",
+  "prior": "isolated copy of genuine baseline with production key + feed seeded before Developer ID re-signing"
+}
