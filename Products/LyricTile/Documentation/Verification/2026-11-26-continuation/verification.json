@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "123fd0bd1433ee2a20b7d4bd2f07b26920781b00",
+  "ciRun": 45798202041,
+  "ciJob": 139834231768,
+  "artifactID": 15105338706,
+  "artifactSHA256": "402afb9f1447d5d186a9fa0f39f81cb846e61a7eb153d5b80367887914f7a0ff",
+  "tests": {
+    "xctest": 12,
+    "swiftTesting": 67,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "realPlayers": "NOT_RUN",
+  "notarization": "NOT_RUN",
+  "profileSHA256": "a1001b71a1a18100f92128a96b32c81b5ad9a0bc9052d85b0cc292d5f54ccf4c"
+}

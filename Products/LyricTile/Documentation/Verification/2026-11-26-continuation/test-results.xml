@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<testsuites>
+<testsuite name="TestResults" errors="0" tests="12" failures="0" time="1.0006522930000001">
+<testcase classname="TileKitTests.TileKitTests" name="testDefaultOrderAndOverflowDoNotIntersectOrLeaveScreen" time="0.088418375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testAReconnectedPreferredScreenDoesNotStealCurrentPlacement" time="0.088445459">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testCorruptRegistryIsNotSilentlyReplacedWithAnEmptyPlan" time="0.088440417">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLeaseAgeAloneNeverReclaimsVisibleMember" time="0.081892791">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLegacyWindowIsAvoidedAndNewMemberAppendsToUserOrder" time="0.081873625">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testInvalidModuleCannotAliasAnUnrelatedSessionLock" time="0.081915333">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLifetimeLeaseCannotBeAcquiredBySecondInstance" time="0.081286584">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testReorderWaitsForExplicitHideAndIndependentWindowAbsence" time="0.081256">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock" time="0.081281542">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathReclaimsReservationAndStillWaitsForSurvivorWithdrawal" time="0.081932125">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathDuringWithdrawalDoesNotRestorePendingReservation" time="0.081953708">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testSharedWidthUsesPointsAndReadableClamps" time="0.081956334">
+</testcase>
+</testsuite>
+</testsuites>

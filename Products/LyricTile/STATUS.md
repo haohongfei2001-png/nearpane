@@ -1,33 +1,28 @@
 # LyricTile · 续接入口
 
-更新：2026-11-26（北京时间）。工作分支：`codex/lyrictile-standalone-20261126`；[Draft PR #17](https://github.com/haohongfei2001-png/nearpane/pull/17)。
+更新：2026-11-26（北京时间）。分支：`codex/lyrictile-standalone-20261126`；[Draft PR #17](https://github.com/haohongfei2001-png/nearpane/pull/17)。只读本入口及下一任务的必要文件；不检索旧对话、整仓、完整 PR 或测试日志。
 
-## 已定决策
-- 独立原生 macOS app，未来直接嵌入 Nearpane；右侧固定歌词板，悬停同框显示控制。
-- 当前架构与 ADR：`Documentation/ARCHITECTURE.md`；模块 API：`IMPLEMENTATION_CONTRACT.md`。
-- 四播放器适配；真实源进度支持逐行，真实词时码和精度证据支持逐字。首版在线源 LRCLIB，本地导入/绑定/缓存可用。
-- 设计快照：`Research/2026-11-26/docs/DESIGN_SPEC.md`。按需读取，不重新研究或加载完整归档。
+## 产品与技术决策
+- 独立原生 macOS 歌词板；右侧固定尺寸、悬停同框控制，未来原生嵌入 Nearpane。
+- 架构与 ADR：`Documentation/ARCHITECTURE.md`；API：`IMPLEMENTATION_CONTRACT.md`；设计按需读 `Research/2026-11-26/docs/DESIGN_SPEC.md`。
+- 四播放器适配；真实进度逐行同步，真实词时码加精度证据启用逐字；首版网络源 LRCLIB，本地绑定/导入/缓存可回退。
 
-## 实际状态
-- 续接基线：`ed5bb55507a8`。独立 App、歌词格式/匹配、播放适配、原生界面、TileKit、Host 模块、打包/更新/诊断均已实现。
-- 既有已测源码 `75d9e60cb8a0`：[macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678)，65 项测试通过，App/Host 编译、原生空态/欢迎/设置、真实 helper 装载及 ad-hoc 包检查通过。
-- 已修复登录启动设置：等待系统允许时可取消注册；从系统设置返回会刷新真实状态；复用 UI 不会替 Nearpane 注册登录项。本轮新代码的 macOS CI 待运行，不沿用旧验证结果。
-- 已修复歌词仓库：本地导入/绑定使旧在线请求失效，关闭再开启在线查询不会复活旧请求，清缓存不会被迟到的空结果重建负缓存；新增 3 个挂起请求回归用例。
-- 已修复播放器：稀疏元数据保留曲目身份、空 ID 不共用指纹、媒体子进程重启建立新会话；控制读回核验时钟/新鲜度/源所有权，seek 读回匹配实际速率和曲尾；新增 6 个回归用例。
-- 已修复 TileKit：已确认退出且窗口消失的组件会释放当前/待定占位，不再让剩余组件永久等待它确认；保留存活窗口撤回屏障，新增 2 个回归用例。
-- 已修复 UI：导入/查词/候选/时间校准按请求与录音隔离，切歌撤销旧文件选择器与拖动进度，seek 完成后恢复 hover 收起；新增 3 个确定性 UI 回归用例。
+## 当前完成状态
+- App、歌词服务、播放器、原生 UI、TileKit、Host 模块、打包/更新/诊断均已实现。
+- 本轮修复：导入/在线请求及缓存竞争；稀疏或空曲目 ID、媒体进程重启、控制读回与 seek；UI 异步操作、切歌撤销旧选择器/拖动、hover 收起；退出组件的布局死锁；登录项真实状态同步。
+- 增加 14 个回归用例；每个有效开发单元已独立提交。CI 使用临时、仅针对两个已锁定公共依赖的只读认证，版本及权限未扩大。
 
-## 未完成与下一步
-1. P0：全部本轮修复已提交；待新源码通过云端原生验证。
-2. P0：云端 CI 已增加仅用于两个既定公共依赖的临时只读认证；等待新源码编译/测试/打包结果。首轮 `532a41da6a7f` 在依赖下载时失败，未进入编译或测试；依赖版本与权限均未增加。
-3. P1：真实播放器/TCC、用户显示器与桌面环境、长稳、最终签名/公证/更新验收。
+## 最新实际验证
+- 源码 [`123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00)；[macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041)；[ZIP/DMG 候选](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706)。
+- macOS 27.0.1 / Xcode 27.1 / Swift 6.4 / arm64：79 测试通过（12 XCTest + 67 Swift Testing），零失败、零跳过；App/Host 编译、3 个原生界面、真实 helper 装载与 ad-hoc 包检查通过。
+- 120.64 秒 hosted idle：CPU 0.33157% 单核（预算 0.3%，本次未达）；RSS 中位/峰值 54.28/61.14 MiB（达标）。随后 profile 以等待为主，未识别失控循环；不把不同主机的旧数据当作受控回归对照。
+- 摘要与原始小型证据：`Documentation/Verification/2026-11-26-continuation/README.md`。后续纯文档提交不改变以上已测源码与包哈希。
 
-## 最小读取路径
-- 先读本文件与 `AGENTS.md`，再按任务读取单个模块及其测试。
-- 歌词：`Sources/LyricServices/LyricRepository.swift`、`Tests/LyricServicesTests/LyricRepositoryTests.swift`。
-- 播放：`Sources/LyricPlayback/PlaybackController.swift`、`Tests/LyricPlaybackTests/PlaybackTests.swift`。
-- UI：`Sources/LyricUI/LyricAppModel.swift`；独立外壳：`Sources/LyricTileApp/LyricTileApp.swift`。
-- 详情索引：`Documentation/IMPLEMENTATION_STATE.md`。禁止重读完整对话、仓库、PR 差异或 CI 日志；只取失败步骤和必要片段。
+## 剩余任务与下一轮起点
+1. P1：真实播放器/TCC、双屏/Spaces/睡眠唤醒、精度及长稳验收；核实实机空闲 CPU。当前没有可由 CI 替代的真实播放通过记录。
+2. P1：持有者 Developer ID、公证、实际 Sparkle 升级及正式发布配置；当前仍为工程候选。
+3. 下一轮 Pro 先读本文件、上述验证摘要及 `Documentation/LOCAL_ONLY_HANDOFF.md` 的具体未完成项。按真实失败证据修复，不重复设计/建工程/全量读取。
+4. 定位入口：歌词 `Sources/LyricServices/LyricRepository.swift`；播放器 `Sources/LyricPlayback/PlaybackSelection.swift`；UI `Sources/LyricUI/LyricAppModel.swift`；布局 `Sources/TileKit/TileRegistry.swift`，各自对应 Tests。性能若有新证据再读 `Sources/LyricPlayback/NativePlayers.swift` 与 `Sources/TileKit/TileDesktopCoordinator.swift` 的进程发现路径。
 
-## 只能在真实 Mac 完成
-按 `Documentation/LOCAL_ONLY_HANDOFF.md` 做真实播放器与按需 Automation 授权、独立参考时钟精度、双屏/Spaces/全屏/睡眠唤醒、长时间资源测试，以及持有者的 Developer ID、公证和正式升级测试。普通代码开发、单元测试和 hosted macOS 构建继续由 Pro 完成。
+## 必须由本机 Codex 执行
+仅执行上述真实播放器、系统授权、用户显示器/桌面、独立时间参考、长时采样及持有者签名/公证/升级事项，按 `Documentation/LOCAL_ONLY_HANDOFF.md` 保存脱敏证据。普通源码修复、回归与云端编译继续由 Pro 完成。

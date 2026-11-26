@@ -2,7 +2,7 @@
 
 ## 目标与当前边界
 
-在 `haohongfei2001-png/nearpane` 的 `codex/lyrictile-standalone-20261126` 分支继续。独立产品位于 `Products/LyricTile`；对应 Draft PR 为 [#17](https://github.com/haohongfei2001-png/nearpane/pull/17)。读取同目录的 `IMPLEMENTATION_STATE.md` 获取最终远端验证提交和结果。
+在 `haohongfei2001-png/nearpane` 的 `codex/lyrictile-standalone-20261126` 分支继续。独立产品位于 `Products/LyricTile`；对应 Draft PR 为 [#17](https://github.com/haohongfei2001-png/nearpane/pull/17)。首先读取 [STATUS.md](../STATUS.md)，获取最新源码验证、剩余任务及必要文件入口；旧候选证据只作为历史基线，不替代新代码验证。
 
 设计、源码审计、技术裁决、生产实现、格式/时间/匹配/进程/布局测试、独立打包、更新接入、诊断导出及签名公证脚本均在本分支。当前应用不依赖 Nearpane 启动，不应改成网页壳或多个独立浮窗拼装的 Host。不要把研究归档中的“未来待实现”当作当前状态；以实际源码、实现 ADR 和最终 CI 记录为准。
 
@@ -41,6 +41,8 @@ open dist/LyricTile.app
 | 桌面 | 主屏/DELL 4K 的缩放、热拔插、睡眠、Spaces/全屏；旧 Saytile/Riftlet 避让；共享协议重排屏障；Nearpane 直接嵌入与显式交接仅一方拥有会话 |
 
 Apple Music/Spotify 首次需要时才允许系统弹出 Automation 请求。QQ/NetEase 正常路线不要求辅助功能、录屏、麦克风或完全磁盘访问。拒绝权限也必须能回到可理解状态。不要改 TCC 数据库或扩大授权来掩盖问题。
+
+本轮修复的实机重点：在线请求途中导入本地歌词、拖动进度途中切歌、其他组件退出后的自动排列恢复、登录项在系统设置允许/撤销后回到应用的状态。纯异步竞争和布局状态已有回归用例，本机只确认实际播放器和窗口行为。
 
 遇到某个播放器/版本不能可靠提供源进度或安全控制时：保存实际失败证据，保留诚实的降级状态，缩小正式支持声明。第一版的正式支持列表由通过的具体版本决定，不由四个适配器已经存在决定。
 
@@ -96,4 +98,5 @@ bash Scripts/notarize-candidate.sh dist/LyricTile.app
 
 新增 `Documentation/Verification/local-YYYY-MM-DD.md`，至少包含：确切 commit 与包 SHA256、实际环境、各播放器通过/失败/未运行的用例、精度测量方法与误差、资源与八小时结果、双屏/交接结果、签名公证票据标识、最终正式支持清单、仍存在的限制。原始私人轨迹留本机，仓库记录脱敏结果与文件哈希。
 
-完成必要修复后提交本分支并更新 PR #17 与 `IMPLEMENTATION_STATE.md`。如果当前最新 CI 已经通过，不要以重做设计、重写解析器或重新搭建工程作为前置步骤。
+完成必要修复后提交本分支并覆盖更新简短的 `STATUS.md`，将详细证据放入独立验证记录。保持 PR #17 与实际结果一致。如果当前最新 CI 已经通过，不要以重做设计、重写解析器或重新搭建工程作为前置步骤。
+

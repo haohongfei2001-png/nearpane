@@ -1,8 +1,10 @@
 # LyricTile · 当前实现与验证状态
 
+**后续开发统一从 [STATUS.md](../STATUS.md) 续接。** 本文的 65 项测试、源码 `75d9e60cb8a0` 与资源数值是早期候选基线；更新后的源码验证单独记录，不能把本页旧结果算作新提交通过。
+
 **工程候选已实现、可独立构建和运行。** 产品位于 `Products/LyricTile`，分支为 `codex/lyrictile-standalone-20261126`，[Draft PR #17](https://github.com/haohongfei2001-png/nearpane/pull/17)。本轮变更仅涉及独立产品目录与新增 LyricTile workflow；基础 Nearpane native 提交是 `6ac5eb63c97b7597e662770bac485be61f571bb8`。
 
-**最终已测源码：[`75d9e60cb8a0`](https://github.com/haohongfei2001-png/nearpane/commit/75d9e60cb8a0eced93ed1c01f99ee109c315a7fe)。** [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678) · [候选安装包与完整日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678/artifacts/15085886100) · [保存到仓库的实际证据](Verification/2026-11-26/README.md)。随后纯文档/证据提交可以更新分支 HEAD，候选仍以上述源码 SHA 和包 SHA256 标识。
+**早期已测源码：[`75d9e60cb8a0`](https://github.com/haohongfei2001-png/nearpane/commit/75d9e60cb8a0eced93ed1c01f99ee109c315a7fe)。** [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678) · [早期候选安装包与日志](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678/artifacts/15085886100) · [保存到仓库的实际证据](Verification/2026-11-26/README.md)。最新源码与候选入口见 STATUS；不同候选用各自源码 SHA 和包 SHA256 标识。
 
 ## 已完成的生产实现
 
@@ -63,3 +65,4 @@
 | `75d9e60cb8a0` / [最终记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678) | 本文当前结果；若源代码再改动，必须标识后续实际验证提交 |
 
 此前资源结果及 NOT_RUN 原样保存于 Verification。它们来自不同 hosted 执行，不据此声称某次代码修改带来确定百分比的性能提升。
+

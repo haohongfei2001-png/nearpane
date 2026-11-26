@@ -4,14 +4,15 @@
 
 LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
 
-**Current channel: engineering candidate.** Real implementations are present; source compilation, fixture tests, package checks, production empty/welcome/settings surface load and real-player qualification are separate evidence classes. See [implementation status](Documentation/IMPLEMENTATION_STATE.md) for actual outcomes and commit links. This README does not certify all installed player versions.
+**Current channel: engineering candidate.** Start each development session with [STATUS.md](STATUS.md), the compact, current resume entry. Read only the module and tests required for the next task. Real implementations are present; source compilation, fixture tests, package checks, production empty/welcome/settings surface load and real-player qualification are separate evidence classes. Detailed earlier evidence is indexed in [implementation status](Documentation/IMPLEMENTATION_STATE.md).
 
 ## Latest native candidate
 
-[Verified source `75d9e60cb8a0`](https://github.com/haohongfei2001-png/nearpane/commit/75d9e60cb8a0eced93ed1c01f99ee109c315a7fe) · [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678) · [candidate ZIP/DMG](https://github.com/haohongfei2001-png/nearpane/actions/runs/45750660678/artifacts/15085886100) · [preserved evidence](Documentation/Verification/2026-11-26/README.md). Actual host: macOS 27.0.1 / Xcode 27.1 / Swift 6.4, arm64. **65 tests passed**; production app/host facade, three native surfaces, real helper load and ad-hoc package verification passed. Real-player and release qualifications remain explicit in the evidence.
+[Verified source `123fd0bd1433`](https://github.com/haohongfei2001-png/nearpane/commit/123fd0bd1433ee2a20b7d4bd2f07b26920781b00) · [macOS CI](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041) · [candidate ZIP/DMG](https://github.com/haohongfei2001-png/nearpane/actions/runs/45798202041/artifacts/15105338706) · [preserved evidence](Documentation/Verification/2026-11-26-continuation/README.md). Actual host: macOS 27.0.1 / Xcode 27.1 / Swift 6.4, arm64. **79 tests passed, zero failures or skips**; production app/host facade, three native surfaces, real helper load and ad-hoc package verification passed. Hosted idle CPU was **0.332% of one core**, slightly above the 0.3% target; RSS median/peak were **54.28/61.14 MiB**. The measured budget miss remains recorded, and real-player and release qualification still require the actual environment.
 
 ## Start here
 
+- [Current status and exact next step](STATUS.md): latest implementation, validation, remaining work and the small set of files to read next; no prior conversation retrieval is needed.
 - [Complete product/design/source research](Research/2026-11-26/README_START_HERE.md): 54 archived deliverables, three high-fidelity directions, selected design, interaction specification, source pins and macOS acceptance cases.
 - [Actual implementation architecture](Documentation/ARCHITECTURE.md): module boundaries, lifecycle and where earlier research was refined.
 - [Native UI implementation](Documentation/UI_IMPLEMENTATION.md), [media implementation](Documentation/MEDIA_IMPLEMENTATION.md), [lyrics implementation](Documentation/LYRICS_IMPLEMENTATION_STATE.md).
@@ -78,3 +79,4 @@ Nearpane can depend on `NearpaneLyricsModule`, embed its pure SwiftUI view and o
 | `LYRICTILE_NOTARY_PROFILE` | Existing local Keychain notary profile, used only by explicit notarization script |
 
 Missing update configuration is shown honestly as an unconfigured candidate channel, never “up to date.” Keys, credentials, signing identities and private diagnostics are not committed. No app store, public release, telemetry or account service is created by this branch.
+
