@@ -1,0 +1,52 @@
+{
+  "scope": "Developer ID baseline diagnostic; real transport via separate harness calling production PlaybackController.perform, followed by actual Music state and selection observations",
+  "signedBaselineGit": "2e515ada576cf4fcbc6e1358071e357d502f73f5",
+  "signedExecutableSHA256": "b7b6c737aa6271274695333bbfd944c6d98933d7ecb1c43aeeb121377bb99c18",
+  "diagnosticWindow": {
+    "completedRequestedWindow": true,
+    "distinctRecordingIdentities": 2,
+    "elapsedSeconds": 120.32531712495256,
+    "independentReferenceProvided": false,
+    "observedPlayers": [
+      "appleMusic"
+    ],
+    "requestedSeconds": 120,
+    "snapshotCount": 121,
+    "snapshotsWithRecording": 29
+  },
+  "clockReference": "Collected separately in audio-clock.json",
+  "controllerSourceGit": "b28d988",
+  "transportLog": [
+    "first: paused  LyricTile Lab 1126 Track 1 572",
+    "confirmed play",
+    "playing LyricTile Lab 1126 Track 1 712 ",
+    "confirmed seek(milliseconds: 30000)",
+    "playing LyricTile Lab 1126 Track 1 30390 ",
+    "confirmed pause",
+    "paused LyricTile Lab 1126 Track 1 30357 ",
+    "confirmed seek(milliseconds: 15000)",
+    "paused LyricTile Lab 1126 Track 1 15000 ",
+    "confirmed play",
+    "playing LyricTile Lab 1126 Track 1 15069 ",
+    "confirmed next",
+    "playing LyricTile Lab 1126 Track 2 85 ",
+    "confirmed seek(milliseconds: 0)",
+    "playing LyricTile Lab 1126 Track 2 241 ",
+    "confirmed previous",
+    "playing LyricTile Lab 1126 Track 1 96 ",
+    "confirmed pause",
+    "paused LyricTile Lab 1126 Track 1 523 ",
+    "naturalTransition LyricTile Lab 1126 Track 2 true",
+    "playerExitClearsSelection true",
+    "restarted playing LyricTile Lab 1126 Track 1 true"
+  ],
+  "rawFileSHA256": {
+    "packaged-clock/summary.json": "edf29a463d88cc3304d6d8ba193beceac2bd49d26335ecd5f93244b6826daff6",
+    "packaged-clock/environment.json": "0adcdb63022f26c4d8263a26ecbb5765ca09b9d7dd49bc5feb744fa1680722fc",
+    "packaged-clock/source.ndjson": "ee2a0f6cc1eeab55797f6353d1832e3b4ff94e5e50dc07933c9bf3cbaa96578b",
+    "packaged-clock/events.ndjson": "acf329ef1abea81db062ac3fc11093f52eba858815f5fb762a03f2e525f272bb",
+    "transport.json": "b3e7dd3d2c8e0601026b39a69a072b38c9463b2d3a751bd2bb7a1451d00314fc",
+    "transport-result.txt": "380651a9f8788d3972511137eceba1c7cdb34583c7ca9f70caab0413672ac3ee",
+    "probe/Sources/Probe/main.swift": "c81bb1a503ccc2987c248165bf8916619ed3ef5bd1ff2d7a1c2e0d484b0be044"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "Apple Music 1.7 (1.7.0), macOS 27.0 (26A428), arm64, production Apple Events C bridge and independently decoded Music-only digital audio output",
+  "audioReference": "Each original 24s PCM file emits a 0.4s fading tone on each integer second. Frequency = 240 + 8*(24*run + second) Hz, 8000 samples/s. ScreenCaptureKit filters only com.apple.Music, audio-only output decoded in memory. Tone onset uses the sample buffer presentation timestamp + sample offset. Rising zero crossings from +35ms to +290ms identify its run/second; >2Hz residual excluded. No acoustic microphone or raw audio capture saved.",
+  "trial": "10 separate real track playback trials. Pause at ~5.5s, seek while paused to 9.2s, resume for ~8.6s. Evaluate complete markers at seconds 1..5 and 10..17. Use last preceding real playing bridge anchor of same track no older than 320 ms. Exclude clipped 0 and seek target 9.2, partial trailing tones or unconfirmed state.",
+  "referenceUncertaintyMs": null,
+  "referenceUncertaintyReason": "Digital signal measurement only. Absolute host-to-output timestamp systematic uncertainty and physical device latency were not independently bounded. No word-clock qualification installed.",
+  "validPoints": 130,
+  "eligibleMarkers": 130,
+  "trialsWithData": 10,
+  "absoluteMedianMs": 137.8,
+  "absoluteP95Ms": 139.2,
+  "signedMedianMs": 137.8,
+  "absoluteMaxMs": 139.6,
+  "referenceDataSHA256": {
+    "decoded.txt": "13b601f7160bab205e94cccc0edb0a7d99ae1af2a9d97e28a1a77b77dfb2e2e5",
+    "dated-anchors.txt": "20cb329323754376670f77b8396c639a9d3d21696566d718486d66ca2d46c126",
+    "trials.log": "7e636d22bd96ec637ab6829fb3b73d3d256cd1c5988ca0b8377dc476e0b6e670",
+    "calibrate.py": "31372d499360874f3f4569518873912344e120aa06c47884c5f41858c3f4bedf",
+    "ClockDecode.swift": "dbe47136bceb241d67ce08062ac4d33fe1a1327b9afd9da05288f0d686d4f20d",
+    "ClockAnchor.m": "42e225886fe2008663aa02f9758519e0990e05ae9057bf6742423beee5edbfa5",
+    "analyze-clock.py": "41e39c65aa2010a7c71b2d6e93416700b80712157dddfb1d0ac6fd6da8aa8c0e"
+  },
+  "outputRoute": "MacBook Air built-in speakers, 48000 Hz. Timestamp references Music digital output before speaker/acoustic propagation.",
+  "adapterRevision": "holdsnow-appleevents-v1",
+  "statistic": "nearest-rank P95 of per-marker absolute differences. Each run/second pair appears once."
+}
