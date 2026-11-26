@@ -1,0 +1,54 @@
+name: LyricTile independent macOS candidate
+on:
+  push:
+    branches: ['codex/lyrictile-*']
+    paths: ['Products/LyricTile/**', '.github/workflows/lyrictile.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lyrictile-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: Native tests, bundle and production UI load
+    runs-on: xcode-27
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+        working-directory: Products/LyricTile
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Record actual host and toolchain
+        run: |
+          mkdir -p dist/evidence
+          { sw_vers; uname -m; xcodebuild -version; swift --version; git rev-parse HEAD; } | tee dist/evidence/host.txt
+          echo "LYRICTILE_ARCH=$(uname -m)" >> "$GITHUB_ENV"
+          echo "LYRICTILE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+      - name: Compile all modules and run risk-focused tests
+        run: |
+          set -o pipefail
+          swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
+      - name: Build independent candidate with real media helper
+        run: |
+          set -o pipefail
+          bash Scripts/build-app.sh 2>&1 | tee dist/evidence/build-app.log
+      - name: Load the production native panel without fabricated playback
+        run: python3 Scripts/run-native-smoke.py dist/LyricTile.app --output dist/evidence
+      - name: Preserve candidate and verification evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LyricTile-candidate-${{ github.run_number }}
+          path: |
+            Products/LyricTile/dist/*.zip
+            Products/LyricTile/dist/*.dmg
+            Products/LyricTile/dist/SHA256SUMS
+            Products/LyricTile/dist/bundle-verification.json
+            Products/LyricTile/dist/evidence
+            Products/LyricTile/Package.resolved
+          if-no-files-found: error
+          retention-days: 30

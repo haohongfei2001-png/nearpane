@@ -1,0 +1,106 @@
+import Foundation
+import LyricCore
+
+struct PlaybackSelectionTracker: Sendable {
+    private(set) var selection: LyricDomain.Selection?
+    private var processIdentity: String?
+    private var lastObservation: PlayerObservation?
+    private var generation: UInt64 = 0
+    mutating func clear() { selection = nil; processIdentity = nil; lastObservation = nil }
+    mutating func update(_ observation: PlayerObservation) -> LyricDomain.Selection? {
+        guard observation.hasRecording, observation.state != .stopped else { clear(); return nil }
+        let processChanged = processIdentity != observation.process.identity || selection?.playerBundleID != observation.process.player.bundleID
+        let recordingChanged = lastObservation.map { !Self.sameRecording($0, observation) } ?? true
+        if processChanged || recordingChanged || selection == nil {
+            generation &+= 1
+            let session = processChanged ? UUID() : (selection?.sessionID ?? UUID())
+            selection = LyricDomain.Selection(playerBundleID: observation.process.player.bundleID,
+                sessionID: session, generation: generation, recording: Self.recording(observation))
+        } else if let old = selection {
+            // Preserve fingerprint and generation when optional metadata arrives.
+            let enriched = Self.recording(observation, fingerprint: old.recording.fingerprint)
+            selection = LyricDomain.Selection(playerBundleID: old.playerBundleID,
+                sessionID: old.sessionID, generation: old.generation, recording: enriched)
+        }
+        processIdentity = observation.process.identity; lastObservation = observation
+        return selection
+    }
+    static func sameRecording(_ lhs: PlayerObservation, _ rhs: PlayerObservation) -> Bool {
+        guard lhs.process == rhs.process, lhs.mediaPID == rhs.mediaPID,
+              lhs.mediaProcessStart == rhs.mediaProcessStart else { return false }
+        if let a = lhs.platformID, let b = rhs.platformID, a != b { return false }
+        for (a, b) in [(lhs.title, rhs.title), (lhs.artist, rhs.artist), (lhs.album, rhs.album)] {
+            if let a, let b, !a.isEmpty, !b.isEmpty, normalized(a) != normalized(b) { return false }
+        }
+        if let a = lhs.durationMS, let b = rhs.durationMS, abs(a - b) > 2000 { return false }
+        // Complete metadata disappearing must not retain an old recording.
+        return lhs.hasRecording && rhs.hasRecording
+    }
+    static func matches(_ lhs: LyricDomain.Selection?, _ rhs: LyricDomain.Selection) -> Bool {
+        lhs?.sessionID == rhs.sessionID && lhs?.generation == rhs.generation && lhs?.playerBundleID == rhs.playerBundleID
+    }
+    private static func normalized(_ value: String) -> String {
+        value.precomposedStringWithCanonicalMapping.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+    private static func recording(_ observation: PlayerObservation, fingerprint: String? = nil) -> LyricDomain.RecordingIdentity {
+        let source = observation.process.player.bundleID
+        let parts = [observation.title ?? "", observation.artist ?? "", observation.album ?? "", observation.durationMS.map(String.init) ?? ""]
+        let key = observation.platformID.map { "id:\($0)" } ?? "metadata:" + parts.map { "\($0.utf8.count):\(normalized($0))" }.joined(separator: "|")
+        let id = fingerprint ?? "\(source):\(key)"
+        let title = observation.title ?? ""
+        let text = title + " " + (observation.album ?? "")
+        let tags = ["live", "remix", "remaster", "acoustic", "instrumental", "sped up", "slowed", "现场", "伴奏", "翻唱", "重制"].filter { tag in
+            if tag.unicodeScalars.allSatisfy({ $0.isASCII }) {
+                return text.range(of: "(?i)(?<![a-z])" + NSRegularExpression.escapedPattern(for: tag) + "(?![a-z])", options: .regularExpression) != nil
+            }
+            return text.contains(tag)
+        }
+        let ids = observation.platformID.map { [LyricDomain.PlatformTrackID(namespace: source + ".playerTrack", value: $0)] } ?? []
+        return LyricDomain.RecordingIdentity(fingerprint: id, platformIDs: ids, isrc: nil,
+            title: observation.title, artists: observation.artist.map { [$0] } ?? [], album: observation.album,
+            durationMS: observation.durationMS, versionTags: tags)
+    }
+}
+
+enum TransportRoutePolicy {
+    static func validate(_ command: TransportCommand, expected: LyricDomain.Selection,
+                         current: LyricDomain.Selection?, observation: PlayerObservation,
+                         now: LyricDomain.MonotonicStamp = PlaybackClock.now()) throws {
+        guard PlaybackSelectionTracker.matches(current, expected) else { throw PlaybackError.selectionChanged }
+        guard observation.process.startMicros != 0, observation.mediaProcessStart != 0 else { throw PlaybackError.playerExited }
+        guard now.clockDomainID == observation.stamp.clockDomainID,
+              now.nanoseconds >= observation.stamp.nanoseconds,
+              now.nanoseconds - observation.stamp.nanoseconds <= 8_000_000_000,
+              observation.quality != .stale else { throw PlaybackError.unavailable("播放状态已过期") }
+        guard observation.process.player.usesAppleEvents || observation.sourceIsCurrent else { throw PlaybackError.sourceNotCurrent }
+        guard observation.capabilities.allows(command) else { throw PlaybackError.unsupported }
+        if case .seek(let ms) = command {
+            guard ms >= 0, let duration = observation.durationMS, ms <= duration else { throw PlaybackError.unsupported }
+        }
+    }
+}
+
+enum CommandReadback {
+    static func confirms(_ command: TransportCommand, before: PlayerObservation, after: PlayerObservation,
+                         sentAt: LyricDomain.MonotonicStamp) -> Bool {
+        guard before.process == after.process, before.mediaPID == after.mediaPID,
+              before.mediaProcessStart == after.mediaProcessStart else { return false }
+        let same = PlaybackSelectionTracker.sameRecording(before, after)
+        switch command {
+        case .play: return same && after.state == .playing
+        case .pause: return same && after.state == .paused
+        case .next: return !same && after.hasRecording
+        case .previous:
+            return (!same && after.hasRecording) || (same && (before.positionMS ?? 0) > 3000 && (after.positionMS ?? Int64.max) < 1500)
+        case .seek(let target):
+            guard same, let position = after.positionMS,
+                  before.state != .paused || after.state == .paused,
+                  sentAt.clockDomainID == after.stamp.clockDomainID,
+                  after.stamp.nanoseconds >= sentAt.nanoseconds else { return false }
+            let elapsed = Int64(min((after.stamp.nanoseconds - sentAt.nanoseconds) / 1_000_000, UInt64(Int64.max)))
+            let expected = target + (after.state == .playing ? min(elapsed, 6000) : 0)
+            let tolerance: Int64 = after.process.player.usesAppleEvents ? 700 : 1500
+            return abs(position - expected) <= tolerance
+        }
+    }
+}

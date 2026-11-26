@@ -1,0 +1,10 @@
+.build/
+.swiftpm/
+dist/
+build/
+*.xcuserstate
+*.dSYM/
+.DS_Store
+RuntimeQualifications.local.json
+__pycache__/
+*.pyc
