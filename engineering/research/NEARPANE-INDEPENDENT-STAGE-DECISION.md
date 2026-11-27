@@ -1,3 +1,5 @@
+> **2026-11-28 权威范围更新：** [产品宪章](../../PRODUCT_CONSTITUTION.md) 是唯一现行产品规则。本文仍是 Spaces 独立调度后端及其实机证据的重要技术依据；不是整个 Nearpane 的产品定义。本文旧有任何排斥自动平铺、将布局恢复与新组布局混同、要求模块固定等级或阻塞其他成熟模块发行的解释，以宪章第 5、6、12 条为准。技术路线、恢复与真实验收保障保持不变。
+
 # Nearpane — independent Stage Manager replacement
 
 Current authority, 2026-11-28 (Asia/Shanghai). Baseline: PR #15, `6ac5eb63c97b7597e662770bac485be61f571bb8`.
