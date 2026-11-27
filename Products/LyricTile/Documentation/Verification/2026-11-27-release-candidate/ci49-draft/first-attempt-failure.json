@@ -1,0 +1,13 @@
+{
+  "workflowRunID": 46027575512,
+  "jobID": 140602829421,
+  "workflowHead": "65621d520874f575e5a97b3fd5e15e8a59770457",
+  "nativeSource": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "status": "FAIL",
+  "observedReason": "GitHub artifact/asset download returned HTTP 415.",
+  "artifacts": [],
+  "releaseCreated": false,
+  "interpretation": "Actions artifact ZIP redirect was requested with release-asset octet-stream Accept header.",
+  "officialDocumentation": "https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28#download-an-artifact",
+  "jobLogSHA256": "c7a329a8cf2b7761086938f309ae01dc3f8b9e6d70b1b33fab483cde6ad1fe68"
+}

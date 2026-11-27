@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "runID": 46028875940,
+  "releaseID": 460802999,
+  "draft": true,
+  "prerelease": true,
+  "published": false,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "preparationArtifact": {
+    "id": 15214120631,
+    "bytes": 3268,
+    "sha256": "bb250e2afff248a36eaee9d7acf5743602e02ec8b2013440adc684f8519c8099"
+  },
+  "files": {
+    "preparation-result.json": {
+      "bytes": 421,
+      "sha256": "c87c72afdc02db7af7751011e3cbf0b061e856769a677a54c3e4847347eb51ea"
+    },
+    "release-api-snapshot.json": {
+      "bytes": 15498,
+      "sha256": "562cb8766474d069b6d12fb298f0503055b5f947a65ac9d02f049caac88b49e6"
+    },
+    "candidate-verification.json": {
+      "bytes": 3830,
+      "sha256": "65987824d1841af9a525cec82200b104667558bb5a311660fab0b9cf833c1228"
+    },
+    "release-notes.md": {
+      "bytes": 1211,
+      "sha256": "f6f6c2abf2f30938cb86548ac31d0eabed393dbbd3cc874f9591cdac728e2b13"
+    },
+    "independent-review.json": {
+      "bytes": 2263,
+      "sha256": "60b4cd39b7ff6d0ff2dbf96eb630d4df138bd0c76f2bf3f421b84f0a3ca981a2"
+    },
+    "first-attempt-failure.json": {
+      "bytes": 646,
+      "sha256": "6948de3001094e564b1ff682e84998bc9b0c4d108b7b2db0478f8f772497cafd"
+    }
+  }
+}

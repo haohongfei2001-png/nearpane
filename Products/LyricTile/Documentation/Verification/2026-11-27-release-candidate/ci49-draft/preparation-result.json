@@ -1,0 +1,15 @@
+{
+  "assetCount": 6,
+  "build": 49,
+  "published": false,
+  "release": {
+    "draft": true,
+    "id": 460802999,
+    "published": false,
+    "url": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-f486ecba75dec5df255c"
+  },
+  "remoteVerification": "VERIFIED",
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "status": "DRAFT_PREPARED",
+  "tag": "lyrictile-v1.0.0-build49-candidate"
+}

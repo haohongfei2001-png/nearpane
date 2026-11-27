@@ -1,0 +1,30 @@
+{
+  "toolSHA256": "c054d99f1d1f1baa80f0ec1f9821e9001014c757e5e1f7b6cc37b2da936bc192",
+  "python39GrammarValidated": true,
+  "actualCI49CandidateArchiveSHA256": "94f3b9c6212480a182877f1f79aa3d85663e394c4927c59070d52e4de016cb8f",
+  "selfComparison": {
+    "status": "PASS",
+    "comparedPaths": 190,
+    "machOFiles": 7,
+    "architectureSlices": 12
+  },
+  "oneResourceTamper": {
+    "status": "FAIL",
+    "exitCode": 1,
+    "failures": [
+      {
+        "path": "Contents/Resources/Notices/PRIVACY.md",
+        "reason": "Non-signature resource contents changed"
+      }
+    ]
+  },
+  "scope": "Tool logic verified on the actual CI49 payload; no product or macOS runtime test was added.",
+  "fullReports": {
+    "archive": "tool-validation-details.zip",
+    "sha256": "bdfd26db671b5e2efef15a7fe8b943524f6a1bf7e7e2dfcc0d06a1cd32fc4a33",
+    "files": {
+      "tool-self-comparison.json": "75d6b17dad99b4702e7b89a4ca84e01d2c2029aac60b8ca63262aaa212b0da2b",
+      "tool-resource-tamper-rejection.json": "310aee1027a2a1250b1a276206f291e6fc83b4ede4910e6917b30bd786885868"
+    }
+  }
+}

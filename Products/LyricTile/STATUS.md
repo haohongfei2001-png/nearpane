@@ -1,8 +1,8 @@
 # LyricTile · 当前状态
 
-2026-11-27，北京时间。HOLDSNOW独立macOS产品；开发分支 `codex/lyrictile-standalone-20261126`，PR #17。
+2026-11-28，北京时间。HOLDSNOW独立macOS产品；开发分支 `codex/lyrictile-standalone-20261126`，PR #17。
 
-## 当前：CI49原生候选完成，正在完成实际发行流程
+## 当前：原生候选、工程Release与官网完成，正式签名验收进行中
 
 冻结候选为 **1.0.0 / build49 / `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`**，[macOS CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)整体成功。后续文档、官网和发行工具提交不改变这个已测二进制来源。[最终验收及关键原件](Documentation/Verification/2026-11-27-release-candidate/final-acceptance.md)集中记录精确范围、失败历史及复算。
 
@@ -22,8 +22,8 @@
 ## 发行进行中
 
 - 原样候选 ZIP：3,964,772字节，SHA256 `94f3b9c6212480a182877f1f79aa3d85663e394c4927c59070d52e4de016cb8f`。DMG：4,366,216字节，SHA256 `fa8f28d8c6a1e639dde0aa510be2b91360f04960e3566cff174700d6656267e4`。这些是ad-hoc工程包，尚非正式公证包。
-- 独立工程Release的manifest已锁定49。首次真实准备运行在创建草稿前遇Actions artifact HTTP415，最小下载header修复与重试进行中；没有改动旧build4草稿。
-- [中英官网](https://nearpane.com/lyrictile/)已存在，主站导航与页脚入口已上线。最新49原生宣传图逐字节复制并有hash来源，网站六页静态检查通过；本轮新版本发布与云浏览器复核待完成。正式下载仍关闭，不回退到旧build4。
-- Actions内签名身份为0；另已发现用户授权的在线Mac有原DeveloperID，并有notarytool/stapler与GitHub写权限。正在只读核对现有发行凭据和工具；能远程完成的签名/公证将继续直接做，不预先当作本机阻塞。用户现有工作树有修改，必须用独立目录。
+- **工程Release草稿已实际完成**：[准备工作流46028875940](https://github.com/haohongfei2001-png/nearpane/actions/runs/46028875940)，Release ID460802999，6附件均uploaded/bytes/hash吻合，draft=true、prerelease=true、尚未公开。verification ZIP保留213份原件含两XML。首次415是Actions下载媒体类型错误，已针对性修复并真实重跑；旧build4草稿未动。
+- **[中英官网](https://nearpane.com/lyrictile/)已更新到49同源截图与支持文案**：main `3ed378bbad011ec29c13f04a3f65acb2302ec74c`，[Pages46029097621](https://github.com/haohongfei2001-png/nearpane/actions/runs/46029097621)成功。六页实际云浏览器、双语导航、图片全量加载、桌面无横向溢出已检查，来源与整页截图持久归档。正式下载仍关闭，候选链接精确49，无旧build4回退。
+- Actions内签名身份为0；已通过授权的在线Mac实际核实原DeveloperID、公证profile、Sparkle原产品公钥与已装4一致、GitHub权限。正在独立目录签名、公证与验证49；不重编译已测程序，仅加入4个明确发行配置键并用逐文件/Mach-O比较验证负载关系。原工作树与已装4保留，尚未宣称正式包或4→49升级通过。
 - 已公证build4来自`3e83b5c`；八小时、旧2→4升级只作为该包历史。最终包仍需已有凭据签名、公证和Sparkle签名、同一包启动与4→最终包升级；按实际结果更新，不重新生成更新密钥或重跑全套云矩阵。
 - 更新feed仍位于本开发分支`Products/LyricTile/Updates/appcast.xml`；迁移更新源前保留此分支。PR17继续以原Nearpane开发基线为base，独立LyricTile发行不依赖Nearpane合并。

@@ -1,0 +1,221 @@
+{
+  "mainCommit": "3ed378bbad011ec29c13f04a3f65acb2302ec74c",
+  "pagesRun": 46029097621,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "phase": "candidate site, before signed consumer release",
+  "evidenceClass": "actual cloud browser",
+  "checks": [
+    {
+      "candidate": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269",
+      "downloadHidden": true,
+      "images": [
+        {
+          "height": 128,
+          "loaded": true,
+          "src": "assets/mark.svg",
+          "width": 128
+        },
+        {
+          "height": 192,
+          "loaded": true,
+          "src": "assets/lyrics.png",
+          "width": 208
+        },
+        {
+          "height": 192,
+          "loaded": true,
+          "src": "assets/lyrics.png",
+          "width": 208
+        },
+        {
+          "height": 192,
+          "loaded": true,
+          "src": "assets/controls.png",
+          "width": 208
+        },
+        {
+          "height": 104,
+          "loaded": true,
+          "src": "assets/compact.png",
+          "width": 208
+        }
+      ],
+      "language": "zh-CN",
+      "overflow": false,
+      "scrollWidth": 1348,
+      "support": "Apple Music、QQ 音乐和网易云音乐已通过本地音轨核心验证。Spotify 尚未实测；歌词覆盖率因歌曲与版本而异。",
+      "title": "LyricTile — 歌词，自然在旁。 · HOLDSNOW",
+      "url": "https://nearpane.com/lyrictile/",
+      "viewport": {
+        "height": 936,
+        "width": 1363
+      }
+    },
+    {
+      "hasCurrentSupport": true,
+      "headings": [
+        "装好，放一首歌。",
+        "安装",
+        "日常使用",
+        "没有看到歌词板",
+        "看得到歌曲，没有歌词",
+        "更新与保留资料",
+        "支持范围"
+      ],
+      "language": "zh-CN",
+      "overflow": false,
+      "title": "安装与使用 · LyricTile",
+      "url": "https://nearpane.com/lyrictile/help.html"
+    },
+    {
+      "hasCurrentSupport": true,
+      "headings": [
+        "Install it. Start a song.",
+        "Installation",
+        "Everyday use",
+        "No panel appears",
+        "Song details appear without lyrics",
+        "Updates and your files",
+        "Player support"
+      ],
+      "language": "en",
+      "overflow": false,
+      "title": "Install and use · LyricTile",
+      "url": "https://nearpane.com/lyrictile/en/help.html"
+    },
+    {
+      "headings": [
+        "Privacy",
+        "Player information",
+        "Online lyrics",
+        "Stored on your Mac",
+        "Artwork, updates, and diagnostics",
+        "Content rights",
+        "Contact and this website"
+      ],
+      "language": "en",
+      "noTelemetry": true,
+      "onlineDisclosure": true,
+      "overflow": false,
+      "title": "Privacy · LyricTile",
+      "url": "https://nearpane.com/lyrictile/en/privacy.html"
+    },
+    {
+      "headings": [
+        "隐私说明",
+        "播放器信息",
+        "在线歌词",
+        "保存在本机",
+        "封面、更新和诊断",
+        "歌词内容",
+        "联系与页面数据"
+      ],
+      "language": "zh-CN",
+      "onlineDisclosure": true,
+      "overflow": false,
+      "title": "隐私说明 · LyricTile",
+      "url": "https://nearpane.com/lyrictile/privacy.html"
+    },
+    {
+      "candidate": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269",
+      "downloadHidden": true,
+      "images": [
+        {
+          "height": 128,
+          "loaded": true,
+          "src": "../assets/mark.svg",
+          "width": 128
+        },
+        {
+          "height": 0,
+          "loaded": false,
+          "src": "../assets/lyrics-en.png",
+          "width": 0
+        },
+        {
+          "height": 0,
+          "loaded": false,
+          "src": "../assets/lyrics-en.png",
+          "width": 0
+        },
+        {
+          "height": 0,
+          "loaded": false,
+          "src": "../assets/controls-en.png",
+          "width": 0
+        },
+        {
+          "height": 104,
+          "loaded": true,
+          "src": "../assets/compact.png",
+          "width": 208
+        }
+      ],
+      "language": "en",
+      "overflow": false,
+      "support": "Apple Music, QQ Music and NetEase have passed core tests with local tracks. Spotify remains unverified. Lyrics coverage varies by song and recording.",
+      "title": "LyricTile — Lyrics, naturally beside you. · HOLDSNOW",
+      "url": "https://nearpane.com/lyrictile/en/",
+      "viewport": {
+        "height": 936,
+        "width": 1363
+      }
+    },
+    {
+      "images": [
+        {
+          "loaded": true,
+          "src": "../assets/mark.svg"
+        },
+        {
+          "loaded": true,
+          "src": "../assets/lyrics-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "../assets/lyrics-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "../assets/controls-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "../assets/compact.png"
+        }
+      ],
+      "overflow": false,
+      "url": "https://nearpane.com/lyrictile/en/#experience"
+    },
+    {
+      "images": [
+        {
+          "loaded": true,
+          "src": "assets/mark.svg"
+        },
+        {
+          "loaded": true,
+          "src": "assets/lyrics.png"
+        },
+        {
+          "loaded": true,
+          "src": "assets/lyrics.png"
+        },
+        {
+          "loaded": true,
+          "src": "assets/controls.png"
+        },
+        {
+          "loaded": true,
+          "src": "assets/compact.png"
+        }
+      ],
+      "overflow": false,
+      "url": "https://nearpane.com/lyrictile/#experience"
+    }
+  ],
+  "limits": [
+    "Browser verification does not qualify native player behavior.",
+    "Only the observed desktop viewport was checked in this pass."
+  ]
+}

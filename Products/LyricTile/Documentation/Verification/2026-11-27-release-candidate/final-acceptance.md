@@ -79,7 +79,9 @@ TileKit 的排列、收缩释放 88pt、扩容撤回确认、退出清理、顺�
 
 原生构建检查实际 App/helper 加载、ZIP CRC/版本/源码/可执行文件、DMG 真正挂载及 Applications 入口、包与校验文件一致。候选 ZIP/DMG 不具有 Developer ID 公证资格；空更新 feed 没有可安装项目。当前不存在用旧 build4 代替最终包的正式下载。
 
-官网复用原有 HOLDSNOW 品牌和 GitHub Pages，包含中英文产品、帮助及隐私六页。宣传图片是同一最新源码的原生原创布局截图，原图逐字节复制，来源和限制见 `Website/assets/SCREENSHOTS.json`；页面装饰背景与真实桌面测试分开标记。官网的下载状态只由同一次正式发行 manifest 决定，避免仓库通用 `releases/latest` 指向 Nearpane。
+官网复用原有 HOLDSNOW 品牌和 GitHub Pages，包含中英文产品、帮助及隐私六页。[本轮实际浏览器验收](ci49-website/README.md)对应main `3ed378b`及成功Pages46029097621：六页、双语导航和图片加载正常，当前桌面视口无横向溢出。宣传图片是同一最新源码的原生原创布局截图，原图逐字节复制，来源和限制见 `Website/assets/SCREENSHOTS.json`；页面装饰背景与真实桌面测试分开标记。官网的下载状态只由同一次正式发行 manifest 决定，避免仓库通用 `releases/latest` 指向 Nearpane。
+
+工程草稿已通过[真实准备工作流46028875940](https://github.com/haohongfei2001-png/nearpane/actions/runs/46028875940)创建，Release ID460802999为draft/prerelease，6附件上传和hash复核通过，verification ZIP保留213份原件及两XML。[独立复核](ci49-draft/independent-review.json)记录API状态；原第一次下载HTTP415经正确区分Actions与Release下载类型后实际解决。该工程草稿不用于消费者下载。
 
 已公证 **build4** 的八小时稳定性和旧升级结果是历史基线。本轮实际播放短回归、空闲采样与资源释放记录属于本轮包；没有重新声称当前包通过八小时或 4→当前版本升级。
 

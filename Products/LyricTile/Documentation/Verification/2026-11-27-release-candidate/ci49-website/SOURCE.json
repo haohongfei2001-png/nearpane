@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "mainCommit": "3ed378bbad011ec29c13f04a3f65acb2302ec74c",
+  "pagesRun": 46029097621,
+  "evidenceClass": "actual cloud browser",
+  "phase": "candidate site, before signed consumer release",
+  "files": {
+    "lyrictile-website-ci49-zh.jpg": {
+      "bytes": 170301,
+      "sha256": "5202548e7a0b49479c05b6e2c62eb048977cd65e710f630273fba9fe1bb644eb"
+    },
+    "lyrictile-website-ci49-browser.json": {
+      "bytes": 5834,
+      "sha256": "95fa6574679640e3e8de1d7b72b8b026aba5b26268f4f51c071bdeb01fa51ae3"
+    },
+    "lyrictile-website-ci49-en.jpg": {
+      "bytes": 188796,
+      "sha256": "457467abce4a250a61c722ec04d0b608c0bb279f51399548c6f2293d16fb2c7e"
+    }
+  }
+}
