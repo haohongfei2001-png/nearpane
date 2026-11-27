@@ -635,12 +635,15 @@ import OSLog
         let taskCreated = ProcessInfo.processInfo.systemUptime
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
             let taskStarted = ProcessInfo.processInfo.systemUptime
+            IndependentStageTrace.record("desktop-read-task-started", ["readSession": request.session.uuidString,
+                "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
+                "taskStartedUptime": taskStarted, "taskPriority": Task.currentPriority.rawValue])
             var step = "entry", completed = false, receivedReply = false
             var readerMS: Double = 0, historyMS: Double = 0, projectionMS: Double = 0, directoryMS: Double = 0
             var nativeTiming = [String: Double]()
             defer {
                 let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
-                var fields: [String: Any] = ["requestRevision": request.revision,
+                var fields: [String: Any] = ["readSession": request.session.uuidString, "requestRevision": request.revision,
                     "step": step, "completed": completed, "receivedReply": receivedReply,
                     "taskPriority": Task.currentPriority.rawValue,
                     "taskCreatedUptime": taskCreated, "taskStartedUptime": taskStarted,
@@ -770,6 +773,10 @@ import OSLog
         }
         let token = UUID()
         pending = (token, task)
+        IndependentStageTrace.record("desktop-read-task-created", ["readSession": request.session.uuidString,
+            "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
+            "creatorPriority": Task.currentPriority.rawValue,
+            "dispatching": NativeSidebarNavigation.shared.isDispatching])
         let result = await task.value
         if pending?.0 == token { pending = nil }
         return expected == epoch ? result : nil

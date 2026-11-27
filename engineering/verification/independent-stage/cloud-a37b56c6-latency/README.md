@@ -79,7 +79,7 @@ The prominent later delay is actual read revision 10:
 | Native end to reader return | 10.623 ms |
 | Associated after-action directory call | 1771.347 ms: prior 99.677 + fresh 1671.663 ms |
 
-The task was created at 370.520128 and started at 372.019481. The new trace directly identifies scheduling wait before this task begins; it does not identify the synchronous operation or executor responsible. The three-second sample began earlier and does not fully cover that wait, so its stacks cannot establish a complete explanation of the 1.499-second interval.
+The task was created at 370.520128 and started at 372.019481. The new trace directly identifies scheduling wait before this task begins; it does not identify the synchronous operation or executor responsible. The three-second sampler began earlier, but there is no timestamped capture-completion receipt establishing coverage of the entire wait. Its nominal duration and later reaping time cannot establish a complete explanation of the 1.499-second interval.
 
 Across 25 after-action directory calls, total measured duration was 4918.928 ms, comprising 376.903 ms prior wait and 4541.940 ms fresh phase. Median fresh phase was 113.437 ms, maximum 1671.663 ms. Across 32 actual read tasks, median task-queue wait was 0.279 ms and maximum 1499.353 ms. These are sums/distributions of observations, not end-to-end wall-clock switch latency.
 
@@ -105,7 +105,7 @@ The full candidate ZIP is omitted from the repository: 25,694,048 bytes, SHA-256
 
 ## Sampling and provenance
 
-Within each lane, the actual-press and preparation triggers shared **one physical sample process**. Each selection report has its own complete `group-job-start` evidence and `sharedWith=host-main-thread`; both logical reports name the same lane's `host-main-thread.sample.txt`. The fast trigger distinction remains in [host-main-thread-sample.json](fast/host-main-thread-sample.json) and [host-selection-preparation-main-thread-sample.json](fast/host-selection-preparation-main-thread-sample.json); corresponding full metadata is retained as well. The more diagnostic full sample text is checked in. Fast sample text is omitted with its original hash and archive location, because it does not fully cover the later 1.499-second scheduling wait.
+Within each lane, the actual-press and preparation triggers shared **one physical sample process**. Each selection report has its own complete `group-job-start` evidence and `sharedWith=host-main-thread`; both logical reports name the same lane's `host-main-thread.sample.txt`. The fast trigger distinction remains in [host-main-thread-sample.json](fast/host-main-thread-sample.json) and [host-selection-preparation-main-thread-sample.json](fast/host-selection-preparation-main-thread-sample.json); corresponding full metadata is retained as well. The more diagnostic full sample text is checked in. Fast sample text is omitted with its original hash and archive location, because its nominal duration and reaping metadata do not establish full coverage of the later 1.499-second scheduling wait.
 
 The sampler started only after a complete, successful external AXPress receipt, not when a request file first appeared. `sampleLaunchMonotonic` and other `*Monotonic` fields are runner-process monotonic metadata; native uptime fields are retained separately. `reapedMonotonic` records process cleanup, not the end of the captured sample window. The separate startup sampler metadata is retained; its larger raw text is omitted here with SHA-256 and original artifact path in provenance.
 

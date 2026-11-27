@@ -364,7 +364,7 @@
       "bytes": 253567,
       "sha256": "739018726c2d3ea84add4b634f259a1e5415f190a75f7a5371d8379dd2332011",
       "lane": "fast",
-      "reason": "Three-second sample does not fully cover observed 1.499-second task-queue wait; exact artifact retained. Keep the more diagnostic full-lane sample in compact repository evidence."
+      "reason": "Nominal three-second duration and reaping metadata do not establish full coverage of the observed 1.499-second task-queue wait; exact artifact retained. Keep the more diagnostic full-lane sample in compact repository evidence."
     }
   ],
   "derivedFiles": [

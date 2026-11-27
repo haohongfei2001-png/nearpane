@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "revision": "34f37360144eb8e339ac81b1f901536f31853ad6",
+  "environment": "target27.0/26A428/arm64/SIPenabled",
+  "originals": [
+    {
+      "path": "native-enabled/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/summary.json",
+      "bytes": 13789,
+      "sha256": "ffeda0ef842a37e1d1dc8c49a0442182a1facf8c1571b396a54359f28f0bde7a"
+    },
+    {
+      "path": "native-enabled/runtime/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/summary.json",
+      "bytes": 12365,
+      "sha256": "e05014a34ac0dcc049fcff73693f40b7d09e81dc66c7a635c6cd1c51e362dcec"
+    },
+    {
+      "path": "native-enabled/runtime/engine-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/engine-result.json",
+      "bytes": 1675,
+      "sha256": "b405dbe2c6a17a041bde8ac212ddce1787aacdf873cbfad253b30f6579a22ff0"
+    },
+    {
+      "path": "native-enabled/runtime/engine.log",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/engine.log",
+      "bytes": 3195,
+      "sha256": "bef17187092fa468d8840c3d5bd73f105364589987dd5c159c7b3a3cce8ae1f6"
+    },
+    {
+      "path": "native-enabled/runtime/product.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/product.json",
+      "bytes": 94,
+      "sha256": "ca33b638830d1db8db0fca0a9c5ac32050372c537a4ea603c0915419e076b159"
+    },
+    {
+      "path": "native-enabled/runtime/product.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/product.stderr.log",
+      "bytes": 791,
+      "sha256": "62f9951fa9a9f6ea3f937929d0b72767a15d6737115b845ebe6e700c5724fa17"
+    },
+    {
+      "path": "native-enabled/runtime/product/product-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/product/product-result.json",
+      "bytes": 8983,
+      "sha256": "5926e5d11775b49446e9148c887b88c81d734e5a1934be04243055c1a39b31a6"
+    },
+    {
+      "path": "native-enabled/runtime/fixture-cleanup.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-product-20261128/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "desktop-changed/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/summary.json",
+      "bytes": 4646,
+      "sha256": "27815895b48e1155089fe00bab085b2d3d16e7a1f050de6bc2711c61755d41e1"
+    },
+    {
+      "path": "desktop-changed/runtime/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/summary.json",
+      "bytes": 3824,
+      "sha256": "2dee7adf0335850c59dc73d5a83bdc50502d10a0a7d8738d07eea5237c62a257"
+    },
+    {
+      "path": "desktop-changed/runtime/engine-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/engine-result.json",
+      "bytes": 1693,
+      "sha256": "b7c6b6e57c26fb810e574d66e476250e6fc9e685e1e79a15b76e48d8a823c9d5"
+    },
+    {
+      "path": "desktop-changed/runtime/engine.log",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/engine.log",
+      "bytes": 3214,
+      "sha256": "1ab2a89745428563559364672d8965cc09deb7dc9aafe00196e8f7eb651f647c"
+    },
+    {
+      "path": "desktop-changed/runtime/product.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/product.json",
+      "bytes": 94,
+      "sha256": "ca33b638830d1db8db0fca0a9c5ac32050372c537a4ea603c0915419e076b159"
+    },
+    {
+      "path": "desktop-changed/runtime/product.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/product.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "desktop-changed/runtime/product/product-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/product/product-result.json",
+      "bytes": 754,
+      "sha256": "be10a9d90022a580e1a7e7f98295a46fc3839b247fd3097f4ee06b97f2aa9080"
+    },
+    {
+      "path": "desktop-changed/runtime/fixture-cleanup.json",
+      "originalPath": "/private/tmp/nearpane-independent-34f-native-20261128/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "setup/preferences-original.json",
+      "originalPath": "/private/tmp/nearpane-34f-native-test/preferences-original.json",
+      "bytes": 87,
+      "sha256": "f6db7f998f073b248a62c44c4390fb25ab9d22de576b0c370a00b42f470c3702"
+    },
+    {
+      "path": "setup/preferences-off.json",
+      "originalPath": "/private/tmp/nearpane-34f-native-test/preferences-off.json",
+      "bytes": 88,
+      "sha256": "51a8d7aec9a1f4514cd9f20927f3f886ab3a96380e64e3c6b9bcccdbebaae1e1"
+    },
+    {
+      "path": "setup/preferences-returned.json",
+      "originalPath": "/private/tmp/nearpane-34f-native-test/preferences-returned.json",
+      "bytes": 87,
+      "sha256": "f6db7f998f073b248a62c44c4390fb25ab9d22de576b0c370a00b42f470c3702"
+    },
+    {
+      "path": "setup/result.json",
+      "originalPath": "/private/tmp/nearpane-34f-native-test/result.json",
+      "bytes": 238,
+      "sha256": "5adb6d35443548142870a9ae23f36f9fcb431720361b369c09920477cf579a31"
+    },
+    {
+      "path": "setup/returned-context.json",
+      "originalPath": "/private/tmp/nearpane-34f-native-test/preferences-returned.json",
+      "bytes": 87,
+      "sha256": "f6db7f998f073b248a62c44c4390fb25ab9d22de576b0c370a00b42f470c3702"
+    }
+  ]
+}

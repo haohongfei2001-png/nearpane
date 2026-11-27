@@ -3,8 +3,8 @@
   "revision": "b2513db0585db8e08c0e0ea0019000035a969dda",
   "workflowRun": 46028571636,
   "recorded": "2026-11-27",
-  "fullRuntimeAtRecord": "PENDING",
-  "purpose": "Exact cloud source PASS after two test-only corrections; fast product failure before preparation completes; engine-only passes kept separate; no target-Mac qualification",
+  "fullRuntimeAtRecord": "COMPLETE_FAIL_CLEANUP_CONFIRMED",
+  "purpose": "Exact cloud source PASS after two test-only corrections; fast preparation failure and full initial physical-witness failure before HIDE; all engine-only passes and cleanup kept separate; no target-Mac qualification",
   "artifacts": {
     "context": {
       "id": 15214256155,
@@ -23,6 +23,12 @@
       "job": 140606214262,
       "bytes": 1460803,
       "sha256": "b80b893f5cba5a60d7e499eb13407c7416d5e4f4828b98e775f8d0f7eb16b635"
+    },
+    "full": {
+      "id": 15213788391,
+      "job": 140606213893,
+      "bytes": 53311108,
+      "sha256": "a5c75f36aeb1752a3df60ee5a8bab1e41d9f813329e2b9b480fcc27f65358c67"
     }
   },
   "files": [
@@ -186,6 +192,146 @@
       "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
       "bytes": 117,
       "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "source/rust.log",
+      "artifact": 15213788391,
+      "artifactPath": "independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "9ef6d90ae548c9793caa0140fa9a31e42418328975f2de8c62893a2659d653ae"
+    },
+    {
+      "file": "source/rust.stderr.log",
+      "artifact": 15213788391,
+      "artifactPath": "independent-source/source/rust.stderr.log",
+      "bytes": 9146,
+      "sha256": "ef24a61de417ec2d9070c7c9fd86ab2c5b05c2e0478aa06b07a60598d6623f76"
+    },
+    {
+      "file": "source/rust.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-source/source/rust.json",
+      "bytes": 88,
+      "sha256": "b90ada0aa90a9c68fa4ff2aa399481f0512c60894970469c4af84a8425fdff9f"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 29438,
+      "sha256": "d3c2c65ef7826f19d7832bc7f1a23aed2af0b3b2578e2479f929f4feb6fb6f87"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "9e30522ce085298c83d5872a2a61f20b8f7e48a88c8020f1967b92d1b4ccaf94"
+    },
+    {
+      "file": "full/engine.stderr.log",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 22698,
+      "sha256": "5b4c1e98017fd48ef2761356366e0e2af3b3223d8d8a8cae0ad35ae58a67a417"
+    },
+    {
+      "file": "full/ci-workspace-prepare-receipt.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "3b9c05aed6593e745e1528d1d3b47611d41b13d367108d46972c0eeb53004948"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "a73069e021e3eb17d8067b2028cdde7e713f5c80d47a7efc21b6f062e396b9c6"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 40808,
+      "sha256": "868132967df476801e0caf61ce80724fc79d018e60486a99af07f6f91b08d4c7"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 21521,
+      "sha256": "579e841f26916ea8a4f0729e29ba96172e5a355f9ca9460431d6a5dd8daf9aa4"
+    },
+    {
+      "file": "full/host-main-thread-sample.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 784,
+      "sha256": "6a49f9aa0847830398604e2b9d2ead7bce33405cc1040121b60ecf1ae0a30206"
+    },
+    {
+      "file": "full/host-selection-preparation-main-thread-sample.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 961,
+      "sha256": "8542ebd67f1351bbdfda330fc811c86625152f257fd29b49349309b0d63fcdaa"
+    },
+    {
+      "file": "full/host-startup-main-thread-sample.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 389,
+      "sha256": "f6c6ac216e7e277753f89612dd1f4885ad5cd6c4bfe13cddc787d1149c893156"
+    },
+    {
+      "file": "full/r4-press-7185be84-2d36-40eb-9d66-ca5e42681523.request.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-7185be84-2d36-40eb-9d66-ca5e42681523.request.json",
+      "bytes": 663,
+      "sha256": "4326e7db64c1fd6cb8226b83c7c988fb6572a41a9ff5aafacc631554cd89e662"
+    },
+    {
+      "file": "full/r4-press-7185be84-2d36-40eb-9d66-ca5e42681523.result.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-7185be84-2d36-40eb-9d66-ca5e42681523.result.json",
+      "bytes": 3678,
+      "sha256": "b28695163bd5a6b6ca04f7a0dcac5c96dbf39e85221c52997bbcf7fdf4e7718e"
+    },
+    {
+      "file": "full/spaces-lifecycle-79f410e4-2a17-4749-8559-b4c191d7740e.json",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-79f410e4-2a17-4749-8559-b4c191d7740e.json",
+      "bytes": 1085,
+      "sha256": "4d297a0bce8fd76b30998de7b8268c2c8e9c2b4e5504061f19c8082a670e6e2c"
+    },
+    {
+      "file": "full/spaces-worker-98542321-cb60-49ab-bca8-e84be8016e3a.jsonl",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-98542321-cb60-49ab-bca8-e84be8016e3a.jsonl",
+      "bytes": 570,
+      "sha256": "bf00264d742c9218d123ab03da5b1b2904c226a8eaa96242f8cb1638a45282bb"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifact": 15213788391,
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "9c70c61f362e3797630073e9e8739d0d2a9d63724a8004f0e95dcb7ac717143d"
+    },
+    {
+      "file": "full/host-main-thread.sample.txt",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 301199,
+      "sha256": "a6dc90cc8a9c37f52e2a2bac1a5274f34124fee20a768ce8d65554200d4633b5"
     }
   ],
   "omittedSampleText": [
@@ -196,6 +342,14 @@
       "bytes": 203952,
       "sha256": "2e8b96ce687ab81e5715da5f9c2c5a3a001427e791673d60a3929064e3201042",
       "reason": "Keep compact evidence; original remains in exact-SHA artifact and startup metadata retained."
+    },
+    {
+      "lane": "full",
+      "artifact": 15213788391,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 182132,
+      "sha256": "31d8f3fe7e64433190c6f3664b273ab77597e06c3f224a2b2dc61aee48d5af73",
+      "reason": "Compact evidence; complete startup sample text remains in exact-SHA artifact; corresponding sampler metadata retained."
     }
   ],
   "derivedFiles": [
@@ -205,6 +359,20 @@
       "sha256": "fc18551b8a85c05d0681ab8f3a257902970559b17f779c1ea224e8a2c72c158f",
       "source": "fast/product.stderr.log, fast/product-result.json, fast/r4-press-*.result.json, fast/host-*-sample.json",
       "method": "Independent trace extraction and arithmetic; source hashes retained and scratch paths normalized to relative paths. No witness was completed; sampled stacks do not establish causation for the entire elapsed interval."
+    },
+    {
+      "file": "full/timing-analysis.json",
+      "bytes": 31640,
+      "sha256": "6a35893659325c1a54feb5ec9685fbf77e16d9e42a6b60baa05c58d0cfb02ead",
+      "source": "full/product.stderr.log, full/product-result.json, full/r4-press-*.result.json, full/spaces-worker-*.jsonl, full/host-*-sample.json",
+      "method": "Independent extraction and timing arithmetic. Scratch paths normalized; original hashes retained. physical-window-observation is a composite rejection label, not a precise native-reader root cause."
     }
-  ]
+  ],
+  "fullCandidateArchive": {
+    "artifact": 15213788391,
+    "artifactPath": "Nearpane-independent-candidate.zip",
+    "bytes": 25694046,
+    "sha256": "480186a5e4519416bff86deb3264a7a9ee1f7e5ec453c8854650f2994a500c84",
+    "storedInRepository": false
+  }
 }

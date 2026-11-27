@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through b2513db0, 2026-11-28
+#### R4 latency work through 34f37360, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -198,21 +198,62 @@ records BLOCKED and confirms unchanged Space inventory/fixture cleanup. A later
 read-only context confirms that fullscreen state.
 [Exact target preflight originals](../verification/independent-stage/target-a37-r4-preflight/README.md).
 
-The next scoped scheduling correction explicitly gives the existing navigation
-drain Task user-initiated priority. Its inherited utility priority is now a
-concrete sampled execution concern, not proof of App Nap. Existing dequeue and
-directory-task traces record actual Task priority, and a new test submits from
-a utility parent and checks priority both before and after real suspension.
-The queue, latest-choice rules, permission checks and full physical proofs are
-unchanged. Native validation of this follow-up is pending.
+`34f37360` explicitly gives the existing navigation drain Task user-initiated
+priority. Exact native source passes180 Rust and220 Swift tests with one skip,
+including a utility-parent test that checks action priority before and after
+real suspension. Full native R4 observes navigation priority25 and the relevant
+directory tasks also record25 at exit. The change reached real execution but
+did not remove the queue delay: opening-witness revision7 waits3029.316ms to
+start, then executes in370.147ms, including79.731ms native observation. Saved
+Dock evidence expires before the witness rejects its opening roster. One actual
+input produces no confirmed selection and no product HIDE; all original windows
+are physically confirmed returned at shutdown. Fast separately stops before
+input on an incomplete live accessibility tree. Its automatic reads at priority17
+do not describe a selected-window action.
+[Exact34f source and cloud originals](../verification/independent-stage/cloud-34f37360-latency/README.md).
+
+The complete34f target release and strict/deep signature also pass. Two separate
+target attempts stop before an R4 press: one observes native Stage Manager enabled,
+and the other reaches a fullscreen current Space at engine preflight after an
+earlier ordinary-desktop observation. Neither is a product runtime PASS. Both
+confirm fixture cleanup; the temporary preference change, original desktop and
+original foreground were positively restored. Later observations show a new
+ordinary-desktop/native-Stage-Manager-off state, then the daily Nearpane installation
+running. This newer user state supersedes the old restoration target; the daily
+application has not been replaced or terminated.
+[Target candidate](../verification/independent-stage/target-34f-candidate/README.md),
+[separate target preconditions and restoration](../verification/independent-stage/target-34f-preconditions/README.md).
+
+The next scoped correction declares accepted explicit user work using
+`ProcessInfo.userInitiatedAllowingIdleSystemSleep`, retaining it across the actual
+navigation job and any existing asynchronous release it initiates. It ends when
+those operations finish, not when long-lived hidden-window ownership disappears.
+Automatic observations and focus resumption do not acquire this activity. This
+is a user-work declaration, not a claim that App Nap caused the measured delay.
+[Apple activity API](https://developer.apple.com/documentation/foundation/processinfo/beginactivity(options:reason:)),
+[user-initiated option](https://developer.apple.com/documentation/foundation/processinfo/activityoptions/userinitiatedallowingidlesystemsleep).
+
+Opt-in task-created/task-started events and an external runner watchdog target
+the previously missed queue interval. It distinguishes a sampler still capturing
+from one only processing symbols, and can add at most one late capture. Native
+uptime, external observations, capture-completion-marker observation and process
+reaping remain separate. Existing samples do not prove complete queue coverage or
+identify a single blocking function. Native verification of these next changes
+is pending; no deadline or physical-proof requirement is relaxed.
+
+The complete release lane explicitly disables external Host stack sampling for
+its formal R4 acceptance, while the fast debug lane retains the bounded diagnostic
+watchdog. Sampling and later symbol processing are additional work, so an
+unmeasured perturbation must not be folded into a product timing claim. This
+separation is not a same-build A/B experiment and cannot establish that sampling
+or activity alone caused a timing difference. All real-input, identity, complete
+physical readback, exact-focus and cleanup requirements stay identical.
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state
 deadline eight seconds. No failed input is replayed. Formal R4 has not passed and
 no release qualification has been granted. Current target attempts and the existing
-controlled macOS cloud fixtures retain separate exact-source evidence. A reversible
-ordinary-desktop target trial is being executed after positively identifying its
-original fullscreen Space; it must independently verify cleanup and desktop return.
+controlled macOS cloud fixtures retain separate exact-source evidence.
 
 #### Earlier target-engine and package checkpoints
 

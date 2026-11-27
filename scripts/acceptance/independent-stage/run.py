@@ -24,6 +24,12 @@ from host_crash import run_host_crash
 from package import package
 
 HERE = Path(__file__).resolve().parent
+HOST_SAMPLE_REASONS = {
+    "host-startup-main-thread": "hostExitedBeforeStartupSample",
+    "host-main-thread": "successfulR4PressNotObserved",
+    "host-selection-preparation-main-thread": "groupSelectionJobNotObserved",
+    "host-read-queue-main-thread": "noObservedR4ReadQueueDelay",
+}
 
 
 def select_toolchain(env):
@@ -100,35 +106,116 @@ def confirmed_r4_press(directory, host_pid, request_observed):
     return min(confirmed, key=lambda value: value["actualPressUptime"]) if confirmed else None
 
 
-def selection_preparation_start(reader, partial):
-    """Read only complete JSON lines from this directly launched Host's stderr."""
+def selection_preparation_start(reader, partial, on_event=None):
+    """Consume complete Host lines once, including task events after the first selection."""
     lines = (partial + reader.read()).split("\n")
     partial = lines.pop()
+    selected = None
     for line in lines:
         try:
             event = json.loads(line)
         except ValueError:
             continue
-        if not isinstance(event, dict) or event.get("event") != "independentStageProduct" or event.get("phase") != "group-job-start":
+        if not isinstance(event, dict) or event.get("event") != "independentStageProduct":
             continue
-        if positive_time(event.get("uptime")):
-            return partial, {"selectionStartUptime": event["uptime"], "selectionObservedMonotonic": time.monotonic(),
-                             "selectionWindow": event.get("window"), "selectionCurrentAtEntry": event.get("current")}
-    return partial, None
+        if on_event is not None:
+            on_event(event)
+        if selected is None and event.get("phase") == "group-job-start" and positive_time(event.get("uptime")):
+            selected = {"selectionStartUptime": event["uptime"], "selectionObservedMonotonic": time.monotonic(),
+                        "selectionWindow": event.get("window"), "selectionCurrentAtEntry": event.get("current")}
+    return partial, selected
+
+
+def observe_directory_task(event, pending):
+    phase, session, revision = event.get("phase"), event.get("readSession"), event.get("requestRevision")
+    if not isinstance(session, str) or not session or type(revision) is not int or revision <= 0:
+        return
+    key = (session, revision)
+    if phase == "desktop-read-task-created" and event.get("dispatching") is True and positive_time(event.get("taskCreatedUptime")):
+        pending.setdefault(key, {"readSession": session, "requestRevision": revision,
+                                 "taskCreatedUptime": event["taskCreatedUptime"],
+                                 "taskCreatedObservedMonotonic": time.monotonic(),
+                                 "creatorPriority": event.get("creatorPriority")})
+    elif phase == "desktop-read-task-started" and positive_time(event.get("taskStartedUptime")):
+        task = pending.get(key)
+        if task is not None and event["taskStartedUptime"] >= task["taskCreatedUptime"]:
+            pending.pop(key)
+            # A report retains this dictionary after a late sampler starts, so
+            # the eventual start remains evidence of the same task's queue wait.
+            task.update(taskStartedUptime=event["taskStartedUptime"], taskStartedObservedMonotonic=time.monotonic(),
+                        taskStartPriority=event.get("taskPriority"),
+                        taskQueueMS=(event["taskStartedUptime"] - task["taskCreatedUptime"]) * 1000)
+
+
+def delayed_directory_task(pending, now):
+    delayed = [task for task in pending.values() if now - task["taskCreatedObservedMonotonic"] >= .25]
+    if not delayed:
+        return None
+    task = min(delayed, key=lambda value: value["taskCreatedObservedMonotonic"])
+    task.setdefault("queueDelayObservedMonotonic", now)
+    task["pendingForObservedMS"] = (now - task["taskCreatedObservedMonotonic"]) * 1000
+    return task
+
+
+def observe_capture_markers(reader, partial, report):
+    """These are marker observation times, never inferred capture-end times."""
+    lines = (partial + reader.read()).split("\n")
+    partial = lines.pop()
+    for line in lines:
+        if line.startswith("Sampling process "):
+            report.setdefault("captureStartObservedMonotonic", time.monotonic())
+        elif line.strip() == "Sampling completed, processing symbols...":
+            report.setdefault("captureCompletionObservedMonotonic", time.monotonic())
+    return partial
 
 
 def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=None):
     with ExitStack() as sampling_files, (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
-        samplers = {}
-        sample_reports = {
-            "host-startup-main-thread": {"status": "NOT_RUN", "reason": "hostExitedBeforeStartupSample", "diagnosticOnly": True},
-            "host-main-thread": {"status": "NOT_RUN", "reason": "successfulR4PressNotObserved", "diagnosticOnly": True},
-            "host-selection-preparation-main-thread": {"status": "NOT_RUN", "reason": "groupSelectionJobNotObserved", "diagnosticOnly": True},
-        }
+        samplers, sampler_readers, pending_tasks = {}, {}, {}
+        sample_reports = {stem: {"status": "NOT_RUN", "reason": reason, "diagnosticOnly": True}
+                          for stem, reason in HOST_SAMPLE_REASONS.items()}
         request_observed = {}
         actual_press = selection_start = None
         log_partial = ""
+        late_sample_attempted = False
         trace_reader = sampling_files.enter_context((out / (name + ".stderr.log")).open(errors="replace")) if sample_host is not None else None
+
+        def update_capture(stem):
+            if "captureCompletionObservedMonotonic" not in sample_reports[stem]:
+                reader, partial = sampler_readers[stem]
+                sampler_readers[stem] = (reader, observe_capture_markers(reader, partial, sample_reports[stem]))
+
+        def launch_sample(stem, trigger, duration, evidence, share=True, observed_at=None):
+            started = time.monotonic()
+            report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
+                      "durationSeconds": duration, "intervalMilliseconds": 10, "trigger": trigger,
+                      "triggerObservedMonotonic": started if observed_at is None else observed_at,
+                      "sampleFile": stem + ".sample.txt", "sampleLaunchMonotonic": started,
+                      "startedAfterHostSeconds": started - host_started, **evidence}
+            sample_reports[stem] = report
+            if share and duration == 3:
+                shared = next((owner for owner, sampler in samplers.items()
+                               if sample_reports[owner]["durationSeconds"] == 3 and sampler.poll() is None
+                               and "captureCompletionObservedMonotonic" not in sample_reports[owner]), None)
+                if shared is not None:
+                    # Share the active capture, not a live process that has
+                    # already moved on to processing symbols.
+                    owner_report = sample_reports[shared]
+                    report.update(status="SHARED", sharedWith=shared, sampleFile=owner_report["sampleFile"],
+                                  sampleLaunchMonotonic=owner_report["sampleLaunchMonotonic"],
+                                  startedAfterHostSeconds=owner_report["startedAfterHostSeconds"])
+                    return
+            try:
+                sample_log = sampling_files.enter_context((sample_host / (stem + "-sample.log")).open("x"))
+                error_path = sample_host / (stem + "-sample.stderr.log")
+                sample_error = sampling_files.enter_context(error_path.open("x"))
+                sampler_readers[stem] = (sampling_files.enter_context(error_path.open(errors="replace")), "")
+                samplers[stem] = subprocess.Popen(["/usr/bin/sample", str(running.pid), str(duration), "10", "-file",
+                                                  str(sample_host / (stem + ".sample.txt"))],
+                                                 stdout=sample_log, stderr=sample_error)
+            except OSError as error:
+                report.update(status="BLOCKED", reason=type(error).__name__ + ": " + str(error))
+
         try:
             if reap_children or sample_host is not None:
                 # The lifecycle Host must observe a positively exited fixture
@@ -143,8 +230,12 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                         if sample_host is not None:
                             if actual_press is None:
                                 actual_press = confirmed_r4_press(sample_host, running.pid, request_observed)
+                            log_partial, next_selection = selection_preparation_start(
+                                trace_reader, log_partial, lambda event: observe_directory_task(event, pending_tasks))
                             if selection_start is None:
-                                log_partial, selection_start = selection_preparation_start(trace_reader, log_partial)
+                                selection_start = next_selection
+                            for stem in samplers:
+                                update_capture(stem)
                             # The controller creates its result file before looking
                             # for a button. Request discovery is not actual input.
                             # Job-start evidence can arrive before the press receipt;
@@ -157,35 +248,24 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                             for stem, trigger, duration, evidence in triggers:
                                 if evidence is None or sample_reports[stem]["status"] != "NOT_RUN":
                                     continue
-                                started = time.monotonic()
-                                sample_report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
-                                                 "durationSeconds": duration, "intervalMilliseconds": 10, "trigger": trigger,
-                                                 "triggerObservedMonotonic": started,
-                                                 "sampleFile": stem + ".sample.txt",
-                                                 "sampleLaunchMonotonic": started, "startedAfterHostSeconds": started - host_started,
-                                                 **evidence}
-                                sample_reports[stem] = sample_report
-                                if duration == 3:
-                                    shared = next((owner for owner, sampler in samplers.items()
-                                                   if sample_reports[owner]["durationSeconds"] == 3 and sampler.poll() is None), None)
-                                    if shared is not None:
-                                        # Each logical trigger keeps its own evidence. Reusing a
-                                        # live sampling process does not claim that its capture
-                                        # includes either event's exact native-time boundary.
-                                        owner_report = sample_reports[shared]
-                                        sample_report.update(status="SHARED", sharedWith=shared,
-                                                             sampleFile=owner_report["sampleFile"],
-                                                             sampleLaunchMonotonic=owner_report["sampleLaunchMonotonic"],
-                                                             startedAfterHostSeconds=owner_report["startedAfterHostSeconds"])
-                                        continue
-                                try:
-                                    sample_log = sampling_files.enter_context((sample_host / (stem + "-sample.log")).open("x"))
-                                    sample_error = sampling_files.enter_context((sample_host / (stem + "-sample.stderr.log")).open("x"))
-                                    samplers[stem] = subprocess.Popen(["/usr/bin/sample", str(running.pid), str(duration), "10", "-file",
-                                                                      str(sample_host / (stem + ".sample.txt"))],
-                                                                     stdout=sample_log, stderr=sample_error)
-                                except OSError as error:
-                                    sample_report.update(status="BLOCKED", reason=type(error).__name__ + ": " + str(error))
+                                launch_sample(stem, trigger, duration, evidence)
+                            if actual_press is not None and not late_sample_attempted:
+                                queued = delayed_directory_task(pending_tasks, time.monotonic())
+                                stem = "host-read-queue-main-thread"
+                                if queued is not None:
+                                    capturing = [owner for owner, sampler in samplers.items()
+                                                 if sampler.poll() is None
+                                                 and "captureCompletionObservedMonotonic" not in sample_reports[owner]]
+                                    sample_reports[stem] = {"status": "WAITING", "diagnosticOnly": True,
+                                                            "reason": "existingCaptureStillRunning", "queueObservation": queued,
+                                                            "waitingForCaptures": capturing}
+                                    if not capturing:
+                                        late_sample_attempted = True
+                                        launch_sample(stem, "directoryReadQueuedAtLeast250MS", 3,
+                                                      {**actual_press, "queueObservation": queued}, share=False,
+                                                      observed_at=queued["queueDelayObservedMonotonic"])
+                                elif sample_reports[stem]["status"] == "WAITING":
+                                    sample_reports[stem].update(status="NOT_RUN", reason="queuedReadStartedBeforeAdditionalSample")
                         time.sleep(.05)
                     if running.poll() is None:
                         running.kill()
@@ -202,6 +282,13 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
             stderr.write(str(error) + "\n")
             report = {"status": "BLOCKED", "reason": "requiredExecutableUnavailable", "executable": str(command[0])}
         finally:
+            if trace_reader is not None:
+                # Collect terminal start events written after the final live poll;
+                # the exited Host never triggers another sampling process here.
+                log_partial, final_selection = selection_preparation_start(
+                    trace_reader, log_partial, lambda event: observe_directory_task(event, pending_tasks))
+                if selection_start is None:
+                    selection_start = final_selection
             for stem, sampler in samplers.items():
                 sample_report = sample_reports[stem]
                 try:
@@ -219,13 +306,20 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                             sample_report["reason"] = "samplerReapUnavailable"
                 sample_report.update(status="COMPLETE" if sampler.returncode == 0 else "INCOMPLETE", exit=sampler.returncode,
                                      reapedMonotonic=time.monotonic())
+                update_capture(stem)
                 # Only physical subprocesses are waited for. Logical reports
                 # reference the same file and final process receipt explicitly.
                 for shared_report in sample_reports.values():
                     if shared_report.get("sharedWith") == stem:
-                        shared_report.update({key: sample_report[key] for key in ("status", "exit", "reapedMonotonic", "reason")
+                        shared_report.update({key: sample_report[key] for key in ("status", "exit", "reapedMonotonic", "reason",
+                                              "captureStartObservedMonotonic", "captureCompletionObservedMonotonic")
                                               if key in sample_report})
             if sample_host is not None:
+                late_report = sample_reports["host-read-queue-main-thread"]
+                if late_report["status"] == "WAITING":
+                    reason = ("queuedReadStartedBeforeAdditionalSample" if "taskStartedUptime" in late_report["queueObservation"]
+                              else "hostExitedBeforeAdditionalQueueSample")
+                    late_report.update(status="NOT_RUN", reason=reason)
                 if actual_press is not None and selection_start is not None and actual_press["actualPressUptime"] <= selection_start["selectionStartUptime"]:
                     sample_reports["host-selection-preparation-main-thread"].update(actual_press)
                 for stem, sample_report in sample_reports.items():
@@ -380,9 +474,10 @@ def ci_workspace(apps, out, env, operation, suffix=""):
     return receipt
 
 
-def runtime_checks(out, env, archive, host, iterations, revision):
+def runtime_checks(out, env, archive, host, iterations, revision, host_sampling=True):
     out.mkdir()
     env = dict(env, NP_SPACES_TOPOLOGY_TRACE="1", NP_SPACES_LAUNCH_TRACE="1")
+    sampling_policy = "enabled" if host_sampling else "disabledByRequest"
     try:
         with (out / "kit-build.log").open("x") as stdout, (out / "kit-build.stderr.log").open("x") as stderr:
             apps = build(archive, out / "kit", stdout=stdout, stderr=stderr)
@@ -391,6 +486,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                   "reason": type(error).__name__ + ": " + str(error),
                   "engine": "NOT_RUN", "R4ProductPath": "NOT_RUN", "platformForeignMechanism": "NOT_RUN",
                   "fixtureProcessesStarted": 0, "foreignWindowWrites": 0, "qualificationGranted": False,
+                  "hostSampling": sampling_policy,
                   "buildLog": "kit-build.log", "buildStderr": "kit-build.stderr.log"}
         atomic(out / "summary.json", result)
         return result
@@ -468,14 +564,19 @@ def runtime_checks(out, env, archive, host, iterations, revision):
                 product_dir.mkdir(mode=0o700)
                 product_config = dict(config, output=str(product_dir), profile=str(product_dir / "profile"))
                 atomic(product_dir / "config.json", product_config)
+                if not host_sampling:
+                    for stem in HOST_SAMPLE_REASONS:
+                        atomic(product_dir / (stem + "-sample.json"),
+                               {"status": "NOT_RUN", "reason": "diagnosticsDisabled", "diagnosticOnly": True})
                 executable = candidate_copy(host, product_dir, revision)
                 product_env = dict(env, NEARPANE_SPACES_CANDIDATE_PIDS=",".join(str(p.pid) for _, p in children))
                 product_process = execute([executable, "--independent-spaces-candidate", "--independent-stage-acceptance",
                                            product_dir / "config.json"], out, "product", product_env, 240 + iterations * 20,
-                                          sample_host=product_dir)
+                                          sample_host=product_dir if host_sampling else None)
                 receipt = product_dir / "product-result.json"
                 product = json.loads(receipt.read_text()) if receipt.exists() else {
                     "status": "UNKNOWN", "reason": "productTerminalReceiptMissing", "process": product_process, "cleanup": False}
+                product["hostSampling"] = sampling_policy
                 product["hostCrashRecovery"] = "NOT_RUN"
                 product.update({key: "NOT_RUN" for key in LIFECYCLE_CHECKS})
                 product["lifecycleReceipt"] = {"status": "NOT_RUN", "reason": "mainR4AndCrashRestartCleanupRequired"}
@@ -521,7 +622,7 @@ def runtime_checks(out, env, archive, host, iterations, revision):
             if (out / "ci-workspace-state.json").is_file():
                 workspace_cleanup = ci_workspace(apps, out, env, "cleanup")
     result = evaluate(engine, product, platform_diagnostic)
-    result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup,
+    result.update(engineReceipt=engine, productReceipt=product, fixtureCleanup=cleanup, hostSampling=sampling_policy,
                   platformDiagnosticReceipt=platform_diagnostic, ciWorkspacePreparation=workspace,
                   ciWorkspaceCleanup=workspace_cleanup, ciWorkspaceCleanupBeforeFixtures=workspace_before_fixtures)
     if platform_diagnostic and platform_diagnostic.get("cleanup") is not True:
@@ -539,6 +640,8 @@ def main():
     p.add_argument("--archive", type=Path, help="existing production Rust static archive; built if omitted")
     p.add_argument("--product-host", type=Path, help="reuse a complete Nearpane.app; --scope all builds it automatically when omitted")
     p.add_argument("--iterations", type=int, default=3, choices=range(1, 51), metavar="1..50")
+    p.add_argument("--no-host-sampling", action="store_true",
+                   help="run the unchanged product acceptance without diagnostic Host sampling")
     a = p.parse_args()
     os.umask(0o077)
     out = a.output.resolve()
@@ -548,6 +651,7 @@ def main():
     toolchain = select_toolchain(env)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     summary = {"schema": 1, "revision": revision, "buildRunID": env["NEARPANE_RUN_ID"], "toolchain": toolchain,
+               "hostSampling": "disabledByRequest" if a.no_host_sampling else "enabled",
                "source": "NOT_RUN", "runtime": "NOT_RUN",
                "candidate": {"status": "SUPPLIED", "completeApp": str(a.product_host)} if a.product_host else {"status": "NOT_RUN"}}
     print("revision", revision, "buildRunID", env["NEARPANE_RUN_ID"], "scope", a.scope, flush=True)
@@ -572,7 +676,7 @@ def main():
                 archive = Path((out / "build-engine.log").read_text().splitlines()[-1])
         if archive and archive.is_file():
             summary["runtime"] = runtime_checks(out / "runtime", env, archive.resolve(), product_host,
-                                                  a.iterations, revision)
+                                                  a.iterations, revision, host_sampling=not a.no_host_sampling)
         else:
             summary["runtime"] = {"status": "FAIL" if built and built["status"] != "PASS" else "BLOCKED",
                                   "reason": "engineArchiveUnavailable"}

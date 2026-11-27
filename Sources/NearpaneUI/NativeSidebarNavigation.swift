@@ -130,16 +130,65 @@ struct CrossSpaceFocusContinuity {
     }
 }
 
+/// One accepted user job, plus any short release work that must finish after it.
+/// The process token stays inside a MainActor completion; retained window ownership
+/// and unresolved journal state do not extend this activity.
+@MainActor private final class SidebarUserActivity {
+    typealias Completion = @MainActor () -> Void
+    private let job: UUID
+    private var holds: Set<Int> = [0]
+    private var nextHold = 1
+    private var end: Completion?
+
+    init(job: UUID, end: @escaping Completion) {
+        self.job = job; self.end = end
+        IndependentStageTrace.record("navigation-user-activity-begin", ["job": job.uuidString])
+    }
+
+    func completeJob() { release(0) }
+
+    func retainCompletion() -> Completion? {
+        guard holds.contains(0) else { return nil }
+        let hold = nextHold
+        nextHold += 1
+        holds.insert(hold)
+        return { self.release(hold) }
+    }
+
+    private func release(_ hold: Int) {
+        guard holds.remove(hold) != nil, holds.isEmpty else { return }
+        let finish = end
+        end = nil
+        finish?()
+        IndependentStageTrace.record("navigation-user-activity-end", [
+            "job": job.uuidString, "completionHolds": nextHold - 1
+        ])
+    }
+}
+
 @MainActor @Observable final class NativeSidebarNavigation {
     // All displays share the action lane. A superseded switch can finish, but cannot
     // subsequently focus a window after a newer explicit choice.
     static let shared = NativeSidebarNavigation()
     typealias Work = @MainActor (UUID) async throws -> Void
+    typealias ActivityCompletion = @MainActor () -> Void
+    typealias BeginUserActivity = @MainActor () -> ActivityCompletion
+    @ObservationIgnored private let beginUserActivity: BeginUserActivity
+    @ObservationIgnored private var runningUserActivity: SidebarUserActivity?
     private(set) var generation = UUID()
     private var activeSelection: NativeSelectionPermit?
     private(set) var dispatchAvailable = true
     private(set) var ownershipEpoch = UUID()
     @ObservationIgnored let windowSwitch = WindowSwitchTransition()
+
+    init(beginUserActivity: @escaping BeginUserActivity = {
+        let process = ProcessInfo.processInfo
+        let activity = process.beginActivity(options: .userInitiatedAllowingIdleSystemSleep,
+                                             reason: "Completing a sidebar window action")
+        return { process.endActivity(activity) }
+    }) {
+        self.beginUserActivity = beginUserActivity
+    }
 
     func setDispatchAvailable(_ available: Bool) {
         guard dispatchAvailable != available else { return }
@@ -148,7 +197,9 @@ struct CrossSpaceFocusContinuity {
         ownershipEpoch = UUID()
         generation = UUID()
         activeSelection?.revoke()
+        let discarded = pending
         pending.removeAll()
+        for job in discarded { job.activity?.completeJob() }
         issue = nil
         canSwitch = false
         canMove = false
@@ -158,7 +209,11 @@ struct CrossSpaceFocusContinuity {
     @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
     private var recordedCapability: String?
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
-    private struct Job { let token: UUID, epoch: UUID, selection: Bool, stage: Bool, run: Work }
+    private struct Job {
+        let token: UUID, epoch: UUID, selection: Bool, stage: Bool
+        let activity: SidebarUserActivity?
+        let run: Work
+    }
     private var pending: [Job] = []
     private var running = false
     /// Capture refreshes yield while an explicit window action owns this lane.
@@ -170,6 +225,11 @@ struct CrossSpaceFocusContinuity {
     func whenIdle(_ observe: @MainActor () -> Void) {
         guard !isDispatching else { return }
         observe()
+    }
+    /// An ownership observer may start release from a different MainActor task.
+    /// Keep the running user's work alive until that particular release returns.
+    func retainRunningUserActivity() -> ActivityCompletion? {
+        runningUserActivity?.retainCompletion()
     }
     private(set) var issue: String?
     private(set) var canSwitch = false
@@ -191,23 +251,32 @@ struct CrossSpaceFocusContinuity {
         return canSwitch
     }
 
-    func submit(selection: Bool = true, stage: Bool = false, prepare: (() -> Void)? = nil, _ work: @escaping Work) {
+    func submit(selection: Bool = true, stage: Bool = false, userActivity: Bool = true,
+                prepare: (() -> Void)? = nil, _ work: @escaping Work) {
         IndependentStageTrace.record("navigation-submit", ["stage": stage, "selection": selection,
             "dispatchAvailable": dispatchAvailable, "stageOwnsDispatch": stageOwnsWindowDispatch(),
             "pending": pending.count, "running": running])
         guard dispatchAvailable, stage || !stageOwnsWindowDispatch() else { return }
-        if selection && pending.last?.selection == true { pending.removeLast() }
+        if selection && pending.last?.selection == true { pending.removeLast().activity?.completeJob() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
         activeSelection?.revoke()
         generation = UUID(); issue = nil
+        let activity = userActivity ? SidebarUserActivity(job: generation, end: beginUserActivity()) : nil
         if let prepare { prepare() } else { windowSwitch.cancel() }
-        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage, run: work))
+        pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage,
+                           activity: activity, run: work))
         guard !running else { return }
         running = true
         Task(priority: .userInitiated) {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
+                runningUserActivity = job.activity
+                defer {
+                    runningUserActivity = nil
+                    job.activity?.completeJob()
+                }
                 IndependentStageTrace.record("navigation-dequeue", ["stage": job.stage,
+                    "job": job.token.uuidString, "userActivity": job.activity != nil,
                     "taskPriority": Task.currentPriority.rawValue,
                     "dispatchAvailable": dispatchAvailable, "sameEpoch": job.epoch == ownershipEpoch,
                     "currentSelection": !job.selection || isCurrent(job.token), "stageOwnsDispatch": stageOwnsWindowDispatch()])

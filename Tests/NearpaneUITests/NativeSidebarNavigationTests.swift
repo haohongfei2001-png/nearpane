@@ -4,6 +4,20 @@ import NearpaneCore
 @testable import NearpaneUI
 import Testing
 
+@MainActor private final class SidebarActivityRecorder {
+    private(set) var begun = [Int](), ended = [Int]()
+    let completions = AsyncStream<Int>.makeStream()
+
+    func begin() -> NativeSidebarNavigation.ActivityCompletion {
+        let id = begun.count + 1
+        begun.append(id)
+        return {
+            self.ended.append(id)
+            self.completions.continuation.yield(id)
+        }
+    }
+}
+
 @MainActor struct NativeSidebarNavigationTests {
     @Test func externalActivationRetiresOnlyThePendingCrossSpaceFocus() {
         let source = SelectionForeground(pid: 100, birth: 10)
@@ -275,6 +289,186 @@ import Testing
         let resumedPriority = try #require(await completion.next())
         #expect(resumedPriority == .userInitiated)
         await submitter.value
+    }
+
+    @Test(.timeLimit(.minutes(1))) func userActivityBeginsBeforePreparationAndEndsAfterWorkReturns() async throws {
+        let activities = SidebarActivityRecorder()
+        let lane = NativeSidebarNavigation(beginUserActivity: { activities.begin() })
+        let started = AsyncStream<Void>.makeStream(), resume = AsyncStream<Void>.makeStream()
+        defer {
+            started.continuation.finish(); resume.continuation.finish()
+            activities.completions.continuation.finish()
+        }
+        var prepared = false
+        lane.submit(stage: true, prepare: {
+            #expect(activities.begun == [1] && activities.ended.isEmpty)
+            prepared = true
+        }) { _ in
+            #expect(prepared && activities.ended.isEmpty)
+            started.continuation.yield(())
+            var release = resume.stream.makeAsyncIterator()
+            _ = await release.next()
+            #expect(activities.ended.isEmpty)
+        }
+        #expect(prepared && activities.begun == [1] && activities.ended.isEmpty)
+        var entered = started.stream.makeAsyncIterator()
+        _ = await entered.next()
+        #expect(lane.isDispatching && activities.ended.isEmpty)
+        resume.continuation.yield(())
+        var completed = activities.completions.stream.makeAsyncIterator()
+        let ended = try #require(await completed.next())
+        #expect(ended == 1 && activities.ended == [1] && !lane.isDispatching)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func replacedAndClearedActivitiesEndWithoutEndingRunningWork() async throws {
+        let activities = SidebarActivityRecorder()
+        let lane = NativeSidebarNavigation(beginUserActivity: { activities.begin() })
+        let started = AsyncStream<UUID>.makeStream(), resume = AsyncStream<Void>.makeStream()
+        defer {
+            started.continuation.finish(); resume.continuation.finish()
+            activities.completions.continuation.finish()
+        }
+        var effects = [String]()
+        lane.submit(selection: false, stage: true) { token in
+            started.continuation.yield(token)
+            var release = resume.stream.makeAsyncIterator()
+            _ = await release.next()
+            #expect(!lane.isCurrent(token) && !activities.ended.contains(1))
+        }
+        var entered = started.stream.makeAsyncIterator()
+        let original = try #require(await entered.next())
+        lane.submit(stage: true) { _ in effects.append("replaced") }
+        lane.submit(stage: true) { _ in effects.append("cleared") }
+        #expect(!lane.isCurrent(original))
+        #expect(activities.begun == [1, 2, 3] && activities.ended == [2])
+        lane.setDispatchAvailable(false)
+        #expect(activities.ended == [2, 3] && lane.isDispatching)
+        resume.continuation.yield(())
+        var completed = activities.completions.stream.makeAsyncIterator()
+        for expected in [2, 3, 1] {
+            let ended = try #require(await completed.next())
+            #expect(ended == expected)
+        }
+        #expect(effects.isEmpty && activities.ended == [2, 3, 1] && !lane.isDispatching)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func skippedUnconfirmedAndThrowingJobsEachEndTheirAcceptedActivity() async throws {
+        let activities = SidebarActivityRecorder()
+        let lane = NativeSidebarNavigation(beginUserActivity: { activities.begin() })
+        let started = AsyncStream<Void>.makeStream(), resume = AsyncStream<Void>.makeStream()
+        defer {
+            started.continuation.finish(); resume.continuation.finish()
+            activities.completions.continuation.finish()
+        }
+        var ownsDispatch = false, confirmations = 0, effects = [String]()
+        lane.stageOwnsWindowDispatch = { ownsDispatch }
+        lane.submit(selection: false, stage: true) { _ in
+            started.continuation.yield(())
+            var release = resume.stream.makeAsyncIterator()
+            _ = await release.next()
+        }
+        var entered = started.stream.makeAsyncIterator()
+        _ = await entered.next()
+        lane.submit(selection: false) { _ in effects.append("skipped ordinary job") }
+        ownsDispatch = true
+        lane.confirmDispatch = {
+            confirmations += 1
+            return confirmations > 1
+        }
+        lane.submit(selection: false, stage: true) { _ in effects.append("unconfirmed job") }
+        lane.submit(selection: false, stage: true) { _ in
+            effects.append("throwing job")
+            throw UnconfirmedSpaceMove("fixture failure")
+        }
+        #expect(activities.begun == [1, 2, 3, 4] && activities.ended.isEmpty)
+        resume.continuation.yield(())
+        var completed = activities.completions.stream.makeAsyncIterator()
+        for expected in 1...4 {
+            let ended = try #require(await completed.next())
+            #expect(ended == expected)
+        }
+        #expect(effects == ["throwing job"] && confirmations == 2)
+        #expect(activities.ended == [1, 2, 3, 4] && !lane.isDispatching)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func rejectedAndAutomaticJobsDoNotBeginUserActivities() async {
+        let activities = SidebarActivityRecorder()
+        let lane = NativeSidebarNavigation(beginUserActivity: { activities.begin() })
+        let started = AsyncStream<Void>.makeStream(), resume = AsyncStream<Void>.makeStream()
+        let returned = AsyncStream<Void>.makeStream()
+        defer {
+            started.continuation.finish(); resume.continuation.finish(); returned.continuation.finish()
+            activities.completions.continuation.finish()
+        }
+        var effects = [String](), ownsDispatch = true
+        lane.setDispatchAvailable(false)
+        lane.submit(stage: true) { _ in effects.append("unavailable") }
+        lane.setDispatchAvailable(true)
+        lane.stageOwnsWindowDispatch = { ownsDispatch }
+        lane.submit { _ in effects.append("owned by stage") }
+        #expect(activities.begun.isEmpty)
+        ownsDispatch = false
+        lane.submit(selection: false, stage: true, userActivity: false) { _ in
+            #expect(lane.retainRunningUserActivity() == nil)
+            started.continuation.yield(())
+            var release = resume.stream.makeAsyncIterator()
+            _ = await release.next()
+            returned.continuation.yield(())
+        }
+        var entered = started.stream.makeAsyncIterator()
+        _ = await entered.next()
+        #expect(activities.begun.isEmpty && lane.isDispatching)
+        for _ in 0..<8 {
+            lane.submit(selection: false, stage: true) { _ in effects.append("cleared pending") }
+        }
+        lane.submit(selection: false, stage: true) { _ in effects.append("overflow") }
+        #expect(activities.begun == Array(1...8) && activities.ended.isEmpty)
+        lane.setDispatchAvailable(false)
+        #expect(activities.ended == Array(1...8))
+        resume.continuation.yield(())
+        var finished = returned.stream.makeAsyncIterator()
+        _ = await finished.next()
+        #expect(effects.isEmpty && !lane.isDispatching)
+        #expect(activities.begun == activities.ended)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func observerCompletionHoldsOutliveOnlyTheirRunningUserJob() async throws {
+        let activities = SidebarActivityRecorder()
+        let lane = NativeSidebarNavigation(beginUserActivity: { activities.begin() })
+        let started = AsyncStream<Void>.makeStream(), resume = AsyncStream<Void>.makeStream()
+        let returned = AsyncStream<Void>.makeStream()
+        defer {
+            started.continuation.finish(); resume.continuation.finish(); returned.continuation.finish()
+            activities.completions.continuation.finish()
+        }
+        #expect(lane.retainRunningUserActivity() == nil)
+        lane.submit(stage: true) { _ in
+            started.continuation.yield(())
+            var release = resume.stream.makeAsyncIterator()
+            _ = await release.next()
+            returned.continuation.yield(())
+        }
+        var entered = started.stream.makeAsyncIterator()
+        _ = await entered.next()
+        // This test task is separate from the lane's executing task, just as an
+        // ownership observer can independently start the engine's release tail.
+        let firstCompletion = try #require(lane.retainRunningUserActivity())
+        let lastCompletion = try #require(lane.retainRunningUserActivity())
+        lane.setDispatchAvailable(false)
+        firstCompletion(); firstCompletion()
+        #expect(activities.ended.isEmpty)
+        resume.continuation.yield(())
+        var finished = returned.stream.makeAsyncIterator()
+        _ = await finished.next()
+        #expect(!lane.isDispatching && activities.ended.isEmpty)
+        #expect(lane.retainRunningUserActivity() == nil)
+        lane.setDispatchAvailable(true)
+        lane.submit(stage: true) { _ in }
+        var completed = activities.completions.stream.makeAsyncIterator()
+        let newerJob = try #require(await completed.next())
+        #expect(newerJob == 2 && activities.ended == [2])
+        lastCompletion(); lastCompletion()
+        #expect(activities.begun == [1, 2] && activities.ended == [2, 1])
     }
 
     @Test func thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain() async {

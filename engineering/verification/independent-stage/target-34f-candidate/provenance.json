@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "revision": "34f37360144eb8e339ac81b1f901536f31853ad6",
+  "environment": "target27.0/26A428/arm64/SIPenabled",
+  "originals": [
+    {
+      "path": "nearpane-34f-target-release.log",
+      "originalPath": "/tmp/nearpane-34f-target-release.log",
+      "bytes": 13265,
+      "sha256": "d61476a99774d2fb346ab90de01e1fb0d83dbe3a8eaced35710f70c4cbe5ea40"
+    },
+    {
+      "path": "nearpane-34f-target-package.log",
+      "originalPath": "/tmp/nearpane-34f-target-package.log",
+      "bytes": 149,
+      "sha256": "c312708a94f1d0abfd51c9cec336ecc1a9f02bb0e69e0aaaadb0547a942197c3"
+    },
+    {
+      "path": "candidate.json",
+      "originalPath": "/tmp/nearpane-34f-target-candidate.json",
+      "bytes": 1071,
+      "sha256": "0770f4580f6b20610181813c0769ef1580e58054beea40ad6d988a16f1f75c8b"
+    }
+  ]
+}

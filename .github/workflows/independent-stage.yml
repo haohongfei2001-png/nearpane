@@ -101,6 +101,10 @@ jobs:
           arguments=("$RUNNER_TEMP/independent-runtime" --scope runtime --iterations 3)
           if [[ '${{ steps.candidate.outcome }}' == success ]]; then
             arguments+=(--product-host '${{ steps.candidate.outputs.app }}')
+            # Formal release acceptance runs without external stack sampling.
+            # The fast lane keeps bounded diagnostics for outstanding latency;
+            # debug/release results are not a same-build causal comparison.
+            arguments+=(--no-host-sampling)
           elif [[ '${{ steps.fast_candidate.outcome }}' == success ]]; then
             arguments+=(--product-host '${{ steps.fast_candidate.outputs.app }}')
           fi

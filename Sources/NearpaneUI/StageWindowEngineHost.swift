@@ -489,7 +489,7 @@ import NearpaneOrdinaryWindowRuntime
         guard !scopes.isEmpty else { return }
         lastResumeAttempt = now
         let input = NativeSelectionPermit.inputCounters(), version = revision
-        navigation.submit(stage: true) { [weak self, weak feed] token in
+        navigation.submit(stage: true, userActivity: false) { [weak self, weak feed] token in
             guard let self, let feed else { return }
             self.resumeEnqueued = true
             defer { self.resumeEnqueued = false }
@@ -561,6 +561,7 @@ import NearpaneOrdinaryWindowRuntime
         witness?.cancelArrivals()
         releaseInput = NativeSelectionPermit.inputCounters()
         let returning = witness
+        let completeUserActivity = NativeSidebarNavigation.shared.retainRunningUserActivity()
         let pending = Task { [weak self] in
             defer {
                 self?.releaseTask = nil; self?.releaseInput = nil
@@ -568,6 +569,7 @@ import NearpaneOrdinaryWindowRuntime
                     self?.heldGroups = []
                     self?.updateReleasedObservation()
                 }
+                completeUserActivity?()
             }
             do {
                 if engine.session?.owner.backend == .spaces { try await engine.handoffToSystem() }
