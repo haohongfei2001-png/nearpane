@@ -49,13 +49,15 @@ public final class HostSession {
     public private(set) var lastAction: ActionResult?
     @ObservationIgnored private let store: any ConfigurationStore
     @ObservationIgnored private let provider: any DesktopObservationProvider
+    @ObservationIgnored private let automaticDesktopRefreshAllowed: @MainActor () -> Bool
     @ObservationIgnored private var refreshGeneration: UInt64 = 0
     @ObservationIgnored private var desktopTask: Task<Void, Never>?
     @ObservationIgnored private var desktopPauses = Set<DesktopObservationPause>()
 
     public init(store: any ConfigurationStore, provider: (any DesktopObservationProvider)? = nil,
                 includeSampleModules: Bool = true,
-                coreFactories: [String: @MainActor () -> any HostModule] = [:]) {
+                coreFactories: [String: @MainActor () -> any HostModule] = [:],
+                automaticDesktopRefreshAllowed: @escaping @MainActor () -> Bool = { true }) {
         let diagnostics = Diagnostics()
         let bus = SnapshotBus(diagnostics: diagnostics)
         let registry = ModuleRegistry(bus: bus, diagnostics: diagnostics)
@@ -64,6 +66,7 @@ public final class HostSession {
         self.router = InteractionRouter(registry: registry, permissions: permissions, bus: bus, diagnostics: diagnostics)
         self.store = store
         self.provider = provider ?? MockDesktopObservationProvider()
+        self.automaticDesktopRefreshAllowed = automaticDesktopRefreshAllowed
         permissions.onRevocation = { [weak registry, weak diagnostics] key in
             registry?.permissionRevoked(key.moduleID)
             diagnostics?.record(.permissionChanged, moduleID: key.moduleID)
@@ -315,6 +318,13 @@ public final class HostSession {
         desktopTask = Task { [weak self] in
             await previous?.value
             while !Task.isCancelled {
+                // Display-only polling yields to window dispatch. Keep the last
+                // sample and its original expiry; explicit reads and lifecycle
+                // invalidation retain their existing behavior.
+                while live && self?.automaticDesktopRefreshAllowed() == false {
+                    do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+                }
+                guard !Task.isCancelled else { return }
                 await self?.refreshDesktop()
                 guard live, self != nil else { return }
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }

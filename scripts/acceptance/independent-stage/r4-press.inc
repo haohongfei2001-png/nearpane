@@ -285,7 +285,8 @@ static int runR4Press(NSString *requestPath) {
             R4WindowNumber reader=(R4WindowNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");
             if(!reader){report[@"reason"]=@"windowNumberReaderUnavailable";break;}
             application=AXUIElementCreateApplication([host[@"pid"] intValue]);AXUIElementSetMessagingTimeout(application,.25f);
-            double deadline=NSProcessInfo.processInfo.systemUptime+6;id selected=nil;CGRect frame=CGRectNull;
+            double deadline=NSProcessInfo.processInfo.systemUptime+6;
+            NSDictionary *selected=nil;NSString *selectedIdentifier=nil;CGRect frame=CGRectNull;
             report[@"discoveryBudgetMS"]=@6000;report[@"attributeTimeoutMS"]=@250;report[@"prePressRediscoveries"]=@0;
             do {
                 if(!r4HostMatches(host)){report[@"reason"]=@"parentChanged";break;}
@@ -296,14 +297,21 @@ static int runR4Press(NSString *requestPath) {
                     if(r4Rect(panel,&axFrame,&error) && r4SameFrame(axFrame,frame)) {
                         report[@"panelFrame"]=r4Frame(frame);
                         NSMutableDictionary *tree=[NSMutableDictionary dictionary];
-                        NSArray *buttons=r4Buttons(panel,host,identifiers,frame,deadline,tree);report[@"tree"]=tree;
+                        NSSet<NSString *> *expected=selectedIdentifier?[NSSet setWithObject:selectedIdentifier]:identifiers;
+                        NSArray *buttons=r4Buttons(panel,host,expected,frame,deadline,tree);report[@"tree"]=tree;
                         NSMutableArray *groups=[NSMutableArray array];
                         for(NSDictionary *button in buttons) {
                             NSString *key=button[@"identifier"];
-                            if([key hasPrefix:@"stage-group-select:"])[groups addObject:button[@"element"]];
+                            if([key hasPrefix:@"stage-group-select:"])[groups addObject:button];
                         }
                         if(groups.count==1)selected=groups.firstObject;
-                        else if(groups.count==0 && buttons.count==1)selected=[buttons.firstObject objectForKey:@"element"];
+                        else if(groups.count==0 && buttons.count==1)selected=buttons.firstObject;
+                        if(selected && !selectedIdentifier) {
+                            // Pin the first completely discovered semantic target;
+                            // another allowed presentation is not a retry target.
+                            selectedIdentifier=[selected[@"identifier"] copy];
+                            report[@"selectedIdentifier"]=selectedIdentifier;
+                        }
                         report[@"reason"]=buttons?@"buttonMissingOrAmbiguous":@"accessibilityTreeIncomplete";
                     } else {report[@"reason"]=@"panelAXGeometryUnconfirmed";report[@"panelFrameRead"]=@(error);}
                 } else report[@"reason"]=@"panelIdentityOrVisibilityUnconfirmed";
@@ -349,7 +357,8 @@ static int runR4Press(NSString *requestPath) {
                     // not the same action list. The actual action is attempted once.
                     last[@"sameOriginalElement"]=@YES;last[@"actionsPreviouslyConfirmed"]=@YES;
                     last[@"actionRead"]=@"NOT_REPEATED";
-                    BOOL validButton=r4Button((__bridge AXUIElementRef)selected,panel,host,identifiers,freshFrame,NO,last);
+                    BOOL validButton=r4Button((__bridge AXUIElementRef)selected[@"element"],panel,host,
+                        [NSSet setWithObject:selectedIdentifier],freshFrame,NO,last);
                     BOOL sameParent=r4HostMatches(host);report[@"prePress"]=last;
                     if(!validButton || !sameParent) {
                         // A pre-press attribute read can be incomplete or refer to
@@ -359,12 +368,20 @@ static int runR4Press(NSString *requestPath) {
                         int roleError=[last[@"roleRead"] intValue],idError=[last[@"identifierRead"] intValue];
                         BOOL transientRead=(roleError==kAXErrorInvalidUIElement || roleError==kAXErrorCannotComplete ||
                                             idError==kAXErrorInvalidUIElement || idError==kAXErrorCannotComplete);
+                        BOOL discardedElement=[report[@"issued"] isEqual:@NO] && sameParent &&
+                            [context[@"configurationBytes"] isEqual:@YES] && [context[@"parentSignatureAndIdentity"] isEqual:@YES] &&
+                            [context[@"onScreenCGPanel"] isEqual:@YES] && [context[@"retainedAXPanelIdentity"] isEqual:@YES] &&
+                            [context[@"panelFrameChanged"] isEqual:@NO] && [last[@"batchRead"] isEqual:@(kAXErrorSuccess)] &&
+                            [last[@"batchFieldCount"] isEqual:@6] && roleError==kAXErrorSuccess &&
+                            [last[@"role"] isEqual:(__bridge NSString *)kAXStaticTextRole] && idError==kAXErrorNoValue;
                         selected=nil;report[@"reason"]=@"prePressEvidenceChanged";
-                        if(!sameParent || !transientRead)break;
+                        if(!sameParent || (!transientRead && !discardedElement))break;
                         report[@"prePressRediscoveries"]=@([report[@"prePressRediscoveries"] unsignedIntegerValue]+1);
-                        NSMutableArray *failures=report[@"prePressIncompleteReads"];
-                        if(!failures){failures=[NSMutableArray array];report[@"prePressIncompleteReads"]=failures;}
-                        if(failures.count<8)[failures addObject:@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),@"attributes":last}];
+                        NSString *history=discardedElement?@"prePressDiscardedElements":@"prePressIncompleteReads";
+                        NSMutableArray *failures=report[history];
+                        if(!failures){failures=[NSMutableArray array];report[history]=failures;}
+                        if(failures.count<8)[failures addObject:@{@"uptime":@(NSProcessInfo.processInfo.systemUptime),
+                            @"identifier":selectedIdentifier,@"attributes":last}];
                     } else {
                         if(NSProcessInfo.processInfo.systemUptime>=deadline) {
                             report[@"reason"]=@"discoveryDeadlineBeforePress";selected=nil;
@@ -377,7 +394,7 @@ static int runR4Press(NSString *requestPath) {
             if(!selected)break;
             report[@"issued"]=@YES;
             report[@"inputUptime"]=@(NSProcessInfo.processInfo.systemUptime);
-            AXError pressed=AXUIElementPerformAction((__bridge AXUIElementRef)selected,kAXPressAction);
+            AXError pressed=AXUIElementPerformAction((__bridge AXUIElementRef)selected[@"element"],kAXPressAction);
             report[@"axError"]=@(pressed);report[@"status"]=pressed==kAXErrorSuccess?@"ISSUED":@"BLOCKED";
             report[@"reason"]=pressed==kAXErrorSuccess?@"realAccessibilityPressIssued":@"accessibilityPressReturnedError";
             result=pressed==kAXErrorSuccess?0:2;

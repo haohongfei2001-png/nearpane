@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through 5a1cfbc6, 2026-11-27
+#### R4 latency work through cb95d6aa, 2026-11-27
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -131,6 +131,30 @@ classification. Opening/closing directory acquisition accounts for approximately
 84% of summed full witness durations in both revisions; overlapping durations
 are not wall-clock totals.
 [Exact 5a1cfbc receipts](../verification/independent-stage/cloud-5a1cfbc6-latency/README.md).
+
+`cb95d6aa` keeps new idle held-window verification outside the complete explicit
+navigation lane, including the initial read before the Coordinator becomes busy.
+Passive health preparation now scans only owned members of the selected original
+lease's slot; its original deadline, full observation and command/release cleanup
+are unchanged. Source passes 174 Rust and 217 Swift tests with one skip, and the
+complete release package and signature pass. Both fast and full direct engines
+pass 26 requests. The separate diagnostics candidate remains BLOCKED before
+foreign writes; its platform-only result is narrower evidence.
+
+The fast product completes selection preparation in 2,760 ms but later loses
+dispatch eligibility when a 2 ms Dock read is delivered approximately 936 ms late.
+Its first directory read spends 473 ms waiting for a prior task and 2,271 ms in
+the new read; no complete witness or actual hide follows. Full preparation takes
+only 244 ms, with a 202 ms new directory read, then completes one 453 ms witness.
+Its separate failure is a canary panel-home focus observation: after five successful
+Finder desktop structural proofs, one AXRole read returns AXCannotComplete while
+the other owner/parent/containing-window/list relationships still match. The
+canary rejects ProbeFocus before enabling the route. The canonical-number -25201
+diagnostic also appears in earlier successful desktop proofs and is not the
+changed field. Both products issue one actual input, confirm no selection, and
+independently confirm every original window returned at shutdown. Neither reaches
+a held selection, so this run does not physically validate the new idle gate.
+[Exact cb95d6aa receipts](../verification/independent-stage/cloud-cb95d6aa-latency/README.md).
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state

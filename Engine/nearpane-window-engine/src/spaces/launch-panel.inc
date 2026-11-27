@@ -88,7 +88,8 @@ static BOOL focusSession(void) {
     return active || focusFailure("inactive-console",kAXErrorSuccess,NO);
 }
 static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AXUIElementRef focused,
-                               AXError canonicalError,CGWindowID canonicalNumber) {
+                               AXError canonicalError,CGWindowID canonicalNumber,BOOL *roleUnavailable) {
+    if(roleUnavailable)*roleUnavailable=NO;
     // Match FrontFocus.isFinderDesktop. A zero or unavailable canonical number
     // proves nothing; only the independent positive AX structure proves desktop.
     char executable[PROC_PIDPATHINFO_MAXSIZE]={0};
@@ -129,6 +130,13 @@ static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AX
     // does not establish that relationship; incomplete or duplicate lists fail.
     BOOL accepted=scroll && root && complete &&
         ((noWindow && occurrences==0) || (windowIsSelf && occurrences==1));
+    // The caller must also match the retained original desktop object, process
+    // birth and foreground. No other missing field or positive role change can
+    // become this narrowly classified, read-only transport gap.
+    if(roleUnavailable)*roleUnavailable=roleError==kAXErrorCannotComplete && !role &&
+        canonicalError==kAXErrorIllegalArgument && canonicalNumber==0 && root && complete &&
+        countError==kAXErrorSuccess &&
+        ((noWindow && occurrences==0) || (windowIsSelf && occurrences==1));
     if(getenv("NP_SPACES_LAUNCH_TRACE")) {
         fprintf(stderr,"{\"event\":\"spacesLaunchDesktopFocus\",\"systemFinder\":true,\"canonicalError\":%d,\"canonicalNumber\":%u,\"roleError\":%d,\"desktopScrollArea\":%s,\"parentError\":%d,\"parentIsApplication\":%s,\"containingWindowError\":%d,\"containingWindowReturnedValue\":%s,\"containingWindowIsSelf\":%s,\"countError\":%d,\"reportedCount\":%ld,\"arrayError\":%d,\"actualCount\":%ld,\"windowListComplete\":%s,\"listedAsWindow\":%s,\"listedOccurrences\":%ld,\"confirmedDesktop\":%s}\n",
             canonicalError,canonicalNumber,roleError,scroll?"true":"false",parentError,root?"true":"false",containingError,containing?"true":"false",windowIsSelf?"true":"false",
@@ -138,9 +146,12 @@ static BOOL finderDesktopFocus(NSRunningApplication *front,AXUIElementRef app,AX
     if(role)CFRelease(role);if(parent)CFRelease(parent);if(containing)CFRelease(containing);if(rawWindows)CFRelease(rawWindows);
     return accepted;
 }
-static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementRef *desktop) {
+static BOOL readFocusObservation(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementRef *desktop,
+                                 NPSpacesLaunchToken *expected,int32_t *readError) {
     if(desktop)*desktop=NULL;
+    if(readError)*readError=0;
     AXUIElementRef retainedDesktop=NULL;
+    BOOL unavailableRole=NO;
     if(!focusSession())return NO;
     NSRunningApplication *front=NSWorkspace.sharedWorkspace.frontmostApplication;
     pid_t owner=front.processIdentifier; uint64_t generation=birth(owner); CGWindowID n=0;
@@ -176,8 +187,20 @@ static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementR
                     valid=error==kAXErrorSuccess && axOwner==owner;}
                 if(valid){phase="focused-window-number";error=number?number((AXUIElementRef)focused,&n):kAXErrorNotImplemented;
                     valid=error==kAXErrorSuccess && n>0;
-                    if(!valid){phase="focused-desktop-structure";valid=finderDesktopFocus(front,app,(AXUIElementRef)focused,error,n);
-                        if(valid){retainedDesktop=(AXUIElementRef)CFRetain(focused);n=0;}}}
+                    if(!valid){
+                        BOOL missingRole=NO;
+                        phase="focused-desktop-structure";
+                        valid=finderDesktopFocus(front,app,(AXUIElementRef)focused,error,n,&missingRole);
+                        if(!valid && missingRole && readError && expected && expected->prepared &&
+                           expected->originalDesktopFocus && expected->originalFocus==0 &&
+                           expected->foreground==owner && expected->foregroundBirth==generation &&
+                           CFEqual(expected->originalDesktopFocus,focused)) {
+                            // Continue through the original final foreground/session
+                            // checks, but report no positive focus observation.
+                            unavailableRole=YES;valid=YES;
+                        }
+                        if(valid){retainedDesktop=(AXUIElementRef)CFRetain(focused);n=0;}
+                    }}
             }
         }
         if(focused)CFRelease(focused);if(active)CFRelease(active);if(app)CFRelease(app);
@@ -186,16 +209,26 @@ static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementR
     if(NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier!=owner || birth(owner)!=generation || !focusSession()) {
         if(retainedDesktop)CFRelease(retainedDesktop);return focusFailure("foreground-changed",kAXErrorSuccess,NO);
     }
+    if(unavailableRole) {
+        if(retainedDesktop)CFRelease(retainedDesktop);
+        *readError=kAXErrorCannotComplete;
+        return focusFailure("retained-desktop-role-unavailable",kAXErrorCannotComplete,YES);
+    }
     if(desktop)*desktop=retainedDesktop;else if(retainedDesktop)CFRelease(retainedDesktop);
     *pid=owner;*started=generation;*window=n;return YES;
 }
-static BOOL originalFocus(NPSpacesLaunchToken *t) {
+static BOOL readFocus(pid_t *pid,uint64_t *started,uint32_t *window,AXUIElementRef *desktop) {
+    return readFocusObservation(pid,started,window,desktop,NULL,NULL);
+}
+static BOOL originalFocusRead(NPSpacesLaunchToken *t,int32_t *readError) {
+    if(readError)*readError=0;
     pid_t pid=0;uint64_t started=0;uint32_t number=0;AXUIElementRef desktop=NULL;
-    BOOL same=t->prepared && readFocus(&pid,&started,&number,&desktop) && pid==t->foreground &&
+    BOOL same=t->prepared && readFocusObservation(&pid,&started,&number,&desktop,readError?t:NULL,readError) && pid==t->foreground &&
         started==t->foregroundBirth && number==t->originalFocus &&
         ((!t->originalDesktopFocus && !desktop) || (t->originalDesktopFocus && desktop && CFEqual(t->originalDesktopFocus,desktop)));
     if(desktop)CFRelease(desktop);return same;
 }
+static BOOL originalFocus(NPSpacesLaunchToken *t) { return originalFocusRead(t,NULL); }
 static BOOL truePanel(NPSpacesLaunchToken *t) {
     NSWindow *p=t->panel;
     return p && t->window && [p isMemberOfClass:NPSpacesLaunchPanel.class] &&
@@ -242,8 +275,12 @@ static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,v
         t->closeIssued=YES;[p close];t->panel=nil;t->closed=YES;
     }
     BOOL absent=!t->panel && noRegisteredProbe();
+    int32_t focusReadError=0;
     call->read=(NPStageCanary){.number=t->window,.pid=getpid(),.birth=birth(getpid()),
-        .opened=t->opened,.registered=truePanel(t),.absent=absent,.focus_same=originalFocus(t),.close_issued=t->closeIssued};
+        .opened=t->opened,.registered=truePanel(t),.absent=absent};
+    call->read.focus_same=op==2?originalFocusRead(t,&focusReadError):originalFocus(t);
+    call->read.close_issued=t->closeIssued;
+    call->read.focus_read_error=focusReadError;
     return launchTrace(t,op,1,"complete");
 }
 int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard guard,NPStageFree release,NPStageCanary *out) {

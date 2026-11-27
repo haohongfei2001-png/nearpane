@@ -35,7 +35,9 @@ int32_t np_stage_adopt_minimized(void *handle,uint32_t number,int32_t pid,uint64
 int32_t np_stage_is_minimized(void *handle);
 int32_t np_stage_set_minimized(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t minimized);
 void np_stage_release(void *handle);
-typedef struct { uint32_t number; int32_t pid; uint64_t birth; uint32_t opened, registered, absent, focus_same, close_issued; } NPStageCanary;
+// focus_same remains Boolean. Only a read of the retained original Finder desktop
+// can separately report AXRole CannotComplete; that error never grants focus.
+typedef struct { uint32_t number; int32_t pid; uint64_t birth; uint32_t opened, registered, absent, focus_same, close_issued; int32_t focus_read_error; } NPStageCanary;
 typedef int32_t (*NPStageGuard)(void *);
 typedef void (*NPStageFree)(void *);
 void *np_stage_launch_token(void);

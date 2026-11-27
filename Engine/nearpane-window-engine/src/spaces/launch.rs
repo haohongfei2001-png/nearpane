@@ -27,8 +27,12 @@ pub(super) struct Panel {
     pub absent: u32,
     pub focus_same: u32,
     pub close_issued: u32,
+    pub focus_read_error: i32,
 }
 impl Panel {
+    fn focus_confirmed(self) -> bool {
+        self.focus_same == 1 && self.focus_read_error == 0
+    }
     pub fn window(self) -> Option<Window> {
         (self.number > 0 && self.birth > 0 && self.pid == std::process::id() as i32).then_some(
             Window {
@@ -72,16 +76,29 @@ impl<P: Platform> State<P> {
         let started = self.sys.now();
         let deadline = started + HOME_DISCOVERY_BUDGET;
         let mut previous = None;
+        let mut observed_home = None;
         let mut iteration = 0u32;
         let mut waited = Duration::ZERO;
         loop {
             iteration += 1;
             a.active()?;
+            if self.sys.now() >= deadline {
+                return Err(unknown(Why::Membership));
+            }
             let panel_began = self.sys.now();
             let panel = self.sys.canary(PanelOp::Read, a)?;
             let panel_read = self.sys.now();
-            if panel.window() != Some(window) || panel.registered != 1 || panel.focus_same != 1 {
+            // Only the platform's retained Finder desktop role-read gap can
+            // wait. A changed object/owner or contradictory Boolean/error pair
+            // is a refusal, including when another field is unavailable.
+            let missing_role = panel.focus_same == 0 && panel.focus_read_error == -25204 &&
+                panel.opened == 1 && panel.absent == 0;
+            if panel.window() != Some(window) || panel.registered != 1 ||
+                (!panel.focus_confirmed() && !missing_role) {
                 return Err(unknown(Why::ProbeFocus));
+            }
+            if panel_read >= deadline {
+                return Err(unknown(Why::Membership));
             }
             let baseline = self.launch.as_ref().ok_or(unknown(Why::Stale))?;
             if self.sys.connection()? != c || !fixed(&baseline.topology, &self.sys.desktops(c)?) {
@@ -118,23 +135,31 @@ impl<P: Platform> State<P> {
                     });
                 }
             }
+            if let Some(home) = confirmed {
+                if observed_home.is_some_and(|original| original != home) {
+                    return Err(unknown(Why::Scope));
+                }
+                observed_home = Some(home);
+            }
+            // Even a complete membership read cannot fill a missing focus
+            // observation. Keep checking positive topology/identity conflicts
+            // above, then require two new complete samples after this gap.
+            if missing_role { confirmed = None; }
             let now = self.sys.now();
             let expired = now >= deadline;
             if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
-                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"sample\",\"window\":{},\"confirmedHome\":{},\"previousHome\":{},\"deadlineReached\":{},\"twoMatchingHomes\":{},\"iteration\":{},\"elapsedMS\":{},\"budgetMS\":{},\"waitMS\":{},\"panelReadMS\":{},\"systemReadMS\":{},\"reverseContains\":{}}}",
+                eprintln!("{{\"event\":\"spacesLaunchHome\",\"phase\":\"sample\",\"window\":{},\"confirmedHome\":{},\"previousHome\":{},\"deadlineReached\":{},\"twoMatchingHomes\":{},\"iteration\":{},\"elapsedMS\":{},\"budgetMS\":{},\"waitMS\":{},\"panelReadMS\":{},\"systemReadMS\":{},\"reverseContains\":{},\"focusSame\":{},\"focusReadError\":{}}}",
                     window.number,confirmed.map_or(0,|h|h.id),previous.map_or(0,|h:Home|h.id),expired,
                     confirmed.is_some() && confirmed==previous,iteration,now.saturating_duration_since(started).as_millis(),
                     HOME_DISCOVERY_BUDGET.as_millis(),waited.as_millis(),panel_read.saturating_duration_since(panel_began).as_millis(),
                     now.saturating_duration_since(panel_read).as_millis(),
-                    reverse_contains.map_or("null".to_owned(),|value|value.to_string()));
+                    reverse_contains.map_or("null".to_owned(),|value|value.to_string()),
+                    panel.focus_same,panel.focus_read_error);
             }
             if expired {
                 return Err(unknown(Why::Membership));
             }
-            if let (Some(first), Some(second)) = (previous, confirmed) {
-                if first != second {
-                    return Err(unknown(Why::Scope));
-                }
+            if let (Some(_), Some(second)) = (previous, confirmed) {
                 return Ok(second);
             }
             previous = confirmed;
@@ -169,7 +194,7 @@ impl<P: Platform> State<P> {
             return Err(unknown(Why::Topology));
         }
         let before = self.sys.canary(PanelOp::Prepare, a)?;
-        if before.absent != 1 || before.opened != 0 || before.focus_same != 1 {
+        if before.absent != 1 || before.opened != 0 || !before.focus_confirmed() {
             return Err(unknown(Why::ProbeFocus));
         }
         self.launch = Some(CanaryRun {
@@ -191,7 +216,7 @@ impl<P: Platform> State<P> {
             a.active()?;
             let p = self.sys.canary(PanelOp::Open, a)?;
             let window = p.window().ok_or(unknown(Why::Identity))?;
-            if p.registered != 1 || p.focus_same != 1 {
+            if p.registered != 1 || !p.focus_confirmed() {
                 return Err(unknown(Why::ProbeFocus));
             }
             self.launch.as_mut().unwrap().opened_window = Some(window);
@@ -259,7 +284,7 @@ impl<P: Platform> State<P> {
                 || !fixed(&top, &self.sys.desktops(c)?)
                 || [panel, after]
                     .iter()
-                    .any(|p| p.opened != 0 || p.absent != 1 || (require_focus && p.focus_same != 1))
+                    .any(|p| p.opened != 0 || p.absent != 1 || (require_focus && !p.focus_confirmed()))
             {
                 return Err(unknown(Why::Cleanup));
             }
@@ -288,7 +313,7 @@ impl<P: Platform> State<P> {
         let (lease, frame) = (run.lease, run.frame);
         if !run.restored {
             let p = self.sys.canary(PanelOp::Read, a)?;
-            if require_focus && p.focus_same != 1 {
+            if require_focus && !p.focus_confirmed() {
                 return Err(unknown(Why::ProbeFocus));
             }
             if let Some(lease) = lease {
@@ -340,7 +365,7 @@ impl<P: Platform> State<P> {
             let run = self.launch.as_ref().unwrap();
             let p = self.sys.canary(PanelOp::Read, a)?;
             let number = lease.map_or(p.number, |l| l.window.number);
-            if require_focus && p.focus_same != 1 {
+            if require_focus && !p.focus_confirmed() {
                 return Err(unknown(Why::ProbeFocus));
             }
             if p.number != 0 && p.number != number {

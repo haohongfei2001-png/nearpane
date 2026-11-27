@@ -49,6 +49,11 @@ struct Fake {
     initial_empty_memberships: Cell<u32>,
     ambiguous_panel_membership: bool,
     probe_read_costs: VecDeque<Duration>,
+    probe_read_focus: VecDeque<(u32, i32)>,
+    probe_read_window: Option<Window>,
+    probe_read_homes: VecDeque<u64>,
+    probe_operations: Vec<launch::PanelOp>,
+    probe_reads_before_first_move: Option<usize>,
     defer_probe_close: bool,
     cg_keeps_closed_probe: bool,
     probe_absence_failures: Cell<u32>,
@@ -239,9 +244,13 @@ impl Platform for Fake {
     }
     fn canary(&mut self, op: launch::PanelOp, guard: &impl Authority) -> Check<launch::Panel> {
         let n = 77;
+        self.probe_operations.push(op);
         if op == launch::PanelOp::Read {
             let cost = self.probe_read_costs.pop_front().unwrap_or_default();
             self.wait(cost);
+            if let Some(home) = self.probe_read_homes.pop_front() {
+                if let Some(window) = self.windows.get_mut(&n) { window.1 = home; }
+            }
         }
         if op == launch::PanelOp::Open {
             guard.active()?;
@@ -259,16 +268,26 @@ impl Platform for Fake {
             }
         }
         let exists = self.windows.contains_key(&n);
-        Ok(launch::Panel {
+        let (focus_same, focus_read_error) = if op == launch::PanelOp::Read {
+            self.probe_read_focus.pop_front().unwrap_or(((!self.focus_changed) as u32, 0))
+        } else { ((!self.focus_changed) as u32, 0) };
+        let mut panel = launch::Panel {
             number: if self.opened_probe { n } else { 0 },
             pid: std::process::id() as i32,
             birth: 123,
             opened: self.opened_probe as u32,
             registered: exists as u32,
             absent: (!exists) as u32,
-            focus_same: (!self.focus_changed) as u32,
+            focus_same,
             close_issued: (self.probe_closes > 0) as u32,
-        })
+            focus_read_error,
+        };
+        if op == launch::PanelOp::Read {
+            if let changed = self.probe_read_window {
+                panel.number = changed.number; panel.pid = changed.pid; panel.birth = changed.birth;
+            }
+        }
+        Ok(panel)
     }
     fn absent(&self, n: u32) -> Check<bool> {
         if n == 77 && self.probe_closes > 0 && !self.windows.contains_key(&n) {
@@ -335,6 +354,10 @@ impl Platform for Fake {
         Delivery::Accepted
     }
     fn move_window(&mut self, _: i32, route: Route, w: Window, s: u64, mask: u32) -> Delivery {
+        if self.moved.is_empty() {
+            self.probe_reads_before_first_move = Some(self.probe_operations.iter()
+                .filter(|op| **op == launch::PanelOp::Read).count());
+        }
         self.moved.push((route, w.number, s, mask));
         if self.lose_focus_on_hide && mask == 7 && w.number == 77 {
             self.focus_changed = true;
@@ -1348,6 +1371,145 @@ fn initial_home_observations_have_a_budget_separate_from_space_move_acknowledgem
             assert_eq!(s.sys.next, 100);
         }
         assert_eq!(s.sys.spaces, Rows::from([10]));
+    }
+}
+
+#[test]
+fn a_missing_retained_desktop_role_requires_two_new_complete_home_reads() {
+    for route in [Route::Classic, Route::Bridge] {
+        for complete_before_gap in [false, true] {
+            let (mut s, mut guard) = setup();
+            guard.approved = Some(route);
+            let originals = s.sys.windows.clone();
+            if complete_before_gap { s.sys.probe_read_focus.push_back((1, 0)); }
+            s.sys.probe_read_focus.extend([(0, -25204), (1, 0), (1, 0)]);
+            let result = s.run(&launch_request(LAUNCH), &guard);
+            assert_eq!((result.status, result.owned, result.native_id), (PASS, 0, 10));
+            // A complete sample from before the transport gap cannot combine
+            // with its first recovered sample to authorize the initial move.
+            assert_eq!(s.sys.probe_reads_before_first_move, Some(if complete_before_gap { 4 } else { 3 }));
+            assert_eq!(s.sys.moved, vec![(route, 77, 101, 7), (route, 77, 10, 15)]);
+            assert_eq!(s.sys.destroyed, vec![101]);
+            for op in [launch::PanelOp::Prepare, launch::PanelOp::Open, launch::PanelOp::Close] {
+                assert_eq!(s.sys.probe_operations.iter().filter(|seen| **seen == op).count(), 1);
+            }
+            assert!(originals.iter().all(|(number, state)| s.sys.windows.get(number) == Some(state)));
+            assert!(!s.sys.windows.contains_key(&77));
+            assert_eq!(s.route, Some(route));
+        }
+    }
+}
+
+#[test]
+fn missing_desktop_role_does_not_mask_changed_or_unknown_focus() {
+    // (0, 0) represents a positive original-focus mismatch or an unclassified
+    // failure. A default receipt, another AX error, and contradictory flags must
+    // never be treated as the narrowly classified missing-role observation.
+    for refused in [(0, 0), (0, -25202), (1, -25204), (2, 0)] {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        s.sys.probe_read_focus.extend([(0, -25204), refused, (1, 0), (1, 0)]);
+        let began = s.sys.now();
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!((result.status, result.detail), (UNKNOWN, Why::ProbeFocus as u32));
+        assert!(s.sys.now() - began < Duration::from_millis(100));
+        assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+        assert_eq!(s.sys.probe_closes, 1);
+        assert_eq!(s.sys.next, 100);
+    }
+}
+
+#[test]
+fn missing_desktop_role_cannot_hide_changed_canary_identity_or_ambiguous_membership() {
+    for conflict in 0..4 {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        s.sys.probe_read_focus.push_back((0, -25204));
+        let original = Window { number: 77, pid: std::process::id() as i32, birth: 123 };
+        s.sys.probe_read_window = match conflict {
+            0 => Some(Window { number: 78, ..original }),
+            1 => Some(Window { birth: 124, ..original }),
+            2 => Some(Window { pid: original.pid + 1, ..original }),
+            _ => None,
+        };
+        s.sys.ambiguous_panel_membership = conflict == 3;
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!(result.status, UNKNOWN);
+        let expected = if conflict == 3 { Why::Membership } else { Why::ProbeFocus };
+        assert_eq!(result.detail, expected as u32);
+        assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+        assert_eq!(s.sys.probe_operations.iter().filter(|op| **op == launch::PanelOp::Open).count(), 1);
+        assert_eq!(s.sys.next, 100);
+    }
+}
+
+#[test]
+fn a_role_gap_cannot_erase_a_positive_home_change_between_current_displays() {
+    for samples in [
+        vec![(10, 1, 0), (11, 0, -25204), (11, 1, 0), (11, 1, 0)],
+        vec![(10, 0, -25204), (11, 1, 0), (11, 1, 0)],
+        vec![(10, 1, 0), (10, 0, -25204), (11, 1, 0), (11, 1, 0)],
+        vec![(10, 0, -25204), (11, 0, -25204), (11, 1, 0), (11, 1, 0)],
+    ] {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        let home = s.sys.desktops(1).unwrap()[0];
+        s.sys.managed_roster = vec![home, Desktop { display: [7; 16], uuid: [8; 16], id: 11, ..home }];
+        s.sys.spaces.insert(11);
+        // Both homes belong to the baseline. A positive move between them is a
+        // conflict even when the first or both role observations were missing.
+        // Reset only the complete-proof streak, never the observed home identity.
+        s.sys.probe_read_homes.extend(samples.iter().map(|sample| sample.0));
+        s.sys.probe_read_focus.extend(samples.iter().map(|sample| (sample.1, sample.2)));
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!((result.status, result.detail, result.owned), (UNKNOWN, Why::Scope as u32, 0));
+        assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+        assert_eq!(s.sys.probe_closes, 1);
+        assert_eq!(s.sys.probe_operations.iter().filter(|op| **op == launch::PanelOp::Open).count(), 1);
+        assert_eq!(s.sys.spaces, Rows::from([10, 11]));
+        assert_eq!(s.sys.next, 100);
+    }
+}
+
+#[test]
+fn persistent_missing_desktop_role_exhausts_only_the_original_home_budget() {
+    let (mut s, mut guard) = setup();
+    guard.approved = Some(Route::Bridge);
+    s.sys.probe_read_focus = vec![(0, -25204); 1000].into();
+    let began = s.sys.now();
+    let result = s.run(&launch_request(LAUNCH), &guard);
+    assert_eq!((result.status, result.detail), (UNKNOWN, Why::Membership as u32));
+    assert!(s.sys.now() - began >= Duration::from_millis(650));
+    assert!(s.sys.now() - began < Duration::from_millis(656));
+    assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+    assert!(s.launch.as_ref().is_some_and(|run| !run.cleaned));
+    assert_eq!(s.sys.probe_closes, 0);
+    // An unreadable focus is not permission to close. A later explicit cleanup
+    // must establish the original focus before closing this same owned panel.
+    s.sys.probe_read_focus.clear();
+    let cleaned = s.run(&launch_request(CLEAN_LAUNCH), &guard);
+    assert_eq!((cleaned.status, cleaned.owned), (PASS, 0));
+    assert_eq!(s.sys.probe_closes, 1);
+    assert_eq!(s.sys.probe_operations.iter().filter(|op| **op == launch::PanelOp::Open).count(), 1);
+    assert!(s.sys.moved.is_empty() && s.route.is_none());
+}
+
+#[test]
+fn one_over_budget_panel_read_never_gets_a_new_home_discovery_deadline() {
+    for focus in [(1, 0), (0, -25204)] {
+        let (mut s, mut guard) = setup();
+        guard.approved = Some(Route::Bridge);
+        s.sys.probe_read_focus.push_back(focus);
+        s.sys.probe_read_costs.push_back(Duration::from_millis(651));
+        let result = s.run(&launch_request(LAUNCH), &guard);
+        assert_eq!((result.status, result.detail, result.owned), (UNKNOWN, Why::Membership as u32, 0));
+        assert!(s.sys.moved.is_empty() && s.sys.destroyed.is_empty() && s.route.is_none());
+        // Exactly one discovery read, then the existing cleanup's four reads;
+        // the expired observation cannot start another discovery attempt.
+        assert_eq!(s.sys.probe_operations.iter().filter(|op| **op == launch::PanelOp::Read).count(), 5);
+        assert_eq!(s.sys.probe_closes, 1);
+        assert_eq!(s.sys.probe_operations.iter().filter(|op| **op == launch::PanelOp::Open).count(), 1);
+        assert_eq!(s.sys.next, 100);
     }
 }
 

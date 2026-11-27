@@ -103,7 +103,8 @@ public final class EmbeddedModules {
     }
 
     public func makeHost(store: any ConfigurationStore, provider: any DesktopObservationProvider = UnavailableDesktopProvider()) -> HostSession {
-        let host = HostSession(store: store, provider: provider, includeSampleModules: !candidate, coreFactories: factories)
+        let host = HostSession(store: store, provider: provider, includeSampleModules: !candidate, coreFactories: factories,
+                               automaticDesktopRefreshAllowed: { !NativeSidebarNavigation.shared.isDispatching })
         workRect?.connect(to: host)
         if let feed = windowPreviews.currentDesktop {
             workRect?.desktopTiling.connect(feed)

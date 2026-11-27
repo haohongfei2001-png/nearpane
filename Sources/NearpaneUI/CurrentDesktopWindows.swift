@@ -632,10 +632,44 @@ import OSLog
         let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
+        let taskCreated = ProcessInfo.processInfo.systemUptime
         let task = Task { [read, weak self] () -> DesktopSnapshot? in
+            let taskStarted = ProcessInfo.processInfo.systemUptime
+            var step = "entry", completed = false, receivedReply = false
+            var readerMS: Double = 0, historyMS: Double = 0, projectionMS: Double = 0, directoryMS: Double = 0
+            var nativeTiming = [String: Double]()
+            defer {
+                let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
+                var fields: [String: Any] = ["requestRevision": request.revision,
+                    "step": step, "completed": completed, "receivedReply": receivedReply,
+                    "taskCreatedUptime": taskCreated, "taskStartedUptime": taskStarted,
+                    "taskQueueMS": (taskStarted - taskCreated) * 1000, "durationMS": totalMS,
+                    "readerAwaitMS": readerMS, "sidebarHistoryMS": historyMS,
+                    "groupProjectionMS": projectionMS, "observeDirectoryMS": directoryMS,
+                    "remainingProcessingMS": max(0, totalMS - readerMS - historyMS - projectionMS - directoryMS)]
+                for (key, value) in nativeTiming { fields[key] = value }
+                IndependentStageTrace.record("desktop-read-task-exit", fields)
+            }
             guard let self, !Task.isCancelled, self.epoch == expected, self.observationRequested, self.sessionAvailable() else { return nil }
+            step = "reader-await"
+            let readerStarted = ProcessInfo.processInfo.systemUptime
             let readback = try? await read(request)
+            let readerReturned = ProcessInfo.processInfo.systemUptime
+            readerMS = (readerReturned - readerStarted) * 1000
+            receivedReply = readback != nil
+            // These are the helper's existing timestamps, observed before any
+            // result validation. Diagnostics perform no additional native read.
+            if let native = readback?.native, native.beganUptime.isFinite, native.endedUptime.isFinite {
+                nativeTiming = ["readerAwaitStartedUptime": readerStarted, "readerReturnedUptime": readerReturned,
+                    "nativeBeganUptime": native.beganUptime, "nativeEndedUptime": native.endedUptime,
+                    "nativeDurationMS": (native.endedUptime - native.beganUptime) * 1000,
+                    "nativeBeginAfterRequestMS": (native.beganUptime - readerStarted) * 1000,
+                    "nativeAgeOnReturnMS": (readerReturned - native.beganUptime) * 1000,
+                    "nativeEndToReturnMS": (readerReturned - native.endedUptime) * 1000]
+            }
+            step = "reader-epoch-check"
             guard !Task.isCancelled, expected == self.epoch else { audit?.event("reader-cancelled"); return nil }
+            step = "reader-validation"
             guard var result = readback, self.sessionAvailable(),
                   result.sessionID == request.session, result.revision == request.revision, result.isStructurallyValid,
                   result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
@@ -659,6 +693,7 @@ import OSLog
                 self.holdDisplayedRoster()
                 if self.departingPictures?.retainAcrossCappedInventory(result) != true { self.departingPictures = nil }
                 self.lifetimes.removeAll()
+                step = "capped-inventory"; completed = true
                 return result
             }
             let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
@@ -671,11 +706,16 @@ import OSLog
             if self.panelRequested && (ordinaryObservation || diagnosticTargets?.isEmpty == false) {
                 var history = self.sidebarWindows
                 let sampleWindows = self.readSidebarWindows ?? { await NativeSpaceActionClient.shared.observe($0, audit: audit) }
+                step = "sidebar-history"
+                let historyStarted = ProcessInfo.processInfo.systemUptime
                 await history.update(&result, audit: audit, eligible: diagnosticTargets, read: sampleWindows)
+                historyMS = (ProcessInfo.processInfo.systemUptime - historyStarted) * 1000
+                step = "sidebar-history-validation"
                 guard !Task.isCancelled, expected == self.epoch, self.sessionAvailable(), self.panelRequested,
                       result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else { return nil }
                 self.sidebarWindows = history
             } else { audit?.event("panel-observation-disabled") }
+            step = "lifetimes"
             var next = [DesktopWindowKey: UUID]()
             for window in result.windows {
                 guard let meta = window.metadata, let birth = meta.launchMicroseconds, birth > 0 else { continue }
@@ -699,15 +739,23 @@ import OSLog
                         (self.panelRequested || (self.stageOwnershipObserved && NativeSidebarNavigation.shared.dispatchAvailable))
                         && result.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime)
                 }
+                step = "group-projection"
+                let projectionStarted = ProcessInfo.processInfo.systemUptime
                 await self.stageEngine.updateGroupProjection(result, current: currentDirectory)
+                projectionMS = (ProcessInfo.processInfo.systemUptime - projectionStarted) * 1000
+                step = "group-projection-validation"
                 guard currentDirectory() else { return nil }
                 let stage = self.stageEngine.snapshotForGroups(result)
                 let candidates = stage.displays.flatMap { self.stageWindows(in: stage, on: $0) }
+                step = "directory-observation"
+                let directoryStarted = ProcessInfo.processInfo.systemUptime
                 do {
                     try self.stageEngine.observeDirectory(candidates, in: self.groups)
                     self.groupIssue = nil
                 } catch { self.groupIssue = error.localizedDescription }
+                directoryMS = (ProcessInfo.processInfo.systemUptime - directoryStarted) * 1000
             }
+            step = "focus-audit-scheduling"
             if let audit, audit.focusRequest != nil {
                 let snapshot = result
                 Task { @MainActor [weak self] in
@@ -716,6 +764,7 @@ import OSLog
                     }
                 }
             }
+            step = "complete"; completed = true
             return result
         }
         let token = UUID()
