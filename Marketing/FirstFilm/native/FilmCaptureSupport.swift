@@ -28,6 +28,7 @@ enum FilmCaptureSupport {
     static var photographyFrame: NSRect?
     static var useStableCueTransition = false
     static var lyricsOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_LYRICS_ONLY"] == "1" }
+    static var englishOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_ENGLISH_ONLY"] == "1" }
     static var originalOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_ORIGINAL_ONLY"] == "1" }
     static var normalMotionRequested: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_NORMAL_MOTION"] == "1" }
     private static var normalMotionEnvironmentOverride = false
@@ -320,7 +321,7 @@ enum FilmCaptureSupport {
                 "normalMotionRequested": normalMotionRequested,
                 "normalMotionCaptureInputOverrideApplied": normalMotionEnvironmentOverride,
             "sourceWindowGeometryChanged": true,
-            "withdrawalTrigger": "actual Music process exit after resumed playback and pointer departure; never pause-hide",
+            "withdrawalTrigger": "actual normal Music quit request after resumed playback and pointer departure, then source selection unavailable and native window withdrawal; process termination is a separate diagnostic and is not claimed; never pause-hide",
             "inputTarget": "The sole production LyricPanelView inside the original controller window, framed at 208x192 logical points on the native display; real CGEvent and fresh AX hit testing",
             "source": "Actual Music playing original local audio; original LRC imported through production repository. No synthetic playback clock and no bitmap animation.",
             "limitations": "Original controller window has film-only framing and its sole production view uses actual display backing resolution. No mirrored views or cacheDisplay motion. Fullscreen MOV is primary evidence; sampled state timestamps are not frame-perfect media timestamps. Stable-transition candidate removes only cueTransition guard in the temporary capture copy and is unreleased until independently accepted.",

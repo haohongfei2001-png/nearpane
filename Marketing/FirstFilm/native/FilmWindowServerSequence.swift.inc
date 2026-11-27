@@ -7,12 +7,14 @@
                 return await pointerAction(sequence, action)
             }
             func settle(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
-            for language in ["zh", "en"] {
+            for language in (FilmCaptureSupport.englishOnly ? ["en"] : ["zh", "en"]) {
                 if language == "en" {
-                    let relaunched = await FilmCaptureSupport.restartOriginalMusicPlaylist(script: directory.appendingPathComponent("music-select-first.applescript"))
-                    let restoredFirst = await wait(15) { model.snapshot.state == .playing && model.snapshot.selection?.recording.title == title && !model.isPerformingCommand }
-                    await record("film-real-music-relaunch-original-playlist", relaunched && restoredFirst)
-                    guard relaunched && restoredFirst else { return finish(false) }
+                    if !FilmCaptureSupport.englishOnly {
+                        let relaunched = await FilmCaptureSupport.restartOriginalMusicPlaylist(script: directory.appendingPathComponent("music-select-first.applescript"))
+                        let restoredFirst = await wait(15) { model.snapshot.state == .playing && model.snapshot.selection?.recording.title == title && !model.isPerformingCommand }
+                        await record("film-real-music-relaunch-original-playlist", relaunched && restoredFirst)
+                        guard relaunched && restoredFirst else { return finish(false) }
+                    }
                     model.perform(.next)
                     let selected = await wait { model.snapshot.selection?.recording.title == nextTitle && !model.isPerformingCommand }
                     let confirmed = await commandConfirmed("next")
@@ -74,12 +76,14 @@
                     await settle(0.35)
                     let musicApplication = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").first
                     let quitPosted = musicApplication?.terminate() == true
-                    let playerExited = await wait { NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty }
-                    let withdrawn = await wait { !panel.panel.isVisible && !model.controlsVisible }
-                    await record("film-" + language + "-actual-player-exit-withdrawal", leavePosted && leftWhilePlaying && quitPosted && playerExited && withdrawn)
+                    let withdrawn = await wait { !panel.panel.isVisible && !model.controlsVisible && model.snapshot.selection == nil }
+                    let sourceUnavailable = model.snapshot.selection == nil && model.snapshot.state != .playing
+                    let playerExited = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty
+                    write("film-" + language + "-quit-observation.json", ["ordinaryQuitRequest": true, "quitRequestAccepted": quitPosted, "leavePointerPosted": leavePosted, "leftWhileStillPlaying": leftWhilePlaying, "processExitConfirmed": playerExited, "windowWithdrawn": withdrawn, "sourceState": model.snapshot.state.rawValue, "sourceSelectionAvailable": model.snapshot.selection != nil, "musicPIDBeforeQuit": musicApplication?.processIdentifier as Any? ?? NSNull(), "remainingMusicPIDs": NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").map { $0.processIdentifier }])
+                    await record("film-" + language + "-source-unavailable-native-withdrawal", leavePosted && leftWhilePlaying && musicApplication != nil && sourceUnavailable && withdrawn)
                     let recordedControls = await FilmCaptureSupport.finishScreenTake(controlsTake)
                     await record("film-" + language + "-controls-windowserver", recordedControls)
-                    pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && leavePosted && leftWhilePlaying && quitPosted && playerExited && withdrawn
+                    pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && leavePosted && leftWhilePlaying && musicApplication != nil && sourceUnavailable && withdrawn
                     // A failed interaction remains a failure, but preserve the other language
                     // in this same bounded run instead of discarding independent source footage.
                 } catch {

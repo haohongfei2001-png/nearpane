@@ -17,6 +17,7 @@ jobs:
       LYRICTILE_FILM_WINDOWSERVER: ${{ contains(github.event.head_commit.message, '[windowserver]') && '1' || '0' }}
       LYRICTILE_FILM_NORMAL_MOTION: ${{ contains(github.event.head_commit.message, '[normal-motion]') && '1' || '0' }}
       LYRICTILE_FILM_ORIGINAL_ONLY: ${{ contains(github.event.head_commit.message, '[original-only]') && '1' || '0' }}
+      LYRICTILE_FILM_ENGLISH_ONLY: ${{ contains(github.event.head_commit.message, '[english-only]') && '1' || '0' }}
       LYRICTILE_FILM_LYRICS_ONLY: ${{ contains(github.event.head_commit.message, '[lyrics-only]') && '1' || '0' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
