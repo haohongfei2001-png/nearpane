@@ -8,6 +8,11 @@ import SwiftUI
 @MainActor
 enum LyricTextLayout {
     static let contentHeight: CGFloat = 65_536
+    // The existing 5pt overflow allowance is shared symmetrically so
+    // the reading axis stays exactly at the panel centre.
+    static let horizontalGutter: CGFloat = 2.5
+    static func textWidth(_ width: CGFloat) -> CGFloat { max(1, width - 2 * horizontalGutter) }
+    static func rowX(_ origin: CGPoint) -> CGFloat { origin.x + horizontalGutter }
     private struct Key: Equatable {
         let text: String
         let fontSize: CGFloat
@@ -19,7 +24,7 @@ enum LyricTextLayout {
         let key = Key(text: text, fontSize: fontSize, width: width)
         if let cached, cached.key == key { return cached.frame }
         let style = NSMutableParagraphStyle()
-        style.alignment = .natural
+        style.alignment = .center
         style.baseWritingDirection = .natural
         let lineHeight = LyricPanelLayout.lineHeight(for: fontSize)
         style.minimumLineHeight = lineHeight; style.maximumLineHeight = lineHeight
@@ -30,7 +35,7 @@ enum LyricTextLayout {
             NSAttributedString.Key(rawValue: kCTForegroundColorFromContextAttributeName as String): true
         ])
         let setter = CTFramesetterCreateWithAttributedString(attributed)
-        let path = CGPath(rect: CGRect(x: 0, y: 0, width: max(1, width - 5), height: contentHeight), transform: nil)
+        let path = CGPath(rect: CGRect(x: 0, y: 0, width: textWidth(width), height: contentHeight), transform: nil)
         let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
         cached = (key, frame)
         return frame
@@ -160,7 +165,8 @@ public final class LyricGlyphView: NSView {
         for (rowIndex, line) in lines.enumerated() {
             let origin = origins[rowIndex]
             let baseline = contentHeight - origin.y
-            rows.append(Row(line: line, x: origin.x, baseline: baseline))
+            let x = LyricTextLayout.rowX(origin)
+            rows.append(Row(line: line, x: x, baseline: baseline))
             let runs = CTLineGetGlyphRuns(line) as! [CTRun]
             for run in runs {
                 let count = CTRunGetGlyphCount(run)
@@ -181,7 +187,7 @@ public final class LyricGlyphView: NSView {
                 var clusters: [Int: CGRect] = [:]
                 for index in 0..<count where indices[index] >= 0 {
                     let width = max(1, abs(advances[index].width))
-                    let rect = CGRect(x: origin.x + positions[index].x, y: baseline - ascent,
+                    let rect = CGRect(x: x + positions[index].x, y: baseline - ascent,
                                       width: width, height: ascent + descent)
                     clusters[indices[index]] = clusters[indices[index]].map { $0.union(rect) } ?? rect
                 }

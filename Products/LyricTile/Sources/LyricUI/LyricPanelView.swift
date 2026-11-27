@@ -13,6 +13,7 @@ public struct LyricPanelView: View {
     @State private var pointerInside = false
     @State private var hoverTask: Task<Void, Never>?
     @State private var isSeeking = false
+    @State private var previousMotionPosition: MotionPosition?
     @FocusState private var controlsFocused: Bool
 
     public init(model: LyricAppModel) { self.model = model }
@@ -21,6 +22,29 @@ public struct LyricPanelView: View {
     private var secondary: Color { Color(nsColor: LyricPalette.secondary(dark: dark)) }
     private var compact: Bool { model.panelContent == .compact }
     private let cornerRadius: CGFloat = 18
+    private struct MotionPosition: Equatable {
+        let selection: LyricDomain.Selection?
+        let index: Int?
+    }
+    private var motionPosition: MotionPosition {
+        .init(selection: model.snapshot.selection, index: model.currentCueIndex)
+    }
+    // A small upward hand-off only for adjacent, automatic playing cues.
+    // Seeking, manual browsing, a new song, hover and Reduce Motion stay still.
+    private var flowsUpward: Bool {
+        guard !reduceMotion, !model.controlsVisible, model.browsedCueIndex == nil,
+              model.seekPreviewMS == nil, !model.isPerformingCommand,
+              model.snapshot.state == .playing, let previousMotionPosition,
+              previousMotionPosition.selection == motionPosition.selection,
+              let before = previousMotionPosition.index, let now = motionPosition.index
+        else { return false }
+        return now == before + 1
+    }
+    private var cueTransition: AnyTransition {
+        guard flowsUpward else { return .identity }
+        return .asymmetric(insertion: .offset(y: 8).combined(with: .opacity),
+                           removal: .offset(y: -8).combined(with: .opacity))
+    }
     private var forcedScheme: ColorScheme? {
         switch model.settings.appearance { case .automatic: nil; case .light: .light; case .dark: .dark }
     }
@@ -41,10 +65,13 @@ public struct LyricPanelView: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(contrast == .increased ? secondary.opacity(0.6)
-                                      : dark ? Color.white.opacity(0.14) : Color.white.opacity(0.65), lineWidth: 1)
+                                      : dark ? Color.white.opacity(0.20) : Color.white.opacity(0.76), lineWidth: 1)
                 }
                 .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .onHover(perform: pointerChanged)
+                .onChange(of: motionPosition, initial: true) { _, position in
+                    previousMotionPosition = position
+                }
                 .onChange(of: voiceOverEnabled, initial: true) { _, enabled in
                     if enabled { revealControls() }
                     else if !pointerInside { scheduleHide() }
@@ -95,8 +122,12 @@ public struct LyricPanelView: View {
                  : Color(red: 0.965, green: 0.965, blue: 0.961)
         } else {
             LyricMaterial()
-                .overlay(dark ? Color(red: 0.125, green: 0.137, blue: 0.161).opacity(0.78)
-                         : Color(red: 0.99, green: 0.99, blue: 0.986).opacity(0.72))
+                .overlay(dark ? Color(red: 0.125, green: 0.137, blue: 0.161).opacity(0.66)
+                         : Color(red: 0.99, green: 0.99, blue: 0.986).opacity(0.56))
+                .overlay {
+                    LinearGradient(colors: [.white.opacity(dark ? 0.035 : 0.14), .clear],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
         }
     }
 
@@ -108,14 +139,21 @@ public struct LyricPanelView: View {
         let layout = LyricPanelLayout.readingLayout(for: model.currentCue?.text,
             fontSize: font, availableWidth: width - 28, hasSupplement: hasSupplement,
             controlsVisible: model.controlsVisible)
-        return VStack(alignment: .leading, spacing: layout.spacing) {
+        return VStack(alignment: .center, spacing: layout.spacing) {
             if layout.contextRadius == 2 { contextLine(at: -2) }
             contextLine(at: -1)
-            VStack(alignment: .leading, spacing: 3) {
-                currentLine(fontSize: font).frame(height: layout.viewportHeight)
+            VStack(alignment: .center, spacing: 3) {
+                ZStack {
+                    currentLine(fontSize: font)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: layout.viewportHeight)
+                .clipped()
                 if let supplement {
                     Text(supplement).font(.system(size: 11)).foregroundStyle(secondary)
-                        .lineLimit(1).frame(height: 13).help(supplement)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(1).frame(maxWidth: .infinity, alignment: .center)
+                        .frame(height: 13).help(supplement)
                         .opacity(model.controlsVisible ? 0 : 1)
                         .accessibilityHidden(model.controlsVisible)
                 }
@@ -126,19 +164,26 @@ public struct LyricPanelView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .animation(flowsUpward ? .easeOut(duration: 0.18) : nil, value: motionPosition)
     }
 
     private func contextLine(at distance: Int) -> some View {
         let near = abs(distance) == 1
         let text = model.contextText(at: distance)
-        return Text(text ?? " ")
-            .font(.system(size: near ? 14 : 12, weight: .regular))
-            .foregroundStyle(contrast == .increased ? secondary : primary.opacity(near ? 0.78 : 0.64))
-            .lineLimit(1).truncationMode(.tail)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: near ? 20 : 16)
-            .opacity(model.controlsVisible || text == nil ? 0 : 1)
-            .allowsHitTesting(false).accessibilityHidden(true)
+        return ZStack {
+            Text(text ?? " ")
+                .font(.system(size: near ? 14 : 12, weight: .regular))
+                .foregroundStyle(contrast == .increased ? secondary : primary.opacity(near ? 0.76 : 0.60))
+                .multilineTextAlignment(.center)
+                .lineLimit(1).truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .id(text)
+                .transition(cueTransition)
+        }
+        .frame(height: near ? 20 : 16)
+        .clipped()
+        .opacity(model.controlsVisible || text == nil ? 0 : 1)
+        .allowsHitTesting(false).accessibilityHidden(true)
     }
 
     @ViewBuilder private func currentLine(fontSize: CGFloat) -> some View {
@@ -148,12 +193,11 @@ public struct LyricPanelView: View {
                            tokenHighlight: model.frame.phase == .syncedToken && model.browsedCueIndex == nil,
                            animate: model.canAnimateTokens, fontSize: fontSize, dark: dark,
                            browse: { model.browse(by: $0) })
-                .id(cue.id).transition(.opacity)
-                .animation(.easeOut(duration: reduceMotion ? 0 : 0.16), value: cue.id)
+                .id(cue.id).transition(cueTransition)
         } else {
             Text(model.frame.phase == .interlude ? "间奏" : "歌词暂不可用")
                 .font(.system(size: 16, weight: .medium)).foregroundStyle(secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
 

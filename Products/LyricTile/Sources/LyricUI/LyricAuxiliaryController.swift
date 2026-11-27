@@ -103,27 +103,45 @@ private struct LyricAuxiliaryView: View {
     }
 
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    Image(nsImage: NSApplication.shared.applicationIconImage)
-                        .resizable().interpolation(.high).scaledToFit()
-                        .frame(width: 52, height: 52)
-                    Text("歌词，自然在旁。").font(.system(size: 24, weight: .medium))
-                }
-                Text("播放时自动出现，不播放时自动收起。\n移到歌词板上，即可查看歌曲和控制播放。")
-                    .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(4)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable().interpolation(.high).scaledToFit()
+                    .frame(width: 44, height: 44)
+                Text("歌词，自然在旁。").font(.system(size: 23, weight: .medium))
             }
-            VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 16) {
+                // A labelled static design preview, never a fabricated player or lyric session.
+                VStack(spacing: 5) {
+                    VStack(spacing: 7) {
+                        Text("风经过长街").font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text("让这一刻慢下来").font(.system(size: 14, weight: .semibold))
+                        Text("灯在街角亮起").font(.system(size: 10)).foregroundStyle(.secondary)
+                    }
+                    .frame(width: 136, height: 80)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.08), lineWidth: 1)
+                    }
+                    Text("界面示意").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                .accessibilityHidden(true)
+                Text("播放时自动出现，停止时自动收起。鼠标移入即可查看歌曲和控制播放。")
+                    .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 5) {
                 Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
                     .toggleStyle(.checkbox).font(.system(size: 12))
-                Text("查找时会向歌词服务发送歌名、歌手、专辑和时长。也可关闭，在菜单栏导入本地歌词。")
-                    .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+                Text("查找时会向歌词服务发送歌名、歌手、专辑和时长。关闭后仍可在菜单栏导入本地歌词。")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Text("Apple Music 与 Spotify 首次连接时可能请求自动化权限，用于读取歌曲与控制播放。")
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            HStack {
+            HStack(spacing: 12) {
                 Button("开始使用") {
                     model.settings.completedWelcome = true
                     close()
@@ -132,7 +150,7 @@ private struct LyricAuxiliaryView: View {
                     .keyboardShortcut(.defaultAction)
                 Button("打开设置") { model.show(.settings) }.buttonStyle(.plain)
             }
-        }.padding(28)
+        }.padding(24)
     }
 
     private var settings: some View {

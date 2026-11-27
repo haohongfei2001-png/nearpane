@@ -1,4 +1,5 @@
 import AppKit
+import CoreText
 import Foundation
 import LyricCore
 import LyricPlayback
@@ -63,6 +64,7 @@ struct PanelLayoutTests {
             // Check the production CoreText view really participates in layout
             // and remains inside the window, including long text at 176 pt.
             #expect(frame.width > 80)
+            #expect(abs(frame.midX - size.width / 2) <= 0.5)
             #expect(frame.height > 20)
             if scenario == .lightLyrics || scenario == .lightLyricsHover {
                 #expect(frame.height <= 30)
@@ -132,6 +134,24 @@ struct PanelLayoutTests {
             hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
             #expect(hosting.convert(glyph.bounds, from: glyph) == original)
             #expect(scenario == .narrowDarkLongLyrics || glyph.toolTip == nil)
+        }
+    }
+
+    @Test func coreTextUsesCenteredRowsAcrossScriptsAndWraps() {
+        let samples = ["让这一刻慢下来", "A quiet evening on the long road", "أغنية هادئة", "第一行\n第二行较长"]
+        for text in samples {
+            for width: CGFloat in [148, 180, 196] {
+                let frame = LyricTextLayout.frame(text: text, fontSize: 20, width: width)
+                let lines = CTFrameGetLines(frame) as! [CTLine]
+                #expect(!lines.isEmpty)
+                var origins = Array(repeating: CGPoint.zero, count: lines.count)
+                CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+                for (index, line) in lines.enumerated() {
+                    let flush = CTLineGetPenOffsetForFlush(line, 0.5, Double(LyricTextLayout.textWidth(width)))
+                    #expect(abs(LyricTextLayout.rowX(origins[index]) -
+                                (CGFloat(flush) + LyricTextLayout.horizontalGutter)) <= 1)
+                }
+            }
         }
     }
 
