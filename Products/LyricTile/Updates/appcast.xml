@@ -1,11 +1,17 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?><!-- sparkle-sign-warning:
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
 IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
 --><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
-    <title>LyricTile</title>
-    <description>LyricTile for macOS</description>
+    <title>LyricTile · HOLDSNOW</title>
+    <link>https://raw.githubusercontent.com/haohongfei2001-png/nearpane/refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml</link>
+    <item>
+      <title>LyricTile 1.0.0</title>
+      <pubDate>Fri, 27 Nov 2026 16:09:09 GMT</pubDate>
+      <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.zip" length="4029734" type="application/octet-stream" sparkle:version="49" sparkle:shortVersionString="1.0.0" sparkle:edSignature="NShzl0HgQomxTwslRCjLkD4aaOAbUip5uo53PfGJNgGZxW3pQJpLiogilShrl4UnxJA7HtSt7sy237CJTUkaBg=="></enclosure>
+    </item>
   </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 5/ZqV+xpQX8AirzI6IAa3cwLT/OzWM6XyiShpZ/kGinOewt1hyqxcFwIQKQCt6urx6RVTroTa0uxGtfozTouAg==
-length: 490
+edSignature: TgBd94LpfrbYRVdTlDoT1obUSWa4YQx1JkJ6di3+IKIfkw6AvDlJh/mzZztReurZzjis214632FQ2wSSz1Q6DA==
+length: 1174
 -->

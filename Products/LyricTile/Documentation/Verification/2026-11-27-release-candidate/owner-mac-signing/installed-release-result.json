@@ -1,0 +1,64 @@
+{
+  "status": "PASS_INSTALLED_FINAL49_NORMAL_LAUNCH",
+  "version": "1.0.0",
+  "build": 49,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "installedPID": 76065,
+  "installedPathMatchesExpected": true,
+  "sameFullPayloadAsNotarizedDMG": true,
+  "installedExecutableSHA256": "79655671bc62ed50ef82cf99faddbb09d22a6c134505a26233b63838f3d4dfb9",
+  "codesign": true,
+  "stapler": true,
+  "gatekeeper": true,
+  "originalBuild4RollbackRetained": true,
+  "normalLaunchServices": true,
+  "normalLaunchObservation": {
+    "axNodeCount": 22,
+    "axTrusted": true,
+    "knownMenuLabels": [
+      "\u4e3a\u5f53\u524d\u6b4c\u66f2\u5bfc\u5165\u6b4c\u8bcd\u2026",
+      "\u8bbe\u7f6e\u2026",
+      "LyricTile",
+      "\u7ee7\u7eed\u64ad\u653e"
+    ],
+    "nonemptyStaticTextCount": 0,
+    "normalLaunchIdentityMatched": true,
+    "pid": 76065,
+    "privateAXValuesExported": false,
+    "stage": "final-installed-normal-launch",
+    "status": "PASS_PROCESS_OBSERVED",
+    "visibleWindows": []
+  },
+  "testCleanup": {
+    "ownedTemporaryPlaylistRemoved": true,
+    "ownedImportedLibraryTrackRemoved": true,
+    "ownedCopiedAudioRemoved": false,
+    "positiveTestCacheArtifactsRemoved": 0,
+    "opaqueNegativeCacheKeysNotGuessedOrDeleted": true
+  },
+  "userData": {
+    "baselineBindingCount": 0,
+    "baselineAdjustmentCount": 0,
+    "baselineBindingsPreserved": true,
+    "baselineBindingFilesExact": true,
+    "baselineAdjustmentsPreserved": true,
+    "productSettingsMatchPreUpgrade": true,
+    "newUserAutomaticCachePreserved": true,
+    "wholeDomainOrSupportRestoredAfterNewPlayback": false
+  },
+  "playerState": {
+    "originallyRunning": false,
+    "externalPlaybackChangeObserved": true,
+    "leftCurrentMusicRunning": true,
+    "stateBeforeOwnedCleanup": "paused",
+    "stateAfterOwnedCleanup": "paused",
+    "stateAtFinalLaunch": "paused",
+    "currentTrackAndPlaylistUnchangedByCleanup": true,
+    "currentTrackAndPlaylistStillMatchAtFinalLaunch": true,
+    "noPlaybackCommandsAfterExternalChange": true,
+    "originalPlayerStateNotForcedOverNewActivity": true
+  },
+  "privateSongNamesAndPreferencesExported": false,
+  "releasePublished": false,
+  "publicFeedChanged": false
+}

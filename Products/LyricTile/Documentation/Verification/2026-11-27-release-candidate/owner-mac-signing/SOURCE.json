@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "version": "1.0.0",
+  "build": 49,
+  "evidenceClass": "Actual authorized macOS signing, notarization, isolated original build 4 Sparkle installation and final installed-app launch",
+  "files": {
+    "signing-acceptance-summary.json": "78a5da50e9d854a044d58c7f885eed930e9d32a8f7b017c845e9460d886b94ef",
+    "installed-release-result.json": "32f63eb8ede661cfe053f9f3c6ab2efff92aed48f4d68bc40445ae56b1ac02bd",
+    "upgrade-result.json": "d9e26e7435fe6ef155f02e25b887d7b69163344540aa90f8b0e47967b5c41a77",
+    "native-smoke-summary.json": "8a73c10cc084960f2345043e332811c8faf9c8f006c0bb6fbaee778fa043f324",
+    "test-media-cleanup-scope.json": "104213a9c65c2b6b685552ee1af9ab42b4e2302d6b251c721ed50c841ca4b3ed"
+  },
+  "scope": "Original reports retain the observed stage. Signing report precedes launch; upgrade report precedes replacement of the user-installed app; installed report precedes public Release. Later actions do not rewrite those historical false fields. Private track metadata, preference values and private-file hashes are excluded."
+}

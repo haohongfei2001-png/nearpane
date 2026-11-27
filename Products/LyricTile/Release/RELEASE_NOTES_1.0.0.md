@@ -1,11 +1,3 @@
-<!--
-Prepared release copy; not a publication or signing result.
-Publish only after the final build 49 packages pass Developer ID signing,
-Apple notarization, Gatekeeper, startup and the actual build 4 → 49 update.
-The signing statements below apply only to that completed consumer release.
-Attach the final packages named below; never substitute the -candidate archives.
--->
-
 # LyricTile 1.0.0 · build 49
 
 ## 中文

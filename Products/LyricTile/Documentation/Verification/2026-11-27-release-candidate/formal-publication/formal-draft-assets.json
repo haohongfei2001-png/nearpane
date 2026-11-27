@@ -1,0 +1,73 @@
+{
+  "status": "PASS_FORMAL_DRAFT_SEVEN_ASSETS_NOT_PUBLISHED",
+  "id": 460855402,
+  "tag": "lyrictile-v1.0.0-build49",
+  "target": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "draft": true,
+  "prerelease": false,
+  "published_at": null,
+  "make_latest_requested": "false",
+  "html_url": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-c0358bd9cb3b98ab7cc1",
+  "assets": [
+    {
+      "id": 801280267,
+      "name": "appcast.xml",
+      "bytes": 1318,
+      "digest": "sha256:45c303ef043751dd9944eacc7f45e2227a14f6c0d9d99fdfc6e76d6ecae734c9",
+      "sha256": "45c303ef043751dd9944eacc7f45e2227a14f6c0d9d99fdfc6e76d6ecae734c9",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280242,
+      "name": "LyricTile-1.0.0-49-arm64.dmg",
+      "bytes": 4439015,
+      "digest": "sha256:a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "sha256": "a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280266,
+      "name": "LyricTile-1.0.0-49-arm64.zip",
+      "bytes": 4029734,
+      "digest": "sha256:4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515",
+      "sha256": "4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280340,
+      "name": "LyricTile-1.0.0-49-local-verification.zip",
+      "bytes": 790432,
+      "digest": "sha256:9bce90418dc06553844bec9166454b8fe0d06706f420e8374ddb99fd15527312",
+      "sha256": "9bce90418dc06553844bec9166454b8fe0d06706f420e8374ddb99fd15527312",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280344,
+      "name": "LyricTile-1.0.0-49-verification.zip",
+      "bytes": 2388348,
+      "digest": "sha256:46400ecb869fb7ec31a0551d76b5eef6ffbd7d8fcfe1926faca72ec59fc2b399",
+      "sha256": "46400ecb869fb7ec31a0551d76b5eef6ffbd7d8fcfe1926faca72ec59fc2b399",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280265,
+      "name": "release-verification.json",
+      "bytes": 7900,
+      "digest": "sha256:2c88eb3e81c60b222f059508d05f0da492b727e551fe06c171a342d0b3c06e74",
+      "sha256": "2c88eb3e81c60b222f059508d05f0da492b727e551fe06c171a342d0b3c06e74",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280240,
+      "name": "SHA256SUMS",
+      "bytes": 190,
+      "digest": "sha256:434d387ea755aea7ecac5450d98f1cadf2a58d25df424787f1a9e331751c6cb3",
+      "sha256": "434d387ea755aea7ecac5450d98f1cadf2a58d25df424787f1a9e331751c6cb3",
+      "state": "uploaded"
+    }
+  ],
+  "localEvidenceOriginalFileCount": 29,
+  "localEvidencePrivacyAllowlistPassed": true,
+  "engineeringDraftUnmodified": true,
+  "publicFeedUnmodified": true
+}

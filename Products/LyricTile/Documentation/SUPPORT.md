@@ -1,8 +1,8 @@
 # 支持范围与证据 · Support and evidence
 
-更新：2026-11-27。LyricTile 是 HOLDSNOW 的独立 macOS 歌词伴侣。**当前候选、精确源码、整体验收与正式包状态见 [STATUS](../STATUS.md)**。本页说明已经实际跑通的路径及其边界；某个子项通过，不代表整个运行或正式签名已经完成。
+更新：2026-11-27。LyricTile 是 HOLDSNOW 的独立 macOS 歌词伴侣。**当前正式版为 1.0.0 / build 49**，可从[正式 Release](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)下载。本页说明实际跑通的使用路径及其边界；精确源码与发行记录见 [STATUS](../STATUS.md)。
 
-本页对应候选 **1.0.0 / build 49**，源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，[原生 CI49 / run 46024615269](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。各条证据保留实际运行归属。
+本页对应正式版 **1.0.0 / build 49**，源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，[原生 CI49 / run 46024615269](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。各条证据保留实际运行归属。
 
 ## 平台与播放器
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | Apple Music **1.7 / build 1.7.0** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：普通 App 的 24 项检查通过；两首原创本地 WAV、导入文件 hash、实际 persistent ID 与时长一致 | 自动识别、紧凑态、本地歌词、逐行推进、seek、暂停/恢复、hover/按钮命中、真实 next/previous、切歌清除旧词，以及返回原曲后自动恢复已有本地绑定；不是订阅曲库整体认证 |
 | QQ 音乐 **11.11.1 / build 73285** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：单首原创本地 WAV，普通 App 的 18 项检查通过 | 自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实指针交互和面板显隐；暂停时遇到矛盾旧进度锚点不展示虚构进度。该测试没有验证 QQ 播放队列切歌或商业曲库 |
-| 网易云音乐 **3.1.14 / build 3459** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：官方客户端实际下载、安装并运行，单曲本地核心与 18 项普通 App 检查通过 | 单曲本地音轨的识别、歌词、逐行推进、seek、暂停/恢复与真实指针交互；未验证网易云队列切歌或商业曲库。CI46/47 的下载阻塞属于此前原样保留的结果，不替代本轮实际运行 |
+| 网易云音乐 **3.1.14 / build 3459** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：官方客户端实际下载、安装并运行，单曲本地核心与 18 项普通 App 检查通过 | 单曲本地音轨的识别、歌词、逐行推进、seek、暂停/恢复与真实指针交互；未验证网易云队列切歌或商业曲库。各条支持结论以对应的真实运行记录为依据 |
 | Spotify 桌面版 | 适配器存在，尚无已登录实际播放的通过记录 | **未实测**，不列为已通过的首发播放器；Connect、广告、播客和远端输出也没有被认证 |
 
 这些本地测试使用真实安装的播放器、真实解码音频和普通 LyricTile App，未使用音乐账号。原创测试录音与歌词不随产品打包。“无需账号”仅说明这些本地路径可行，音乐服务自身的订阅和登录要求仍由对应服务决定。
@@ -35,7 +35,7 @@ CI49 的完整自动在线路径为 **PASS_REAL_ONLINE_SONG**：Apple Music 实�
 
 ## 安装与权限
 
-正式包发布后，从 [LyricTile 官网](https://nearpane.com/lyrictile/) 获取对应 DMG，拖入“应用程序”后启动，完成欢迎页。连接 Apple Music 或 Spotify 时，macOS 会按需请求 Automation；如果之前拒绝，可在“系统设置 → 隐私与安全性 → 自动化”允许对应播放器。LyricTile 不需要自己的登录账号。
+从 [LyricTile 官网](https://nearpane.com/lyrictile/) 获取 **1.0.0 / build 49** 的正式 DMG，拖入“应用程序”后启动，完成欢迎页。连接 Apple Music 或 Spotify 时，macOS 会按需请求 Automation；如果之前拒绝，可在“系统设置 → 隐私与安全性 → 自动化”允许对应播放器。LyricTile 不需要自己的登录账号。
 
 日常使用不要求 LyricTile 获得“辅助功能”或“屏幕录制”权限。云端测试助手的原生指针和截图能力属于验收环境，并没有变成用户的安装步骤。具体安装、升级及权限恢复操作见[安装说明](INSTALL.md)。
 
@@ -46,23 +46,23 @@ CI49 的完整自动在线路径为 **PASS_REAL_ONLINE_SONG**：Apple Music 实�
 - **实际壁纸**：[CI44 保存的原图与像素复核](Verification/2026-11-27-release-candidate/ci44-regression/README.md) 已确认浅色 App 在浅色、深色、繁忙壁纸上的实际可读性，来自同一 WindowServer 面板、1× 显示。CI49 的三壁纸矩阵因公开桌面 API 未读回请求壁纸而 BLOCKED，没有产生该矩阵截图；原壁纸与 QQ 窗口状态已恢复，不能把它写成本轮三壁纸通过。没有把深色壁纸当成深色 App，也没有把可列举的显示模式写成已测 2×。
 - **网络与浏览器**：歌词服务请求、官网及下载入口各自保存证据；网页结果不作为 macOS 播放或原生 UI 通过的依据。
 
-## 当前发行与历史结果
+## 正式发行与验收记录
 
-当前云端安装包是 **ad-hoc 工程候选**。Developer ID 签名、Apple 公证和同一最新签名包的升级结果，须由其对应的正式发行记录证明；在此之前，官网保持正式下载准备中。工程 Release 草稿用于保存候选及证据，不会自动成为正式下载或更新 feed。
+**1.0.0 / build 49** 的正式 ZIP、DMG 和 [SHA256SUMS](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/SHA256SUMS) 见[同一 Release](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)。正式安装包已使用 Developer ID 签名并通过 Apple 公证。DMG SHA-256：`a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329`。
 
-旧 **build 4** 的实机 Apple Music/QQ 播放、八小时运行、公证及 **build 2→4** Sparkle 升级属于历史同一包基线。它们不替代当前界面、当前源码、最新安装包或 build 4→最新包的升级验证。近期空闲和逐行运行采样有各自真实测值，没有被描述为新八小时或逐字性能资格。
+原生播放、网络、签名、公证和升级各自保留对应原始记录，详见 [STATUS](../STATUS.md)。近期空闲及逐行运行采样有各自真实测值；没有据短时结果宣称新八小时或独立逐字精度通过。
 
 首发依据已实际通过的播放器与路径，不要求四个播放器同时通过、每首歌完美逐字或重复所有历史长稳实验。实际缺陷和明确未测范围仍按原始记录处理。
 
 ## English
 
-LyricTile is an independent HOLDSNOW companion for **Apple silicon Macs running macOS 27 or later**. The native cloud environment is macOS 27.0.1 arm64. The current candidate is **1.0.0 / build 49**, source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`, from [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269). [STATUS](../STATUS.md) records the complete run result and signing state; the rows below identify each actual verification run.
+LyricTile is an independent HOLDSNOW companion for **Apple silicon Macs running macOS 27 or later**. The native cloud environment is macOS 27.0.1 arm64. The current release is **1.0.0 / build 49**, source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`, from [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269). [STATUS](../STATUS.md) records the complete run result and signing state; the rows below identify each actual verification run.
 
 | Player | Observed native scope |
 | --- | --- |
 | **Apple Music 1.7 / build 1.7.0** | CI49 passed 24 ordinary-app checks using two authored local recordings: identification, local lyrics, line progression, seeking, pause/resume, native hover/button events, next/previous, lyric replacement and automatic recovery of the original local binding. Actual imported hashes, track IDs and durations were verified. |
 | **QQ Music 11.11.1 / build 73285** | CI49 passed 18 ordinary-app checks using one authored local recording: identification, local lyrics, line progression, seek, pause/resume, native pointer input and panel visibility. Queue switching and the commercial catalog were not tested. |
-| **NetEase 3.1.14 / build 3459** | CI49 downloaded, installed and ran the actual official client, then passed the corresponding single-track local core and 18 ordinary-app checks. Queue switching and the commercial catalog were not tested. Earlier CI46/47 installer failures remain separate historical observations. |
+| **NetEase 3.1.14 / build 3459** | CI49 downloaded, installed and ran the actual official client, then passed the corresponding single-track local core and 18 ordinary-app checks. Queue switching and the commercial catalog were not tested. The support statement is based on this actual client run. |
 | **Spotify desktop** | The adapter is implemented, but actual signed-in playback remains unverified. Spotify, Connect, ads, podcasts and remote outputs are not listed as qualified paths. |
 
 These local tests used actual players and audio without an account. They do not establish whole-catalog coverage, subscription playback, every recording version or independent word-level timing. Online LRCLIB service probes and full automatic lookup during real playback are recorded separately. Lyrics availability depends on provider coverage and metadata; local imports remain available when online lookup is disabled or no suitable lyrics are found.
@@ -71,6 +71,6 @@ CI49's separate **PASS_REAL_ONLINE_SONG** result used Jonathan Coulton's publicl
 
 The first release is qualified primarily for line-level synchronization. Word-level parsing and authored rendering fixtures do not certify acoustic timing accuracy. The historical CI44 light-app/three-wallpaper/1× desktop check remains distinct from current native screenshots, browser and service tests. CI49's wallpaper matrix was BLOCKED when the public desktop API did not read back the requested wallpaper; no matrix captures were produced, and the original desktop and QQ window state were restored.
 
-When the signed consumer release is available, download its DMG from the LyricTile product page, drag the app into Applications, and complete onboarding. Grant Automation for the chosen Music or Spotify connection when requested. Normal use does not require Accessibility or Screen Recording access, and LyricTile has no account requirement of its own. Online lookup is disclosed during onboarding and can be disabled in Settings; see [installation](INSTALL.md) and [privacy](PRIVACY.md).
+Download the signed and notarized **1.0.0 / build 49** DMG from the LyricTile product page, drag the app into Applications, and complete onboarding. Grant Automation for the chosen Music or Spotify connection when requested. Normal use does not require Accessibility or Screen Recording access, and LyricTile has no account requirement of its own. Online lookup is disclosed during onboarding and can be disabled in Settings; see [installation](INSTALL.md) and [privacy](PRIVACY.md).
 
-**The signed consumer package is being prepared.** Current engineering packages have ad-hoc signatures. An unpublished engineering draft does not publish the consumer download or update feed. Build 4's notarization, eight-hour run and build 2→4 update are historical evidence for that build; the latest signed package needs its own release and upgrade verification.
+**The consumer release is Developer ID signed and Apple notarized.** Download its ZIP or DMG and [SHA256SUMS](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/SHA256SUMS) from [the build 49 Release](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49). The DMG SHA-256 is `a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329`. [STATUS](../STATUS.md) links the actual release and upgrade evidence. Native playback, service checks and short resource samples retain their measured scope; they are not described as a new eight-hour or independent word-timing qualification.

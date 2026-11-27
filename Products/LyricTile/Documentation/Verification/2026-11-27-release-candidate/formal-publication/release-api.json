@@ -1,0 +1,69 @@
+{
+  "status": "PASS_PUBLIC_RELEASE_API",
+  "releaseID": 460855402,
+  "tag": "lyrictile-v1.0.0-build49",
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-11-27T16:52:36Z",
+  "releaseURL": "https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49",
+  "assets": [
+    {
+      "id": 801280267,
+      "name": "appcast.xml",
+      "bytes": 1318,
+      "sha256": "45c303ef043751dd9944eacc7f45e2227a14f6c0d9d99fdfc6e76d6ecae734c9",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/appcast.xml",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280242,
+      "name": "LyricTile-1.0.0-49-arm64.dmg",
+      "bytes": 4439015,
+      "sha256": "a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280266,
+      "name": "LyricTile-1.0.0-49-arm64.zip",
+      "bytes": 4029734,
+      "sha256": "4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.zip",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280340,
+      "name": "LyricTile-1.0.0-49-local-verification.zip",
+      "bytes": 790432,
+      "sha256": "9bce90418dc06553844bec9166454b8fe0d06706f420e8374ddb99fd15527312",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-local-verification.zip",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280344,
+      "name": "LyricTile-1.0.0-49-verification.zip",
+      "bytes": 2388348,
+      "sha256": "46400ecb869fb7ec31a0551d76b5eef6ffbd7d8fcfe1926faca72ec59fc2b399",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-verification.zip",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280265,
+      "name": "release-verification.json",
+      "bytes": 7900,
+      "sha256": "2c88eb3e81c60b222f059508d05f0da492b727e551fe06c171a342d0b3c06e74",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/release-verification.json",
+      "state": "uploaded"
+    },
+    {
+      "id": 801280240,
+      "name": "SHA256SUMS",
+      "bytes": 190,
+      "sha256": "434d387ea755aea7ecac5450d98f1cadf2a58d25df424787f1a9e331751c6cb3",
+      "downloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/SHA256SUMS",
+      "state": "uploaded"
+    }
+  ]
+}
+

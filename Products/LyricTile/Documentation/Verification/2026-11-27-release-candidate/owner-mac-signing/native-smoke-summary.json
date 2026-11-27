@@ -1,0 +1,72 @@
+{
+  "status": "PASS",
+  "exitCode": 0,
+  "variants": [
+    {
+      "language": "zh-Hans",
+      "appearance": "light",
+      "status": "PASS",
+      "backingScale": 2,
+      "welcome": [
+        400,
+        360,
+        true
+      ],
+      "settings": [
+        450,
+        620,
+        true
+      ]
+    },
+    {
+      "language": "zh-Hans",
+      "appearance": "dark",
+      "status": "PASS",
+      "backingScale": 2,
+      "welcome": [
+        400,
+        360,
+        true
+      ],
+      "settings": [
+        450,
+        620,
+        true
+      ]
+    },
+    {
+      "language": "en",
+      "appearance": "light",
+      "status": "PASS",
+      "backingScale": 2,
+      "welcome": [
+        400,
+        360,
+        true
+      ],
+      "settings": [
+        450,
+        620,
+        true
+      ]
+    },
+    {
+      "language": "en",
+      "appearance": "dark",
+      "status": "PASS",
+      "backingScale": 2,
+      "welcome": [
+        400,
+        360,
+        true
+      ],
+      "settings": [
+        450,
+        620,
+        true
+      ]
+    }
+  ],
+  "realPlayerQualification": "NOT_RUN",
+  "sameSignedPackage": true
+}

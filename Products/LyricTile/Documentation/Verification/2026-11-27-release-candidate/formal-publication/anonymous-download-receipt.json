@@ -1,0 +1,48 @@
+{
+  "status": "PASS_ANONYMOUS_PUBLIC_DOWNLOADS",
+  "releaseID": 460855402,
+  "tag": "lyrictile-v1.0.0-build49",
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "releaseURL": "https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49",
+  "downloads": [
+    {
+      "name": "LyricTile-1.0.0-49-arm64.zip",
+      "httpStatus": 200,
+      "bytes": 4029734,
+      "sha256": "4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515",
+      "matchesPublishedAssetAndVerifiedPackage": true,
+      "authenticationUsed": false
+    },
+    {
+      "name": "LyricTile-1.0.0-49-arm64.dmg",
+      "httpStatus": 200,
+      "bytes": 4439015,
+      "sha256": "a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "matchesPublishedAssetAndVerifiedPackage": true,
+      "authenticationUsed": false
+    },
+    {
+      "name": "SHA256SUMS",
+      "httpStatus": 200,
+      "bytes": 190,
+      "sha256": "434d387ea755aea7ecac5450d98f1cadf2a58d25df424787f1a9e331751c6cb3",
+      "matchesPublishedAssetAndVerifiedPackage": true,
+      "authenticationUsed": false
+    },
+    {
+      "name": "appcast.xml",
+      "httpStatus": 200,
+      "bytes": 1318,
+      "sha256": "45c303ef043751dd9944eacc7f45e2227a14f6c0d9d99fdfc6e76d6ecae734c9",
+      "matchesPublishedAssetAndVerifiedPackage": true,
+      "authenticationUsed": false
+    }
+  ],
+  "checksumFileMatchesBothInstallers": true,
+  "appcastAssetVersion": 49,
+  "appcastAssetMatchesExactSignedBytes": true,
+  "publicAssetCount": 7,
+  "liveBranchFeedChecked": false,
+  "scope": "Anonymous public release assets; the live update feed is deployed separately by the release owner.",
+  "playerOrUserDataModifiedByPublicationCheck": false
+}

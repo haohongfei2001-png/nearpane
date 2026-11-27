@@ -1,0 +1,8 @@
+{
+  "testMediaWasOriginalCIArtifact": false,
+  "separateMusicLibraryCopyExisted": true,
+  "mediaStillExists": false,
+  "reason": "Music has already removed the separate imported audio file.",
+  "liveMusicLibraryTestTrackRemoved": true,
+  "originalCIEvidenceRetainedOnlyOnMac": false
+}

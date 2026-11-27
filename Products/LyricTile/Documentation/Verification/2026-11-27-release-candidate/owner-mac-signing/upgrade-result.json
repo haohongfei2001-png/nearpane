@@ -1,0 +1,48 @@
+{
+  "status": "PASS_REAL_SPARKLE_4_TO_49",
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "fromBuild": 4,
+  "toBuild": 49,
+  "version": "1.0.0",
+  "originalBuild4Unmodified": true,
+  "wholePayloadMatchesFinalSignedDMG": true,
+  "signedLoopbackFeed": true,
+  "archiveEd25519SignatureVerified": true,
+  "feedRequested": true,
+  "archiveRequested": true,
+  "probeOnly": false,
+  "sameFinalArchiveSHA256": "4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515",
+  "installedExecutableSHA256": "79655671bc62ed50ef82cf99faddbb09d22a6c134505a26233b63838f3d4dfb9",
+  "codesign": true,
+  "stapler": true,
+  "gatekeeper": true,
+  "userDataBefore": {
+    "supportFilesExact": true,
+    "supportFileCount": 2,
+    "supportBytes": 59560,
+    "productSettingsExact": true,
+    "wholePreferencesExact": true,
+    "preferenceKeyCount": 8
+  },
+  "userDataAfterInstallBeforeRestoration": {
+    "supportFilesExact": true,
+    "supportFileCount": 2,
+    "supportBytes": 59560,
+    "productSettingsExact": true,
+    "wholePreferencesExact": false,
+    "preferenceKeyCount": 8
+  },
+  "testHelperChangedWholePreferences": true,
+  "userDataAfterTestPreferenceRestoration": {
+    "supportFilesExact": true,
+    "supportFileCount": 2,
+    "supportBytes": 59560,
+    "productSettingsExact": true,
+    "wholePreferencesExact": true,
+    "preferenceKeyCount": 8
+  },
+  "realUserDataCleared": false,
+  "userInstalledAppReplaced": false,
+  "appLaunched": false,
+  "publicFeedChanged": false
+}

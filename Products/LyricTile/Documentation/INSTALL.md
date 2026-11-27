@@ -4,9 +4,11 @@
 
 **系统要求：Apple silicon Mac，macOS 27 或更新版本。** LyricTile 独立运行，不需要安装 Nearpane。
 
-当前最新源码与云端候选见 [STATUS](../STATUS.md)；旧 build 4 已公证，但它早于现有界面。不要把旧安装包当成最新版。尚未发布正式包时，官网会显示候选状态，不提供指向旧包的正式下载按钮。GitHub Actions 候选供工程核验，通常需要 GitHub 登录，临时签名不能替代 Developer ID 和公证。
+当前正式版为 **1.0.0 / build 49**。[下载 DMG](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg) · [发行说明](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)。安装包使用 Developer ID 签名并通过 Apple 公证。可与同一 Release 的 [SHA256SUMS](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/SHA256SUMS) 核对；本版 DMG 的 SHA-256 为 `a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329`。
 
-正式安装包发布后的流程：
+本版已实测 Apple Music 1.7、QQ 音乐 11.11.1 和网易云音乐 3.1.14 的本地音轨核心使用，以及 Apple Music 单曲的自动在线取词。Spotify 尚未实测；歌词覆盖率随歌曲与录音版本变化，首发实测以逐行同步为主。
+
+安装步骤：
 
 1. 从产品页的正式下载入口获取 DMG。可以与同一 Release 的 `SHA256SUMS` 核对。
 2. 打开 DMG，把 LyricTile 拖入“应用程序”，从“应用程序”启动，然后推出安装磁盘。
@@ -31,9 +33,11 @@
 
 **Requirements: an Apple silicon Mac running macOS 27 or later.** LyricTile runs independently; Nearpane is not required.
 
-See [STATUS](../STATUS.md) for the latest source and cloud candidate. Notarized build 4 predates the current interface and is not the latest release. Until a final package is published, the product page shows candidate status and does not present an old package as a current download. GitHub Actions packages are engineering candidates, usually require GitHub sign-in, and use ad-hoc signing rather than Developer ID notarization.
+The current release is **1.0.0 / build 49**. [Download the DMG](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg) · [Release notes](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49). The installer is Developer ID signed and Apple notarized. Compare it with [SHA256SUMS](https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/SHA256SUMS) from the same release; the DMG SHA-256 is `a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329`.
 
-When the final installer is available:
+Local-track core use has been verified with Apple Music 1.7, QQ Music 11.11.1 and NetEase Cloud Music 3.1.14, plus automatic online lyrics for one actual Apple Music recording. Spotify remains unverified. Coverage varies by song and recording; the first release is tested primarily for line synchronization.
+
+Installation steps:
 
 1. Download its DMG from the product page. Optionally compare its checksum with `SHA256SUMS` from the same release.
 2. Open the DMG, drag LyricTile to Applications, launch that installed copy, and eject the installer disk.
@@ -48,3 +52,7 @@ Use the app's update menu for the dedicated LyricTile Sparkle channel, or quit t
 If no panel appears, confirm that a song is playing and the selected source is correct. If song details appear without lyrics, check online lookup and connectivity or import a local file. Unavailable controls or synchronization indicate that the player is not supplying the needed capability or timing information.
 
 [Verified support](SUPPORT.md) · [Privacy](PRIVACY.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## 版本来源 · Release source
+
+1.0.0 / build 49 · `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b` · [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269) · [发行与验收记录 / Release and verification record](../STATUS.md)
