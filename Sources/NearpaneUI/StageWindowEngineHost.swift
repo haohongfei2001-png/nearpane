@@ -670,8 +670,22 @@ import NearpaneOrdinaryWindowRuntime
         let evidence = candidateMode ? candidateEvidence : selected!.evidence
         if let witness, !witness.matches(scope) { await release(); throw StageSwitchError.interrupted }
         let token = revision
+        var environmentRejection: [String: Any]?
         let environmentCurrent: @MainActor () -> Bool = { [weak self] in
-            self?.revision == token && self?.management?.permitsStageEngine(on:member.source.display) == true
+            environmentRejection = nil
+            let observedRevision = self?.revision
+            guard observedRevision == token else {
+                environmentRejection = ["reason": "host-revision", "expectedRevision": token]
+                if let observedRevision { environmentRejection?["observedRevision"] = observedRevision }
+                return false
+            }
+            guard let management = self?.management else {
+                environmentRejection = ["reason": "management-missing"]; return false
+            }
+            return management.permitsStageEngine(on: member.source.display) { reason, facts in
+                environmentRejection = facts
+                environmentRejection?["reason"] = "management/" + reason
+            }
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
             self?.wallpaperPaused == false && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
@@ -697,12 +711,24 @@ import NearpaneOrdinaryWindowRuntime
             guard returnedWitnesses[scope]?.returnedMembersAreBound(in: feed) != false else {
                 SpacesWorkerLifecycle.trace("group-choice-returned-binding-rejected"); return nil
             }
+            var restoreRejection: [String: Any]?
             let restore: @MainActor () -> Bool = { [weak self] in
-                guard let self, self.management?.permitsStageEngine(on:member.source.display) == true else { return false }
-                return self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
+                restoreRejection = nil
+                guard let self else { restoreRejection = ["reason": "host-missing"]; return false }
+                guard let management = self.management else {
+                    restoreRejection = ["reason": "management-missing"]; return false
+                }
+                guard management.permitsStageEngine(on: member.source.display, onRejection: { reason, facts in
+                    restoreRejection = facts
+                    restoreRejection?["reason"] = "management/" + reason
+                }) else { return false }
+                let unchangedInput = self.releaseInput.map { $0 == NativeSelectionPermit.inputCounters() } != false
+                if !unchangedInput { restoreRejection = ["reason": "release-input"] }
+                return unchangedInput
             }
             guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
-                available:environmentCurrent,restoreAvailable:restore) else {
+                available:environmentCurrent,restoreAvailable:restore,
+                availabilityRejection: { restoring in restoring ? restoreRejection : environmentRejection }) else {
                 SpacesWorkerLifecycle.trace("group-choice-witness-rejected", ["lifetimes": approval.lifetimes.count]); return nil
             }
             self.witness = witness

@@ -1,0 +1,12 @@
+{
+  "axError" : -25200,
+  "directEngineInvocation" : false,
+  "issued" : false,
+  "nonce" : "f082c9fa-c051-4c72-88b1-e8d55d078750",
+  "physicalPointerGesture" : false,
+  "qualificationGranted" : false,
+  "reason" : "directAcceptanceParentUnconfirmed",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "uptime" : 796304.213417875
+}

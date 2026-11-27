@@ -9,6 +9,7 @@
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>
+#include "r4-file-identity.h"
 
 static BOOL r4Integer(id value,uint64_t *number) {
     if(![value isKindOfClass:NSNumber.class] || CFGetTypeID((__bridge CFTypeRef)value)==CFBooleanGetTypeID())return NO;
@@ -42,11 +43,17 @@ static NSDictionary *r4ReadFile(NSString *path,NSData **bytes) {
     if(bytes)*bytes=data;return parsed;
 }
 static BOOL r4HostMatches(NSDictionary *host) {
-    uint64_t pid=0,started=0,number=0;
+    uint64_t pid=0,started=0,number=0,device=0,inode=0;
     if(!r4Integer(host[@"pid"],&pid) || pid<=1 || pid>INT32_MAX || pid!=(uint64_t)getppid() ||
        !r4Integer(host[@"birth"],&started) || !started || !r4Integer(host[@"number"],&number) ||
-       !number || number>UINT32_MAX || ![host[@"executable"] isKindOfClass:NSString.class])return NO;
-    return ownerMatches(host) && birth((int32_t)pid)==started;
+       !number || number>UINT32_MAX || !r4Integer(host[@"device"],&device) ||
+       !r4Integer(host[@"inode"],&inode) || ![host[@"executable"] isKindOfClass:NSString.class])return NO;
+    char path[PROC_PIDPATHINFO_MAXSIZE]={0};
+    if(birth((int32_t)pid)!=started || proc_pidpath((int32_t)pid,path,sizeof(path))<=0)return NO;
+    // Foundation may spell /private/tmp as /tmp. Compare both canonical files
+    // against the Host's original file identity, never a path-prefix exception.
+    return r4FileIdentityMatches([host[@"executable"] fileSystemRepresentation],path,device,inode) &&
+        pid==(uint64_t)getppid() && birth((int32_t)pid)==started;
 }
 static BOOL r4HostSignature(NSDictionary *host) {
     if(!r4HostMatches(host))return NO;
