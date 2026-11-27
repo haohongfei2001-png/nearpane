@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "f966478b3ca31e6ecbc76690716226a362b15bb5",
-  "build": 38,
-  "workflowRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45983237023",
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "build": 49,
+  "workflowRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269",
   "evidenceType": "authored-native-layout-fixture",
   "host": "macOS 27.0.1, Apple silicon, 1x backing scale",
   "scope": "Native AppKit/SwiftUI production view rendering with authored test metadata and lyrics. Chinese and English lyric layouts and compact presentation were visually reviewed. These captures do not qualify real-player playback, lyric matching, timing, mouse interaction, or real wallpaper rendering.",
   "fixtureLimitations": "No session lease is acquired: transport is disabled and artwork acceptance is not exercised. Hover presentation is pinned; no mouse event is claimed. The compact fixture uses Chinese song metadata with the English UI label No lyrics.",
-  "transforms": "Files copied byte-for-byte from CI38 layout evidence. Display sizing and decorative background are CSS only.",
+  "transforms": "Files copied byte-for-byte from CI49 layout evidence. Display sizing and decorative background are CSS only.",
   "files": {
     "lyrics.png": "fixture-light-lyrics.png",
     "controls.png": "fixture-light-lyrics-hover.png",
@@ -17,7 +17,7 @@
   },
   "sha256": {
     "lyrics.png": "81e663855fb915c1080fd5c62212a4eda91f5978699bb861b2704d8205c370e0",
-    "controls.png": "74bcd6960b45c4fa81a1d0a9a9db9c29a9bc0343629abc412a30f90d0a5fd3e7",
+    "controls.png": "41e6ae3c027f7af3df317f2aa607ccfe952acd7bbc447e8f36703185a32a9dce",
     "compact.png": "36654879bccad6da8503c6bfa740880df55ce754296c590b9dc84e27d37e3792",
     "lyrics-en.png": "07b974d55d9875a48ee89459be25fb495acde0530c9669a4840936d77a99a6ff",
     "controls-en.png": "0f32c807e34f8bf411c553ef0624534d1bcae0f7b43c414c4e32fe6339903d4c"

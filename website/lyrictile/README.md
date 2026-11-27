@@ -4,7 +4,7 @@ Bilingual, buildless static product pages for the existing HOLDSNOW / Nearpane w
 
 The main branch's `website/README.md` and `.github/workflows/publish-nearpane-website.yml` identify GitHub Pages as the actual production host. Copy this directory's contents to `website/lyrictile/` on `main`; the existing Pages workflow publishes the whole `website` directory. No new Site, domain, account, framework, or paid hosting is needed. Do not replace the parent homepage or its approved design.
 
-The layout follows the existing brand's pale desktop colors, system typography, restrained coral accent, and native product imagery. Screenshots come from the native implementation; `assets/SCREENSHOTS.json` identifies their exact source and fixture status. The current five captures are copied unchanged from CI38 (source `f966478b3ca31e6ecbc76690716226a362b15bb5`); the English page uses the actual English lyric fixtures. The manifest records SHA-256 for every file. When replacing captures, use one exact source snapshot and update this manifest. Never relabel authored test input as a real streaming-player session.
+The layout follows the existing brand's pale desktop colors, system typography, restrained coral accent, and native product imagery. Screenshots come from the native implementation; `assets/SCREENSHOTS.json` identifies their exact source and fixture status. The current five captures are copied unchanged from CI49 (source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`); the English page uses the actual English lyric fixtures. The manifest records SHA-256 for every file. When replacing captures, use one exact source snapshot and update this manifest. Never relabel authored test input as a real streaming-player session.
 
 ## Release state
 
