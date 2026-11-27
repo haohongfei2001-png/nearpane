@@ -1,0 +1,1442 @@
+warning: use of deprecated method `std::sync::atomic::Atomic::<u32>::fetch_update`: renamed to `try_update` for consistency
+   --> src/corner/tap.rs:131:14
+    |
+131 |             .fetch_update(Ordering::SeqCst, Ordering::Relaxed, |old| {
+    |              ^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+help: replace the use of the deprecated method
+    |
+131 -             .fetch_update(Ordering::SeqCst, Ordering::Relaxed, |old| {
+131 +             .try_update(Ordering::SeqCst, Ordering::Relaxed, |old| {
+    |
+
+warning: use of deprecated method `std::sync::atomic::Atomic::<u64>::fetch_update`: renamed to `try_update` for consistency
+  --> src/runtime.rs:41:8
+   |
+41 |     id.fetch_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1))
+   |        ^^^^^^^^^^^^
+   |
+help: replace the use of the deprecated method
+   |
+41 -     id.fetch_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1))
+41 +     id.try_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1))
+   |
+
+warning: multiple associated items are never used
+   --> src/corner/geometry.rs:62:18
+    |
+ 55 | impl Rect {
+    | --------- associated items in this implementation
+...
+ 62 |     pub const fn from_parts(origin: Point, size: Size) -> Self {
+    |                  ^^^^^^^^^^
+...
+ 67 |     pub const fn origin(&self) -> Point {
+    |                  ^^^^^^
+...
+ 92 |     pub fn area(&self) -> f64 {
+    |            ^^^^
+...
+134 |     pub fn union(&self, other: &Rect) -> Rect {
+    |            ^^^^^
+...
+145 |     pub fn translate(&self, dx: f64, dy: f64) -> Rect {
+    |            ^^^^^^^^^
+...
+150 |     pub fn with_origin(&self, origin: Point) -> Rect {
+    |            ^^^^^^^^^^^
+...
+155 |     pub fn centered_on(&self, center: Point) -> Rect {
+    |            ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TITLE_BAR_HEIGHT` is never used
+  --> src/corner/park.rs:54:11
+   |
+54 | pub const TITLE_BAR_HEIGHT: f64 = 28.0;
+   |           ^^^^^^^^^^^^^^^^
+
+warning: constant `FALLBACK_SIZE` is never used
+  --> src/corner/park.rs:62:11
+   |
+62 | pub const FALLBACK_SIZE: Size = Size::new(800.0, 600.0);
+   |           ^^^^^^^^^^^^^
+
+warning: function `park_frame` is never used
+   --> src/corner/park.rs:100:8
+    |
+100 | pub fn park_frame(size: Size, display: Rect) -> Rect {
+    |        ^^^^^^^^^^
+
+warning: struct `ProbeSample` is never constructed
+   --> src/corner/park.rs:169:12
+    |
+169 | pub struct ProbeSample {
+    |            ^^^^^^^^^^^
+
+warning: function `shown_area` is never used
+   --> src/corner/park.rs:179:8
+    |
+179 | pub fn shown_area(landed: Rect, display: Rect) -> f64 {
+    |        ^^^^^^^^^^
+
+warning: function `best_request` is never used
+   --> src/corner/park.rs:187:8
+    |
+187 | pub fn best_request(
+    |        ^^^^^^^^^^^^
+
+warning: variant `Ignored` is never constructed
+   --> src/corner/park.rs:307:5
+    |
+303 | pub enum Slivers {
+    |          ------- variant in this enum
+...
+307 |     Ignored,
+    |     ^^^^^^^
+    |
+    = note: `Slivers` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `is_parked` is never used
+   --> src/corner/park.rs:312:8
+    |
+312 | pub fn is_parked(frame: Rect, display: Rect) -> bool {
+    |        ^^^^^^^^^
+
+warning: function `is_sliver` is never used
+   --> src/corner/park.rs:346:8
+    |
+346 | pub fn is_sliver(frame: Rect, display: Rect) -> bool {
+    |        ^^^^^^^^^
+
+warning: function `is_parked_at` is never used
+   --> src/corner/park.rs:386:8
+    |
+386 | pub fn is_parked_at(frame: Rect, display: Rect, corner: Corner) -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `is_parked_in` is never used
+   --> src/corner/park.rs:413:8
+    |
+413 | pub fn is_parked_in(frame: Rect, display: Rect, visible: Rect) -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `is_parked_anywhere` is never used
+   --> src/corner/park.rs:437:8
+    |
+437 | pub fn is_parked_anywhere(frame: Rect, display: Rect) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: constant `GRAB_WIDTH` is never used
+   --> src/corner/park.rs:445:11
+    |
+445 | pub const GRAB_WIDTH: f64 = PARK_MARGIN + 16.0;
+    |           ^^^^^^^^^^
+
+warning: constant `CORNER_PIECE_WIDTH` is never used
+   --> src/corner/park.rs:451:11
+    |
+451 | pub const CORNER_PIECE_WIDTH: f64 = 1.5 * GRAB_WIDTH;
+    |           ^^^^^^^^^^^^^^^^^^
+
+warning: constant `CORNER_PIECE_HEIGHT` is never used
+   --> src/corner/park.rs:454:11
+    |
+454 | pub const CORNER_PIECE_HEIGHT: f64 = 2.0 * MACOS_KEEPS_TITLE;
+    |           ^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_corner_piece_in` is never used
+   --> src/corner/park.rs:465:8
+    |
+465 | pub fn is_corner_piece_in(frame: Rect, display: Rect, visible: Rect, corner: Corner) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `corner_piece` is never used
+   --> src/corner/park.rs:473:4
+    |
+473 | fn corner_piece(frame: Rect, area: Rect, corner: Corner) -> bool {
+    |    ^^^^^^^^^^^^
+
+warning: function `onto_visible` is never used
+   --> src/corner/park.rs:498:8
+    |
+498 | pub fn onto_visible(frame: Rect, visible: Rect) -> Rect {
+    |        ^^^^^^^^^^^^
+
+warning: function `clamp_to_visible` is never used
+   --> src/corner/park.rs:526:8
+    |
+526 | pub fn clamp_to_visible(frame: Rect, visible: Rect) -> Rect {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `reach_in` is never used
+   --> src/corner/park.rs:549:8
+    |
+549 | pub fn reach_in(frame: Rect, visible: Rect, display: Rect, parks: impl Fn(Rect) -> bool) -> Rect {
+    |        ^^^^^^^^
+
+warning: function `between` is never used
+   --> src/corner/park.rs:570:4
+    |
+570 | fn between(v: f64, lo: f64, hi: f64) -> f64 {
+    |    ^^^^^^^
+
+warning: function `fallback` is never used
+   --> src/corner/park.rs:575:4
+    |
+575 | fn fallback(visible: Rect) -> Rect {
+    |    ^^^^^^^^
+
+warning: function `center_size` is never used
+   --> src/corner/park.rs:584:4
+    |
+584 | fn center_size(size: Size, visible: Rect) -> Rect {
+    |    ^^^^^^^^^^^
+
+warning: associated items `even` and `max` are never used
+  --> src/corner/patch.rs:20:18
+   |
+18 | impl Reach {
+   | ---------- associated items in this implementation
+19 |     /// The same reach on every side (`[windows] corner_patch_reach` set to a number).
+20 |     pub const fn even(r: f64) -> Self {
+   |                  ^^^^
+...
+42 |     pub fn max(self, o: Self) -> Self {
+   |            ^^^
+
+warning: constant `ACTIVE_REACH` is never used
+  --> src/corner/patch.rs:91:11
+   |
+91 | pub const ACTIVE_REACH: Reach = Reach::even(60.0);
+   |           ^^^^^^^^^^^^
+
+warning: function `steady_rect` is never used
+   --> src/corner/patch.rs:121:8
+    |
+121 | pub fn steady_rect(prev: Option<Rect>, next: Rect, slack: Reach) -> Rect {
+    |        ^^^^^^^^^^^
+
+warning: function `zones` is never used
+  --> src/corner/sliver.rs:59:8
+   |
+59 | pub fn zones(displays: impl IntoIterator<Item = (Rect, Rect, Corner)>) -> Vec<Rect> {
+   |        ^^^^^
+
+warning: function `zone_owner` is never used
+  --> src/corner/sliver.rs:74:8
+   |
+74 | pub fn zone_owner(front_to_back: &[Listed], zone: Rect, own_pid: i32, shield: &Shield) -> Option<Listed> {
+   |        ^^^^^^^^^^
+
+warning: method `seen_through` is never used
+   --> src/corner/sliver.rs:125:12
+    |
+112 | impl DockBar {
+    | ------------ method in this implementation
+...
+125 |     pub fn seen_through(&self, pid: i32, layer: i64, bounds: Rect, at: Point) -> bool {
+    |            ^^^^^^^^^^^^
+
+warning: constant `DOCK_REACH` is never used
+   --> src/corner/sliver.rs:148:11
+    |
+148 | pub const DOCK_REACH: f64 = 160.0;
+    |           ^^^^^^^^^^
+
+warning: function `dock_reach` is never used
+   --> src/corner/sliver.rs:154:8
+    |
+154 | pub fn dock_reach(bar: Rect, window: Rect) -> Rect {
+    |        ^^^^^^^^^^
+
+warning: `nearpane-window-engine` (lib) generated 34 warnings (run `cargo fix --lib -p nearpane-window-engine` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.15s
+haohongfei2001-png/saytile@7c0df4728b113c17297a0cded20472de4ffc3337 | 130 files | sha256 f7879d82fc743c40f87d50992b99e03a5e5215f0947f3935530d56c1eda50c71 | verified cache
+haohongfei2001-png/Riftlet@b20cefbf94e78ed89643cc27fa95af91bd140960 | 104 files | sha256 103ef03de45dceb3a55c19c3bb652964d6ef85ec1a5dc94f5d151a3bf3162714 | verified cache
+{"version": "2.10.1", "sha256": "4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a", "framework": "/Users/runner/work/nearpane/nearpane/.build/update-runtime/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"}
+[0/1] Planning build
+Building for debugging...
+[0/56] Compiling CTileLock TileLock.c
+[1/56] Write swift-version-7974D3F7F03D5E95.txt
+[2/57] Write sources
+[5/60] Compiling CReadOnlySpaces ReadOnlySpaces.c
+[6/67] Compiling CPlayerBridge CPlayerBridge.m
+[7/67] Write sources
+[22/67] Compiling api.c
+[24/77] Compiling WindowGeometryCore WindowIdentity.swift
+[25/77] Emitting module WindowGeometryCore
+[26/77] Compiling WindowGeometryCore Geometry.swift
+[26/77] Compiling writer.c
+[27/77] Compiling LyricCore LyricMatcher.swift
+[28/77] Compiling LyricCore LyricTimeline.swift
+[30/117] Compiling LyricCore PlaybackClock.swift
+[31/117] Emitting module LyricCore
+[32/117] Compiling NearpaneCore AXWindowList.swift
+[33/117] Compiling NearpaneCore AdmissionReadProtocol.swift
+[33/117] Compiling scanner.c
+[35/127] Compiling NearpaneCore IndependentStagePolicy.swift
+[36/127] Compiling NearpaneCore InteractionRouter.swift
+[37/127] Compiling NearpaneCore Layout.swift
+[38/127] Compiling NearpaneCore LocalClockModule.swift
+[39/127] Compiling NearpaneCore LocalToolStage.swift
+[40/127] Compiling NearpaneCore ManagedWindowBoundary.swift
+[41/127] Compiling NearpaneCore ManagedWindowTiler.swift
+[42/127] Compiling NearpaneCore ModuleCapabilities.swift
+[43/127] Compiling NearpaneCore Modules.swift
+[44/127] Compiling NearpaneCore NativeOriginCheck.swift
+[45/127] Compiling NearpaneCore NativeRouteEvidence.swift
+[46/127] Compiling NearpaneCore NativeSpaceCatalog.swift
+[47/127] Compiling NearpaneCore NativeSpaceCommand.swift
+[48/127] Compiling NearpaneCore OrdinaryFocusAttributes.swift
+[49/127] Compiling NearpaneCore OrdinaryFocusScopeFinding.swift
+[50/127] Compiling NearpaneCore OrdinaryOwnerIdentity.swift
+[51/127] Compiling NearpaneCore OrdinaryWindowProtocol.swift
+[52/127] Compiling NearpaneCore P0DiagnosticLease.swift
+[53/127] Compiling NearpaneCore ProductFeedback.swift
+[54/145] Compiling LyricPlayback ArtworkLoader.swift
+[55/145] Compiling LyricPlayback BoundedProcess.swift
+[56/145] Compiling TileKit TileRegistry.swift
+[57/145] Emitting module TileKit
+[60/146] Compiling LyricPlayback ClockQualification.swift
+[61/146] Compiling LyricPlayback DiagnosticCollection.swift
+[62/146] Compiling LyricPlayback MediaRemoteClient.swift
+[63/146] Compiling LyricPlayback MediaRemoteProtocol.swift
+[64/146] Compiling LyricPlayback NativePlayers.swift
+[65/146] Compiling LyricPlayback PlaybackController.swift
+[66/146] Compiling LyricPlayback PlaybackDiagnostics.swift
+[67/146] Emitting module LyricPlayback
+[68/150] Compiling TileKit TileSessionLease.swift
+[68/150] Compiling reader.c
+[69/150] Compiling parser.c
+[70/150] Compiling emitter.c
+[71/150] Compiling CNativeSpaceActions DockGestureAdapter.m
+[72/152] Compiling CNativeSpaceActions NativeSpaceActions.m
+[74/159] Compiling LyricPlayback PlaybackObservationContinuity.swift
+[75/159] Compiling LyricPlayback PlaybackSelection.swift
+[76/159] Compiling LyricPlayback PlaybackTypes.swift
+[77/159] Compiling LyricPlayback RemoteClockContinuity.swift
+[78/159] Compiling LyricServices HTTPTransport.swift
+[79/159] Compiling LyricServices LRCLIBProvider.swift
+[80/159] Compiling LyricServices LRCReader.swift
+[80/161] Compiling CNativeSpaceActions GestureSerialization.c
+[82/161] Emitting module LyricServices
+[83/161] Compiling LyricServices LyricParser.swift
+[84/161] Compiling LyricServices LyricRepository.swift
+[85/161] Compiling LyricServices LyricsfileReader.swift
+[85/161] Compiling checks.cc
+[87/161] Compiling LyricServices SegmentLyricsReader.swift
+[88/161] Compiling LyricServices TTMLReader.swift
+[88/161] Compiling webrtc_vad.c
+[89/161] Compiling vad_sp.c
+[90/161] Compiling vad_gmm.c
+[91/170] Compiling vad_filterbank.c
+[92/170] Compiling vad_core.c
+[93/170] Compiling spl_sqrt_floor.c
+[94/170] Compiling vector_scaling_operations.c
+[95/170] Compiling spl_sqrt.c
+[96/170] Compiling spl_inl.c
+[97/170] Compiling spl_init.c
+[98/170] Compiling resample_fractional.c
+[99/170] Compiling resample_by_2_internal.c
+[100/170] Compiling resample_48khz.c
+[101/170] Compiling min_max_operations.c
+[102/170] Compiling get_scaling_square.c
+[103/170] Compiling energy.c
+[104/170] Compiling downsample_fast.c
+[105/170] Compiling division_operations.c
+[106/170] Compiling cross_correlation.c
+[107/170] Compiling complex_fft.c
+[108/170] Compiling complex_bit_reverse.c
+[109/170] Compiling CAudio VAD.c
+[110/170] Compiling CAudio PinnedInput.c
+[111/170] Compiling CAudio AudioRing.c
+[113/174] Compiling SaytileKit NearpaneVoiceCredentials.swift
+[114/174] Compiling SaytileKit NearpaneManualInsertion.swift
+[115/174] Emitting module SaytileKit
+[116/175] Compiling SaytileKit NearpaneVoiceReadback.swift
+[117/175] Compiling LyricUI LyricAppModel.swift
+[118/175] Compiling LyricUI LyricArtworkDecoder.swift
+[119/175] Compiling LyricUI LyricAuxiliaryController.swift
+[120/175] Compiling LyricUI LyricGlyphText.swift
+[121/179] Emitting module NearpaneCore
+[122/179] Compiling LyricUI LyricHandoff.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[123/179] Compiling LyricUI LyricNativePlayerVerification.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[124/179] Compiling LyricUI LyricNativeSmoke.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[125/179] Compiling LyricUI LyricPanelController.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[130/179] Compiling LyricUI LyricPanelPresentation.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[131/179] Compiling LyricUI LyricPanelView.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[132/179] Compiling LyricUI LyricSettings.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[133/179] Compiling LyricUI LyricSongMenu.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[135/179] Compiling NearpaneCore Diagnostics.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[136/179] Compiling NearpaneCore DisplayMetricGroup.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[137/179] Compiling NearpaneCore DisplayPresentation.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[138/179] Compiling NearpaneCore FullscreenToolSettings.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[139/179] Compiling NearpaneCore FullscreenTransition.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[140/179] Compiling NearpaneCore HostSession.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:37:38: warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+35 |             return Self(windows: nil, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: nil)
+36 |         }
+37 |         let length = CFArrayGetCount(unsafeBitCast(raw, to: CFArray.self))
+   |                                      `- warning: 'unsafeBitCast' from 'AnyObject' to 'CFArray' can be replaced with 'unsafeDowncast'
+38 |         let valid = length <= limit && (expected == nil || expected == length)
+39 |         let rows = valid ? raw as? [AnyObject] : nil
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneCore/AXWindowList.swift:42:33: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+40 |         let windows = rows.flatMap { values -> [AXUIElement]? in
+41 |             guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else { return nil }
+42 |             return values.map { unsafeBitCast($0, to: AXUIElement.self) }
+   |                                 `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+43 |         }
+44 |         return Self(windows: windows, countStatus: countStatus, reportedCount: expected, arrayStatus: status, actualCount: length)
+[141/179] Emitting module LyricUI
+[150/181] Emitting module NearpaneLyricsModule
+[151/181] Compiling NearpaneLyricsModule NearpaneLyricsModule.swift
+[152/181] Compiling NearpaneCore ProfileGeneration.swift
+[153/181] Compiling NearpaneCore SelectionStepHandshake.swift
+[154/181] Compiling NearpaneCore SidebarTextColor.swift
+[155/181] Compiling NearpaneCore SnapshotBus.swift
+[156/181] Compiling NearpaneCore StageGroupCoordinator.swift
+[157/181] Compiling NearpaneCore StageGroupStore.swift
+[158/181] Compiling NearpaneCore StageWindowDeparture.swift
+[159/181] Compiling NearpaneCore StageWindowEngine.swift
+[160/181] Compiling NearpaneCore StageWindowEngineQualification.swift
+[161/181] Compiling NearpaneCore VirtualWorkspaceExperiment.swift
+[162/181] Compiling NearpaneCore WindowAdmissionPreview.swift
+[163/181] Compiling NearpaneCore WindowFocusTiming.swift
+[164/181] Compiling NearpaneCore WindowSurfaceRecord.swift
+[165/181] Compiling NearpaneCore WorkbenchVisualPolicy.swift
+[166/181] Compiling NearpaneCore Workspace.swift
+[167/181] Compiling NearpaneCore WorkspaceActions.swift
+[168/181] Compiling NearpaneCore WorkspaceAdmission.swift
+[169/181] Compiling NearpaneCore WorkspaceRecovery.swift
+[170/211] Emitting module NearpaneVoice
+[171/213] Compiling NearpaneTray AcceptanceBrowserRoute.swift
+[172/213] Compiling NearpaneTray CaptureFolderConsent.swift
+[173/213] Compiling NearpaneTray ExistingLibrary.swift
+[174/213] Compiling NearpaneTray ProductDraftBinding.swift
+[175/213] Compiling NearpaneTray ScreenshotArchive.swift
+[176/213] Compiling NearpaneTray ScreenshotArchiveActions.swift
+[179/213] Compiling NearpaneVoice VoiceRecognitionProfile.swift
+[180/213] Compiling NearpaneVoice VoiceSurface.swift
+[181/213] Compiling NearpaneTray TestReceiptPolicy.swift
+[182/217] Emitting module NearpaneWindowEngine
+[189/224] Compiling NearpaneSpaceAction AdjacentLanding.swift
+[190/224] Compiling NearpaneSpaceAction Inventory.swift
+[191/224] Compiling NearpaneSpaceAction P0DiagnosticSource.swift
+[192/226] Compiling NearpaneSpaceAction SelectedWindowWitness.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:233:35: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+231 |                 fact("ownerFocusedStatus", String(status.rawValue))
+232 |                 if status == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+233 |                     let focused = unsafeBitCast(value, to: AXUIElement.self)
+    |                                   `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+234 |                     fact("ownerFocusedIsOriginal", String(CFEqual(focused, retained)))
+235 |                     let n = NPReadAXWindowNumber(focused)
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:331:75: warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+329 |                 var error = AXError.failure
+330 |                 let raw = value as AnyObject
+331 |                 let errorValue = CFGetTypeID(raw) == AXValueGetTypeID() ? unsafeBitCast(raw, to: AXValue.self) : nil
+    |                                                                           `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+332 |                 let hasError = errorValue.map { AXValueGetType($0) == .axError && AXValueGetValue($0, .axError, &error) } == true
+333 |                 fact("original." + name, hasError ? "ax-error-" + String(error.rawValue) : "unavailable")
+[193/226] Compiling NearpaneSpaceAction SidebarWindowWitnesses.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:233:35: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+231 |                 fact("ownerFocusedStatus", String(status.rawValue))
+232 |                 if status == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+233 |                     let focused = unsafeBitCast(value, to: AXUIElement.self)
+    |                                   `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+234 |                     fact("ownerFocusedIsOriginal", String(CFEqual(focused, retained)))
+235 |                     let n = NPReadAXWindowNumber(focused)
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:331:75: warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+329 |                 var error = AXError.failure
+330 |                 let raw = value as AnyObject
+331 |                 let errorValue = CFGetTypeID(raw) == AXValueGetTypeID() ? unsafeBitCast(raw, to: AXValue.self) : nil
+    |                                                                           `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+332 |                 let hasError = errorValue.map { AXValueGetType($0) == .axError && AXValueGetValue($0, .axError, &error) } == true
+333 |                 fact("original." + name, hasError ? "ax-error-" + String(error.rawValue) : "unavailable")
+[194/226] Compiling NearpaneSpaceAction StepHandshake.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:233:35: warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+231 |                 fact("ownerFocusedStatus", String(status.rawValue))
+232 |                 if status == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+233 |                     let focused = unsafeBitCast(value, to: AXUIElement.self)
+    |                                   `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXUIElement' can be replaced with 'unsafeDowncast'
+234 |                     fact("ownerFocusedIsOriginal", String(CFEqual(focused, retained)))
+235 |                     let n = NPReadAXWindowNumber(focused)
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneSpaceAction/SidebarWindowWitnesses.swift:331:75: warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+329 |                 var error = AXError.failure
+330 |                 let raw = value as AnyObject
+331 |                 let errorValue = CFGetTypeID(raw) == AXValueGetTypeID() ? unsafeBitCast(raw, to: AXValue.self) : nil
+    |                                                                           `- warning: 'unsafeBitCast' from 'AnyObject' to 'AXValue' can be replaced with 'unsafeDowncast'
+332 |                 let hasError = errorValue.map { AXValueGetType($0) == .axError && AXValueGetValue($0, .axError, &error) } == true
+333 |                 fact("original." + name, hasError ? "ax-error-" + String(error.rawValue) : "unavailable")
+[195/226] Emitting module NearpaneSpaceAction
+[196/226] Emitting module NearpaneTray
+[197/232] Compiling NearpaneWindowEngine LinkedStageEngineTransport.swift
+[198/232] Compiling NearpaneWindowEngine NativeStageWindowEngine.swift
+[199/232] Compiling NearpaneWindowEngine SpacesEngineWorker.swift
+[200/232] Compiling NearpaneTray TrayCollection.swift
+[201/241] Compiling NearpaneOrdinaryWindowRuntime PairPlacement.swift
+[202/241] Compiling NearpaneOrdinaryWindowRuntime StageHostWindow.swift
+[203/249] Compiling NearpaneDesktopReader EnrolledMoveReadback.swift
+[204/249] Compiling NearpaneDesktopReader EnrolledRoute.swift
+[205/249] Compiling NearpaneDesktopReader OverviewWindowRoles.swift
+[206/249] Compiling NearpaneDesktopReader AXMetadataReader.swift
+[207/249] Compiling NearpaneDesktopReader AdmissionAXRead.swift
+[208/249] Compiling NearpaneDesktopReader BackgroundWindowNumbers.swift
+[209/249] Compiling NearpaneDesktopReader CurrentSpaceWindows.swift
+[219/249] Emitting module NearpaneOrdinaryWindowRuntime
+[227/252] Emitting module NearpaneDesktopReader
+[232/255] Compiling NearpaneDesktopReader SpaceInventory.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneOrdinaryWindowController/StageWindowPhysicalReader.swift:266:44: warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+264 |         guard finalForwardMatches == true else { throw StageSwitchError.interrupted }
+265 |         step = "final-inventory"
+266 |         finalInventory = NPReadInventory() as? NSArray
+    |                                            `- warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+267 |         finalInventoryMatches = finalInventory == inventory as NSArray
+268 |         guard finalInventoryMatches == true else {
+[233/255] Compiling NearpaneDesktopReader Topology.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneOrdinaryWindowController/StageWindowPhysicalReader.swift:266:44: warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+264 |         guard finalForwardMatches == true else { throw StageSwitchError.interrupted }
+265 |         step = "final-inventory"
+266 |         finalInventory = NPReadInventory() as? NSArray
+    |                                            `- warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+267 |         finalInventoryMatches = finalInventory == inventory as NSArray
+268 |         guard finalInventoryMatches == true else {
+[234/255] Compiling NearpaneOrdinaryWindowRuntime WindowMonitor.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneOrdinaryWindowController/StageWindowPhysicalReader.swift:266:44: warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+264 |         guard finalForwardMatches == true else { throw StageSwitchError.interrupted }
+265 |         step = "final-inventory"
+266 |         finalInventory = NPReadInventory() as? NSArray
+    |                                            `- warning: conditional downcast from 'CFArray?' to 'NSArray' is equivalent to an implicit conversion to an optional 'NSArray'
+267 |         finalInventoryMatches = finalInventory == inventory as NSArray
+268 |         guard finalInventoryMatches == true else {
+[234/255] Write Objects.LinkFileList
+[236/257] Compiling NearpaneDesktopReader Reader.swift
+[240/257] Compiling NearpaneTray TrayFiles.swift
+[241/257] Compiling NearpaneTray TrayLayout.swift
+[242/257] Compiling NearpaneTray TrayModule.swift
+[243/257] Compiling NearpaneTray TrayOwner.swift
+[244/257] Compiling NearpaneTray TraySurface.swift
+[244/257] Write Objects.LinkFileList
+[245/257] Linking NearpaneSpaceAction
+[247/257] Emitting module NearpaneOrdinaryWindowController
+[248/257] Compiling NearpaneOrdinaryWindowController main.swift
+[248/257] Applying NearpaneSpaceAction
+[249/257] Write Objects.LinkFileList
+[250/300] Linking NearpaneDesktopReader
+[251/300] Applying NearpaneDesktopReader
+[252/300] Linking NearpaneOrdinaryWindowController
+[253/300] Applying NearpaneOrdinaryWindowController
+[255/300] Emitting module NearpaneUI
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[256/320] Compiling NearpaneUI AccentSettings.swift
+[257/320] Compiling NearpaneUI AdmissionDisplayPreview.swift
+[258/320] Compiling NearpaneUI AlphaHelp.swift
+[259/320] Compiling NearpaneUI AppleNativeStageCard.swift
+[260/320] Compiling NearpaneUI AppleNativeStageDrag.swift
+[261/320] Compiling NearpaneUI AppleNativeStages.swift
+[262/320] Compiling NearpaneUI AppleStageFocus.swift
+[263/320] Compiling NearpaneUI AppleStageFocusCycleFixture.swift
+[264/320] Compiling NearpaneUI AppleStageMemberCycle.swift
+[265/320] Compiling NearpaneUI AppleStageMerge.swift
+[266/320] Compiling NearpaneUI AppleStageMergeFixture.swift
+[267/320] Compiling NearpaneUI AppleStageMinimizeObserver.swift
+[268/320] Compiling NearpaneUI AppleStageProductAdmission.swift
+[269/320] Compiling NearpaneUI AppleStageSelectionHandoff.swift
+[270/320] Compiling NearpaneUI CandidateWorkRect.swift
+[271/320] Compiling NearpaneUI ClockDetails.swift
+[272/320] Compiling NearpaneUI CurrentCardFocusPreparation.swift
+[273/320] Compiling NearpaneUI CurrentDesktopWindows.swift
+[274/320] Compiling NearpaneUI DesktopAutomaticTiling.swift
+[275/320] Compiling NearpaneUI DesktopItemsSetting.swift
+[276/320] Compiling NearpaneUI DesktopItemsSettingsSection.swift
+[277/320] Compiling NearpaneUI DesktopLiveWindowCard.swift
+[278/320] Compiling NearpaneUI DesktopOverviewShortcut.swift
+[279/320] Compiling NearpaneUI DesktopPreviewOwner.swift
+[280/320] Compiling NearpaneUI DesktopReaderProcess.swift
+[281/320] Compiling NearpaneUI DesktopSurface.swift
+[282/320] Compiling NearpaneUI DesktopWindowCard.swift
+[283/320] Compiling NearpaneUI DesktopWindowGallery.swift
+[284/320] Compiling NearpaneUI DesktopWindowSelection.swift
+[285/320] Compiling NearpaneUI DisplayPanels.swift
+[286/320] Compiling NearpaneUI DisplayPlacementSettings.swift
+[287/320] Compiling NearpaneUI EdgeSurfaceView.swift
+[288/320] Compiling NearpaneUI EdgeWindowController.swift
+[289/320] Compiling NearpaneUI EmbeddedModules.swift
+[290/320] Compiling NearpaneUI EnrolledCurrentFocusProbe.swift
+[291/320] Compiling NearpaneUI EnrolledFullscreenObservation.swift
+[292/320] Compiling NearpaneUI ExplicitWindowGroups.swift
+[293/320] Compiling NearpaneUI FullscreenPresentation.swift
+[294/320] Compiling NearpaneUI FullscreenToolPanelController.swift
+[295/320] Compiling NearpaneUI FullscreenToolPreferencesView.swift
+[296/320] Compiling NearpaneUI HostCurrentWindowFocus.swift
+[297/320] Compiling NearpaneUI HostLyrics.swift
+[298/360] Compiling NearpaneUI OrdinaryManagementStatus.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[299/360] Compiling NearpaneUI OrdinaryWindowAX.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[300/360] Compiling NearpaneUI OrdinaryWindowManager.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[301/360] Compiling NearpaneUI OrdinaryWindowManagerJournal.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[302/360] Compiling NearpaneUI P0HostDiagnostic.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[303/360] Compiling NearpaneUI PanelGlassEditor.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[304/360] Compiling NearpaneUI PanelGlassMaterial.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[305/360] Compiling NearpaneUI PanelSizeEditor.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[306/360] Compiling NearpaneUI PanelSizeLayout.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[307/360] Compiling NearpaneUI PreviewPipelineAudit.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[308/360] Compiling NearpaneUI PreviewPixelCache.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[309/360] Compiling NearpaneUI ProductFeedbackSettings.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[310/360] Compiling NearpaneUI SelectedPreviewReadback.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[311/360] Compiling NearpaneUI SelectionTranslation.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[312/360] Compiling NearpaneUI SettingsPreviewExposure.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[313/360] Compiling NearpaneUI SettingsScreenInventory.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[314/360] Compiling NearpaneUI SettingsView.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[315/360] Compiling NearpaneUI SidebarCardPointer.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[316/360] Compiling NearpaneUI SidebarNotebook.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[317/360] Compiling NearpaneUI StageGroupPictures.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:50:120: warning: no 'async' operations occur within 'await' expression
+ 48 |     init(directory: URL, appVersion: String, systemVersion: String,
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+    |                                                                                                                        `- warning: no 'async' operations occur within 'await' expression
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+ 52 |         self.directory = directory
+
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneUI/ProductFeedbackSettings.swift:51:95: warning: no 'async' operations occur within 'await' expression
+ 49 |          transport: any FeedbackTransport, secrets: any FeedbackSecretStorage,
+ 50 |          persistDraft: @escaping @Sendable (FeedbackDraft, FeedbackStore) async throws -> Void = { draft, store in try await store.saveDraft(draft) },
+ 51 |          markClean: @escaping @Sendable (FeedbackStore) async throws -> Void = { store in try await store.markClean() }) {
+    |                                                                                               `- warning: no 'async' operations occur within 'await' expression
+ 52 |         self.directory = directory
+ 53 |         self.appVersion = appVersion
+[318/360] Compiling NearpaneUI IndependentStageAcceptance.swift
+[319/360] Compiling NearpaneUI IndependentStageGroupEditing.swift
+[320/360] Compiling NearpaneUI IndependentStageMinimizeObserver.swift
+[321/360] Compiling NearpaneUI IndependentStageTrace.swift
+[322/360] Compiling NearpaneUI LyricsVerification.swift
+[323/360] Compiling NearpaneUI MainWindowGeneralSettings.swift
+[324/360] Compiling NearpaneUI MainWindowNavigation.swift
+[325/360] Compiling NearpaneUI MissionControlVisibility.swift
+[326/360] Compiling NearpaneUI ModuleManagementView.swift
+[327/360] Compiling NearpaneUI ModuleSwitchCoordinator.swift
+[328/360] Compiling NearpaneUI NativeDesktopProvider.swift
+[329/360] Compiling NearpaneUI NativeSidebarNavigation.swift
+[330/360] Compiling NearpaneUI NativeSidebarWindowAudit.swift
+[331/360] Compiling NearpaneUI NativeSidebarWindowHistory.swift
+[332/360] Compiling NearpaneUI NativeSpaceActionClient.swift
+[333/360] Compiling NearpaneUI NativeSpaceMenu.swift
+[334/360] Compiling NearpaneUI NativeSpaceNavigator.swift
+[335/360] Compiling NearpaneUI NativeSwitchJournal.swift
+[336/360] Compiling NearpaneUI NativeVerificationAccessibility.swift
+[337/360] Compiling NearpaneUI NotebookLibraryView.swift
+[338/360] Compiling NearpaneUI StageGroupWindowLifetimes.swift
+[339/360] Compiling NearpaneUI StageWindowEngineAttestation.swift
+[340/360] Compiling NearpaneUI StageWindowEngineHost.swift
+[341/360] Compiling NearpaneUI StageWindowEngineWitness.swift
+[342/360] Compiling NearpaneUI SurfaceGlass.swift
+[343/360] Compiling NearpaneUI TranslationInbox.swift
+[344/360] Compiling NearpaneUI TranslationSelectionOrigin.swift
+[345/360] Compiling NearpaneUI WallpaperRevealMonitor.swift
+[346/360] Compiling NearpaneUI WindowAdmissionFixture.swift
+[347/360] Compiling NearpaneUI WindowAdmissionReader.swift
+[348/360] Compiling NearpaneUI WindowAdmissionSettings.swift
+[349/360] Compiling NearpaneUI WindowContentPreview.swift
+[350/360] Compiling NearpaneUI WindowFrameStream.swift
+[351/360] Compiling NearpaneUI WindowOverviewAccess.swift
+[352/360] Compiling NearpaneUI WindowPermissionProbe.swift
+[353/360] Compiling NearpaneUI WindowSwitchScene.swift
+[354/360] Compiling NearpaneUI WindowSwitchTransition.swift
+[355/360] Compiling NearpaneUI WorkspaceDisplaySettings.swift
+[356/360] Compiling NearpaneUI WorkspacePointerSurface.swift
+[357/360] Compiling NearpaneUI WorkspacePolicySettings.swift
+[358/379] Compiling NearpaneHost ApplicationUpdater.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[359/379] Compiling NearpaneHost CandidateProfile.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[360/379] Compiling NearpaneHost DesktopAcceptanceFixture.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[361/379] Compiling NearpaneHost EmbeddedUpdateUserDriver.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[362/379] Compiling NearpaneHost EnrolledFullscreenFixture.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[363/379] Compiling NearpaneHost FullscreenAcceptanceFixture.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[364/379] Compiling NearpaneHost IndependentStageAcceptance.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[365/379] Compiling NearpaneHost InstalledSpacesFixtureCycle.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[366/379] Compiling NearpaneHost NativeAcceptance.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/EnrolledFullscreenFixture.swift:92:61: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 90 |         let grant = try decoder.decode(Consent.self, from:Self.data("unattended-consent.ready", at:fd))
+ 91 |         let now = Date()
+ 92 |         guard grant.run == run, grant.boot == Self.sha(Data(String(cString:boot).utf8)), grant.securityID == sid,
+    |                                                             `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+ 93 |               grant.secondaryDisplay == display, !grant.source.isEmpty, grant.target.isEmpty,
+ 94 |               grant.permitsCalibrationAndThreeRoundTrips == false, grant.permitsSingleWindowFullscreen == true,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[367/379] Emitting module NearpaneHost
+[368/388] Compiling NearpaneHost NativeLyricsPlayerProbe.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[369/388] Compiling NearpaneHost NativeManagementAcceptance.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[370/388] Compiling NearpaneHost NearpaneApp.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[371/388] Compiling NearpaneHost ProfileAcceptancePanel.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[372/388] Compiling NearpaneHost ProfileImportSettings.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[373/388] Compiling NearpaneHost StageCanaryOverview.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[374/388] Compiling NearpaneHost StageEngineHostScope.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[375/388] Compiling NearpaneHost StageEnginePackageProbe.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[376/388] Compiling NearpaneHost StageFixtureVisualLink.swift
+/Users/runner/work/nearpane/nearpane/Sources/NearpaneHost/StageEngineHostScope.swift:282:23: warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+280 |                 guard f.executable.path == fixed,
+281 |                       proc_pidpath(f.pid, &kernelPath, UInt32(kernelPath.count)) > 0,
+282 |                       String(cString: kernelPath) == fixed else { return false }
+    |                       `- warning: 'init(cString:)' is deprecated: Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination. [#DeprecatedDeclaration]
+283 |             } else {
+284 |                 guard ["com.holdsnow.nearpane.engine-fixture.a", "com.holdsnow.nearpane.engine-fixture.b",
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[377/388] Compiling NearpaneHost StageInteractiveFootprint.swift
+[378/388] Compiling NearpaneHost StageInteractivePair.swift
+[379/388] Compiling NearpaneHost StageInteractivePeer.swift
+[380/388] Compiling NearpaneHost StageInteractiveRouting.swift
+[381/388] Compiling NearpaneHost StageInteractiveWindows.swift
+[382/388] Compiling NearpaneHost StageOverviewFocusTrace.swift
+[383/388] Compiling NearpaneHost StageOverviewHitTest.swift
+[384/388] Compiling NearpaneHost StageScopeReply.swift
+[385/388] Compiling NearpaneHost UnifiedWorkbenchAcceptance.swift
+[385/388] Write Objects.LinkFileList
+[386/388] Linking NearpaneHost
+[387/388] Applying NearpaneHost
+Build complete! (116.72s)
+{
+  "representations": 10,
+  "revision": "2026-11-15-v2",
+  "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786",
+  "sourceSHA256": "0c45f018683689efe118a51812e949718fa8a2c3c3258fdfea1628ad778981b8"
+}
+Nearpane desktop reader 1
+NearpaneSpaceAction schema=2; no action issued
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Helpers/NearpaneSpacesEngine: replacing existing signature
+Spaces worker protocol: PASS (sizes, correlation and Spaces-only boundary)
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Helpers/NearpaneCornerGuardian: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Resources/MediaRemote/MediaRemoteAdapter.framework: replacing existing signature
+Built pinned media helper at /Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Resources/MediaRemote
+haohongfei2001-png/saytile@7c0df4728b113c17297a0cded20472de4ffc3337 | 130 files | sha256 f7879d82fc743c40f87d50992b99e03a5e5215f0947f3935530d56c1eda50c71 | verified cache
+haohongfei2001-png/Riftlet@b20cefbf94e78ed89643cc27fa95af91bd140960 | 104 files | sha256 103ef03de45dceb3a55c19c3bb652964d6ef85ec1a5dc94f5d151a3bf3162714 | verified cache
+/Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: warning: changes being made to the file will invalidate the code signature in: /Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/MacOS/NearpaneHost
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Frameworks/Sparkle.framework: replacing existing signature
+{"version": "2.10.1", "sha256": "4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a", "framework": "/Users/runner/work/nearpane/nearpane/.build/update-runtime/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"}
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/NearpaneHost: replacing existing signature
+/Users/runner/work/nearpane/nearpane/build/debug/.Nearpane-stage.UTYtzs/Nearpane.app/Contents/Info.plist: OK
+Packaged Saytile and Riftlet resources verified.
+Built build/debug/Nearpane.app (development executable signature and offline resources verified; no GUI launch).

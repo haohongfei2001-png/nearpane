@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "sourceCommit": "8c88457332cf55633d071b2992932a1971ded321",
+  "workflowRunID": 46058153742,
+  "workflowURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46058153742",
+  "artifactID": 15227118534,
+  "status": "PASS",
+  "tests": 986,
+  "suites": 158,
+  "compilationSeconds": 160.07,
+  "testSeconds": 31.322,
+  "completion": "Test run with 986 tests in 158 suites passed after 31.322 seconds.",
+  "log": "source-tests.txt",
+  "logSHA256": "3acd36ea5694578b782aa8bab0975637781e9ee47a93827dda0343eb8322aa1c",
+  "scope": "Complete source suite on the macOS runner; not proof of real-player transport, native Spaces dispatch, fullscreen, multi-display or release eligibility."
+}

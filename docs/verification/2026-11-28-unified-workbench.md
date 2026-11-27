@@ -2,6 +2,43 @@
 
 This record separates source-level tests, a packaged native build, actual UI observations, real player integration and release qualification. The product decisions are in [the design record](../design/2026-11-28-unified-workbench.md).
 
+## Validated integration candidate — 8c884573
+
+**Source:** `8c88457332cf55633d071b2992932a1971ded321`. **Native CI:** [run 46058153742](https://github.com/haohongfei2001-png/nearpane/actions/runs/46058153742), completed successfully on macOS 26.7.2 (25G332). Subsequent documentation/evidence commits do not change this tested application source.
+
+The [committed evidence index](unified-workbench/8c884573/README.md) contains all 30 original native UI screenshots, the complete source test log, build/package logs, public accessibility diagnostics, native and runner receipts, the actual Music blocker screenshot, and candidate metadata. The machine-readable [summary](unified-workbench/8c884573/verification-summary.json) records the exact scope and artifact identifiers.
+
+| Evidence level | Final result | Exact scope |
+| --- | --- | --- |
+| Source regression suite | **PASS — 986 tests / 158 suites** | Complete test suite on the macOS runner; no failing assertions. |
+| App build and package verification | **PASS — 50 bundled resources verified** | Full native debug candidate, with its executable hash tied to the UI runner input. |
+| Packaged native UI acceptance | **PASS — 53 / 53 checks** | Six actual public accessibility actions, five production menu target/actions, five production module navigation callbacks, retained-window identity/count, close/reopen, content/configuration readbacks and lyric fixture states. |
+| Input fallback | **Zero** | No programmatic routing fallback is counted or needed in this run. |
+| Native screenshots | **30 / 30 WindowServer captures** | Actual visible AppKit/SwiftUI windows and panels; each saved PNG checksum was verified. |
+| Pause presentation | **PASS within the declared fixture scope** | Paused content survives refresh; actual native cursor movement exposes controls. One exact playback control is found and is correctly disabled because the fixture owns no real player lease. |
+| Real Apple Music transport | **BLOCKED** | System Automation consent for `hosted-compute-agent` to control Music, with Music's first-run Welcome screen behind it. No permission was accepted and actual playback/pause/resume was not reached. Cleanup confirmed Music exited; that cleanup is not lifecycle acceptance. |
+| Release qualification | **Not qualified** | arm64 / macOS 26+ debug candidate; Host executable has an ad-hoc signature, with no complete Developer ID distribution bundle signature or notarization. |
+
+The final native run resolves the preceding control-inspection failure by restricting inspection to the requested window's nested native hosting views. The permissions entry now reaches the same main window from primary and secondary sidebar call paths. The native fixture checks the production permissions callback and visible page on its single available display; the secondary route additionally has a [static ownership audit](unified-workbench/8c884573/management-window-audit.md), not a claimed multi-display run.
+
+Reordering exercises the real persisted command used by drag/drop, and its resulting order/layout is read back. It is not physical pointer-drag qualification. Voice/screenshot retention uses isolated generated content; it is not a migration audit of every historical user database. The native fixture is an explicitly identified, re-signed copy of the candidate, with separate executable hashes recorded; the downloadable candidate is untouched.
+
+Visual inspection covered the current light/dark module pages, compact dark settings, display placement, permissions, screenshot library, all-module sidebar and paused hover. The runner's system **Reduce Transparency was enabled**, visibly reported in Appearance. These captures qualify native layout, contrast and the accessibility material fallback; they do not qualify the ordinary blurred-glass material against a real desktop. Real fullscreen entry/exit, multi-display behavior, QQ Music/NetEase and simultaneous real players, microphone/browser attachments and live Spaces dispatch remain separate operational gates. No unresolved PR 16 dispatch issue is claimed as fixed by this UI work.
+
+The newer constitution's top/bottom horizontal layout, real downloadable/removable module packages and a complete default-avoidance service independent of Spaces remain implementation gaps. They are not disguised as missing release paperwork or inert controls.
+
+### Candidate download and identity
+
+[Download the candidate artifact](https://github.com/haohongfei2001-png/nearpane/actions/runs/46058153742/artifacts/15226944433) · [Download complete CI evidence](https://github.com/haohongfei2001-png/nearpane/actions/runs/46058153742/artifacts/15227981724)
+
+- App version: `0.2.0 (1)`; bundle ID: `com.holdsnow.nearpane.host`.
+- Architecture: **arm64**. Minimum OS: **macOS 26.0**, confirmed in both Info.plist and Mach-O; SDK 26.5.
+- Inner candidate ZIP: **34,675,081 bytes**; SHA-256 `0d21dd5127cb2855b87a38aca99f82abd52082d52d9e370867fa7aa7480557e1`.
+- Host executable SHA-256: `34816cf4c116a1e7f85c09bf48669e25ceed32068a7dec7140ce9ca384415101`; identical in package verification, downloaded ZIP inspection and native runner input.
+- The app was not installed over a user's daily installation and no public release was created.
+
+The sections below preserve earlier failures and their version scope; they are historical diagnostics rather than the current candidate's status.
+
 ## Source and native checkpoint — 44c2739
 
 [Run 46056256340](https://github.com/haohongfei2001-png/nearpane/actions/runs/46056256340) compiled the integrated app and passed **986 tests in 158 suites**, with no failing assertions. The former visual-contract fixtures now explicitly verify the migrated revision, preservation of retired values, independent display preferences, restart behavior, actual width limits and the designed material radius. Their expected values are not generated by calling the production normalizer.
@@ -53,7 +90,7 @@ The native acceptance copy uses generated sample content and an executable-bound
 - Cloud capture methods are recorded per image. WindowServer captures and native `NSView.cacheDisplay` fallback captures of visible windows are identified separately.
 - QQ Music, NetEase Music, actual simultaneous players, personal microphone permissions and a real installation/update cycle require their own observed evidence. No source test or screenshot substitutes for those observations.
 
-Final candidate results and selected screenshots will replace this intermediate status after the next native run.
+The final `8c884573` results and complete screenshot set are recorded above. This intermediate history is retained for traceability.
 
 ## First complete native image set — b2112280
 

@@ -84,6 +84,8 @@ This is a presentation change. It does not qualify real fullscreen entry/exit, s
 
 The `b2112280` owner decision requires top/bottom edges, horizontal content, per-screen thickness and matching real window reservations. This candidate does not expose an inert top/bottom picker. A correct implementation needs axis-aware panel and work-area geometry, horizontal Spaces browsing, screenshot-arrival motion and compact lyric presentation without rotating text or distorting images. The existing R4 interface accepts general rectangles, so this does not require replacing its hidden-Space engine. Native four-edge avoidance, rotation, mixed-orientation displays and fullscreen return remain explicit open qualification items.
 
+The constitution also requires ordinary-window avoidance to remain active independently of the Spaces module, including a tools-only configuration. This candidate preserves the existing left/right work-area geometry and management path; it does not complete or certify that independent default-avoidance service. That requirement, real downloadable/removable module packages and horizontal layout remain implementation work, not merely missing screenshots or release paperwork.
+
 ## Implementation map
 
 - `MainWindowNavigation.swift`: three primary sections, route ownership, deep links and section memory.
@@ -100,4 +102,4 @@ The `b2112280` owner decision requires top/bottom edges, horizontal content, per
 
 Source tests, a successful build, actual UI screenshots, observed interactions and release eligibility are distinct results. `MainWindowNavigationTests` checks remembered page state and deep-link parent routing. The native acceptance harness checks actual retained window identity and screenshots across appearance/size modes. Playback tests and native playback evidence carry their own results.
 
-This design document defines the implemented decisions; it is not itself proof of native acceptance. Actual receipts, source SHA and screenshots are recorded in the verification directory after the candidate run. No existing unresolved Spaces dispatch issue is counted as fixed by this work.
+This design document defines the implemented decisions; it is not itself proof of native acceptance. The validated `8c884573` candidate has [committed receipts, exact source identity and 30 native screenshots](../verification/unified-workbench/8c884573/README.md): 986 source tests and 53 native UI checks passed. Real-player transport remains blocked by the cloud system consent/welcome flow. The screenshot environment has Reduce Transparency enabled, so ordinary blurred-glass appearance is not visually qualified by this image set. No existing unresolved Spaces dispatch issue is counted as fixed by this work.
