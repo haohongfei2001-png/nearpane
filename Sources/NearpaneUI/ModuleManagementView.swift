@@ -4,6 +4,8 @@ import SwiftUI
 /// Management lives here, leaving the desktop surface entirely about its content.
 struct ModuleManagementView: View {
     let host: HostSession
+    let modules: EmbeddedModules?
+    let switches: ModuleSwitchCoordinator
     let open: (String) -> Void
 
     private var enabled: [ModuleManifest] { manifests(enabled: true) }
@@ -79,12 +81,18 @@ struct ModuleManagementView: View {
     }
 
     private func row(_ manifest: ModuleManifest, enabled: Bool, movable: Bool) -> some View {
-        ModuleManagementRow(host: host, manifest: manifest, enabled: enabled, movable: movable, open: open)
+        VStack(alignment: .leading, spacing: 0) {
+            ModuleManagementRow(host: host, modules: modules, switches: switches, manifest: manifest, enabled: enabled, movable: movable, open: open)
+            ModuleSwitchNotice(switches: switches, id: manifest.id, host: host, modules: modules)
+                .padding(.bottom, switches.changing.contains(manifest.id) || switches.issues[manifest.id] != nil ? 12 : 0)
+        }
     }
 }
 
 private struct ModuleManagementRow: View {
     let host: HostSession
+    let modules: EmbeddedModules?
+    let switches: ModuleSwitchCoordinator
     let manifest: ModuleManifest
     let enabled: Bool
     let movable: Bool
@@ -100,13 +108,14 @@ private struct ModuleManagementRow: View {
                 }
             } else { detailButton }
             if enabled && host.registry.states[manifest.id] == .degraded {
-                Button("重试") { host.handle(.setEnabled(manifest.id, true)) }
+                Button("重试") { switches.setEnabled(manifest.id, true, host: host, modules: modules) }
                     .controlSize(.small).accessibilityIdentifier("module-retry-" + manifest.id)
             }
             Toggle("启用" + ModulePresentation.title(manifest), isOn: Binding(get: {
                 host.registry.preferences.first(where: { $0.id == manifest.id })?.enabled == true
-            }, set: { host.handle(.setEnabled(manifest.id, $0)) }))
+            }, set: { switches.setEnabled(manifest.id, $0, host: host, modules: modules) }))
             .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            .disabled(switches.changing.contains(manifest.id))
             .accessibilityIdentifier("module-enabled-" + manifest.id)
         }
         .padding(.vertical, 16)

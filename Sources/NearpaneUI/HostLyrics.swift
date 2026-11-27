@@ -137,6 +137,12 @@ final class HostLyrics: HostModule {
         refresh()
         return true
     }
+
+    func clearVerificationControls() -> Bool {
+        guard verificationOnly, !module.model.ownsSession else { return false }
+        module.model.setControlsVisible(false)
+        return true
+    }
     #endif
 
     private func updateVisibility() {

@@ -4,6 +4,35 @@ import Testing
 struct WorkbenchLayoutTests {
     private let tools = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.tasks]
 
+    @Test func noteTaskAndClockCombinationsCanOwnPrimaryWithoutVoiceOrSpaces() {
+        let frame = SurfaceRect(width: 1440, height: 832)
+        let screens = [ScreenGeometry(id: "primary", frame: frame, visibleFrame: frame),
+                       ScreenGeometry(id: "secondary", frame: frame, visibleFrame: frame)]
+        for voice in [false, true] {
+            for tray in [false, true] {
+                var coordinator = MultiDisplayPresentationCoordinator()
+                let active = coordinator.resolve(screens: screens, preferred: nil, settings: [:], demand: [:],
+                    hidden: false, voice: voice, tray: tray, auxiliaryTools: true, spacesEnabled: false, uptime: 1)
+                #expect(active.first?.content == .toolsOnly)
+                #expect(active.last?.content == .hidden)
+                let hidden = coordinator.resolve(screens: screens, preferred: nil, settings: [:], demand: [:],
+                    hidden: true, voice: voice, tray: tray, auxiliaryTools: true, spacesEnabled: false, uptime: 2)
+                #expect(hidden.allSatisfy { $0.content == .hidden })
+                let blocked = coordinator.resolve(screens: screens, preferred: nil, settings: [:],
+                    demand: ["primary": .init(blocked: true)], hidden: false, voice: voice, tray: tray,
+                    auxiliaryTools: true, spacesEnabled: false, uptime: 3)
+                #expect(blocked.first?.content == .hidden)
+            }
+        }
+        var coordinator = MultiDisplayPresentationCoordinator()
+        let withSpaces = coordinator.resolve(screens: screens, preferred: nil, settings: [:], demand: [:],
+            hidden: false, voice: false, tray: false, auxiliaryTools: true, spacesEnabled: true, uptime: 1)
+        #expect(withSpaces.first?.content == .full)
+        let nothing = coordinator.resolve(screens: screens, preferred: nil, settings: [:], demand: [:],
+            hidden: false, voice: false, tray: false, auxiliaryTools: false, spacesEnabled: false, uptime: 2)
+        #expect(nothing.allSatisfy { $0.content == .hidden })
+    }
+
     @Test func allToolsKeepReadableLyricsAndNinetySixPointWindowAreaOnLaptopHeight() {
         for order in [tools, Array(tools.reversed())] {
             let layout = LayoutComposer.compose(width: 240, height: 832, pinnedCount: 1, expanded: false,

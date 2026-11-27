@@ -17,15 +17,25 @@ against WindowServer independently of either capture method.
 
 ## Evidence boundaries
 
-- Navigation and toggle actions use the real views' accessibility actions.
+- Navigation and toggle actions attempt the real views' accessibility actions.
+  Every attempt saves a compact native accessibility tree and action result. A
+  failed input remains FAIL even when explicitly labelled programmatic routing
+  continues the independent screenshot inspection; the first native image is
+  captured before any input probe.
 - Repeated entry uses the Host's normal main-window opener and checks object
   identity, window number and the count of standard management windows.
+  Close/reopen also checks the same retained object, allowing its WindowServer
+  number to change after closing.
 - Reordering exercises the same persisted command used by drag/drop. It is not a
   physical pointer drag test.
 - Content consists of the existing generated native acceptance library entries.
   Counts and configuration readbacks check preservation while toggling modules.
 - Lyric screenshots use labelled synthetic snapshots in the production lyric
   view/model. They do not certify Apple Music/QQ Music/NetEase control or discovery.
+  A native cursor move separately checks paused hover presentation. The fixture
+  owns no playback lease, so its transport controls deliberately remain disabled.
+- A full sidebar layout and its dark appearance are captured with the real native
+  panel. The all-module screenshot does not qualify real Spaces window dispatch.
 - The existing PR 16 Spaces engine qualification is independent of this UI run.
 - A successful debug build/native UI receipt is not a signed, notarized release.
 

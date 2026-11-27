@@ -17,10 +17,21 @@ jobs:
         with:
           persist-credentials: false
       - name: Test Host, module lifecycle and existing integration
+        env:
+          NEARPANE_ROSTER_SAMPLE_DIR: ${{ github.workspace }}/build/unified-workbench-evidence/current-render-samples
         run: |
-          mkdir -p build/unified-workbench-evidence
+          mkdir -p "$NEARPANE_ROSTER_SAMPLE_DIR"
           set -o pipefail
           bash scripts/test.sh --no-parallel 2>&1 | tee build/unified-workbench-evidence/swift-tests.log
+      - name: Preserve test diagnostics before packaging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: Nearpane-workbench-test-diagnostics
+          path: |
+            build/unified-workbench-evidence/swift-tests.log
+            build/unified-workbench-evidence/current-render-samples
+          if-no-files-found: warn
       - name: Compile and package integrated Nearpane
         if: ${{ !cancelled() }}
         run: |
@@ -33,9 +44,23 @@ jobs:
       - name: Probe real Apple Music pause, resume and exit when available
         if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
         run: python3 -B scripts/acceptance/unified-workbench/native_player.py
+      - name: Preserve native diagnostics before baseline comparison
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
+        with:
+          name: Nearpane-workbench-native-diagnostics
+          path: |
+            build/unified-workbench-evidence/native
+            build/unified-workbench-evidence/native-workbench.log
+            build/unified-workbench-evidence/runner-receipt.json
+            build/unified-workbench-evidence/real-player
+          if-no-files-found: warn
       - name: Archive Host candidate
         if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-integrated-lyrics.zip
+      - name: Compare existing Spaces tests with the original PR 16 baseline
+        if: ${{ !cancelled() }}
+        run: python3 -B scripts/acceptance/unified-workbench/baseline.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ !cancelled() && hashFiles('Nearpane-integrated-lyrics.zip') != '' }}
         with:

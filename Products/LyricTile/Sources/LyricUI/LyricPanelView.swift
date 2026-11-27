@@ -76,6 +76,8 @@ public struct LyricPanelView: View {
                                       : dark ? Color.white.opacity(0.20) : Color.white.opacity(0.76), lineWidth: 1)
                 }
                 .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("lyric-panel")
                 .onHover(perform: pointerChanged)
                 .onChange(of: motionPosition, initial: true) { _, position in
                     previousMotionPosition = position
@@ -310,6 +312,7 @@ public struct LyricPanelView: View {
                             label: model.snapshot.state == .playing ? LyricLocalization.text("暂停", "Pause") : LyricLocalization.text("播放", "Play"),
                             enabled: model.snapshot.state == .playing ? model.snapshot.capabilities.canPause : model.snapshot.capabilities.canPlay,
                             primaryButton: true) { model.togglePlayback() }
+                .accessibilityIdentifier("lyric-playback-toggle")
             transportButton("forward.end.fill", label: LyricLocalization.text("下一首", "Next track"), enabled: model.snapshot.capabilities.canNext) { model.perform(.next) }
         }
         .frame(maxWidth: .infinity)

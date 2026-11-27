@@ -1,5 +1,7 @@
 # Nearpane unified workbench — 2026-11-28
 
+> Implementation checkpoint: the owner-approved [product constitution](../../PRODUCT_CONSTITUTION.md), added concurrently in `d73d1549`, is now authoritative and matches `main`. The resident-area order and advanced visual controls described below reflect the intermediate candidate; the next UI revision removes those restrictions and retired controls. Native downloadable module packages are not implemented by the current statically linked integration and must never be presented as if they were.
+
 ## Product decision
 
 Nearpane has two surfaces: the everyday desktop sidebar and one retained management window. The management window owns module composition, user content and app configuration. It does not become another activity surface competing with the sidebar.
@@ -27,7 +29,9 @@ The design follows macOS conventions for stable sidebar navigation and resizable
 
 ## Module composition and order
 
-Enabled tools are listed in the same sequence as `LayoutComposer.toolOrder`. Drag a tool row onto another to move it before that tool, or drop at the end of the tool area. Each row remains directly clickable to open its detail. The switch changes enablement immediately. Disabled modules appear in a separate section and preserve their settings and data.
+Enabled tools are listed in the same sequence as `LayoutComposer.toolOrder`. Drag a tool row onto another to move it before that tool, or drop at the end of the tool area. Each row remains directly clickable to open its detail. Ordinary module switches change enablement immediately. Disabled modules appear in a separate section and preserve their settings and data.
+
+Spaces uses the same switch with one necessary lifecycle difference: its existing reversible window-return barrier must complete before the off state is committed. The module list and detail share one coordinator, so pending state and retry feedback stay consistent while navigating. A failed or superseded return keeps Spaces enabled and explains how to retry. The app's terminal shutdown latch is not used for a reversible module toggle; re-enabling Spaces remains possible.
 
 Existing sidebar layout distinguishes content tools from the resident clock/Spaces area. This distinction is now explicit rather than implying that arbitrary drag positions will work. The clock sits beneath content tools; Spaces uses its existing elastic area. This change does not redesign Spaces scheduling or physical window behavior.
 
@@ -48,9 +52,11 @@ Module capabilities describe sidebar presence, settings and optional user-conten
 
 The previous duplicate Spaces enable switch inside window presentation is removed; the module header is the common enable control. Theme color belongs to Appearance, and profile import/restore belongs to Data management. App update and feedback remain under About & Updates.
 
+Advanced dimension controls also follow this ownership. `DisplaySettingsScope` filters the existing `DisplayMetricGroup` values: global exposes the shared panel and common resident-area metrics; voice, screenshot and Spaces details each expose only their own group in a collapsed Display style section. The editor writes the same existing per-display keys, so no preference is copied or migrated. A module scope can restore only its own group. The previously inactive scroll-height key is retained on disk but not offered as a working control. Spaces thumbnail height uses the actual content width as its percentage basis and defaults to a 50% width limit, matching the rendered card.
+
 ## Library behavior
 
-The library is accessible independently of surface enablement. Voice retains its existing natural-paragraph browsing, search and detailed history. Screenshots retain date-based thumbnails and previews, with copy/drag actions supplied by the same domain store. A disabled module must not need to start its live capture service just to read history.
+The library is accessible independently of surface enablement. Voice retains its existing natural-paragraph browsing, search and detailed history. Copy paragraph reads every member, including content beyond the current page, and uses the latest saved revisions. Screenshots retain date-based thumbnails and previews; copy and drag use the validated original image instead of the thumbnail. A disabled module opens only its saved-content store and must not need to start its live capture service just to read history.
 
 The note is a full editing surface for the existing single note, not a fictional collection of note documents. Edits write through the existing `SidebarNotebook`. Tasks offer all/open/completed filters, completion and inline deletion confirmation. Vocabulary offers source/translation search, copy and inline deletion confirmation. No second storage schema or migration is introduced.
 
@@ -60,11 +66,16 @@ A paused valid music session retains the lyric surface indefinitely, independent
 
 The host lyric module delegates auxiliary page requests to the main window. Full lyrics, sources, timing, candidates and settings render in its content area. Standalone lyric welcome/settings/window controllers are not instantiated by Nearpane.
 
+## Updates in the same window
+
+Sparkle remains responsible for update discovery, download, verification and installation. Nearpane supplies an embedded `SPUUserDriver`: check progress, release notes, download progress, errors, automatic-check permission and the final installation choice appear in About & Updates. Menu-initiated checks first focus that destination. The driver does not create a separate updater window, alert or sheet. Installation still passes through the existing activity and window-restoration admission checks.
+
 ## Implementation map
 
 - `MainWindowNavigation.swift`: three primary sections, route ownership, deep links and section memory.
 - `SettingsView.swift`: shared navigation shell, page header, module/global settings separation.
 - `ModuleManagementView.swift`: enable/disable, ordered tool list, drag insertion and inactive list.
+- `ModuleSwitchCoordinator.swift`: shared module state changes and the existing Spaces return barrier, without changing its window-dispatch algorithm.
 - `NotebookLibraryView.swift`: notes/tasks/vocabulary over the original store.
 - `MainWindowGeneralSettings.swift`: menu visibility, sidebar visibility and native login-item status. Login registration only occurs after a user toggles it.
 - `ModuleCapabilities.swift`: module destination metadata without changing saved preference IDs.

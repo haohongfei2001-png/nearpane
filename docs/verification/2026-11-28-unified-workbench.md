@@ -1,0 +1,45 @@
+# Unified workbench verification
+
+This record separates source-level tests, a packaged native build, actual UI observations, real player integration and release qualification. The product decisions are in [the design record](../design/2026-11-28-unified-workbench.md).
+
+## Integration baseline
+
+- Integration branch: `pro/r4-integrated-lyrics-20261128`, [PR 18](https://github.com/haohongfei2001-png/nearpane/pull/18).
+- Starting integrated lyric commit: `172589a6f5e470e4a4fe1c2a5bb7c2b34c07c08a`.
+- Latest PR 16 source included at task start: `60cf3219901c6997db400a1d08e143ddd011d0a0`.
+- The two histories were retained by merge `09e4d0e3d5761eeb4762e08696736a0acad265fe` before changing the management UI.
+- No website, independent LyricTile product, or Spaces dispatch algorithm is part of this redesign.
+- While publishing the next checkpoint, the branch advanced to `d73d15493c57430f34c5b488724fd0375c065f14` with the owner-approved product constitution. Its 15 documentation files were retained without replacement, and the constitution was verified identical to `main`. The same checkpoint's fixed resident order and detailed visual controls are transitional until the constitution-aligned UI revision is validated.
+
+## First packaged candidate — 5b36ad79
+
+[Native macOS CI run 46046131066](https://github.com/haohongfei2001-png/nearpane/actions/runs/46046131066) used macOS 26.7.2. The integrated Nearpane app compiled and passed package verification. The workflow produced an ad-hoc signed debug candidate; it is not a notarized release.
+
+| Evidence | Observed result | Meaning |
+| --- | --- | --- |
+| Complete source test run | 964 tests; 5 failing tests with 12 reported issues | Not a green regression run |
+| Lyrics session and embedded updater tests | Passed | Their tested policies/callbacks passed; not proof of real player or network update installation |
+| App build and bundled-resource verification | Passed | A complete native candidate was produced |
+| Native launch | Main window visible; exactly one management window | The app launched on the cloud desktop |
+| Native UI actions/capture | Failed at first SwiftUI accessibility action, before screenshots | No completed UI acceptance or screenshot-quality claim for this candidate |
+| Real Apple Music setup | Local audio AppleScript timed out after 30 seconds | Blocked; not evidence that pause/resume works or fails |
+
+The native acceptance copy uses generated sample content and an executable-bound, disposable profile. Its bundle identity and signature differ from the untouched candidate. The runner records hashes separately. Synthetic lyric snapshots are labelled; they cannot certify real Apple Music, QQ Music or NetEase Music behavior.
+
+## Failures investigated before the next candidate
+
+1. **Voice archive fixture:** the new passive-history test attempted to open two exclusive Saytile database owners at once. The test now hands its seeded store to the live module, then opens fresh short-lived owners after stop. It still checks saved content while disabled, no capture startup and complete paragraph copying across pages.
+2. **Space boundary test macros:** eight negative assertions in two existing tests expanded incorrectly under this runner's Swift Testing toolchain. The same test and production-source blobs existed in both original baselines. Calls now produce local `Bool` values before the same assertions. No production boundary rule changed.
+3. **Existing native renderer fixtures:** the glass test compared a system accessibility preference with an uninjected offscreen SwiftUI environment; the roster test expected content while its panel was never presented. The fixtures now supply the actual preference and present the generated panel before sampling pixels. Pixel/color/geometry assertions remain intact. An unmodified PR 16 worktree runs on the same runner to provide an experimental comparison.
+4. **SwiftUI accessibility lookup:** the next native run saves the real window screenshot before the first action, retains an accessibility tree diagnostic and records failed actions independently. A programmatic fallback route is explicitly labelled and cannot count as a passed accessibility action.
+
+## Acceptance boundaries
+
+- The one-window contract is checked against the production main-window constructor, opener, menu targets and module callbacks. The final fixture also closes and reopens the retained window.
+- Module enablement and saved order are read back from the original configuration schema. Physical drag gestures and the reorder command are distinct evidence.
+- Existing voice/screenshot counts are compared before and after module combinations and disablement. This is not a migration test against every historical user database.
+- The Spaces off switch uses the existing reversible window-return barrier. Unit tests cover pending/success/failure/cancellation behavior. This does not qualify real Spaces window dispatch or fix the remaining PR 16 operational gates.
+- Cloud capture methods are recorded per image. WindowServer captures and native `NSView.cacheDisplay` fallback captures of visible windows are identified separately.
+- QQ Music, NetEase Music, actual simultaneous players, personal microphone permissions and a real installation/update cycle require their own observed evidence. No source test or screenshot substitutes for those observations.
+
+Final candidate results and selected screenshots will replace this intermediate status after the next native run.

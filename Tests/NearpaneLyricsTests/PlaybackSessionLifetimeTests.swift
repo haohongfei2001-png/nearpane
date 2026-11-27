@@ -71,6 +71,18 @@ struct PlaybackSessionLifetimeTests {
         #expect(restarted.sessionID != first.sessionID)
     }
 
+    @Test func anotherIdlePlayerCannotInheritTheExitedPlayersEstablishedSession() throws {
+        var tracker = PlaybackSelectionTracker()
+        let firstValue = tracker.update(observation(state: .paused))
+        _ = try #require(firstValue)
+        // Spotify can retain metadata for a previously played song while stopped.
+        // That must not keep a lyric slot alive after the actual Music session exits.
+        let idleOther = tracker.update(observation(player: .spotify, state: .stopped))
+        #expect(idleOther == nil)
+        let startedOther = tracker.update(observation(player: .spotify, state: .playing))
+        #expect(startedOther?.playerBundleID == PlayerID.spotify.bundleID)
+    }
+
     @Test func metadataContinuityNeverCarriesAcrossTrackOrNativeSessionChanges() {
         let original = observation(state: .paused)
         var sparse = observation(state: .paused, title: nil, id: nil)

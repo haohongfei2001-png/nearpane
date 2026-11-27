@@ -3,27 +3,68 @@ import SwiftUI
 
 private typealias ViewState<T> = State<T>
 
+public enum DisplaySettingsScope: Equatable, Sendable {
+    case global, voice, tray, spaces
+
+    var metrics: [DisplayMetric] {
+        DisplayMetric.allCases.filter { metric in
+            guard metric != .panelWidth && metric != .panelHeight && metric != .scrollHeight else { return false }
+            switch self {
+            case .global: return metric.group == .panel || metric.group == .modules
+            case .voice: return metric.group == .voice
+            case .tray: return metric.group == .tray
+            case .spaces: return metric.group == .spaces
+            }
+        }
+    }
+    var defaultMetric: DisplayMetric {
+        switch self {
+        case .global: .reservedWidth
+        case .voice: .voiceHeight
+        case .tray: .trayHeight
+        case .spaces: .spacesHeight
+        }
+    }
+}
+
 public struct WorkspaceDisplaySettings: View {
     let host: HostSession, screens: [ScreenGeometry], request: (String) -> Void, dismiss: (String) -> Void
     let stillCurrent: (ScreenGeometry) -> Bool
     let previewExposure: SettingsPreviewExposure?
+    let voiceCompact: Bool
+    let trayRows: Int
+    let lyricsHeight: Double
+    let scope: DisplaySettingsScope
     @ViewState private var pendingReset: DisplaySizeReset?
     @ViewState private var chosen = ""
     @ViewState private var key: DisplayMetric
     public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void,
                 initialMetric: DisplayMetric = .reservedWidth, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true },
-                previewExposure: SettingsPreviewExposure? = nil) {
+                previewExposure: SettingsPreviewExposure? = nil, voiceCompact: Bool = false,
+                trayRows: Int = 1, lyricsHeight: Double = 0, scope: DisplaySettingsScope = .global) {
         self.host = host
         self.screens = screens
         self.request = request
         self.dismiss = dismiss
         self.stillCurrent = stillCurrent
         self.previewExposure = previewExposure
-        _key = State(initialValue: initialMetric)
+        self.voiceCompact = voiceCompact
+        self.trayRows = trayRows
+        self.lyricsHeight = lyricsHeight
+        self.scope = scope
+        _key = State(initialValue: scope.metrics.contains(initialMetric) ? initialMetric : scope.defaultMetric)
     }
 
     public var body: some View {
-        ScrollView {
+        Group {
+            if scope == .global { ScrollView { settingsContent } }
+            else { settingsContent }
+        }
+        .onChange(of: screens) { _, _ in pendingReset = nil }
+        .onChange(of: key) { _, _ in pendingReset = nil }
+    }
+
+    @ViewBuilder private var settingsContent: some View {
             if let screen = screens.first(where: { $0.id == chosen })
                 ?? screens.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? screens.first {
                 let primary =
@@ -39,6 +80,7 @@ public struct WorkspaceDisplaySettings: View {
                             Text("显示器 \(i+1) · \(Int(s.visibleFrame.width)) × \(Int(s.visibleFrame.height))").tag(s.id)
                         }
                     }.accessibilityIdentifier("panel-size-display")
+                    if scope == .global {
                     Divider()
                     PanelGlassEditor(saved: settings.glass,
                         width: settings.panel(on: screen, fallbackEdge: host.configuration.edge)?.width ?? screen.visibleFrame.width,
@@ -58,7 +100,10 @@ public struct WorkspaceDisplaySettings: View {
                     PanelSizeEditor(settings: settings, screen: screen, edge: host.configuration.edge,
                                     primary: primary == screen.id, content: host.panelContents[screen.id] ?? .hidden,
                                     voice: host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
-                                    tray: host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }) { draft in
+                                    tray: host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
+                                    toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
+                                    voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight,
+                                    pinnedCount: primary == screen.id ? host.registry.pinnedModules.count : 0) { draft in
                         let latest = host.configuration.displays[screen.id] ?? .init()
                         if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
                     }
@@ -142,18 +187,22 @@ public struct WorkspaceDisplaySettings: View {
                         Text("居中").tag(PanelAnchor.center)
                         Text("底部").tag(PanelAnchor.bottom)
                     }
+                    } else {
+                        Text("仅调整此模块在所选显示器上的内容样式。材质、颜色和位置沿用 Nearpane 全局设置。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     Picker("调整项目", selection: $key) {
-                        ForEach(DisplayMetric.allCases.filter { $0 != .panelWidth && $0 != .panelHeight && $0 != .spaceRowHeight && $0 != .scrollHeight }, id: \.self) {
+                        ForEach(scope.metrics, id: \.self) {
                             Text($0.label).tag($0)
                         }
                     }
                     let defaultWidth = Measure(DisplaySettings.recommendedPanelWidth(in: screen.visibleFrame.width))
                     let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? defaultWidth :
-                        (key == .panelWidth ? defaultWidth : key.factory)
-                    let basis = settings.referenceExtent(for: key, screen: screen, primary: primary == screen.id)
+                        (key == .spaceRowHeight ? Measure(50, .percent) : key.factory)
+                    let basis = metricBasis(key, settings: settings, screen: screen, primary: primary == screen.id)
                     MeasureEditor(metric: key, configured: settings.measures[key], factory: defaultMeasure, extent: basis) {
                         value in
-                        var updated = settings
+                        var updated = host.configuration.displays[screen.id] ?? .init()
                         updated.measures[key] = value
                         save(updated)
                     }.id("\(screen.id)-\(key.rawValue)-\(String(describing:settings.measures[key]))")
@@ -167,10 +216,12 @@ public struct WorkspaceDisplaySettings: View {
                         }.disabled(!settings.measures.keys.contains { $0.group == key.group }
                             && !(key.group == .panel && settings.glass.rimWidth != nil))
                         .accessibilityIdentifier("sizes-reset-group")
-                        Button("恢复本屏全部尺寸…") {
-                            pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: nil)
-                        }.disabled(settings.measures.isEmpty && settings.glass.rimWidth == nil)
-                        .accessibilityIdentifier("sizes-reset-display")
+                        if scope == .global {
+                            Button("恢复本屏全部尺寸…") {
+                                pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: nil)
+                            }.disabled(settings.measures.isEmpty && settings.glass.rimWidth == nil)
+                            .accessibilityIdentifier("sizes-reset-display")
+                        }
                     }
                     if let reset = pendingReset, reset.screen == screen {
                         VStack(alignment: .leading) {
@@ -194,9 +245,20 @@ public struct WorkspaceDisplaySettings: View {
                 .padding(.trailing, 10)
                 .padding(.vertical, 4)
             } else { Text("没有可配置的显示器。").foregroundStyle(.secondary) }
+    }
+
+    private func metricBasis(_ key: DisplayMetric, settings: DisplaySettings, screen: ScreenGeometry, primary: Bool) -> Double {
+        let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) ?? screen.visibleFrame
+        if key == .spaceRowGap { return panel.height }
+        if key == .spaceRowHeight {
+            // DesktopSurface fits thumbnails within the card's inner width, with
+            // an unset height limit of half that width. It does not use desktop height.
+            let area = max(0, panel.width - 2 * settings.glass.inset(width: panel.width))
+            let width = min(area, settings.points(.desktopWidth, in: area))
+            let inset = min(settings.points(.spacePadding, in: width) + 4, max(0, width / 4))
+            return max(0, width - 2 * inset)
         }
-        .onChange(of: screens) { _, _ in pendingReset = nil }
-        .onChange(of: key) { _, _ in pendingReset = nil }
+        return settings.referenceExtent(for: key, screen: screen, primary: primary)
     }
 }
 

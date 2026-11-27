@@ -3,6 +3,22 @@ import NearpaneCore
 @testable import NearpaneUI
 
 @MainActor struct MainWindowNavigationTests {
+    @Test func displayControlsHaveOneOwnerWithoutDroppingWorkingModuleOverrides() {
+        let global = Set(DisplaySettingsScope.global.metrics)
+        let voice = Set(DisplaySettingsScope.voice.metrics)
+        let tray = Set(DisplaySettingsScope.tray.metrics)
+        let spaces = Set(DisplaySettingsScope.spaces.metrics)
+        #expect(global.isDisjoint(with: voice.union(tray).union(spaces)))
+        #expect(voice.isDisjoint(with: tray.union(spaces)))
+        #expect(tray.isDisjoint(with: spaces))
+        #expect(voice.contains(.voiceHeight) && voice.contains(.textSize) && voice.contains(.copySize))
+        #expect(tray.contains(.trayHeight) && tray.contains(.trayButtonSize))
+        #expect(spaces.contains(.spacesHeight) && spaces.contains(.spaceRowHeight) && spaces.contains(.labelSize))
+        #expect(global.contains(.cornerRadius) && global.contains(.sectionGap) && global.contains(.railHeight))
+        let dedicatedOrInactive: Set<DisplayMetric> = [.panelWidth, .panelHeight, .scrollHeight]
+        #expect(global.union(voice).union(tray).union(spaces).union(dedicatedOrInactive) == Set(DisplayMetric.allCases))
+    }
+
     @Test func firstOpenExplainsCompositionAndSectionSwitchesKeepTheirPlace() {
         let navigation = SettingsNavigation()
         #expect(navigation.page == .modules)

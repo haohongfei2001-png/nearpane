@@ -68,6 +68,7 @@ public struct SettingsView: View {
     private let navigation: SettingsNavigation
     private let installedBuild = InstalledBuild(bundle: .main)
     private let domains: EmbeddedModules?
+    private let moduleSwitches: ModuleSwitchCoordinator
     private let profileImport: AnyView?
     private let applicationServices: AnyView?
     private let inventory: SettingsScreenInventory
@@ -86,6 +87,7 @@ public struct SettingsView: View {
         self.dismissSpaces = dismissSpaces
         self.requestSecondary = requestSecondary
         self.domains = domains; self.host = host; self.inventory = inventory; self.placementChanged = placementChanged
+        self.moduleSwitches = domains?.moduleSwitches ?? ModuleSwitchCoordinator()
     }
 
     @Environment(\.colorScheme) private var colorScheme
@@ -223,6 +225,9 @@ public struct SettingsView: View {
                 }.pickerStyle(.segmented).frame(maxWidth: 340)
                     .accessibilityIdentifier("module-spaces-pages")
             }
+            if let id = navigation.moduleID {
+                ModuleSwitchNotice(switches: moduleSwitches, id: id, host: host, modules: domains)
+            }
             if host.configurationProtected || host.configurationSaveFailed {
                 Label(host.configurationProtected ? "无法读取原配置，原文件已保留。" : "设置尚未保存，请检查资料目录。",
                       systemImage: "exclamationmark.circle")
@@ -237,10 +242,10 @@ public struct SettingsView: View {
             Toggle(preference.enabled ? "已启用" : "启用", isOn: Binding(get: {
                 host.registry.preferences.first(where: { $0.id == id })?.enabled == true
             }, set: { value in
-                if id == BuiltinCatalog.desktop && !value { domains?.stopWindowContentPreview() }
-                host.handle(.setEnabled(id, value))
+                moduleSwitches.setEnabled(id, value, host: host, modules: domains)
             }))
             .toggleStyle(.switch).controlSize(.small).fixedSize()
+            .disabled(moduleSwitches.changing.contains(id))
             .accessibilityIdentifier("module-detail-enabled-" + id)
         } else if navigation.page == .voiceArchive {
             Button { navigation.showModule(BuiltinCatalog.voice) } label: { Image(systemName: "gearshape") }
@@ -319,7 +324,7 @@ public struct SettingsView: View {
             EmptyView()
             #endif
         case .general: MainWindowGeneralSettings(host: host, menuVisibilityChanged: menuVisibilityChanged)
-        case .modules: ModuleManagementView(host: host, open: { navigation.showModule($0) })
+        case .modules: ModuleManagementView(host: host, modules: domains, switches: moduleSwitches, open: { navigation.showModule($0) })
         case .module: genericModule
         case .lyrics:
             #if canImport(NearpaneLyricsModule)
@@ -339,7 +344,12 @@ public struct SettingsView: View {
         case .data: dataManagement
         case .voice:
             #if canImport(NearpaneVoice)
-            if let domains { VoiceInputSettings(module: domains.voice) }
+            if let domains {
+                VStack(alignment: .leading, spacing: 0) {
+                    VoiceInputSettings(module: domains.voice)
+                    moduleAppearance(.voice).padding(.horizontal, 28).padding(.vertical, 16)
+                }
+            }
             #else
             EmptyView()
             #endif
@@ -399,6 +409,7 @@ public struct SettingsView: View {
                         }.disabled(!tray.active || tray.connecting)
                     }
                     if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
+                    Section { moduleAppearance(.tray) }
                 }.formStyle(.grouped)
             }
             #else
@@ -410,7 +421,9 @@ public struct SettingsView: View {
                 AccentSettings(host: host).padding(.horizontal, 28)
                 WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
                                          dismiss: dismissSpaces, stillCurrent: inventory.contains,
-                                         previewExposure: previewExposure)
+                                         previewExposure: previewExposure, voiceCompact: domains?.voiceCompact ?? false,
+                                         trayRows: domains?.trayRowCount ?? 1, lyricsHeight: domains?.lyricsHeight ?? 0)
+                    .padding(.horizontal, 28).padding(.bottom, 24)
             }
         case .windowRules: WorkspacePolicySettings(host: host, showWindowManagement: navigation.showWindowManagement)
         case .windowManagement:
@@ -437,7 +450,7 @@ public struct SettingsView: View {
                         HStack {
                             Text(state).font(.callout).foregroundStyle(.secondary)
                             if host.registry.states[id] == .degraded {
-                                Button("重新启动") { host.handle(.setEnabled(id, true)) }
+                                Button("重新启动") { moduleSwitches.setEnabled(id, true, host: host, modules: domains) }
                             }
                         }
                     }
@@ -497,6 +510,14 @@ public struct SettingsView: View {
             Spacer()
             Button(detail + "设置") { navigation.showModule(module) }.buttonStyle(.link)
         }
+    }
+
+    private func moduleAppearance(_ scope: DisplaySettingsScope) -> some View {
+        DisclosureGroup("显示样式") {
+            WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
+                dismiss: dismissSpaces, stillCurrent: inventory.contains, scope: scope)
+                .padding(.top, 12)
+        }.accessibilityIdentifier("module-appearance-" + (scope == .voice ? "voice" : scope == .tray ? "tray" : "spaces"))
     }
 
     private var dataManagement: some View {
@@ -559,6 +580,7 @@ public struct SettingsView: View {
             }
             Text("未取得画面权限时，侧栏显示应用与窗口轮廓。")
                 .font(.callout).foregroundStyle(.secondary)
+            Section { moduleAppearance(.spaces) }
         }.formStyle(.grouped)
     }
 

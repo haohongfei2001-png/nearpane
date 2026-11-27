@@ -35,7 +35,7 @@ struct PlaybackSelectionTracker: Sendable {
             if !processChanged, selection != nil { return selection }
             clear(); return nil
         }
-        if selection == nil, observation.state == .stopped || observation.state == .unknown {
+        if processChanged || selection == nil, observation.state == .stopped || observation.state == .unknown {
             clear(); return nil
         }
         let recordingChanged = lastObservation.map { !Self.sameRecording($0, observation) } ?? true

@@ -48,6 +48,8 @@ def main() -> int:
             plistlib.dump(values, stream)
         subprocess.run(["/usr/bin/codesign", "--force", "--deep", "--sign", "-", str(app)], check=True, capture_output=True)
         binary = app / "Contents/MacOS/NearpaneHost"
+        receipt["fixtureExecutableSHA256"] = hashlib.sha256(binary.read_bytes()).hexdigest()
+        receipt["fixtureBundleID"] = "com.holdsnow.nearpane.alpha"
         env = dict(os.environ, NEARPANE_ACCEPTANCE_CHECKOUT=str(repo))
         for mode, name, timeout in [
             ("--native-acceptance-prepare", "native-prepare.log", 45),

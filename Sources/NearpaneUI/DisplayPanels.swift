@@ -386,11 +386,14 @@ import NearpaneCore
             demand[id]?.hasCurrentDesktopWindows = true
         }
         let lyricsActive = (domains?.lyricsHeight ?? 0) > 0 && prefs.contains { $0.id == BuiltinCatalog.lyrics && $0.enabled }
+        let auxiliaryTools = prefs.contains { $0.enabled && ($0.id == BuiltinCatalog.memo || $0.id == BuiltinCatalog.tasks) }
+            || !host.registry.pinnedModules.isEmpty
         let ordinary = coordinator.resolve(
             screens: screens, preferred: host.configuration.preferredDisplayID,
             settings: host.configuration.displays, demand: demand, hidden: host.configuration.surfaceHidden || suspended,
             voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
             tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }, lyrics: lyricsActive,
+            auxiliaryTools: auxiliaryTools,
             spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
         let ids = Set(ordinary.map(\.id))
         let identified = screens.filter { ids.contains($0.id) }

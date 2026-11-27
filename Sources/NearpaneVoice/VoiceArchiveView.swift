@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SaytileKit
 
@@ -38,6 +39,23 @@ extension VoiceModule {
 
     func archiveMembers(of id: Int64, window: TimelineWindow, limit: Int = TimelinePage.capacity) async throws -> TimelinePage {
         try await withArchiveRead { try await $0.paragraphMembers(paragraphID: id, window, limit: limit) }
+    }
+
+    /// Copy a complete natural paragraph, including members outside the visible
+    /// page. Current saved revisions are the same text source used by the panel.
+    func archiveParagraphText(_ id: Int64, pageSize: Int = TimelinePage.capacity) async throws -> String {
+        try await withArchiveRead { store in
+            var window = TimelineWindow.starting(at: 0)
+            var fragments: [String] = []
+            while true {
+                try Task.checkCancellation()
+                let page = try await store.paragraphMembers(paragraphID: id, window, limit: max(1, pageSize))
+                fragments.append(contentsOf: page.entries.map(\.recording.text).filter { !$0.isEmpty })
+                guard page.hasNewer, let last = page.entries.last else { break }
+                window = .starting(at: last.position + 1)
+            }
+            return fragments.joined(separator: "\n")
+        }
     }
 
     func archiveVersions(of id: UUID) async throws -> (revisions: [TranscriptRevision], draft: String?) {
@@ -203,6 +221,8 @@ private struct VoiceArchiveDetail: View {
     @ViewState private var window: TimelineWindow = .starting(at: 0)
     @ViewState private var members: TimelinePage?
     @ViewState private var failed = false
+    @ViewState private var copying = false
+    @ViewState private var copyNotice: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -212,6 +232,19 @@ private struct VoiceArchiveDetail: View {
                 Text(row.paragraph.started, format: .dateTime.year().month().day().hour().minute())
                     .font(.headline)
                 Spacer()
+                Button(copying ? "正在复制…" : "复制整段", systemImage: "doc.on.doc") {
+                    copying = true
+                    Task { @MainActor in
+                        defer { copying = false }
+                        do {
+                            let text = try await module.archiveParagraphText(row.id)
+                            guard !text.isEmpty else { copyNotice = "这段语音还没有文字。"; return }
+                            NSPasteboard.general.clearContents()
+                            copyNotice = NSPasteboard.general.setString(text, forType: .string) ? "已复制完整自然段" : "复制未完成，请重试。"
+                        } catch { copyNotice = "暂时无法复制这段文字，请重试。" }
+                    }
+                }.disabled(copying || members == nil || failed)
+                    .accessibilityIdentifier("voice-library-copy-paragraph")
                 if row.paragraph.hasAudio {
                     if module.archivePlaybackParagraph == row.id {
                         Button("停止回放", systemImage: "stop.fill") { module.stopArchivePlayback() }
@@ -222,6 +255,7 @@ private struct VoiceArchiveDetail: View {
                     }
                 }
             }
+            if let copyNotice { Text(copyNotice).font(.caption).foregroundStyle(.secondary) }
             if let issue = module.archivePlaybackIssue { Text(issue).font(.caption).foregroundStyle(.secondary) }
             if failed || members?.entries.isEmpty == true {
                 Text("当前段落无法读取。").foregroundStyle(.secondary)

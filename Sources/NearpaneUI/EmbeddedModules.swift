@@ -10,6 +10,7 @@ import AppKit
 /// One object per domain, shared by the registry and the surface. Content never enters the Host bus.
 @MainActor
 public final class EmbeddedModules {
+    let moduleSwitches = ModuleSwitchCoordinator()
     #if canImport(NearpaneVoice)
     public let voice: VoiceModule
     public let tray: TrayModule

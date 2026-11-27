@@ -170,11 +170,18 @@ struct PanelSizeEditor: View {
     let content: PanelContent
     let voice: Bool
     let tray: Bool
+    let toolOrder: [String]
+    let voiceCompact: Bool
+    let trayRows: Int
+    let lyricsHeight: Double
+    let pinnedCount: Int
     let apply: (PanelSizeDraft) -> Void
     @ViewState private var editing: PanelSizeEditing
 
     init(settings: DisplaySettings, screen: ScreenGeometry, edge: SurfaceEdge, primary: Bool, content: PanelContent,
-         voice: Bool, tray: Bool, apply: @escaping (PanelSizeDraft) -> Void) {
+         voice: Bool, tray: Bool, toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots],
+         voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0, pinnedCount: Int = 0,
+         apply: @escaping (PanelSizeDraft) -> Void) {
         self.settings = settings
         self.screen = screen
         self.edge = edge
@@ -182,6 +189,11 @@ struct PanelSizeEditor: View {
         self.content = content
         self.voice = voice
         self.tray = tray
+        self.toolOrder = toolOrder
+        self.voiceCompact = voiceCompact
+        self.trayRows = trayRows
+        self.lyricsHeight = lyricsHeight
+        self.pinnedCount = pinnedCount
         self.apply = apply
         _editing = State(initialValue: PanelSizeEditing(settings, screenWidth: screen.visibleFrame.width))
     }
@@ -194,8 +206,12 @@ struct PanelSizeEditor: View {
             dimension(editing.dimension(\.height), label: "面板高度", id: "panel-height", extent: screen.visibleFrame.height,
                       bounds: settings.panelExtentRange(for: .panelHeight, on: screen))
             if let proposed, let layout = PanelSizeLayout(settings: proposed, screen: screen, edge: edge,
-                                                         content: content, voice: voice, tray: tray, floating: !primary) {
-                PanelSizePreview(screen: screen, layout: layout, settings: proposed, content: content, voice: voice, tray: tray)
+                                                         content: content, voice: voice, tray: tray, floating: !primary,
+                                                         toolOrder: toolOrder, voiceCompact: voiceCompact, trayRows: trayRows,
+                                                         lyricsHeight: lyricsHeight, pinnedCount: pinnedCount) {
+                PanelSizePreview(screen: screen, layout: layout, settings: proposed, content: content, voice: voice, tray: tray,
+                                 toolOrder: toolOrder, voiceCompact: voiceCompact, trayRows: trayRows,
+                                 lyricsHeight: lyricsHeight, pinnedCount: pinnedCount)
             } else {
                 Text("请输入有效尺寸。").font(.caption).foregroundStyle(.secondary)
             }
@@ -238,6 +254,11 @@ struct PanelSizeEditor: View {
 private struct PanelSizePreview: View {
     let screen: ScreenGeometry, layout: PanelSizeLayout, settings: DisplaySettings, content: PanelContent
     let voice: Bool, tray: Bool
+    let toolOrder: [String]
+    let voiceCompact: Bool
+    let trayRows: Int
+    let lyricsHeight: Double
+    let pinnedCount: Int
     var body: some View {
         let frame = layout.frame
         let form = layout.form
@@ -260,10 +281,12 @@ private struct PanelSizePreview: View {
                 }
                 context.fill(Path(pane), with: .style(.tint.opacity(0.22)))
                 if form == .full {
-                    let sections = LayoutComposer.compose(width: frame.width, height: frame.height, pinnedCount: 0,
+                    let sections = LayoutComposer.compose(width: frame.width, height: frame.height, pinnedCount: pinnedCount,
                                                           expanded: false, settings: settings, content: content,
-                                                          voiceEnabled: voice, trayEnabled: tray, referenceHeight: layout.referenceHeight)
-                    for section in [sections.voice, sections.screenshots] where section.height > 0 {
+                                                          voiceEnabled: voice, trayEnabled: tray, referenceHeight: layout.referenceHeight,
+                                                          voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight,
+                                                          toolOrder: toolOrder)
+                    for section in [sections.voice, sections.screenshots] + Array(sections.additionalTools.values) where section.height > 0 {
                         let boundary = CGRect(x: pane.minX, y: pane.minY + (section.y + section.height) * scale,
                                               width: pane.width, height: min(1, pane.height))
                         context.fill(Path(boundary), with: .color(.secondary))

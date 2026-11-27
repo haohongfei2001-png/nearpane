@@ -8,7 +8,13 @@ import SaytileKit
         let dir = VoiceTests().directory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = try SaytileStore(directory: dir)
-        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, notify in
+        var firstOpen = true
+        let module = VoiceModule(openStore: {
+            // The live module owns the seeded store's exclusive lease. Once it
+            // stops, passive archive reads must acquire a new, short-lived one.
+            if firstOpen { firstOpen = false; return store }
+            return try SaytileStore(directory: dir)
+        }, makeInput: { _, notify in
             Issue.record("Browsing must not open the audio controller"); return ScriptedInput(notify)
         })
         try module.start(); await module.waitForTransition()
@@ -38,6 +44,7 @@ import SaytileKit
         #expect(entry.id == ids[0] && page.hasNewer)
         let following = try await module.archiveMembers(of: paragraph.id, window: .starting(at: entry.position + 1))
         #expect(following.entries.map(\.recording.text) == ["用户已修订"])
+        #expect(try await module.archiveParagraphText(paragraph.id, pageSize: 1) == "原文 100\n用户已修订")
         for term in ["原文 102", "待核对", "已修订"] {
             #expect(try await module.archivePage(.latest, query: term).rows.map(\.id) == [paragraph.id])
         }
@@ -50,6 +57,7 @@ import SaytileKit
         let saved = try await module.archivePage(.latest, query: "")
         #expect(saved.rows.count == 3)
         #expect(!module.active && module.capture == .paused)
+        #expect(try await module.archiveParagraphText(paragraph.id, pageSize: 1) == "原文 100\n用户已修订")
     }
 
     @Test func onlyTheExplicitParagraphPlaysAndCaptureIsNeverBorrowed() async throws {

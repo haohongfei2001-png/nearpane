@@ -1301,20 +1301,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         await embedded.tray.connect()
         updater = ApplicationUpdater(allowNetwork: false)
         settingsScreens.update(SystemScreens.geometry())
-        let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 920, height: 660),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.contentMinSize = NSSize(width: 740, height: 520)
-        window.isReleasedWhenClosed = false
-        window.identifier = .init("nearpane-main-window")
-        window.title = "Nearpane"
-        window.tabbingMode = .disallowed
-        window.titlebarAppearsTransparent = true
-        window.appearance = NSAppearance(named: .aqua)
-        window.center()
-        settings = NSWindowController(window: window)
         settingsNavigation.showModules()
-        updateSettingsContent()
+        // Construct the window through the same path used by the menu and module
+        // deep links, including its retained controller and close notifications.
         showSettings()
+        guard let window = settings?.window else { throw CocoaError(.validationMissingMandatoryProperty) }
+        window.appearance = NSAppearance(named: .aqua)
         do {
             try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
                 navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in

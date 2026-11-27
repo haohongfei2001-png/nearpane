@@ -40,6 +40,8 @@ def main() -> int:
             raise RuntimeError("Music was already running before this isolated probe")
         runner = json.loads((evidence / "runner-receipt.json").read_text())
         identifier = runner["fixtureSession"]
+        result["sourceCommit"] = runner["sourceCommit"]
+        result["fixtureExecutableSHA256"] = runner.get("fixtureExecutableSHA256")
         session = repo / "build/native-acceptance" / identifier
         app = repo / "build" / ("unified-workbench." + identifier) / "Nearpane.app"
         binary = app / "Contents/MacOS/NearpaneHost"
@@ -63,15 +65,21 @@ def main() -> int:
             stream.writeframes(samples.tobytes())
         script = """on run argv
 tell application "Music"
+    log "NEARPANE_STAGE launch:start"
     launch
+    log "NEARPANE_STAGE launch:complete volume:start"
     set sound volume to 0
+    log "NEARPANE_STAGE volume:complete add:start"
     set added to add (POSIX file (item 1 of argv))
+    log "NEARPANE_STAGE add:complete"
     if class of added is list then
         set fixtureTrack to item 1 of added
     else
         set fixtureTrack to added
     end if
+    log "NEARPANE_STAGE play:start"
     play fixtureTrack
+    log "NEARPANE_STAGE play:complete readback:start"
     delay 1
     return (name of current track as text) & linefeed & (player state as text)
 end tell
@@ -82,9 +90,17 @@ end run
         try:
             started = subprocess.run(["/usr/bin/osascript", str(script_file), str(audio)], capture_output=True,
                                      text=True, timeout=30)
+        except subprocess.TimeoutExpired as error:
+            def decoded(value: bytes | str | None) -> str:
+                return value.decode(errors="replace") if isinstance(value, bytes) else value or ""
+            (output / "music-setup.log").write_text(decoded(error.stdout) + decoded(error.stderr))
+            result["musicSetupTimedOut"] = True
+            result["musicSetupTimeoutSeconds"] = error.timeout
+            raise
         finally:
             owned = music_pids()
         (output / "music-setup.log").write_text(started.stdout + started.stderr)
+        result["musicSetupExitCode"] = started.returncode
         if started.returncode:
             raise RuntimeError("Apple Music local playback setup failed: " + started.stderr.strip())
         rows = started.stdout.strip().splitlines()

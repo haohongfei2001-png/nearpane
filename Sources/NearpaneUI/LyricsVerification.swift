@@ -13,6 +13,13 @@ public extension EmbeddedModules {
     }
 
     var lyricsVerificationHeight: Double { lyrics?.height ?? 0 }
+    var lyricsVerificationControlsVisible: Bool { lyrics?.module.model.controlsVisible ?? false }
+    var lyricsVerificationOwnsSession: Bool { lyrics?.module.model.ownsSession ?? false }
+
+    @discardableResult
+    func clearLyricsVerificationControls() -> Bool {
+        lyrics?.clearVerificationControls() ?? false
+    }
 
     @discardableResult
     func installLyricsVerificationState(_ state: String) -> Bool {
@@ -51,6 +58,7 @@ public extension EmbeddedModules {
             sourceTiming: .init(sourceAdvanceMS: nil, interpretation: .absent, rawOffset: nil),
             lanes: [.init(id: "lead", kind: .lead, languageBCP47: "zh-Hans", cues: cues)], instrumental: false)
         let installed = lyrics.installVerificationSnapshot(snapshot, document: state == "noLyrics" ? nil : document)
+        guard installed else { return false }
         lyrics.module.model.setControlsVisible(state == "paused" || state == "noLyrics")
         return installed
     }

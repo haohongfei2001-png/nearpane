@@ -151,10 +151,16 @@ struct SpaceInventoryTests {
         #expect(!excluded(first, before: true) && !excluded(first, after: true) && !excluded(first, active: true))
         #expect(!excluded(first, before: nil) && !excluded(first, after: nil) && !excluded(nil))
         #expect(!excluded(first, active: nil))
-        #expect(!excluded(.init(inventory: inventory, membership: [42:.unknown])))
-        #expect(!excluded(.init(inventory: inventory, membership: [42:.unknown], nonManaged: [42:["12"]])))
-        #expect(!excluded(.init(inventory: inventory, membership: [42:.known(recordIDs:["5"])], nonManaged: [42:["11"]])))
-        #expect(!excluded(.init(inventory: nil, membership: [42:.unknown], nonManaged: [42:["11"]])))
+        // Keep the local function's Bool outside #expect: Swift 6.3's macro
+        // expansion can discard its result when the argument uses .init.
+        let missingMembership = excluded(.init(inventory: inventory, membership: [42:.unknown]))
+        let changedMembership = excluded(.init(inventory: inventory, membership: [42:.unknown], nonManaged: [42:["12"]]))
+        let managedMembership = excluded(.init(inventory: inventory, membership: [42:.known(recordIDs:["5"])], nonManaged: [42:["11"]]))
+        let missingInventory = excluded(.init(inventory: nil, membership: [42:.unknown], nonManaged: [42:["11"]]))
+        #expect(!missingMembership)
+        #expect(!changedMembership)
+        #expect(!managedMembership)
+        #expect(!missingInventory)
     }
     @Test func unplacedSurfaceNeedsTwoEmptyInclusiveReadsAndCompleteNegativeOrdering() throws {
         let inventory = try #require(SpaceInventory(scope(records), displays: displays))
@@ -172,10 +178,14 @@ struct SpaceInventoryTests {
         #expect(!excluded(reported: true))
         for result in [excluded(cg: nil), excluded(active: nil), excluded(ordered: nil),
                        excluded(cg: [42]), excluded(active: [42]), excluded(ordered: [42])] { #expect(!result) }
-        #expect(!excluded(.init(inventory: inventory, membership: [42: .unknown])))
-        #expect(!excluded(.init(inventory: inventory, membership: [42: .known(recordIDs: ["5"])], unplaced: [42])))
-        #expect(!excluded(.init(inventory: inventory, membership: [42: .unknown], nonManaged: [42: ["11"]])))
-        #expect(!excluded(.init(inventory: nil, membership: [42: .unknown], unplaced: [42])))
+        let missingUnplacedEvidence = excluded(.init(inventory: inventory, membership: [42: .unknown]))
+        let managedMembership = excluded(.init(inventory: inventory, membership: [42: .known(recordIDs: ["5"])], unplaced: [42]))
+        let nonManagedMembership = excluded(.init(inventory: inventory, membership: [42: .unknown], nonManaged: [42: ["11"]]))
+        let missingInventory = excluded(.init(inventory: nil, membership: [42: .unknown], unplaced: [42]))
+        #expect(!missingUnplacedEvidence)
+        #expect(!managedMembership)
+        #expect(!nonManagedMembership)
+        #expect(!missingInventory)
     }
     @Test func orderingEvidenceNeverConvertsMissingMalformedOrDuplicateNumbersToAbsence() {
         #expect(Reader.windowNumberSet([]) == [])

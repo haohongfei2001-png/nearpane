@@ -12,6 +12,9 @@ import NearpaneCore
         source.setFillColor(red: 0.8, green: 0.18, blue: 0.35, alpha: 1)
         source.fill(CGRect(x: 0, y: 0, width: 40, height: 40))
         let image = try #require(source.makeImage())
+        // A standalone ImageRenderer has no NSWindow accessibility environment.
+        // Render and assert the same actual system setting, including reduced transparency.
+        let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         for scheme in [ColorScheme.light, .dark] {
             func render(_ transparency: Double?) throws -> NSBitmapImageRep {
                 var glass = PanelGlassSettings()
@@ -22,6 +25,7 @@ import NearpaneCore
                         if transparency != nil { SurfaceGlass(radius: 9, settings: glass) }
                     }
                     .environment(\.colorScheme, scheme)
+                    .environment(\.accessibilityReduceTransparency, reduceTransparency)
                 let renderer = ImageRenderer(content: view)
                 renderer.scale = 2
                 let result = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
@@ -69,7 +73,7 @@ import NearpaneCore
             #expect(ink > 25)
             let outside = try color(clear, 278, 58)
             let glassPixel = try color(solid, 278, 58)
-            if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            if reduceTransparency {
                 #expect(glassPixel.alphaComponent == 1 && outside.alphaComponent == 1)
             } else {
                 #expect(glassPixel.alphaComponent == 1 && outside.alphaComponent == 0)
@@ -117,6 +121,10 @@ import NearpaneCore
             try #require(host.bus.acceptDesktop(sample))
             let content: PanelContent = voice || tray ? .full : .spacesOnly
             controller.place(on: screen, primary: primary ? screen.id : "other-display", content: content)
+            // The live roster intentionally renders only for a presented panel. Exercise
+            // that existing lifecycle with synthetic observations and no domain services.
+            controller.presentIfNeeded()
+            try #require(window.isVisible && !window.isKeyWindow)
             surface.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .milliseconds(70))
             surface.displayIfNeeded()
@@ -183,11 +191,16 @@ import NearpaneCore
                     view is NSScrollView || view.subviews.contains { containsScroller($0) }
                 }
                 // The tools above the roster may have their own independent scroll view.
-                let desktopView = NSHostingView(rootView: DesktopSurface(host: host, displayID: screen.id, enabled: true)
+                // Supply the same presentation prerequisites to this isolated roster fixture.
+                let display = SurfaceDisplay()
+                display.id = screen.id
+                display.interactionVisible = true
+                let desktopView = NSHostingView(rootView: DesktopSurface(host: host, displayID: screen.id, enabled: true, display: display)
                     .frame(width: 220, height: 500))
                 desktopView.layoutSubtreeIfNeeded()
                 #expect(containsScroller(desktopView))
             }
+            controller.hide()
             #expect(!window.isVisible && !window.isKeyWindow)
         }
     }

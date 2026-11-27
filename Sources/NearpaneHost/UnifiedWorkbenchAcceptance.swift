@@ -27,19 +27,20 @@ enum UnifiedWorkbenchAcceptance {
         let originalNumber = window.windowNumber
         var sidebar: EdgeWindowController?
 
-        func check(_ name: String, _ success: Bool, detail: String) throws {
+        func check(_ name: String, _ success: Bool, detail: String, required: Bool = false) throws {
             checks.append(["check": name, "passed": success, "detail": detail])
-            guard success else { throw Failure(name + ": " + detail) }
+            guard success || !required else { throw Failure(name + ": " + detail) }
         }
         func writeReceipt(_ status: String, error: String? = nil) {
             var receipt: [String: Any] = [
-                "schema": 1, "status": status,
+                "schema": 2, "status": status,
                 "sourceCommit": Bundle.main.object(forInfoDictionaryKey: "NearpaneUnifiedWorkbenchCommit") as? String ?? "unknown",
                 "platform": ProcessInfo.processInfo.operatingSystemVersionString,
                 "evidenceScope": "Packaged Nearpane native UI; isolated generated content; in-process accessibility actions",
                 "playbackScope": "Synthetic snapshots only; does not certify a real music player's controls or metadata",
                 "spacesScope": "No real window dispatch was performed; PR 16 remains separately qualified",
                 "nativeMenuDispatchAttempted": menu != nil,
+                "interactionPolicy": "Failed native input stays FAIL; labelled programmatic routing may continue independent visual inspection",
                 "checks": checks, "screenshots": pictures
             ]
             if let error { receipt["error"] = error }
@@ -67,35 +68,53 @@ enum UnifiedWorkbenchAcceptance {
             window.center()
             pictures.append(try await capture(window, name: name, to: output))
         }
+        func input(_ identifier: String, name: String, expected: () -> Bool,
+                   fallback: () -> Void) async throws {
+            let dispatched = try await press(identifier, in: window, diagnostics: output)
+            let succeeded = dispatched && expected()
+            checks.append(["check": name, "passed": succeeded, "evidenceKind": "native-accessibility",
+                           "actionDispatched": dispatched, "identifier": identifier,
+                           "diagnostic": "ax-" + identifier + ".json",
+                           "detail": "Actual native accessibility press and resulting product state; a fallback cannot pass this check."])
+            if !succeeded {
+                fallback()
+                try await Task.sleep(for: .milliseconds(180))
+                checks.append(["check": name + "-visual-route-fallback", "passed": expected(),
+                               "evidenceKind": "programmatic-route",
+                               "detail": "Programmatic routing only, used to continue independent native screenshots after a failed input check."])
+            }
+        }
 
         do {
             try check("native-window-visible", window.isVisible && window.contentView != nil,
-                      detail: "The actual retained Nearpane management NSWindow is ordered on the cloud desktop.")
-            try check("single-main-window-initial", singleMainWindow(), detail: "Exactly one standard management window.")
+                      detail: "The actual retained Nearpane management NSWindow is ordered on the cloud desktop.", required: true)
+            try check("single-main-window-initial", singleMainWindow(), detail: "Exactly one standard management window.", required: true)
 
             navigation.showModules()
-            try await press("main-nav-modules", in: window)
-            try check("modules-navigation", navigation.selectedPageIdentifier == "modules", detail: "Native accessibility press selected Modules.")
+            // Preserve the actual UI before probing any accessibility bridge.
             try await picture("01-modules-light")
+            try await input("main-nav-modules", name: "modules-navigation",
+                            expected: { navigation.selectedPageIdentifier == "modules" }, fallback: navigation.showModules)
             try await picture("02-modules-dark", appearance: .darkAqua)
             try await picture("03-modules-compact", size: NSSize(width: 740, height: 520))
 
-            try await press("module-open-" + BuiltinCatalog.screenshots, in: window)
-            try check("module-detail-route", navigation.selectedPageIdentifier == "tray", detail: "Screenshot detail is inside the same window.")
+            try await input("module-open-" + BuiltinCatalog.screenshots, name: "module-detail-route",
+                            expected: { navigation.selectedPageIdentifier == "tray" },
+                            fallback: { navigation.showModule(BuiltinCatalog.screenshots) })
             try await picture("04-screenshot-module")
-            try await press("main-back-to-modules", in: window)
-            try check("module-detail-return", navigation.selectedPageIdentifier == "modules", detail: "The detail back action returns to Modules.")
+            try await input("main-back-to-modules", name: "module-detail-return",
+                            expected: { navigation.selectedPageIdentifier == "modules" }, fallback: navigation.showModules)
 
-            try await press("main-nav-library", in: window)
-            try check("library-navigation", navigation.selectedSectionIdentifier == "library", detail: "Native accessibility press entered the content library.")
+            try await input("main-nav-library", name: "library-navigation",
+                            expected: { navigation.selectedSectionIdentifier == "library" }, fallback: navigation.showLibrary)
             navigation.showVoiceArchive()
             try await picture("05-voice-library")
             navigation.showScreenshotArchive()
             try await picture("06-screenshot-library")
             try await picture("07-screenshot-library-dark", appearance: .darkAqua)
 
-            try await press("main-nav-settings", in: window)
-            try check("settings-navigation", navigation.selectedSectionIdentifier == "settings", detail: "Native accessibility press entered global settings.")
+            try await input("main-nav-settings", name: "settings-navigation",
+                            expected: { navigation.selectedSectionIdentifier == "settings" }, fallback: navigation.showGeneral)
             navigation.showGeneral()
             try await picture("08-settings-general")
             navigation.showAppearance()
@@ -139,9 +158,9 @@ enum UnifiedWorkbenchAcceptance {
             navigation.showModules()
             window.setContentSize(NSSize(width: 920, height: 660))
             let memoBefore = enabled(BuiltinCatalog.memo)
-            try await press("module-enabled-" + BuiltinCatalog.memo, in: window)
-            try check("module-toggle-native-action", enabled(BuiltinCatalog.memo) != memoBefore,
-                      detail: "The real module switch changed the Host registry.")
+            try await input("module-enabled-" + BuiltinCatalog.memo, name: "module-toggle-native-action",
+                            expected: { enabled(BuiltinCatalog.memo) != memoBefore },
+                            fallback: { host.handle(.setEnabled(BuiltinCatalog.memo, !memoBefore)) })
             host.handle(.setEnabled(BuiltinCatalog.memo, memoBefore))
 
             let moved = host.moveModule(BuiltinCatalog.screenshots, before: BuiltinCatalog.voice)
@@ -169,6 +188,20 @@ enum UnifiedWorkbenchAcceptance {
                     try check(name + "-unique", NSApp.windows.filter { $0 === panel }.count == 1 && panel.isVisible,
                               detail: "One actual EdgeWindowController panel renders the selected module combination.")
                 }
+                if let panel = edge.window {
+                    panel.appearance = NSAppearance(named: .darkAqua)
+                    pictures.append(try await capture(panel, name: "13-sidebar-screenshots-dark", to: output))
+                }
+                await enableOnly(Set(host.registry.manifests.map(\.id)))
+                _ = modules.installLyricsVerificationState("playing")
+                edge.place(on: screen, primary: screen.id, content: .full)
+                edge.presentIfNeeded()
+                if let panel = edge.window {
+                    panel.appearance = NSAppearance(named: .aqua)
+                    pictures.append(try await capture(panel, name: "13-all-tools-clock-spaces-layout", to: output))
+                    try check("all-modules-layout", panel.isVisible && singleMainWindow(),
+                              detail: "The actual full sidebar lays out all registered modules, clock and Spaces. Synthetic content; no real window dispatch.")
+                }
                 await enableOnly([BuiltinCatalog.screenshots, BuiltinCatalog.lyrics])
                 for state in ["playing", "paused", "noLyrics"] {
                     try check("lyrics-fixture-" + state, modules.installLyricsVerificationState(state),
@@ -184,6 +217,26 @@ enum UnifiedWorkbenchAcceptance {
                         try await Task.sleep(for: .milliseconds(650))
                         try check("paused-card-survives-refresh", modules.lyricsVerificationHeight == expected,
                                   detail: "Native fixture view remained present across refreshes; long pauses are separately covered by clock-driven source tests.")
+                        // Isolate the actual lyric card solely to locate its center
+                        // from native geometry; no handcrafted view or hover flag.
+                        await enableOnly([BuiltinCatalog.lyrics])
+                        edge.place(on: screen, primary: screen.id, content: .toolsOnly)
+                        edge.presentIfNeeded()
+                        _ = await movePointer(to: NSPoint(x: panel.frame.minX - 40, y: panel.frame.midY))
+                        let cleared = modules.clearLyricsVerificationControls()
+                        let moved = await movePointer(to: NSPoint(x: panel.frame.midX, y: panel.frame.midY))
+                        try check("paused-native-hover-controls", cleared && moved && modules.lyricsVerificationControlsVisible,
+                                  detail: "A native cursor move into the actual paused lyric card exercised SwiftUI hover after clearing only fixture controls.")
+                        pictures.append(try await capture(panel, name: "lyrics-paused-native-hover", to: output))
+                        let playButtons = accessibilityNodes(in: panel).filter { $0.identifier == "lyric-playback-toggle" }
+                        checks.append(["check": "paused-play-control-fixture-scope",
+                                       "passed": !playButtons.isEmpty && !modules.lyricsVerificationOwnsSession,
+                                       "evidenceKind": "native-accessibility-inspection",
+                                       "matchingNodes": playButtons.count,
+                                       "enabledNodes": playButtons.filter(\.enabled).count,
+                                       "detail": "The paused control is inspected in the real native view. Fixture has no player lease, so disabled input is expected; actual resume belongs to the separate Music probe."])
+                        _ = await movePointer(to: NSPoint(x: panel.frame.minX - 40, y: panel.frame.midY))
+                        await enableOnly([BuiltinCatalog.screenshots, BuiltinCatalog.lyrics])
                         for detail in ["settings", "fullLyrics", "source", "adjustment"] {
                             navigation.showLyrics(detail)
                             let opened = openMainWindow()
@@ -219,8 +272,18 @@ enum UnifiedWorkbenchAcceptance {
             }
             try check("configuration-restored", host.registry.preferences == originalPreferences,
                       detail: "The fixture returns to the original module preferences after verification.")
+            window.performClose(nil)
+            try await Task.sleep(for: .milliseconds(180))
+            try check("main-window-close", !window.isVisible,
+                      detail: "The production retained management window handles a native close action.")
+            let reopened = openMainWindow()
+            try await Task.sleep(for: .milliseconds(180))
+            try check("main-window-reopen", reopened === window && window.isVisible && singleMainWindow(),
+                      detail: "After close, the production opener shows the same retained NSWindow object; its WindowServer number may change.")
             try check("single-main-window-final", singleMainWindow(), detail: "No route or module action created a second management window.")
             sidebar?.hide()
+            let failures = checks.filter { ($0["passed"] as? Bool) == false }.count
+            guard failures == 0 else { throw Failure("\(failures) verification checks failed; native images and separate input diagnostics were preserved.") }
             writeReceipt("PASS")
         } catch {
             sidebar?.hide()
@@ -229,24 +292,142 @@ enum UnifiedWorkbenchAcceptance {
         }
     }
 
-    private static func press(_ identifier: String, in window: NSWindow) async throws {
-        for _ in 0..<20 {
-            window.contentView?.layoutSubtreeIfNeeded()
-            var queue: [AnyObject] = [window]
-            var visited = Set<ObjectIdentifier>()
-            while let object = queue.popLast(), visited.count < 2_400 {
-                guard visited.insert(ObjectIdentifier(object)).inserted,
-                      let node = object as? any NSAccessibilityProtocol else { continue }
-                if node.accessibilityIdentifier() == identifier, node.isAccessibilityEnabled(),
-                   node.accessibilityRole() != .staticText, node.accessibilityPerformPress() {
-                    try await Task.sleep(for: .milliseconds(180))
-                    return
-                }
-                queue.append(contentsOf: (node.accessibilityChildren() ?? []).map { $0 as AnyObject })
+    private static func movePointer(to screenPoint: NSPoint) async -> Bool {
+        guard let mainScreen = NSScreen.screens.first else { return false }
+        let point = CGPoint(x: screenPoint.x, y: mainScreen.frame.maxY - screenPoint.y)
+        guard CGWarpMouseCursorPosition(point) == .success,
+              let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                                  mouseCursorPosition: point, mouseButton: .left) else { return false }
+        event.post(tap: .cghidEventTap)
+        try? await Task.sleep(for: .milliseconds(450))
+        return true
+    }
+
+    private struct AccessibilityNode {
+        let object: AnyObject
+        let parent: Int?
+        let role: String
+        let identifier: String
+        let label: String
+        let enabled: Bool
+        let bridge: String
+    }
+
+    /// SwiftUI may vend Objective-C accessibility objects without declaring the
+    /// formal NSAccessibilityProtocol. Inspect public selectors as well as native
+    /// view children so a protocol bridge gap is visible in the diagnostic record.
+    /// Input still uses the typed native protocol; inspection never implies input.
+    private static func accessibilityNodes(in window: NSWindow) -> [AccessibilityNode] {
+        var queue: [(AnyObject, Int?)] = [(window, nil)]
+        if let view = window.contentView { queue.append((view, nil)) }
+        var visited = Set<ObjectIdentifier>()
+        var result: [AccessibilityNode] = []
+        while let (object, parent) = queue.popLast(), visited.count < 2_400 {
+            guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
+            let node = object as? any NSAccessibilityProtocol
+            let role = node?.accessibilityRole()?.rawValue
+                ?? objectValue(object, "accessibilityRole") as? String
+                ?? legacyValue(object, "AXRole") as? String ?? ""
+            let identifier = node?.accessibilityIdentifier()
+                ?? objectValue(object, "accessibilityIdentifier") as? String
+                ?? legacyValue(object, "AXIdentifier") as? String ?? ""
+            let label = node?.accessibilityLabel()
+                ?? objectValue(object, "accessibilityLabel") as? String
+                ?? legacyValue(object, "AXDescription") as? String
+                ?? legacyValue(object, "AXTitle") as? String ?? ""
+            let enabled = node?.isAccessibilityEnabled()
+                ?? legacyValue(object, "AXEnabled") as? Bool ?? false
+            let index = result.count
+            result.append(.init(object: object, parent: parent, role: role, identifier: identifier,
+                                label: String(label.prefix(120)), enabled: enabled,
+                                bridge: node != nil ? "NSAccessibilityProtocol" : "public selectors (inspection only)"))
+            let children = node?.accessibilityChildren()
+                ?? objectValue(object, "accessibilityChildren") as? [Any]
+                ?? legacyValue(object, "AXChildren") as? [Any] ?? []
+            queue.append(contentsOf: children.map { ($0 as AnyObject, index) })
+            if let view = object as? NSView {
+                queue.append(contentsOf: view.subviews.map { ($0, index) })
             }
+        }
+        return result
+    }
+
+    private static func objectValue(_ value: AnyObject, _ name: String) -> Any? {
+        guard let object = value as? NSObject else { return nil }
+        let selector = NSSelectorFromString(name)
+        guard object.responds(to: selector) else { return nil }
+        return object.perform(selector)?.takeUnretainedValue()
+    }
+
+    private static func legacyValue(_ value: AnyObject, _ attribute: String) -> Any? {
+        guard let object = value as? NSObject else { return nil }
+        let selector = NSSelectorFromString("accessibilityAttributeValue:")
+        guard object.responds(to: selector) else { return nil }
+        return object.perform(selector, with: attribute)?.takeUnretainedValue()
+    }
+
+    private static func press(_ identifier: String, in window: NSWindow, diagnostics output: URL) async throws -> Bool {
+        var rows: [AccessibilityNode] = []
+        var actions: [[String: Any]] = []
+        var dispatched = false
+        let interactive = Set(["AXButton", "AXCheckBox", "AXRadioButton", "AXSwitch", "AXMenuItem"])
+        for attempt in 0..<20 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            rows = accessibilityNodes(in: window)
+            var attempted = Set<ObjectIdentifier>()
+            for (index, match) in rows.enumerated() where match.identifier == identifier {
+                // An identifier can be attached to a SwiftUI label. Only its real
+                // interactive ancestor may receive the action; never press text.
+                var candidate: Int? = index
+                var depth = 0
+                while let current = candidate, !interactive.contains(rows[current].role), depth < 8 {
+                    candidate = rows[current].parent; depth += 1
+                }
+                guard let candidate, interactive.contains(rows[candidate].role) else {
+                    if attempt == 0 {
+                        actions.append(["matchedNode": index, "role": match.role, "identifier": match.identifier,
+                                        "method": "no interactive ancestor", "returned": false])
+                    }
+                    continue
+                }
+                let target = rows[candidate]
+                guard attempted.insert(ObjectIdentifier(target.object)).inserted else { continue }
+                guard target.enabled else {
+                    if attempt == 0 {
+                        actions.append(["matchedNode": index, "pressedNode": candidate, "role": target.role,
+                                        "identifier": target.identifier, "method": "disabled or unbridged node", "returned": false])
+                    }
+                    continue
+                }
+                let result: Bool
+                let method: String
+                if let node = target.object as? any NSAccessibilityProtocol {
+                    result = node.accessibilityPerformPress(); method = "NSAccessibilityProtocol.accessibilityPerformPress"
+                } else {
+                    result = false; method = "typed accessibility press unavailable"
+                }
+                actions.append(["attempt": attempt, "matchedNode": index, "pressedNode": candidate,
+                                "role": target.role, "identifier": target.identifier,
+                                "label": target.label, "method": method, "returned": result])
+                if result { dispatched = true; break }
+            }
+            if dispatched { try await Task.sleep(for: .milliseconds(180)); break }
             try await Task.sleep(for: .milliseconds(100))
         }
-        throw Failure("Native accessibility action was unavailable: " + identifier)
+        let dump: [String: Any] = [
+            "identifier": identifier, "actionDispatched": dispatched, "actions": actions,
+            "windowNumber": window.windowNumber, "windowVisible": window.isVisible,
+            "nodeCount": rows.count, "truncated": rows.count > 400,
+            "matchingNodes": rows.enumerated().filter { $0.element.identifier == identifier }.map { $0.offset },
+            "nodes": rows.prefix(400).enumerated().map { index, row -> [String: Any] in
+                ["node": index, "parent": row.parent ?? -1,
+                 "class": String(reflecting: Swift.type(of: row.object)), "bridge": row.bridge,
+                 "role": row.role, "identifier": row.identifier, "label": row.label, "enabled": row.enabled]
+            }
+        ]
+        let data = try JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted, .sortedKeys])
+        try data.write(to: output.appendingPathComponent("ax-" + identifier + ".json"), options: .atomic)
+        return dispatched
     }
 
     private static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
