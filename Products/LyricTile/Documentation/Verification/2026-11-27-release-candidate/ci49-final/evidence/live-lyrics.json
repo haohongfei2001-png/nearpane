@@ -1,0 +1,817 @@
+{
+  "actualPlayerPlayback" : false,
+  "evidenceClass" : "live_network_production_provider_and_repository",
+  "generatedAt" : "2026-11-27T15:34:37Z",
+  "independentlyVerifiedAudioIdentity" : false,
+  "lyricTextIncluded" : false,
+  "results" : [
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 339.34,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "31125c174a5e9cf5a1789a088e6ba42e3ee5b24ae7fddf444e9e48b5c70edc45",
+          "cueCount" : 39,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "17788",
+          "timing" : "token",
+          "tokenCount" : 84
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 2.08,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "31125c174a5e9cf5a1789a088e6ba42e3ee5b24ae7fddf444e9e48b5c70edc45",
+          "cueCount" : 39,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "17788",
+          "timing" : "token",
+          "tokenCount" : 84
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 14113,
+          "milliseconds" : 319.66,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "叶惠美",
+        "artist" : "周杰伦",
+        "category" : "chinese",
+        "durationMS" : 269000,
+        "id" : "zh-qingtian",
+        "title" : "晴天"
+      },
+      "second" : {
+        "milliseconds" : 3.88,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "31125c174a5e9cf5a1789a088e6ba42e3ee5b24ae7fddf444e9e48b5c70edc45",
+          "cueCount" : 39,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "17788",
+          "timing" : "token",
+          "tokenCount" : 84
+        }
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 580.53,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "bcf0cf7e7be85e09e87e05e922224e801ab0f1681e39e88bcf81a2ca96b4d3dd",
+          "cueCount" : 42,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6716674",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 1.46,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "bcf0cf7e7be85e09e87e05e922224e801ab0f1681e39e88bcf81a2ca96b4d3dd",
+          "cueCount" : 42,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6716674",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 8592,
+          "milliseconds" : 175.77,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "魔杰座",
+        "artist" : "周杰伦",
+        "category" : "chinese",
+        "durationMS" : 223000,
+        "id" : "zh-daoxiang",
+        "title" : "稻香"
+      },
+      "second" : {
+        "milliseconds" : 1.15,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "bcf0cf7e7be85e09e87e05e922224e801ab0f1681e39e88bcf81a2ca96b4d3dd",
+          "cueCount" : 42,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6716674",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 529.95,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "0f03c0a0ba2971df2791314f192a0156ba388c124e7a068a9b0dfe47ad5675a3",
+          "cueCount" : 26,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "5708627",
+          "timing" : "token",
+          "tokenCount" : 44
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 2.99,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "0f03c0a0ba2971df2791314f192a0156ba388c124e7a068a9b0dfe47ad5675a3",
+          "cueCount" : 26,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "5708627",
+          "timing" : "token",
+          "tokenCount" : 44
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 8444,
+          "milliseconds" : 172.48,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "黑·白·灰",
+        "artist" : "陈奕迅",
+        "category" : "chinese",
+        "durationMS" : 205000,
+        "id" : "zh-shinian",
+        "title" : "十年"
+      },
+      "second" : {
+        "milliseconds" : 3.15,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "0f03c0a0ba2971df2791314f192a0156ba388c124e7a068a9b0dfe47ad5675a3",
+          "cueCount" : 26,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "5708627",
+          "timing" : "token",
+          "tokenCount" : 44
+        }
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 596.75,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "749710b777ede4edd0d47d6d66320e38a68ae0c762d5187ed656852e78522b39",
+          "cueCount" : 44,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6066435",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 2.79,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "749710b777ede4edd0d47d6d66320e38a68ae0c762d5187ed656852e78522b39",
+          "cueCount" : 44,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6066435",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 6917,
+          "milliseconds" : 186.61,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "Parachutes",
+        "artist" : "Coldplay",
+        "category" : "english",
+        "durationMS" : 269000,
+        "id" : "en-yellow",
+        "title" : "Yellow"
+      },
+      "second" : {
+        "milliseconds" : 2.37,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "749710b777ede4edd0d47d6d66320e38a68ae0c762d5187ed656852e78522b39",
+          "cueCount" : 44,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "6066435",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 545.78,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "d1dd5994fbb00b2edd25170af10a40ceac66bf0f610b470b27d9ed7634c82f4e",
+          "cueCount" : 48,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "197097",
+          "timing" : "token",
+          "tokenCount" : 365
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 3.2,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "d1dd5994fbb00b2edd25170af10a40ceac66bf0f610b470b27d9ed7634c82f4e",
+          "cueCount" : 48,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "197097",
+          "timing" : "token",
+          "tokenCount" : 365
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 26448,
+          "milliseconds" : 170.3,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "25",
+        "artist" : "Adele",
+        "category" : "english",
+        "durationMS" : 295000,
+        "id" : "en-hello",
+        "title" : "Hello"
+      },
+      "second" : {
+        "milliseconds" : 3.49,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "d1dd5994fbb00b2edd25170af10a40ceac66bf0f610b470b27d9ed7634c82f4e",
+          "cueCount" : 48,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "197097",
+          "timing" : "token",
+          "tokenCount" : 365
+        }
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 552.59,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "7ce5287be515a1fbe70acafe1357b332052226d99e3f9aabe03745b8ea3799a5",
+          "cueCount" : 93,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "960340",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 2.93,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "7ce5287be515a1fbe70acafe1357b332052226d99e3f9aabe03745b8ea3799a5",
+          "cueCount" : 93,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "960340",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 18911,
+          "milliseconds" : 172.74,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "÷",
+        "artist" : "Ed Sheeran",
+        "category" : "english",
+        "durationMS" : 234000,
+        "id" : "en-shape-of-you",
+        "title" : "Shape of You"
+      },
+      "second" : {
+        "milliseconds" : 2.34,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "7ce5287be515a1fbe70acafe1357b332052226d99e3f9aabe03745b8ea3799a5",
+          "cueCount" : 93,
+          "instrumental" : false,
+          "kind" : "document",
+          "providerRecordID" : "960340",
+          "timing" : "line",
+          "tokenCount" : 0
+        }
+      }
+    },
+    {
+      "first" : {
+        "milliseconds" : 1058.57,
+        "networkRequests" : 2,
+        "resolution" : {
+          "candidateCount" : 20,
+          "candidates" : [
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "4059011",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Coldplay: Then and Now (Live)",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 246000,
+                "fingerprint" : "lrclib:4059011",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "4059011"
+                  }
+                ],
+                "title" : "Yellow - Live",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "704651",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Live 2012",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 412000,
+                "fingerprint" : "lrclib:704651",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "704651"
+                  }
+                ],
+                "title" : "Yellow (Live)",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "30577998",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Live at Lowlands Festival",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 283000,
+                "fingerprint" : "lrclib:30577998",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "30577998"
+                  }
+                ],
+                "title" : "Yellow (live)",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "30458019",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Live at Glastonbury Festival 2000",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 284000,
+                "fingerprint" : "lrclib:30458019",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "30458019"
+                  }
+                ],
+                "title" : "Yellow (live)",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "29674663",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Essential Glastonbury",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 337000,
+                "fingerprint" : "lrclib:29674663",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "29674663"
+                  }
+                ],
+                "title" : "Yellow [Live]",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            }
+          ],
+          "kind" : "candidates"
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 9011,
+          "milliseconds" : 170.73,
+          "path" : "\/api\/get",
+          "status" : 200
+        },
+        {
+          "bodyBytes" : 174081,
+          "milliseconds" : 190.79,
+          "path" : "\/api\/search",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "artist" : "Coldplay",
+        "category" : "version_query",
+        "id" : "en-live-version",
+        "title" : "Yellow (Live)"
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 545.51,
+        "networkRequests" : 1,
+        "resolution" : {
+          "contentHash" : "b9e7dc36f49be8e8ca17977bc12ef430d1b01e4c215fb7dfd1e7688401bc432d",
+          "cueCount" : 0,
+          "instrumental" : true,
+          "kind" : "document",
+          "providerRecordID" : "9207575",
+          "timing" : "none",
+          "tokenCount" : 0
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 2.23,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "b9e7dc36f49be8e8ca17977bc12ef430d1b01e4c215fb7dfd1e7688401bc432d",
+          "cueCount" : 0,
+          "instrumental" : true,
+          "kind" : "document",
+          "providerRecordID" : "9207575",
+          "timing" : "none",
+          "tokenCount" : 0
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 395,
+          "milliseconds" : 172.97,
+          "path" : "\/api\/get",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "album" : "Una Mattina",
+        "artist" : "Ludovico Einaudi",
+        "category" : "instrumental",
+        "durationMS" : 358000,
+        "id" : "instrumental",
+        "title" : "Nuvole Bianche"
+      },
+      "second" : {
+        "milliseconds" : 1.44,
+        "networkRequests" : 0,
+        "resolution" : {
+          "contentHash" : "b9e7dc36f49be8e8ca17977bc12ef430d1b01e4c215fb7dfd1e7688401bc432d",
+          "cueCount" : 0,
+          "instrumental" : true,
+          "kind" : "document",
+          "providerRecordID" : "9207575",
+          "timing" : "none",
+          "tokenCount" : 0
+        }
+      }
+    },
+    {
+      "first" : {
+        "milliseconds" : 1147.44,
+        "networkRequests" : 2,
+        "resolution" : {
+          "candidateCount" : 21,
+          "candidates" : [
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "7242265",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Q Awards: The Album",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 271000,
+                "fingerprint" : "lrclib:7242265",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "7242265"
+                  }
+                ],
+                "title" : "Yellow",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "7831633",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "2000's (Hi-Res Masters)",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 267000,
+                "fingerprint" : "lrclib:7831633",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "7831633"
+                  }
+                ],
+                "title" : "Yellow",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "token",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "8153736",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "100 Greatest Happy Songs",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 267000,
+                "fingerprint" : "lrclib:8153736",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "8153736"
+                  }
+                ],
+                "title" : "Yellow",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "token",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "8188786",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Now That's What I Call Music! 46 - CD 1",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 267000,
+                "fingerprint" : "lrclib:8188786",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "8188786"
+                  }
+                ],
+                "title" : "Yellow",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "token",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            },
+            {
+              "automaticallyAcceptable" : false,
+              "mainArtistMatch" : true,
+              "providerRecordID" : "7754279",
+              "reasons" : [
+                "duration_unknown"
+              ],
+              "recording" : {
+                "album" : "Greatest Hits",
+                "artists" : [
+                  "Coldplay"
+                ],
+                "durationMS" : 270000,
+                "fingerprint" : "lrclib:7754279",
+                "platformIDs" : [
+                  {
+                    "namespace" : "lrclib",
+                    "value" : "7754279"
+                  }
+                ],
+                "title" : "Yellow",
+                "versionTags" : [
+
+                ]
+              },
+              "timing" : "line",
+              "titleSimilarity" : 1,
+              "versionConflict" : false
+            }
+          ],
+          "kind" : "candidates"
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 15565,
+          "milliseconds" : 172.23,
+          "path" : "\/api\/get",
+          "status" : 200
+        },
+        {
+          "bodyBytes" : 222974,
+          "milliseconds" : 189.31,
+          "path" : "\/api\/search",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "artist" : "Coldplay",
+        "category" : "incomplete_metadata_control",
+        "id" : "missing-duration",
+        "title" : "Yellow"
+      }
+    },
+    {
+      "cacheVerified" : true,
+      "first" : {
+        "milliseconds" : 1192.55,
+        "networkRequests" : 2,
+        "resolution" : {
+          "kind" : "not_found"
+        }
+      },
+      "reopenedOffline" : {
+        "milliseconds" : 0.58,
+        "networkRequests" : 0,
+        "resolution" : {
+          "kind" : "not_found"
+        }
+      },
+      "requests" : [
+        {
+          "bodyBytes" : 84,
+          "milliseconds" : 171.14,
+          "path" : "\/api\/get",
+          "status" : 404
+        },
+        {
+          "bodyBytes" : 2,
+          "milliseconds" : 174.25,
+          "path" : "\/api\/search",
+          "status" : 200
+        }
+      ],
+      "sample" : {
+        "artist" : "HOLDSNOW Service Probe",
+        "category" : "nonexistent_control",
+        "durationMS" : 61000,
+        "id" : "nonexistent",
+        "title" : "LyricTile Verification 52b4ac754e55 No Such Recording"
+      },
+      "second" : {
+        "milliseconds" : 0.2,
+        "networkRequests" : 0,
+        "resolution" : {
+          "kind" : "not_found"
+        }
+      }
+    }
+  ],
+  "sampleDescription" : "Ten fixed supplied-metadata queries; observational, not a catalogue coverage estimate. Duration\/version differences remain visible in candidate results.",
+  "schemaVersion" : 1,
+  "temporaryCacheRemoved" : true
+}

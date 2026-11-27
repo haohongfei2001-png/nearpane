@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-27T15:45:31.027684+00:00",
+  "runID": 46024615269,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "artifactID": 15211393789,
+  "artifactZIPBytes": 28010599,
+  "artifactZIP_SHA256": "64908b6e71948b27d3a59c0782c03c3d869f1847b2fc76ee1f04c61f6cb37b79",
+  "scope": "Actual CI49 measured performance, real local-player line progress and separate real online-song checkpoints. No signing/notarization, entire catalog, acoustic/word precision or fresh long-soak assertion.",
+  "players": [
+    {
+      "player": "Music",
+      "artifactDirectory": "real-music",
+      "nativeStatus": "PASS",
+      "nativeCheckCount": 24,
+      "metrics": {
+        "durationSeconds": 60.802090582999995,
+        "samples": 55,
+        "cpuMeanPercentOneCore": 2.0065217370444324,
+        "cpuP95PercentOneCore": 3.524061671093155,
+        "rssMedianMiB": 83.09375,
+        "rssPeakMiB": 83.125,
+        "cpuBudgetPercentOneCore": 1,
+        "aggregateCPUSecondsRecomputed": 1.22,
+        "sampleObservationIntervalSeconds": 60.801733540999976,
+        "summaryRecomputedFromSamples": true,
+        "observedCommands": [
+          "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile"
+        ],
+        "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+      },
+      "postHoldDisplayedCueVersusSource": {
+        "afterCueIndex": 9,
+        "beforeCueIndex": 0,
+        "currentCueStartMS": 72000,
+        "independentAcousticClockQualification": false,
+        "lookupMS": 76414,
+        "nextCueStartMS": 80000,
+        "passed": true,
+        "publicationToleranceMS": 250,
+        "scope": "displayed original LRC cue versus the actual player source position",
+        "sourcePositionMS": 76414
+      },
+      "pointerStop": {
+        "status": "COMPLETED",
+        "stoppedByCaller": true,
+        "helperExitCode": 0
+      },
+      "measurementBoundary": "Input helper was stopped and waited before measure-runtime; helper commands are absent from sampled app process tree.",
+      "withinOnePercentReference": false,
+      "permissionUIStop": {
+        "status": "COMPLETED",
+        "helperExitCode": -15
+      },
+      "permissionUIStopScope": "SIGTERM stop completed before runtime sampling; this was caller cleanup, not helper exit0."
+    },
+    {
+      "player": "QQ Music",
+      "artifactDirectory": "cloud-clients/qqMusic/native-player",
+      "nativeStatus": "PASS",
+      "nativeCheckCount": 18,
+      "metrics": {
+        "durationSeconds": 60.23256766600002,
+        "samples": 54,
+        "cpuMeanPercentOneCore": 2.158317824212239,
+        "cpuP95PercentOneCore": 4.523437400647139,
+        "rssMedianMiB": 92.765625,
+        "rssPeakMiB": 112.578125,
+        "cpuBudgetPercentOneCore": 1,
+        "aggregateCPUSecondsRecomputed": 1.3,
+        "sampleObservationIntervalSeconds": 60.23209304099987,
+        "summaryRecomputedFromSamples": true,
+        "observedCommands": [
+          "(perl)",
+          "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile",
+          "/usr/bin/perl"
+        ],
+        "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+      },
+      "postHoldDisplayedCueVersusSource": {
+        "afterCueIndex": 20,
+        "beforeCueIndex": 8,
+        "currentCueStartMS": 160000,
+        "independentAcousticClockQualification": false,
+        "lookupMS": 166294,
+        "nextCueStartMS": 168000,
+        "passed": true,
+        "publicationToleranceMS": 250,
+        "scope": "displayed original LRC cue versus the actual player source position",
+        "sourcePositionMS": 166294
+      },
+      "pointerStop": {
+        "status": "COMPLETED",
+        "stoppedByCaller": true,
+        "helperExitCode": 0
+      },
+      "measurementBoundary": "Input helper was stopped and waited before measure-runtime; helper commands are absent from sampled app process tree.",
+      "withinOnePercentReference": false,
+      "wallpaperRestoredBeforeMeasurement": true
+    },
+    {
+      "player": "NetEase",
+      "artifactDirectory": "cloud-clients/netease/native-player",
+      "nativeStatus": "PASS",
+      "nativeCheckCount": 18,
+      "metrics": {
+        "durationSeconds": 60.75592483300011,
+        "samples": 54,
+        "cpuMeanPercentOneCore": 1.678857505052035,
+        "cpuP95PercentOneCore": 4.134815524555977,
+        "rssMedianMiB": 95.40625,
+        "rssPeakMiB": 115.390625,
+        "cpuBudgetPercentOneCore": 1,
+        "aggregateCPUSecondsRecomputed": 1.02,
+        "sampleObservationIntervalSeconds": 60.755602958000054,
+        "summaryRecomputedFromSamples": true,
+        "observedCommands": [
+          "(perl)",
+          "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile",
+          "/usr/bin/perl"
+        ],
+        "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+      },
+      "postHoldDisplayedCueVersusSource": {
+        "afterCueIndex": 20,
+        "beforeCueIndex": 8,
+        "currentCueStartMS": 160000,
+        "independentAcousticClockQualification": false,
+        "lookupMS": 166747,
+        "nextCueStartMS": 168000,
+        "passed": true,
+        "publicationToleranceMS": 250,
+        "scope": "displayed original LRC cue versus the actual player source position",
+        "sourcePositionMS": 166747
+      },
+      "pointerStop": {
+        "status": "COMPLETED",
+        "stoppedByCaller": true,
+        "helperExitCode": 0
+      },
+      "measurementBoundary": "Input helper was stopped and waited before measure-runtime; helper commands are absent from sampled app process tree.",
+      "withinOnePercentReference": false
+    }
+  ],
+  "idle": {
+    "durationSeconds": 120.58096433399999,
+    "samples": 105,
+    "cpuMeanPercentOneCore": 0.1575710898605815,
+    "cpuP95PercentOneCore": 0.9221276284335967,
+    "rssMedianMiB": 55.125,
+    "rssPeakMiB": 55.1875,
+    "cpuBudgetPercentOneCore": 0.3,
+    "aggregateCPUSecondsRecomputed": 0.19,
+    "sampleObservationIntervalSeconds": 120.58049491700001,
+    "summaryRecomputedFromSamples": true,
+    "observedCommands": [
+      "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile"
+    ],
+    "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+  },
+  "liveLyrics": {
+    "generatedAt": "2026-11-27T15:34:37Z",
+    "chineseStandardDocuments": "3/3",
+    "englishStandardDocuments": "3/3",
+    "standardLatencyMS": {
+      "min": 339.34,
+      "max": 596.75,
+      "mean": 524.1566666666666,
+      "median": 549.185
+    },
+    "positiveDocumentCacheHashMatches": "7/7",
+    "secondReadMS": {
+      "min": 1.15,
+      "max": 3.88,
+      "mean": 2.545714285714286,
+      "median": 2.37
+    },
+    "sameProcessOfflineRepositoryReopenMS": {
+      "min": 1.46,
+      "max": 3.2,
+      "mean": 2.525714285714286,
+      "median": 2.79
+    },
+    "secondAndOfflineNewRequests": 0,
+    "instrumental": {
+      "kind": "document",
+      "instrumental": true,
+      "cueCount": 0
+    },
+    "liveVersionCandidateCount": 20,
+    "missingDurationCandidateCount": 21,
+    "nonexistentResult": "not_found",
+    "negativeCache": {
+      "cacheVerified": true,
+      "second": {
+        "milliseconds": 0.2,
+        "networkRequests": 0,
+        "resolution": {
+          "kind": "not_found"
+        }
+      },
+      "reopenedOffline": {
+        "milliseconds": 0.58,
+        "networkRequests": 0,
+        "resolution": {
+          "kind": "not_found"
+        }
+      }
+    },
+    "actualPlayerPlayback": false,
+    "independentlyVerifiedAudioIdentity": false,
+    "lyricTextIncluded": false,
+    "temporaryCacheRemoved": true,
+    "limits": "Fixed metadata samples and actual service/cache reads, not catalog-wide matching accuracy or physical network-disconnect/reconnect testing."
+  },
+  "onlineSong": {
+    "status": "PASS_REAL_ONLINE_SONG",
+    "checks": "7/7",
+    "elapsedSeconds": 17.149,
+    "actualMusicPersistentID": "77863FE6ED5412E5",
+    "sourceCache": {
+      "providerRecordID": "332580",
+      "originalFormat": "lyricsfileV1Draft",
+      "timingLevel": "token",
+      "cueCount": 54,
+      "observedResolutionSeconds": 1.3823597500000915,
+      "rawPayloadSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+      "documentContentSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+      "automaticIndexBindingVerified": true,
+      "cacheWasInitiallyEmpty": true,
+      "wordSynchronizationQualified": false
+    },
+    "realMusicSeekTargetSeconds": 7.09,
+    "observations": [
+      {
+        "index": 1,
+        "passed": false,
+        "beforeMusicMS": 1696,
+        "afterMusicMS": 1896,
+        "expectedCueIndex": 0,
+        "expectedCueSHA256": "c49840c959b6bbb431d7f0609a52a1cf0fd3b0bd3b89b78dfe3df13f13d7872f",
+        "nativeStatus": "BLOCKED",
+        "nativeReason": "No unique visible LyricTile window of at least 100 by 100 points.",
+        "nativeCenterTextHashes": [],
+        "hitBelongsToTargetWindow": false
+      },
+      {
+        "index": 2,
+        "passed": false,
+        "beforeMusicMS": 2464,
+        "afterMusicMS": 2647,
+        "expectedCueIndex": null,
+        "expectedCueSHA256": null,
+        "nativeStatus": "BLOCKED",
+        "nativeReason": "No unique visible LyricTile window of at least 100 by 100 points.",
+        "nativeCenterTextHashes": [],
+        "hitBelongsToTargetWindow": false
+      },
+      {
+        "index": 3,
+        "passed": false,
+        "beforeMusicMS": 3196,
+        "afterMusicMS": 3415,
+        "expectedCueIndex": null,
+        "expectedCueSHA256": null,
+        "nativeStatus": "BLOCKED",
+        "nativeReason": "No unique visible LyricTile window of at least 100 by 100 points.",
+        "nativeCenterTextHashes": [],
+        "hitBelongsToTargetWindow": false
+      },
+      {
+        "index": 4,
+        "passed": true,
+        "beforeMusicMS": 4048,
+        "afterMusicMS": 4298,
+        "expectedCueIndex": 1,
+        "expectedCueSHA256": "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae",
+        "nativeStatus": "OBSERVED",
+        "nativeReason": null,
+        "nativeCenterTextHashes": [
+          "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae"
+        ],
+        "hitBelongsToTargetWindow": true
+      },
+      {
+        "index": 5,
+        "passed": false,
+        "beforeMusicMS": 7600,
+        "afterMusicMS": 7865,
+        "expectedCueIndex": 2,
+        "expectedCueSHA256": "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6",
+        "nativeStatus": "OBSERVED",
+        "nativeReason": null,
+        "nativeCenterTextHashes": [
+          "135741f5dc742d3dc93db62d8f5ecb743fd9017f0a551a05cbc9e646ca71bcbb"
+        ],
+        "hitBelongsToTargetWindow": true
+      },
+      {
+        "index": 6,
+        "passed": false,
+        "beforeMusicMS": 8515,
+        "afterMusicMS": 8815,
+        "expectedCueIndex": 2,
+        "expectedCueSHA256": "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6",
+        "nativeStatus": "OBSERVED",
+        "nativeReason": null,
+        "nativeCenterTextHashes": [
+          "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6"
+        ],
+        "hitBelongsToTargetWindow": true
+      },
+      {
+        "index": 7,
+        "passed": false,
+        "beforeMusicMS": 9404,
+        "afterMusicMS": 9651,
+        "expectedCueIndex": null,
+        "expectedCueSHA256": null,
+        "nativeStatus": "OBSERVED",
+        "nativeReason": null,
+        "nativeCenterTextHashes": [
+          "135741f5dc742d3dc93db62d8f5ecb743fd9017f0a551a05cbc9e646ca71bcbb"
+        ],
+        "hitBelongsToTargetWindow": true
+      },
+      {
+        "index": 8,
+        "passed": true,
+        "beforeMusicMS": 10249,
+        "afterMusicMS": 10432,
+        "expectedCueIndex": 3,
+        "expectedCueSHA256": "18fdb93827fcbef585930542508c63da8d20e8b3a18f79e9155a48a40735b3fd",
+        "nativeStatus": "OBSERVED",
+        "nativeReason": null,
+        "nativeCenterTextHashes": [
+          "18fdb93827fcbef585930542508c63da8d20e8b3a18f79e9155a48a40735b3fd"
+        ],
+        "hitBelongsToTargetWindow": true
+      }
+    ],
+    "matchedObservations": 2,
+    "unmatchedObservations": 6,
+    "unavailableNativeWindowObservations": 3,
+    "cleanup": {
+      "privateAudioAndLyricsRemoved": true,
+      "previousApplicationSupportRestored": true,
+      "previousPreferencesRestored": true,
+      "errors": []
+    },
+    "scope": "Actual official recording via Music; ordinary production app automatic LRCLIB332580 and two native current-line hash checkpoints against actual source reads, one after a real seek.",
+    "limits": "Three early observations had no visible native window; three later observations did not satisfy the current-cue matching gate. All retained. Not zero latency, immediate seek response, full-song accuracy or independent acoustic/word timing. Cache observation time is not first-display or isolated HTTP latency."
+  }
+}

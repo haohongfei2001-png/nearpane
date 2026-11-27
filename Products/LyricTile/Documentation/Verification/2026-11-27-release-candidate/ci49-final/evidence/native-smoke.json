@@ -1,0 +1,460 @@
+{
+  "status": "PASS",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "observation": {
+    "appearance": "NSAppearanceNameAqua",
+    "backingScale": 1,
+    "check": "native-ui-load",
+    "height": 104,
+    "idlePanelHidden": true,
+    "language": "chinese",
+    "networkStarted": false,
+    "panelScreenshotSaved": false,
+    "passed": true,
+    "realPlayerTest": false,
+    "screenshotRequested": true,
+    "settings": {
+      "contentMounted": true,
+      "contentRegions": [],
+      "contentRegionsDoNotOverlap": true,
+      "contentRegionsPresent": true,
+      "contentWithinBounds": true,
+      "exists": true,
+      "expectedHeight": 620,
+      "expectedWidth": 450,
+      "height": 620,
+      "layoutPassed": true,
+      "passed": true,
+      "screenshotSaved": true,
+      "sizeMatchesDesign": true,
+      "visible": true,
+      "width": 450
+    },
+    "welcome": {
+      "contentMounted": true,
+      "contentRegions": [
+        {
+          "height": 44,
+          "id": "welcome-heading",
+          "width": 220,
+          "x": 24,
+          "y": 19
+        },
+        {
+          "height": 98,
+          "id": "welcome-preview",
+          "width": 346,
+          "x": 24,
+          "y": 79
+        },
+        {
+          "height": 50,
+          "id": "welcome-privacy",
+          "width": 351,
+          "x": 24,
+          "y": 193
+        },
+        {
+          "height": 30,
+          "id": "welcome-permission",
+          "width": 352,
+          "x": 24,
+          "y": 259
+        },
+        {
+          "height": 20,
+          "id": "welcome-actions",
+          "width": 132,
+          "x": 24,
+          "y": 321
+        }
+      ],
+      "contentRegionsDoNotOverlap": true,
+      "contentRegionsPresent": true,
+      "contentWithinBounds": true,
+      "exists": true,
+      "expectedHeight": 360,
+      "expectedWidth": 400,
+      "height": 360,
+      "layoutPassed": true,
+      "passed": true,
+      "screenshotSaved": true,
+      "sizeMatchesDesign": true,
+      "visible": true,
+      "width": 400
+    },
+    "width": 176
+  },
+  "variants": [
+    {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "language": "zh-Hans",
+      "appearance": "light",
+      "observation": {
+        "appearance": "NSAppearanceNameAqua",
+        "backingScale": 1,
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "language": "chinese",
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "contentRegions": [],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 620,
+          "expectedWidth": 450,
+          "height": 620,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "contentRegions": [
+            {
+              "height": 44,
+              "id": "welcome-heading",
+              "width": 220,
+              "x": 24,
+              "y": 19
+            },
+            {
+              "height": 98,
+              "id": "welcome-preview",
+              "width": 346,
+              "x": 24,
+              "y": 79
+            },
+            {
+              "height": 50,
+              "id": "welcome-privacy",
+              "width": 351,
+              "x": 24,
+              "y": 193
+            },
+            {
+              "height": 30,
+              "id": "welcome-permission",
+              "width": 352,
+              "x": 24,
+              "y": 259
+            },
+            {
+              "height": 20,
+              "id": "welcome-actions",
+              "width": 132,
+              "x": 24,
+              "y": 321
+            }
+          ],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 360,
+          "expectedWidth": 400,
+          "height": 360,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "language": "zh-Hans",
+      "appearance": "dark",
+      "observation": {
+        "appearance": "NSAppearanceNameDarkAqua",
+        "backingScale": 1,
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "language": "chinese",
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "contentRegions": [],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 620,
+          "expectedWidth": 450,
+          "height": 620,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "contentRegions": [
+            {
+              "height": 44,
+              "id": "welcome-heading",
+              "width": 220,
+              "x": 24,
+              "y": 19
+            },
+            {
+              "height": 98,
+              "id": "welcome-preview",
+              "width": 346,
+              "x": 24,
+              "y": 79
+            },
+            {
+              "height": 50,
+              "id": "welcome-privacy",
+              "width": 351,
+              "x": 24,
+              "y": 193
+            },
+            {
+              "height": 30,
+              "id": "welcome-permission",
+              "width": 352,
+              "x": 24,
+              "y": 259
+            },
+            {
+              "height": 20,
+              "id": "welcome-actions",
+              "width": 132,
+              "x": 24,
+              "y": 321
+            }
+          ],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 360,
+          "expectedWidth": 400,
+          "height": 360,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "language": "en",
+      "appearance": "light",
+      "observation": {
+        "appearance": "NSAppearanceNameAqua",
+        "backingScale": 1,
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "language": "english",
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "contentRegions": [],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 620,
+          "expectedWidth": 450,
+          "height": 620,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "contentRegions": [
+            {
+              "height": 44,
+              "id": "welcome-heading",
+              "width": 294,
+              "x": 24,
+              "y": 19
+            },
+            {
+              "height": 98,
+              "id": "welcome-preview",
+              "width": 319,
+              "x": 24,
+              "y": 79
+            },
+            {
+              "height": 50,
+              "id": "welcome-privacy",
+              "width": 352,
+              "x": 24,
+              "y": 193
+            },
+            {
+              "height": 30,
+              "id": "welcome-permission",
+              "width": 338,
+              "x": 24,
+              "y": 259
+            },
+            {
+              "height": 20,
+              "id": "welcome-actions",
+              "width": 184,
+              "x": 24,
+              "y": 321
+            }
+          ],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 360,
+          "expectedWidth": 400,
+          "height": 360,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "language": "en",
+      "appearance": "dark",
+      "observation": {
+        "appearance": "NSAppearanceNameDarkAqua",
+        "backingScale": 1,
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "language": "english",
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "contentRegions": [],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 620,
+          "expectedWidth": 450,
+          "height": 620,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "contentRegions": [
+            {
+              "height": 44,
+              "id": "welcome-heading",
+              "width": 294,
+              "x": 24,
+              "y": 19
+            },
+            {
+              "height": 98,
+              "id": "welcome-preview",
+              "width": 319,
+              "x": 24,
+              "y": 79
+            },
+            {
+              "height": 50,
+              "id": "welcome-privacy",
+              "width": 352,
+              "x": 24,
+              "y": 193
+            },
+            {
+              "height": 30,
+              "id": "welcome-permission",
+              "width": 338,
+              "x": 24,
+              "y": 259
+            },
+            {
+              "height": 20,
+              "id": "welcome-actions",
+              "width": 184,
+              "x": 24,
+              "y": 321
+            }
+          ],
+          "contentRegionsDoNotOverlap": true,
+          "contentRegionsPresent": true,
+          "contentWithinBounds": true,
+          "exists": true,
+          "expectedHeight": 360,
+          "expectedWidth": 400,
+          "height": 360,
+          "layoutPassed": true,
+          "passed": true,
+          "screenshotSaved": true,
+          "sizeMatchesDesign": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    }
+  ],
+  "realPlayerQualification": "NOT_RUN",
+  "displayScaleQualification": "OBSERVED_HOST_SCALE_ONLY"
+}

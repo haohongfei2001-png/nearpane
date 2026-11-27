@@ -1,0 +1,9 @@
+{
+  "status": "OBSERVED",
+  "qualificationGate": false,
+  "exitCode": 0,
+  "stdout": "LyricTile Cloud Acceptance 46024615269\tF7440639F92FB9F0\n",
+  "stderr": "",
+  "name": "LyricTile Cloud Acceptance 46024615269",
+  "persistentID": "F7440639F92FB9F0"
+}

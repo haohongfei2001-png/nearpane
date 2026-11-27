@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<testsuites>
+<testsuite name="TestResults" errors="0" tests="15" failures="0" time="7.131746708">
+<testcase classname="TileKitTests.TileKitTests" name="testCompactHeightReleasesGapAndExpansionWaitsForBothWindows" time="0.185002916">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testAReconnectedPreferredScreenDoesNotStealCurrentPlacement" time="0.185006542">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testCorruptRegistryIsNotSilentlyReplacedWithAnEmptyPlan" time="0.185015875">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testInvalidModuleCannotAliasAnUnrelatedSessionLock" time="0.127173292">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testDefaultOrderAndOverflowDoNotIntersectOrLeaveScreen" time="0.133900917">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testCustomOrderSurvivesCleanExitAndMultipleRelaunches" time="0.133934791">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLifetimeLeaseCannotBeAcquiredBySecondInstance" time="0.115916375">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLegacyWindowIsAvoidedAndNewMemberAppendsToUserOrder" time="0.115930292">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testLeaseAgeAloneNeverReclaimsVisibleMember" time="0.127435542">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testReorderWaitsForExplicitHideAndIndependentWindowAbsence" time="0.139122">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testSharedWidthUsesPointsAndReadableClamps" time="0.153564708">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathDuringWithdrawalDoesNotRestorePendingReservation" time="0.138460458">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testVerifiedDeathReclaimsReservationAndStillWaitsForSurvivorWithdrawal" time="0.170760542">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testPresentationRechecksGenerationInstanceAndPlacementUnderTheRegistryLock" time="2.609883416">
+</testcase>
+<testcase classname="TileKitTests.TileKitTests" name="testPendingContractionWaitsForPausedInteractionAndStopsCleanly" time="2.610639042">
+</testcase>
+</testsuite>
+</testsuites>

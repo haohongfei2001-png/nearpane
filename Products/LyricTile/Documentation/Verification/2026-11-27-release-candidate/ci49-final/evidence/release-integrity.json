@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "mode": "candidate",
+  "version": "1.0.0",
+  "build": "49",
+  "commit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "files": {
+    "LyricTile-1.0.0-49-candidate-arm64.zip": {
+      "bytes": 3964772,
+      "sha256": "94f3b9c6212480a182877f1f79aa3d85663e394c4927c59070d52e4de016cb8f"
+    },
+    "LyricTile-1.0.0-49-candidate-arm64.dmg": {
+      "bytes": 4366216,
+      "sha256": "fa8f28d8c6a1e639dde0aa510be2b91360f04960e3566cff174700d6656267e4"
+    }
+  },
+  "updateSignatureVerified": false,
+  "realPlayerQualification": "NOT_ASSESSED",
+  "published": false,
+  "checks": [
+    {
+      "check": "bundle-id",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "exact-source-commit",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "increasing-build",
+      "passed": true,
+      "detail": "49 > 36"
+    },
+    {
+      "check": "distribution-floor",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "version-present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "nonempty:LyricTile-1.0.0-49-candidate-arm64.zip",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "checksum:LyricTile-1.0.0-49-candidate-arm64.zip",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "nonempty:LyricTile-1.0.0-49-candidate-arm64.dmg",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "checksum:LyricTile-1.0.0-49-candidate-arm64.dmg",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "archive-root",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "archive-metadata-matches-app",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "archive-executable-matches-app",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "archive-crc",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "mount-distribution-dmg",
+      "passed": true,
+      "detail": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n\t<key>system-entities</key>\n\t<array>\n\t\t<dict>\n\t\t\t<key>content-hint</key>\n\t\t\t<string>GUID_partition_scheme</string>\n\t\t\t<key>dev-entry</key>\n\t\t\t<string>/dev/disk27</string>\n\t\t\t<key>potentially-mountable</key>\n\t\t\t<false/>\n\t\t\t<key>unmapped-content-hint</key>\n\t\t\t<string>GUID_partition_scheme</string>\n\t\t</dict>\n\t\t<dict>\n\t\t\t<key>content-hint</key>\n\t\t\t<string>Apple_APFS</string>\n\t\t\t<key>dev-entry</key>\n\t\t\t<string>/dev/disk27s1</string>\n\t\t\t<key>potentially-mountable</key>\n\t\t\t<false/>\n\t\t\t<key>unmapped-content-hint</key>\n\t\t\t<string>7C3457EF-0000-11AA-AA11-00306543ECAC</string>\n\t\t</dict>\n\t\t<dict>\n\t\t\t<key>content-hint</key>\n\t\t\t<string>41504653-0000-11AA-AA11-00306543ECAC</string>\n\t\t\t<key>dev-entry</key>\n\t\t\t<string>/dev/disk28s1</string>\n\t\t\t<key>mount-point</key>\n\t\t\t<string>/Volumes/LyricTile</string>\n\t\t\t<key>potentially-mountable</key>\n\t\t\t<true/>\n\t\t\t<key>unmapped-content-hint</key>\n\t\t\t<string>41504653-0000-11AA-AA11-00306543ECAC</string>\n\t\t\t<key>volume-kind</key>\n\t\t\t<string>apfs</string>\n\t\t</dict>\n\t\t<dict>\n\t\t\t<key>content-hint</key>\n\t\t\t<string>EF57347C-0000-11AA-AA11-00306543ECAC</string>\n\t\t\t<key>dev-entry</key>\n\t\t\t<string>/dev/disk28</string>\n\t\t\t<key>potentially-mountable</key>\n\t\t\t<false/>\n\t\t\t<key>unmapped-content-hint</key>\n\t\t\t<string>EF57347C-0000-11AA-AA11-00306543ECAC</string>\n\t\t</dict>\n\t</array>\n</dict>\n</plist>\nhdiutil: WARNING: 'hdiutil attach -readonly -nobrowse ...' is deprecated. Please use 'diskutil image attach --readOnly --mountOptions nobrowse ...' instead."
+    },
+    {
+      "check": "single-dmg-volume",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "dmg-metadata-matches-app",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "dmg-executable-matches-app",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "dmg-applications-shortcut",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "detach-distribution-dmg",
+      "passed": true,
+      "detail": "\"disk27\" ejected.\nhdiutil: WARNING: 'hdiutil detach ...' is deprecated. Please use 'diskutil eject ...' instead."
+    }
+  ]
+}

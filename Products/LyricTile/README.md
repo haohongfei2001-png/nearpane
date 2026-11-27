@@ -4,6 +4,8 @@
 
 **发行状态：正式包准备中。** 最新候选、源码与逐项验收结果统一记录在 [STATUS](STATUS.md)。当前云端工程包使用 ad-hoc 签名，尚不是完成 Developer ID 签名和 Apple 公证的消费者下载。官网在正式包就绪前保持“准备中”；已公证的旧 build 4 仅保留历史验收用途，不替代最新版本。
 
+本页对应候选 **1.0.0 / build 49**：[原生 CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)，源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`。原始播放器与在线验收按各自实际报告列明，签名、公证及正式下载状态仍以 STATUS 为准。
+
 首发目标为 **Apple silicon、macOS 27 或更新版本**。[中文产品页](https://nearpane.com/lyrictile/) · [English website](https://nearpane.com/lyrictile/en/) · [安装说明](Documentation/INSTALL.md) · [真实支持范围](Documentation/SUPPORT.md) · [隐私说明](Documentation/PRIVACY.md)
 
 ## 日常使用
@@ -19,12 +21,14 @@
 
 | 播放器 | 已验证的使用路径 |
 | --- | --- |
-| Apple Music 1.7 / build 1.7.0 | 两首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实 hover/按钮事件、next/previous、返回原曲自动恢复已绑定歌词；[CI46 原始记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087) |
-| QQ 音乐 11.11.1 / build 73285 | 一首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复和实际指针交互；[CI46 原始记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087) |
-| 网易云音乐 3.1.14 / build 3459 | 同样的单曲本地核心路径在 [CI45](https://github.com/haohongfei2001-png/nearpane/actions/runs/46009188167) 实际通过；其生产 Sources 与 CI46 相同。CI46 的官方安装包下载超时，没有运行网易云复验 |
+| Apple Music 1.7 / build 1.7.0 | 两首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实 hover/按钮事件、next/previous、返回原曲自动恢复已绑定歌词；[CI49 的 24 项原生检查](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269) |
+| QQ 音乐 11.11.1 / build 73285 | 一首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复和实际指针交互；[CI49 的 18 项原生检查](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269) |
+| 网易云音乐 3.1.14 / build 3459 | 一首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复和实际指针交互；[CI49 的 18 项原生检查](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269) |
 | Spotify 桌面版 | 适配器已经实现，尚无已登录实际播放的通过记录，不列为已实测支持 |
 
 这些本地播放检查使用真实客户端、真实音频和普通 LyricTile App，无需音乐账号。它们不代表订阅曲库、广告、Connect、每个录音版本或所有歌曲都有歌词。在线接口抽样与“实际歌曲播放后自动取词”的完整路径分别记录，不互相替代。
+
+**实际歌曲的自动取词也已跑通。** CI49 使用 Apple Music 播放 Jonathan Coulton 公开提供的《Code Monkey》原录音，普通 LyricTile App 从空缓存约 **1.38 秒**自动取得对应 LRCLIB 歌词；两个不同的原生当前句与真实 Music 进度读回相符。该单曲结果不代表全曲库覆盖、seek 后每帧即时一致或独立逐字精度。测试音频、歌词正文及其截图不随产品或宣传资料分发，详见支持说明中的范围。
 
 ## 安装与首次使用
 
@@ -43,9 +47,11 @@
 
 LyricTile is an independent HOLDSNOW app for **Apple silicon Macs running macOS 27 or later**. Lyrics appear while music plays, keep the current line centered, and make room for long lines. Hover reveals artwork, track details, controls and available progress. Tracks without lyrics use a compact summary. Local imports work independently of optional LRCLIB lookup.
 
-**The signed consumer download is being prepared.** The current engineering package is ad-hoc signed; it is not a notarized consumer release. [STATUS](STATUS.md) identifies the exact candidate and evidence. Historical notarized build 4 is not offered as the latest version. The product page will expose the new download when the signed package is ready.
+**The signed consumer download is being prepared.** The current engineering candidate is **1.0.0 / build 49**, source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`, from [native CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269). It is ad-hoc signed, without Developer ID signing or notarization. [STATUS](STATUS.md) records complete verification and release state. Historical notarized build 4 is not offered as the latest version. The product page will expose the new download when the signed package is ready.
 
-Real native tests have exercised Apple Music 1.7 with two authored local recordings, QQ Music 11.11.1/build 73285 with one local recording, and NetEase 3.1.14/build 3459 with one local recording. The [support matrix](Documentation/SUPPORT.md) records the exact runs and limitations; NetEase's CI45 result uses the same production Sources as CI46, whose installer download timed out before that client could run. Spotify remains unverified. These results do not qualify an entire commercial catalog, every song version or independent word-level timing.
+CI49 passed 24 ordinary-app checks with Apple Music 1.7 and two authored local recordings, plus 18 checks each with QQ Music 11.11.1/build 73285 and NetEase 3.1.14/build 3459 using one local recording. The [support matrix](Documentation/SUPPORT.md) records the exact scope and limitations. Spotify remains unverified. These results do not qualify an entire commercial catalog, every song version or independent word-level timing.
+
+CI49 also verified automatic lyrics during real Apple Music playback of Jonathan Coulton's publicly offered original recording of *Code Monkey*. With an empty cache, the ordinary app found the LRCLIB document in about **1.38 seconds**, and two distinct native current lines matched actual player-position readbacks. This is one observed recording, without a claim of whole-catalog coverage, immediate accuracy on every frame after seeking, or independent word timing. The test recording, lyric text and lyric screenshots are not distributed with the app or its promotional materials.
 
 Once the signed release is available, download LyricTile from its product page, drag the app into Applications and complete the welcome screen. Allow Automation for the selected Apple Music or Spotify connection when macOS asks. Normal operation does not require Accessibility or Screen Recording permission. LRCLIB lookup is disclosed during onboarding and can be disabled in Settings. See the bilingual [installation](Documentation/INSTALL.md), [support](Documentation/SUPPORT.md) and [privacy](Documentation/PRIVACY.md) pages.
 

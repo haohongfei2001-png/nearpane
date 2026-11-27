@@ -1,0 +1,101 @@
+{
+  "activeDisplayID": 1,
+  "applicationAppearance": "light",
+  "appPID": 30961,
+  "backingScaleFactor": 1,
+  "captures": [],
+  "displayModesChanged": false,
+  "elapsedSeconds": 1.904971208333336,
+  "fixtureSHA256": "44c21eb56c931dafdf225028038be80304c27f869cd8c872c82bdb117b5c3e3f",
+  "originalDesktopCapture": {
+    "appPID": 30961,
+    "captureKind": "WindowServer primary-display screenshot",
+    "file": "ordinary-app-desktop.png",
+    "pixelHeight": 768,
+    "pixelWidth": 1024,
+    "sha256": "ef6dca8eb5c2b050834c9a764b8315b5a693dcf9f2668979efca63da9deebb08",
+    "windowNumber": 102
+  },
+  "panelBounds": {
+    "height": 192,
+    "width": 176,
+    "x": 832,
+    "y": 47
+  },
+  "panelVisibilityChecks": [
+    {
+      "appPID": 30961,
+      "AXHitResult": 0,
+      "coveringWindows": [
+        {
+          "alpha": 1,
+          "bounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "layer": 20,
+          "owner": "Dock",
+          "ownerPID": 373,
+          "windowNumber": 15
+        }
+      ],
+      "hitPID": 30961,
+      "hitWithinActualTargetWindow": true,
+      "inputPosted": false,
+      "observedUptime": 986.1074205833334,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "systemWideAXHit": true,
+      "windowNumber": 102
+    }
+  ],
+  "permissionsRequested": false,
+  "physicalMouseTest": false,
+  "playerWindowExposure": {
+    "hiddenAfter": true,
+    "hiddenBefore": false,
+    "hideReturned": false,
+    "method": "hide-readback",
+    "permissionsRequested": false,
+    "playerPID": 29404,
+    "visibleWindowNumbersAfterHide": []
+  },
+  "qualification": "Actual composed screenshots; contrast review is pending. No unexercised display scale, dark-app wallpaper matrix, mouse or commercial-catalog claim.",
+  "reason": "The public desktop API did not read back the requested wallpaper.",
+  "restoration": {
+    "displayModesChanged": false,
+    "failures": [],
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "playerWindowMinimizedStateRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "scope": "same ordinary QQ-backed LyricTile process on actual desktop wallpapers",
+  "status": "BLOCKED",
+  "virtualDisplaysCreated": false,
+  "visualReview": "PENDING",
+  "windowNumber": 102,
+  "boundedExternalRestoration": {
+    "displayModesChanged": false,
+    "failures": [],
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "playerWindowMinimizedStateRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "productReleaseGate": false
+}

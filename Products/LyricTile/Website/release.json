@@ -7,9 +7,9 @@
   "downloadURL": null,
   "releaseURL": null,
   "sha256": null,
-  "candidateURL": "https://github.com/haohongfei2001-png/nearpane/actions/workflows/lyrictile.yml?query=branch%3Acodex%2Flyrictile-standalone-20261126",
+  "candidateURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269",
   "support": {
-    "zh": "Apple Music 为当前核心验证路径。QQ 音乐已有历史验证；Spotify、网易云音乐尚待实际播放验证。",
-    "en": "Apple Music is the current core verification path. QQ Music has historical results; Spotify and NetEase await real-playback verification."
+    "zh": "Apple Music、QQ 音乐和网易云音乐已通过本地音轨核心验证。Spotify 尚未实测；歌词覆盖率因歌曲与版本而异。",
+    "en": "Apple Music, QQ Music and NetEase have passed core tests with local tracks. Spotify remains unverified. Lyrics coverage varies by song and recording."
   }
 }

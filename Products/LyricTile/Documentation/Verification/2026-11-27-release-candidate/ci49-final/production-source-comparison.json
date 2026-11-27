@@ -1,0 +1,962 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-27T15:45:31.192631+00:00",
+  "baseCommit": "59a4530302e592fc80040c955fffbba339aa3f89",
+  "baseBuild": 45,
+  "targetCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "targetBuild": 49,
+  "comparedFileCount": 56,
+  "identicalFileCount": 55,
+  "allRequestedProductInputsIdentical": false,
+  "unchangedExceptExplicitNativeVerificationEntrypoint": true,
+  "changedFiles": [
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricNativePlayerVerification.swift",
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "4b47a8103ec5259b3b1d3225a220ecfead040c83",
+        "contentSHA256": "ed7c772f3e8c58aba9def1195107c1c0c8f8df54932fc5e527335876a2d68f3b"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "0c173aebcc0e187142b7fddd3319180ab31c6de0",
+        "contentSHA256": "647d667aeceb2b0ce70a36c91aa45926fa45e542739e255c0bdb334269989265"
+      }
+    }
+  ],
+  "scopeObjectIDs": [
+    {
+      "path": "Products/LyricTile/Sources",
+      "base": "d26db8c8681d4c62d3973d9e5501385194d1ee5f",
+      "target": "9496381bdb863182ac85f72b587161c786dd2dbf"
+    },
+    {
+      "path": "Products/LyricTile/Resources",
+      "base": "24529b1265988df40018568fb331b520d698c562",
+      "target": "24529b1265988df40018568fb331b520d698c562"
+    },
+    {
+      "path": "Products/LyricTile/Package.swift",
+      "base": "d2b7f1339af2c04416ad328e362376ea6a663c8c",
+      "target": "d2b7f1339af2c04416ad328e362376ea6a663c8c"
+    },
+    {
+      "path": "Products/LyricTile/Package.resolved",
+      "base": "cd658b36c5903a9cb024984db71550a6e1951a68",
+      "target": "cd658b36c5903a9cb024984db71550a6e1951a68"
+    },
+    {
+      "path": "Products/LyricTile/Packaging",
+      "base": "8c2c05daddc595ab2e2429edef6f6d4502bb7c49",
+      "target": "8c2c05daddc595ab2e2429edef6f6d4502bb7c49"
+    }
+  ],
+  "files": [
+    {
+      "path": "Products/LyricTile/Package.resolved",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "cd658b36c5903a9cb024984db71550a6e1951a68",
+        "contentSHA256": "931121682591029c401b4ba490a51a736d35bad301a4286a5f342f86940ab9d5"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "cd658b36c5903a9cb024984db71550a6e1951a68",
+        "contentSHA256": "931121682591029c401b4ba490a51a736d35bad301a4286a5f342f86940ab9d5"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Package.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d2b7f1339af2c04416ad328e362376ea6a663c8c",
+        "contentSHA256": "d6a92f57a54af053a98da17f87abc23ada6b4fd493563a544b4f0330e0cdc69b"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d2b7f1339af2c04416ad328e362376ea6a663c8c",
+        "contentSHA256": "d6a92f57a54af053a98da17f87abc23ada6b4fd493563a544b4f0330e0cdc69b"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Packaging/LyricTile.entitlements",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "31df1a06c310979a5d09a5d696d9a40f6baf8098",
+        "contentSHA256": "c479446ccc1537f8b64d0bc2c4a7b5a64f80753659d0cdf5450c2927df8eb29b"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "31df1a06c310979a5d09a5d696d9a40f6baf8098",
+        "contentSHA256": "c479446ccc1537f8b64d0bc2c4a7b5a64f80753659d0cdf5450c2927df8eb29b"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Packaging/Notices/libyaml-LICENSE",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "3d82c281ee8ceb45368153139f5935bd8d39c816",
+        "contentSHA256": "c40112449f254b9753045925248313e9270efa36d226b22d82d4cc6c43c57f29"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "3d82c281ee8ceb45368153139f5935bd8d39c816",
+        "contentSHA256": "c40112449f254b9753045925248313e9270efa36d226b22d82d4cc6c43c57f29"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Resources/LyricTileSymbol.svg",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f32c5b275e26b2f57cc05cb4847307c3429bb5bc",
+        "contentSHA256": "f5f5f6e9f234fbc34c6b6e32abbb8680caa2ee8d5fe7b561f284f9f615c599f5"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f32c5b275e26b2f57cc05cb4847307c3429bb5bc",
+        "contentSHA256": "f5f5f6e9f234fbc34c6b6e32abbb8680caa2ee8d5fe7b561f284f9f615c599f5"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Resources/en.lproj/InfoPlist.strings",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f6ddb9cacdc14e6c7887de7bb371dab881b98842",
+        "contentSHA256": "b970ba87f912a090542222a685ec8a89cb7f3ff202ee967f2f421bf9e39e42b1"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f6ddb9cacdc14e6c7887de7bb371dab881b98842",
+        "contentSHA256": "b970ba87f912a090542222a685ec8a89cb7f3ff202ee967f2f421bf9e39e42b1"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Resources/zh-Hans.lproj/InfoPlist.strings",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c10c42d6d078a993c8912e6bcf470ac6b4ea38f0",
+        "contentSHA256": "611a131c34a017bef488a4b93034815d9596ee0a9f8c2b16aa27f065ffd80e53"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c10c42d6d078a993c8912e6bcf470ac6b4ea38f0",
+        "contentSHA256": "611a131c34a017bef488a4b93034815d9596ee0a9f8c2b16aa27f065ffd80e53"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/CPlayerBridge/CPlayerBridge.m",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "97a0ae7b51ac4739140310b27a2a80b4deda623d",
+        "contentSHA256": "e76a73471a92f237dc8e8558b8117ae156d7ef75de6186402337e0bc82e6ce7f"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "97a0ae7b51ac4739140310b27a2a80b4deda623d",
+        "contentSHA256": "e76a73471a92f237dc8e8558b8117ae156d7ef75de6186402337e0bc82e6ce7f"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/CPlayerBridge/include/CPlayerBridge.h",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e91cda0dcfe7801d739666b97d4381b8bbd42cd8",
+        "contentSHA256": "7b6320a944be28ae07aa5826cb6c125e530e5bea3009be61e01ad694cef4bdb1"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e91cda0dcfe7801d739666b97d4381b8bbd42cd8",
+        "contentSHA256": "7b6320a944be28ae07aa5826cb6c125e530e5bea3009be61e01ad694cef4bdb1"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/CTileLock/TileLock.c",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "b8e6899f224b092347dc668f4984fbd09d88acb1",
+        "contentSHA256": "c63df2c1555b1b451f33914f3dadc44c37c410de6140988ca83a00daf4215056"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "b8e6899f224b092347dc668f4984fbd09d88acb1",
+        "contentSHA256": "c63df2c1555b1b451f33914f3dadc44c37c410de6140988ca83a00daf4215056"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/CTileLock/include/TileLock.h",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "207b4970abb30e14b4079c464bed49a7203c28a4",
+        "contentSHA256": "854a47c824a41d9d09c9c5e392ed81371f8ab14e09086e3a40dad26a0b70ad93"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "207b4970abb30e14b4079c464bed49a7203c28a4",
+        "contentSHA256": "854a47c824a41d9d09c9c5e392ed81371f8ab14e09086e3a40dad26a0b70ad93"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricCore/Domain.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "eca8cec8b873ccd826ca4e029bced68902a436a1",
+        "contentSHA256": "503c21b30febbaaba1bdb4aaf3ac1a297e790e9285cace7039b6cdbfe3cf5825"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "eca8cec8b873ccd826ca4e029bced68902a436a1",
+        "contentSHA256": "503c21b30febbaaba1bdb4aaf3ac1a297e790e9285cace7039b6cdbfe3cf5825"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricCore/LyricLocalization.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "afca2b6d38eaed4cce532918aab9611163be5ebf",
+        "contentSHA256": "cf70dee2d8a0bad8c31dbe619293009334d692c1fd6d609fc217cc9625a1ef03"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "afca2b6d38eaed4cce532918aab9611163be5ebf",
+        "contentSHA256": "cf70dee2d8a0bad8c31dbe619293009334d692c1fd6d609fc217cc9625a1ef03"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricCore/LyricMatcher.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "5987f866c760b5a1c8388f33b5851debce3496b8",
+        "contentSHA256": "600ed30fcf6a3eafa11d52254bd7183cf912e533846b4212339dcb4d7ace6646"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "5987f866c760b5a1c8388f33b5851debce3496b8",
+        "contentSHA256": "600ed30fcf6a3eafa11d52254bd7183cf912e533846b4212339dcb4d7ace6646"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricCore/LyricTimeline.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8b5a45bb7d185143365e455bb630cb25b6e68966",
+        "contentSHA256": "1066d399c31dcb0fa3c9a7eeb2f4e626969e1ce0df01f078e6a877c4d36b5ba4"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8b5a45bb7d185143365e455bb630cb25b6e68966",
+        "contentSHA256": "1066d399c31dcb0fa3c9a7eeb2f4e626969e1ce0df01f078e6a877c4d36b5ba4"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricCore/PlaybackClock.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "dcee26414f85b1017e7a3e1e8b0b8c8aaba57ba8",
+        "contentSHA256": "bc331187b11c688ad194619840cf254f9c198f597e467e97cf6c1099c685805d"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "dcee26414f85b1017e7a3e1e8b0b8c8aaba57ba8",
+        "contentSHA256": "bc331187b11c688ad194619840cf254f9c198f597e467e97cf6c1099c685805d"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/ArtworkLoader.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e48590ee87792f045e02fe483b52eea3dbaa5d04",
+        "contentSHA256": "18b270272a6c49c09db580afed34fba5024fc2d5fbc0155ba3b5f76e028798e1"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e48590ee87792f045e02fe483b52eea3dbaa5d04",
+        "contentSHA256": "18b270272a6c49c09db580afed34fba5024fc2d5fbc0155ba3b5f76e028798e1"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/BoundedProcess.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "844dad6f7b6bfa7e0bd543557b3a2e9127bc2fab",
+        "contentSHA256": "3797011135a9799fa4a790aa574ada66607c4d46e51c49b026bca267f912b9f7"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "844dad6f7b6bfa7e0bd543557b3a2e9127bc2fab",
+        "contentSHA256": "3797011135a9799fa4a790aa574ada66607c4d46e51c49b026bca267f912b9f7"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/ClockQualification.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e1107c8571ccf326b48e1897aef6fdc2b9f5785a",
+        "contentSHA256": "bdf7ef8c49eb59ef9465b8771c0bf2392e9dc08ae8694841e974965348fa203b"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "e1107c8571ccf326b48e1897aef6fdc2b9f5785a",
+        "contentSHA256": "bdf7ef8c49eb59ef9465b8771c0bf2392e9dc08ae8694841e974965348fa203b"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/DiagnosticCollection.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "64e68211ef810bd9507eff80f3d5b3b21489f174",
+        "contentSHA256": "32b76a0c41fb134f5ef571c0d5fc32a879f4d04f9e98140ab85701ae7a91eeb3"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "64e68211ef810bd9507eff80f3d5b3b21489f174",
+        "contentSHA256": "32b76a0c41fb134f5ef571c0d5fc32a879f4d04f9e98140ab85701ae7a91eeb3"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/MediaRemoteClient.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "7ae610b67438c1f02563e8d37d3361c5b8e7a314",
+        "contentSHA256": "d2136d93dbe59670e1b747744f0db5dee252a6c7d5f014e0630312a7e275d835"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "7ae610b67438c1f02563e8d37d3361c5b8e7a314",
+        "contentSHA256": "d2136d93dbe59670e1b747744f0db5dee252a6c7d5f014e0630312a7e275d835"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/MediaRemoteProtocol.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "fb9317f170ef72a8a7de9fb255dbb3e791069ae3",
+        "contentSHA256": "a8cf12557f11006e06541fcf6d03875ba9db68b374a6115ca2644edd42f76d00"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "fb9317f170ef72a8a7de9fb255dbb3e791069ae3",
+        "contentSHA256": "a8cf12557f11006e06541fcf6d03875ba9db68b374a6115ca2644edd42f76d00"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/NativePlayers.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "6ac3938b6501b0a092e69437fe688cd7c025b974",
+        "contentSHA256": "dfc7f897bc873650dfd9a4eca56f9d898e31d0cc10aafc8e6d1b9cd4120caa71"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "6ac3938b6501b0a092e69437fe688cd7c025b974",
+        "contentSHA256": "dfc7f897bc873650dfd9a4eca56f9d898e31d0cc10aafc8e6d1b9cd4120caa71"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/PlaybackController.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "26eb1c3f5875dd3ac9d576903a9b08076f14af1a",
+        "contentSHA256": "65a6310a717633cd063fba4ce7997be9a66d8d708bf889dfb74fbc1199c02120"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "26eb1c3f5875dd3ac9d576903a9b08076f14af1a",
+        "contentSHA256": "65a6310a717633cd063fba4ce7997be9a66d8d708bf889dfb74fbc1199c02120"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/PlaybackDiagnostics.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "ed2d7a3da99f26b04b883037d2182c272245bddc",
+        "contentSHA256": "71713f5aa127094693c996a402c2310657e2d2724b90e47819aa56bcf68966dd"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "ed2d7a3da99f26b04b883037d2182c272245bddc",
+        "contentSHA256": "71713f5aa127094693c996a402c2310657e2d2724b90e47819aa56bcf68966dd"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/PlaybackSelection.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8d89b68595b0ccb71e71a0d26acf60e50f4d4773",
+        "contentSHA256": "b2985a83bd5cb142264a4bd10dbc821e55d5d3acd1c4a9acef5b1aad04682d36"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8d89b68595b0ccb71e71a0d26acf60e50f4d4773",
+        "contentSHA256": "b2985a83bd5cb142264a4bd10dbc821e55d5d3acd1c4a9acef5b1aad04682d36"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/PlaybackTypes.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c3a8ef103b60a7970970e7d9b4f411ca436d14d6",
+        "contentSHA256": "ac2a21452d922f8b49b6758a1c010f4330b8482f9b423d98d725e3cff3df25f9"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c3a8ef103b60a7970970e7d9b4f411ca436d14d6",
+        "contentSHA256": "ac2a21452d922f8b49b6758a1c010f4330b8482f9b423d98d725e3cff3df25f9"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricPlayback/RemoteClockContinuity.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "40ab82284988be7cfc206288dc9a5fb3fe17065c",
+        "contentSHA256": "374a4699d7536d7bc35e82e1d30d74adce608053e6dfe6785cdc7603e32a6fbc"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "40ab82284988be7cfc206288dc9a5fb3fe17065c",
+        "contentSHA256": "374a4699d7536d7bc35e82e1d30d74adce608053e6dfe6785cdc7603e32a6fbc"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/HTTPTransport.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "1c2c46d1004e52a4d673573709b41a860e3cc794",
+        "contentSHA256": "8ea2ae2bfb4c938ddc62c5de14b2516898612f7fe4eb0a7c7ca4a4c96d67988d"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "1c2c46d1004e52a4d673573709b41a860e3cc794",
+        "contentSHA256": "8ea2ae2bfb4c938ddc62c5de14b2516898612f7fe4eb0a7c7ca4a4c96d67988d"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/LRCLIBProvider.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "7c4a79a77212fd09fafa8d5500af474177bd887b",
+        "contentSHA256": "b7a295354704c5e9f8a2da945ada7f9e2802d974c4f092c4545125ea03d6fc91"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "7c4a79a77212fd09fafa8d5500af474177bd887b",
+        "contentSHA256": "b7a295354704c5e9f8a2da945ada7f9e2802d974c4f092c4545125ea03d6fc91"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/LRCReader.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2333b3831ca325e2cca17eb33b323c9f894568b2",
+        "contentSHA256": "99e4312fafda0fe47c6aec08515d1a27ac0c8ed0eb9fbbec7b9fee45e989a8a3"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2333b3831ca325e2cca17eb33b323c9f894568b2",
+        "contentSHA256": "99e4312fafda0fe47c6aec08515d1a27ac0c8ed0eb9fbbec7b9fee45e989a8a3"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/LyricParser.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f2c248e7ffd174dbf4076c4ce035a6475094d1f8",
+        "contentSHA256": "f61366406ce7372cd8cd66bf49c392e2f60a27e64c1428bf916bcf0a5456dcb1"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "f2c248e7ffd174dbf4076c4ce035a6475094d1f8",
+        "contentSHA256": "f61366406ce7372cd8cd66bf49c392e2f60a27e64c1428bf916bcf0a5456dcb1"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/LyricRepository.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d9058b0c6019025e8717bd56545f8bed62b618ff",
+        "contentSHA256": "32fc7b29f875bd2ad3d3a317594ad562c196c874ef8eefe4e92375889d262452"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d9058b0c6019025e8717bd56545f8bed62b618ff",
+        "contentSHA256": "32fc7b29f875bd2ad3d3a317594ad562c196c874ef8eefe4e92375889d262452"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/LyricsfileReader.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "9eaa3f5618cdbb1dc14b3aabcec25ccb20837213",
+        "contentSHA256": "b382cb9372633b5539304cc782885dd9c01918262ef54fa07c3e5d4b5b6d64aa"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "9eaa3f5618cdbb1dc14b3aabcec25ccb20837213",
+        "contentSHA256": "b382cb9372633b5539304cc782885dd9c01918262ef54fa07c3e5d4b5b6d64aa"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/SegmentLyricsReader.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d0deb4b2b00fd43ed29a9714c4064a7c7b9bb7e3",
+        "contentSHA256": "a1bdfd6b8d9e0e17fe81e3c099f0d517c7049882fe3b83ebd2e538d9e3987d09"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "d0deb4b2b00fd43ed29a9714c4064a7c7b9bb7e3",
+        "contentSHA256": "a1bdfd6b8d9e0e17fe81e3c099f0d517c7049882fe3b83ebd2e538d9e3987d09"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricServices/TTMLReader.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "fdc51094489861e8953a92f0bd067d3d917cdbff",
+        "contentSHA256": "971de68a62e0056b9c663068fed91ae063f44a7baf2c88ffb0799fadf4bfc687"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "fdc51094489861e8953a92f0bd067d3d917cdbff",
+        "contentSHA256": "971de68a62e0056b9c663068fed91ae063f44a7baf2c88ffb0799fadf4bfc687"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricTileApp/LyricDiagnosticLaunch.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8e413e768ed29e319e3aa7b10f87fbd6a2e8e5a9",
+        "contentSHA256": "5e6ced9c4a8d65b645c220a071af4031e8b682aa628894104e67be818c954f12"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "8e413e768ed29e319e3aa7b10f87fbd6a2e8e5a9",
+        "contentSHA256": "5e6ced9c4a8d65b645c220a071af4031e8b682aa628894104e67be818c954f12"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricTileApp/LyricTileApp.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "182b6728a6d80ac14ee070c4a58d4696734febb3",
+        "contentSHA256": "f703f9d3b3ea8695375cedabc8fa7d9b94fb626eaf4affcb34d6f3cebdc073f5"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "182b6728a6d80ac14ee070c4a58d4696734febb3",
+        "contentSHA256": "f703f9d3b3ea8695375cedabc8fa7d9b94fb626eaf4affcb34d6f3cebdc073f5"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricTileApp/LyricUpdateController.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "34d3024338aa32c70d171c24a183c3f55c288167",
+        "contentSHA256": "11da7698a845002ca873b49ccb9c1890d1c913b3df69619675a06b2af29d87a9"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "34d3024338aa32c70d171c24a183c3f55c288167",
+        "contentSHA256": "11da7698a845002ca873b49ccb9c1890d1c913b3df69619675a06b2af29d87a9"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricAppModel.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "82c60403107a24b2a2e8554cdfb336480ac74565",
+        "contentSHA256": "8ecdd871196a2e4efd8f40eceeb51b0bf610d8af9081d029dbff5700013f3600"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "82c60403107a24b2a2e8554cdfb336480ac74565",
+        "contentSHA256": "8ecdd871196a2e4efd8f40eceeb51b0bf610d8af9081d029dbff5700013f3600"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricArtworkDecoder.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "5ce3bf498f446a9b685c5d69aaa9dfa5f89c0b45",
+        "contentSHA256": "6e0b11dd0a7d1619fe10eb31ec4c6db3a8c724f1889b7ab966b969322708e96d"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "5ce3bf498f446a9b685c5d69aaa9dfa5f89c0b45",
+        "contentSHA256": "6e0b11dd0a7d1619fe10eb31ec4c6db3a8c724f1889b7ab966b969322708e96d"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricAuxiliaryController.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "06ad5f842c83e73e46d4cfb1d51cfb22498bce03",
+        "contentSHA256": "e1d9b562fd1e28261e444e84973c15b14bca9e0c6016b7c46eba67d128a58759"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "06ad5f842c83e73e46d4cfb1d51cfb22498bce03",
+        "contentSHA256": "e1d9b562fd1e28261e444e84973c15b14bca9e0c6016b7c46eba67d128a58759"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricGlyphText.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2a4702544d4ba4a1b57d664446488e7d47ddc29f",
+        "contentSHA256": "3fb9d38e8afaa9f06e0cae1b4d65cd67fba889a7c8179e97ae6111c7d1d4ed50"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2a4702544d4ba4a1b57d664446488e7d47ddc29f",
+        "contentSHA256": "3fb9d38e8afaa9f06e0cae1b4d65cd67fba889a7c8179e97ae6111c7d1d4ed50"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricHandoff.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2cea831fec02fd030b68e4bcf4eec80280a36388",
+        "contentSHA256": "08dcd4b4fcbd194b26acce2bd57262b2d3ce9324a1b39c37c46fcc2b5f4d3c44"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2cea831fec02fd030b68e4bcf4eec80280a36388",
+        "contentSHA256": "08dcd4b4fcbd194b26acce2bd57262b2d3ce9324a1b39c37c46fcc2b5f4d3c44"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricNativePlayerVerification.swift",
+      "unchanged": false,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "4b47a8103ec5259b3b1d3225a220ecfead040c83",
+        "contentSHA256": "ed7c772f3e8c58aba9def1195107c1c0c8f8df54932fc5e527335876a2d68f3b"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "0c173aebcc0e187142b7fddd3319180ab31c6de0",
+        "contentSHA256": "647d667aeceb2b0ce70a36c91aa45926fa45e542739e255c0bdb334269989265"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricNativeSmoke.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "76ebf4c503dfd51a589204e8f55765364a9069ed",
+        "contentSHA256": "7ed76d96a08438c6fabb395c190ea81b3acd79e14f94b0bdbe1fd9e6b74027aa"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "76ebf4c503dfd51a589204e8f55765364a9069ed",
+        "contentSHA256": "7ed76d96a08438c6fabb395c190ea81b3acd79e14f94b0bdbe1fd9e6b74027aa"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricPanelController.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "59f08046627927f19192ad21efb103463b418e20",
+        "contentSHA256": "2d40a7cfffe1dd52351390cf41bc9ca3cc695eb64b713c5bb0136fb70821f156"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "59f08046627927f19192ad21efb103463b418e20",
+        "contentSHA256": "2d40a7cfffe1dd52351390cf41bc9ca3cc695eb64b713c5bb0136fb70821f156"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricPanelPresentation.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "6697561dc15710b80250b98e5e1986278521c43a",
+        "contentSHA256": "82751997a777e469384bcb04d91266228b75efdcad25d93afa92caac4f529553"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "6697561dc15710b80250b98e5e1986278521c43a",
+        "contentSHA256": "82751997a777e469384bcb04d91266228b75efdcad25d93afa92caac4f529553"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricPanelView.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "aa8882a39763794f29d764caf5deaf2b331173eb",
+        "contentSHA256": "2e6855818ee70baecdf85f98b5fa23739ac8300e3269aa8bb951e835c684908e"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "aa8882a39763794f29d764caf5deaf2b331173eb",
+        "contentSHA256": "2e6855818ee70baecdf85f98b5fa23739ac8300e3269aa8bb951e835c684908e"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricSettings.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "eb2fe9df82b6bad2821c8e3801152fe29246575d",
+        "contentSHA256": "5a45435f551a474f37661697fb0fb8063f35d41a7775b3dbccf59f96500633c4"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "eb2fe9df82b6bad2821c8e3801152fe29246575d",
+        "contentSHA256": "5a45435f551a474f37661697fb0fb8063f35d41a7775b3dbccf59f96500633c4"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/LyricUI/LyricSongMenu.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "95e93994e6b9a5038b1726fdfa2768dbb84f95d7",
+        "contentSHA256": "1f266da125d422cf36fa2973221b40b2b1c347594ecfb6f6a1e5f0e0bed1939f"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "95e93994e6b9a5038b1726fdfa2768dbb84f95d7",
+        "contentSHA256": "1f266da125d422cf36fa2973221b40b2b1c347594ecfb6f6a1e5f0e0bed1939f"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/NearpaneLyricsModule/NearpaneLyricsModule.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c5cab4d9f9ae88128b5adc8ca25736ad869a1a37",
+        "contentSHA256": "862a401a3988ad09fbf68982f81ca865e748923dd478fe2912247a63b714ac33"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "c5cab4d9f9ae88128b5adc8ca25736ad869a1a37",
+        "contentSHA256": "862a401a3988ad09fbf68982f81ca865e748923dd478fe2912247a63b714ac33"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/TileKit/TileDesktopCoordinator.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "086e7fb66206e1c3e69b1b37e06afd329fd20f36",
+        "contentSHA256": "daeaeb0c7a3819329bb1b195cecb9a159adad29eb60afa67378db131432f8a57"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "086e7fb66206e1c3e69b1b37e06afd329fd20f36",
+        "contentSHA256": "daeaeb0c7a3819329bb1b195cecb9a159adad29eb60afa67378db131432f8a57"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/TileKit/TileGeometry.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "242309dcea43dda1783aa6c4650b64bfbd4e67fe",
+        "contentSHA256": "883d650d8131538b448ff25a7732e467d95a4f9b1dfde486e1e2687e607deea1"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "242309dcea43dda1783aa6c4650b64bfbd4e67fe",
+        "contentSHA256": "883d650d8131538b448ff25a7732e467d95a4f9b1dfde486e1e2687e607deea1"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/TileKit/TileRegistry.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "822180722d1fbdf692d3557795b80d1d73bafddf",
+        "contentSHA256": "2672d85929474b8f6aa32b7e052e25db1bd81d70856a597109d32d47f127d260"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "822180722d1fbdf692d3557795b80d1d73bafddf",
+        "contentSHA256": "2672d85929474b8f6aa32b7e052e25db1bd81d70856a597109d32d47f127d260"
+      }
+    },
+    {
+      "path": "Products/LyricTile/Sources/TileKit/TileSessionLease.swift",
+      "unchanged": true,
+      "base": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2950ad088f1a48209bc982368027ef5a846e89da",
+        "contentSHA256": "17d313c050b2518cc37e24685af572e37c2b99652c1a3b37a75f8a76f215ce4a"
+      },
+      "target": {
+        "mode": "100644",
+        "kind": "blob",
+        "gitBlobID": "2950ad088f1a48209bc982368027ef5a846e89da",
+        "contentSHA256": "17d313c050b2518cc37e24685af572e37c2b99652c1a3b37a75f8a76f215ce4a"
+      }
+    }
+  ],
+  "verificationEntrypointScope": "The sole listed source change is LyricNativePlayerVerification, executed by LyricTileApp only when --verify-native-player is explicitly present. Source predicate helpers are used by this verification path and its tests. Runtime UI, playback adapters, lyric repository, resources and packaging inputs are unchanged.",
+  "limits": [
+    "The complete Sources tree and shipped executable are not byte-identical to CI45 or CI48.",
+    "Generated build metadata, executable/archive hashes, signatures, notarization, install and updates require their own current-build evidence.",
+    "Runtime and performance results are labeled by their actual run/build; source similarity does not manufacture a fresh test pass."
+  ],
+  "workingTreeChangesInScopeAtInspection": [],
+  "untrackedPathsInScopeAtInspection": []
+}

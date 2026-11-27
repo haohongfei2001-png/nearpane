@@ -110,7 +110,10 @@ class GitHub:
         raise Rejected('Unexpected pagination size; no mutation performed.')
 
     def download(self, path, destination):
-        headers = dict(self.headers, Accept='application/octet-stream')
+        # Actions artifacts return a redirect under the JSON media type;
+        # release assets require octet-stream to request their binary content.
+        accept = 'application/vnd.github+json' if path.startswith('/actions/artifacts/') else 'application/octet-stream'
+        headers = dict(self.headers, Accept=accept)
         url = 'https://api.github.com/repos/' + REPOSITORY + path
         try:
             try:

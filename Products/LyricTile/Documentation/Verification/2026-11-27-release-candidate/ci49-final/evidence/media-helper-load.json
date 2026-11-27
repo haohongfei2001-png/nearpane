@@ -1,0 +1,30 @@
+{
+  "scope": "helper_load_only",
+  "dataOrigin": "runtime_probe",
+  "success": true,
+  "mediaState": "empty",
+  "controlsInvoked": [],
+  "fakeMediaPublished": false,
+  "playerSupportCertified": false,
+  "system": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "macOSVersion": "27.0.1",
+  "machine": "arm64",
+  "helperDirectory": "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/Resources/MediaRemote",
+  "budgetSeconds": 4.5,
+  "scriptSHA256": "6faa65741e884cf01ee327cf494cfdf280fd148fea3e2b62232f3170ed369307",
+  "frameworkSHA256": "265238d17297c1f2681dadd1dcf4e6a3eaa44b5c6c38f523b9f9bc9c1c8bbe0a",
+  "get": {
+    "exitCode": 0,
+    "failure": null,
+    "stdout": "null\n",
+    "stderr": ""
+  },
+  "symbolProbe": {
+    "exitCode": 0,
+    "failure": null,
+    "stdout": "MRMediaRemoteGetNowPlayingApplicationPID=1\nMRMediaRemoteGetNowPlayingClient=1\nMRMediaRemoteGetNowPlayingInfo=1\nMRMediaRemoteGetNowPlayingApplicationIsPlaying=1\nMRMediaRemoteRegisterForNowPlayingNotifications=1\nMRMediaRemoteUnregisterForNowPlayingNotifications=1\nMRMediaRemoteGetNowPlayingClients=1\nMRNowPlayingClientGetBundleIdentifier=1\nMRNowPlayingClientGetProcessIdentifier=1\nMRMediaRemoteGetLocalOrigin=1\nMRNowPlayingPlayerPathCreate=1\nMRMediaRemoteGetNowPlayingInfoForPlayer=1\nMRMediaRemoteGetPlaybackStateForPlayer=1\nMRMediaRemoteGetSupportedCommandsForPlayer=1\nMRMediaRemoteCopySupportedCommands=1\nMRMediaRemoteSendCommand=1\nMRMediaRemoteSetElapsedTime=1\n",
+    "stderr": ""
+  },
+  "qualification": "Packaged dynamic load, read-only get protocol and symbol resolution only",
+  "elapsedSeconds": 0.177281
+}

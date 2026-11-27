@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "app": "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app",
+  "commit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "signingIdentity": "ad-hoc",
+  "realPlayerQualification": "NOT_RUN",
+  "notarization": "NOT_RUN",
+  "checks": [
+    {
+      "check": "independent-bundle-id",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "distribution-os-floor",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "automation-purpose",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/MacOS/LyricTile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/LyricTile.icns",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Frameworks/Sparkle.framework/Sparkle",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/MediaRemote/mediaremote-adapter.pl",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/MediaRemote/MediaRemoteAdapter.framework/MediaRemoteAdapter",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/MediaRemote/LICENSE",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/MediaRemote/SOURCE.json",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/Notices/Yams-LICENSE",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/Notices/Sparkle-LICENSE",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "required:Contents/Resources/Notices/mediaremote-adapter-LICENSE",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "architecture:Contents/MacOS/LyricTile",
+      "passed": true,
+      "detail": "arm64"
+    },
+    {
+      "check": "architecture:Contents/Frameworks/Sparkle.framework/Sparkle",
+      "passed": true,
+      "detail": "x86_64 arm64"
+    },
+    {
+      "check": "architecture:Contents/Resources/MediaRemote/MediaRemoteAdapter.framework/MediaRemoteAdapter",
+      "passed": true,
+      "detail": "arm64"
+    },
+    {
+      "check": "signature-integrity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "apple-events-entitlement",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "no-app-sandbox",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bundle-framework-rpath",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "portable-rpaths",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

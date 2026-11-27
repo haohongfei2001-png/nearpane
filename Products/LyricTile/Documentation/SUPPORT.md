@@ -2,15 +2,17 @@
 
 更新：2026-11-27。LyricTile 是 HOLDSNOW 的独立 macOS 歌词伴侣。**当前候选、精确源码、整体验收与正式包状态见 [STATUS](../STATUS.md)**。本页说明已经实际跑通的路径及其边界；某个子项通过，不代表整个运行或正式签名已经完成。
 
+本页对应候选 **1.0.0 / build 49**，源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，[原生 CI49 / run 46024615269](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。各条证据保留实际运行归属。
+
 ## 平台与播放器
 
 首发目标是 **Apple silicon、macOS 27 或更新版本**。本轮原生运行环境为 macOS 27.0.1 arm64；没有据此承诺 Intel 或 macOS 14–26。
 
 | 播放器 | 已有原生运行证据 | 可以据此使用和理解的范围 |
 | --- | --- | --- |
-| Apple Music **1.7 / build 1.7.0** | [CI46](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087)：普通 App 的 24 项检查通过；两首原创本地 WAV、导入文件 hash、实际 persistent ID 与时长一致 | 自动识别、紧凑态、本地歌词、逐行推进、seek、暂停/恢复、hover/按钮命中、真实 next/previous、切歌清除旧词，以及返回原曲后自动恢复已有本地绑定；不是订阅曲库整体认证 |
-| QQ 音乐 **11.11.1 / build 73285** | [CI46](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087)：单首原创本地 WAV，普通 App 的 18 项检查通过 | 自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实指针交互和面板显隐；暂停时遇到矛盾旧进度锚点不展示虚构进度。该测试没有验证 QQ 播放队列切歌或商业曲库 |
-| 网易云音乐 **3.1.14 / build 3459** | [CI45](https://github.com/haohongfei2001-png/nearpane/actions/runs/46009188167)：单曲本地核心与 18 项普通 App 检查通过；CI45 与 CI46 的生产 `Sources` 无差异 | 单曲本地音轨的识别、歌词、逐行推进、seek、暂停/恢复与真实指针交互已有证据。CI46 官方 DMG 下载触及时间边界，未运行该客户端；不能把下载 BLOCKED 写成该轮播放 PASS。未验证网易云队列切歌或商业曲库 |
+| Apple Music **1.7 / build 1.7.0** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：普通 App 的 24 项检查通过；两首原创本地 WAV、导入文件 hash、实际 persistent ID 与时长一致 | 自动识别、紧凑态、本地歌词、逐行推进、seek、暂停/恢复、hover/按钮命中、真实 next/previous、切歌清除旧词，以及返回原曲后自动恢复已有本地绑定；不是订阅曲库整体认证 |
+| QQ 音乐 **11.11.1 / build 73285** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：单首原创本地 WAV，普通 App 的 18 项检查通过 | 自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实指针交互和面板显隐；暂停时遇到矛盾旧进度锚点不展示虚构进度。该测试没有验证 QQ 播放队列切歌或商业曲库 |
+| 网易云音乐 **3.1.14 / build 3459** | [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)：官方客户端实际下载、安装并运行，单曲本地核心与 18 项普通 App 检查通过 | 单曲本地音轨的识别、歌词、逐行推进、seek、暂停/恢复与真实指针交互；未验证网易云队列切歌或商业曲库。CI46/47 的下载阻塞属于此前原样保留的结果，不替代本轮实际运行 |
 | Spotify 桌面版 | 适配器存在，尚无已登录实际播放的通过记录 | **未实测**，不列为已通过的首发播放器；Connect、广告、播客和远端输出也没有被认证 |
 
 这些本地测试使用真实安装的播放器、真实解码音频和普通 LyricTile App，未使用音乐账号。原创测试录音与歌词不随产品打包。“无需账号”仅说明这些本地路径可行，音乐服务自身的订阅和登录要求仍由对应服务决定。
@@ -19,7 +21,11 @@
 
 ## 歌词、自动匹配与同步
 
-在线来源为可关闭的 **LRCLIB**，默认开启并在欢迎页告知。真实接口、生产 provider/repository、中英文样本、缓存和离线恢复有单独的网络验收记录。**接口抽样、本地 LRC 播放和真实歌曲自动取词是不同的检查**；完整自动在线路径的结果以 STATUS 所列的独立原始报告为准。
+在线来源为可关闭的 **LRCLIB**，默认开启并在欢迎页告知。真实接口、生产 provider/repository、中英文样本、缓存和离线恢复有单独的网络验收记录。**接口抽样、本地 LRC 播放和真实歌曲自动取词是不同的检查**。
+
+CI49 的完整自动在线路径为 **PASS_REAL_ONLINE_SONG**：Apple Music 实际播放 Jonathan Coulton 公开提供的《Code Monkey》原录音，导入文件 hash 与官方字节一致、原始 tags 未修改、真实 current persistent ID 匹配。普通 LyricTile App 未启用原生验证模式、未注入歌词，从空缓存约 **1.382 秒**自动取得 LRCLIB **332580**，绑定到实际歌曲。8 次原生观察中，2 次完成不同当前句的严格 AX 内容 hash 与前后真实 Music 进度核对；其余观察如实保留，没有被改成通过。因此这证明单曲自动获取、绑定及原生逐行显示，不证明 seek 后即时逐帧一致、全曲库匹配率或独立声学精度。
+
+在线测试的音频、歌词正文和第三方歌词截图均未保留或打包；清理报告确认临时数据移除、原应用数据和偏好恢复。来源、署名及权利边界保存于原始 `source-provenance.json`。公开提供的录音或 API 可访问性不被描述为不受限制的商业内容许可。
 
 歌词能否找到以及是否适合当前录音，取决于提供方覆盖、曲名/歌手/专辑/时长等元数据、地区与版本。现场、翻唱、remix、重制等版本可能需要手动选择；没有合适歌词时保留紧凑摘要，并可导入用户自己的歌词。当前没有“全曲库”“所有播放器官方歌词”或已测错误匹配率的承诺。
 
@@ -37,7 +43,7 @@
 
 - **真实 macOS 运行**：生产编译、App 启动、实际播放器与文件 hash、控制 trace/readback、源进度、原生窗口、OS 指针事件和资源采样。OS 事件是原生命中证据，没有声称测试了实体鼠标硬件。
 - **原生夹具**：真实 AppKit/SwiftUI 布局与渲染，配合原创样词覆盖长句、英文、深浅色和不同窗口宽度；它们不替代真实播放源。
-- **实际壁纸**：[CI44 保存的原图与像素复核](Verification/2026-11-27-release-candidate/ci44-regression/README.md) 已确认浅色 App 在浅色、深色、繁忙壁纸上的实际可读性，来自同一 WindowServer 面板、1× 显示。没有把深色壁纸当成深色 App，也没有把可列举的显示模式写成已测 2×。
+- **实际壁纸**：[CI44 保存的原图与像素复核](Verification/2026-11-27-release-candidate/ci44-regression/README.md) 已确认浅色 App 在浅色、深色、繁忙壁纸上的实际可读性，来自同一 WindowServer 面板、1× 显示。CI49 的三壁纸矩阵因公开桌面 API 未读回请求壁纸而 BLOCKED，没有产生该矩阵截图；原壁纸与 QQ 窗口状态已恢复，不能把它写成本轮三壁纸通过。没有把深色壁纸当成深色 App，也没有把可列举的显示模式写成已测 2×。
 - **网络与浏览器**：歌词服务请求、官网及下载入口各自保存证据；网页结果不作为 macOS 播放或原生 UI 通过的依据。
 
 ## 当前发行与历史结果
@@ -50,18 +56,20 @@
 
 ## English
 
-LyricTile is an independent HOLDSNOW companion for **Apple silicon Macs running macOS 27 or later**. The native cloud environment is macOS 27.0.1 arm64. [STATUS](../STATUS.md) identifies the exact candidate, source, complete run result and signing state.
+LyricTile is an independent HOLDSNOW companion for **Apple silicon Macs running macOS 27 or later**. The native cloud environment is macOS 27.0.1 arm64. The current candidate is **1.0.0 / build 49**, source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`, from [CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269). [STATUS](../STATUS.md) records the complete run result and signing state; the rows below identify each actual verification run.
 
 | Player | Observed native scope |
 | --- | --- |
-| **Apple Music 1.7 / build 1.7.0** | CI46 passed 24 ordinary-app checks using two authored local recordings: identification, local lyrics, line progression, seeking, pause/resume, native hover/button events, next/previous, lyric replacement and automatic recovery of the original local binding. Actual imported hashes, track IDs and durations were verified. |
-| **QQ Music 11.11.1 / build 73285** | CI46 passed 18 ordinary-app checks using one authored local recording: identification, local lyrics, line progression, seek, pause/resume, native pointer input and panel visibility. Queue switching and the commercial catalog were not tested. |
-| **NetEase 3.1.14 / build 3459** | CI45 passed the corresponding single-track local core and 18 ordinary-app checks. Its production Sources are unchanged in CI46, but CI46's official installer download timed out before NetEase could run. That BLOCKED download is not a fresh playback pass. |
+| **Apple Music 1.7 / build 1.7.0** | CI49 passed 24 ordinary-app checks using two authored local recordings: identification, local lyrics, line progression, seeking, pause/resume, native hover/button events, next/previous, lyric replacement and automatic recovery of the original local binding. Actual imported hashes, track IDs and durations were verified. |
+| **QQ Music 11.11.1 / build 73285** | CI49 passed 18 ordinary-app checks using one authored local recording: identification, local lyrics, line progression, seek, pause/resume, native pointer input and panel visibility. Queue switching and the commercial catalog were not tested. |
+| **NetEase 3.1.14 / build 3459** | CI49 downloaded, installed and ran the actual official client, then passed the corresponding single-track local core and 18 ordinary-app checks. Queue switching and the commercial catalog were not tested. Earlier CI46/47 installer failures remain separate historical observations. |
 | **Spotify desktop** | The adapter is implemented, but actual signed-in playback remains unverified. Spotify, Connect, ads, podcasts and remote outputs are not listed as qualified paths. |
 
 These local tests used actual players and audio without an account. They do not establish whole-catalog coverage, subscription playback, every recording version or independent word-level timing. Online LRCLIB service probes and full automatic lookup during real playback are recorded separately. Lyrics availability depends on provider coverage and metadata; local imports remain available when online lookup is disabled or no suitable lyrics are found.
 
-The first release is qualified primarily for line-level synchronization. Word-level parsing and authored rendering fixtures do not certify acoustic timing accuracy. Current native screenshots and the explicitly scoped light-app/three-wallpaper/1× desktop check remain distinct from browser and service tests.
+CI49's separate **PASS_REAL_ONLINE_SONG** result used Jonathan Coulton's publicly offered original recording of *Code Monkey* in actual Apple Music. The ordinary app used neither verification mode nor injected lyrics. Starting with an empty cache, it automatically resolved LRCLIB **332580** in **1.382 seconds** and bound it to the real track ID. Two of eight native observations strictly matched two distinct current-line hashes to actual Music position readbacks; other observations remain recorded as unmatched. This verifies that one recording's automatic lookup and native line display worked, without certifying every frame immediately after seeking or independent acoustic accuracy. The original audio hash and unchanged tags were checked. Test audio, lyric bodies and third-party lyric screenshots were not retained or distributed, and cleanup restored prior app data and preferences. Public availability is not treated as unrestricted commercial content licensing.
+
+The first release is qualified primarily for line-level synchronization. Word-level parsing and authored rendering fixtures do not certify acoustic timing accuracy. The historical CI44 light-app/three-wallpaper/1× desktop check remains distinct from current native screenshots, browser and service tests. CI49's wallpaper matrix was BLOCKED when the public desktop API did not read back the requested wallpaper; no matrix captures were produced, and the original desktop and QQ window state were restored.
 
 When the signed consumer release is available, download its DMG from the LyricTile product page, drag the app into Applications, and complete onboarding. Grant Automation for the chosen Music or Spotify connection when requested. Normal use does not require Accessibility or Screen Recording access, and LyricTile has no account requirement of its own. Online lookup is disclosed during onboarding and can be disabled in Settings; see [installation](INSTALL.md) and [privacy](PRIVACY.md).
 

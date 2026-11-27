@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "build": 49,
+  "workflowRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269",
+  "workflowConclusion": "success",
+  "artifact": {
+    "id": 15211393789,
+    "name": "LyricTile-candidate-49",
+    "bytes": 28010599,
+    "sha256": "64908b6e71948b27d3a59c0782c03c3d869f1847b2fc76ee1f04c61f6cb37b79"
+  },
+  "scope": "Selected original CI49 files copied byte-for-byte. Native fixtures, actual native players, live metadata probes and ordinary-app online test retain their separate scope. Online metadata/hash reports contain no redistributed recording or third-party lyric text. Signing and public release are separate evidence.",
+  "originalArtifactFiles": {
+    "bundle-verification.json": {
+      "bytes": 2788,
+      "sha256": "ae9185c9f6141006673a62d1c6f45e8aa304109953d68fbca0a8d4b431098a52"
+    },
+    "evidence/cloud-clients/netease/native-player/native-line-progress.json": {
+      "bytes": 352,
+      "sha256": "90b74cf3b04b16fb3b44f53ee07c625384e330cba2ca685f60d6496ab97d2c95"
+    },
+    "evidence/cloud-clients/netease/native-player/native-player.json": {
+      "bytes": 18601,
+      "sha256": "92575554a7f74facf12f3fad8d5902dec77961ab63c53f37400500b76bc9c39a"
+    },
+    "evidence/cloud-clients/netease/native-player/native-pointer.json": {
+      "bytes": 7487,
+      "sha256": "8a1df2f0be2b6d88e4531c1978fff95acc1fe79a8175ce82a6b5441f5fe81de5"
+    },
+    "evidence/cloud-clients/netease/native-player/performance/summary.json": {
+      "bytes": 989,
+      "sha256": "7f6f2bd9dcfb0b65bcc53162c3fc9293168f05b335db1ffcfbbd7acda6cf59d2"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-report.json": {
+      "bytes": 2825,
+      "sha256": "15292e383ee99fa1daeed84f2d43b324aa235628572a6c7f3ef258b5ed54c280"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/native-line-progress.json": {
+      "bytes": 352,
+      "sha256": "304d77fe47aabf4fe1c8c36a1772037955d720ecb7e7817c6c2e759cfd9bf566"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/native-player.json": {
+      "bytes": 18847,
+      "sha256": "6e51a1edbd0f194357a0e649b19f4df2974c387e86fababdb0002086012f515a"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/native-pointer.json": {
+      "bytes": 7477,
+      "sha256": "e5b5a8576a90a33bfeb0c6692d2fcf8ed239b53cabaeb4320f8f598db8e8ed10"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/performance/summary.json": {
+      "bytes": 990,
+      "sha256": "3c4117040af8684df53cd8adb38e5319e2cb8d174ac6af0f88a129b6074f9ac2"
+    },
+    "evidence/cloud-clients/qqMusic/native-player/real-qqMusic-paused.png": {
+      "bytes": 10807,
+      "sha256": "c69ba27fdd7850efc22357a07d7107a2677cde60bf72cfe7e0f58926c2573285"
+    },
+    "evidence/idle/idle-check.json": {
+      "bytes": 1296,
+      "sha256": "77fa746b6528aa2fabff7f1f121660d543611bac34bc40be1856c40f8d4bfebe"
+    },
+    "evidence/idle/idle-samples/summary.json": {
+      "bytes": 990,
+      "sha256": "56b4d1823ec2e2849716ae540cc6efcc933a945f85002af2ced1840d05c11554"
+    },
+    "evidence/layout/fixture-english-lyrics.png": {
+      "bytes": 16717,
+      "sha256": "07b974d55d9875a48ee89459be25fb495acde0530c9669a4840936d77a99a6ff"
+    },
+    "evidence/live-lyrics.json": {
+      "bytes": 23617,
+      "sha256": "7ba97b2d1630a9ac3704c1ff20268d84c04a8d809ae767dcfdc8e5cc006319b4"
+    },
+    "evidence/media-helper-load.json": {
+      "bytes": 1632,
+      "sha256": "e6f3bff94c4b5f3d74ce01dacaea1016205d906be5764eccaf863d8f44d51dc7"
+    },
+    "evidence/native-settings.png": {
+      "bytes": 45271,
+      "sha256": "ce2b8b8c14626818cb6cb4e751bea6025211ca343e25f22d193c4b0115ccfbda"
+    },
+    "evidence/native-smoke.json": {
+      "bytes": 12279,
+      "sha256": "4393be1716a2c8bd236493c8f848919f2c10525ebc34ebb3fdb9ad5e6bace4a5"
+    },
+    "evidence/native-welcome.png": {
+      "bytes": 41760,
+      "sha256": "9f95935aed583b29308ab73a39f6544f3dfd4077266d8e4fa8904adaad7e20c5"
+    },
+    "evidence/real-music/cloud-music.json": {
+      "bytes": 22949,
+      "sha256": "d0da76adf0ec5196b55a99480e76065f66eff3ea4afca396377178015cfcb8d2"
+    },
+    "evidence/real-music/media-provenance.json": {
+      "bytes": 779,
+      "sha256": "f187144d13aa79f5a0370ee0a03e61cb439817855fee33da08cb7f04a664bad1"
+    },
+    "evidence/real-music/music-current-playlist.json": {
+      "bytes": 254,
+      "sha256": "dfa14eba94732b14f7529cfdab3629844716d0a0b81853c7578eb81ddd5f14aa"
+    },
+    "evidence/real-music/native-line-progress.json": {
+      "bytes": 347,
+      "sha256": "3e952a0b0ebff7851a390e9d7267ca567bdf45e14258e5f2b7b78e22bf3f2ea7"
+    },
+    "evidence/real-music/native-player.json": {
+      "bytes": 23059,
+      "sha256": "780255e608c65475cb19f484b2fe80202eab25696b5cea7ffc2811a6e1d11b53"
+    },
+    "evidence/real-music/native-pointer.json": {
+      "bytes": 7461,
+      "sha256": "352af4624d570653536283f12c0e8621a218c347c4eae01dbccd9bb1fe03282a"
+    },
+    "evidence/real-music/real-music-lyrics.png": {
+      "bytes": 12990,
+      "sha256": "4cc11a88505cdea25401dec45474b21700eceeef8af7f6deaf2207c1f1025d23"
+    },
+    "evidence/real-online-song/automatic-cache-source.json": {
+      "bytes": 1255,
+      "sha256": "7eaddc51959c816e7b222316d8e79f908720e599892dd761e905ef8a14e43cf1"
+    },
+    "evidence/real-online-song/ax-helper-compile.json": {
+      "bytes": 36,
+      "sha256": "e6a10e00d2c33708d71cc4e9d9250d129e14cd0f1488869e828680c4c9b24b41"
+    },
+    "evidence/real-online-song/online-song-progress.json": {
+      "bytes": 18406,
+      "sha256": "05e98af871af472a606638aa7bc430f37e24ce56a3f402d35a1adb45b38146b6"
+    },
+    "evidence/real-online-song/online-song.json": {
+      "bytes": 18915,
+      "sha256": "f847c4e8b9aefef7ddb808181533ceee628a4586a227c3911a4d5ec815230fcf"
+    },
+    "evidence/real-online-song/permission-actions.json": {
+      "bytes": 194,
+      "sha256": "2a1ce2056b82d4e734e9f96cad135bcfadd257b63a70b1354caeebbf12f3e6ca"
+    },
+    "evidence/real-online-song/source-provenance.json": {
+      "bytes": 1405,
+      "sha256": "1fcb90d4c9ea8e3af9cf42df957b280be9bfee383970b07d45ba6e372a41f6c5"
+    },
+    "evidence/release-integrity.json": {
+      "bytes": 4510,
+      "sha256": "10de4a5ada1f0edd3e27a60ff3e6a900fac3107328fef0752436059d096098f8"
+    },
+    "evidence/test-results-swift-testing.xml": {
+      "bytes": 13376,
+      "sha256": "b7ed0fff4f85f573a5d677870c9518c87c0e79828b91349d053e44a916480051"
+    },
+    "evidence/test-results.xml": {
+      "bytes": 2330,
+      "sha256": "81cc96abb850681ec2c3c3407432bdd43d38f3353aa86464b5e569d18391d998"
+    },
+    "evidence/variants/en-dark/native-settings.png": {
+      "bytes": 47918,
+      "sha256": "8423d3215706d84fc08a89036da26d3f78c6aba9cbd729e88ebe95d860a02f04"
+    },
+    "evidence/variants/en-dark/native-welcome.png": {
+      "bytes": 39023,
+      "sha256": "6d9763aa216cafde2a234b13a7e4ac0ab6a59d61d9fcd33abe997df1b857947e"
+    }
+  }
+}

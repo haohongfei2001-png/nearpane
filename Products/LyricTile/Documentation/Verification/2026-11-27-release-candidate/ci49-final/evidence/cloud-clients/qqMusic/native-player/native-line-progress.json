@@ -1,0 +1,12 @@
+{
+  "afterCueIndex" : 20,
+  "beforeCueIndex" : 8,
+  "currentCueStartMS" : 160000,
+  "independentAcousticClockQualification" : false,
+  "lookupMS" : 166294,
+  "nextCueStartMS" : 168000,
+  "passed" : true,
+  "publicationToleranceMS" : 250,
+  "scope" : "displayed original LRC cue versus the actual player source position",
+  "sourcePositionMS" : 166294
+}
