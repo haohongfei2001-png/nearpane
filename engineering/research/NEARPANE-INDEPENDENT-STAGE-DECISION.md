@@ -43,6 +43,24 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
+#### 10195c7e compile rejection and narrow correction
+
+The target release and cloud source compiler reject the new nested `rejected`
+helper in StageWindowEngineHost: accesses to `phase` and `permittedRejection`
+are diagnosed as concurrent/non-Sendable captures. The target fails after
+64.510 seconds, before packaging or launching any candidate. Its original
+[failed build receipts](../verification/independent-stage/target-1019-build/README.md)
+remain FAIL. Cloud Rust passes180 tests, but Swift tests and the Host R4 path
+are not executed. Fast's subsequent runtime step runs only the direct engine
+(26 requests and cleanup pass); it does not prove Host compilation.
+[Exact1019 cloud compiler and engine originals](../verification/independent-stage/cloud-10195c7e-latency/README.md).
+
+The following one-line correction explicitly marks the local helper `@MainActor`,
+matching the original enclosing actor domain. It preserves the complete body,
+short-circuit guards, native-query count, deadlines and failure semantics.
+Static review missed the inferred isolation problem; native compilation of the
+explicit correction remains the required gate.
+
 #### Current verification checkpoint: f4934582, 2026-11-28
 
 `f4934582` reuses a pending directory result only when both its actual wall-clock

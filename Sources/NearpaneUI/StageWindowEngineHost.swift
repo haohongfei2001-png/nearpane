@@ -694,7 +694,7 @@ import NearpaneOrdinaryWindowRuntime
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
             permittedRejection = nil
-            func rejected(_ reason: String, _ facts: [String: Any] = [:]) -> Bool {
+            @MainActor func rejected(_ reason: String, _ facts: [String: Any] = [:]) -> Bool {
                 var recorded = facts
                 recorded["reason"] = reason
                 recorded["phase"] = phase
