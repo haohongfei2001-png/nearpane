@@ -361,8 +361,8 @@ import Testing
         fixture.beforeRead = { [unowned fixture] in
             guard let pending = try? readJournal(profile).pending, let entry = pending.entries.last,
                   entry.after == nil, entry.action == .hide || entry.action == .show,
-                  fixture.writeIntents.contains(entry.intent) else { return }
-            confirmations[entry.intent, default: []].append(fixture.sequence + 1)
+                  let intent = entry.intent, fixture.writeIntents.contains(intent) else { return }
+            confirmations[intent, default: []].append(fixture.sequence + 1)
         }
         try await activate(groups[0], controller, fixture)
         try await activate(groups[1], controller, fixture)
@@ -446,7 +446,8 @@ import Testing
         await #expect(throws: StageSwitchError.incomplete) { try await activate(groups[0], controller, fixture) }
         #expect(fixture.effects.count == 1 && fixture.writtenReadbackIntents.count == 1 && postReads == 0)
         #expect(controller.session?.isFrozen == true && controller.coordinator.requiresRecovery)
-        #expect(store.activeGroup(in: fixture.scope) == nil && (try readJournal(profile)).pending?.entries.last?.after == nil)
+        let journal = try readJournal(profile)
+        #expect(store.activeGroup(in: fixture.scope) == nil && journal.pending?.entries.last?.after == nil)
     }
 
     @Test(arguments: [StageWindowBackend.spaces, .corner])
