@@ -85,6 +85,7 @@ struct FilmCaptureTests {
                 prepareLayers(view, scale: 4)
                 try FilmCaptureSupport.save(view: view, to: motionDirectory.appendingPathComponent(name), scale: 1)
                 motionFrames.append(["file": name, "elapsed": elapsed, "positionMS": 6_500 + Int64(elapsed * 1_000), "cueIndex": model.currentCueIndex ?? -1])
+                try await Task.sleep(for: .milliseconds(2))
             }
             let motionReport: [String: Any] = ["kind": "authored-native-view-motion", "realPlayer": false, "productionView": "LyricPanelView", "origin": "Original HOLDSNOW demo lyrics; fixture source positions follow host monotonic elapsed time.", "renderScale": 4, "targetFPS": 30, "frames": motionFrames, "limitations": "Native production SwiftUI cue transition rendered with authored input; not a player, transport or acoustic-sync qualification."]
             try JSONSerialization.data(withJSONObject: motionReport, options: [.prettyPrinted, .sortedKeys]).write(to: motionDirectory.appendingPathComponent("capture.json"))

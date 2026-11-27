@@ -12,7 +12,7 @@ The source product is the standalone LyricTile tree inherited from commit `d5787
 
 - `authored-native`: native production-view renders using original Chinese and English demo lyrics. Stills render at six times logical size. Short sequences retain the production cue transition with monotonic fixture input. Their manifests identify authored input; they are not real-player tests.
 - `real-music`: the existing actual Music playback and OS pointer workflow. The real adapter, imported local original PCM audio, imported original LRC, real seek/pause/next/previous and independently read-back source remain in use. The result must be checked; an attempted run is not a pass.
-- `music-lyrics` and `music-controls`: four-times native-view sequences sampled during that actual-player run, with authoritative elapsed-time stamps. These are native-view captures, not WindowServer screen recordings.
+- `music-lyrics` and `music-controls`: four-times offscreen production-view sequences sampled from the same live model during that actual-player run, with authoritative elapsed-time stamps. These are native-view captures, not WindowServer screen recordings.
 - `real-desktop.mov`: an attempted actual desktop video during the player run. `desktop-video.json` reports whether the operating system capture succeeded.
 - `work-window`: actual TextEdit window screenshots containing only original film copy.
 
@@ -23,3 +23,7 @@ The source and capture manifests distinguish real playback, authored view fixtur
 The dedicated `.github/workflows/film-native-capture.yml` runs on pushes to the film branch that touch this directory or that workflow. It does not modify another workflow, publish a product release or write to the user's Mac.
 
 Inspect the uploaded artifact, `native-player.json`, capture manifests, image dimensions and continuous frames before using outputs. Keep raw footage separate from the published film and retain elapsed timing if conforming it to a constant frame rate.
+
+## Final photography framing
+
+The real player run retains the actual on-screen panel and native OS pointer path. After the first genuine lyric import, it also creates two offscreen, input-disabled copies of the exact production `LyricPanelView`, both bound to the same live model at a logical 208×192 pt. The 6× surface provides stills and the 4× surface provides motion. This prevents distortion between a 176 pt cloud display layout and the 208 pt film composition. Every photograph is explicitly a native production-view re-render from actual player state. Original source-window pixels and the WindowServer recording remain separate. Frame manifests retain the original panel geometry, normalized real mouse position, original visibility, controls state, playback state and current cue. The original panel is not resized or restyled.

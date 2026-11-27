@@ -18,10 +18,10 @@ def patch(path,before,after):
  s=path.read_text(); assert s.count(before)==1,(path,before,s.count(before)); s=s.replace(before,after);path.write_text(s);changes.append(str(path.relative_to(a.destination)))
 patch(ui/'LyricNativeSmoke.swift',
  '        guard let view = window.contentView else { throw CaptureFailure.missingView }\n',
- '        guard let view = window.contentView else { throw CaptureFailure.missingView }\n        if FilmCaptureSupport.destination != nil { try FilmCaptureSupport.save(view: view, to: destination); return }\n')
+ '        guard let view = window.contentView else { throw CaptureFailure.missingView }\n        if FilmCaptureSupport.destination != nil { try FilmCaptureSupport.capture(window: window, to: destination); return }\n')
 patch(ui/'LyricNativePlayerVerification.swift',
  '        capture(capturePrefix + "-lyrics")\n',
- '        capture(capturePrefix + "-lyrics")\n        await FilmCaptureSupport.record(window: panel.panel, name: "music-lyrics", seconds: 6)\n')
+ '        await FilmCaptureSupport.bind(model: model, window: panel.panel)\n        capture(capturePrefix + "-lyrics")\n        await FilmCaptureSupport.record(window: panel.panel, name: "music-lyrics", seconds: 6)\n')
 patch(ui/'LyricNativePlayerVerification.swift',
  '        pointerAttempted = pointerReport()?["available"] as? Bool == true\n',
  '        let filmControls = Task { @MainActor in await FilmCaptureSupport.record(window: panel.panel, name: "music-controls", seconds: 10) }\n        pointerAttempted = pointerReport()?["available"] as? Bool == true\n')
