@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "Unmodified CI46 online harness failure and the actual prior Music source-ID evidence.",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "sourceCommit": "2d93409308f3c37094af8aa44acea95e72d84f28",
+  "sourceTree": "3b748dd16fa35f9706490f2914f5c0e8cd9e7ea1",
+  "version": "1.0.0",
+  "build": 46,
+  "runID": 46012637087,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087",
+  "originalWorkflowConclusion": "failure",
+  "artifactName": "LyricTile-candidate-46",
+  "artifactID": 15206181489,
+  "artifactBytes": 27371623,
+  "artifactSHA256": "d432ec6963d6b7818d5bc084b0500c204ea89963d7e0706106d4078671bc30b0",
+  "originalFiles": {
+    "online-song.json": {
+      "sourcePath": "dist/evidence/real-online-song/online-song.json",
+      "bytes": 1916,
+      "sha256": "e6de36e7e0114f81a371c54d3431644e4c2a40de344136962bd9d4cc7b81e7ca"
+    },
+    "online-song-progress.json": {
+      "sourcePath": "dist/evidence/real-online-song/online-song-progress.json",
+      "bytes": 1596,
+      "sha256": "3274dc45f3bdf1ecc68da345992d7f2492da116ef3e95b6de3ad5489c6680dc7"
+    },
+    "ax-helper-compile.json": {
+      "sourcePath": "dist/evidence/real-online-song/ax-helper-compile.json",
+      "bytes": 36,
+      "sha256": "e6a10e00d2c33708d71cc4e9d9250d129e14cd0f1488869e828680c4c9b24b41"
+    },
+    "permission-actions.json": {
+      "sourcePath": "dist/evidence/real-online-song/permission-actions.json",
+      "bytes": 194,
+      "sha256": "2a1ce2056b82d4e734e9f96cad135bcfadd257b63a70b1354caeebbf12f3e6ca"
+    },
+    "source-provenance.json": {
+      "sourcePath": "dist/evidence/real-online-song/source-provenance.json",
+      "bytes": 1405,
+      "sha256": "1fcb90d4c9ea8e3af9cf42df957b280be9bfee383970b07d45ba6e372a41f6c5"
+    },
+    "Music-source-03-production-adapter-real-local-track.json": {
+      "sourcePath": "dist/evidence/real-music/source-03-production-adapter-real-local-track.json",
+      "bytes": 1078,
+      "sha256": "94d9e74d007b7448e49f5d670b000d14255ec14c5eb35fbe2b1f5b33f9d6a718"
+    }
+  },
+  "derivedFiles": {
+    "README.md": {
+      "bytes": 2063,
+      "sha256": "e4f795c4e063d6a27a25d1599207e3f1fcc5dd74919a529ae929a3ab21e7922b"
+    }
+  }
+}

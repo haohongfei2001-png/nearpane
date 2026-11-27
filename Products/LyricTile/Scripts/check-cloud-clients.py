@@ -126,14 +126,15 @@ def download(url, destination, domain):
     digest = hashlib.sha256()
     count = 0
     started = time.monotonic()
+    total_timeout = 150 if domain == '126.net' else 90
     with opener.open(urllib.request.Request(url, headers={'User-Agent': USER_AGENT}), timeout=20) as response:
         final_url = response.url
         if not permitted(final_url):
             raise ValueError('Unexpected final download domain.')
         with destination.open('wb') as output:
             while True:
-                if time.monotonic() - started > 90:
-                    raise TimeoutError('Official package download exceeded 90 seconds.')
+                if time.monotonic() - started > total_timeout:
+                    raise TimeoutError(f'Official package download exceeded {total_timeout} seconds after receiving {count} bytes.')
                 chunk = response.read(256 * 1024)
                 if not chunk:
                     break

@@ -115,7 +115,7 @@ def main():
             'actions': [{k: row.get(k) for k in ('button', 'bundleID', 'AXResult', 'timestamp')}
                         for row in value.get('actions', [])]}
 
-    def read_music():
+    def read_music(timeout=4):
         raw = apple('''tell application "Music"
             set songTitle to name of current track as string
             set songArtist to artist of current track as string
@@ -124,7 +124,7 @@ def main():
             set songPosition to player position as string
             set songState to player state as string
             return songTitle & tab & songArtist & tab & songAlbum & tab & songID & tab & songPosition & tab & songState
-        end tell''', timeout=4).split('\t')
+        end tell''', timeout=timeout).split('\t')
         require(len(raw) == 6, 'Music current-track readback was incomplete.')
         return dict(title=raw[0], artist=raw[1], album=raw[2], persistentID=raw[3],
                     positionMS=round(float(raw[4])*1000), state=raw[5], observedUptime=time.monotonic())
@@ -257,28 +257,57 @@ def main():
             set shuffle enabled to false
             set song repeat to off
             set testTrack to item 1 of (tracks of testPlaylist)
-            play testPlaylist
-            delay 1
             set songTitle to name of testTrack as string
             set songArtist to artist of testTrack as string
             set songAlbum to album of testTrack as string
             set songID to persistent ID of testTrack as string
             set songDuration to duration of testTrack as string
             set songLocation to get location of testTrack
-            set actualID to persistent ID of current track as string
-            set actualState to player state as string
         end tell
         set songPath to POSIX path of songLocation
-        return songTitle & tab & songArtist & tab & songAlbum & tab & songID & tab & songDuration & tab & songPath & tab & actualID & tab & actualState''', timeout=18).split('\t')
-        require(len(raw) == 8, 'The actual imported Music source readback was incomplete.')
-        title, artist, album, imported_id, duration, location, actual_id, state = raw
+        return songTitle & tab & songArtist & tab & songAlbum & tab & songID & tab & songDuration & tab & songPath''', timeout=18).split('\t')
+        require(len(raw) == 6, 'The actual imported Music source readback was incomplete.')
+        title, artist, album, imported_id, duration, location = raw
         imported_location = Path(location).resolve()
         imported_hash = digest(imported_location.read_bytes())
-        check('actual-music-original-tags-file-and-current-track', title == source['title'] and artist == source['artist']
-              and album == source['album'] and actual_id == imported_id and state == 'playing'
+        check('actual-music-original-tags-and-imported-file', title == source['title'] and artist == source['artist']
+              and album == source['album'] and bool(imported_id)
               and abs(float(duration)-source['durationSeconds']) < 2 and imported_hash == source['audioSHA256'],
-              title=title, artist=artist, album=album, persistentID=imported_id, currentPersistentID=actual_id,
+              title=title, artist=artist, album=album, persistentID=imported_id,
               durationSeconds=float(duration), importedFileSHA256=imported_hash, metadataEdited=False)
+        stage = 'real Music selects the imported public recording'
+        # A playlist play command can initially leave Music on the restored
+        # previous queue. Select this exact imported track, then wait for the
+        # real current-track readback before launching the ordinary app.
+        apple('''tell application "Music"
+            set testPlaylist to first user playlist whose name is ''' + apple_string(playlist) + '''
+            set testTrack to first track of testPlaylist whose persistent ID is ''' + apple_string(imported_id) + '''
+            play testTrack
+        end tell''', timeout=6)
+        playback_deadline = min(deadline-12, time.monotonic()+12)
+        report['musicStartReadbacks'] = []
+        selected = None
+        while time.monotonic() < playback_deadline:
+            try:
+                current = read_music(timeout=min(3, playback_deadline-time.monotonic()))
+                report['musicStartReadbacks'].append(dict(currentTitle=current['title'],
+                    currentArtist=current['artist'], currentAlbum=current['album'],
+                    currentPersistentID=current['persistentID'], currentState=current['state'],
+                    positionMS=current['positionMS'], observedUptime=current['observedUptime']))
+                if (current['persistentID'] == imported_id and current['state'] == 'playing'
+                        and current['title'] == source['title'] and current['artist'] == source['artist']
+                        and current['album'] == source['album']):
+                    selected = current
+            except CheckFailure as error:
+                # Music can briefly have no current track while replacing its
+                # queue. Keep the actual error, without treating it as success.
+                report['musicStartReadbacks'].append(dict(readbackError=str(error)))
+            save('online-song-progress.json', report)
+            if selected is not None:
+                break
+            time.sleep(.25)
+        check('actual-music-current-track-is-imported-source', selected is not None,
+              expectedPersistentID=imported_id, lastReadback=report['musicStartReadbacks'][-1:])
         stage = 'ordinary app automatic online resolution'
         stream = (work/'ordinary-app.log').open('w')
         process = subprocess.Popen([str(app/'Contents/MacOS/LyricTile')], stdout=stream, stderr=stream, start_new_session=True)

@@ -1,0 +1,34 @@
+{
+  "kind": "Derived comparison from original reports; CI46 partial transfer byte count was not recorded.",
+  "CI46": {
+    "officialURL": "https://d1.music.126.net/dmusic/NeteaseCloudMusic_Music_official_3.1.14.3459_arm64.dmg",
+    "originalStatus": "BLOCKED",
+    "originalError": "TimeoutError: Official package download exceeded 90 seconds.",
+    "partialBytesReceived": null,
+    "partialFileRetained": false,
+    "nativePlayerStarted": false
+  },
+  "CI45Reference": {
+    "sourceCommit": "59a4530302e592fc80040c955fffbba339aa3f89",
+    "runID": 46009188167,
+    "sourcePath": "dist/evidence/cloud-clients/netease/result.json",
+    "sourceJSONSHA256": "65124366cd477009508be2c7e9587ab97d6486c5a813c78b802b8da573ebe376",
+    "download": {
+      "bytes": 180434687,
+      "sha256": "fb4c990c7c92451600945441c9a8ecd8b456427b33f93000f5fb21e6fc7d4df5",
+      "finalURL": "https://d1.music.126.net/dmusic/NeteaseCloudMusic_Music_official_3.1.14.3459_arm64.dmg"
+    },
+    "appVersion": "3.1.14",
+    "appBuild": "3459"
+  },
+  "interpretation": "The recorded exception is the cumulative loop deadline, not the 20-second socket read timeout. This supports extending the cumulative budget for the known large official package; it does not establish a recorded CI46 byte count or throughput.",
+  "change": {
+    "NetEaseCumulativeSeconds": 150,
+    "QQCumulativeSeconds": 90,
+    "socketTimeoutSeconds": 20,
+    "maximumBytes": 629145600,
+    "retriesAdded": false,
+    "sourceChanged": false,
+    "integrityChecksChanged": false
+  }
+}

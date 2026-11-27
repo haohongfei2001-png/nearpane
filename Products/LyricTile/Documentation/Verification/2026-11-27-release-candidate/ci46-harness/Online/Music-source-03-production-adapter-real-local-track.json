@@ -1,0 +1,40 @@
+{
+  "appleEventsRevision" : "holdsnow-appleevents-v1",
+  "commands" : [
+
+  ],
+  "dataOrigin" : "real_player",
+  "exportedAt" : "2026-11-27T14:13:27Z",
+  "mediaRemoteRevision" : "2ef957c736256cee7905c9f3f1c7e279087bf195",
+  "players" : [
+    {
+      "album" : "",
+      "artist" : "",
+      "build" : "1.7.0",
+      "bundleID" : "com.apple.Music",
+      "capabilities" : {
+        "canNext" : true,
+        "canPause" : true,
+        "canPlay" : true,
+        "canPrevious" : true,
+        "canSeek" : true
+      },
+      "durationMS" : 240000,
+      "isCurrentSystemSource" : false,
+      "mediaPID" : 23400,
+      "mediaProcessStartMicros" : 1795788773252718,
+      "observedUptimeNanoseconds" : 851089316625,
+      "pid" : 23400,
+      "platformID" : "99ADDEEC86CD2C12",
+      "player" : "appleMusic",
+      "positionMS" : 6905,
+      "processStartMicros" : 1795788773252718,
+      "quality" : "coarseSourceAnchor",
+      "state" : "playing",
+      "title" : "original-chimes",
+      "version" : "1.7"
+    }
+  ],
+  "selectedPlayer" : "appleMusic",
+  "systemBuild" : "26A434"
+}

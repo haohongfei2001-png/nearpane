@@ -116,6 +116,14 @@ jobs:
       - name: Verify one real public recording with automatic online lyrics
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-cloud-online-song.py dist/LyricTile.app --output dist/evidence/real-online-song
+      - name: Preserve the online song result immediately
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LyricTile-online-${{ github.run_number }}
+          path: Products/LyricTile/dist/evidence/real-online-song/*.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Observe official QQ and NetEase clients without accounts
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-cloud-clients.py dist/LyricTile.app --audio dist/evidence/real-music/original-chimes.wav --output dist/evidence/cloud-clients

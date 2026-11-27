@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "2d93409308f3c37094af8aa44acea95e72d84f28",
+  "version": "1.0.0",
+  "build": 46,
+  "runID": 46012637087,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087",
+  "artifactName": "LyricTile-candidate-46",
+  "artifactID": 15206181489,
+  "artifactBytes": 27371623,
+  "artifactSHA256": "d432ec6963d6b7818d5bc084b0500c204ea89963d7e0706106d4078671bc30b0",
+  "originalFiles": {
+    "result.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/result.json",
+      "bytes": 915,
+      "sha256": "92cfba5759f7e739be3a9a34a1daa5c035f6a20af6661237bd12347554e62f0f"
+    }
+  },
+  "originalReportsRewritten": false
+}

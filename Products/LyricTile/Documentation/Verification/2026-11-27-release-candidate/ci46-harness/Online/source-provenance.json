@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "title": "Code Monkey",
+  "artist": "Jonathan Coulton",
+  "album": "Thing a Week Three",
+  "audioURL": "https://www.jonathancoulton.com/wp-content/uploads/encodes/Thing_a_Week_Three/mp3/03_Code_Monkey_mp3_118604e.mp3",
+  "audioSHA256": "3866a8aa2fba54bdc278e8b55b278d73f51c6cf0ad06bf1e9835c409c824d586",
+  "durationSeconds": 189.309388,
+  "providerRecordID": "332580",
+  "referenceSyncedLyricsSHA256": "736940a1bd40c68f8e4b70f2eaf71c24473b296dda749456ee565175497fc702",
+  "officialReleaseURL": "https://www.jonathancoulton.com/2006/04/14/thing-a-week-29-code-monkey/",
+  "officialStoreURL": "https://www.jonathancoulton.com/store/",
+  "officialLicensingFAQ": "https://www.jonathancoulton.com/faq/",
+  "licenseURL": "https://creativecommons.org/licenses/by-nc/3.0/",
+  "attribution": "Code Monkey — Jonathan Coulton, Thing a Week Three (2006). https://www.jonathancoulton.com/",
+  "use": "Temporary internal playback of the publicly offered original recording on a disposable macOS runner. No audio, lyric body or third-party lyric screenshots are retained in the artifact or distributed with LyricTile. This is not a claim of unrestricted commercial licensing or independent acoustic synchronization accuracy.",
+  "sourceConfigSHA256": "ec1d5bc58df57d75b86d5df40f20ba8fa56ee94b01a150be902eba94de8e36c6",
+  "attributionRetained": true,
+  "thirdPartyTextOrAudioBundled": false
+}
