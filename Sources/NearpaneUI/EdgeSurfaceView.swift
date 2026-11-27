@@ -32,14 +32,19 @@ public struct EdgeSurfaceView: View {
                                                 expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight: display?.referenceHeight, voiceCompact: modules?.voiceCompact ?? false,
-                                                trayRows: modules?.trayRowCount ?? 1, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+                                                trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             ZStack(alignment: .topLeading) {
                 SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
                 if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
                 if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
+                #if canImport(NearpaneLyricsModule)
+                if let lyrics = modules?.lyrics, let rect = layout.additionalTools[BuiltinCatalog.lyrics], rect.height > 0 {
+                    HostLyricsCard(lyrics: lyrics).place(in: rect)
+                }
+                #endif
                 if let notebook = modules?.notebook {
                     ForEach(Array(layout.additionalTools.keys.sorted()), id: \.self) { id in
-                        if let rect = layout.additionalTools[id] {
+                        if id == BuiltinCatalog.memo || id == BuiltinCatalog.tasks, let rect = layout.additionalTools[id] {
                             NotebookCard(notebook: notebook, tasks: id == BuiltinCatalog.tasks)
                                 .surfaceCard(width: geometry.size.width, settings: settings).place(in: rect)
                         }
@@ -223,6 +228,7 @@ struct FoldedSurfaceButton: View {
             }
             #endif
         }
+        if !display.secondary, (modules?.lyricsHeight ?? 0) > 0 { result.append("music.note") }
         if display.content == .full || display.content == .spacesOnly { result.append("rectangle.3.group") }
         return result
     }

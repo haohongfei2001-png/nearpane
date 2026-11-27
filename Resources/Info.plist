@@ -13,7 +13,7 @@
     <key>NearpaneNativeAcceptanceSchema</key><integer>2</integer>
     <key>NSMicrophoneUsageDescription</key><string>按下收音按钮后，Saytile 使用麦克风生成你的连续文字。</string>
     <key>NSSpeechRecognitionUsageDescription</key><string>在你开启收音后，Saytile 使用本机语音识别生成并修订文字。</string>
-    <key>NSAppleEventsUsageDescription</key><string>在你点击截图后，Riftlet 向已确认的浏览器草稿附加截图，不发送消息。</string>
+    <key>NSAppleEventsUsageDescription</key><string>Riftlet 在你点击截图后向已确认的浏览器草稿附加截图，不发送消息。启用 LyricTile 后，Nearpane 读取当前播放器状态并执行你选择的播放控制。</string>
     <key>NSServices</key><array><dict>
         <key>NSMenuItem</key><dict><key>default</key><string>在 Nearpane 翻译选词</string></dict>
         <key>NSMessage</key><string>translateNearpaneSelection</string>

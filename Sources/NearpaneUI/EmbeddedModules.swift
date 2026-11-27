@@ -16,6 +16,16 @@ public final class EmbeddedModules {
     let voicePasteboard: NSPasteboard
     #endif
 
+    #if canImport(NearpaneLyricsModule)
+    let lyrics: HostLyrics?
+    #endif
+    var lyricsHeight: Double {
+        #if canImport(NearpaneLyricsModule)
+        lyrics?.height ?? 0
+        #else
+        0
+        #endif
+    }
     let notebook: SidebarNotebook
     private weak var translation: SelectionTranslation?
     public func bindSelectionService(_ service: SelectionTranslation, generation: UUID) {
@@ -76,6 +86,9 @@ public final class EmbeddedModules {
     public let workRect: CandidateWorkRect?
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
+        #if canImport(NearpaneLyricsModule)
+        lyrics = testSession == nil ? HostLyrics(directory: support.appendingPathComponent("Lyrics", isDirectory: true)) : nil
+        #endif
         notebook = SidebarNotebook(directory: support)
         windowPreviews = WindowContentPreview(readOverview: testSession == nil ? NativeDesktopProvider.packagedReader(overview: true) : nil,
             stageGroupProfile: support, permitsGalleryWindow: { _ in testSession == nil })
@@ -99,6 +112,9 @@ public final class EmbeddedModules {
         result[BuiltinCatalog.screenshots] = { [tray] in tray }
         result[BuiltinCatalog.voice] = { [voice] in voice }
         #endif
+        #if canImport(NearpaneLyricsModule)
+        if let lyrics { result[BuiltinCatalog.lyrics] = { lyrics } }
+        #endif
         return result
     }
 
@@ -116,10 +132,18 @@ public final class EmbeddedModules {
             if let voice { host?.registry.reportFailure(BuiltinCatalog.voice, from: voice) }
         }
         #endif
+        #if canImport(NearpaneLyricsModule)
+        lyrics?.openingFailed = { [weak host, weak lyrics = self.lyrics] in
+            if let lyrics { host?.registry.reportFailure(BuiltinCatalog.lyrics, from: lyrics) }
+        }
+        #endif
         return host
     }
 
     public func setInteractionHidden(_ hidden: Bool) {
+        #if canImport(NearpaneLyricsModule)
+        lyrics?.setHostHidden(hidden)
+        #endif
         #if canImport(NearpaneTray)
         tray.surfaceHidden(hidden)
         #endif
@@ -131,6 +155,9 @@ public final class EmbeddedModules {
     }
 
     public func finishStopping() async {
+        #if canImport(NearpaneLyricsModule)
+        await lyrics?.finishStopping()
+        #endif
         translation?.detach()
         await prepareStageWindowShutdown()
         await workRect?.finish()

@@ -65,7 +65,7 @@ public enum LayoutComposer {
     public static func compose(width: Double, height: Double, pinnedCount: Int, expanded: Bool,
                                settings: DisplaySettings = .init(), content: PanelContent = .full,
                                voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil,
-                               voiceCompact: Bool = false, trayRows: Int = 1,
+                               voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0,
                                toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> SurfaceLayout {
         let w = width.isFinite ? max(0, width) : 0
         let h = height.isFinite ? max(0, height) : 0
@@ -82,11 +82,15 @@ public enum LayoutComposer {
                 preferred = voiceCompact ? 40 : sizes.voice
             case BuiltinCatalog.screenshots where sizes.tray > 0:
                 preferred = settings.measures[.trayHeight] == nil && trayRows > 1 ? 144 : sizes.tray
+            case BuiltinCatalog.lyrics:
+                preferred = (content == .full || content == .toolsOnly) && w >= 176 && lyricsHeight.isFinite
+                    ? max(0, min(192, lyricsHeight)) : 0
             case BuiltinCatalog.memo, BuiltinCatalog.tasks:
                 preferred = content == .full || content == .toolsOnly ? 128 : 0
             default: continue
             }
             guard preferred > 0 else { continue }
+            if id == BuiltinCatalog.lyrics && preferred > bottom - y { continue }
             let section = SurfaceRect(y: y, width: w, height: min(preferred, max(0, bottom - y)))
             frames[id] = section
             y = min(bottom, y + section.height + sizes.gap)

@@ -219,7 +219,7 @@ public final class EdgeWindowController: NSWindowController {
         guard let layout = PanelSizeLayout(settings: config, screen: screen, edge: host.configuration.edge,
                                            content: content, voice: voice, tray: tray, floating: floating,
                                            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
-                                           voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
+                                           voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
                                            pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count,
                                            expanded: host.registry.expandedID != nil) else {
             hasPlacement = false; hide(); return
@@ -243,7 +243,8 @@ public final class EdgeWindowController: NSWindowController {
                 let limit = open.panelExtentRange(for: .panelWidth, on: screen).upperBound
                 func fits(_ frame: SurfaceRect) -> Bool {
                     open.sizeForm(width: frame.width, height: max(1, frame.height - PanelSizeMetrics.minimumSide),
-                                  content: content, voice: voice, tray: tray, temporarilyExpanded: true) == .full
+                                  content: content, voice: voice, tray: tray, temporarilyExpanded: true,
+                                  lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id)) == .full
                 }
                 while !fits(frame) && frame.width < limit {
                     open.measures[.panelWidth] = .init(min(limit, frame.width * 1.5))
@@ -318,7 +319,7 @@ public final class EdgeWindowController: NSWindowController {
             height: max(0, size.height + contentBottom.constant),
             pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count, expanded: false,
             settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
-            voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
+            voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
             toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
         material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true

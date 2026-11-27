@@ -64,6 +64,9 @@ def seal_components(temp, seal):
     if (temp / gate.update_runtime.FRAMEWORK).exists():
         for relative, identifier in gate.update_runtime.COMPONENTS:
             seal(temp / relative, identifier)
+    media = temp / "Contents/Resources/MediaRemote/MediaRemoteAdapter.framework"
+    if media.exists():
+        seal(media, "com.holdsnow.lyrictile.MediaRemoteAdapter")
     for bundle in (fixture, ctl, temp):
         identifier = plistlib.loads((bundle / "Contents/Info.plist").read_bytes())["CFBundleIdentifier"]
         seal(bundle, identifier)

@@ -33,7 +33,8 @@ public enum BuiltinCatalog {
     public static let desktop = "com.holdsnow.nearpane.desktop"
     public static let memo = "com.holdsnow.nearpane.memo"
     public static let tasks = "com.holdsnow.nearpane.tasks"
-    public static let sidebarTools = [voice, screenshots, memo, tasks]
+    public static let lyrics = "com.holdsnow.nearpane.lyrictile"
+    public static let sidebarTools = [voice, screenshots, lyrics, memo, tasks]
     public static let notes = "com.holdsnow.nearpane.notes-sample"
     public static let clock = "com.holdsnow.nearpane.clock-sample"
     public static let calendar = "com.holdsnow.nearpane.calendar-sample"
@@ -41,6 +42,7 @@ public enum BuiltinCatalog {
         .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
         .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
         .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
+        .init(id: lyrics, name: "LyricTile", symbol: "music.note", actions: [:]),
         .init(id: memo, name: "备忘录", symbol: "note.text"),
         .init(id: tasks, name: "待办", symbol: "checklist"),
         .init(id: notes, name: "Notes sample", symbol: "note.text"),

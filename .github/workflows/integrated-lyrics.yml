@@ -1,0 +1,31 @@
+name: Nearpane integrated lyrics
+on:
+  push:
+    branches: [pro/r4-integrated-lyrics-20261128]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: integrated-lyrics-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Test Host layout, module lifecycle and existing integration
+        run: bash scripts/test.sh --no-parallel --filter 'LyricsLayoutTests|LayoutTests|IntegratedHostTests|NearpaneCoreTests'
+      - name: Compile and package integrated Nearpane
+        run: |
+          bash scripts/build-app.sh debug
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app
+      - name: Archive Host candidate
+        run: ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-integrated-lyrics.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-integrated-lyrics
+          path: Nearpane-integrated-lyrics.zip
+          if-no-files-found: error

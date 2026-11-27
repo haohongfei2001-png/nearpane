@@ -16,7 +16,7 @@ struct DomainPin: Decodable {
 struct DomainLock: Decodable {
     let domains: [String: DomainPin]
 }
-let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback"] : []
+let domains: [Target.Dependency] = full ? ["NearpaneVoice", "NearpaneTray", "RiftletFeedback", "NearpaneLyricsModule", "LyricUI", "LyricPlayback"] : []
 let fixtureDomains: [Target.Dependency] = full ? ["SaytileKit", "RiftletCore", "RiftletCapture"] : []
 let manifestRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 #if arch(arm64)
@@ -73,7 +73,16 @@ if full {
     let riftlet = cache + tray.key + "/Sources/"
     guard let witness = tray.draftWitness else { fatalError("Missing Riftlet click witness bridge") }
     let voiceSuffix = speech.captureReadiness.map { "-" + $0.compiledSHA256 } ?? ""
+    let lyricSources = "Products/LyricTile/Sources/"
     targets += [
+        .target(name: "LyricCore", path: lyricSources + "LyricCore"),
+        .target(name: "LyricServices", dependencies: ["LyricCore", .product(name: "Yams", package: "Yams")], path: lyricSources + "LyricServices"),
+        .target(name: "CPlayerBridge", path: lyricSources + "CPlayerBridge", publicHeadersPath: "include", cSettings: [.unsafeFlags(["-fobjc-arc"])], linkerSettings: [.linkedFramework("Foundation"), .linkedFramework("AppKit"), .linkedFramework("ScriptingBridge")]),
+        .target(name: "LyricPlayback", dependencies: ["LyricCore", "CPlayerBridge"], path: lyricSources + "LyricPlayback"),
+        .target(name: "CTileLock", path: lyricSources + "CTileLock", publicHeadersPath: "include"),
+        .target(name: "TileKit", dependencies: ["CTileLock"], path: lyricSources + "TileKit"),
+        .target(name: "LyricUI", dependencies: ["LyricCore", "LyricServices", "LyricPlayback", "TileKit"], path: lyricSources + "LyricUI"),
+        .target(name: "NearpaneLyricsModule", dependencies: ["LyricUI", "TileKit"], path: lyricSources + "NearpaneLyricsModule"),
         .binaryTarget(name: "Sparkle", path: updateCache),
         .systemLibrary(name: "CSQLite", path: saytile + "CSQLite"),
         .target(name: "CAudio", path: saytile + "CAudio",
@@ -108,4 +117,5 @@ let package = Package(name: "Nearpane", platforms: [.macOS(full ? "26.0" : "14.0
                                  .executable(name: "NearpaneOrdinaryWindowController", targets: ["NearpaneOrdinaryWindowController"]),
                                  .executable(name: "NearpaneDesktopReader", targets: ["NearpaneDesktopReader"])]
                          + (full ? [] : [.library(name: "NearpaneUI", targets: ["NearpaneUI"])]),
+                      dependencies: full ? [.package(url: "https://github.com/jpsim/Yams.git", revision: "a27b21e0c81c5bf42049b897a62aaf387e80f279")] : [],
                       targets: targets, swiftLanguageModes: [.v6])

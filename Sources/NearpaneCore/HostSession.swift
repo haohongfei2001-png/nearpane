@@ -72,6 +72,8 @@ public final class HostSession {
             diagnostics?.record(.permissionChanged, moduleID: key.moduleID)
         }
         for manifest in includeSampleModules ? BuiltinCatalog.manifests : BuiltinCatalog.productManifests {
+            // The optional lyrics module is never represented by synthetic content.
+            guard manifest.id != BuiltinCatalog.lyrics || coreFactories[manifest.id] != nil else { continue }
             // Static catalog registration failures are programmer errors caught by the catalog tests.
             do {
                 try registry.register(manifest) {

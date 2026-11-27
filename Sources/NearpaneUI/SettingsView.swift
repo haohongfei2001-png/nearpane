@@ -468,6 +468,11 @@ public struct SettingsView: View {
                                             .accessibilityLabel("Move \(manifest.name) down").accessibilityIdentifier("module-down-" + pref.id)
                                 }
                             }
+                            #if canImport(NearpaneLyricsModule)
+                            if pref.id == BuiltinCatalog.lyrics, pref.enabled, let lyrics = domains?.lyrics {
+                                HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model)
+                            }
+                            #endif
                             HStack {
                                 Text(moduleStatus(host.registry.states[pref.id] ?? .available)).font(.caption).foregroundStyle(.secondary)
                                 if host.registry.states[pref.id] == .degraded {

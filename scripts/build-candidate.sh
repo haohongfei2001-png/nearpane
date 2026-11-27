@@ -18,7 +18,7 @@ PY
 fi
 # A receipt for an installed acceptance candidate must identify the compiled sources.
 # Local development packages from an export or dirty tree stay buildable.
-release_inputs=(Package.swift Engine/nearpane-window-engine Sources Resources Dependencies scripts engineering/window-lab docs/ALPHA-HELP.md ':(exclude)scripts/acceptance/native-spaces/**')
+release_inputs=(Package.swift Engine/nearpane-window-engine Sources Products/LyricTile Resources Dependencies scripts engineering/window-lab docs/ALPHA-HELP.md ':(exclude)scripts/acceptance/native-spaces/**')
 source_revision="$(git rev-parse HEAD 2>/dev/null || echo unversioned)"
 source_state=modified
 if [[ "$source_revision" != unversioned && -z "$(git status --porcelain --untracked-files=all -- "${release_inputs[@]}")" ]]; then

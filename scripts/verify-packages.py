@@ -200,6 +200,13 @@ def verify(app, lock, sandbox, *, execute=True):
         if "Packaged Saytile and Riftlet resources verified." not in result:
             raise ValueError("Missing full packaged resource verification")
     root = contents / "Resources"
+    media = root / "MediaRemote"
+    if (ROOT / "Products/LyricTile/Scripts/build-media-helper.sh").is_file():
+        vendor = ROOT / "Products/LyricTile/Vendor/mediaremote-adapter"
+        for packaged, source in (("mediaremote-adapter.pl", "bin/mediaremote-adapter.pl"), ("LICENSE", "LICENSE"), ("SOURCE.json", "SOURCE.json")):
+            if digest(media / packaged) != digest(vendor / source):
+                raise ValueError("Invalid embedded lyrics media helper: " + packaged)
+        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(media / "MediaRemoteAdapter.framework")], check=True)
     if not digest(root/"AcceptanceTargetGuard.js") == digest(ROOT/"Resources/AcceptanceTargetGuard.js") == plist.get("NearpaneDraftGuardSHA256"):
         raise ValueError("Unexpected acceptance guard in packaged resources")
     if plist["CFBundleIdentifier"] == "com.holdsnow.nearpane.alpha":

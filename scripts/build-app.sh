@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/build-paths.sh
-engine_inputs=(Package.swift Engine/nearpane-window-engine Sources Resources Dependencies scripts/build-app.sh scripts/build-window-engine.sh scripts/acceptance/window-engine/corner/build-guardian.sh)
+engine_inputs=(Package.swift Engine/nearpane-window-engine Sources Products/LyricTile Resources Dependencies scripts/build-app.sh scripts/build-window-engine.sh scripts/acceptance/window-engine/corner/build-guardian.sh)
 engine_revision="$(git rev-parse HEAD 2>/dev/null || echo unversioned)"
 engine_source_state=modified
 if [[ "$engine_revision" != unversioned && -z "$(git status --porcelain --untracked-files=all -- "${engine_inputs[@]}")" ]]; then
@@ -137,6 +137,9 @@ if [ "${NEARPANE_FOUNDATION_ONLY:-0}" = 1 ]; then
   done
 else
   resources="$stage/Contents/Resources"
+  bash Products/LyricTile/Scripts/build-media-helper.sh "$resources/MediaRemote" "$(uname -m)"
+  cp Products/LyricTile/Packaging/Notices/libyaml-LICENSE "$resources/MediaRemote/libyaml-LICENSE"
+  /usr/bin/codesign --verify --strict "$resources/MediaRemote/MediaRemoteAdapter.framework"
   cp Resources/AcceptanceTargetGuard.js "$resources/"
   /usr/bin/plutil -insert NearpaneDraftGuardSHA256 -string "$(shasum -a 256 "$resources/AcceptanceTargetGuard.js" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"
   # Native SwiftPM produces flat resource directories and does not attempt to sign
