@@ -286,7 +286,8 @@ private struct PanelSizePreview: View {
                                                           voiceEnabled: voice, trayEnabled: tray, referenceHeight: layout.referenceHeight,
                                                           voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight,
                                                           toolOrder: toolOrder)
-                    for section in [sections.voice, sections.screenshots] + Array(sections.additionalTools.values) where section.height > 0 {
+                    for section in [sections.voice, sections.screenshots, sections.windowArea] + Array(sections.additionalTools.values)
+                        where section.height > 0 && section.y + section.height <= frame.height {
                         let boundary = CGRect(x: pane.minX, y: pane.minY + (section.y + section.height) * scale,
                                               width: pane.width, height: min(1, pane.height))
                         context.fill(Path(boundary), with: .color(.secondary))

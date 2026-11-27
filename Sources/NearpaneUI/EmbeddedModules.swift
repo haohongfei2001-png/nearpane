@@ -155,7 +155,21 @@ public final class EmbeddedModules {
         return host
     }
 
+    private var ordinarySurfaceHidden = true
+    private var fullscreenInteractionVisible = false
+
     public func setInteractionHidden(_ hidden: Bool) {
+        ordinarySurfaceHidden = hidden
+        updateInteractionExposure()
+    }
+
+    public func setFullscreenInteractionVisible(_ visible: Bool) {
+        fullscreenInteractionVisible = visible
+        updateInteractionExposure()
+    }
+
+    private func updateInteractionExposure() {
+        let hidden = ordinarySurfaceHidden && !fullscreenInteractionVisible
         #if canImport(NearpaneLyricsModule)
         lyrics?.setHostHidden(hidden)
         #endif

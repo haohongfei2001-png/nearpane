@@ -28,10 +28,6 @@ struct FullscreenToolPreferencesView: View {
                     Text("左下").tag(FullscreenStripCorner.bottomLeft)
                     Text("右下").tag(FullscreenStripCorner.bottomRight)
                 }
-                HStack {
-                    Toggle("语音", isOn: preference(\.voice))
-                    Toggle("截图", isOn: preference(\.capture))
-                }
                 if host.configuration.displays[display]?.toolAnchor != nil {
                     Button("恢复浮层默认位置") {
                         var latest = host.configuration.displays[display] ?? DisplaySettings()
@@ -39,7 +35,9 @@ struct FullscreenToolPreferencesView: View {
                         host.setDisplaySettings(latest, id: display)
                     }
                 }
-                Text("确认全屏时可点击状态条打开工具。收起浮层不暂停收音。")
+                Text("确认全屏后，点击状态条展开已启用的工具。模块顺序与侧栏一致；Spaces 在全屏时收起。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("关闭浮层只收起界面，正在进行的收音等操作仍由对应模块控制。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

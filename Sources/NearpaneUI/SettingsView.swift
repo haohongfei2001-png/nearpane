@@ -54,10 +54,14 @@ public struct BundledDomainVersions: View {
     }
 
     public var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
-            GridRow { Text("Nearpane"); Text(InstalledBuild(bundle: .main).label) }
-            GridRow { Text("Saytile"); Text(version("saytile")) }
-            GridRow { Text("Riftlet"); Text(version("riftlet")) }
+        VStack(alignment: .leading, spacing: 14) {
+            Text(InstalledBuild(bundle: .main).label).font(.callout).foregroundStyle(.secondary)
+            DisclosureGroup("组件信息") {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+                    GridRow { Text("Saytile"); Text(version("saytile")) }
+                    GridRow { Text("Riftlet"); Text(version("riftlet")) }
+                }.font(.caption).foregroundStyle(.secondary).padding(.top, 8)
+            }
         }
         .textSelection(.enabled)
     }
@@ -116,6 +120,7 @@ public struct SettingsView: View {
         .productAccent(host.configuration.accent)
         .frame(minWidth: 740, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
+        .nativeVerificationAccessibility()
     }
 
     private var sidebar: some View {
@@ -168,9 +173,7 @@ public struct SettingsView: View {
         let enabled = host.registry.preferences.filter(\.enabled).compactMap { pref in
             host.registry.manifests.first { $0.id == pref.id }
         }
-        return enabled.filter { BuiltinCatalog.sidebarTools.contains($0.id) }
-            + enabled.filter { !BuiltinCatalog.sidebarTools.contains($0.id) && $0.id != BuiltinCatalog.desktop }
-            + enabled.filter { $0.id == BuiltinCatalog.desktop }
+        return enabled
     }
 
     private var pageTitle: String {
@@ -313,13 +316,13 @@ public struct SettingsView: View {
         switch navigation.page {
         case .voiceArchive:
             #if canImport(NearpaneVoice)
-            if let domains { VoiceArchiveView(module: domains.voice, openSettings: { navigation.showModule(BuiltinCatalog.voice) }).padding(.horizontal, 12).padding(.bottom, 12) }
+            if let domains { VoiceArchiveView(module: domains.voice, openSettings: { navigation.showModule(BuiltinCatalog.voice) }).padding(.horizontal, 28).padding(.bottom, 12) }
             #else
             EmptyView()
             #endif
         case .screenshotArchive:
             #if canImport(NearpaneTray)
-            if let domains { ScreenshotArchiveView(module: domains.tray, openSettings: { navigation.showModule(BuiltinCatalog.screenshots) }).padding(.horizontal, 12).padding(.bottom, 12) }
+            if let domains { ScreenshotArchiveView(module: domains.tray, openSettings: { navigation.showModule(BuiltinCatalog.screenshots) }).padding(.horizontal, 28).padding(.bottom, 12) }
             #else
             EmptyView()
             #endif
@@ -347,7 +350,8 @@ public struct SettingsView: View {
             if let domains {
                 VStack(alignment: .leading, spacing: 0) {
                     VoiceInputSettings(module: domains.voice)
-                    moduleAppearance(.voice).padding(.horizontal, 28).padding(.vertical, 16)
+                    ModuleTextSizeSettings(host: host, screens: screens, scope: .voice, stillCurrent: inventory.contains)
+                        .padding(.horizontal, 28).padding(.vertical, 16)
                 }
             }
             #else
@@ -409,7 +413,6 @@ public struct SettingsView: View {
                         }.disabled(!tray.active || tray.connecting)
                     }
                     if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
-                    Section { moduleAppearance(.tray) }
                 }.formStyle(.grouped)
             }
             #else
@@ -417,14 +420,9 @@ public struct SettingsView: View {
             #endif
         case .displays: appearance
         case .dimensions:
-            VStack(alignment: .leading, spacing: 16) {
-                AccentSettings(host: host).padding(.horizontal, 28)
-                WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
-                                         dismiss: dismissSpaces, stillCurrent: inventory.contains,
-                                         previewExposure: previewExposure, voiceCompact: domains?.voiceCompact ?? false,
-                                         trayRows: domains?.trayRowCount ?? 1, lyricsHeight: domains?.lyricsHeight ?? 0)
-                    .padding(.horizontal, 28).padding(.bottom, 24)
-            }
+            WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
+                                     dismiss: dismissSpaces, stillCurrent: inventory.contains)
+                .padding(.horizontal, 28).padding(.bottom, 24)
         case .windowRules: WorkspacePolicySettings(host: host, showWindowManagement: navigation.showWindowManagement)
         case .windowManagement:
             if let manager = domains?.workRect {
@@ -454,7 +452,7 @@ public struct SettingsView: View {
                             }
                         }
                     }
-                    if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(id),
+                    if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(id), id != BuiltinCatalog.clock,
                        let preference = host.registry.preferences.first(where: { $0.id == id }) {
                         Toggle("显示在侧栏", isOn: Binding(get: {
                             host.registry.preferences.first(where: { $0.id == id })?.pinned == true
@@ -510,14 +508,6 @@ public struct SettingsView: View {
             Spacer()
             Button(detail + "设置") { navigation.showModule(module) }.buttonStyle(.link)
         }
-    }
-
-    private func moduleAppearance(_ scope: DisplaySettingsScope) -> some View {
-        DisclosureGroup("显示样式") {
-            WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
-                dismiss: dismissSpaces, stillCurrent: inventory.contains, scope: scope)
-                .padding(.top, 12)
-        }.accessibilityIdentifier("module-appearance-" + (scope == .voice ? "voice" : scope == .tray ? "tray" : "spaces"))
     }
 
     private var dataManagement: some View {
@@ -580,7 +570,9 @@ public struct SettingsView: View {
             }
             Text("未取得画面权限时，侧栏显示应用与窗口轮廓。")
                 .font(.callout).foregroundStyle(.secondary)
-            Section { moduleAppearance(.spaces) }
+            Section("文字") {
+                ModuleTextSizeSettings(host: host, screens: screens, scope: .spaces, stillCurrent: inventory.contains)
+            }
         }.formStyle(.grouped)
     }
 
@@ -602,7 +594,7 @@ public struct SettingsView: View {
                     Text("首选显示器暂未连接（已保留选择）").tag(missing)
                 }
             }
-            Text("主驻留屏默认预留可用宽度的 1/8。拔除首选屏时暂用可用屏，重新连接后恢复选择。")
+            Text("完整侧栏仅在主驻留屏显示。拔除首选屏时暂用可用屏，重新连接后恢复选择。")
                 .font(.callout).foregroundStyle(.secondary)
         }.formStyle(.grouped)
     }

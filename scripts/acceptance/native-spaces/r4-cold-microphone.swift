@@ -76,12 +76,13 @@ private func transport(_ selector: AudioObjectPropertySelector) throws -> String
         "tray-content", "tray-camera-entry", "tray-file-drop", "voice-archive-search",
         "settings-installed-version", "settings-quit-nearpane", "settings-menu-bar-icon", "np.profile.quit",
         "np.fullscreen.move", "np.fullscreen.close", "np.fullscreen.open.voice", "np.fullscreen.open.capture",
+        "np.fullscreen.open.workspace", "np.fullscreen.workspace", "lyric-panel", "lyric-playback-toggle", "sidebar-clock",
         "np.fullscreen.capture", "np.fullscreen.voice", "np.update.status", "np.services.quit"
     ]
     private let staticLabels: Set<String> = [
         "Nearpane", "Nearpane 设置", "Nearpane Settings", "设置", "语音模块暂不可用", "麦克风不可用",
         "打开麦克风权限设置", "展开 Nearpane", "收起 Nearpane", "开始或恢复收音", "暂停收音",
-        "打开语音工具", "打开截图工具", "收起浮层", "允许", "不允许", "Allow", "Don’t Allow", "OK",
+        "打开语音工具", "打开截图工具", "打开工具", "工具", "收起浮层", "允许", "不允许", "Allow", "Don’t Allow", "OK",
         "好", "确定", "取消", "Cancel", "退出 Nearpane"
     ]
     private var lastScan = -Double.infinity

@@ -111,6 +111,11 @@ public struct PanelPosition: Codable, Equatable, Sendable {
     }
 }
 public struct DisplaySettings: Codable, Equatable, Sendable {
+    /// Internal migration state; retired values remain recoverable, never as
+    /// hidden advanced controls or active layout overrides.
+    public var visualStyleRevision = 0
+    public var retiredVisualOverrides: [DisplayMetric: Measure] = [:]
+    public var retiredGlassOverrides: PanelGlassSettings?
     public var floatingPosition: PanelPosition?
     public var glass = PanelGlassSettings()
     public var fullscreenTools = FullscreenToolSettings()
@@ -124,6 +129,9 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
     public init() {}
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        visualStyleRevision = try values.decodeIfPresent(Int.self, forKey: .visualStyleRevision) ?? 0
+        retiredVisualOverrides = try values.decodeIfPresent([DisplayMetric: Measure].self, forKey: .retiredVisualOverrides) ?? [:]
+        retiredGlassOverrides = try values.decodeIfPresent(PanelGlassSettings.self, forKey: .retiredGlassOverrides)
         floatingPosition = try values.decodeIfPresent(PanelPosition.self, forKey: .floatingPosition)
         glass = try values.decodeIfPresent(PanelGlassSettings.self, forKey: .glass) ?? .init()
         fullscreenTools = try values.decodeIfPresent(FullscreenToolSettings.self, forKey: .fullscreenTools) ?? .init()
@@ -167,6 +175,9 @@ public struct DisplaySettings: Codable, Equatable, Sendable {
 
     func committedPanelWidth(in available: Double) -> Double {
         let range = extentRange(available, inset: points(.sideInset, in: available))
+        if visualStyleRevision >= WorkbenchVisualPolicy.revision {
+            return min(range.upperBound, max(range.lowerBound, WorkbenchVisualPolicy.width(in: available, settings: self)))
+        }
         var desired = points(.panelWidth, in: available)
         if measures[.panelWidth] == nil, let savedReservation = measures[.reservedWidth] {
             let usable = savedReservation.points(in: available) - points(.sideInset, in: available)
@@ -343,9 +354,11 @@ extension DisplaySettings {
                         spaces: max(0, layout.windowArea.height))
         let width = max(0, width - cardPadding)
         if content == .full || content == .toolsOnly {
+            if toolOrder.contains(BuiltinCatalog.clock), width < 144 { return .compact }
             for id in [BuiltinCatalog.memo, BuiltinCatalog.tasks] where toolOrder.contains(id) {
                 // Their editor/list, footer/input, and padding must remain usable.
-                // A zero-height or clipped note is not a fully presented sidebar.
+                // Short viewports scroll the complete stack; its editors still have
+                // usable individual heights rather than being clipped or omitted.
                 if width < 96 || (layout.additionalTools[id]?.height ?? 0) < 72 { return .compact }
             }
             if pinnedCount > 0 && (layout.moduleRail?.height ?? 0) < min(points(.railHeight, in: referenceHeight ?? height), 24) {

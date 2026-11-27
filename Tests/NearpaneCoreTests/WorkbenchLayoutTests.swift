@@ -71,15 +71,63 @@ struct WorkbenchLayoutTests {
         }
     }
 
-    @Test func shortNotebookOnlyPanelAdvertisesExpansionRatherThanClippingAnEditor() {
+    @Test func shortNotebookPanelScrollsWithoutClippingOrDroppingAnEditor() {
         let settings = DisplaySettings()
         let order = [BuiltinCatalog.memo, BuiltinCatalog.tasks]
         #expect(settings.sizeForm(width: 240, height: 120, content: .toolsOnly, voice: false, tray: false,
-                                  toolOrder: order) == .compact)
+                                  toolOrder: order) == .full)
         #expect(settings.sizeForm(width: 240, height: 220, content: .toolsOnly, voice: false, tray: false,
                                   toolOrder: order) == .full)
         #expect(settings.sizeForm(width: 100, height: 500, content: .toolsOnly, voice: false, tray: false,
                                   toolOrder: order) == .compact)
+        let layout = LayoutComposer.compose(width: 240, height: 120, pinnedCount: 0, expanded: false,
+            content: .toolsOnly, voiceEnabled: false, trayEnabled: false, toolOrder: order)
+        #expect(layout.contentHeight > 120)
+        #expect(layout.additionalTools[BuiltinCatalog.memo]?.height == 72)
+        #expect(layout.additionalTools[BuiltinCatalog.tasks]?.height == 72)
+    }
+
+    @Test func spacesAndClockFollowEveryPositionWithoutOverlapOrMissingModules() throws {
+        for spacesIndex in 0...tools.count {
+            var withSpaces = tools
+            withSpaces.insert(BuiltinCatalog.desktop, at: spacesIndex)
+            for clockIndex in 0...withSpaces.count {
+                var order = withSpaces
+                order.insert(BuiltinCatalog.clock, at: clockIndex)
+                for viewport in [220.0, 832, 1440] {
+                    let layout = LayoutComposer.compose(width: 240, height: viewport, pinnedCount: 0, expanded: false,
+                        trayRows: 2, lyricsHeight: 192, toolOrder: order)
+                    let regions = try order.map { try #require(layout.frame(for: $0)) }
+                    #expect(regions.count == 7)
+                    #expect(regions.allSatisfy { $0.width == 240 && $0.height > 0 })
+                    for (a, b) in zip(regions, regions.dropFirst()) { #expect(a.y + a.height < b.y) }
+                    #expect(layout.windowArea.height >= 95.99)
+                    #expect(layout.additionalTools[BuiltinCatalog.clock]?.height == 40)
+                    #expect(layout.additionalTools[BuiltinCatalog.lyrics]?.height == 192)
+                    #expect(layout.moduleRail == nil)
+                    if viewport == 220 { #expect(layout.contentHeight > viewport) }
+                    else { #expect(abs(layout.contentHeight - viewport) < 0.001) }
+                    #expect(DisplaySettings().sizeForm(width: 240, height: viewport, content: .full,
+                        voice: true, tray: true, trayRows: 2, lyricsHeight: 192, toolOrder: order) == .full)
+                    let shifted = layout.translated(y: -150)
+                    #expect(shifted.contentHeight == layout.contentHeight)
+                    for id in order {
+                        #expect(shifted.frame(for: id)?.y == (layout.frame(for: id)?.y ?? 0) - 150)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test func toolSurfaceRetainsTheSameOrderWhileExcludingSpacesAndIdleLyrics() throws {
+        let order = [BuiltinCatalog.clock, BuiltinCatalog.desktop, BuiltinCatalog.tasks, BuiltinCatalog.lyrics, BuiltinCatalog.voice]
+        let layout = LayoutComposer.compose(width: 240, height: 220, pinnedCount: 0, expanded: false,
+            content: .toolsOnly, voiceEnabled: true, trayEnabled: false, lyricsHeight: 0, toolOrder: order)
+        #expect(layout.windowArea.height == 0)
+        #expect(layout.additionalTools[BuiltinCatalog.lyrics] == nil)
+        let clock = try #require(layout.frame(for: BuiltinCatalog.clock))
+        let tasks = try #require(layout.frame(for: BuiltinCatalog.tasks))
+        #expect(clock.y + clock.height < tasks.y && tasks.y + tasks.height < layout.voice.y)
     }
 
     @Test func pressureDoesNotChangeSavedMetricsOrDuplicateRepeatedTools() {

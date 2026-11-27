@@ -50,7 +50,7 @@ private typealias ViewState<T> = State<T>
         Group {
             if failed {
                 ContentUnavailableView {
-                    Label("暂时无法读取截图档案", systemImage: "photo.badge.exclamationmark")
+                    Label("暂时无法读取截图仓库", systemImage: "photo.badge.exclamationmark")
                 } actions: { Button("重新读取") { retry += 1 } }
             } else if let page {
                 if page.entries.isEmpty {

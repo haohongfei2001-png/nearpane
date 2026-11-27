@@ -17,7 +17,7 @@ struct ConfigurationTests {
         await host.start()
         var refreshes = 0
         host.presentationChanged = { refreshes += 1 }
-        #expect(host.configuration.accent == .purple)
+        #expect(host.configuration.accent == .system)
         let original = host.configuration
         host.setAccent(.teal)
         #expect(refreshes == 0)

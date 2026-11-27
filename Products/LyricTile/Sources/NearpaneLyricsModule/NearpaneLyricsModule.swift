@@ -66,8 +66,8 @@ public final class NearpaneLyricsModule: NSObject, ObservableObject {
     }
     public var view: some View { NearpaneLyricsView(module: self) }
 
-    public func managementView(for page: LyricAuxiliaryPage) -> some View {
-        LyricAuxiliaryView(model: model, page: page, close: { [weak self] in
+    public func managementView(for page: LyricAuxiliaryPage, language: LyricLanguage? = nil) -> some View {
+        LyricAuxiliaryView(model: model, page: page, language: language, embedded: true, close: { [weak self] in
             self?.model.presentation = nil
             self?.openManagementPage?(.settings)
         })

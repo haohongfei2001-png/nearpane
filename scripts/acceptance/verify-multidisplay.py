@@ -33,7 +33,8 @@ def wait_for(sample, timeout=8):
 def verify(app, sid):
     folder = ROOT / "build/native-acceptance" / str(uuid.UUID(sid))
     binary = app / "Contents/MacOS/NearpaneHost"
-    se.require(app.name == "Nearpane P5.2 Alpha.app" and folder.resolve() == folder, "Expected P5.2 marked checkout")
+    se.require(app.name == "Nearpane P5.2 Alpha.app" and folder.resolve() == folder,
+               "BLOCKED: this historical synthetic fixture requires P5.2; the unified fullscreen workspace uses verify-native-fullscreen-overlay.py with an enrolled witness")
     se.verify_manifest(ROOT, folder, binary, read(folder / "manifest.json"))
     se.require(not list(folder.glob("startup-*.json")) and not (folder / "target-binding.json").exists(), "Fresh unbound session required")
     se.require(sp.run(["pgrep", "-x", "NearpaneHost"], stdout=sp.DEVNULL).returncode == 1, "Active Host or unavailable process list")
@@ -96,8 +97,19 @@ def verify(app, sid):
                 if not (row.get("topologyStep") == topology and row["step"] == native and row["role"] in role
                         and bool(row["edgeWindow"]) == edge and bool(row["tool"]) == tool):
                     return None
-                if tool and (row["frame"][2] > 100) != expanded:
-                    return None
+                if tool:
+                    ui = json.loads(control(pid, row["tool"], binary, "read"))
+                    se.require(ui["frontPID"] == int(initial_front), "Foreground changed while reading the fullscreen controls")
+                    controls = ui["controls"]
+                    if "np.fullscreen.open.workspace" in controls:
+                        raise ValueError("BLOCKED: the legacy 300 by 100 synthetic backdrop cannot contain the unified workspace; use the enrolled native fullscreen verifier")
+                    shown = "np.fullscreen.close" if expanded else "np.fullscreen.open.voice"
+                    hidden = "np.fullscreen.open.voice" if expanded else "np.fullscreen.close"
+                    matches = [item for item in ui["details"] if item["id"] == shown]
+                    if controls.count(shown) != 1 or hidden in controls or len(matches) != 1 or \
+                       matches[0]["role"] != "AXButton" or matches[0]["enabled"] is not True or "AXPress" not in matches[0]["actions"]:
+                        return None
+                    row["externalToolControls"] = controls
                 if edge:
                     probe = json.loads(control(pid, row["edgeWindow"], binary, "read-edge-frame"))
                     observations.append(dict(checkpoint=label, owner=row["edgeOwnerQuartzFrame"], probe=probe))

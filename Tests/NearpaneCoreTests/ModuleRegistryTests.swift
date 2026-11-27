@@ -30,17 +30,18 @@ struct ModuleRegistryTests {
         #expect(throws: (any Error).self) { try h.registry.register(.init(id: "bad", name: "Bad", symbol: "circle", actions: [.refresh: [.location]])) { TrackingModule() } }
     }
 
-    @Test func testRestoreOrderingPreservesCoreBoundaryAndIgnoresUnknownIDs() async throws {
+    @Test func testRestorePreservesCompleteUserOrderWithoutAdapterKindBoundaries() async throws {
         let h = RegistryHarness()
         try h.add("core", kind: .core)
         try h.add("a"); try h.add("b")
         h.registry.restore([.init(id: "b", enabled: true), .init(id: "unknown", enabled: true),
                             .init(id: "core", enabled: false), .init(id: "b", enabled: true)])
-        #expect(h.registry.preferences.map(\.id) == ["core", "b", "a"])
-        #expect(!(h.registry.preferences[0].enabled))
-        #expect(throws: (any Error).self) { try h.registry.move("core", by: 1) }
+        #expect(h.registry.preferences.map(\.id) == ["b", "core", "a"])
+        #expect(!(h.registry.preferences[1].enabled))
+        try h.registry.move("core", by: 1)
+        #expect(h.registry.preferences.map(\.id) == ["b", "a", "core"])
         try h.registry.move("a", by: -1)
-        #expect(h.registry.preferences.map(\.id) == ["core", "a", "b"])
+        #expect(h.registry.preferences.map(\.id) == ["a", "b", "core"])
     }
 
     @Test func testOnlyOneExpandedModuleAndCollapsePreservesRuntimeState() async throws {

@@ -9,6 +9,7 @@ public struct EdgeSurfaceView: View {
     private let host: HostSession
     private let modules: EmbeddedModules?
     private let display: SurfaceDisplay?
+    @State private var scrollOffset = 0.0
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules; display = nil }
@@ -33,17 +34,56 @@ public struct EdgeSurfaceView: View {
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight: display?.referenceHeight, voiceCompact: modules?.voiceCompact ?? false,
                                                 trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+            let overflows = layout.contentHeight > geometry.size.height + 0.5
+            let visibleLayout = layout.translated(y: overflows ? scrollOffset : 0)
             ZStack(alignment: .topLeading) {
-                SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
+                SurfaceShell(layout: visibleLayout, width: geometry.size.width, settings: settings)
+                ScrollView(.vertical) {
+                    moduleContents(layout: layout, width: geometry.size.width)
+                        .frame(width: geometry.size.width, height: max(geometry.size.height, layout.contentHeight), alignment: .topLeading)
+                        .background {
+                            GeometryReader { content in
+                                Color.clear.preference(key: SidebarScrollOffsetKey.self,
+                                    value: Double(content.frame(in: .named("nearpane-module-scroll")).minY))
+                            }
+                        }
+                }
+                .scrollIndicators(overflows ? .automatic : .hidden)
+                .coordinateSpace(name: "nearpane-module-scroll")
+                .onPreferenceChange(SidebarScrollOffsetKey.self) { [offset = $scrollOffset] value in
+                    offset.wrappedValue = value
+                }
+                .accessibilityIdentifier("sidebar-module-scroll")
+            }
+            .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+            .clipped()
+            .onChange(of: visibleLayout, initial: true) { _, next in display?.updateMaterial?(next) }
+            #if canImport(NearpaneTray)
+            .contentShape(Rectangle())
+            .simultaneousGesture(SpatialTapGesture().onEnded { event in
+                let r = visibleLayout.screenshots
+                if !CGRect(x: r.x, y: r.y, width: r.width, height: r.height).contains(event.location) {
+                    modules?.tray.collapseMenu()
+                }
+            })
+            #endif
+        }
+        .productAccent(host.configuration.accent)
+        .nativeVerificationAccessibility()
+    }
+
+    private func moduleContents(layout: SurfaceLayout, width: Double) -> some View {
+        ZStack(alignment: .topLeading) {
                 if layout.voice.height > 0 {
-                    voice.surfaceCard(width: geometry.size.width, settings: settings)
+                    voice.surfaceCard(width: width, settings: settings)
                         .contextMenu {
                             Button("语音仓库…") { modules?.openManagementPage?(BuiltinCatalog.voice, "library") }
                             Button("语音设置…") { modules?.openManagementPage?(BuiltinCatalog.voice, nil) }
                         }.place(in:layout.voice)
                 }
                 if layout.screenshots.height > 0 {
-                    screenshots.surfaceCard(width: geometry.size.width, settings: settings)
+                    screenshots.surfaceCard(width: width, settings: settings)
                         .contextMenu {
                             Button("截图仓库…") { modules?.openManagementPage?(BuiltinCatalog.screenshots, "library") }
                             Button("截图设置…") { modules?.openManagementPage?(BuiltinCatalog.screenshots, nil) }
@@ -58,37 +98,45 @@ public struct EdgeSurfaceView: View {
                     ForEach(Array(layout.additionalTools.keys.sorted()), id: \.self) { id in
                         if id == BuiltinCatalog.memo || id == BuiltinCatalog.tasks, let rect = layout.additionalTools[id] {
                             NotebookCard(notebook: notebook, tasks: id == BuiltinCatalog.tasks)
-                                .surfaceCard(width: geometry.size.width, settings: settings).place(in: rect)
+                                .surfaceCard(width: width, settings: settings).place(in: rect)
                         }
                     }
                 }
-                if let rail = layout.moduleRail { moduleRail(width:geometry.size.width,height:rail.height).place(in:rail) }
-                if display?.content != .toolsOnly, layout.windowArea.height > 0 { desktop.padding(.horizontal, settings.glass.inset(width: geometry.size.width)).place(in: layout.windowArea) }
+                if let rect = layout.additionalTools[BuiltinCatalog.clock] {
+                    clock.surfaceCard(width: width, settings: settings).place(in: rect)
+                }
+                if let rail = layout.moduleRail { moduleRail(width:width,height:rail.height).place(in:rail) }
+                if display?.content != .toolsOnly, layout.windowArea.height > 0 { desktop.padding(.horizontal, settings.glass.inset(width: width)).place(in: layout.windowArea) }
                 if display?.secondary != true, let rect = layout.expanded, let id = host.registry.expandedID {
                     // Kept alongside the underlying desktop view: expansion never replaces or resizes it.
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture { host.handle(.collapse) }
                         .place(in: layout.windowArea)
-                    expandedModule(id,width:geometry.size.width).place(in:rect)
+                    expandedModule(id,width:width).place(in:rect)
                 }
-            }
-            .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
-            // Offset children don't contribute their offsets to a ZStack's measured size.
-            // Clip at the whole panel, not at the height of its largest individual region.
-            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-            .clipped()
-            .onChange(of: layout, initial: true) { _, next in display?.updateMaterial?(next) }
-            #if canImport(NearpaneTray)
-            .contentShape(Rectangle())
-            .simultaneousGesture(SpatialTapGesture().onEnded { event in
-                let r = layout.screenshots
-                if !CGRect(x: r.x, y: r.y, width: r.width, height: r.height).contains(event.location) {
-                    modules?.tray.collapseMenu()
-                }
-            })
-            #endif
         }
-        .productAccent(host.configuration.accent)
+    }
+
+    private var clock: some View {
+        Button { modules?.openManagementPage?(BuiltinCatalog.clock, nil) } label: {
+            if clockVisible {
+            TimelineView(.everyMinute) { tick in
+                HStack(spacing: 10) {
+                    Text(LocalClock.time(tick.date)).font(.system(size: 15, weight: .medium)).monospacedDigit()
+                    Spacer(minLength: 0)
+                    if let id = host.configuration.clockTimeZoneID, let zone = TimeZone(identifier: id) {
+                        Text(LocalClock.time(tick.date, zone: zone)).font(.system(size: 12)).monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(tick.date, format: .dateTime.month(.abbreviated).day()).font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                }.padding(.horizontal, 12).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            }
+        }.buttonStyle(.plain).accessibilityLabel("时钟")
+            .accessibilityIdentifier("sidebar-clock").help("时钟与时区")
     }
 
     private func enabled(_ id: String) -> Bool {
@@ -204,10 +252,16 @@ public struct EdgeSurfaceView: View {
     }
 }
 
+private struct SidebarScrollOffsetKey: PreferenceKey {
+    static let defaultValue = 0.0
+    static func reduce(value: inout Double, nextValue: () -> Double) { value = nextValue() }
+}
+
 private extension View {
     func place(in rect: SurfaceRect) -> some View {
         frame(width: rect.width, height: rect.height, alignment: .topLeading)
             .clipped().offset(x: rect.x, y: rect.y)
+            .accessibilitySortPriority(-rect.y)
     }
 }
 

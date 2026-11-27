@@ -96,6 +96,16 @@ end run
             (output / "music-setup.log").write_text(decoded(error.stdout) + decoded(error.stderr))
             result["musicSetupTimedOut"] = True
             result["musicSetupTimeoutSeconds"] = error.timeout
+            # Observe the disposable desktop before cleanup. This may show a
+            # welcome or system consent screen; it never accepts or bypasses one.
+            try:
+                captured = subprocess.run(["/usr/sbin/screencapture", "-x", str(output / "music-setup-desktop.png")],
+                                          capture_output=True, text=True, timeout=8)
+                result["musicSetupCaptureExitCode"] = captured.returncode
+                if captured.returncode == 0:
+                    result["musicSetupDesktopImage"] = "music-setup-desktop.png"
+            except subprocess.TimeoutExpired:
+                result["musicSetupCaptureTimedOut"] = True
             raise
         finally:
             owned = music_pids()

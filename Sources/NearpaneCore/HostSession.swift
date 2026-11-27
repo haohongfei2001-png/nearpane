@@ -13,7 +13,7 @@ public final class HostSession {
     private var glassPreviews: [String: PanelGlassSettings] = [:]
 
     public func panelPresentationSettings(on display: String) -> DisplaySettings {
-        var settings = configuration.displays[display] ?? .init()
+        var settings = (configuration.displays[display] ?? .init()).applyingWorkbenchVisualPolicy()
         if let preview = glassPreviews[display] { settings.glass = preview }
         return settings
     }
@@ -89,6 +89,7 @@ public final class HostSession {
         guard !isRunning else { return }
         do {
             configuration = try store.load()
+            configuration.displays = configuration.displays.mapValues { $0.applyingWorkbenchVisualPolicy() }
             clockNeedsAttention = store.clockNeedsAttention
             configurationProtected = false
         } catch {
@@ -162,6 +163,7 @@ public final class HostSession {
     }
 
     public func setDisplaySettings(_ value: DisplaySettings, id: String) {
+        let value = value.applyingWorkbenchVisualPolicy()
         guard configuration.displays[id] != value else { return }
         var next = configuration
         next.displays[id] = value

@@ -24,7 +24,8 @@ final class HostLyrics: HostModule {
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
     @ObservationIgnored private var pendingRefresh = false
-    @ObservationIgnored private var mounted = false
+    @ObservationIgnored private var mountedSurfaces = Set<UUID>()
+    private var mounted: Bool { !mountedSurfaces.isEmpty }
     @ObservationIgnored private var hostHidden = true
     @ObservationIgnored private var policy = LyricPanelVisibilityPolicy()
 
@@ -84,8 +85,8 @@ final class HostLyrics: HostModule {
         }
     }
 
-    func setMounted(_ mounted: Bool) {
-        self.mounted = mounted
+    func setMounted(_ mounted: Bool, surface: UUID) {
+        if mounted { mountedSurfaces.insert(surface) } else { mountedSurfaces.remove(surface) }
         updateVisibility()
         scheduleRefresh()
     }
@@ -153,11 +154,12 @@ final class HostLyrics: HostModule {
 
 struct HostLyricsCard: View {
     let lyrics: HostLyrics
+    @State private var surfaceID = UUID()
     var body: some View {
         lyrics.module.view
             .accessibilityIdentifier("nearpane-lyrics-card")
-            .onAppear { lyrics.setMounted(true) }
-            .onDisappear { lyrics.setMounted(false) }
+            .onAppear { lyrics.setMounted(true, surface: surfaceID) }
+            .onDisappear { lyrics.setMounted(false, surface: surfaceID) }
     }
 }
 
@@ -221,7 +223,9 @@ struct HostLyricsManagementView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            lyrics.module.managementView(for: destination).id(destination)
+            // Match the current Host interface, without changing the standalone
+            // module's language defaults or the process-wide macOS preferences.
+            lyrics.module.managementView(for: destination, language: .chinese).id(destination)
         }
     }
 }

@@ -1,28 +1,15 @@
 import NearpaneCore
 import SwiftUI
 
-private typealias ViewState<T> = State<T>
-
+/// User-facing controls are deliberately narrower than internal layout tokens.
 public enum DisplaySettingsScope: Equatable, Sendable {
     case global, voice, tray, spaces
-
     var metrics: [DisplayMetric] {
-        DisplayMetric.allCases.filter { metric in
-            guard metric != .panelWidth && metric != .panelHeight && metric != .scrollHeight else { return false }
-            switch self {
-            case .global: return metric.group == .panel || metric.group == .modules
-            case .voice: return metric.group == .voice
-            case .tray: return metric.group == .tray
-            case .spaces: return metric.group == .spaces
-            }
-        }
-    }
-    var defaultMetric: DisplayMetric {
         switch self {
-        case .global: .reservedWidth
-        case .voice: .voiceHeight
-        case .tray: .trayHeight
-        case .spaces: .spacesHeight
+        case .global: [.panelWidth]
+        case .voice: [.textSize]
+        case .tray: []
+        case .spaces: [.labelSize]
         }
     }
 }
@@ -30,349 +17,192 @@ public enum DisplaySettingsScope: Equatable, Sendable {
 public struct WorkspaceDisplaySettings: View {
     let host: HostSession, screens: [ScreenGeometry], request: (String) -> Void, dismiss: (String) -> Void
     let stillCurrent: (ScreenGeometry) -> Bool
-    let previewExposure: SettingsPreviewExposure?
-    let voiceCompact: Bool
-    let trayRows: Int
-    let lyricsHeight: Double
     let scope: DisplaySettingsScope
-    @ViewState private var pendingReset: DisplaySizeReset?
-    @ViewState private var chosen = ""
-    @ViewState private var key: DisplayMetric
-    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void, dismiss: @escaping (String) -> Void,
-                initialMetric: DisplayMetric = .reservedWidth, stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true },
+    @State private var chosen = ""
+
+    // Historical acceptance callers remain source-compatible; old element-size
+    // arguments no longer expose controls or override product defaults.
+    public init(host: HostSession, screens: [ScreenGeometry], request: @escaping (String) -> Void,
+                dismiss: @escaping (String) -> Void, initialMetric: DisplayMetric = .panelWidth,
+                stillCurrent: @escaping (ScreenGeometry) -> Bool = { _ in true },
                 previewExposure: SettingsPreviewExposure? = nil, voiceCompact: Bool = false,
                 trayRows: Int = 1, lyricsHeight: Double = 0, scope: DisplaySettingsScope = .global) {
-        self.host = host
-        self.screens = screens
-        self.request = request
-        self.dismiss = dismiss
-        self.stillCurrent = stillCurrent
-        self.previewExposure = previewExposure
-        self.voiceCompact = voiceCompact
-        self.trayRows = trayRows
-        self.lyricsHeight = lyricsHeight
-        self.scope = scope
-        _key = State(initialValue: scope.metrics.contains(initialMetric) ? initialMetric : scope.defaultMetric)
+        self.host = host; self.screens = screens; self.request = request; self.dismiss = dismiss
+        self.stillCurrent = stillCurrent; self.scope = scope
     }
 
     public var body: some View {
-        Group {
-            if scope == .global { ScrollView { settingsContent } }
-            else { settingsContent }
+        if scope == .global {
+            ScrollView {
+                if let screen = selectedScreen {
+                    settingsContent(screen)
+                        .frame(maxWidth: 650, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 4)
+                } else {
+                    ContentUnavailableView("没有可配置的显示器", systemImage: "display",
+                        description: Text("连接显示器后，可在这里调整侧栏。"))
+                }
+            }
+        } else {
+            ModuleTextSizeSettings(host: host, screens: screens, scope: scope, stillCurrent: stillCurrent)
         }
-        .onChange(of: screens) { _, _ in pendingReset = nil }
-        .onChange(of: key) { _, _ in pendingReset = nil }
     }
 
-    @ViewBuilder private var settingsContent: some View {
-            if let screen = screens.first(where: { $0.id == chosen })
-                ?? screens.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? screens.first {
-                let primary =
-                    screens.first(where: { $0.id == host.configuration.preferredDisplayID })?.id ?? screens.first?.id
-                let settings = host.configuration.displays[screen.id] ?? .init()
-                let save: (DisplaySettings) -> Void = { value in
-                    guard stillCurrent(screen) else { return }
-                    host.setDisplaySettings(value, id: screen.id)
+    private var selectedScreen: ScreenGeometry? {
+        screens.first(where: { $0.id == chosen })
+            ?? screens.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? screens.first
+    }
+    private var primaryID: String? {
+        screens.first(where: { $0.id == host.configuration.preferredDisplayID })?.id ?? screens.first?.id
+    }
+
+    private func settingsContent(_ screen: ScreenGeometry) -> some View {
+        let settings = host.configuration.displays[screen.id] ?? .init()
+        let primary = primaryID == screen.id
+        let spacesEnabled = host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
+        return VStack(alignment: .leading, spacing: 24) {
+            if screens.count > 1 {
+                Picker("应用到", selection: Binding(get: { screen.id }, set: { chosen = $0 })) {
+                    ForEach(Array(screens.enumerated()), id: \.element.id) { index, display in
+                        Text("显示器 \(index + 1)" + (display.id == primaryID ? " · 主驻留屏" : "")).tag(display.id)
+                    }
+                }.pickerStyle(.menu).accessibilityIdentifier("panel-size-display")
+            }
+            VStack(alignment: .leading, spacing: 20) {
+                heading("侧栏外观")
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("宽度").font(.system(size: 13, weight: .medium))
+                    Slider(value: Binding(get: {
+                        WorkbenchVisualPolicy.width(in: screen.visibleFrame.width, settings: settings)
+                    }, set: { value in
+                        update(screen) { next in
+                            next.measures[.panelWidth] = Measure(value.rounded())
+                            next.measures[.reservedWidth] = nil
+                        }
+                    }), in: WorkbenchVisualPolicy.widthRange(in: screen.visibleFrame.width), step: 10)
+                        .accessibilityLabel("侧栏宽度").accessibilityIdentifier("sidebar-width")
+                    HStack { Text("紧凑"); Spacer(); Text("宽松") }
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("所有模块共享宽度，高度随内容自动调整。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("配置显示器", selection: Binding(get: { screen.id }, set: { chosen = $0; pendingReset = nil })) {
-                        ForEach(Array(screens.enumerated()), id: \.element.id) { i, s in
-                            Text("显示器 \(i+1) · \(Int(s.visibleFrame.width)) × \(Int(s.visibleFrame.height))").tag(s.id)
-                        }
-                    }.accessibilityIdentifier("panel-size-display")
-                    if scope == .global {
-                    Divider()
-                    PanelGlassEditor(saved: settings.glass,
-                        width: settings.panel(on: screen, fallbackEdge: host.configuration.edge)?.width ?? screen.visibleFrame.width,
-                        preview: { value in
-                            guard value == nil || stillCurrent(screen) else { return }
-                            if let previewExposure { previewExposure.previewGlass(value, host: host, display: screen.id) }
-                            else { host.previewGlass(value, on: screen.id) }
-                        }, apply: { glass in
-                            var latest = host.configuration.displays[screen.id] ?? .init()
-                            latest.glass = glass
-                            save(latest)
-                            host.previewGlass(nil, on: screen.id)
-                        })
-                        .id("\(screen.id)-\(String(describing: settings.glass))-\(previewExposure?.glassWithdrawal ?? 0)")
-                    Divider()
-                    Text("面板尺寸").font(.headline)
-                    PanelSizeEditor(settings: settings, screen: screen, edge: host.configuration.edge,
-                                    primary: primary == screen.id, content: host.panelContents[screen.id] ?? .hidden,
-                                    voice: host.registry.preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
-                                    tray: host.registry.preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
-                                    toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
-                                    voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight,
-                                    pinnedCount: primary == screen.id ? host.registry.pinnedModules.count : 0) { draft in
-                        let latest = host.configuration.displays[screen.id] ?? .init()
-                        if let applied = draft.settings(over: latest, on: screen), applied != latest { save(applied) }
+                Divider().opacity(0.5)
+                PanelGlassEditor(saved: settings.glass, apply: { glass in update(screen) { $0.glass = glass } })
+                Divider().opacity(0.5)
+                AccentSettings(host: host)
+                Text("强调色用于所有显示器和模块。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Divider().opacity(0.5)
+            VStack(alignment: .leading, spacing: 14) {
+                heading("这一屏幕的位置")
+                Picker("停靠位置", selection: Binding(get: { settings.edge }, set: { value in update(screen) { $0.edge = value } })) {
+                    Text("跟随默认").tag(nil as SurfaceEdge?)
+                    Text("左侧").tag(SurfaceEdge?.some(.left))
+                    Text("右侧").tag(SurfaceEdge?.some(.right))
+                }.pickerStyle(.segmented).accessibilityIdentifier("sidebar-position")
+                Text("默认位置和主驻留屏可在「显示器与位置」中更改。")
+                    .font(.caption).foregroundStyle(.secondary)
+                if !primary && spacesEnabled {
+                    Picker("Spaces 显示方式", selection: Binding(get: { settings.policy }, set: { value in update(screen) { $0.policy = value } })) {
+                        Text("手动唤出").tag(SecondaryPolicy.onDemand)
+                        Text("有多个窗口时").tag(SecondaryPolicy.contextualAuto)
+                        Text("始终显示").tag(SecondaryPolicy.pinned)
                     }
-                    .id([screen.id, String(describing: settings.measures[.panelWidth]), String(describing: settings.measures[.panelHeight])])
-                    Divider()
-                    if primary == screen.id {
-                        FullscreenToolPreferencesView(host: host, display: screen.id)
+                    Picker("呈现方式", selection: Binding(get: { settings.placement }, set: { value in update(screen) { $0.placement = value } })) {
+                        Text("贴边驻留").tag(SpacePanelPlacement.docked)
+                        Text("浮动").tag(SpacePanelPlacement.floating)
                     }
-                    if primary != screen.id {
-                        Picker(
-                            "空间面板",
-                            selection: Binding(
-                                get: { settings.policy },
-                                set: {
-                                    var s = settings
-                                    s.policy = $0
-                                    save(s)
-                                })
-                        ) {
-                            Text("按需").tag(SecondaryPolicy.onDemand)
-                            Text("多目标自动").tag(SecondaryPolicy.contextualAuto)
-                            Text("固定").tag(SecondaryPolicy.pinned)
-                        }
-                        Picker(
-                            "占用形态",
-                            selection: Binding(
-                                get: { settings.placement },
-                                set: {
-                                    var s = settings
-                                    s.placement = $0
-                                    save(s)
-                                })
-                        ) {
-                            Text("驻留 · 持续预留").tag(SpacePanelPlacement.docked)
-                            Text("浮窗 · 无预留").tag(SpacePanelPlacement.floating)
-                        }
-                    }
-                    if primary != screen.id && settings.placement == .floating {
-                        Text("按住 Option 拖动此屏的空间面板可保存浮窗位置。").font(.caption)
-                        if settings.floatingPosition != nil {
-                            Button("恢复配置锚点") {
-                                var updated = settings
-                                updated.floatingPosition = nil
-                                save(updated)
-                            }
-                        }
-                    }
-                    HStack {
-                        Button("唤出本屏空间视图") {
-                            if stillCurrent(screen) { request(screen.id) }
-                        }
-                        Button("隐藏本屏空间视图") {
-                            if stillCurrent(screen) { dismiss(screen.id) }
-                        }
-                    }
-                    Picker(
-                        "停靠边缘",
-                        selection: Binding(
-                            get: { settings.edge },
-                            set: {
-                                var s = settings
-                                s.edge = $0
-                                save(s)
-                            })
-                    ) {
-                        Text("默认").tag(nil as SurfaceEdge?)
-                        Text("左").tag(SurfaceEdge?.some(.left))
-                        Text("右").tag(SurfaceEdge?.some(.right))
-                    }
-                    Picker(
-                        "纵向锚点",
-                        selection: Binding(
-                            get: { settings.anchor },
-                            set: {
-                                var s = settings
-                                s.anchor = $0
-                                save(s)
-                            })
-                    ) {
-                        Text("顶部").tag(PanelAnchor.top)
-                        Text("居中").tag(PanelAnchor.center)
-                        Text("底部").tag(PanelAnchor.bottom)
-                    }
-                    } else {
-                        Text("仅调整此模块在所选显示器上的内容样式。材质、颜色和位置沿用 Nearpane 全局设置。")
+                    if settings.placement == .floating {
+                        Text("按住 Option 拖动 Spaces 面板，可调整它的位置。")
                             .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Picker("调整项目", selection: $key) {
-                        ForEach(scope.metrics, id: \.self) {
-                            Text($0.label).tag($0)
+                        if settings.floatingPosition != nil {
+                            Button("回到默认位置") { update(screen) { $0.floatingPosition = nil } }
                         }
                     }
-                    let defaultWidth = Measure(DisplaySettings.recommendedPanelWidth(in: screen.visibleFrame.width))
-                    let defaultMeasure = key == .reservedWidth ? settings.measures[.panelWidth] ?? defaultWidth :
-                        (key == .spaceRowHeight ? Measure(50, .percent) : key.factory)
-                    let basis = metricBasis(key, settings: settings, screen: screen, primary: primary == screen.id)
-                    MeasureEditor(metric: key, configured: settings.measures[key], factory: defaultMeasure, extent: basis) {
-                        value in
-                        var updated = host.configuration.displays[screen.id] ?? .init()
-                        updated.measures[key] = value
-                        save(updated)
-                    }.id("\(screen.id)-\(key.rawValue)-\(String(describing:settings.measures[key]))")
-                    if key == .reservedWidth {
-                        Text(primary == screen.id ? "默认随主面板宽度。隐藏界面时仍保留，窗口避让仅对已明确授权且符合条件的窗口生效。" : "驻留式在隐藏时仍保留边界；浮窗式始终无预留。").font(
-                            .caption)
-                    }
-                    HStack {
-                        Button("恢复" + key.group.label + "尺寸…") {
-                            pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: key.group)
-                        }.disabled(!settings.measures.keys.contains { $0.group == key.group }
-                            && !(key.group == .panel && settings.glass.rimWidth != nil))
-                        .accessibilityIdentifier("sizes-reset-group")
-                        if scope == .global {
-                            Button("恢复本屏全部尺寸…") {
-                                pendingReset = DisplaySizeReset(screen: screen, saved: settings, group: nil)
-                            }.disabled(settings.measures.isEmpty && settings.glass.rimWidth == nil)
-                            .accessibilityIdentifier("sizes-reset-display")
-                        }
-                    }
-                    if let reset = pendingReset, reset.screen == screen {
-                        VStack(alignment: .leading) {
-                            Text(reset.group == nil || reset.group == .panel
-                                 ? "恢复后，面板与持久预留宽度将使用出厂值。已授权的窗口可能重新平铺。"
-                                 : "仅恢复" + (reset.group?.label ?? "") + "的尺寸，其余设置不变。")
-                                .font(.caption)
-                            HStack {
-                                Button("取消") { pendingReset = nil }
-                                    .accessibilityIdentifier("sizes-reset-cancel")
-                                Button("应用恢复") {
-                                    let current = host.configuration.displays[screen.id] ?? .init()
-                                    if let updated = reset.applying(to: current, on: screen) { save(updated) }
-                                    pendingReset = nil
-                                }.accessibilityIdentifier("sizes-reset-apply")
-                            }
-                        }
+                    HStack(spacing: 12) {
+                        Button("显示 Spaces") { if stillCurrent(screen) { request(screen.id) } }
+                        Button("收起 Spaces") { if stillCurrent(screen) { dismiss(screen.id) } }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, 10)
-                .padding(.vertical, 4)
-            } else { Text("没有可配置的显示器。").foregroundStyle(.secondary) }
+            }
+            if primary {
+                Divider().opacity(0.5)
+                FullscreenToolPreferencesView(host: host, display: screen.id)
+            }
+        }
     }
 
-    private func metricBasis(_ key: DisplayMetric, settings: DisplaySettings, screen: ScreenGeometry, primary: Bool) -> Double {
-        let panel = settings.panel(on: screen, fallbackEdge: host.configuration.edge) ?? screen.visibleFrame
-        if key == .spaceRowGap { return panel.height }
-        if key == .spaceRowHeight {
-            // DesktopSurface fits thumbnails within the card's inner width, with
-            // an unset height limit of half that width. It does not use desktop height.
-            let area = max(0, panel.width - 2 * settings.glass.inset(width: panel.width))
-            let width = min(area, settings.points(.desktopWidth, in: area))
-            let inset = min(settings.points(.spacePadding, in: width) + 4, max(0, width / 4))
-            return max(0, width - 2 * inset)
-        }
-        return settings.referenceExtent(for: key, screen: screen, primary: primary)
+    private func heading(_ text: String) -> some View {
+        Text(text).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+    }
+    private func update(_ screen: ScreenGeometry, _ change: (inout DisplaySettings) -> Void) {
+        guard stillCurrent(screen) else { return }
+        var next = host.configuration.displays[screen.id] ?? .init()
+        change(&next)
+        host.setDisplaySettings(next, id: screen.id)
     }
 }
 
+/// A bounded typography choice belongs to the module whose text it changes.
+struct ModuleTextSizeSettings: View {
+    let host: HostSession, screens: [ScreenGeometry], scope: DisplaySettingsScope
+    var stillCurrent: (ScreenGeometry) -> Bool = { _ in true }
+    @State private var chosen = ""
+
+    var body: some View {
+        if let metric = scope.metrics.first, scope == .voice || scope == .spaces,
+           let screen = screens.first(where: { $0.id == chosen })
+            ?? screens.first(where: { $0.id == host.configuration.preferredDisplayID }) ?? screens.first {
+            VStack(alignment: .leading, spacing: 12) {
+                if scope == .spaces && screens.count > 1 {
+                    Picker("显示器", selection: Binding(get: { screen.id }, set: { chosen = $0 })) {
+                        ForEach(Array(screens.enumerated()), id: \.element.id) { index, display in
+                            Text("显示器 \(index + 1)").tag(display.id)
+                        }
+                    }
+                }
+                HStack(spacing: 20) {
+                    Text(scope == .voice ? "侧栏文字大小" : "窗口名称大小")
+                    Spacer(minLength: 8)
+                    Picker("文字大小", selection: Binding(get: {
+                        let settings = host.configuration.displays[screen.id] ?? .init()
+                        return TextSize.nearest(settings.measures[metric]?.points(in: screen.visibleFrame.width)
+                            ?? metric.factory.value, metric: metric)
+                    }, set: { size in
+                        guard stillCurrent(screen) else { return }
+                        var settings = host.configuration.displays[screen.id] ?? .init()
+                        settings.measures[metric] = size == .standard ? nil : Measure(size.points(metric: metric))
+                        host.setDisplaySettings(settings, id: screen.id)
+                    })) {
+                        Text("小").tag(TextSize.small)
+                        Text("标准").tag(TextSize.standard)
+                        Text("大").tag(TextSize.large)
+                    }.pickerStyle(.segmented).labelsHidden().frame(width: 200)
+                        .accessibilityIdentifier(scope == .voice ? "voice-text-size" : "spaces-text-size")
+                }
+            }
+        }
+    }
+
+    private enum TextSize: Int, CaseIterable {
+        case small, standard, large
+        func points(metric: DisplayMetric) -> Double {
+            metric == .textSize ? WorkbenchVisualPolicy.voiceTextSizes[rawValue] : WorkbenchVisualPolicy.windowLabelSizes[rawValue]
+        }
+        static func nearest(_ value: Double, metric: DisplayMetric) -> Self {
+            allCases.min { abs($0.points(metric: metric) - value) < abs($1.points(metric: metric) - value) } ?? .standard
+        }
+    }
+}
+
+/// Compatibility for historical recovery receipts; there is no user-facing reset control.
 struct DisplaySizeReset {
     let screen: ScreenGeometry, saved: DisplaySettings, group: DisplayMetricGroup?
-
     func applying(to current: DisplaySettings, on live: ScreenGeometry) -> DisplaySettings? {
         guard live == screen, current == saved else { return nil }
         let next = current.restoringSizes(group: group)
         return next == current ? nil : next
-    }
-}
-
-private extension DisplayMetricGroup {
-    var label: String {
-        switch self {
-        case .panel: "面板"
-        case .voice: "文字与语音"
-        case .tray: "截图托盘"
-        case .spaces: "空间预览"
-        case .modules: "可选模块"
-        }
-    }
-}
-
-private struct MeasureEditor: View {
-    let metric: DisplayMetric, factory: Measure, extent: Double, save: (Measure?) -> Void
-    @ViewState private var draft: Measure
-    init(metric: DisplayMetric, configured: Measure?, factory: Measure, extent: Double, save: @escaping (Measure?) -> Void) {
-        self.metric = metric
-        self.factory = factory
-        self.extent = extent
-        self.save = save
-        _draft = State(initialValue: configured ?? factory)
-    }
-    var body: some View {
-        let maximum = draft.unit == .percent ? 100.0 : min(16384, max(1, extent, draft.value))
-        VStack(alignment: .leading) {
-            HStack {
-                TextField("精确值", value: $draft.value, format: .number).frame(width: 86)
-                Stepper("微调", value: $draft.value, in: 0...maximum, step: draft.step).labelsHidden()
-                Picker(
-                    "单位",
-                    selection: Binding(
-                        get: { draft.unit },
-                        set: { u in
-                            let pt = draft.points(in: extent)
-                            draft = .init(u == .points ? pt : min(100, 100 * pt / max(1, extent)), u)
-                        })
-                ) { ForEach(MeasureUnit.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.frame(width: 100)
-            }
-            Slider(value: Binding(get: { min(maximum, max(0, draft.value)) }, set: { value in
-                draft.value = min(maximum, (value / draft.step).rounded() * draft.step)
-            }), in: 0...maximum)
-            Text(
-                "预览 \(draft.points(in:extent),format:.number.precision(.fractionLength(1))) pt · 参考长度 \(extent,format:.number.precision(.fractionLength(1))) pt"
-            )
-            .font(.caption).monospacedDigit()
-            HStack {
-                Button("应用此项") { save(draft) }.disabled(!draft.valid)
-                Button("重置此项") {
-                    draft = factory
-                    save(nil)
-                }
-            }
-        }
-    }
-}
-
-extension DisplayMetric {
-    fileprivate var label: String {
-        switch self {
-        case .panelWidth: "面板宽度"
-        case .panelHeight: "面板高度"
-        case .reservedWidth: "持久预留宽度"
-        case .sideInset: "侧边留距"
-        case .topInset: "顶部留距"
-        case .bottomInset: "底部留距"
-        case .verticalOffset: "纵向偏移"
-        case .voiceHeight: "语音区高度"
-        case .trayHeight: "托盘区高度"
-        case .spacesHeight: "空间区高度"
-        case .sectionGap: "模块间距"
-        case .textHeight: "文字区高度"
-        case .textPadding: "文字内边距"
-        case .textSize: "文字字号"
-        case .lineGap: "文字行间距"
-        case .voiceButtonWidth: "状态按钮宽"
-        case .voiceButtonHeight: "状态按钮高"
-        case .copySize: "复制图标"
-        case .buttonGap: "按钮间距"
-        case .waveformSize: "波形宽度"
-        case .cellWidth: "微图位宽"
-        case .cellHeight: "微图位高"
-        case .columnGap: "托盘列间距"
-        case .rowGap: "托盘行间距"
-        case .trayPadding: "托盘内边距"
-        case .trayMenuHeight: "展开托盘高度"
-        case .trayButtonSize: "截图按钮字号"
-        case .spaceRowHeight: "空间行高"
-        case .spaceRowGap: "窗口项间距"
-        case .desktopWidth: "窗口列表宽"
-        case .desktopHeight: "窗口列表高"
-        case .spacePadding: "空间内边距"
-        case .scrollHeight: "空间滚动视口"
-        case .cornerRadius: "容器圆角"
-        case .borderWidth: "窗口边线"
-        case .iconSize: "模块图标大小"
-        case .labelSize: "空间标签字号"
-        case .hitSize: "模块点击目标"
-        case .railHeight: "模块条高度"
-        case .railButtonWidth: "模块入口宽度"
-        case .modulePadding: "模块内边距"
-        case .moduleHeight: "展开模块高度"
-        }
     }
 }

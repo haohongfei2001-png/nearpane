@@ -78,6 +78,8 @@ public final class LyricAuxiliaryController: NSObject, NSWindowDelegate {
 public struct LyricAuxiliaryView: View {
     @ObservedObject var model: LyricAppModel
     let page: LyricAuxiliaryPage
+    private let language: LyricLanguage?
+    private let embedded: Bool
     let close: () -> Void
     @State private var loginStatus = SMAppService.mainApp.status
     @State private var loginBusy = false
@@ -85,8 +87,10 @@ public struct LyricAuxiliaryView: View {
     @State private var positionExpanded = false
     @State private var followsCurrentLine = true
 
-    public init(model: LyricAppModel, page: LyricAuxiliaryPage, close: @escaping () -> Void = {}) {
-        self.model = model; self.page = page; self.close = close
+    public init(model: LyricAppModel, page: LyricAuxiliaryPage, language: LyricLanguage? = nil,
+                embedded: Bool = false, close: @escaping () -> Void = {}) {
+        self.model = model; self.page = page; self.language = language
+        self.embedded = embedded; self.close = close
     }
 
     public var body: some View {
@@ -271,7 +275,7 @@ public struct LyricAuxiliaryView: View {
                 Button(localized("重新查找", "Search again")) { model.searchCandidates() }.disabled(model.isSearchingCandidates)
                 Button(localized("导入歌词…", "Import lyrics…")) { model.importLyrics() }
             }
-        }.padding(22)
+        }.padding(contentInsets(22))
     }
     private var adjustment: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -290,7 +294,7 @@ public struct LyricAuxiliaryView: View {
             }.frame(maxWidth: .infinity).padding(.vertical, 20)
             Spacer()
             Text(localized("播放器的播放位置不会改变。", "The player’s playback position stays unchanged.")).font(.system(size: 11)).foregroundStyle(.secondary)
-        }.padding(25)
+        }.padding(contentInsets(25))
     }
     @ViewBuilder private var source: some View {
         if let document = model.document {
@@ -310,7 +314,7 @@ public struct LyricAuxiliaryView: View {
                     if let url = document.source.rights.apiEvidenceURL { Link(localized("接口使用条件", "API terms"), destination: url) }
                     if let url = document.source.rights.contentEvidenceURL { Link(localized("内容使用条件", "Content terms"), destination: url) }
                     Text(localized("本地绑定与时间调整只应用于当前录音和歌词版本。", "Local bindings and timing adjustments apply only to this recording and lyric version.")).font(.system(size: 11)).foregroundStyle(.secondary)
-                }.font(.system(size: 12)).padding(24).frame(maxWidth: .infinity, alignment: .leading)
+                }.font(.system(size: 12)).padding(contentInsets(24)).frame(maxWidth: .infinity, alignment: .leading)
             }.textSelection(.enabled)
         } else { ContentUnavailableView(localized("还没有歌词来源", "No lyric source yet"), systemImage: "text.badge.questionmark") }
     }
@@ -321,7 +325,7 @@ public struct LyricAuxiliaryView: View {
                 Spacer()
                 Button(localized("回到当前句", "Current line")) { followsCurrentLine = true; model.returnToCurrent() }
                     .font(.system(size: 11)).disabled(model.document?.timingLevel == .some(.none))
-            }.padding(18)
+            }.padding(contentInsets(18))
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
@@ -336,7 +340,7 @@ public struct LyricAuxiliaryView: View {
                                         .disabled(!model.canSeek || cue.sourceStartMS == nil)
                                 }
                         }
-                    }.padding(22)
+                    }.padding(contentInsets(22))
                         .background(LyricLiveScrollObserver { followsCurrentLine = false })
                 }
                 .simultaneousGesture(DragGesture(minimumDistance: 2).onChanged { _ in followsCurrentLine = false })
@@ -351,9 +355,17 @@ public struct LyricAuxiliaryView: View {
     }
     private var songHeading: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(model.title).font(.system(size: 17, weight: .medium)).lineLimit(2)
+            let title = model.snapshot.selection?.recording.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+            Text(title?.isEmpty == false ? title! : localized("未提供曲名", "Untitled track"))
+                .font(.system(size: 17, weight: .medium)).lineLimit(2)
             if !model.artist.isEmpty { Text(model.artist).font(.system(size: 11)).foregroundStyle(.secondary) }
         }
+    }
+    private func localized(_ chinese: String, _ english: String) -> String {
+        LyricLocalization.text(chinese, english, language: language)
+    }
+    private func contentInsets(_ amount: CGFloat) -> EdgeInsets {
+        EdgeInsets(top: amount, leading: embedded ? 0 : amount, bottom: amount, trailing: embedded ? 0 : amount)
     }
     private var adjustmentDescription: String {
         guard model.advanceMS != 0 else { return localized("未调整", "No adjustment") }
@@ -428,9 +440,4 @@ public enum LyricScreenIdentity {
         }
     }
     public static func id(for screen: NSScreen) -> String? { screens.first { $0.screen === screen }?.id }
-}
-
-
-private func localized(_ chinese: String, _ english: String) -> String {
-    LyricLocalization.text(chinese, english)
 }

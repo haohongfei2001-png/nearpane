@@ -29,6 +29,7 @@ import Testing
         var preferences = DisplaySettings()
         preferences.measures[.panelHeight] = .init(850)
         host.setDisplaySettings(preferences, id: screen.id)
+        let committedPreferences = try #require(host.configuration.displays[screen.id])
         panels.update(screens: [screen])
         let originalContent = host.panelContents[screen.id]
         let originalHeight = try #require(panel.requestedFrame?.height)
@@ -51,7 +52,8 @@ import Testing
         panels.update(screens: [screen])
         #expect(host.panelContents[screen.id] == originalContent)
         #expect(panel.requestedFrame?.height == originalHeight)
-        #expect(host.configuration.displays[screen.id] == preferences)
+        #expect(host.configuration.displays[screen.id] == committedPreferences)
+        #expect(committedPreferences.retiredVisualOverrides[.panelHeight] == Measure(850))
     }
 
     @Test func residentCanRequestTheOnlyDesktopWithBothInputModulesOff() async throws {
@@ -98,25 +100,29 @@ import Testing
         #expect(host.panelContents[screen.id] == .spacesOnly && controller.hasPlacement)
         #expect(try workArea() == original)
 
-        var icon = host.configuration.displays[screen.id] ?? .init()
-        icon.measures[.panelWidth] = .init(PanelSizeMetrics.minimumSide)
-        icon.measures[.panelHeight] = .init(PanelSizeMetrics.minimumSide)
-        host.setDisplaySettings(icon, id: screen.id)
+        // Legacy icon dimensions now migrate to the supported, directly usable surface.
+        // Real constrained-area expansion is covered by transientExpansion below.
+        var legacy = host.configuration.displays[screen.id] ?? .init()
+        legacy.measures[.panelWidth] = .init(PanelSizeMetrics.minimumSide)
+        legacy.measures[.panelHeight] = .init(PanelSizeMetrics.minimumSide)
+        host.setDisplaySettings(legacy, id: screen.id)
+        let committed = try #require(host.configuration.displays[screen.id])
         panels.update(screens: [screen])
-        let folded = try #require(controller.requestedFrame)
-        let iconArea = try workArea()
-        #expect(!controller.temporarilyExpanded && folded.width == PanelSizeMetrics.minimumSide)
+        let ready = try #require(controller.requestedFrame)
+        let migratedArea = try workArea()
+        #expect(!controller.temporarilyExpanded && ready.width == 220)
+        #expect(committed.retiredVisualOverrides[.panelHeight] == Measure(PanelSizeMetrics.minimumSide))
         panels.request(screen.id)
         panels.update(screens: [screen])
-        #expect(controller.temporarilyExpanded && (controller.requestedFrame?.width ?? 0) > folded.width)
+        #expect(!controller.temporarilyExpanded && controller.requestedFrame == ready)
         panels.request(screen.id)
         panels.update(screens: [screen])
-        #expect(controller.temporarilyExpanded)
+        #expect(!controller.temporarilyExpanded)
         controller.toggleTemporaryExpansion()
         panels.update(screens: [screen])
-        #expect(!controller.temporarilyExpanded && controller.requestedFrame == folded)
-        #expect(host.configuration.displays[screen.id] == icon)
-        #expect(try workArea() == iconArea)
+        #expect(!controller.temporarilyExpanded && controller.requestedFrame == ready)
+        #expect(host.configuration.displays[screen.id] == committed)
+        #expect(try workArea() == migratedArea)
     }
 
     @Test func unidentifiedMenuDisplayCannotPromoteAPortraitScreenIntoTheQuartzOrigin() {
@@ -165,7 +171,7 @@ import Testing
         var settings = DisplaySettings()
         settings.policy = .pinned
         settings.placement = .floating
-        settings.measures[.panelWidth] = .init(150)
+        settings.measures[.panelWidth] = .init(250)
         host.setDisplaySettings(settings, id: b.id)
         host.setPlacement(edge: .right, displayID: a.id)
         let saved = host.configuration, states = host.registry.states
@@ -175,7 +181,7 @@ import Testing
         let primaryWindow = main.window
         panels.update(screens: [b])
         staleMove(.init(x: 5, y: 6))
-        #expect(host.configuration == saved && !old.hasPlacement && main.requestedFrame?.width == 150)
+        #expect(host.configuration == saved && !old.hasPlacement && main.requestedFrame?.width == 250)
         presented.removeAll()
         panels.update(screens: [b,a])
         #expect(presented.first === main && panels.secondaryIDs == ["b"])
@@ -227,8 +233,7 @@ import Testing
         }
         var settings = DisplaySettings()
         settings.placement = .floating
-        settings.measures[.panelWidth] = .init(170)
-        settings.measures[.panelHeight] = .init(400)
+        settings.measures[.panelWidth] = .init(260.5)
         host.setDisplaySettings(settings, id: "side")
         let saved = host.configuration
         let edge = try #require(panel.window)
@@ -242,7 +247,7 @@ import Testing
                 previousMove(.init(x: 3, y: 5))
                 #expect(events.last == "unknown")
             }
-            #expect(host.configuration == saved && panel.requestedFrame?.size == NSSize(width: 170, height: 400))
+            #expect(host.configuration == saved && panel.requestedFrame?.size == NSSize(width: 260.5, height: 1280))
             let reading = FullscreenDisplaySample(session: session, revision: UInt64(index + 1), validUntil: t + 12,
                                                   observation: .native(window: window), beganUptime: t)
             _ = view.sample(screen: screen, override: reading, now: Date(), uptime: t, suspended: false)
@@ -345,14 +350,14 @@ import Testing
         #expect(called.count == 1 && panels.secondaryIDs.isEmpty)
         var secondary = DisplaySettings()
         secondary.policy = .pinned
-        secondary.measures[.panelWidth] = .init(213.5)
+        secondary.measures[.panelWidth] = .init(273.5)
         host.setDisplaySettings(secondary, id: "b")
         called.removeAll()
         panels.update(screens: screens)
         #expect(panels.secondaryIDs == ["b"] && called.count == 2)
         #expect(called.allSatisfy { $0.window?.isVisible == false })
         let second = called.first { $0 !== main }
-        #expect(second?.requestedFrame?.width == 213.5)
+        #expect(second?.requestedFrame?.width == 273.5)
         #expect(second?.window?.frame == second?.requestedFrame || second?.window?.frame == second?.requestedFrame?.integral)
         #expect(main.window?.frame.width == 256 && main.window?.collectionBehavior.contains(.fullScreenNone) == true)
         panels.dismiss("b")
@@ -363,7 +368,7 @@ import Testing
         #expect(panels.secondaryIDs == ["b"])
         host.setPlacement(edge: .left, displayID: "b")
         panels.update(screens: screens)
-        #expect(panels.secondaryIDs.isEmpty && main.requestedFrame?.width == 213.5)
+        #expect(panels.secondaryIDs.isEmpty && main.requestedFrame?.width == 273.5)
         #expect(main.window?.frame == main.requestedFrame || main.window?.frame == main.requestedFrame?.integral)
         panels.stop()
         main.close()
@@ -399,43 +404,52 @@ import Testing
     @Test func transientExpansionReusesPanelAndNeverCommitsItsFrame() async throws {
         _ = NSApplication.shared
         let store = MemoryConfigurationStore(), frame = SurfaceRect(x: -800, width: 800, height: 1280)
-        let screen = ScreenGeometry(id: "portrait", frame: frame, visibleFrame: frame)
+        // A genuine constrained usable area, not a retired per-element override,
+        // puts the normal panel below its comfortable 176 pt presentation width.
+        let usable = SurfaceRect(x: -168, y: 40, width: 168, height: 620)
+        let screen = ScreenGeometry(id: "portrait", frame: frame, visibleFrame: usable)
         let host = HostSession(store: store)
         await host.start()
         let panel = EdgeWindowController(host: host)
         defer { panel.close(); host.stop() }
         var settings = DisplaySettings()
-        settings.measures = [.panelWidth: .init(20), .panelHeight: .init(20), .reservedWidth: .init(104),
-                             .textSize: .init(47), .cellWidth: .init(40)]
+        settings.measures = [.panelWidth: .init(260), .textSize: .init(16)]
         host.setDisplaySettings(settings, id: screen.id)
         let persisted = store.value, modules = host.registry.states
+        let presentation = host.panelPresentationSettings(on: screen.id)
         panel.place(on: screen, primary: screen.id, content: .full)
         let initial = try #require(panel.requestedFrame), window = try #require(panel.window)
         let originalHostView = try #require(window.contentView?.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
-        #expect(initial.size == .init(width: PanelSizeMetrics.minimumSide, height: PanelSizeMetrics.minimumSide))
+        #expect(initial.size == .init(width: usable.width, height: usable.height))
+        #expect(originalHostView.isHidden && !panel.temporarilyExpanded)
         for _ in 0..<2 {
             panel.toggleTemporaryExpansion()
             let opened = try #require(panel.requestedFrame)
-            #expect(panel.temporarilyExpanded && opened.width > initial.width && opened.height > initial.height)
-            #expect(opened.minX >= frame.x && opened.maxX <= frame.x + frame.width)
-            #expect(settings.sizeForm(width: opened.width, height: opened.height - PanelSizeMetrics.minimumSide,
-                                      content: .full, voice: true, tray: true) == .full)
+            #expect(panel.temporarilyExpanded)
+            #expect(opened.minX >= usable.x && opened.maxX <= usable.x + usable.width)
+            #expect(opened.minY >= usable.y && opened.maxY <= usable.y + usable.height)
+            #expect(presentation.sizeForm(width: opened.width, height: opened.height - PanelSizeMetrics.minimumSide,
+                                          content: .full, voice: true, tray: true, temporarilyExpanded: true) == .full)
             #expect(!originalHostView.isHidden && panel.window === window)
+            window.contentView?.layoutSubtreeIfNeeded()
+            let close = try #require(window.contentView?.subviews.compactMap { $0 as? NSButton }
+                .first { $0.accessibilityIdentifier() == "nearpane-close-panel" })
+            #expect(!close.isHidden && close.frame.width >= PanelSizeMetrics.minimumSide && close.frame.height >= PanelSizeMetrics.minimumSide)
             panel.place(on: screen, primary: screen.id, content: .full)
             #expect(panel.temporarilyExpanded && panel.requestedFrame == opened)
-            panel.toggleTemporaryExpansion()
+            close.performClick(nil)
             #expect(!panel.temporarilyExpanded && panel.requestedFrame == initial && originalHostView.isHidden)
         }
         #expect(store.value == persisted && host.configuration == persisted && host.registry.states == modules)
         #expect(originalHostView.superview === window.contentView && !window.isVisible)
         panel.toggleTemporaryExpansion()
-        settings.measures[.panelHeight] = .init(714)
-        host.setDisplaySettings(settings, id: screen.id)
-        panel.place(on: screen, primary: screen.id, content: .full)
-        #expect(!panel.temporarilyExpanded && panel.requestedFrame?.size == .init(width: 20, height: 714))
+        let restored = ScreenGeometry(id: screen.id, frame: frame, visibleFrame: frame)
+        panel.place(on: restored, primary: screen.id, content: .full)
+        #expect(!panel.temporarilyExpanded && panel.requestedFrame?.size == .init(width: 260, height: 1280))
+        #expect(!originalHostView.isHidden && store.value == persisted)
     }
 
-    @Test func expansionCanRecoverUsableRoomFromExtremeSavedInsets() async throws {
+    @Test func retiredExtremeInsetsCannotObstructTheAvailablePanel() async throws {
         _ = NSApplication.shared
         let area = SurfaceRect(x: -800, width: 800, height: 1280)
         let screen = ScreenGeometry(id: "portrait", frame: area, visibleFrame: area)
@@ -449,23 +463,25 @@ import Testing
                                  .sideInset: .init(side), .topInset: .init(top), .reservedWidth: .init(96)]
             host.setDisplaySettings(settings, id: screen.id)
             let persisted = store.value
+            let committed = try #require(host.configuration.displays[screen.id])
             panel.place(on: screen, primary: screen.id, content: .full)
-            let icon = try #require(panel.requestedFrame)
-            #expect(icon.size == .init(width: 20, height: 20))
-            panel.toggleTemporaryExpansion()
-            let expanded = try #require(panel.requestedFrame)
-            #expect(settings.sizeForm(width: expanded.width, height: expanded.height - PanelSizeMetrics.minimumSide,
+            let ready = try #require(panel.requestedFrame)
+            #expect(ready.size == .init(width: 220, height: 1280))
+            #expect(committed.sizeForm(width: ready.width, height: ready.height,
                                       content: .full, voice: true, tray: true) == .full)
-            #expect(expanded.minX >= area.x && expanded.maxX <= area.x + area.width)
-            #expect(expanded.minY >= area.y && expanded.maxY <= area.y + area.height)
-            if top == 34 { #expect(Double(expanded.maxY) == area.y + area.height - top) }
-            if side == 17 { #expect(Double(expanded.maxX) == area.x + area.width - side) }
+            #expect(ready.minX >= area.x && ready.maxX <= area.x + area.width)
+            #expect(ready.minY >= area.y && ready.maxY <= area.y + area.height)
+            #expect(committed.measures[.sideInset] == nil && committed.measures[.topInset] == nil)
+            #expect(committed.retiredVisualOverrides[.sideInset] == Measure(side))
+            #expect(committed.retiredVisualOverrides[.topInset] == Measure(top))
+            let content = try #require(panel.window?.contentView?.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
+            #expect(!content.isHidden)
             panel.toggleTemporaryExpansion()
-            #expect(panel.requestedFrame == icon && store.value == persisted)
+            #expect(!panel.temporarilyExpanded && panel.requestedFrame == ready && store.value == persisted)
         }
     }
 
-    @Test func tinyPercentageTypeOpensAReadablePanelWithoutReplacingTheSetting() async throws {
+    @Test func retiredPercentageTypeBecomesReadableWithoutLosingItsOriginalValue() async throws {
         _ = NSApplication.shared
         let area = SurfaceRect(x: -800, width: 800, height: 1280)
         let screen = ScreenGeometry(id: "portrait", frame: area, visibleFrame: area)
@@ -476,16 +492,15 @@ import Testing
         var settings = DisplaySettings()
         settings.measures = [.panelHeight: .init(450), .textSize: .init(0.01, .percent), .labelSize: .init(0.01, .percent)]
         host.setDisplaySettings(settings, id: screen.id)
+        let committed = try #require(host.configuration.displays[screen.id])
         panel.place(on: screen, primary: screen.id, content: .full)
-        let compact = try #require(panel.requestedFrame)
+        let ready = try #require(panel.requestedFrame)
+        #expect(!panel.temporarilyExpanded && ready.width == 220 && ready.height == 1280)
+        #expect(committed.measures[.textSize] == Measure(12) && committed.measures[.labelSize] == Measure(10))
+        #expect(committed.retiredVisualOverrides[.textSize] == settings.measures[.textSize])
+        #expect(committed.retiredVisualOverrides[.labelSize] == settings.measures[.labelSize])
+        #expect(committed.sizeForm(width: ready.width, height: ready.height, content: .full, voice: true, tray: true) == .full)
         panel.toggleTemporaryExpansion()
-        let opened = try #require(panel.requestedFrame)
-        #expect(panel.temporarilyExpanded && opened.width == 200 && opened.height == 1280)
-        let basis = Double(opened.height) - PanelSizeMetrics.minimumSide
-        let voice = settings.contentHeights(basis, content: .full, voice: true, tray: true).voice
-        #expect(settings.readableFontSize(.textSize, in: voice) == DisplayMetric.textSize.factory.value)
-        #expect(settings.readableFontSize(.labelSize, in: basis) == DisplayMetric.labelSize.factory.value)
-        panel.toggleTemporaryExpansion()
-        #expect(panel.requestedFrame == compact && store.value.displays[screen.id] == settings)
+        #expect(!panel.temporarilyExpanded && panel.requestedFrame == ready && store.value.displays[screen.id] == committed)
     }
 }

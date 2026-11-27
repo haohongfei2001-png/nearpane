@@ -43,3 +43,29 @@ The native acceptance copy uses generated sample content and an executable-bound
 - QQ Music, NetEase Music, actual simultaneous players, personal microphone permissions and a real installation/update cycle require their own observed evidence. No source test or screenshot substitutes for those observations.
 
 Final candidate results and selected screenshots will replace this intermediate status after the next native run.
+
+## First complete native image set — b2112280
+
+[Run 46050825219](https://github.com/haohongfei2001-png/nearpane/actions/runs/46050825219)
+produced 25 actual WindowServer screenshots. Its product code is the preceding
+967f540 checkpoint; b2112280 changes the owner's documentation only. These images
+precede the settings convergence, equal module ordering and four-edge work, so
+they are diagnostic evidence rather than current-constitution visual acceptance.
+The native receipt recorded 54 checks, with 46 passing and 8 failing. Menu
+target/actions, production module navigation callbacks, retained-window identity
+including close/reopen, saved module order and voice/screenshot count preservation
+passed. Six SwiftUI accessibility lookups and two paused-hover/control-inspection
+checks failed. The accessibility tree contained native view proxies but no SwiftUI
+logical identifiers. These failures remain FAIL despite explicit programmatic
+routes allowing screenshots to complete. Music setup remained BLOCKED: its last
+observed marker was `launch:start`; the probe timed out and then exited Music.
+
+The next DEBUG CI alpha-fixture run enables the documented, writable SwiftUI
+[`accessibilityEnabled` environment](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityenabled)
+on its real main-window and sidebar roots. This supplies the assistive-technology
+environment for native accessibility inspection without running VoiceOver. The
+receipt records it explicitly; normal product defaults, system permissions and
+playback leases are unchanged. Native input still requires an actual accessibility
+action and observed product state. Programmatic routing never substitutes for a
+successful input check. The GUI runner also uses the normal AppKit application
+event loop for real pointer dispatch.

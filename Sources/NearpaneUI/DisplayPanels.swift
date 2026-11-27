@@ -386,7 +386,7 @@ import NearpaneCore
             demand[id]?.hasCurrentDesktopWindows = true
         }
         let lyricsActive = (domains?.lyricsHeight ?? 0) > 0 && prefs.contains { $0.id == BuiltinCatalog.lyrics && $0.enabled }
-        let auxiliaryTools = prefs.contains { $0.enabled && ($0.id == BuiltinCatalog.memo || $0.id == BuiltinCatalog.tasks) }
+        let auxiliaryTools = prefs.contains { $0.enabled && ($0.id == BuiltinCatalog.memo || $0.id == BuiltinCatalog.tasks || $0.id == BuiltinCatalog.clock) }
             || !host.registry.pinnedModules.isEmpty
         let ordinary = coordinator.resolve(
             screens: screens, preferred: host.configuration.preferredDisplayID,

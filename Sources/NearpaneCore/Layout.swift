@@ -52,12 +52,34 @@ public struct SurfaceLayout: Equatable, Sendable {
     public let expanded: SurfaceRect?
     public let railCapacity: Int
     public let overflowCount: Int
+    /// The full content extent. A smaller viewport scrolls instead of dropping modules.
+    public let contentHeight: Double
 
     /// The configured desktop section includes the optional tool strip at its leading edge.
     public var windowArea: SurfaceRect {
         guard let moduleRail else { return desktop }
         return SurfaceRect(x: desktop.x, y: desktop.y + moduleRail.height, width: desktop.width,
                            height: desktop.height - moduleRail.height)
+    }
+
+    public func frame(for moduleID: String) -> SurfaceRect? {
+        switch moduleID {
+        case BuiltinCatalog.voice: voice.height > 0 ? voice : nil
+        case BuiltinCatalog.screenshots: screenshots.height > 0 ? screenshots : nil
+        case BuiltinCatalog.desktop: windowArea.height > 0 ? windowArea : nil
+        default: additionalTools[moduleID]
+        }
+    }
+
+    /// Keep the native glass mask aligned with content moving inside the sidebar.
+    public func translated(y offset: Double) -> Self {
+        func shift(_ rect: SurfaceRect) -> SurfaceRect {
+            .init(x: rect.x, y: rect.y + offset, width: rect.width, height: rect.height)
+        }
+        return Self(voice: shift(voice), screenshots: shift(screenshots),
+                    additionalTools: additionalTools.mapValues(shift), desktop: shift(desktop),
+                    moduleRail: moduleRail.map(shift), expanded: expanded.map(shift),
+                    railCapacity: railCapacity, overflowCount: overflowCount, contentHeight: contentHeight)
     }
 }
 
@@ -72,71 +94,80 @@ public enum LayoutComposer {
         let reference = referenceHeight ?? h
         let sizes = settings.contentHeights(reference, content: content, voice: voiceEnabled, tray: trayEnabled)
         let inset = min(settings.glass.inset(width: w), h / 2)
-        let bottom = h - inset
-        var y = inset
-        var frames: [String: SurfaceRect] = [:]
+        let hasWindows = content == .full || content == .spacesOnly
+        let hasTools = content == .full || content == .toolsOnly
+        let rail = pinnedCount > 0 && (hasWindows || hasTools) ? settings.points(.railHeight, in: reference) : 0
+        // Legacy sample adapters can retain their strip; shipped modules are all
+        // direct, ordered content. The clock no longer occupies a protected strip.
+        let expandedSample = expanded && rail > 0 && !hasWindows ? settings.points(.moduleHeight, in: reference) : 0
+        let sampleOnlyID = "nearpane.legacy-module-strip"
+        var order = toolOrder
+        if hasWindows && !order.contains(BuiltinCatalog.desktop) { order.append(BuiltinCatalog.desktop) }
+        if !hasWindows && rail > 0 { order.append(sampleOnlyID) }
         var seen = Set<String>()
         var requested: [(id: String, preferred: Double, minimum: Double)] = []
-        for id in toolOrder where seen.insert(id).inserted {
+        for id in order where seen.insert(id).inserted {
             let preferred: Double
+            let minimum: Double
             switch id {
+            case BuiltinCatalog.desktop where hasWindows:
+                // A usable card viewport, not a reserved fraction or a fixed position.
+                preferred = 96 + rail
+                minimum = preferred
+            case sampleOnlyID:
+                preferred = rail + expandedSample
+                minimum = preferred
             case BuiltinCatalog.voice where sizes.voice > 0:
                 preferred = voiceCompact ? 40 : sizes.voice
+                minimum = minimumToolHeight(id, preferred: preferred, width: max(0, w - 2 * inset), settings: settings, voiceCompact: voiceCompact)
             case BuiltinCatalog.screenshots where sizes.tray > 0:
                 preferred = settings.measures[.trayHeight] == nil && trayRows > 1 ? 144 : sizes.tray
+                minimum = minimumToolHeight(id, preferred: preferred, width: max(0, w - 2 * inset), settings: settings, voiceCompact: voiceCompact)
             case BuiltinCatalog.lyrics:
-                preferred = (content == .full || content == .toolsOnly) && w >= 176 && lyricsHeight.isFinite
+                preferred = hasTools && w >= 176 && lyricsHeight.isFinite
                     ? max(0, min(192, lyricsHeight)) : 0
+                minimum = preferred
             case BuiltinCatalog.memo, BuiltinCatalog.tasks:
-                preferred = content == .full || content == .toolsOnly ? 128 : 0
+                preferred = hasTools ? 128 : 0
+                minimum = min(preferred, 72)
+            case BuiltinCatalog.clock:
+                preferred = hasTools ? 40 : 0
+                minimum = preferred
             default: continue
             }
             guard preferred > 0 else { continue }
-            let minimum = minimumToolHeight(id, preferred: preferred, width: max(0, w - 2 * inset),
-                                            settings: settings, voiceCompact: voiceCompact)
             requested.append((id, preferred, minimum))
         }
-        let rail = pinnedCount > 0 ? settings.points(.railHeight, in: reference) : 0
-        let hasWindows = content == .full || content == .spacesOnly
-        let gapCount = max(0, requested.count - 1) + (!requested.isEmpty && (hasWindows || rail > 0) ? 1 : 0)
-        let gaps = Double(gapCount) * sizes.gap
-        let usable = max(0, bottom - inset)
-        let minimumTools = requested.reduce(0) { $0 + $1.minimum }
-        // Preserve normal geometry. Only crowded combinations borrow vertical room
-        // from text viewports and thumbnail padding. Lyrics keep their full reading
-        // height, and Spaces retains a useful window area whenever it physically fits.
-        let desiredResident = hasWindows ? min(settings.points(.spacesHeight, in: reference), 96 + rail) : rail
-        let residentReserve = min(desiredResident, max(0, usable - minimumTools - gaps))
-        let preferredTools = requested.reduce(0) { $0 + $1.preferred }
-        let flexibility = max(0, preferredTools - minimumTools)
-        let shortage = min(flexibility, max(0, preferredTools + gaps + residentReserve - usable))
+        let gaps = Double(max(0, requested.count - 1)) * sizes.gap
+        let usable = max(0, h - 2 * inset)
+        let minimumTotal = requested.reduce(0) { $0 + $1.minimum }
+        let preferredTotal = requested.reduce(0) { $0 + $1.preferred }
+        let flexibility = max(0, preferredTotal - minimumTotal)
+        let shortage = min(flexibility, max(0, preferredTotal + gaps - usable))
         let pressure = flexibility > 0 ? shortage / flexibility : 0
+        let remaining = max(0, usable - gaps - (preferredTotal - shortage))
+        var y = inset
+        var frames: [String: SurfaceRect] = [:]
         for request in requested {
-            let allocated = request.preferred - pressure * (request.preferred - request.minimum)
-            // In physically undersized panels, sizeForm presents the existing
-            // expansion button instead of exposing a cut-off lyric control surface.
-            if request.id == BuiltinCatalog.lyrics && allocated > bottom - y + 0.001 { continue }
-            let section = SurfaceRect(y: y, width: w, height: min(allocated, max(0, bottom - y)))
+            var allocated = request.preferred - pressure * (request.preferred - request.minimum)
+            if request.id == BuiltinCatalog.desktop { allocated += remaining }
+            let section = SurfaceRect(y: y, width: w, height: allocated)
             frames[request.id] = section
-            y = min(bottom, y + section.height + sizes.gap)
+            y += section.height + sizes.gap
         }
-        let available = content == .full || content == .spacesOnly ? max(0, bottom - y) : 0
-        let toolExpansion = expanded && rail > 0 ? settings.points(.moduleHeight, in: reference) : 0
-        let sectionHeight = content == .toolsOnly
-            ? min(max(0, bottom - y), rail + toolExpansion)
-            : min(available, settings.points(.spacesHeight, in: reference))
-        let desktop = SurfaceRect(y: y, width: w, height: sectionHeight)
+        let empty = SurfaceRect(width: w, height: 0)
+        let desktop = frames.removeValue(forKey: BuiltinCatalog.desktop) ?? frames.removeValue(forKey: sampleOnlyID) ?? empty
         let railHeight = min(rail, desktop.height)
         let windowHeight = desktop.height - railHeight
         let unit = max(1, settings.points(.railButtonWidth, in: w) + 4)
         let capacity = max(1, Int(max(0, w - 16) / unit))
-        let empty = SurfaceRect(width: w, height: 0)
+        let contentHeight = requested.isEmpty ? 2 * inset : y - sizes.gap + inset
         return SurfaceLayout(voice: frames.removeValue(forKey: BuiltinCatalog.voice) ?? empty,
             screenshots: frames.removeValue(forKey: BuiltinCatalog.screenshots) ?? empty, additionalTools: frames,
-            desktop: desktop, moduleRail: railHeight > 0 ? SurfaceRect(y: y, width: w, height: railHeight) : nil,
-            expanded: expanded ? SurfaceRect(x: min(6, w / 2), y: y + railHeight + min(6, windowHeight / 2),
+            desktop: desktop, moduleRail: railHeight > 0 ? SurfaceRect(y: desktop.y, width: w, height: railHeight) : nil,
+            expanded: expanded ? SurfaceRect(x: min(6, w / 2), y: desktop.y + railHeight + min(6, windowHeight / 2),
                 width: max(0, w - 12), height: max(0, min(windowHeight, settings.points(.moduleHeight, in: windowHeight)) - 12)) : nil,
-            railCapacity: capacity, overflowCount: max(0, pinnedCount - capacity))
+            railCapacity: capacity, overflowCount: max(0, pinnedCount - capacity), contentHeight: contentHeight)
     }
 
     /// Minimum usable existing controls; this does not resize fonts or change saved

@@ -3,23 +3,25 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor @Suite struct ModuleWorkbenchTests {
-    @Test func dragOrderPersistsWithoutChangingEnablementOrDesktopSlots() throws {
+    @Test func everyShippedModuleCanMoveAcrossTheWholePersistedOrder() throws {
         let harness = RegistryHarness()
         for manifest in BuiltinCatalog.productManifests {
             try harness.registry.register(manifest) { TrackingModule() }
         }
-        let before = harness.registry.preferences
+        let enabledBefore = Dictionary(uniqueKeysWithValues: harness.registry.preferences.map { ($0.id, $0.enabled) })
         try harness.registry.move(BuiltinCatalog.lyrics, before: BuiltinCatalog.voice)
-        let tools = harness.registry.preferences.filter { BuiltinCatalog.sidebarTools.contains($0.id) }
-        #expect(tools.map(\.id).prefix(3) == [BuiltinCatalog.lyrics, BuiltinCatalog.voice, BuiltinCatalog.screenshots])
-        #expect(harness.registry.preferences.first { $0.id == BuiltinCatalog.lyrics }?.enabled == false)
-        #expect(harness.registry.preferences.firstIndex { $0.id == BuiltinCatalog.desktop } == before.firstIndex { $0.id == BuiltinCatalog.desktop })
+        #expect(harness.registry.preferences.map(\.id).prefix(3) == [BuiltinCatalog.lyrics, BuiltinCatalog.voice, BuiltinCatalog.screenshots])
+        try harness.registry.move(BuiltinCatalog.desktop, before: BuiltinCatalog.lyrics)
+        try harness.registry.move(BuiltinCatalog.clock, before: BuiltinCatalog.desktop)
+        #expect(harness.registry.preferences.map(\.id).prefix(3) == [BuiltinCatalog.clock, BuiltinCatalog.desktop, BuiltinCatalog.lyrics])
         let saved = harness.registry.preferences
         harness.registry.restore(saved)
         #expect(harness.registry.preferences == saved)
         try harness.registry.move(BuiltinCatalog.voice, before: nil)
-        #expect(harness.registry.preferences.filter { BuiltinCatalog.sidebarTools.contains($0.id) }.last?.id == BuiltinCatalog.voice)
-        #expect(throws: RegistryError.coreOrderLocked) { try harness.registry.move(BuiltinCatalog.voice, before: BuiltinCatalog.desktop) }
+        #expect(harness.registry.preferences.last?.id == BuiltinCatalog.voice)
+        try harness.registry.move(BuiltinCatalog.voice, before: BuiltinCatalog.desktop)
+        #expect(harness.registry.preferences.map(\.id).prefix(3) == [BuiltinCatalog.clock, BuiltinCatalog.voice, BuiltinCatalog.desktop])
+        #expect(Dictionary(uniqueKeysWithValues: harness.registry.preferences.map { ($0.id, $0.enabled) }) == enabledBefore)
         #expect(throws: RegistryError.unknownModule) { try harness.registry.move("missing", before: nil) }
     }
 

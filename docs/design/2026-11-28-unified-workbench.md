@@ -1,6 +1,6 @@
 # Nearpane unified workbench — 2026-11-28
 
-> Implementation checkpoint: the owner-approved [product constitution](../../PRODUCT_CONSTITUTION.md), added concurrently in `d73d1549`, is now authoritative and matches `main`. The resident-area order and advanced visual controls described below reflect the intermediate candidate; the next UI revision removes those restrictions and retired controls. Native downloadable module packages are not implemented by the current statically linked integration and must never be presented as if they were.
+> Implementation checkpoint: the owner-approved [product constitution](../../PRODUCT_CONSTITUTION.md), introduced in `d73d1549` and extended with four-edge requirements in `b2112280`, is authoritative. This revision replaces the intermediate candidate's protected resident order with one freely ordered stack and retires its detailed visual controls. The current implementation still has left/right desktop edges; it does not claim the new top/bottom or horizontal-layout qualification. Native downloadable module packages are not implemented by the current statically linked integration and must never be presented as if they were. Implementation remains distinct from native acceptance.
 
 ## Product decision
 
@@ -29,13 +29,13 @@ The design follows macOS conventions for stable sidebar navigation and resizable
 
 ## Module composition and order
 
-Enabled tools are listed in the same sequence as `LayoutComposer.toolOrder`. Drag a tool row onto another to move it before that tool, or drop at the end of the tool area. Each row remains directly clickable to open its detail. Ordinary module switches change enablement immediately. Disabled modules appear in a separate section and preserve their settings and data.
+Enabled modules are listed in the same sequence as `LayoutComposer.toolOrder`. Every shipped module, including the clock and Spaces, can be dragged before another module or to the end. The registry retains the complete saved order across relaunch and appends newly available modules without changing existing preferences. Each row remains directly clickable to open its detail. Ordinary module switches change enablement immediately. Disabled modules appear in a separate section and preserve their settings and data.
 
 Spaces uses the same switch with one necessary lifecycle difference: its existing reversible window-return barrier must complete before the off state is committed. The module list and detail share one coordinator, so pending state and retry feedback stay consistent while navigating. A failed or superseded return keeps Spaces enabled and explains how to retry. The app's terminal shutdown latch is not used for a reversible module toggle; re-enabling Spaces remains possible.
 
-Existing sidebar layout distinguishes content tools from the resident clock/Spaces area. This distinction is now explicit rather than implying that arbitrary drag positions will work. The clock sits beneath content tools; Spaces uses its existing elastic area. This change does not redesign Spaces scheduling or physical window behavior.
+The implemented vertical composition has no protected resident area. The clock is a compact content row in its own ordered position, and Spaces occupies its user-selected position with the remaining useful height. Spaces retains its existing internal scrolling and window behavior; the placement change does not redesign its scheduler or dispatch admission.
 
-When all content modules are enabled, the layout first keeps the full lyric reading height and a useful Spaces area. Only crowded combinations borrow height from the voice viewport, screenshot cells, note and task list, never from their required controls. At a common 832-point available height, the five content tools plus clock retain a 96-point Spaces window area. Ordinary roomy combinations keep their previous exact geometry. Physically undersized panels expose the existing compact expansion control; a clipped note editor is no longer reported as a full layout. User-saved dimensions and typography remain unchanged.
+When content crowds the viewport, voice, screenshot, note and task sections shrink only to usable design minima. Lyrics keep their full reading or compact-player height; the clock remains 40 points. Spaces has a 96-point minimum card viewport rather than a reserved fraction, and grows with the remaining space at any position. If the sum of usable minima exceeds the available height, the entire ordered stack scrolls: no enabled, presentable module is dropped. The native glass mask follows the scroll offset. Very narrow or icon-sized panels retain the existing expansion entry. Fullscreen tool content uses the same order while excluding Spaces; idle lyrics contribute no slot.
 
 Module capabilities describe sidebar presence, settings and optional user-content library. Lyric caches are not a Library destination. The built-in module catalog supplies user-facing descriptions and routes while keeping existing IDs and serialized preferences.
 
@@ -48,11 +48,11 @@ Module capabilities describe sidebar presence, settings and optional user-conten
 | Lyrics / LyricTile | Preferred player, lyric lookup, text size, translation, cache; full lyrics, source, timing and matches | App lifecycle, main-window navigation, panel placement, updates |
 | Spaces | Dispatch, window display and rules | Display selection, sidebar size/material |
 | Note and tasks | Same content stored by sidebar; open Library | Shared appearance/placement |
-| Clock | Extra time zone, existing pinned state | Shared appearance/placement |
+| Clock | Extra time zone | Shared appearance/placement; direct ordered presence while enabled |
 
 The previous duplicate Spaces enable switch inside window presentation is removed; the module header is the common enable control. Theme color belongs to Appearance, and profile import/restore belongs to Data management. App update and feedback remain under About & Updates.
 
-Advanced dimension controls also follow this ownership. `DisplaySettingsScope` filters the existing `DisplayMetricGroup` values: global exposes the shared panel and common resident-area metrics; voice, screenshot and Spaces details each expose only their own group in a collapsed Display style section. The editor writes the same existing per-display keys, so no preference is copied or migrated. A module scope can restore only its own group. The previously inactive scroll-height key is retained on disk but not offered as a working control. Spaces thumbnail height uses the actual content width as its percentage basis and defaults to a 50% width limit, matching the rendered card.
+The product exposes one bounded sidebar-width control, the shared accent and one transparency adjustment. Voice text and window labels each offer small, standard and large typography choices in their module. Arbitrary per-element geometry, pt/% fields, separate module heights, corner radii, padding, icon/button sizes and per-field reset actions no longer appear, including in advanced sections. Their internal tokens remain available to layout code. The visual-policy migration retains retired values in `retiredVisualOverrides` and `retiredGlassOverrides`, while current rendering uses the designed defaults. Startup resolves this policy in memory; the original file is not rewritten merely by opening the app. Later normal preference saves preserve both the current values and the retired record. See [the settings migration record](2026-11-28-settings-convergence.md).
 
 ## Library behavior
 
@@ -69,6 +69,16 @@ The host lyric module delegates auxiliary page requests to the main window. Full
 ## Updates in the same window
 
 Sparkle remains responsible for update discovery, download, verification and installation. Nearpane supplies an embedded `SPUUserDriver`: check progress, release notes, download progress, errors, automatic-check permission and the final installation choice appear in About & Updates. Menu-initiated checks first focus that destination. The driver does not create a separate updater window, alert or sheet. Installation still passes through the existing activity and window-restoration admission checks.
+
+## Fullscreen tool composition
+
+The existing fullscreen status strip opens one temporary tool workspace. Its content reuses `EdgeSurfaceView`, the saved module order, the same module objects and the same layout calculation, excluding Spaces and currently empty lyrics. A bounded viewport scrolls when needed. The strip never expands automatically. Dragging and closing remain local presentation actions; only a deliberate click into an editable text field makes the panel key. Every input still passes the existing fullscreen-session admission check. Ordinary and fullscreen presentation exposure are combined, so one surface disappearing cannot incorrectly hide the active other surface or start another domain service.
+
+This is a presentation change. It does not qualify real fullscreen entry/exit, screen-sharing compatibility or the underlying window manager; those require separate native observations.
+
+## Four-edge follow-up boundary
+
+The `b2112280` owner decision requires top/bottom edges, horizontal content, per-screen thickness and matching real window reservations. This candidate does not expose an inert top/bottom picker. A correct implementation needs axis-aware panel and work-area geometry, horizontal Spaces browsing, screenshot-arrival motion and compact lyric presentation without rotating text or distorting images. The existing R4 interface accepts general rectangles, so this does not require replacing its hidden-Space engine. Native four-edge avoidance, rotation, mixed-orientation displays and fullscreen return remain explicit open qualification items.
 
 ## Implementation map
 

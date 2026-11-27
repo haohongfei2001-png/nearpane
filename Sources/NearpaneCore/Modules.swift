@@ -34,7 +34,8 @@ public enum BuiltinCatalog {
     public static let memo = "com.holdsnow.nearpane.memo"
     public static let tasks = "com.holdsnow.nearpane.tasks"
     public static let lyrics = "com.holdsnow.nearpane.lyrictile"
-    public static let sidebarTools = [voice, screenshots, lyrics, memo, tasks]
+    /// Non-Spaces content that can also participate in the primary tool surface.
+    public static let sidebarTools = [voice, screenshots, lyrics, memo, tasks, clock]
     public static let notes = "com.holdsnow.nearpane.notes-sample"
     public static let clock = "com.holdsnow.nearpane.clock-sample"
     public static let calendar = "com.holdsnow.nearpane.calendar-sample"
@@ -116,10 +117,9 @@ public final class ModuleRegistry {
         var seen: Set<String> = []
         let restored = saved.filter { known.contains($0.id) && seen.insert($0.id).inserted }
         let merged = restored + catalog.filter { !seen.contains($0.id) }
-        let coreIDs = manifests.filter { $0.kind == .core }.map(\.id)
-        let base = coreIDs.compactMap { id in merged.first { $0.id == id } } + merged.filter { !coreIDs.contains($0.id) }
-        var tools = merged.filter { BuiltinCatalog.sidebarTools.contains($0.id) }.makeIterator()
-        preferences = base.map { BuiltinCatalog.sidebarTools.contains($0.id) ? (tools.next() ?? $0) : $0 }
+        // Registration kind is an adapter detail, never a product ordering boundary.
+        // Upgrades retain the user's entire saved order and append only new modules.
+        preferences = merged
         for pref in preferences { states[pref.id] = pref.enabled ? .available : .disabled }
     }
 
@@ -150,36 +150,22 @@ public final class ModuleRegistry {
     }
 
     public func move(_ id: String, by offset: Int) throws {
-        guard let manifest = manifests.first(where: { $0.id == id }) else { throw RegistryError.unknownModule }
-        let tool = BuiltinCatalog.sidebarTools.contains(id)
-        guard tool || manifest.kind == .builtin else { throw RegistryError.coreOrderLocked }
-        let slots = preferences.indices.filter { index in
-            let sibling = preferences[index].id
-            if tool { return BuiltinCatalog.sidebarTools.contains(sibling) }
-            return !BuiltinCatalog.sidebarTools.contains(sibling) && manifests.contains { $0.id == sibling && $0.kind == .builtin }
-        }
-        guard let index = slots.firstIndex(where: { preferences[$0].id == id }) else { return }
-        let next = min(slots.count - 1, max(0, index + max(-1, min(1, offset))))
-        preferences.swapAt(slots[index], slots[next])
+        guard let index = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        let next = min(preferences.count - 1, max(0, index + max(-1, min(1, offset))))
+        preferences.swapAt(index, next)
     }
 
-    /// Reorder the actual tool slots without disturbing the elastic desktop or
-    /// retired preferences. Disabled tools keep their relative position as well.
+    /// One persisted order for every module, including Spaces and the clock.
+    /// Moving an item never changes its enabled state, settings, or saved content.
     public func move(_ id: String, before target: String?) throws {
-        guard preferences.contains(where: { $0.id == id }) else { throw RegistryError.unknownModule }
-        guard BuiltinCatalog.sidebarTools.contains(id) else { throw RegistryError.coreOrderLocked }
+        guard let source = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
         if let target {
             guard preferences.contains(where: { $0.id == target }) else { throw RegistryError.unknownModule }
-            guard BuiltinCatalog.sidebarTools.contains(target) else { throw RegistryError.coreOrderLocked }
             if target == id { return }
         }
-        let slots = preferences.indices.filter { BuiltinCatalog.sidebarTools.contains(preferences[$0].id) }
-        var tools = slots.map { preferences[$0] }
-        guard let source = tools.firstIndex(where: { $0.id == id }) else { return }
-        let moving = tools.remove(at: source)
-        let destination = target.flatMap { target in tools.firstIndex { $0.id == target } } ?? tools.endIndex
-        tools.insert(moving, at: destination)
-        for (slot, preference) in zip(slots, tools) { preferences[slot] = preference }
+        let moving = preferences.remove(at: source)
+        let destination = target.flatMap { target in preferences.firstIndex { $0.id == target } } ?? preferences.endIndex
+        preferences.insert(moving, at: destination)
     }
 
     public func expand(_ id: String) throws {

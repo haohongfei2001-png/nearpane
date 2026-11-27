@@ -51,13 +51,13 @@ public struct AccentSettings: View {
 
     public var body: some View {
         HStack {
-            Picker("主题色", selection: Binding(get: { host.configuration.accent }, set: { host.setAccent($0) })) {
+            Picker("强调色", selection: Binding(get: { host.configuration.accent }, set: { host.setAccent($0) })) {
                 ForEach(ProductAccent.allCases, id: \.self) { accent in Text(accent.label).tag(accent) }
             }
             .pickerStyle(.menu).fixedSize().accessibilityIdentifier("nearpane-accent")
             Circle().fill(host.configuration.accent.color).frame(width: 12, height: 12)
                 .accessibilityHidden(true)
         }
-        .help("同时用于 Nearpane、Saytile 和 Riftlet 的有色控件")
+        .help("用于 Nearpane 各模块的重点内容和控件")
     }
 }

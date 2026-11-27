@@ -70,6 +70,7 @@ public final class EdgeWindowController: NSWindowController {
     private var closeExpansion: NSButton?
     private var placement: (screen: ScreenGeometry, primary: String, content: PanelContent)?
     private var placementGeneration: UInt64 = 0
+    private var presentedContentHeight: Double?
     private var savedPanelWidth: Measure?, savedPanelHeight: Measure?
     private var folded = false
     private var interactionHidden: Bool?
@@ -122,15 +123,15 @@ public final class EdgeWindowController: NSWindowController {
         super.init(window: panel)
         display.updateMaterial = { [weak self] layout in
             guard let self, !folded, let placement, let size = window?.frame.size else { return }
-            if placement.content == .toolsOnly {
+            if placement.content == .toolsOnly, presentedContentHeight != layout.contentHeight {
+                presentedContentHeight = layout.contentHeight
                 // The live voice session and a second tray row can change height without
                 // touching the stored display settings. Refit the same physical panel.
                 place(on: placement.screen, primary: placement.primary, content: placement.content)
-                return
             }
             var settings = host.panelPresentationSettings(on: placement.screen.id)
             if display.usesDefaultExpandedRim { settings.glass.rimWidth = nil }
-            material.configure(size: size, layout: layout, settings: settings)
+            material.configure(size: window?.frame.size ?? size, layout: layout, settings: settings)
         }
         #if canImport(NearpaneTray)
         modules?.tray.exposureChanged = { [weak self] hidden in

@@ -215,11 +215,15 @@ struct NearpaneApp {
                     #endif
                     if CandidateProfile.selected, args[1] == "--native-settings-readback" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        let application = NSApplication.shared
+                        application.setActivationPolicy(.regular)
                         Task { @MainActor in
                             do { try await HostAppDelegate().renderSettingsReadback(session); exit(0) }
                             catch { FileHandle.standardError.write(Data("Native product window readback failed: \(error)\n".utf8)); exit(3) }
                         }
-                        RunLoop.main.run()
+                        // Real window input needs AppKit's event dispatch, not
+                        // only a run loop that services async polling tasks.
+                        application.run()
                         return
                     }
                     if CandidateProfile.selected, args[1] == "--profile-acceptance-open" {
@@ -1288,7 +1292,6 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #if DEBUG
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
-        app.finishLaunching()
         let embedded = EmbeddedModules(support: session.support.appendingPathComponent("Nearpane"),
                                        testSession: session.directory, candidate: true)
         modules = embedded
@@ -1360,7 +1363,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     ProductFeedbackSettings(controller: feedback)
                 }
                 #endif
-            }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 28).padding(.bottom, 28)
         }
     }
 

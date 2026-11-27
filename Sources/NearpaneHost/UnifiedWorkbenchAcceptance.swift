@@ -36,6 +36,11 @@ enum UnifiedWorkbenchAcceptance {
                 "schema": 2, "status": status,
                 "sourceCommit": Bundle.main.object(forInfoDictionaryKey: "NearpaneUnifiedWorkbenchCommit") as? String ?? "unknown",
                 "platform": ProcessInfo.processInfo.operatingSystemVersionString,
+                "applicationEventLoopRunning": NSApp.isRunning,
+                "applicationActive": NSApp.isActive,
+                "activationPolicy": NSApp.activationPolicy().rawValue,
+                "assistiveAccessibilityEnvironmentEnabled": NativeVerificationAccessibility.isEnabled,
+                "accessibilityScope": "Public SwiftUI accessibilityEnabled environment on DEBUG CI alpha fixture views; normal product defaults, system permissions and player lease unchanged",
                 "evidenceScope": "Packaged Nearpane native UI; isolated generated content; in-process accessibility actions",
                 "playbackScope": "Synthetic snapshots only; does not certify a real music player's controls or metadata",
                 "spacesScope": "No real window dispatch was performed; PR 16 remains separately qualified",
@@ -120,6 +125,14 @@ enum UnifiedWorkbenchAcceptance {
             navigation.showAppearance()
             try await picture("09-settings-appearance")
             try await picture("10-settings-compact-dark", appearance: .darkAqua, size: NSSize(width: 740, height: 520))
+            navigation.showModule(BuiltinCatalog.voice)
+            try await picture("10-voice-module-settings")
+            navigation.showModule(BuiltinCatalog.desktop)
+            try await picture("10-spaces-module-settings")
+            navigation.showApplicationServices()
+            try await picture("10-about-and-updates")
+            try check("about-update-single-window", singleMainWindow(),
+                      detail: "About and the embedded updater share the retained Nearpane management window; no network update was requested.")
 
             for route in [navigation.showModules, navigation.showVoiceArchive,
                           navigation.showScreenshotArchive, navigation.showAppearance,
@@ -132,7 +145,8 @@ enum UnifiedWorkbenchAcceptance {
             }
             if let menu {
                 for (selector, expected) in [("showModules", "modules"), ("showLibrary", "screenshotArchive"),
-                                             ("showGeneralSettings", "general"), ("showWindowManagement", "windowManagement")] {
+                                             ("showGeneralSettings", "general"), ("showWindowManagement", "windowManagement"),
+                                             ("checkForUpdates", "app")] {
                     guard let item = menu.items.first(where: { $0.action.map(NSStringFromSelector) == selector }),
                           let action = item.action else { throw Failure("Native menu route missing: " + selector) }
                     let sent = NSApp.sendAction(action, to: item.target, from: item)
@@ -194,6 +208,13 @@ enum UnifiedWorkbenchAcceptance {
                 }
                 await enableOnly(Set(host.registry.manifests.map(\.id)))
                 _ = modules.installLyricsVerificationState("playing")
+                let spacesMoved = host.moveModule(BuiltinCatalog.desktop, before: BuiltinCatalog.screenshots)
+                let clockMoved = host.moveModule(BuiltinCatalog.clock, before: BuiltinCatalog.voice)
+                let allModuleOrder = host.registry.preferences.map(\.id)
+                try check("spaces-clock-reorder-command", spacesMoved && clockMoved &&
+                          allModuleOrder.firstIndex(of: BuiltinCatalog.desktop)! < allModuleOrder.firstIndex(of: BuiltinCatalog.screenshots)! &&
+                          allModuleOrder.firstIndex(of: BuiltinCatalog.clock)! < allModuleOrder.firstIndex(of: BuiltinCatalog.voice)!,
+                          detail: "The same production move command places Spaces and clock at user-selected positions; the following native image records the result. Not a physical drag test.")
                 edge.place(on: screen, primary: screen.id, content: .full)
                 edge.presentIfNeeded()
                 if let panel = edge.window {
@@ -266,7 +287,7 @@ enum UnifiedWorkbenchAcceptance {
 
             for preference in originalPreferences { host.handle(.setEnabled(preference.id, preference.enabled)) }
             var next: String?
-            for preference in originalPreferences.filter({ BuiltinCatalog.sidebarTools.contains($0.id) }).reversed() {
+            for preference in originalPreferences.reversed() {
                 _ = host.moveModule(preference.id, before: next)
                 next = preference.id
             }

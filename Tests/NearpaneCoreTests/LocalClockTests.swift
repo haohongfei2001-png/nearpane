@@ -33,7 +33,7 @@ import Testing
         try store.save(config)
         let host = HostSession(store: store, includeSampleModules: false)
         await host.start()
-        #expect(host.registry.pinnedModules.map(\.id) == [BuiltinCatalog.clock])
+        #expect(host.registry.pinnedModules.isEmpty)
         var presentations = 0
         host.presentationChanged = { presentations += 1 }
         host.setClockTimeZone("Asia/Shanghai")
@@ -46,6 +46,10 @@ import Testing
         await host.start()
         #expect(host.configuration.clockTimeZoneID == "Asia/Shanghai")
         #expect(host.registry.pinnedModules.isEmpty && host.registry.states[BuiltinCatalog.clock] == .resident)
+        // A retired pin preference cannot hide an enabled clock from the ordered stack.
+        let layout = LayoutComposer.compose(width: 240, height: 832, pinnedCount: 0, expanded: false,
+            content: .toolsOnly, voiceEnabled: false, trayEnabled: false, toolOrder: [BuiltinCatalog.clock])
+        #expect(layout.additionalTools[BuiltinCatalog.clock]?.height == 40)
         #expect(host.registry.states[BuiltinCatalog.notes] == nil)
         host.setClockTimeZone(nil)
         #expect(store.value.clockTimeZoneID == nil)

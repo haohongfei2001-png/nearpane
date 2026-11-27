@@ -232,6 +232,14 @@ struct NotebookCard: View {
                     notebook.edit { if inDraft { $0.calculation = value } else { $0.memo = value } }
                 })).font(.system(size: 14)).scrollContentBackground(.hidden)
                     .accessibilityLabel(inDraft ? "计算草稿" : "备忘录")
+                    .overlay(alignment: .topLeading) {
+                        if text.isEmpty {
+                            Text(inDraft ? "输入算式，点等号计算" : "随手记下一句话")
+                                .font(.system(size: 14)).foregroundStyle(.tertiary)
+                                .padding(.horizontal, 5).padding(.top, 3)
+                                .allowsHitTesting(false).accessibilityHidden(true)
+                        }
+                    }
                 HStack {
                     if let result {
                         Text(result).lineLimit(1).textSelection(.enabled)

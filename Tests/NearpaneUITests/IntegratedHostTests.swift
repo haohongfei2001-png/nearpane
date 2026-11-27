@@ -488,15 +488,22 @@ struct IntegratedHostTests {
         let screen = ScreenGeometry(id: "portrait", frame: bounds, visibleFrame: bounds)
         panel.place(on: screen, primary: screen.id, content: .full)
         let initial = panel.requestedFrame
-        var settings = DisplaySettings()
-        settings.measures = [.panelWidth: .init(20), .panelHeight: .init(20)]
-        host.setDisplaySettings(settings, id: screen.id)
-        panel.place(on: screen, primary: screen.id, content: .full)
+        let saved = host.configuration
+        let window = try #require(panel.window)
+        let hostView = try #require(window.contentView?.subviews.first { $0 is NSHostingView<EdgeSurfaceView> })
+        // Constrain actual available space; unsupported 20 × 20 saved settings are
+        // now migrated and must not be used to pretend the live panel is folded.
+        let restricted = ScreenGeometry(id: screen.id, frame: bounds,
+            visibleFrame: .init(x: -168, y: 40, width: 168, height: 620))
+        panel.place(on: restricted, primary: screen.id, content: .full)
+        #expect(hostView.isHidden && !panel.temporarilyExpanded)
         panel.toggleTemporaryExpansion()
+        #expect(panel.temporarilyExpanded && !hostView.isHidden && panel.window === window)
         panel.toggleTemporaryExpansion()
-        host.setDisplaySettings(.init(), id: screen.id)
+        #expect(!panel.temporarilyExpanded && hostView.isHidden)
         panel.place(on: screen, primary: screen.id, content: .full)
         #expect(panel.requestedFrame == initial && !panel.temporarilyExpanded)
+        #expect(!hostView.isHidden && panel.window === window && host.configuration == saved)
         #expect(domains.voice.active && domains.voice.capture == capture && domains.voice.transcript == transcript)
         #expect(await domains.voice.editText(recording) == draft)
         #expect(domains.tray.connected && domains.tray.rows.map(\.id) == order)

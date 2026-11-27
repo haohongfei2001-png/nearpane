@@ -5,6 +5,22 @@ import NearpaneCore
 @testable import NearpaneUI
 
 @MainActor struct PanelGlassSettingsTests {
+    @Test func unifiedTransparencyNeverRevertsToTheLegacyLayerBalance() {
+        for dark in [false, true] {
+            let recommended = PanelGlassSettings().resolvedTransparency(dark: dark)
+            var custom = PanelGlassSettings()
+            custom.overallTransparency = recommended.overallTransparency
+            let before = SurfaceGlassLevels(.init(), dark: dark, reduceTransparency: false)
+            let after = SurfaceGlassLevels(custom, dark: dark, reduceTransparency: false)
+            #expect(after.innerTint == before.innerTint && after.outerTint == before.outerTint)
+            #expect(after.innerMaterial == before.innerMaterial && after.outerMaterial == before.outerMaterial)
+            custom.overallTransparency = 70
+            let lighter = SurfaceGlassLevels(custom, dark: dark, reduceTransparency: false)
+            #expect(lighter.innerTint < after.innerTint && lighter.outerTint < after.outerTint)
+            #expect(lighter.innerTint > lighter.outerTint)
+        }
+    }
+
     @Test func adaptiveFactorySeparatesBlurAndTintAndKeepsCustomizedRim() throws {
         var saved = try JSONDecoder().decode(PanelGlassSettings.self, from: Data(#"{"outerTransparency":70}"#.utf8))
         saved.rimWidth = Measure(4, .percent)
@@ -74,7 +90,7 @@ import NearpaneCore
         #expect(restored.outerMaterial < 1 && restored.innerMaterial < 1)
     }
 
-    @Test func foldedAndSpaceOnlyPanelsUseTheSameMaskWithoutMovingOrFadingTheWindow() async throws {
+    @Test func boundedSpaceOnlyPanelsUseTheSameMaskWithoutFadingTheWindow() async throws {
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()
@@ -96,7 +112,8 @@ import NearpaneCore
                 let image = NSBitmapImageRep(cgImage: try #require(mask.cgImage(forProposedRect: nil, context: nil, hints: nil)))
                 #expect(try #require(image.colorAt(x: 0, y: 0)).alphaComponent == 0)
             }
-            #expect(window.frame.width == width && window.alphaValue == 1 && material.alphaValue == 1)
+            let supportedWidth = WorkbenchVisualPolicy.width(in: screen.visibleFrame.width, settings: config)
+            #expect(window.frame.width == supportedWidth && window.alphaValue == 1 && material.alphaValue == 1)
             let foreground = surface.subviews.dropFirst().filter { !$0.isHidden }
             #expect(!foreground.isEmpty && foreground.allSatisfy { $0.alphaValue == 1 && !$0.isDescendant(of: material) })
             #expect(!window.isVisible)
@@ -155,7 +172,13 @@ import NearpaneCore
         host.setDisplaySettings(settings, id: "right")
         let saved = try JSONEncoder().encode(store.value)
         let restored = try JSONDecoder().decode(HostConfiguration.self, from: saved).validated()
-        #expect(restored.displays["right"]?.glass == glass)
+        let migrated = settings.applyingWorkbenchVisualPolicy()
+        #expect(restored.displays["right"]?.glass == migrated.glass)
+        #expect(restored.displays["right"]?.glass.overallTransparency == glass.overallTransparency)
+        #expect(restored.displays["right"]?.glass.outerTransparency == nil)
+        #expect(restored.displays["right"]?.glass.innerTransparency == nil)
+        #expect(restored.displays["right"]?.glass.rimWidth == nil)
+        #expect(restored.displays["right"]?.retiredGlassOverrides == glass)
         #expect(try JSONDecoder().decode(DisplaySettings.self, from: Data("{}".utf8)).glass == .init())
         var invalid = restored
         invalid.displays["right"]?.glass.overallTransparency = 101

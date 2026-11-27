@@ -18,6 +18,10 @@ against WindowServer independently of either capture method.
 ## Evidence boundaries
 
 - Navigation and toggle actions attempt the real views' accessibility actions.
+  DEBUG CI alpha-fixture views explicitly enable the public SwiftUI
+  `accessibilityEnabled` environment so the native logical accessibility tree is
+  available without running VoiceOver. The receipt records this environment;
+  normal app defaults, macOS permissions and playback ownership are unchanged.
   Every attempt saves a compact native accessibility tree and action result. A
   failed input remains FAIL even when explicitly labelled programmatic routing
   continues the independent screenshot inspection; the first native image is

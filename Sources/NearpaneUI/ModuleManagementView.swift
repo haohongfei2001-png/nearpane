@@ -10,11 +10,6 @@ struct ModuleManagementView: View {
 
     private var enabled: [ModuleManifest] { manifests(enabled: true) }
     private var disabled: [ModuleManifest] { manifests(enabled: false) }
-    private var tools: [ModuleManifest] { enabled.filter { BuiltinCatalog.sidebarTools.contains($0.id) } }
-    private var resident: [ModuleManifest] {
-        let rest = enabled.filter { !BuiltinCatalog.sidebarTools.contains($0.id) }
-        return rest.filter { $0.id != BuiltinCatalog.desktop } + rest.filter { $0.id == BuiltinCatalog.desktop }
-    }
     private func manifests(enabled: Bool) -> [ModuleManifest] {
         host.registry.preferences.filter { $0.enabled == enabled }.compactMap { preference in
             host.registry.manifests.first { $0.id == preference.id }
@@ -28,34 +23,24 @@ struct ModuleManagementView: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 7) {
-                    sectionHeader("侧栏中的工具", count: tools.count, detail: tools.count > 1 ? "拖动调整顺序" : nil)
-                    if tools.isEmpty {
+                    sectionHeader("已启用", count: enabled.count, detail: enabled.count > 1 ? "拖动调整侧栏顺序" : nil)
+                    if enabled.isEmpty {
                         MainWindowEmptyState(symbol: "rectangle.righthalf.inset.filled", title: "选择你的第一个工具",
                                              message: "从下方启用语音、截图或歌词，侧栏会随内容自然展开。")
                             .frame(height: 134)
                     } else {
                         VStack(spacing: 0) {
-                            ForEach(tools) { manifest in
+                            ForEach(enabled) { manifest in
                                 row(manifest, enabled: true, movable: true)
                             }
                             Color.clear.frame(height: 12)
                                 .contentShape(Rectangle())
                                 .dropDestination(for: String.self) { ids, _ in
-                                    guard let id = ids.first, tools.contains(where: { $0.id == id }) else { return false }
+                                    guard let id = ids.first, enabled.contains(where: { $0.id == id }) else { return false }
                                     return host.moveModule(id, before: nil)
                                 }
                                 .accessibilityIdentifier("module-order-end")
                         }
-                    }
-                }
-                if !resident.isEmpty {
-                    VStack(alignment: .leading, spacing: 7) {
-                        sectionHeader("常驻区域", count: resident.count, detail: nil)
-                        VStack(spacing: 0) {
-                            ForEach(resident) { manifest in row(manifest, enabled: true, movable: false) }
-                        }
-                        Text("时钟在工具下方；Spaces 按可用空间伸展。")
-                            .font(.caption).foregroundStyle(.secondary).padding(.top, 3)
                     }
                 }
                 if !disabled.isEmpty {
@@ -126,7 +111,6 @@ private struct ModuleManagementRow: View {
         .contentShape(Rectangle())
         .dropDestination(for: String.self) { ids, _ in
             guard movable, let id = ids.first, id != manifest.id,
-                  BuiltinCatalog.sidebarTools.contains(id),
                   host.registry.preferences.contains(where: { $0.id == id && $0.enabled }) else { return false }
             return host.moveModule(id, before: manifest.id)
         } isTargeted: { targeted = movable && $0 }

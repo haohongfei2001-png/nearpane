@@ -43,7 +43,7 @@ def main(sid, app, inspect=False, resume=False):
     session = repo / "build/native-acceptance" / sid
     app = app.resolve(strict=True)
     binary = app / "Contents/MacOS/NearpaneHost"
-    check(app.name == "Nearpane P5.1 Alpha.app", "P5.1 required")
+    check(app.name == "Nearpane P5.1 Alpha.app", "BLOCKED: this historical synthetic fixture supports P5.1 only; use verify-native-fullscreen-overlay.py with an enrolled real fullscreen witness for the unified workspace")
     offline = runpy.run_path(str(repo / "scripts/acceptance/verify-product-capture.py"))["offline_command"](repo)
 
     def offline_run(*args):
@@ -195,6 +195,13 @@ def main(sid, app, inspect=False, resume=False):
             voice = "np.fullscreen.open.voice"
             capture = "np.fullscreen.open.capture"
             close = "np.fullscreen.close"
+            observed = read(wid)
+            if "np.fullscreen.open.workspace" in observed["controls"]:
+                blocked = {"status": "BLOCKED", "reason": "The legacy synthetic backdrop is 300 by 100 points and cannot contain the unified workspace.",
+                           "binarySHA256": sha256(binary.read_bytes()).hexdigest(), "controls": observed["controls"],
+                           "next": "verify-native-fullscreen-overlay.py with the existing enrolled real-fullscreen protocol"}
+                (out / "workspace-blocked.json").write_text(json.dumps(blocked, indent=2))
+                raise ValueError("BLOCKED: unified workspace requires the enrolled native fullscreen verifier; the legacy backdrop cannot contain it")
             collapsed = state(wid,voice)
             check(capture in collapsed["controls"] and close not in collapsed["controls"], "expected only strip")
             until(lambda:ordinary_state().get("visible") is False)

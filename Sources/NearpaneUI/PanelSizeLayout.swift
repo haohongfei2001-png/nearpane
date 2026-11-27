@@ -21,8 +21,7 @@ struct PanelSizeLayout {
             let layout = LayoutComposer.compose(width: full.width, height: full.height, pinnedCount: pinnedCount,
                 expanded: expanded, settings: settings, content: content, voiceEnabled: voice, trayEnabled: tray,
                 referenceHeight: full.height, voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder)
-            let tools = [layout.voice, layout.screenshots, layout.desktop] + Array(layout.additionalTools.values)
-            fittedHeight = inset + (tools.filter { $0.height > 0 }.map { $0.y + $0.height }.max() ?? inset)
+            fittedHeight = min(full.height, layout.contentHeight)
         }
         let alwaysUseFullHeight = content != .toolsOnly &&
             (settings.measures[.panelHeight] != nil || content == .hidden || content == .full || content == .spacesOnly)

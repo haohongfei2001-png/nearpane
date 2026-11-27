@@ -26,7 +26,8 @@ struct LyricsLayoutTests {
         let narrow = LayoutComposer.compose(width: 100, height: 900, pinnedCount: 0, expanded: false, lyricsHeight: 192, toolOrder: order)
         #expect(narrow.additionalTools[BuiltinCatalog.lyrics] == nil)
         let short = LayoutComposer.compose(width: 240, height: 100, pinnedCount: 0, expanded: false, lyricsHeight: 192, toolOrder: order)
-        #expect(short.additionalTools[BuiltinCatalog.lyrics] == nil)
+        #expect(short.additionalTools[BuiltinCatalog.lyrics]?.height == 192)
+        #expect(short.contentHeight > 100)
     }
     @Test func lyricsCanAppearWithScreenshotOnlyOrAlone() {
         let screen = ScreenGeometry(id: "primary", frame: .init(width: 1440, height: 900), visibleFrame: .init(width: 1440, height: 876))

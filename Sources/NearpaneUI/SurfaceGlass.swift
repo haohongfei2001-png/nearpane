@@ -1,7 +1,8 @@
 import SwiftUI
 import NearpaneCore
 
-/// A saved partial customization keeps the optical baseline it was created with.
+/// The unified transparency control keeps one adaptive layer balance. Explicit
+/// historical layer tokens remain readable for archived rendering evidence.
 extension PanelGlassSettings {
     var usesRecommendedTransparency: Bool {
         overallTransparency == nil && outerTransparency == nil && innerTransparency == nil
@@ -15,8 +16,8 @@ extension PanelGlassSettings {
 
     func resolvedTransparency(dark: Bool) -> Self {
         var result = self
-        if usesRecommendedTransparency {
-            result.overallTransparency = dark ? 22 : 32
+        if outerTransparency == nil && innerTransparency == nil {
+            result.overallTransparency = overallTransparency ?? (dark ? 22 : 32)
             result.outerTransparency = dark ? 68 : 65
             result.innerTransparency = dark ? 7 : 8
         } else {

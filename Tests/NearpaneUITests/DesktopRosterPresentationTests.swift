@@ -4,6 +4,26 @@ import Testing
 import NearpaneCore
 @testable import NearpaneUI
 
+/// A plain result holder cannot invalidate the SwiftUI tree while it is being rendered.
+@MainActor private final class RendererAccessibilitySample {
+    var reducesTransparency: Bool?
+}
+
+@MainActor private struct RendererEnvironmentReadback<Content: View>: View {
+    @Environment(\.accessibilityReduceTransparency) private var reducesTransparency
+    let content: Content
+    let sample: RendererAccessibilitySample
+
+    init(content: Content, sample: RendererAccessibilitySample) {
+        self.content = content; self.sample = sample
+    }
+
+    var body: some View {
+        sample.reducesTransparency = reducesTransparency
+        return content
+    }
+}
+
 @MainActor struct DesktopRosterPresentationTests {
     @Test func glassChangesTheBackdropWhileWindowPixelsAndCaptionInkStayOpaque() throws {
         let source = try #require(CGContext(data: nil, width: 80, height: 40, bitsPerComponent: 8, bytesPerRow: 0,
@@ -12,11 +32,8 @@ import NearpaneCore
         source.setFillColor(red: 0.8, green: 0.18, blue: 0.35, alpha: 1)
         source.fill(CGRect(x: 0, y: 0, width: 40, height: 40))
         let image = try #require(source.makeImage())
-        // A standalone ImageRenderer has no NSWindow accessibility environment.
-        // Render and assert the same actual system setting, including reduced transparency.
-        let reduceTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
         for scheme in [ColorScheme.light, .dark] {
-            func render(_ transparency: Double?) throws -> NSBitmapImageRep {
+            func render(_ transparency: Double?) throws -> (NSBitmapImageRep, Bool) {
                 var glass = PanelGlassSettings()
                 glass.overallTransparency = transparency
                 glass.innerTransparency = 0
@@ -25,8 +42,11 @@ import NearpaneCore
                         if transparency != nil { SurfaceGlass(radius: 9, settings: glass) }
                     }
                     .environment(\.colorScheme, scheme)
-                    .environment(\.accessibilityReduceTransparency, reduceTransparency)
-                let renderer = ImageRenderer(content: view)
+                // ImageRenderer has its own accessibility environment. Observe it
+                // beside SurfaceGlass; the system preference is neither injected
+                // into the read-only key nor used as a proxy for this renderer.
+                let sample = RendererAccessibilitySample()
+                let renderer = ImageRenderer(content: RendererEnvironmentReadback(content: view, sample: sample))
                 renderer.scale = 2
                 let result = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
                 if let transparency, let dir = ProcessInfo.processInfo.environment["NEARPANE_ROSTER_SAMPLE_DIR"] {
@@ -34,9 +54,12 @@ import NearpaneCore
                     try #require(result.representation(using: .png, properties: [:]))
                         .write(to: URL(fileURLWithPath: dir).appendingPathComponent(name))
                 }
-                return result
+                return (result, try #require(sample.reducesTransparency))
             }
-            let solid = try render(0), clear = try render(100), foreground = try render(nil)
+            let (solid, reduceTransparency) = try render(0)
+            let (clear, clearReducesTransparency) = try render(100)
+            let (foreground, foregroundReducesTransparency) = try render(nil)
+            try #require(reduceTransparency == clearReducesTransparency && reduceTransparency == foregroundReducesTransparency)
             #expect(solid.pixelsWide == clear.pixelsWide && solid.pixelsHigh == clear.pixelsHigh)
             func color(_ bitmap: NSBitmapImageRep, _ x: Int, _ y: Int) throws -> NSColor {
                 try #require(bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB))
@@ -119,7 +142,7 @@ import NearpaneCore
                     accessibility: .denied, spaces: .unavailable, rows: [], windowLimitReached: false, beganUptime: up, endedUptime: up))
             host.bus.resetDesktopSession()
             try #require(host.bus.acceptDesktop(sample))
-            let content: PanelContent = voice || tray ? .full : .spacesOnly
+            let content: PanelContent = voice || tray || (pinClock && primary) ? .full : .spacesOnly
             controller.place(on: screen, primary: primary ? screen.id : "other-display", content: content)
             // The live roster intentionally renders only for a presented panel. Exercise
             // that existing lifecycle with synthetic observations and no domain services.
@@ -135,8 +158,9 @@ import NearpaneCore
                 try #require(pixels.representation(using: .png, properties: [:]))
                     .write(to: URL(fileURLWithPath:dir).appendingPathComponent("roster-\(voice)-\(tray)-\(pinClock)-\(primary)-\(count).png"))
             }
-            let layout = LayoutComposer.compose(width: 220, height: frame.height, pinnedCount: pinClock && primary ? 1 : 0,
-                expanded: false, settings: settings, content: content, voiceEnabled: voice, trayEnabled: tray)
+            let layout = LayoutComposer.compose(width: 220, height: frame.height, pinnedCount: 0,
+                expanded: false, settings: settings, content: content, voiceEnabled: voice, trayEnabled: tray,
+                toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             // The wide picture band and its caption repeat at the same x. A second column
             // or a centered list changes both the count and the first band's y coordinate.
             let scale = CGFloat(pixels.pixelsWide) / hosting.bounds.width

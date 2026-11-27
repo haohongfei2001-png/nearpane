@@ -31,7 +31,7 @@ import Testing
         let compact = try #require(PanelSizeLayout(settings: short, screen: screen, edge: .right,
             content: .toolsOnly, voice: false, tray: false, floating: false,
             toolOrder: [BuiltinCatalog.memo, BuiltinCatalog.tasks]))
-        #expect(compact.form == .compact)
+        #expect(compact.form == .full)
     }
 
     @Test func layoutRefreshAndAXLeaveMarkedTextWithTheInputMethodUntilCommit() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Observe the actual Alpha overlay during one explicitly enrolled native fullscreen trial."""
+"""Observe an integrated overlay during one explicitly enrolled native fullscreen trial."""
 import argparse
 import datetime as dt
 import hashlib
@@ -24,7 +24,9 @@ CONTROL_SOURCE = Path(__file__).with_name("fullscreen-controls.swift")
 CHECKPOINT = runpy.run_path(str(Path(__file__).with_name("space-checkpoint.py")))
 read = CHECKPOINT["load"]
 need = se.require
-OPEN = "np.fullscreen.open.voice"
+OPEN = "np.fullscreen.open.workspace"
+LEGACY_OPEN = "np.fullscreen.open.voice"
+LEGACY_CAPTURE = "np.fullscreen.open.capture"
 CLOSE = "np.fullscreen.close"
 
 
@@ -52,7 +54,7 @@ def offline():
 def signed_alpha(app):
     host = app/"Contents/MacOS/NearpaneHost"
     info = plistlib.loads((app/"Contents/Info.plist").read_bytes())
-    need(info.get("CFBundleIdentifier") == "com.holdsnow.nearpane.alpha" and
+    need(info.get("CFBundleIdentifier") in ("com.holdsnow.nearpane.alpha", "com.holdsnow.nearpane.host") and
          info.get("NearpaneNativeAcceptanceSchema") == 2 and
          info.get("CFBundleExecutable") == host.name, "expected the isolated-profile capable Alpha")
     sp.run(["codesign","--verify","--strict","--deep",app],check=True,timeout=8)
@@ -120,12 +122,33 @@ def same_domains(states):
             and s.get("recordings") == [] and s.get("trayCount") == 0 for s in states))
 
 
-def controls_match(details, *, expanded):
-    shown, hidden = (CLOSE, OPEN) if expanded else (OPEN, CLOSE)
+def controls_match(details, *, expanded, open_control=OPEN, required_shared=()):
+    if open_control not in (OPEN, LEGACY_OPEN):
+        return False
+    shown = CLOSE if expanded else open_control
+    hidden = (OPEN, LEGACY_OPEN, LEGACY_CAPTURE) if expanded else (CLOSE, LEGACY_OPEN, LEGACY_CAPTURE) if open_control == OPEN else (CLOSE, OPEN)
     ids = details["controls"]
     matches = [r for r in details["details"] if r["id"] == shown]
-    return (ids.count(shown) == 1 and hidden not in ids and len(matches) == 1 and matches[0]["role"] == "AXButton"
-            and matches[0]["enabled"] is True and "AXPress" in matches[0]["actions"])
+    if not (ids.count(shown) == 1 and all(value not in ids for value in hidden) and len(matches) == 1
+            and matches[0]["role"] == "AXButton" and matches[0]["enabled"] is True and "AXPress" in matches[0]["actions"]):
+        return False
+    # Only read these existing domain controls. This observation never starts
+    # recording, opens a capture picker, or changes the unchanged-domain gate.
+    for identifier in required_shared if expanded and open_control == OPEN else ():
+        controls = [r for r in details["details"] if r["id"] == identifier]
+        if ids.count(identifier) != 1 or len(controls) != 1:
+            return False
+        role = controls[0]["role"]
+        if identifier == "voice-capture-toggle" and role != "AXButton":
+            return False
+        if identifier == "tray-content" and role not in ("AXGroup", "AXScrollArea"):
+            return False
+    return True
+
+
+def entry_control(details):
+    return next((identifier for identifier in (OPEN, LEGACY_OPEN)
+                 if controls_match(details, expanded=False, open_control=identifier)), None)
 
 
 def checked_host_events(rows, host_pid, witness_pid):
@@ -200,6 +223,10 @@ def observe(args):
     need(cfg_path.resolve(strict=True) == cfg_path, "unexpected configuration path")
     cfg = read(cfg_path)
     need(cfg.get("preferredDisplayID") == c["display"] and not cfg.get("displays"), "unexpected initial display settings")
+    enabled = {value["id"] for value in cfg.get("modules", []) if value.get("enabled") is True}
+    required_shared = tuple(identifier for module, identifier in (
+        ("com.holdsnow.nearpane.saytile", "voice-capture-toggle"),
+        ("com.holdsnow.nearpane.riftlet", "tray-content")) if module in enabled)
     need(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1,"another Host is running")
     env = {k:v for k,v in os.environ.items() if not k.startswith("NEARPANE_")}
     env.update(NEARPANE_ACCEPTANCE_RUN=run_host, NEARPANE_SPACE_WITNESS_RUN=run,
@@ -226,7 +253,9 @@ def observe(args):
                 consent_for(folder,run,dt.datetime.now(dt.timezone.utc))
                 need(child.poll() is None and time.monotonic() < deadline and read(folder/"fullscreen-tools-challenge.json") == c,
                      "Host, time window or challenge changed")
+            selected_entry = None
             def inspect(expanded):
+                nonlocal selected_entry
                 active()
                 row = read(host_file)
                 if not row.get("token") or not surface(row, c, child.pid, run_host):
@@ -234,12 +263,19 @@ def observe(args):
                 cmd = [*offline_command, tool, child.pid, row["tool"], host, "read", *helper_target]
                 info = json.loads(sp.check_output(list(map(str,cmd)),cwd=ROOT,timeout=3))
                 need(info["frontPID"] == c["pid"], "foreground changed")
-                if not controls_match(info,expanded=expanded):
+                if not expanded:
+                    observed_entry = entry_control(info)
+                    if observed_entry is None or selected_entry not in (None, observed_entry):
+                        return None
+                    selected_entry = observed_entry
+                if not controls_match(info, expanded=expanded, open_control=selected_entry, required_shared=required_shared):
                     return None
-                return dict(host=row, controls=info["controls"], uptime=time.monotonic())
-            for phase, expanded, command in [("strip",False,OPEN),("voice",True,CLOSE),("closed",False,None)]:
+                return dict(host=row, controls=info["controls"], openControl=selected_entry,
+                            interface="workspace" if selected_entry == OPEN else "legacy-single-tool", uptime=time.monotonic())
+            for phase, expanded, action in [("strip",False,"open"),("tools",True,"close"),("closed",False,None)]:
                 state = wait(lambda: inspect(expanded), deadline)
                 receipt["states"].append(dict(phase=phase, **state))
+                command = selected_entry if action == "open" else CLOSE if action == "close" else None
                 if command:
                     active()
                     row = read(host_file)

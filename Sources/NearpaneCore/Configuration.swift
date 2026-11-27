@@ -31,7 +31,7 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
     public var displays: [String: DisplaySettings] = [:]
     public var modules: [ModulePreference] = []
     public var clockTimeZoneID: String?
-    public var accent: ProductAccent = .purple
+    public var accent: ProductAccent = .system
     public var fixture: DesktopFixture = .internalScopes3Plus1
 
     public init() {}
@@ -53,15 +53,22 @@ public struct HostConfiguration: Codable, Equatable, Sendable {
         let clockZone = try c.decodeIfPresent(String.self, forKey: .clockTimeZoneID)
         clockTimeZoneID = clockZone.flatMap { TimeZone.knownTimeZoneIdentifiers.contains($0) ? $0 : nil }
         fixture = try c.decode(DesktopFixture.self, forKey: .fixture)
-        accent = try c.decodeIfPresent(ProductAccent.self, forKey: .accent) ?? .purple
+        accent = try c.decodeIfPresent(ProductAccent.self, forKey: .accent) ?? .system
     }
 
     public func validated() throws -> Self {
         guard version == Self.schemaVersion else { throw ConfigurationError.unsupportedVersion }
-        guard workspaces.excludedApps.allSatisfy({ !$0.isEmpty && $0.count <= 255 }), displays.count <= 64, displays.allSatisfy({ key, value in
-            !key.isEmpty && key.count <= 120 && value.glass.valid && value.toolAnchor?.anchor.geometry.isValid != false && value.floatingPosition?.x.isFinite != false && value.floatingPosition?.y.isFinite != false && value.measures.allSatisfy { metric, measure in
+        func validMeasures(_ values: [DisplayMetric: Measure]) -> Bool {
+            values.allSatisfy { metric, measure in
                 metric == .panelWidth || metric == .panelHeight ? measure.validPanelExtent : measure.valid
             }
+        }
+        guard workspaces.excludedApps.allSatisfy({ !$0.isEmpty && $0.count <= 255 }), displays.count <= 64, displays.allSatisfy({ key, value in
+            !key.isEmpty && key.count <= 120 && (0...WorkbenchVisualPolicy.revision).contains(value.visualStyleRevision)
+                && value.glass.valid && value.retiredGlassOverrides?.valid != false
+                && value.toolAnchor?.anchor.geometry.isValid != false && value.floatingPosition?.x.isFinite != false
+                && value.floatingPosition?.y.isFinite != false && validMeasures(value.measures)
+                && validMeasures(value.retiredVisualOverrides)
         }), modules.count <= 100,
               Set(modules.map(\.id)).count == modules.count,
               modules.allSatisfy({ !$0.id.isEmpty && $0.id.count <= 120 }),

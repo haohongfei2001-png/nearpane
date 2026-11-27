@@ -33,7 +33,7 @@ if a == ["preflight"] || a == ["preflight-displays"] {
 guard [4, 10].contains(a.count), let pid=Int32(a[0]), let wid=UInt32(a[1]),AXIsProcessTrusted() else { stop("arguments or AX authority") }
 let exe=URL(fileURLWithPath:a[2]).resolvingSymlinksInPath()
 guard let app=NSRunningApplication(processIdentifier:pid),app.executableURL?.resolvingSymlinksInPath().path==exe.path,
-      let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52","com.holdsnow.nearpane.alpha"].contains(id),
+      let bundle=app.bundleURL, let id = Bundle(url:bundle)?.bundleIdentifier, ["com.holdsnow.nearpane.candidate.p51","com.holdsnow.nearpane.candidate.p52","com.holdsnow.nearpane.alpha","com.holdsnow.nearpane.host"].contains(id),
       Bundle(url:bundle)?.executableURL?.resolvingSymlinksInPath().path==exe.path else {stop("running bundle identity")}
 let sessions=CGSessionCopyCurrentDictionary() as? [String:Any]
 guard sessions?["kCGSSessionOnConsoleKey"] as? Bool==true,sessions?["CGSSessionScreenIsLocked"] as? Bool != true else {stop("console")}
@@ -55,7 +55,7 @@ func box(_ e:AXUIElement)->CGRect? {
 // foreground witness, its process generation, the secondary display and a deadline.
 func verifyLiveWitness() {
     guard a.count == 10 else { return }
-    guard ["read", "np.fullscreen.open.voice", "np.fullscreen.close"].contains(a[3]),
+    guard ["read", "np.fullscreen.open.workspace", "np.fullscreen.open.voice", "np.fullscreen.close"].contains(a[3]),
           let witness = Int32(a[4]), let launch = UInt64(a[5]), let number = UInt32(a[6]),
           let run = UUID(uuidString: a[7]), let display = UUID(uuidString: a[8]),
           let until = Double(a[9]), until.isFinite, until > ProcessInfo.processInfo.systemUptime,
@@ -219,14 +219,15 @@ if a[3] == "read-appearance" {
     exit(0)
 }
 
-let commands = ["np.fullscreen.open.voice": "AXPress", "np.fullscreen.open.capture": "AXPress",
+let commands = ["np.fullscreen.open.workspace": "AXPress", "np.fullscreen.open.voice": "AXPress", "np.fullscreen.open.capture": "AXPress",
                 "np.fullscreen.close": "AXPress", "np.fullscreen.move": "AXDecrement"]
 let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
 guard front != nil, front != pid else { stop("test panel stole foreground") }
 let command = a[3]
 let known = nodes.compactMap { node -> String? in
     let id = string(node, "AXIdentifier")
-    return id.hasPrefix("np.fullscreen.") ? id : nil
+    let shared = ["voice-capture-toggle", "tray-content", "tray-camera-entry", "lyric-panel", "lyric-playback-toggle", "sidebar-clock"]
+    return id.hasPrefix("np.fullscreen.") || shared.contains(id) ? id : nil
 }
 if command == "read" {
     let details: [[String:Any]] = nodes.map { node in

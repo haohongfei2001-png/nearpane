@@ -82,6 +82,22 @@ class NativeFullscreenController(unittest.TestCase):
             with self.assertRaises(FileExistsError): overlay["publish"](target,{"seen":2})
             self.assertEqual(json.loads(target.read_bytes()),{"seen":1})
 
+    def test_workspace_and_legacy_entries_are_observed_not_guessed_from_width(self):
+        def labels(*ids):
+            return {"controls":list(ids),"details":[dict(id=i,role="AXButton",enabled=True,actions=["AXPress"]) for i in ids]}
+        workspace = labels(overlay["OPEN"])
+        legacy = labels(overlay["LEGACY_OPEN"], overlay["LEGACY_CAPTURE"])
+        self.assertEqual(overlay["entry_control"](workspace), overlay["OPEN"])
+        self.assertEqual(overlay["entry_control"](legacy), overlay["LEGACY_OPEN"])
+        self.assertIsNone(overlay["entry_control"](labels(overlay["OPEN"], overlay["LEGACY_OPEN"])))
+        expanded = labels(overlay["CLOSE"], "voice-capture-toggle", "tray-content")
+        expanded["details"][-1]["role"] = "AXGroup"
+        required = ("voice-capture-toggle", "tray-content")
+        self.assertTrue(overlay["controls_match"](expanded, expanded=True, required_shared=required))
+        self.assertFalse(overlay["controls_match"](labels(overlay["CLOSE"]), expanded=True, required_shared=required))
+        expanded["details"][-1]["role"] = "AXButton"
+        self.assertFalse(overlay["controls_match"](expanded, expanded=True, required_shared=required))
+
     def test_overlay_result_alone_cannot_certify_panel_return_or_focus(self):
         result=dict(result="observed", ordinaryPanelReturn={"phase":"ordinaryReturned"},
                     normalHostDrain=True, postExitDomainUnchanged=True)

@@ -120,7 +120,7 @@ private struct VoiceArchiveBrowser: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("搜索文字、历史修订或草稿", text: $query).textFieldStyle(.plain)
-                    .accessibilityLabel("搜索语音档案").accessibilityIdentifier("voice-archive-search")
+                    .accessibilityLabel("搜索语音仓库").accessibilityIdentifier("voice-archive-search")
                 if !query.isEmpty {
                     Button { query = "" } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("清除搜索")
@@ -131,13 +131,13 @@ private struct VoiceArchiveBrowser: View {
             .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(.quaternary).allowsHitTesting(false) }
             if failed {
                 ContentUnavailableView {
-                    Label("无法读取语音档案", systemImage: "externaldrive.badge.exclamationmark")
+                    Label("无法读取语音仓库", systemImage: "externaldrive.badge.exclamationmark")
                 } actions: {
                     Button("语音设置", action: openSettings)
                 }
             } else if let page {
                 if page.rows.isEmpty {
-                    ContentUnavailableView(query.isEmpty ? "还没有语音档案" : "没有匹配的语音", systemImage: "waveform",
+                    ContentUnavailableView(query.isEmpty ? "还没有语音仓库" : "没有匹配的语音", systemImage: "waveform",
                         description: query.isEmpty ? Text("完成一次收音后，可以在这里查看文字和修订。") : nil)
                 } else {
                     ScrollView {
@@ -226,7 +226,7 @@ private struct VoiceArchiveDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button(action: leave) { Label("返回语音档案", systemImage: "chevron.left") }
+            Button(action: leave) { Label("返回语音仓库", systemImage: "chevron.left") }
                 .accessibilityIdentifier("voice-archive-back")
             HStack {
                 Text(row.paragraph.started, format: .dateTime.year().month().day().hour().minute())
@@ -251,7 +251,8 @@ private struct VoiceArchiveDetail: View {
                     } else {
                         Button("回听原音", systemImage: "play.fill") { module.playArchiveParagraph(row.paragraph) }
                             .disabled(!module.canPlayArchive)
-                            .help(module.canPlayArchive ? "播放这段语音保存的原音" : "请先暂停收音再回听")
+                            .help(module.canPlayArchive ? "播放这段语音保存的原音" :
+                                (module.active ? "请先暂停收音再回听" : "启用语音模块后可回听；保存的文字仍可浏览和复制。"))
                     }
                 }
             }

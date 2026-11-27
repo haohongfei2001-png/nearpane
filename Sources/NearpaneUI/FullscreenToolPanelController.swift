@@ -7,8 +7,37 @@ import NearpaneTray
 #endif
 
 private final class ToolPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
+    var permitInteraction: (() -> Bool)?
+    var interactionInvalidated: (() -> Void)?
+    private var editingWasRequested = false
+    override var canBecomeKey: Bool { editingWasRequested && permitInteraction?() == true }
     override var canBecomeMain: Bool { false }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type != .appKitDefined && event.type != .systemDefined && event.type != .applicationDefined {
+            guard permitInteraction?() == true else { interactionInvalidated?(); return }
+        }
+        if event.type == .leftMouseDown, let content = contentView {
+            var target = content.hitTest(content.convert(event.locationInWindow, from: nil))
+            while let view = target {
+                let editor = (view as? NSTextView).map { $0.isEditable } == true ||
+                    (view as? NSTextField).map { $0.isEditable && $0.isEnabled } == true
+                if editor {
+                    editingWasRequested = true
+                    makeKey(); makeFirstResponder(view)
+                    break
+                }
+                target = view.superview
+            }
+        }
+        super.sendEvent(event)
+    }
+
+    func withdrawEditing() {
+        editingWasRequested = false
+        makeFirstResponder(nil)
+        if isKeyWindow { resignKey() }
+    }
 }
 
 private struct ToolPresentation: Equatable {
@@ -18,7 +47,7 @@ private struct ToolPresentation: Equatable {
     let tools: [FullscreenToolKind]
 }
 
-/// Owns just the window. The Host controls fullscreen admission; Voice and Tray retain their lifetimes.
+/// Owns only a desktop presentation. All modules retain the Host's existing lifetimes.
 @MainActor public final class FullscreenToolPanelController {
     private let host: HostSession
     private let domains: EmbeddedModules?
@@ -31,6 +60,9 @@ private struct ToolPresentation: Equatable {
     private var requestClose: (() -> Void)?
     private var permitted: (() -> Bool)?
     private var dragOrigin: SurfaceRect?
+    private let display = SurfaceDisplay()
+    private var material: PanelGlassMaterial?
+    private var presentedLayout: SurfaceLayout?
 
     public init(host: HostSession, domains: EmbeddedModules?) {
         self.host = host
@@ -42,25 +74,28 @@ private struct ToolPresentation: Equatable {
                      open: @escaping (FullscreenToolKind) -> Void, close: @escaping () -> Void) {
         guard let cutouts = displayObstructions(on: screen) else { hide(); return }
         let obstructions = confirmedControls + cutouts
-        let settings = host.configuration.displays[screen.id] ?? DisplaySettings()
-        guard host.isRunning, !host.configuration.surfaceHidden, let domains else { hide(); return }
-        let tools = FullscreenToolKind.allCases.filter { settings.fullscreenTools.allows($0) && available($0, domains) }
-        guard expanded.map(tools.contains) ?? true,
-              let frame = settings.fullscreenToolFrame(on: screen, expanded: expanded != nil, count: tools.count,
-                                                       confirmedControls: obstructions) else { hide(); return }
-        let next = ToolPresentation(display: screen.id, presentationID: presentationID, expanded: expanded, tools: tools)
+        let settings = host.panelPresentationSettings(on: screen.id)
+        guard host.isRunning, !host.configuration.surfaceHidden, let domains, permitInteraction(),
+              let workspace = workspace(on: screen, settings: settings, domains: domains),
+              let frame = settings.fullscreenToolFrame(on: screen, expanded: expanded != nil, count: 1,
+                  confirmedControls: obstructions, workspace: workspace) else { hide(); return }
+        let next = ToolPresentation(display: screen.id, presentationID: presentationID,
+                                    expanded: expanded == nil ? nil : .workspace, tools: [.workspace])
         let panel = window ?? makePanel()
         window = panel
         requestOpen = open; requestClose = close; permitted = permitInteraction
         let geometryChanged = self.screen != screen || controls != obstructions
         self.screen = screen
         controls = obstructions
+        display.id = screen.id; display.primaryID = screen.id
+        display.referenceHeight = screen.visibleFrame.height
+        display.content = .toolsOnly; display.secondary = false; display.sizeForm = .full
         if state != next || geometryChanged {
             state = next
             dragOrigin = nil
             generation = UUID()
             let binding = generation
-            let view = FullscreenToolPanelView(host: host, domains: domains, state: next,
+            let view = FullscreenToolPanelView(host: host, domains: domains, state: next, display: display,
                 permit: { [weak self] in self?.isCurrent(binding) == true },
                 open: { [weak self] tool in
                     guard let self, isCurrent(binding) else { return }
@@ -74,10 +109,58 @@ private struct ToolPresentation: Equatable {
                 })
             let content = ToolHostingView(rootView: view)
             content.sizingOptions = []
-            panel.contentView = content
+            content.translatesAutoresizingMaskIntoConstraints = false
+            let container = NSView()
+            container.wantsLayer = true
+            container.layer?.cornerCurve = .continuous
+            container.layer?.cornerRadius = next.expanded == nil ? 9 : 12
+            container.layer?.masksToBounds = true
+            if next.expanded != nil {
+                let backdrop = PanelGlassMaterial(frame: .zero)
+                backdrop.material = .popover
+                backdrop.blendingMode = .behindWindow
+                backdrop.state = .active
+                material = backdrop
+                backdrop.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(backdrop)
+                NSLayoutConstraint.activate([
+                    backdrop.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    backdrop.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                    backdrop.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    backdrop.topAnchor.constraint(equalTo: container.topAnchor, constant: -FullscreenWorkspaceLayout.headerHeight)
+                ])
+                presentedLayout = workspace.content
+                display.updateMaterial = { [weak self, weak backdrop] layout in
+                    guard let self, let backdrop, binding == generation, state?.expanded != nil else { return }
+                    presentedLayout = layout
+                    backdrop.configure(size: backdrop.bounds.size, layout: layout,
+                                       settings: host.panelPresentationSettings(on: next.display))
+                }
+            } else {
+                material = nil; presentedLayout = nil; display.updateMaterial = nil
+            }
+            container.addSubview(content)
+            NSLayoutConstraint.activate([
+                content.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                content.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                content.topAnchor.constraint(equalTo: container.topAnchor),
+                content.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+            panel.contentView = container
+            if let panel = panel as? ToolPanel {
+                panel.withdrawEditing()
+                panel.permitInteraction = { [weak self] in self?.isCurrent(binding) == true }
+                panel.interactionInvalidated = { [weak self] in self?.hide() }
+            }
         }
         if dragOrigin == nil, panel.frame != frame.nsRect { panel.setFrame(frame.nsRect, display: true) }
+        panel.contentView?.layoutSubtreeIfNeeded()
+        if let material {
+            material.configure(size: material.bounds.size, layout: presentedLayout ?? workspace.content, settings: settings)
+        }
         if !panel.isVisible { panel.orderFront(nil) }
+        display.interactionVisible = panel.isVisible
+        domains.setFullscreenInteractionVisible(panel.isVisible && next.expanded != nil)
     }
 
     /// The display's own insets and unobscured wings are public geometry. Avoid the actual
@@ -107,26 +190,29 @@ private struct ToolPresentation: Equatable {
         return rectangles.filter { !$0.isEmpty }.map(SurfaceRect.init)
     }
 
-    private func available(_ kind: FullscreenToolKind, _ modules: EmbeddedModules) -> Bool {
-        #if canImport(NearpaneVoice)
-        return kind == .voice ? modules.voice.active : modules.tray.active && modules.tray.connected && modules.tray.captureEntry
-        #else
-        return false
-        #endif
+    private func workspace(on screen: ScreenGeometry, settings: DisplaySettings, domains: EmbeddedModules) -> FullscreenWorkspaceLayout? {
+        FullscreenWorkspaceLayout(on: screen, settings: settings,
+            enabledModuleIDs: host.registry.preferences.filter(\.enabled).map(\.id),
+            pinnedCount: host.registry.pinnedModules.count, expandedSample: host.registry.expandedID != nil,
+            voiceCompact: domains.voiceCompact, trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight)
     }
 
     private func isCurrent(_ binding: UUID) -> Bool {
         guard binding == generation, window?.isVisible == true, host.isRunning, !host.configuration.surfaceHidden,
-              let state, let domains, permitted?() == true else { return false }
+              let state, let screen, let domains, permitted?() == true else { return false }
         let prefs = host.configuration.displays[state.display]?.fullscreenTools ?? .init()
-        return state.tools.allSatisfy { prefs.allows($0) && available($0, domains) }
+        return prefs.enabled && workspace(on: screen, settings: host.panelPresentationSettings(on: state.display), domains: domains) != nil
     }
 
     public func hide() {
         guard state != nil else { return }
         generation = UUID()
+        display.interactionVisible = false; display.updateMaterial = nil
+        domains?.setFullscreenInteractionVisible(false)
+        (window as? ToolPanel)?.withdrawEditing()
         window?.orderOut(nil)
         window?.contentView = nil
+        material = nil; presentedLayout = nil
         state = nil; screen = nil; controls = []; dragOrigin = nil
         requestOpen = nil; requestClose = nil; permitted = nil
     }
@@ -138,6 +224,8 @@ private struct ToolPresentation: Equatable {
         panel.isOpaque = false; panel.backgroundColor = .clear
         panel.hasShadow = true; panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false; panel.isReleasedWhenClosed = false
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.animationBehavior = .none
         panel.isMovable = false; panel.level = .floating
         panel.sharingType = .none
         panel.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces, .transient, .ignoresCycle]
@@ -183,40 +271,38 @@ private final class ToolHostingView: NSHostingView<FullscreenToolPanelView> {
 private struct FullscreenToolPanelView: View {
     let host: HostSession
     let domains: EmbeddedModules, state: ToolPresentation
+    let display: SurfaceDisplay
     let permit: @MainActor () -> Bool
     let open: (FullscreenToolKind) -> Void, close: () -> Void, move: (ToolMove) -> Void
     var body: some View {
-        HStack(spacing: 0) {
-            if let tool = state.expanded {
-                ToolDragHandle(move: move).frame(width: 22, height: 28).help("拖动浮层")
-                Spacer(minLength: 2)
-                #if canImport(NearpaneVoice)
-                if tool == .voice {
-                    FullscreenVoiceButton(module: domains.voice, permit: permit)
-                } else {
-                    Button {
-                        guard permit(), CGPreflightScreenCaptureAccess() else { return }
-                        domains.tray.captureFromFullscreen()
-                    } label: { Image(systemName: "camera").foregroundStyle(.tint).frame(width: 38, height: 28) }
-                    .accessibilityLabel("系统截图").accessibilityIdentifier("np.fullscreen.capture")
-                    .help("使用已有的屏幕录制权限进行系统截图")
-                    .disabled(!domains.tray.captureEntry || !CGPreflightScreenCaptureAccess())
+        Group {
+            if state.expanded != nil {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        ToolDragHandle(move: move).frame(width: 22, height: 28).help("拖动浮层")
+                        Text("工具").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                        Button { if permit() { close() } } label: {
+                            Image(systemName: "xmark").font(.system(size: 11, weight: .medium)).frame(width: 28, height: 28)
+                        }.buttonStyle(.plain).help("收起浮层")
+                            .accessibilityLabel("收起浮层").accessibilityIdentifier("np.fullscreen.close")
+                    }.padding(.horizontal, 6).frame(height: FullscreenWorkspaceLayout.headerHeight)
+                        .background(.regularMaterial)
+                    EdgeSurfaceView(host: host, modules: domains, display: display)
+                        .accessibilityIdentifier("np.fullscreen.workspace")
                 }
-                #endif
-                Spacer(minLength: 2)
-                Button(action: close) { Image(systemName: "xmark").frame(width: 24, height: 26) }
-                    .help("收起浮层").accessibilityLabel("收起浮层").accessibilityIdentifier("np.fullscreen.close")
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             } else {
-                ForEach(state.tools, id: \.self) { tool in
-                    let title = tool == .voice ? "打开语音工具" : "打开截图工具"
-                    Button { open(tool) } label: {
-                        Image(systemName: tool == .voice ? "mic" : "photo").foregroundStyle(.tint).frame(width: 24, height: 24)
-                    }.help(title).accessibilityLabel(title).accessibilityIdentifier("np.fullscreen.open." + tool.rawValue)
-                }
+                Button { if permit() { open(.workspace) } } label: {
+                    Label("打开工具", systemImage: "rectangle.stack")
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                }.buttonStyle(.plain).help("打开已启用的工具")
+                    .accessibilityIdentifier("np.fullscreen.open.workspace")
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
             }
-        }.padding(.horizontal, 4).frame(maxWidth: .infinity, maxHeight: .infinity)
-        .font(.system(size: 12)).buttonStyle(.plain)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        .disabled(!display.interactionVisible)
         .productAccent(host.configuration.accent)
     }
 }
