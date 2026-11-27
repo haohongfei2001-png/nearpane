@@ -4,11 +4,11 @@
 
 LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
 
-**Current channel: notarized release candidate.** The Apple silicon build of LyricTile 1.0.0 (4) runs on macOS 27 or later. Open the DMG, drag LyricTile into Applications and launch it from there. Use the song menu to import lyrics or enable online lookup in settings.
+**Current channel: final release preparation.** The latest source and cloud-built candidate are identified in [STATUS](STATUS.md). Notarized LyricTile 1.0.0 (4) is a historical installation baseline, predating the current interface; it is not offered as the latest download. The initial platform remains Apple silicon, macOS 27 or later. [Product page source](Website/README.md) · [Installation](Documentation/INSTALL.md) · [Release preparation](Documentation/RELEASE.md).
 
-## Latest native candidate
+## Evidence and supported scope
 
-On macOS 27.0 (26A428), Apple Music 1.7 and QQ Music 11.11.0 played local tracks through their production adapters. The native panel, controls, desktop placement and 2→4 signed update were exercised on a MacBook Air. Spotify requires a logged-in test session and the NetEase client download was unavailable. See the [on-device report](Documentation/Verification/local-2026-11-26.md), [installer checksums and notarization](Documentation/Verification/2026-11-26-local/notarized-build4.json) and [current status](STATUS.md).
+Historical build 4 played local tracks through Apple Music 1.7 and QQ Music 11.11.0 on macOS 27.0 (26A428), with native controls and a signed build 2→4 update exercised on a MacBook Air. These results apply to that package. Latest cloud compilation, native UI, real-player attempts, and exact evidence are linked from [STATUS](STATUS.md); [support scope](Documentation/SUPPORT.md) separates current and historical results. Spotify and NetEase must not be called verified merely because their adapters exist. First release support is limited to the actual passing paths, not gated on all four players.
 
 ## Start here
 
@@ -18,6 +18,7 @@ On macOS 27.0 (26A428), Apple Music 1.7 and QQ Music 11.11.0 played local tracks
 - [Native UI implementation](Documentation/UI_IMPLEMENTATION.md), [media implementation](Documentation/MEDIA_IMPLEMENTATION.md), [lyrics implementation](Documentation/LYRICS_IMPLEMENTATION_STATE.md).
 - [Local-only Codex handoff](Documentation/LOCAL_ONLY_HANDOFF.md): the remaining physical environment and owner-controlled release work. Ordinary coding/compilation is not a handoff item.
 - [Third-party notices](Documentation/THIRD_PARTY_NOTICES.md).
+- [Chinese/English installation](Documentation/INSTALL.md), [privacy](Documentation/PRIVACY.md), [release checks](Documentation/RELEASE.md), and [product page](Website/README.md).
 
 ## Independent build
 
@@ -43,7 +44,7 @@ Tests use clearly authored fixtures under `Tests/`; production startup has no de
 
 ## What the application does
 
-The panel appears automatically only while an identified song is playing. Its five-line lyric surface is 192 points high: the current cue is central, occupying one or two complete text rows, with two progressively quieter cues above and below. A long cue has a small native scroll indicator. Songs without available lyrics use a 104-point summary with real metadata and a short status. Pointer entry immediately reveals artwork, title, artist, transport and progress in the same outer frame, covering context while retaining the current cue. Missing artwork uses a neutral symbol, missing artists are omitted, and unavailable times stay unknown. No playback leaves no desktop panel. A paused song retains an already-visible panel only while the user is interacting with it. Connection status, local import and settings remain available from the menu bar.
+The panel appears automatically only while an identified song is playing. Its 192-point lyric surface centers the current cue and softens surrounding context. Ordinary cues show up to two cues above and below; long cues reduce context to allow three or four complete text rows, with native scrolling for exceptionally long lines. Songs without lyrics use a 104-point summary. Hover reveals artwork, title, artist, transport, and progress in the same outer frame while retaining the current lyric. Missing artwork uses a neutral symbol; unknown fields stay unknown. No playback leaves no desktop panel. A paused song retains an already-visible panel only during interaction. Connection status, local import, and settings remain in the menu bar.
 
 | Player | Implemented route | Runtime limitation to verify on the exact installed build |
 |---|---|---|
@@ -54,13 +55,13 @@ The panel appears automatically only while an identified song is playing. Its fi
 
 An installed/running player is not sufficient evidence for every control. Capabilities are derived from the actual route and observations. Commands are sent once and checked against fresh state; a successful process exit is not reported as successful playback control.
 
-LRCLIB lookup is real, user-enabled and local to the device; local imports work independently. LRC/enhanced LRC/LRCX, TTML, LRCLIB Lyricsfile and plain text normalize into one model with source provenance. Automatic matching rejects ambiguous recording versions and provides explicit candidates. Unknown content rights remain unknown. A Release optimization flag does not silently disable lookup or grant content rights.
+LRCLIB lookup is real and runs from the device. It is enabled by default, disclosed on the welcome screen, and can be switched off; local imports work independently. LRC/enhanced LRC/LRCX, TTML, LRCLIB Lyricsfile, and plain text normalize into one model with source provenance. Automatic matching rejects ambiguous recording versions and offers explicit candidates. API access does not establish copyright authorization for every lyric. The app contains no third-party lyric catalog. See [privacy and data flows](Documentation/PRIVACY.md).
 
 Fresh unmeasured position anchors support ordinary line synchronization. Continuous word sweep additionally requires real token timestamps and a matching, evidence-backed position qualification; unknown precision never becomes zero. No physical qualification profile is bundled by this remote implementation. See `MEDIA_IMPLEMENTATION.md` for the exact evidence format.
 
 ## Desktop and future Nearpane integration
 
-TileKit coordinates cooperating apps through short locked transactions and explicit withdrawal acknowledgements. A missing heartbeat never authorizes drawing over a still-visible window. Shared width is 176–224 points; right/top margins are 16 points; spacing is 10 points; an active LyricTile reserves a maximum 192-point slot so lyric arrival cannot overlap another tile. No playback or manual hiding withdraws the panel and unregisters that slot through the existing withdrawal barrier. Hover does not resize or reorder the panel.
+TileKit coordinates cooperating apps through short locked transactions and explicit withdrawal acknowledgements. A missing heartbeat never authorizes drawing over a visible window. Shared width is 176–224 points; margins are 16 points and spacing is 10 points. LyricTile reserves its actual 104/192-point height. Shrinking is briefly coalesced; expansion withdraws through the existing coordination barrier before occupying the larger slot. No playback unregisters the slot. Hover does not resize or reorder the panel.
 
 Legacy Saytile and Riftlet versions do not yet implement that protocol. LyricTile reads only their public window geometry and avoids recognizable component windows, without moving them or requiring Accessibility/Screen Recording. This is compatibility avoidance, not a claim that old apps now negotiate reordering. Dragging in coordinated mode requests column order/display changes. Turning coordination off gives explicit local placement.
 

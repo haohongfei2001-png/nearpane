@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "74b5d19153b1db5d962f705afb88ed585718ddc6",
+  "workflowRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45974055682",
+  "evidenceType": "Native AppKit/SwiftUI rendering with authored test lyrics; not real-player qualification",
+  "transforms": "Files copied unchanged. Display sizing and decorative background are CSS only.",
+  "files": {
+    "lyrics.png": "fixture-light-lyrics.png",
+    "controls.png": "fixture-light-lyrics-hover.png",
+    "compact.png": "fixture-compact.png"
+  }
+}
