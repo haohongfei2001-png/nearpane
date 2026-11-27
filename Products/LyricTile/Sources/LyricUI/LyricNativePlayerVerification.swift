@@ -18,6 +18,9 @@ public enum LyricNativePlayerVerification {
         guard let output = argument("--verification-output"), let lyrics = argument("--verification-lyrics"),
               let title = argument("--verification-title"), output.hasPrefix("/"), lyrics.hasPrefix("/") else { return false }
         guard let expectedPlayer = PlayerID(rawValue: argument("--verification-player") ?? "appleMusic") else { return false }
+        let nextTitle = argument("--verification-next-title")
+        let nextLyrics = argument("--verification-next-lyrics")
+        let trackSwitchRequested = nextTitle != nil || nextLyrics != nil
         let capturePrefix = expectedPlayer == .appleMusic ? "real-music" : "real-\(expectedPlayer.rawValue)"
         let directory = URL(fileURLWithPath: output, isDirectory: true)
         do { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true) }
@@ -25,6 +28,8 @@ public enum LyricNativePlayerVerification {
         var checks: [[String: Any]] = []
         var pointerAttempted = false
         var pointerPassed = true
+        var trackSwitchAttempted = false
+        var trackSwitchPassed = false
         func write(_ name: String, _ value: [String: Any]) {
             if let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .prettyPrinted]) {
                 try? data.write(to: directory.appendingPathComponent(name), options: .atomic)
@@ -75,6 +80,7 @@ public enum LyricNativePlayerVerification {
                 "lyrics": "caller-supplied original local LRC imported by the production repository",
                 "physicalMouseTest": false, "commercialCatalogTest": false, "independentClockAccuracyTest": false,
                 "nativePointerEventTest": pointerAttempted ? (pointerPassed ? "PASS" : "FAIL") : "BLOCKED_OR_UNAVAILABLE",
+                "nativeTrackSwitchTest": trackSwitchAttempted ? (trackSwitchPassed ? "PASS" : "FAIL") : "NOT_RUN",
                 "stateDrivenHoverFallback": !pointerAttempted,
                 "wordSyncQualification": "NOT_RUN", "checks": checks])
             return passed
@@ -156,11 +162,12 @@ public enum LyricNativePlayerVerification {
         await record("local-import-expands-real-panel", imported)
         capture(capturePrefix + "-lyrics")
         let importedHash = model.document?.contentHash
+        var lyricBaselineSelection = selection
         func retainsImportedLyrics() -> Bool {
             importedHash != nil && model.document?.contentHash == importedHash && model.document?.source.providerID == "local"
-                && model.snapshot.selection?.recording.fingerprint == selection.recording.fingerprint
-                && model.snapshot.selection?.generation == selection.generation
-                && model.snapshot.selection?.sessionID == selection.sessionID
+                && model.snapshot.selection?.recording.fingerprint == lyricBaselineSelection.recording.fingerprint
+                && model.snapshot.selection?.generation == lyricBaselineSelection.generation
+                && model.snapshot.selection?.sessionID == lyricBaselineSelection.sessionID
         }
         let firstCue = model.currentCueIndex
         let seekTarget: Int64 = (model.playbackPositionMS ?? 0) < 48_000 ? 64_000 : 24_000
@@ -227,6 +234,91 @@ public enum LyricNativePlayerVerification {
         }
         let resumeConfirmed = await commandConfirmed("play")
         await record("resume-automatically-restores-lyrics", resumed && resumeConfirmed)
+
+        if trackSwitchRequested {
+            trackSwitchAttempted = true
+            guard checks.allSatisfy({ $0["passed"] as? Bool == true }) else { return finish(false) }
+            guard expectedPlayer == .appleMusic, let nextTitle, !nextTitle.isEmpty, nextTitle != title,
+                  let nextLyrics, nextLyrics.hasPrefix("/"), FileManager.default.isReadableFile(atPath: nextLyrics),
+                  let originalHash = importedHash else {
+                await record("two-track-original-fixture-configuration", false)
+                return finish(false)
+            }
+            // Only production transport commands and independently recorded
+            // player observations move between the caller's two local tracks.
+            model.perform(.next)
+            let switched = await wait {
+                guard let current = model.snapshot.selection else { return false }
+                return model.snapshot.state == .playing && !model.isPerformingCommand && model.actionMessage == nil
+                    && current.recording.title == nextTitle && current.playerBundleID == selection.playerBundleID
+                    && current.recording.fingerprint != selection.recording.fingerprint && current.generation > selection.generation
+            }
+            let nextConfirmed = await commandConfirmed("next")
+            await record("next-selects-second-track-with-new-generation", switched && nextConfirmed)
+            guard switched, nextConfirmed, let secondSelection = model.snapshot.selection else { return finish(false) }
+            let oldLyricsCleared = await wait(4) {
+                model.snapshot.selection?.recording.fingerprint == secondSelection.recording.fingerprint
+                    && model.document == nil && model.currentCue == nil && panel.panel.isVisible
+                    && panel.panel.frame.height == LyricPanelLayout.compactHeight
+            }
+            await record("next-clears-old-lyrics-and-contracts-panel", oldLyricsCleared)
+            capture(capturePrefix + "-next-compact")
+            guard oldLyricsCleared else { return finish(false) }
+
+            model.importLyrics(from: URL(fileURLWithPath: nextLyrics), for: secondSelection)
+            let secondImported = await wait {
+                guard let current = model.snapshot.selection, let document = model.document else { return false }
+                return current.recording.fingerprint == secondSelection.recording.fingerprint
+                    && current.generation == secondSelection.generation && current.sessionID == secondSelection.sessionID
+                    && document.source.providerID == "local" && document.recording.fingerprint == secondSelection.recording.fingerprint
+                    && document.contentHash != originalHash && model.currentCue != nil && panel.panel.isVisible
+                    && panel.panel.frame.height == LyricPanelLayout.lyricsHeight
+            }
+            await record("second-track-import-binds-distinct-document", secondImported)
+            capture(capturePrefix + "-next-lyrics")
+            guard secondImported, let secondHash = model.document?.contentHash else { return finish(false) }
+
+            // Some players interpret Previous after several seconds as Restart.
+            // A real, read-back-confirmed seek keeps this a previous-track test;
+            // replaying the second track is never accepted as returning to A.
+            if (model.playbackPositionMS ?? Int64.max) > 1_500 {
+                model.perform(.seek(milliseconds: 0))
+                let nearStart = await wait(5) {
+                    guard let position = model.playbackPositionMS else { return false }
+                    return !model.isPerformingCommand && model.actionMessage == nil && position >= 0 && position < 1_500
+                        && model.snapshot.selection?.recording.fingerprint == secondSelection.recording.fingerprint
+                        && model.document?.contentHash == secondHash
+                }
+                let resetConfirmed = await commandConfirmed("seek", seekMS: 0)
+                await record("second-track-real-seek-before-previous", nearStart && resetConfirmed)
+                guard nearStart, resetConfirmed else { return finish(false) }
+            }
+            model.perform(.previous)
+            let returned = await wait {
+                guard let current = model.snapshot.selection else { return false }
+                return model.snapshot.state == .playing && !model.isPerformingCommand && model.actionMessage == nil
+                    && current.recording.title == title && current.playerBundleID == selection.playerBundleID
+                    && current.recording.fingerprint == selection.recording.fingerprint && current.generation > secondSelection.generation
+            }
+            let previousConfirmed = await commandConfirmed("previous")
+            await record("previous-returns-original-track-with-new-generation", returned && previousConfirmed)
+            guard returned, previousConfirmed else { return finish(false) }
+            // Do not reimport A: this must recover the existing local binding.
+            let restored = await wait {
+                guard let current = model.snapshot.selection, let document = model.document else { return false }
+                return current.recording.fingerprint == selection.recording.fingerprint && current.generation > secondSelection.generation
+                    && document.recording.fingerprint == selection.recording.fingerprint && document.source.providerID == "local"
+                    && document.contentHash == originalHash && document.contentHash != secondHash
+                    && model.currentCue != nil && panel.panel.isVisible && panel.panel.frame.height == LyricPanelLayout.lyricsHeight
+            }
+            await record("original-local-binding-restores-without-reimport", restored)
+            capture(capturePrefix + "-previous-restored")
+            guard restored, let returnedSelection = model.snapshot.selection else { return finish(false) }
+            // Earlier seek/pause/resume checks retained A's initial identity.
+            // A genuine A -> B -> A transition must give the quiet hold a new baseline.
+            lyricBaselineSelection = returnedSelection
+            trackSwitchPassed = true
+        }
 
         model.settings.appearance = .dark
         try? await Task.sleep(for: .milliseconds(350)); capture(capturePrefix + "-dark")

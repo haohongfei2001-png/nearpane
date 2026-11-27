@@ -383,12 +383,17 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(try scopedObservation().positionMS == 30_000)
 }
 
-@Test func qqKnownBuildsKeepLocalBindingIdentityAcrossSeekAndResumeUUIDs() throws {
-    for (version, build) in [("11.11.0", "73284"), ("11.11.1", "73285")] {
-        let process = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1, version: version, build: build)
+@Test func knownMediaRemoteBuildsKeepLocalBindingIdentityAcrossSeekAndResumeUUIDs() throws {
+    let clients: [(PlayerID, String, String)] = [(.qqMusic, "11.11.0", "73284"),
+        (.qqMusic, "11.11.1", "73285"), (.netease, "3.1.14", "3459")]
+    for (player, version, build) in clients {
+        let process = PlayerProcess(player: player, pid: 123, startMicros: 1, version: version, build: build)
         var fields = remoteFields()
-        fields["artist"] = .string("Fixture Artist")
-        fields["album"] = .string("Fixture Album")
+        fields["bundleIdentifier"] = .string(player.bundleID)
+        // Local audio may have only filename and duration, as in the real CI
+        // seek regression. Empty artist/album must not turn an update into a song.
+        fields["artist"] = .string("")
+        fields["album"] = .string("")
         fields["contentItemIdentifier"] = .string("00000000-0000-4000-8000-000000000001")
         func sample(_ milliseconds: UInt64, wall: Double) throws -> PlayerObservation {
             try #require(MediaRemotePayload(fields: fields).observation(process: process, mediaStart: 1,
@@ -428,45 +433,49 @@ private func remoteFields() -> [String: JSONValue] {
     }
 }
 
-@Test func qqUUIDNormalizationPreservesDifferentSongsVersionsAndCatalogIDs() throws {
-    let process = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1, version: "11.11.1", build: "73285")
-    var baseline = remoteFields()
-    baseline["artist"] = .string("Fixture Artist")
-    baseline["album"] = .string("Fixture Album")
-    baseline["contentItemIdentifier"] = .string("00000000-0000-4000-8000-000000000001")
-    func sample(_ fields: [String: JSONValue], process: PlayerProcess) throws -> PlayerObservation {
-        try #require(MediaRemotePayload(fields: fields).observation(process: process, mediaStart: 1,
-            isCurrent: true, now: stamp(), wallNow: Date(timeIntervalSince1970: 100)))
-    }
-    let original = try sample(baseline, process: process)
-    let differences: [(String, JSONValue)] = [("title", .string("Synthetic test B")),
-        ("title", .string("Synthetic test A (Live)")), ("artist", .string("Another Fixture Artist")),
-        ("album", .string("Fixture Album (Remastered)")), ("durationMicros", .int(185_000_000))]
-    for (key, value) in differences {
-        var changed = baseline
-        changed["contentItemIdentifier"] = .string("00000000-0000-4000-8000-000000000002")
-        changed[key] = value
-        let next = try sample(changed, process: process)
-        var tracker = PlaybackSelectionTracker()
-        let firstValue = tracker.update(original)
-        let first = try #require(firstValue)
-        let secondValue = tracker.update(next)
-        let second = try #require(secondValue)
-        #expect(second.generation != first.generation)
-        #expect(second.recording.fingerprint != first.recording.fingerprint)
-    }
-    baseline["contentItemIdentifier"] = .string("catalog-recording-a")
-    let catalogA = try sample(baseline, process: process)
-    baseline["contentItemIdentifier"] = .string("catalog-recording-b")
-    let catalogB = try sample(baseline, process: process)
-    #expect(catalogA.platformID == "catalog-recording-a")
-    #expect(catalogB.platformID == "catalog-recording-b")
-    #expect(!PlaybackSelectionTracker.sameRecording(catalogA, catalogB))
+@Test func knownMediaRemoteUUIDNormalizationPreservesSongsVersionsAndCatalogIDs() throws {
+    let clients: [(PlayerID, String, String)] = [(.qqMusic, "11.11.1", "73285"), (.netease, "3.1.14", "3459")]
+    for (player, version, build) in clients {
+        let process = PlayerProcess(player: player, pid: 123, startMicros: 1, version: version, build: build)
+        var baseline = remoteFields()
+        baseline["bundleIdentifier"] = .string(player.bundleID)
+        baseline["artist"] = .string("Fixture Artist")
+        baseline["album"] = .string("Fixture Album")
+        baseline["contentItemIdentifier"] = .string("00000000-0000-4000-8000-000000000001")
+        func sample(_ fields: [String: JSONValue], process: PlayerProcess) throws -> PlayerObservation {
+            try #require(MediaRemotePayload(fields: fields).observation(process: process, mediaStart: 1,
+                isCurrent: true, now: stamp(), wallNow: Date(timeIntervalSince1970: 100)))
+        }
+        let original = try sample(baseline, process: process)
+        let differences: [(String, JSONValue)] = [("title", .string("Synthetic test B")),
+            ("title", .string("Synthetic test A (Live)")), ("artist", .string("Another Fixture Artist")),
+            ("album", .string("Fixture Album (Remastered)")), ("durationMicros", .int(185_000_000))]
+        for (key, value) in differences {
+            var changed = baseline
+            changed["contentItemIdentifier"] = .string("00000000-0000-4000-8000-000000000002")
+            changed[key] = value
+            let next = try sample(changed, process: process)
+            var tracker = PlaybackSelectionTracker()
+            let firstValue = tracker.update(original)
+            let first = try #require(firstValue)
+            let secondValue = tracker.update(next)
+            let second = try #require(secondValue)
+            #expect(second.generation != first.generation)
+            #expect(second.recording.fingerprint != first.recording.fingerprint)
+        }
+        baseline["contentItemIdentifier"] = .string("catalog-recording-a")
+        let catalogA = try sample(baseline, process: process)
+        baseline["contentItemIdentifier"] = .string("catalog-recording-b")
+        let catalogB = try sample(baseline, process: process)
+        #expect(catalogA.platformID == "catalog-recording-a")
+        #expect(catalogB.platformID == "catalog-recording-b")
+        #expect(!PlaybackSelectionTracker.sameRecording(catalogA, catalogB))
 
-    let unknown = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1, version: "fixture-unqualified", build: "unknown")
-    let uuid = "00000000-0000-4000-8000-000000000001"
-    baseline["contentItemIdentifier"] = .string(uuid)
-    #expect(try sample(baseline, process: unknown).platformID == uuid)
-    baseline["uniqueIdentifier"] = .string("stable-catalog-id")
-    #expect(try sample(baseline, process: process).platformID == "stable-catalog-id")
+        let unknown = PlayerProcess(player: player, pid: 123, startMicros: 1, version: "fixture-unqualified", build: "unknown")
+        let uuid = "00000000-0000-4000-8000-000000000001"
+        baseline["contentItemIdentifier"] = .string(uuid)
+        #expect(try sample(baseline, process: unknown).platformID == uuid)
+        baseline["uniqueIdentifier"] = .string("stable-catalog-id")
+        #expect(try sample(baseline, process: process).platformID == "stable-catalog-id")
+    }
 }

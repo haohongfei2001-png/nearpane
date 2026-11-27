@@ -1,0 +1,27 @@
+{
+  "status": "BLOCKED",
+  "failureClass": "player_setup",
+  "stage": "Music local playback setup",
+  "exitCode": 1,
+  "details": "373:433: execution error: Music got an error: Parameter error. (-50)\n",
+  "musicEnvironment": {
+    "applicationPath": "/System/Applications/Music.app",
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "processes": [
+      {
+        "pid": 20636,
+        "parentPID": 1,
+        "state": "R",
+        "elapsed": "00:23",
+        "executable": "/System/Applications/Music.app/Contents/MacOS/Music"
+      }
+    ],
+    "bundleID": "com.apple.Music",
+    "version": "1.7",
+    "build": "1.7.0",
+    "executable": "Music",
+    "processQueryExitCode": 0,
+    "running": true
+  },
+  "realPlayerTestStarted": false
+}

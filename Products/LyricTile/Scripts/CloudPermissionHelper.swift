@@ -35,6 +35,11 @@ func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
     return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
 }
 func string(_ element: AXUIElement, _ name: String) -> String { attribute(element, name) as? String ?? "" }
+func supportsPress(_ element: AXUIElement) -> Bool {
+    var names: CFArray?
+    return AXUIElementCopyActionNames(element, &names) == .success
+        && ((names as? [String]) ?? []).contains(kAXPressAction)
+}
 func normalized(_ value: String) -> String {
     value.replacingOccurrences(of: "“", with: "\"").replacingOccurrences(of: "”", with: "\"")
         .replacingOccurrences(of: "’", with: "'").lowercased()
@@ -70,6 +75,11 @@ func eligibleAction(_ nodes: [Node], bundle: String) -> String? {
        (text.contains("welcome to music") || text.contains("welcome to apple music")),
        text.contains("start listening"), !text.contains("agree"), !text.contains("terms and conditions") {
         return "Start Listening"
+    }
+    if mode == "music", bundle == "com.apple.Music",
+       text.contains("hear about new music first"),
+       text.contains("get notified about new music"), text.contains("not now") {
+        return "Not Now"
     }
     if mode == "music", bundle == "com.holdsnow.lyrictile",
        let ready = argument("--welcome-ready"), FileManager.default.fileExists(atPath: ready),
@@ -108,13 +118,17 @@ while Date() < deadline {
                 report["windows"] = recordedWindows; persist()
             }
             guard let label = eligibleAction(nodes, bundle: bundle),
-                  !pressedKinds.contains(label), actionRecords.count < 3 else { continue }
+                  !pressedKinds.contains(label), actionRecords.count < 4 else { continue }
             // Re-read immediately before pressing; a stale screenshot or a
             // guessed button position is never used as an input target.
             let fresh = inspect(window)
             guard eligibleAction(fresh, bundle: bundle) == label else { continue }
-            let buttons = fresh.filter { $0.role == kAXButtonRole && $0.enabled
-                && $0.labels.contains(where: { normalized($0) == normalized(label) }) }
+            // Music exposes its observed "Not Now" control as a link/text
+            // control on this OS. Require its real AXPress action instead of
+            // assuming every native actionable control has AXButton role.
+            let buttons = fresh.filter { $0.enabled
+                && $0.labels.contains(where: { normalized($0) == normalized(label) })
+                && supportsPress($0.element) }
             guard buttons.count == 1 else { continue }
             let result = AXUIElementPerformAction(buttons[0].element, kAXPressAction as CFString)
             actionRecords.append(["pid": app.processIdentifier, "bundleID": bundle,

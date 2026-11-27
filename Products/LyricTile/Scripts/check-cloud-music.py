@@ -35,6 +35,9 @@ fixture = json.loads(fixture_bytes)
 title = fixture['title']
 audio = out / 'original-chimes.wav'
 lyrics = out / 'original-lyrics.lrc'
+second_audio = out / (fixture['secondRecording']['fileStem'] + '.wav')
+second_lyrics = out / 'original-reprise-lyrics.lrc'
+playlist_name = 'LyricTile Cloud Acceptance ' + os.environ.get('GITHUB_RUN_ID', 'disposable')
 process = None
 pointer_helper = None
 permission_helper = None
@@ -103,21 +106,27 @@ try:
     # Test content lives only in Tests/Fixtures, never in the release bundle.
     # Actual decoded audio advances in the Music application.
     rate = fixture['sampleRate']
-    with wave.open(str(audio), 'wb') as f:
-        f.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
-        for second in range(fixture['durationSeconds']):
-            frequencies = fixture['frequenciesHz']
-            freq = frequencies[(second // fixture['noteDurationSeconds']) % len(frequencies)]
-            f.writeframes(b''.join(struct.pack('<h', int(fixture['peakAmplitude'] * math.sin(2 * math.pi * freq * i / rate)
-                * min(1, i / (rate * fixture['fadeInSeconds'])) * max(0, 1-i/rate))) for i in range(rate)))
+    for destination, frequencies in [(audio, fixture['frequenciesHz']),
+            (second_audio, list(reversed(fixture['frequenciesHz'])))]:
+        with wave.open(str(destination), 'wb') as f:
+            f.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+            for second in range(fixture['durationSeconds']):
+                freq = frequencies[(second // fixture['noteDurationSeconds']) % len(frequencies)]
+                f.writeframes(b''.join(struct.pack('<h', int(fixture['peakAmplitude'] * math.sin(2 * math.pi * freq * i / rate)
+                    * min(1, i / (rate * fixture['fadeInSeconds'])) * max(0, 1-i/rate))) for i in range(rate)))
     lines = fixture['lyricLines']
     interval = fixture['lyricIntervalSeconds']
     lyrics.write_text('\n'.join(f'[{s//60:02d}:{s%60:02d}.00]{lines[(s//interval)%len(lines)]}'
         for s in range(0,fixture['durationSeconds'],interval))+'\n')
+    second_lyrics.write_text('\n'.join(f'[{s//60:02d}:{s%60:02d}.00]{lines[(s//interval+fixture["secondRecording"]["lyricLineOffset"])%len(lines)]}'
+        for s in range(0,fixture['durationSeconds'],interval))+'\n')
     save('media-provenance.json', {'origin':fixture['origin'], 'title':title,
         'fixtureSHA256':hashlib.sha256(fixture_bytes).hexdigest(),
         'notBundledWithProduct':True,'durationSeconds':fixture['durationSeconds'],'audioSHA256':hashlib.sha256(audio.read_bytes()).hexdigest(),
-        'lyricSHA256':hashlib.sha256(lyrics.read_bytes()).hexdigest(),'streamingSubscription':False})
+        'lyricSHA256':hashlib.sha256(lyrics.read_bytes()).hexdigest(),'streamingSubscription':False,
+        'secondRecording':{'audioSHA256':hashlib.sha256(second_audio.read_bytes()).hexdigest(),
+            'lyricSHA256':hashlib.sha256(second_lyrics.read_bytes()).hexdigest(),
+            'durationSeconds':fixture['durationSeconds'],'frequencyOrder':'reverse'}})
     before = music_environment('music-before-launch')
     music_baseline_pids = {row['pid'] for row in before['processes']}
     stage = 'open system Music application'
@@ -135,35 +144,62 @@ try:
         raise SystemExit(0)
     # CI39 captured the actual Automation prompt and Music welcome page. Use
     # only an already-trusted AX connection and exact freshly read controls.
-    permission_helper = start_cloud_ui(out/'setup-ui', 'music', seconds=40)
+    permission_helper = start_cloud_ui(out/'setup-ui', 'music', seconds=60)
     stage = 'Music AppleScript import and play'
-    setup = apple('''tell application "Music"
+    # CI41 proved that changing a newly imported WAV's name can return -50.
+    # Keep the player's actual metadata. A temporary playlist gives the real
+    # production next/previous commands two distinct original recordings.
+    setup_script = '''tell application "Music"
         set sound volume to 0
-        set addedTracks to add POSIX file ''' + apple_string(audio) + '''
-        if class of addedTracks is list then
-            set testTrack to item 1 of addedTracks
-        else
-            set testTrack to addedTracks
-        end if
-        set name of testTrack to ''' + apple_string(title) + '''
-        set artist of testTrack to ''' + apple_string(fixture['artist']) + '''
-        set album of testTrack to ''' + apple_string(fixture['album']) + '''
-        play testTrack
+        set testPlaylist to make new user playlist with properties {name:''' + apple_string(playlist_name) + '''}
+        add POSIX file ''' + apple_string(audio) + ''' to testPlaylist
+        add POSIX file ''' + apple_string(second_audio) + ''' to testPlaylist
+        set shuffle enabled to false
+        set song repeat to off
+        set firstTrack to item 1 of (tracks of testPlaylist)
+        set secondTrack to item 2 of (tracks of testPlaylist)
+        play testPlaylist
         delay 2
-        return (name of current track) & " | " & (player state as string) & " | " & (player position as string)
-    end tell''')
+        return (name of firstTrack) & tab & (persistent ID of firstTrack) & tab & (duration of firstTrack as string) & tab & (POSIX path of (location of firstTrack)) & tab & (name of secondTrack) & tab & (persistent ID of secondTrack) & tab & (duration of secondTrack as string) & tab & (POSIX path of (location of secondTrack)) & tab & (player state as string) & tab & (player position as string) & tab & (persistent ID of current track)
+    end tell'''
+    (out/'music-setup.applescript').write_text(setup_script)
+    setup = apple(setup_script,timeout=35)
     setup_ui_result = stop_cloud_ui(permission_helper); permission_helper = None
     save('setup-permission-ui.json', setup_ui_result)
     (out / 'music-setup.log').write_text(setup.stdout + setup.stderr)
-    if setup.returncode or title not in setup.stdout or 'playing' not in setup.stdout:
+    fields = setup.stdout.strip().split('\t')
+    if setup.returncode or len(fields) != 11 or fields[8] != 'playing':
         environment = music_environment('music-setup-failure')
         capture_desktop('music-setup-failure-desktop','failed AppleScript import and play')
-        harness_error = any(value in setup.stderr for value in ['(-1728)','(-1700)','syntax error'])
+        harness_error = any(value in setup.stderr for value in ['(-1728)','(-1700)','(-50)','syntax error'])
         save('cloud-music.json', {'status':'FAIL' if harness_error else 'BLOCKED',
              'failureClass':'test_harness_setup' if harness_error else 'player_setup',
              'stage':'Music local playback setup','exitCode':setup.returncode,
              'details':setup.stdout+setup.stderr,'musicEnvironment':environment,'realPlayerTestStarted':False})
         raise SystemExit(1 if harness_error else 0)
+    # Independently link actual imported files to the authored bytes; merely
+    # returning the desired song title is not proof that this audio is playing.
+    title, first_id, first_duration, first_location, second_title, second_id, second_duration, second_location, _, initial_position, current_id = fields
+    music_sources = []
+    for observed_title, persistent_id, duration, location, original in [
+            (title,first_id,first_duration,first_location,audio),
+            (second_title,second_id,second_duration,second_location,second_audio)]:
+        file_hash = hashlib.sha256(Path(location).read_bytes()).hexdigest()
+        expected_hash = hashlib.sha256(original.read_bytes()).hexdigest()
+        music_sources.append({'actualTitle':observed_title,'persistentID':persistent_id,
+            'durationSeconds':float(duration),'location':location,'importedFileSHA256':file_hash,
+            'originalFileSHA256':expected_hash,'identicalOriginalAudio':file_hash == expected_hash})
+    source_verified = (title != second_title and first_id != second_id and current_id == first_id
+        and all(row['identicalOriginalAudio'] and abs(row['durationSeconds']-fixture['durationSeconds']) < 1
+                for row in music_sources))
+    save('music-source-readback.json',{'status':'PASS' if source_verified else 'FAIL',
+        'temporaryPlaylist':playlist_name,'actualPlayerPosition':float(initial_position),
+        'currentPersistentID':current_id,'sources':music_sources,'metadataEdited':False,'accountUsed':False})
+    if not source_verified:
+        save('cloud-music.json',{'status':'FAIL','stage':'actual imported source verification',
+            'reason':'The real playlist, imported file hashes, duration or current track did not match the two original recordings.',
+            'realPlayerTestStarted':False})
+        raise SystemExit(1)
     music_environment('music-playing')
     stage = 'ordinary LyricTile verification'
     first_use = setup_ui_result.get('accessibilityAlreadyTrusted') is True
@@ -173,16 +209,17 @@ try:
                     json.dumps(settings).encode().hex()],check=True)
     # Compile and establish input-helper availability before the app's timed
     # verification begins; neither helper is included in runtime sampling.
-    pointer_helper = start_cloud_pointer(out, seconds=120)
-    permission_helper = start_cloud_ui(out/'app-ui', 'music', seconds=115,
+    pointer_helper = start_cloud_pointer(out, seconds=180)
+    permission_helper = start_cloud_ui(out/'app-ui', 'music', seconds=180,
         welcome_ready=out/'first-use-ready.json' if first_use else None)
     arguments = [str(a.app.resolve()/'Contents/MacOS/LyricTile'),'--verify-native-player',
         '--verification-output',str(out),'--verification-lyrics',str(lyrics),'--verification-title',title,
+        '--verification-next-title',second_title,'--verification-next-lyrics',str(second_lyrics),
         '--verification-hold-seconds','75']
     if first_use: arguments += ['--verification-first-use']
     stdout = (out/'app.stdout.log').open('w'); stderr = (out/'app.stderr.log').open('w')
     process = subprocess.Popen(arguments,stdout=stdout,stderr=stderr,start_new_session=True)
-    deadline = time.monotonic()+110
+    deadline = time.monotonic()+180
     while process.poll() is None and not (out/'native-player-ready.json').exists() and time.monotonic()<deadline:
         time.sleep(.5)
     # Stop AX traversal before performance sampling; helper CPU is not part of

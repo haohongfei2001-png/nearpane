@@ -10,6 +10,11 @@
   "fadeInSeconds": 0.03,
   "noteDurationSeconds": 4,
   "frequenciesHz": [261.63, 329.63, 392.0, 440.0],
+  "secondRecording": {
+    "fileStem": "original-chimes-reprise",
+    "frequencyOrder": "reverse",
+    "lyricLineOffset": 1
+  },
   "lyricIntervalSeconds": 8,
   "desktopPatterns": {
     "origin": "Original solid colors and checkerboard geometry for disposable cloud desktop acceptance.",

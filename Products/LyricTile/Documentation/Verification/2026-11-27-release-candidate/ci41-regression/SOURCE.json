@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "product": "LyricTile",
+  "version": "1.0.0",
+  "build": 41,
+  "sourceCommit": "1c87964c399f445ad4fe6a394cdf680907e43306",
+  "workflowRunID": 45994575431,
+  "workflowRunURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45994575431",
+  "workflowJobID": 140490631282,
+  "workflowConclusion": "failure",
+  "artifact": {
+    "name": "LyricTile-candidate-41",
+    "id": 15195339323,
+    "bytes": 19153597,
+    "sha256": "ed6011a2d5ed279808b6a43ee430cd59a8981ec99c529894f88b2ea945d6c00b"
+  },
+  "host": {
+    "macOSVersion": "27.0.1",
+    "systemBuild": "26A434",
+    "architecture": "arm64"
+  },
+  "scope": "Real official macOS players with original local audio and lyrics; failing checks remain failures.",
+  "archivedAtUTC": "2026-11-27T12:12:46.883630+00:00",
+  "files": [
+    {
+      "file": "qqMusic/source-04-local-import-expands-real-panel.json",
+      "artifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/source-04-local-import-expands-real-panel.json",
+      "bytes": 2314,
+      "sha256": "afea686621936999ccea39b9eea0c277af803c32dfa7718d1cef57b6e1d507f6",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "qqMusic/source-05-seek-command-readback.json",
+      "artifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/source-05-seek-command-readback.json",
+      "bytes": 2911,
+      "sha256": "a91f21405b950c46aea8131e3835864e18883cca3d6bd956d533ac3d73840d13",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "qqMusic/native-player.json",
+      "artifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/native-player.json",
+      "bytes": 15522,
+      "sha256": "fa00d1e63953e7fb4ef07bd0a6ff7d1f92febf13beb83371bb19ab4a42df6852",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "netease/source-04-local-import-expands-real-panel.json",
+      "artifactPath": "dist/evidence/cloud-clients/netease/native-player/source-04-local-import-expands-real-panel.json",
+      "bytes": 2284,
+      "sha256": "00f27eed18775cf59ca65a5060f099b25d545666e6701e6e70bc8f03513efa20",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "netease/source-05-seek-command-readback.json",
+      "artifactPath": "dist/evidence/cloud-clients/netease/native-player/source-05-seek-command-readback.json",
+      "bytes": 2887,
+      "sha256": "b448c9cc6076be9a6819ede4606e572ac2c6dca101edf846c1de7d7391422662",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "netease/native-player.json",
+      "artifactPath": "dist/evidence/cloud-clients/netease/native-player/native-player.json",
+      "bytes": 14001,
+      "sha256": "a00973ad391bec919665ad3b19c003fde10cde9053c340a9de6848aa25b99706",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "qqMusic/native-pointer.json",
+      "artifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/native-pointer.json",
+      "bytes": 2393,
+      "sha256": "11a897060e0d0e823b98607d624ae20cf9a3da5d664e210e5bbb206f7c0db4b5",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "Music/cloud-music.json",
+      "artifactPath": "dist/evidence/real-music/cloud-music.json",
+      "bytes": 747,
+      "sha256": "fc71e99c43e39c05e52d093043642f6bb08d8dc43862dfeb6ba8505e00eac034",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "netease/real-netease-lyrics.png",
+      "artifactPath": "dist/evidence/cloud-clients/netease/native-player/real-netease-lyrics.png",
+      "bytes": 18400,
+      "sha256": "ae37f53b7fbf0e1141b8c0bd53b4e17546fce9209247dbc53c75445b9d4a60b1",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "netease/real-netease-hover.png",
+      "artifactPath": "dist/evidence/cloud-clients/netease/native-player/real-netease-hover.png",
+      "bytes": 7755,
+      "sha256": "294571074c729aa3f4b6af7ee4bb70ce0c4485868f8ca17d7d4537ba17c1df44",
+      "unmodifiedOriginal": true
+    },
+    {
+      "file": "README.md",
+      "bytes": 6648,
+      "sha256": "5c279b888049902912b12c1a8196d3371bb703a9a84132cbf62344ba498be564",
+      "kind": "evidence review"
+    }
+  ],
+  "selfHashExcluded": true
+}

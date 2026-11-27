@@ -2,28 +2,25 @@
 
 2026-11-27，北京时间。独立 macOS 软件；分支 `codex/lyrictile-standalone-20261126`，PR #17。
 
-## 当前发行状态：真实播放回归待修复后复验
+## 当前状态：CI41发现的问题已定向修复，等待下一轮原生复验
 
-- **CI40 / build40 / `e3c64e364da6846dcc278cec7214cbd44583c73c` 真实QQ验证失败，不可发行**：[原始运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45988292487)。识别真实音频、紧凑态和本地歌词扩容通过，但seek后歌词丢失回到104pt。临时UUID处理漏了73285是强线索；本提交补入该已知build，保留真实元数据/canonical ID切歌分辨，并增加2项回归测试。下一轮用原始payload、fingerprint/generation、文档hash及TransportTrace共同复验，不能仅看actionMessage为空。
-- CI36 欢迎页实际400×2157pt的问题已修复。生产窗口中英文×深浅色4组合均为欢迎页400×360、设置页450×620；欢迎页5个内容区域完整、不越界、不重叠。12个原生歌词布局通过且逐图复审。截图为1×，歌词面板使用明确标注的原创测试输入。
-- 96项原生测试通过；生产App、helper、ZIP与实际挂载DMG内容/版本/build/源码/校验一致。云端签名身份数量为0，包为ad-hoc候选，尚未正式签名、公证或公开发行。
-- CI40空闲121秒：单核CPU平均0.0992%，RSS中位54.34MiB。QQ60.8秒样本为1.481%/92.09MiB，但当时歌词已丢失，**不是逐行歌词性能通过**；修复后重新采样。旧8小时基线不重复套用。
-- CI38的LRCLIB真实网络/生产repository探针：中文3/3、英文3/3返回同步文档，首读249–606ms；7/7文档缓存及同进程离线重建hash一致、零新增请求。纯音乐、缺时长/Live候选与不存在歌曲行为正确。仅元数据样本，未测独立音频错配率；最终轮结果单独归档。
+- **最新实际验收是 CI41 / build41 / `1c87964c399f445ad4fe6a394cdf680907e43306`，整体FAIL，不可发行**：[运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45994575431)。98项原生测试（83 Swift Testing＋15 XCTest）、编译、App启动、helper加载、ZIP与实际挂载DMG完整性通过。
+- 欢迎页从CI36的400×2157pt修复为400×360，设置页450×620；最新中英文×深浅色4组合及5个欢迎内容区域边界/重叠检查通过。CI41的12个原生布局PNG已逐图审核，无新的明确缺陷。它们是1×原创夹具，不代表真实鼠标或播放。
+- **QQ11.11.1/build73285的跳转丢词已被真实数据证明修好**：同曲UUID改变但元数据/PID不变，规范化后fingerprint、generation、本地文档hash和192pt面板保持，seek读回确认、歌词cue正确改变。暂停尚未实际执行：指针助手在enter之前被CG窗口矩形遮挡判断拦住，不能据此声称完整播放通过。现改为系统级AX实际命中校验，并记录遮挡窗口身份，原生事件仍需复验。
+- **网易云3.1.14/build3459已免登录播放原创WAV**；真实seek后同曲UUID变化导致generation1→2、歌词丢失。已将同一身份规范化精确扩展到3459，保持canonical/alternate ID、实际元数据变化及未知build边界，并扩充回归案例。下一轮核对同源数据。
+- **Music1.7的脚本改名失败可远程解决**：实际Start Listening和系统Automation Allow已成功；-50准确出在给刚导入WAV写name，不是登录或权限。现不改元数据，使用实际标题/持久ID/文件哈希读回，增加两段原创音频临时队列，准备验证真实next/previous与返回原曲后的本地歌词自动恢复。
+- 原始失败与修复因果证据在 `Documentation/Verification/2026-11-27-release-candidate/ci40-regression/` 和 `ci41-regression/`；按字节保存源JSON/PNG与SHA，不把整体FAIL重标为通过。
 
-## 正在完成的远程工作
+## 资源、歌词与发行准备
 
-- CI40已通过正常系统按钮授予一次性runner到Music的Automation，AX既有权限可用。Music脚本错误地假定单文件add总返回list，已修正为兼容track/list；欢迎页实际文本“Welcome to Apple Music”已精确匹配。仍未取得Music普通app通过结果，不直接编辑TCC数据库、不申请新辅助功能权限、不登录。
-- 官方QQ11.11.1/73285已免登录播放原创WAV，24秒取到3个真实源锚点推进；普通app的上述丢词是真实失败。网易云3.1.14实际进入未登录首页但没有匹配音频，下一轮只做一次普通open-file重试；Spotify未登录测试。
-- 官网6个中英页面已发布到 [nearpane.com/lyrictile/](https://nearpane.com/lyrictile/)，main提交 `7e0b2f8` / [Pages运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45985251945)。云浏览器实开6页，图片/导航/下载状态正常；截图为明确标注的CI38原生夹具。正式下载仍未启用。
-- 最后英文提示已通过CI40编译；接下来增加真实原生指针进入/暂停按钮点击/移出，以及公开API设置并恢复临时桌面壁纸。仅在已有权限与实际环境允许时执行，不能用夹具或设置请求替代真实截图。独立候选Release草稿manifest仍disabled，最终通过后才固定同一源码、包和证据。
-- 发行检查、build独立命名、真实更新签名验证、隐私和第三方/歌词来源说明已就绪。完成下一轮CI后覆盖本状态及最短本机交接。
+- CI41空闲120.77秒：单核CPU均值0.1408%，RSS中位55.14MiB、峰55.23MiB。核心检查失败后没有进行逐行性能或壁纸采样。旧build4八小时基线不套用为新包结果。
+- 真实LRCLIB/生产repository已取得中英文同步文档、纯音乐与候选/未找到结果；CI38明确抽样中文3/3、英文3/3、249–606ms，7/7缓存和同进程离线repository重建hash相同、零新增请求。最终轮另归档；不是独立音频错配率或整个曲库覆盖率。
+- 官网六个中英页面已上线：[产品页](https://nearpane.com/lyrictile/)，main `7e0b2f8` / [Pages](https://github.com/haohongfei2001-png/nearpane/actions/runs/45985251945)。云浏览器逐页核对图片、导航和下载状态。当前宣传图为明确标注的CI38原生夹具，最终成功候选后更新同源截图和支持清单。
+- 云端代码签名身份数量为0；包是ad-hoc候选，**尚未正式签名、公证或公开发行**。工程Release草稿自动化、精确build命名、校验、隐私/第三方说明、专用Sparkle公钥/feed已备妥；manifest仍disabled，成功后才固定同一run/source/build。
 
-## 不混用的历史与支持边界
+## 历史边界与最后交接
 
-- 已公证安装的1.0.0 build4来自 `3e83b5c`。它的8小时长稳、Apple Music/QQ本地播放和2→4升级仅是历史证据，不代表最新候选通过。
-- 四个适配器存在不等于四个平台认证支持。首发按实际结果确定；不要求全平台、完美逐字同步或重复8小时测试。
-- 只发现离线个人Mac与本机签名/公证/Sparkle配置，未操作个人设备。没有最新签名包时不以build4替代。
-
-## 继续入口
-
-证据摘要在 `Documentation/Verification/2026-11-27-release-candidate/`；执行入口 `.github/workflows/lyrictile.yml`；本机专属步骤 `Documentation/LOCAL_ONLY_HANDOFF.md`。按具体失败继续，不重复研究已确定架构。
+- 已公证build4来自`3e83b5c`；它的8小时、Apple Music/QQ本地播放和2→4升级仅是历史。不能代替最新候选。
+- Spotify仍无已登录真实播放结果。首发只声明实际通过的路径；不要求四平台、完美逐字、全部显示器或重复八小时。
+- 只发现离线个人Mac，未操作个人设备；本机专属项是现有Developer ID、公证和Sparkle私钥，以及同一最新签名包的升级确认。
+- 后续覆盖本状态，固定最终候选，完成Release草稿与官网资料，填实 `Documentation/LOCAL_ONLY_HANDOFF.md`，不要把可远程修复的脚本/普通开发交给本机。

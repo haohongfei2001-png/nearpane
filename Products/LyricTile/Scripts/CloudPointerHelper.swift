@@ -65,6 +65,14 @@ struct NativeWindow {
     let number: UInt32
     let pid: Int32
     let bounds: CGRect
+    let owner: String
+    let alpha: Double?
+    let layer: Int?
+    var evidence: [String: Any] {
+        ["windowNumber": number, "pid": pid, "owner": owner,
+         "alpha": alpha as Any? ?? NSNull(), "layer": layer as Any? ?? NSNull(),
+         "bounds": rectangle(bounds)]
+    }
 }
 func onScreenWindows() -> [NativeWindow] {
     let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
@@ -73,10 +81,13 @@ func onScreenWindows() -> [NativeWindow] {
     return rows.compactMap { row in
         guard let number = (row[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
               let pid = (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
-              (row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1 > 0.01,
+              ((row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1) > 0.01,
               let raw = row[kCGWindowBounds as String] as? [String: Any],
               let bounds = CGRect(dictionaryRepresentation: raw as CFDictionary), valid(bounds) else { return nil }
-        return NativeWindow(number: number, pid: pid, bounds: bounds)
+        return NativeWindow(number: number, pid: pid, bounds: bounds,
+            owner: row[kCGWindowOwnerName as String] as? String ?? "unknown",
+            alpha: (row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue,
+            layer: (row[kCGWindowLayer as String] as? NSNumber)?.intValue)
     }
 }
 func targetWindow(_ request: PointerRequest) throws -> NativeWindow {
@@ -88,13 +99,6 @@ func targetWindow(_ request: PointerRequest) throws -> NativeWindow {
     let matches = onScreenWindows().filter { $0.pid == request.pid && $0.number == request.windowNumber }
     try require(matches.count == 1, "The requested native window is not uniquely visible for this PID.")
     return matches[0]
-}
-func requireTopmost(_ position: CGPoint, window: NativeWindow) throws {
-    try require(window.bounds.contains(position), "The input point is outside the actual target window.")
-    guard let front = onScreenWindows().first(where: { $0.bounds.contains(position) }),
-          front.pid == window.pid, front.number == window.number else {
-        throw PointerFailure(reason: "Another visible window covers the intended input point.")
-    }
 }
 func displayBounds(containing position: CGPoint) throws -> CGRect {
     var count: UInt32 = 0
@@ -125,6 +129,88 @@ func axBounds(_ element: AXUIElement) -> CGRect? {
           AXValueGetValue(positionValue, .cgPoint, &position), AXValueGetValue(sizeValue, .cgSize, &size) else { return nil }
     let rect = CGRect(origin: position, size: size)
     return valid(rect) ? rect : nil
+}
+func elementAttribute(_ element: AXUIElement, _ name: String) -> AXUIElement? {
+    guard let value = attribute(element, name), CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    return unsafeBitCast(value, to: AXUIElement.self)
+}
+func sameBounds(_ left: CGRect, _ right: CGRect) -> Bool {
+    abs(left.minX - right.minX) <= 1 && abs(left.minY - right.minY) <= 1
+        && abs(left.width - right.width) <= 1 && abs(left.height - right.height) <= 1
+}
+func axWindow(for window: NativeWindow) throws -> AXUIElement {
+    let root = AXUIElementCreateApplication(window.pid)
+    AXUIElementSetMessagingTimeout(root, 0.12)
+    let matches = (attribute(root, kAXWindowsAttribute) as? [AXUIElement] ?? []).prefix(12).filter {
+        guard let bounds = axBounds($0) else { return false }
+        return sameBounds(bounds, window.bounds)
+    }
+    try require(matches.count == 1, "The visible CG window has no unique matching native Accessibility window.")
+    return matches[0]
+}
+func isWithin(_ element: AXUIElement, ancestor: AXUIElement) -> Bool {
+    var current: AXUIElement? = element
+    for _ in 0..<12 {
+        guard let value = current else { return false }
+        if CFEqual(value, ancestor) { return true }
+        current = elementAttribute(value, kAXParentAttribute)
+    }
+    return false
+}
+func requireHit(_ position: CGPoint, request: PointerRequest, window: NativeWindow,
+                button: AXUIElement? = nil, mayRaise: Bool = false, evidence: inout [String: Any]) throws {
+    try require(window.bounds.contains(position), "The input point is outside the actual target window.")
+    var attempts: [[String: Any]] = []
+    defer { evidence["hitTests"] = attempts }
+    for attempt in 0..<(mayRaise ? 2 : 1) {
+        let fresh = try targetWindow(request)
+        try require(sameBounds(fresh.bounds, window.bounds), "The requested native window moved before input.")
+        let covering = onScreenWindows().filter { $0.bounds.contains(position) }
+        var check: [String: Any] = ["point": point(position), "target": fresh.evidence,
+            "coveringWindowsFrontToBack": covering.prefix(12).map(\.evidence)]
+        // CGWindow bounds include transparent/non-interactive regions. The
+        // system-wide AX API performs actual z-order hit testing; an app-scoped
+        // hit test would incorrectly ignore another application's window.
+        let system = AXUIElementCreateSystemWide()
+        AXUIElementSetMessagingTimeout(system, 0.2)
+        var hit: AXUIElement?
+        let hitResult = AXUIElementCopyElementAtPosition(system, Float(position.x), Float(position.y), &hit)
+        check["AXHitResult"] = hitResult.rawValue
+        attempts.append(check)
+        var hitPID: pid_t = 0
+        var matched = false
+        if hitResult == .success, let hit, AXUIElementGetPid(hit, &hitPID) == .success {
+            check["AXHitPID"] = hitPID
+            check["AXHitRole"] = string(hit, kAXRoleAttribute)
+            check["AXHitOwner"] = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier ?? "unknown"
+        }
+        attempts[attempts.count - 1] = check
+        let targetAX = try axWindow(for: fresh)
+        if hitResult == .success, let hit, hitPID > 0 {
+            let hitWindow = string(hit, kAXRoleAttribute) == kAXWindowRole ? hit : elementAttribute(hit, kAXWindowAttribute)
+            if let hitWindow, let bounds = axBounds(hitWindow) {
+                check["AXHitWindowBounds"] = rectangle(bounds)
+                matched = hitPID == fresh.pid && CFEqual(hitWindow, targetAX) && sameBounds(bounds, fresh.bounds)
+            } else {
+                matched = hitPID == fresh.pid && isWithin(hit, ancestor: targetAX)
+            }
+            if let button { matched = matched && isWithin(hit, ancestor: button) }
+        }
+        check["matchedRequestedTarget"] = matched
+        attempts[attempts.count - 1] = check
+        if matched { return }
+        // Raising an already-visible, uniquely matched target window is an
+        // ordinary native operation. It never orders a withdrawn panel in or
+        // changes its level, geometry, registry permission or product state.
+        guard mayRaise, attempt == 0 else { break }
+        let beforeRaise = try targetWindow(request)
+        try require(sameBounds(beforeRaise.bounds, fresh.bounds), "The target changed before its native Raise action.")
+        let raiseResult = AXUIElementPerformAction(targetAX, kAXRaiseAction as CFString)
+        evidence["existingVisibleWindowRaiseResult"] = raiseResult.rawValue
+        if raiseResult != .success { break }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.12))
+    }
+    throw PointerFailure(reason: "System-wide Accessibility hit testing did not confirm the requested LyricTile target; no pointer input was posted.")
 }
 func isPauseButton(_ element: AXUIElement) -> Bool {
     guard string(element, kAXRoleAttribute) == kAXButtonRole,
@@ -180,23 +266,24 @@ func perform(_ request: PointerRequest) -> [String: Any] {
     do {
         let window = try targetWindow(request)
         row["windowBounds"] = rectangle(window.bounds)
+        row["targetWindow"] = window.evidence
         let center = CGPoint(x: window.bounds.midX, y: window.bounds.midY)
         let display = try displayBounds(containing: center)
         row["displayBounds"] = rectangle(display)
         switch request.action {
         case "enter":
-            try requireTopmost(center, window: window)
             row["point"] = point(center)
+            try requireHit(center, request: request, window: window, mayRaise: true, evidence: &row)
             try post(.mouseMoved, at: center); postedEvents.append("mouseMoved")
         case "pause":
-            let (_, bounds) = try pauseButton(in: window)
+            let (button, bounds) = try pauseButton(in: window)
             row["buttonBounds"] = rectangle(bounds)
             let position = CGPoint(x: bounds.midX, y: bounds.midY)
             row["point"] = point(position)
             _ = try displayBounds(containing: position)
             let fresh = try targetWindow(request)
             try require(fresh.bounds == window.bounds, "The native panel moved during button inspection.")
-            try requireTopmost(position, window: fresh)
+            try requireHit(position, request: request, window: fresh, button: button, evidence: &row)
             try post(.mouseMoved, at: position); postedEvents.append("mouseMoved")
             // A normal down/up pair reaches native hit testing; no AX action or
             // injected model state is used. The app verifier checks the outcome.

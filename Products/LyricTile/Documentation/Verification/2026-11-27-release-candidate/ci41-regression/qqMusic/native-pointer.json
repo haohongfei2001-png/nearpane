@@ -1,0 +1,96 @@
+{
+  "accessibilityAlreadyTrusted": true,
+  "accessibilityRequested": false,
+  "accountUsed": false,
+  "actions": [
+    {
+      "action": "enter",
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [],
+      "finishedAt": "2026-11-27T12:04:20Z",
+      "outcome": "blocked",
+      "pid": 24584,
+      "posted": false,
+      "reason": "Another visible window covers the intended input point.",
+      "requestID": "6D50F19A-A68E-46CD-8688-9261B8A0ECEC",
+      "sequence": 1,
+      "timestamp": "2026-11-27T12:04:20Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 93
+    },
+    {
+      "action": "pause",
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [],
+      "finishedAt": "2026-11-27T12:04:29Z",
+      "outcome": "blocked",
+      "pid": 24584,
+      "posted": false,
+      "reason": "No unique enabled Pause/暂停 button is exposed inside the target panel.",
+      "requestID": "14463363-036E-4F59-9388-FA7B1CB847B6",
+      "sequence": 2,
+      "timestamp": "2026-11-27T12:04:29Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 93
+    },
+    {
+      "action": "leave",
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [
+        "mouseMoved"
+      ],
+      "finishedAt": "2026-11-27T12:04:38Z",
+      "outcome": "posted",
+      "pid": 24584,
+      "point": {
+        "x": 1020,
+        "y": 143
+      },
+      "posted": true,
+      "requestID": "5C0355EA-8B17-484C-B680-89659F7F3407",
+      "sequence": 3,
+      "timestamp": "2026-11-27T12:04:38Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 93
+    }
+  ],
+  "available": true,
+  "inputMethod": "CGEvent mouse movement and left-button events at freshly observed native geometry",
+  "postEventAccessAlreadyGranted": true,
+  "postEventAccessRequested": false,
+  "scope": "disposable CI ordinary LyricTile window only",
+  "status": "COMPLETED",
+  "stoppedByCaller": true,
+  "TCCDatabaseModified": false,
+  "helperExitCode": 0
+}

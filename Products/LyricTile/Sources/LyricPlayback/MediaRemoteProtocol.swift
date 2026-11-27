@@ -126,8 +126,12 @@ struct MediaRemotePayload: Sendable {
         let elapsed = MediaTime.micros(fields["elapsedTimeMicros"]?.integer)
         let rawRate = fields["playbackRate"]?.number
         let rate = state == .playing ? ((rawRate?.isFinite == true && rawRate! > 0 && rawRate! <= 8) ? rawRate! : 1) : 0
-        let qqPublishesTransientItems = process.player == .qqMusic
-            && (process.build == "73284" || process.build == "73285")
+        let publishesTransientItemUUIDs: Bool
+        switch process.player {
+        case .qqMusic: publishesTransientItemUUIDs = process.build == "73284" || process.build == "73285"
+        case .netease: publishesTransientItemUUIDs = process.build == "3459"
+        default: publishesTransientItemUUIDs = false
+        }
         // QQ can flip the global playing flag before refreshing the playing
         // anchor. Presenting its old elapsed field would rewind on pause.
         // Keep the independently observed paused-clock workaround scoped to
@@ -147,10 +151,10 @@ struct MediaRemotePayload: Sendable {
         }
         var itemID = fields["contentItemIdentifier"]?.string
         let alternateID = fields["uniqueIdentifier"]?.string
-        // These QQ builds can refresh a content UUID during same-track control
-        // updates. It identifies an update, not a catalog recording. Preserve
-        // other IDs and metadata distinctions, and leave unknown builds alone.
-        if qqPublishesTransientItems,
+        // These observed QQ/NetEase builds refresh content UUIDs during same-
+        // track control updates. They identify updates, not catalog recordings.
+        // Preserve other IDs and metadata distinctions; leave unknown builds alone.
+        if publishesTransientItemUUIDs,
            let value = itemID, UUID(uuidString: value) != nil {
             itemID = alternateID == value ? nil : alternateID
         } else {
