@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "enabled": false,
+  "enabled": true,
   "repository": "haohongfei2001-png/nearpane",
   "branch": "codex/lyrictile-standalone-20261126",
   "version": "1.0.0",
-  "runID": null,
-  "sourceCommit": null,
-  "build": null,
-  "artifactName": null,
-  "note": "Enable only after the final native run succeeds. Pin that run ID, exact 40-character source SHA, run/build number, and LyricTile-candidate-N artifact. This prepares an unsigned engineering draft only."
+  "runID": 46024615269,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "build": 49,
+  "artifactName": "LyricTile-candidate-49",
+  "note": "Pinned to the successful native CI49 and reviewed original player reports. Prepare the unchanged ad-hoc engineering draft; this manifest does not publish the consumer release or update feed."
 }
