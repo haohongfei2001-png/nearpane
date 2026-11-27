@@ -18,7 +18,7 @@ report = json.loads(selected_file.read_text())
 if selected_result.returncode or not report.get('ready'):
     selected_file = out / 'virtual.json'
     log = (out / 'virtual-process.log').open('w')
-    process = subprocess.Popen([str(binary), '--create', '--width', '1920', '--height', '1080', '--seconds', '1800', '--output', str(selected_file)], stdout=log, stderr=log, start_new_session=True)
+    process = subprocess.Popen([str(binary), '--create', '--width', '1600', '--height', '1200', '--seconds', '1800', '--output', str(selected_file)], stdout=log, stderr=log, start_new_session=True)
     (out / 'virtual-process.json').write_text(json.dumps({'pid': process.pid}) + '\n')
     deadline = time.monotonic() + 25
     while not selected_file.exists() and process.poll() is None and time.monotonic() < deadline:
