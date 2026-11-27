@@ -28,6 +28,18 @@ struct LyricsLayoutTests {
         let short = LayoutComposer.compose(width: 240, height: 100, pinnedCount: 0, expanded: false, lyricsHeight: 192, toolOrder: order)
         #expect(short.additionalTools[BuiltinCatalog.lyrics] == nil)
     }
+    @Test func lyricsCanAppearWithScreenshotOnlyOrAlone() {
+        let screen = ScreenGeometry(id: "primary", frame: .init(width: 1440, height: 900), visibleFrame: .init(width: 1440, height: 876))
+        var coordinator = MultiDisplayPresentationCoordinator()
+        for tray in [false, true] {
+            let playing = coordinator.resolve(screens: [screen], preferred: nil, settings: [:], demand: [:], hidden: false, voice: false, tray: tray, lyrics: true, spacesEnabled: false, uptime: 1)
+            #expect(playing.first?.content == .toolsOnly)
+            let idle = coordinator.resolve(screens: [screen], preferred: nil, settings: [:], demand: [:], hidden: false, voice: false, tray: tray, lyrics: false, spacesEnabled: false, uptime: 2)
+            #expect(idle.first?.content == (tray ? .trayOnly : .hidden))
+            let hidden = coordinator.resolve(screens: [screen], preferred: nil, settings: [:], demand: [:], hidden: true, voice: false, tray: tray, lyrics: true, spacesEnabled: false, uptime: 3)
+            #expect(hidden.first?.content == .hidden)
+        }
+    }
     @Test @MainActor func lyricsIsOptionalReorderableAndNotARailSample() throws {
         let diagnostics = Diagnostics()
         let registry = ModuleRegistry(bus: SnapshotBus(diagnostics: diagnostics), diagnostics: diagnostics)

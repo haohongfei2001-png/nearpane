@@ -469,8 +469,10 @@ public struct SettingsView: View {
                                 }
                             }
                             #if canImport(NearpaneLyricsModule)
-                            if pref.id == BuiltinCatalog.lyrics, pref.enabled, let lyrics = domains?.lyrics {
-                                HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model)
+                            if pref.id == BuiltinCatalog.lyrics, let lyrics = domains?.lyrics {
+                                if pref.enabled { HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model) }
+                                else { Text("播放音乐时自动显示歌词。启用后可选择关闭 LRCLIB 在线查找。")
+                                    .font(.caption).foregroundStyle(.secondary) }
                             }
                             #endif
                             HStack {

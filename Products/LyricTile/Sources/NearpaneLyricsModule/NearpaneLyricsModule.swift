@@ -42,6 +42,7 @@ public final class NearpaneLyricsModule: NSObject, ObservableObject {
 
     @discardableResult public func deactivate() async -> Bool {
         guard !transitioning else { return false }
+        guard isPresented || model.ownsSession else { return true }
         transitioning = true
         defer { transitioning = false }
         isPresented = false; model.isVisible = false

@@ -139,6 +139,16 @@ else
   resources="$stage/Contents/Resources"
   bash Products/LyricTile/Scripts/build-media-helper.sh "$resources/MediaRemote" "$(uname -m)"
   cp Products/LyricTile/Packaging/Notices/libyaml-LICENSE "$resources/MediaRemote/libyaml-LICENSE"
+  # SwiftPM checks out the exact Yams revision used by the verified lyric domain.
+  yams_dir="$scratch/checkouts/Yams"
+  [[ -d "$yams_dir" ]] || yams_dir="$scratch/checkouts/yams"
+  [[ "$(git -C "$yams_dir" rev-parse HEAD)" == a27b21e0c81c5bf42049b897a62aaf387e80f279 ]]
+  yams_license=""
+  for name in LICENSE LICENSE.md LICENSE.txt; do
+    if [[ -f "$yams_dir/$name" ]]; then yams_license="$yams_dir/$name"; break; fi
+  done
+  [[ -n "$yams_license" ]]
+  cp "$yams_license" "$resources/MediaRemote/Yams-LICENSE"
   /usr/bin/codesign --verify --strict "$resources/MediaRemote/MediaRemoteAdapter.framework"
   cp Resources/AcceptanceTargetGuard.js "$resources/"
   /usr/bin/plutil -insert NearpaneDraftGuardSHA256 -string "$(shasum -a 256 "$resources/AcceptanceTargetGuard.js" | cut -d ' ' -f1)" "$stage/Contents/Info.plist"

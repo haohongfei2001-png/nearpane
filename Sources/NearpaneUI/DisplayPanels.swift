@@ -11,6 +11,7 @@ import NearpaneCore
     public private(set) var systemManagesWindows = false
     private let navigation: NativeSidebarNavigation
     private weak var workRect: CandidateWorkRect?
+    private weak var domains: EmbeddedModules?
     private var missionControl: MissionControlVisibility
     private let missionControlReader: MissionControlVisibilityReader?
     private var stageMonitor: Timer?
@@ -94,6 +95,7 @@ import NearpaneCore
          present: @escaping (EdgeWindowController) -> Void) {
         self.navigation = navigation
         self.workRect = domains?.workRect
+        self.domains = domains
         self.missionControlReader = missionControlReader
         missionControl = missionControlReader == nil ? .ordinary : .unknown
         self.fullscreen = FullscreenPresentation(host: host, domains: domains)
@@ -107,6 +109,9 @@ import NearpaneCore
         }
         pointer.windowPreviews?.currentDesktop?.splitPresentationChanged = { [weak self] in self?.refresh?() }
         primary.usePointer(pointer)
+        #if canImport(NearpaneLyricsModule)
+        domains?.lyrics?.heightDidChange = { [weak self] in self?.refresh?() }
+        #endif
         if missionControlReader != nil {
             navigation.confirmDispatch = { [weak self] in await self?.confirmWindowDispatch() == true }
             workRect?.desktopTiling.confirmDispatch = { [weak self] in await self?.confirmWindowDispatch() == true }
@@ -380,11 +385,12 @@ import NearpaneCore
             demand[id] = DisplayDemand(spaces: 1, windows: 2, blocked: false, complete: true)
             demand[id]?.hasCurrentDesktopWindows = true
         }
+        let lyricsActive = (domains?.lyricsHeight ?? 0) > 0 && prefs.contains { $0.id == BuiltinCatalog.lyrics && $0.enabled }
         let ordinary = coordinator.resolve(
             screens: screens, preferred: host.configuration.preferredDisplayID,
             settings: host.configuration.displays, demand: demand, hidden: host.configuration.surfaceHidden || suspended,
             voice: prefs.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
-            tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
+            tray: prefs.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled }, lyrics: lyricsActive,
             spacesEnabled: prefs.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }, uptime: uptime)
         let ids = Set(ordinary.map(\.id))
         let identified = screens.filter { ids.contains($0.id) }
@@ -394,7 +400,7 @@ import NearpaneCore
             return fullscreen.sample(screen: screen, override: witness, now: now, uptime: ProcessInfo.processInfo.systemUptime,
                                      suspended: suspended) ? screen.id : nil
         })
-        let hasTools = prefs.contains { $0.enabled && BuiltinCatalog.sidebarTools.contains($0.id) } || !host.registry.pinnedModules.isEmpty
+        let hasTools = prefs.contains { $0.enabled && BuiltinCatalog.sidebarTools.contains($0.id) && ($0.id != BuiltinCatalog.lyrics || lyricsActive) } || !host.registry.pinnedModules.isEmpty
         let plans = ordinary.map { plan -> DisplaySurfacePlan in
             let content: PanelContent
             if paired.contains(plan.id) {

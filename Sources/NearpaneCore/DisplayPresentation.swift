@@ -255,7 +255,7 @@ public struct MultiDisplayPresentationCoordinator {
 
     public mutating func resolve(
         screens: [ScreenGeometry], preferred: String?, settings: [String: DisplaySettings],
-        demand: [String: DisplayDemand], hidden: Bool, voice: Bool, tray: Bool,
+        demand: [String: DisplayDemand], hidden: Bool, voice: Bool, tray: Bool, lyrics: Bool = false,
         spacesEnabled: Bool, uptime: Double
     ) -> [DisplaySurfacePlan] {
         let ids = Self.identifiedScreens(screens).map(\.id)
@@ -285,7 +285,9 @@ public struct MultiDisplayPresentationCoordinator {
             } else if isPrimary {
                 let spaces = spacesEnabled && !dismissed && (requested.contains(id) || context.hasCurrentDesktopWindows || context.multiple || !context.complete)
                 if spaces {
-                    content = voice || tray ? .full : .spacesOnly
+                    content = voice || tray || lyrics ? .full : .spacesOnly
+                } else if lyrics {
+                    content = .toolsOnly
                 } else if voice && tray {
                     content = .compact
                 } else if voice {

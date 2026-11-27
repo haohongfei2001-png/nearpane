@@ -17,6 +17,7 @@ final class HostLyrics: HostModule {
     private(set) var status = "等待播放音乐"
     private(set) var requested = false
     var openingFailed: (() -> Void)?
+    @ObservationIgnored var heightDidChange: (() -> Void)?
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
     @ObservationIgnored private var pendingRefresh = false
@@ -34,8 +35,10 @@ final class HostLyrics: HostModule {
     func stop() {
         requested = false
         status = "已停用"
+        let changed = height != 0
         height = 0
         updateVisibility()
+        if changed { heightDidChange?() }
         reconcile()
     }
     func suspend() { stop() }
@@ -99,7 +102,8 @@ final class HostLyrics: HostModule {
         let visible = requested && module.isPresented && model.ownsSession &&
             policy.shouldPresent(model.snapshot, wasVisible: height > 0 && mounted && !hostHidden, isInteracting: interacting)
         let next = visible ? Double(model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight) : 0
-        if height != next { height = next }
+        let changed = height != next
+        if changed { height = next }
         let nextStatus: String
         if !requested { nextStatus = "已停用" }
         else if !module.isPresented { nextStatus = model.ownershipMessage ?? "等待歌词会话" }
@@ -107,6 +111,7 @@ final class HostLyrics: HostModule {
         else { nextStatus = model.snapshot.statusMessage ?? (visible ? "正在跟随播放器" : "播放音乐时自动显示") }
         if status != nextStatus { status = nextStatus }
         updateVisibility()
+        if changed { heightDidChange?() }
         if requested && !module.isPresented && worker == nil {
             // Another client explicitly took the shared session. Do not ping-pong.
             openingFailed?()
