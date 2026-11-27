@@ -31,7 +31,7 @@ struct PanelSizeLayout {
                                         floating: floating) else { return nil }
         frame = rect
         form = settings.sizeForm(width: rect.width, height: rect.height, content: content, voice: voice, tray: tray,
-                                 referenceHeight: full.height, voiceCompact: content == .toolsOnly && voiceCompact,
-                                 trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder)
+                                 referenceHeight: full.height, voiceCompact: voiceCompact,
+                                 trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder, pinnedCount: pinnedCount)
     }
 }

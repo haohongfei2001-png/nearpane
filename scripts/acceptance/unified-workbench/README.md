@@ -31,3 +31,18 @@ against WindowServer independently of either capture method.
 
 Artifacts contain the original packaged candidate separately from the fixture
 copy, complete build/test logs and the native screenshots and receipts.
+
+## Optional actual Apple Music probe
+
+`native_player.py` runs after the UI check on the disposable GitHub macOS runner.
+It creates an original local WAV, asks the installed Music app to play it and
+then starts `--native-player-probe` in the same packaged Nearpane executable.
+The probe uses the production `PlaybackController` for pause/resume and saves
+the real adapter's command readbacks. It checks a 15-second non-hovered pause,
+the paused clock, normal resumption and the actual player's exit. No extra
+standalone lyric panel or management window is created.
+
+This probe may be BLOCKED by the runner's Music welcome flow or macOS Automation
+permission. Its separate receipt never converts that into a UI-gate failure or
+a false playback PASS. It does not exercise commercial streaming catalogs, QQ
+Music, NetEase, physical pointer input, or independently measured clock accuracy.

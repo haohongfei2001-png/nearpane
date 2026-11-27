@@ -562,7 +562,10 @@ public final class LyricAppModel: ObservableObject {
             // Sparse polls retain the last rendered cue while the same session
             // reconnects. The source status still reports stale/unavailable data;
             // no elapsed time or new lyric position is invented.
-            if frame.phase == .positionUnavailable, document != nil,
+            if frame.phase == .positionUnavailable, let document,
+               previous.presentedCues.allSatisfy({ presented in
+                   document.lanes.contains { $0.cues.contains { $0.id == presented.cueID } }
+               }),
                Self.sameSession(previous.selection, snapshot.selection),
                [.syncedLine, .syncedToken, .plainText, .interlude].contains(previous.phase) {
                 frame = .init(selection: selection, phase: previous.phase, playbackState: snapshot.state,

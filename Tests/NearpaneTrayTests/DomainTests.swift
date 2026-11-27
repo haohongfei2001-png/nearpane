@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import Carbon
+import AppKit
 import Testing
 import CoreGraphics
 import ImageIO
@@ -162,6 +163,57 @@ struct TrayDomainTests {
         await #expect(throws: CancellationError.self) { try await module.archivePage(offset: 0, session: session) }
         module.stop()
         await module.finishStopping()
+    }
+
+    @Test func disabledScreenshotLibraryReadsCopiesAndDragsWithoutStartingServices() async throws {
+        let dir = root()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let media = dir.appendingPathComponent("media", isDirectory: true)
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        let url = media.appendingPathComponent("saved.png")
+        try makePNG(url)
+        let data = try Data(contentsOf: url)
+        let image = ImportedAsset(sourceKey: "saved", fileName: url.lastPathComponent,
+            sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
+            byteCount: Int64(data.count), pixelWidth: 40, pixelHeight: 17, mediaType: "image/png", origin: .synthetic)
+        let store = try QueueStore(databaseURL: dir.appendingPathComponent("queue.sqlite"), mode: .simulation)
+        _ = try await store.importAsset(image)
+        let adapter = Transport()
+        var openings = 0
+        let module = TrayModule { change, report in
+            openings += 1
+            return TrayOwner(store: store, root: dir, adapter: adapter, policy: .init(), captureEntry: true,
+                pin: { Issue.record("Passive library attempted browser input"); throw LibraryError.incompatible },
+                permission: { _, _ in Issue.record("Passive library requested a permission"); return .denied },
+                notify: change, report: report)
+        }
+        await module.openArchive()
+        let session = try #require(module.archiveSession)
+        #expect(!module.active && !module.connected && !module.collectionEnabled)
+        #expect(try await module.archivePage(offset: 0, session: session).entries.map(\.id) == [image.id])
+        let clipboard = NSPasteboard(name: .init("nearpane-library-test-" + UUID().uuidString))
+        defer { clipboard.releaseGlobally() }
+        #expect(await module.copyArchiveImage(image, session: session, pasteboard: clipboard))
+        #expect(clipboard.canReadObject(forClasses: [NSImage.self], options: nil))
+        let provider = module.archiveDragProvider(image, session: session)
+        #expect(provider.registeredTypeIdentifiers.contains(UTType.png.identifier))
+        let dragged: Data? = await withCheckedContinuation { continuation in
+            _ = provider.loadDataRepresentation(forTypeIdentifier: UTType.png.identifier) { bytes, _ in
+                continuation.resume(returning: bytes)
+            }
+        }
+        let bitmap = try #require(dragged.flatMap { NSBitmapImageRep(data: $0) })
+        #expect(bitmap.pixelsWide == 40 && bitmap.pixelsHigh == 17)
+        #expect(await adapter.appends == 0)
+        #expect(await adapter.observations == 0)
+        module.closeArchive()
+        await module.finishStopping()
+        #expect(module.archiveSession == nil)
+        await #expect(throws: CancellationError.self) { try await module.archivePage(offset: 0, session: session) }
+        try module.start()
+        await module.connect()
+        #expect(openings == 2 && module.connected)
+        module.stop(); await module.finishStopping()
     }
 
     @Test func archivePreviewReadsRegisteredPixelsAndRefusesReplacedOrLinkedMedia() async throws {

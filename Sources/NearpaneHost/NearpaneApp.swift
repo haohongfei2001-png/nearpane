@@ -205,6 +205,14 @@ struct NearpaneApp {
                         try JSONEncoder().encode(result).write(to: session.directory.appendingPathComponent("preview-readiness.json"), options: .withoutOverwriting)
                         return
                     }
+                    #if DEBUG && canImport(LyricPlayback) && canImport(LyricUI)
+                    if CandidateProfile.selected, args[1] == "--native-player-probe" {
+                        let session = try NativeAcceptanceSession(id: args[2], prepare: false)
+                        Task { @MainActor in await NativeLyricsPlayerProbe.run(session); exit(0) }
+                        RunLoop.main.run()
+                        return
+                    }
+                    #endif
                     if CandidateProfile.selected, args[1] == "--native-settings-readback" {
                         let session = try NativeAcceptanceSession(id: args[2], prepare: false)
                         Task { @MainActor in
@@ -744,6 +752,10 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return nil
         }
         self.updater = updater
+        updater.openManagement = { [weak self] in
+            self?.settingsNavigation.showApplicationServices()
+            self?.showSettings()
+        }
         updater.start()
         #if canImport(RiftletCore) && canImport(SaytileKit)
         let feedbackRoot = (profileLease?.root ?? testSession ?? support).appendingPathComponent("Feedback", isDirectory: true)
@@ -1305,7 +1317,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showSettings()
         do {
             try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
-                navigation: settingsNavigation, window: window, openMainWindow: { [self] in
+                navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in
                     showSettings()
                     return settings?.window
                 })

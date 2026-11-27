@@ -17,7 +17,7 @@ enum UnifiedWorkbenchAcceptance {
 
     static func run(session: NativeAcceptanceSession, host: HostSession,
                     modules: EmbeddedModules, navigation: SettingsNavigation,
-                    window: NSWindow, openMainWindow: () -> NSWindow?) async throws {
+                    window: NSWindow, menu: NSMenu? = nil, openMainWindow: () -> NSWindow?) async throws {
         let output = session.directory.appendingPathComponent("workbench", isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
         var checks: [[String: Any]] = []
@@ -39,6 +39,7 @@ enum UnifiedWorkbenchAcceptance {
                 "evidenceScope": "Packaged Nearpane native UI; isolated generated content; in-process accessibility actions",
                 "playbackScope": "Synthetic snapshots only; does not certify a real music player's controls or metadata",
                 "spacesScope": "No real window dispatch was performed; PR 16 remains separately qualified",
+                "nativeMenuDispatchAttempted": menu != nil,
                 "checks": checks, "screenshots": pictures
             ]
             if let error { receipt["error"] = error }
@@ -109,6 +110,30 @@ enum UnifiedWorkbenchAcceptance {
                 try check("repeated-open-" + navigation.selectedPageIdentifier,
                           opened === window && window.windowNumber == originalNumber && singleMainWindow(),
                           detail: "The production main-window opener reused its NSWindow and window number.")
+            }
+            if let menu {
+                for (selector, expected) in [("showModules", "modules"), ("showLibrary", "screenshotArchive"),
+                                             ("showGeneralSettings", "general"), ("showWindowManagement", "windowManagement")] {
+                    guard let item = menu.items.first(where: { $0.action.map(NSStringFromSelector) == selector }),
+                          let action = item.action else { throw Failure("Native menu route missing: " + selector) }
+                    let sent = NSApp.sendAction(action, to: item.target, from: item)
+                    try await Task.sleep(for: .milliseconds(160))
+                    try check("native-menu-" + selector, sent && navigation.selectedPageIdentifier == expected && singleMainWindow(),
+                              detail: "The actual menu item's target/action selected its route in the existing management window.")
+                }
+            }
+            guard let moduleRoute = modules.openManagementPage else { throw Failure("Module management navigation was not connected.") }
+            for (moduleID, page, expected) in [
+                (BuiltinCatalog.voice, "library", "voiceArchive"),
+                (BuiltinCatalog.screenshots, "library", "screenshotArchive"),
+                (BuiltinCatalog.lyrics, "fullLyrics", "lyrics"),
+                (BuiltinCatalog.lyrics, "source", "lyrics")
+            ] {
+                moduleRoute(moduleID, page)
+                try await Task.sleep(for: .milliseconds(160))
+                try check("module-entry-" + moduleID + "-" + page,
+                          navigation.selectedPageIdentifier == expected && singleMainWindow() && window.windowNumber == originalNumber,
+                          detail: "The production module-to-Host callback reused the same main window.")
             }
 
             navigation.showModules()
@@ -188,7 +213,7 @@ enum UnifiedWorkbenchAcceptance {
 
             for preference in originalPreferences { host.handle(.setEnabled(preference.id, preference.enabled)) }
             var next: String?
-            for preference in originalPreferences.reversed() {
+            for preference in originalPreferences.filter({ BuiltinCatalog.sidebarTools.contains($0.id) }).reversed() {
                 _ = host.moveModule(preference.id, before: next)
                 next = preference.id
             }

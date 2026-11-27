@@ -269,9 +269,9 @@ public final class TrayModule: HostModule {
         closeArchive()
         connecting = true; issue = nil
         let entry = epoch
-        let previous = connectionTask, closingCollection = collectionDrain, closingOwner = ownerDrain
+        let previous = connectionTask, closingCollection = collectionDrain, closingOwner = ownerDrain, closingArchive = archiveDrain
         let task = Task { [weak self] in
-            await self?.archiveDrain?.value
+            await closingArchive?.value
             await previous?.value
             await closingCollection?.value
             await closingOwner?.value
@@ -465,7 +465,10 @@ public final class TrayModule: HostModule {
             await archiveClosing?.value
             guard token == archiveEpoch, owner == nil else { return }
             do {
-                let opened = try await open({}, { [weak self] message in self?.issue = message })
+                let opened = try await open({}, { [weak self] message in
+                    guard let self, token == archiveEpoch else { return }
+                    issue = message
+                })
                 guard token == archiveEpoch, owner == nil else {
                     opened.close(); await opened.finishWork(); return
                 }

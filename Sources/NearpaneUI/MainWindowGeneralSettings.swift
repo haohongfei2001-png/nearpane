@@ -15,14 +15,14 @@ struct MainWindowGeneralSettings: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("启动与访问").font(.system(size: 12, weight: .semibold))
-                    Toggle("登录时打开 Nearpane", isOn: Binding(get: { loginStatus == .enabled || loginStatus == .requiresApproval }, set: updateLogin))
+                    Toggle("登录时打开 Nearpane", isOn: Binding(get: { loginStatus == .enabled || loginStatus == .requiresApproval }, set: { value in updateLogin(value) }))
                         .toggleStyle(.switch).controlSize(.small).disabled(loginChanging || loginStatus == .notFound)
                         .accessibilityIdentifier("settings-login-item")
                     if loginStatus == .requiresApproval {
                         Button("在系统设置中允许开机启动…") { SMAppService.openSystemSettingsLoginItems() }
                             .font(.callout)
                     } else if loginStatus == .notFound {
-                        Text("将 Nearpane 放入「应用程序」后，可设置开机启动。")
+                        Text("此安装暂时无法注册开机启动。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if let loginIssue { Text(loginIssue).font(.caption).foregroundStyle(.secondary) }

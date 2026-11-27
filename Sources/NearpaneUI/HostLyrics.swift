@@ -160,7 +160,7 @@ struct HostLyricsSettings: View {
     let lyrics: HostLyrics
     @ObservedObject var model: LyricAppModel
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(lyrics.status).font(.caption).foregroundStyle(.secondary)
             Picker("跟随播放器", selection: Binding(get: { model.settings.preferredPlayer }, set: {
                 model.selectPlayer($0.flatMap(PlayerID.init(rawValue:)))
@@ -211,7 +211,7 @@ struct HostLyricsManagementView: View {
         if destination == .settings || destination == .welcome {
             ScrollView {
                 HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model)
-                    .padding(20).frame(maxWidth: 620, alignment: .leading)
+                    .padding(.vertical, 4).frame(maxWidth: 620, alignment: .leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {

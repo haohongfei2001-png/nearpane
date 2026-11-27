@@ -22,12 +22,17 @@ jobs:
           set -o pipefail
           bash scripts/test.sh --no-parallel 2>&1 | tee build/unified-workbench-evidence/swift-tests.log
       - name: Compile and package integrated Nearpane
+        if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash scripts/build-app.sh debug 2>&1 | tee build/unified-workbench-evidence/build.log
           python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/unified-workbench-evidence/package-verification.log
       - name: Exercise and capture the native main window and sidebar
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
+      - name: Probe real Apple Music pause, resume and exit when available
+        if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
+        run: python3 -B scripts/acceptance/unified-workbench/native_player.py
       - name: Archive Host candidate
         if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-integrated-lyrics.zip

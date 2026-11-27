@@ -16,6 +16,7 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     @Published private(set) var installationDeferred = false
     @Published private(set) var sessionInProgress = false
     @Published private var installationAdmission = UpdateInstallationAdmission()
+    var openManagement: (() -> Void)?
     private let allowNetwork: Bool
     private let bundle: Bundle
     private let installationBlock: @MainActor () -> String?
@@ -26,7 +27,8 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     private var checkingRelaunch = false
     private var installerRequestedTermination = false
     #if canImport(Sparkle)
-    private var controller: SPUStandardUpdaterController?
+    let userDriver = EmbeddedUpdateUserDriver()
+    private var engine: SPUUpdater?
     private var observations: [NSKeyValueObservation] = []
     #endif
 
@@ -39,6 +41,11 @@ final class ApplicationUpdater: NSObject, ObservableObject {
         self.activityBlock = activityBlock
         status = allowNetwork ? "更新尚未开始检查。" : "隔离验收期间不连接更新服务。"
         super.init()
+        #if canImport(Sparkle)
+        userDriver.requestManagement = { [weak self] in self?.openManagement?() }
+        userDriver.reportStatus = { [weak self] in self?.status = $0 }
+        userDriver.reportOffer = { [weak self] in self?.offeredVersion = $0 }
+        #endif
     }
 
     func start() {
@@ -46,29 +53,31 @@ final class ApplicationUpdater: NSObject, ObservableObject {
         started = true
         guard allowNetwork else { return }
         #if canImport(Sparkle)
-        let controller = SPUStandardUpdaterController(startingUpdater: false,
-            updaterDelegate: self, userDriverDelegate: self)
-        self.controller = controller
-        automaticChecks = controller.updater.automaticallyChecksForUpdates
+        let engine = SPUUpdater(hostBundle: bundle, applicationBundle: bundle, userDriver: userDriver, delegate: self)
+        self.engine = engine
+        engine.sendsSystemProfile = false
+        automaticChecks = engine.automaticallyChecksForUpdates
         if let problem = ApplicationUpdatePolicy.configurationProblem(bundle.infoDictionary ?? [:]) {
             status = problem
             return
         }
         do {
-            try controller.updater.start()
-            status = "可检查更新。安装前会请你确认，并安全退出当前应用。"
+            try engine.start()
+            if userDriver.phase == .idle {
+                status = "可检查更新。安装前会请你确认，并安全退出当前应用。"
+            }
         } catch {
             status = "更新暂不可用。" + error.localizedDescription
             return
         }
         observations = [
-            controller.updater.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] _, _ in
+            engine.observe(\.canCheckForUpdates, options: [.initial, .new]) { [weak self] _, _ in
                 Task { @MainActor in self?.refresh() }
             },
-            controller.updater.observe(\.automaticallyChecksForUpdates, options: [.new]) { [weak self] _, _ in
+            engine.observe(\.automaticallyChecksForUpdates, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor in self?.refresh() }
             },
-            controller.updater.observe(\.sessionInProgress, options: [.new]) { [weak self] _, _ in
+            engine.observe(\.sessionInProgress, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor in self?.refresh() }
             }
         ]
@@ -84,6 +93,7 @@ final class ApplicationUpdater: NSObject, ObservableObject {
         installationDeferred = false
         #if canImport(Sparkle)
         observations.removeAll()
+        userDriver.stop()
         #endif
     }
 
@@ -92,7 +102,7 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     var canSwitchProfile: Bool {
         guard !stopped else { return false }
         #if canImport(Sparkle)
-        let busy = controller?.updater.sessionInProgress ?? false
+        let busy = engine?.sessionInProgress ?? false
         #else
         let busy = false
         #endif
@@ -103,16 +113,22 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     func setAutomaticChecks(_ enabled: Bool) {
         guard mayChangePreference else { return }
         #if canImport(Sparkle)
-        controller?.updater.automaticallyChecksForUpdates = enabled
-        automaticChecks = controller?.updater.automaticallyChecksForUpdates ?? false
+        engine?.automaticallyChecksForUpdates = enabled
+        automaticChecks = engine?.automaticallyChecksForUpdates ?? false
         #endif
     }
 
     func check() {
-        guard canCheck, !stopped else { return }
+        guard !stopped else { return }
+        openManagement?()
         #if canImport(Sparkle)
+        if userDriver.phase != .idle {
+            userDriver.showUpdateInFocus()
+            return
+        }
+        guard canCheck else { return }
         status = "正在检查 Nearpane 更新…"
-        controller?.checkForUpdates(nil)
+        engine?.checkForUpdates()
         #endif
     }
 
@@ -159,7 +175,7 @@ final class ApplicationUpdater: NSObject, ObservableObject {
     #if canImport(Sparkle)
     private func refresh() {
         guard !stopped else { return }
-        guard let updater = controller?.updater else { return }
+        guard let updater = engine else { return }
         canCheck = !stopped && updater.canCheckForUpdates
         automaticChecks = updater.automaticallyChecksForUpdates
         sessionInProgress = updater.sessionInProgress
@@ -168,7 +184,7 @@ final class ApplicationUpdater: NSObject, ObservableObject {
 }
 
 #if canImport(Sparkle)
-extension ApplicationUpdater: SPUUpdaterDelegate, @preconcurrency SPUStandardUserDriverDelegate {
+extension ApplicationUpdater: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
         guard allowNetwork, !stopped else { throw updateError("此运行环境已停止更新检查。") }
         if let problem = installationBlock() { throw updateError(problem) }
@@ -188,33 +204,10 @@ extension ApplicationUpdater: SPUUpdaterDelegate, @preconcurrency SPUStandardUse
                   feedSignatureValid: item.signingValidationStatus == .succeeded) else {
             throw updateError("无法验证更新签名或版本顺序，已停止此更新。")
         }
-        guard item.fileURL?.scheme == "https" else {
+        let destination = item.isInformationOnlyUpdate ? item.infoURL : item.fileURL
+        guard destination?.scheme == "https" else {
             throw updateError("更新下载地址不符合安全要求。")
         }
-    }
-
-    var supportsGentleScheduledUpdateReminders: Bool { true }
-
-    func standardUserDriverShouldHandleShowingScheduledUpdate(_ update: SUAppcastItem,
-                                                             andInImmediateFocus: Bool) -> Bool { false }
-
-    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem,
-                                                  state: SPUUserUpdateState) {
-        guard !stopped else { return }
-        offeredVersion = update.displayVersionString
-        status = "Nearpane \(update.displayVersionString) 可用。点击查看并确认安装。"
-    }
-
-    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
-        guard !stopped else { return }
-        offeredVersion = nil
-    }
-
-    func standardUserDriverWillFinishUpdateSession() {
-        guard !stopped else { return }
-        offeredVersion = nil
-        // Finishing the UI session does not prove the installer has stopped.
-        refresh()
     }
 
     @objc(updater:userDidMakeChoice:forUpdate:state:)
@@ -283,7 +276,11 @@ struct ApplicationUpdateSettings: View {
             if updater.installationDeferred {
                 Button("继续安装") { updater.continueInstallation() }
                     .accessibilityIdentifier("np.update.continue")
-            } else {
+            }
+            #if canImport(Sparkle)
+            EmbeddedUpdateProgress(driver: updater.userDriver).disabled(updater.installationDeferred)
+            #endif
+            if !updater.installationDeferred && !updater.sessionInProgress {
                 Button(updater.offeredVersion == nil ? "检查更新…" : "查看更新…") { updater.check() }
                     .disabled(!updater.canCheck).accessibilityIdentifier("np.update.check")
             }

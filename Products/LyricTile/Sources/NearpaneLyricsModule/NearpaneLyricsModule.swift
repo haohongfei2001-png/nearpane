@@ -98,7 +98,7 @@ public struct NearpaneLyricsView: View {
         Group {
             if module.isPresented {
                 // Host owns visibility; an idle or temporarily withdrawn card must not stop the observer.
-                LyricPanelView(model: module.model)
+                LyricPanelView(model: module.model, inheritsHostAppearance: true)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }

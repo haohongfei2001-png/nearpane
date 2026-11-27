@@ -26,35 +26,48 @@ struct PlaybackSessionLifetimeTests {
     @Test func pausedSessionSurvivesWithoutPointerOrPreviousVisibleSurface() throws {
         var tracker = PlaybackSelectionTracker()
         let paused = observation(state: .paused)
-        let selection = try #require(tracker.update(paused))
+        let selectionValue = tracker.update(paused)
+        let selection = try #require(selectionValue)
         var policy = LyricPanelVisibilityPolicy()
         let value = snapshot(paused, selection: selection)
         // There is no wall-clock timeout in this decision. Repeated dormant
         // refreshes, mounting and unmounting all preserve the same session.
         for index in 0..<1_000 {
-            #expect(policy.shouldPresent(value, wasVisible: index % 2 == 0, isInteracting: false))
+            let observed1 = policy.shouldPresent(value, wasVisible: index % 2 == 0, isInteracting: false)
+            #expect(observed1)
         }
-        #expect(policy.shouldPresent(value, wasVisible: false, isInteracting: true))
-        #expect(!policy.shouldPresent(.empty, wasVisible: true, isInteracting: true))
+        let observed2 = policy.shouldPresent(value, wasVisible: false, isInteracting: true)
+        #expect(observed2)
+        let observed3 = !policy.shouldPresent(.empty, wasVisible: true, isInteracting: true)
+        #expect(observed3)
     }
 
     @Test func initialIdlePlayerDoesNotCreateAnEmptyLyricSlot() {
         var tracker = PlaybackSelectionTracker()
-        #expect(tracker.update(observation(state: .stopped, title: nil, id: nil)) == nil)
-        #expect(tracker.update(observation(state: .unknown, title: nil, id: nil)) == nil)
-        #expect(tracker.update(observation(state: .stopped)) == nil)
+        let observed4 = tracker.update(observation(state: .stopped, title: nil, id: nil)) == nil
+        #expect(observed4)
+        let observed5 = tracker.update(observation(state: .unknown, title: nil, id: nil)) == nil
+        #expect(observed5)
+        let observed6 = tracker.update(observation(state: .stopped)) == nil
+        #expect(observed6)
         var policy = LyricPanelVisibilityPolicy()
-        #expect(!policy.shouldPresent(snapshot(observation(), selection: nil), wasVisible: true, isInteracting: true))
+        let observed7 = !policy.shouldPresent(snapshot(observation(), selection: nil), wasVisible: true, isInteracting: true)
+        #expect(observed7)
     }
 
     @Test func establishedSessionSurvivesStoppedAndSparseResponsesButNotProcessRestart() throws {
         var tracker = PlaybackSelectionTracker()
-        let first = try #require(tracker.update(observation()))
+        let firstValue = tracker.update(observation())
+        let first = try #require(firstValue)
         let sparse = observation(state: .unknown, title: nil, id: nil)
-        #expect(tracker.update(sparse) == first)
-        #expect(tracker.update(observation(state: .stopped)) == first)
-        #expect(tracker.update(observation(state: .unknown, title: nil, id: nil, processStart: 200)) == nil)
-        let restarted = try #require(tracker.update(observation(state: .paused, processStart: 200)))
+        let observed8 = tracker.update(sparse) == first
+        #expect(observed8)
+        let observed9 = tracker.update(observation(state: .stopped)) == first
+        #expect(observed9)
+        let observed10 = tracker.update(observation(state: .unknown, title: nil, id: nil, processStart: 200)) == nil
+        #expect(observed10)
+        let restartedValue = tracker.update(observation(state: .paused, processStart: 200))
+        let restarted = try #require(restartedValue)
         #expect(restarted.sessionID != first.sessionID)
     }
 
@@ -75,10 +88,13 @@ struct PlaybackSessionLifetimeTests {
     @Test func metadataGapKeepsGenerationAndRealTrackChangeReplacesIt() throws {
         var tracker = PlaybackSelectionTracker()
         let first = observation()
-        let selection = try #require(tracker.update(first))
+        let selectionValue = tracker.update(first)
+        let selection = try #require(selectionValue)
         let gap = PlaybackObservationContinuity.merging(observation(state: .paused, title: nil, id: nil), with: first)
-        #expect(tracker.update(gap) == selection)
-        let changed = try #require(tracker.update(observation(title: "Second song", id: "track-two")))
+        let observed11 = tracker.update(gap) == selection
+        #expect(observed11)
+        let changedValue = tracker.update(observation(title: "Second song", id: "track-two"))
+        let changed = try #require(changedValue)
         #expect(changed.generation > selection.generation)
         #expect(changed.recording.title == "Second song")
     }
@@ -132,7 +148,8 @@ struct PlaybackSessionLifetimeTests {
         let model = LyricAppModel(storageURL: root, defaults: defaults)
         var tracker = PlaybackSelectionTracker()
         let source = observation(state: .paused)
-        let selected = try #require(tracker.update(source))
+        let selectedValue = tracker.update(source)
+        let selected = try #require(selectedValue)
         let stamp = PlaybackClock.now()
         let anchor = LyricDomain.PlaybackAnchor(selection: selected, positionMS: 42_000,
             observedAt: stamp, playbackRate: 0, state: .paused, quality: .coarseSourceAnchor, expectedErrorMS: nil)
@@ -154,7 +171,8 @@ struct PlaybackSessionLifetimeTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let model = LyricAppModel(storageURL: root, defaults: defaults)
         var tracker = PlaybackSelectionTracker()
-        let selected = try #require(tracker.update(observation()))
+        let selectedValue = tracker.update(observation())
+        let selected = try #require(selectedValue)
         let anchor = LyricDomain.PlaybackAnchor(selection: selected, positionMS: 42_000,
             observedAt: PlaybackClock.now(), playbackRate: 1, state: .playing,
             quality: .coarseSourceAnchor, expectedErrorMS: nil)

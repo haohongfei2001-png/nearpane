@@ -99,6 +99,10 @@ private struct ModuleManagementRow: View {
                         .padding(12).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
                 }
             } else { detailButton }
+            if enabled && host.registry.states[manifest.id] == .degraded {
+                Button("重试") { host.handle(.setEnabled(manifest.id, true)) }
+                    .controlSize(.small).accessibilityIdentifier("module-retry-" + manifest.id)
+            }
             Toggle("启用" + ModulePresentation.title(manifest), isOn: Binding(get: {
                 host.registry.preferences.first(where: { $0.id == manifest.id })?.enabled == true
             }, set: { host.handle(.setEnabled(manifest.id, $0)) }))
@@ -135,6 +139,9 @@ private struct ModuleManagementRow: View {
                         }
                         if let state = ModulePresentation.status(host.registry.states[manifest.id] ?? .available) {
                             Text(state).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                        } else if enabled && manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(manifest.id) &&
+                                    host.registry.preferences.first(where: { $0.id == manifest.id })?.pinned == false {
+                            Text("未显示").font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
                         }
                     }
                     Text(manifest.summary).font(.system(size: 12)).foregroundStyle(.secondary)

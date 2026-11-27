@@ -17,7 +17,7 @@ import NearpaneCore
         #expect(navigation.page == .modules && navigation.moduleID == nil)
     }
 
-    @Test funcAllSpacesEntriesShareTheModuleParent() {
+    @Test func allSpacesEntriesShareTheModuleParent() {
         let navigation = SettingsNavigation()
         navigation.showWindowManagement()
         #expect(navigation.moduleID == BuiltinCatalog.desktop)

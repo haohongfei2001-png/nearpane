@@ -172,6 +172,7 @@ public struct SettingsView: View {
     }
 
     private var pageTitle: String {
+        if let detail = lyricsDetailTitle { return detail }
         if let id = navigation.moduleID,
            let manifest = host.registry.manifests.first(where: { $0.id == id }) {
             return ModulePresentation.title(manifest)
@@ -179,10 +180,27 @@ public struct SettingsView: View {
         return navigation.page.label
     }
 
+    private var lyricsDetailTitle: String? {
+        guard navigation.page == .lyrics else { return nil }
+        switch navigation.lyricsPage {
+        case "fullLyrics": return "完整歌词"
+        case "source": return "歌词来源"
+        case "adjustment": return "时间校准"
+        case "candidates": return "选择歌词"
+        default: return nil
+        }
+    }
+
     private var pageHeader: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
-                if navigation.moduleID != nil {
+                if lyricsDetailTitle != nil {
+                    Button { navigation.showLyrics() } label: {
+                        Label("歌词", systemImage: "chevron.left").font(.system(size: 12, weight: .medium))
+                    }.buttonStyle(.plain).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("main-back-to-lyrics")
+                    Text("/").foregroundStyle(.quaternary)
+                } else if navigation.moduleID != nil {
                     Button { navigation.showModules() } label: {
                         Label("模块", systemImage: "chevron.left").font(.system(size: 12, weight: .medium))
                     }.buttonStyle(.plain).foregroundStyle(.secondary)

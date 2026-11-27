@@ -9,6 +9,31 @@ import Testing
 }
 
 @MainActor struct PanelSizeDraftTests {
+    @Test func allWorkbenchModulesUseTheSameFittedGeometryAndPausedVoiceState() throws {
+        let frame = SurfaceRect(width: 1440, height: 832)
+        let screen = ScreenGeometry(id: "workbench", frame: frame, visibleFrame: frame)
+        let order = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.tasks]
+        for paused in [false, true] {
+            let sizing = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
+                content: .full, voice: true, tray: true, floating: false, toolOrder: order,
+                voiceCompact: paused, trayRows: 2, lyricsHeight: 192, pinnedCount: 1))
+            let layout = LayoutComposer.compose(width: sizing.frame.width, height: sizing.frame.height,
+                pinnedCount: 1, expanded: false, referenceHeight: sizing.referenceHeight,
+                voiceCompact: paused, trayRows: 2, lyricsHeight: 192, toolOrder: order)
+            #expect(sizing.form == .full)
+            if paused { #expect(layout.voice.height == 40) }
+            else { #expect(layout.voice.height >= 80) }
+            #expect(layout.additionalTools[BuiltinCatalog.lyrics]?.height == 192)
+            #expect(layout.windowArea.height >= 95.99)
+        }
+        var short = DisplaySettings()
+        short.measures[.panelHeight] = Measure(120)
+        let compact = try #require(PanelSizeLayout(settings: short, screen: screen, edge: .right,
+            content: .toolsOnly, voice: false, tray: false, floating: false,
+            toolOrder: [BuiltinCatalog.memo, BuiltinCatalog.tasks]))
+        #expect(compact.form == .compact)
+    }
+
     @Test func layoutRefreshAndAXLeaveMarkedTextWithTheInputMethodUntilCommit() {
         let field = FieldWithInputMethod(frame: .zero)
         field.isEditable = true

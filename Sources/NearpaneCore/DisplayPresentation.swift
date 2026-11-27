@@ -326,21 +326,32 @@ extension DisplaySettings {
     public func sizeForm(width: Double, height: Double, content: PanelContent, voice: Bool, tray: Bool,
                          referenceHeight: Double? = nil, temporarilyExpanded: Bool = false,
                          voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0,
-                         toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> PanelSizeForm {
+                         toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots],
+                         pinnedCount: Int = 0) -> PanelSizeForm {
         let minimum = PanelSizeMetrics.minimumSide
         let compactSpan = 2 * minimum + 2 * PanelSizeMetrics.glassInset
         guard width.isFinite, height.isFinite, min(width, height) >= minimum,
               max(width, height) >= compactSpan else { return .icon }
         if content == .full, (voice || tray), width < 176, !temporarilyExpanded { return .compact }
-        let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: 0, expanded: false,
+        let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: pinnedCount, expanded: false,
             settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
             voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder)
         if lyricsHeight > 0 && toolOrder.contains(BuiltinCatalog.lyrics) && (content == .full || content == .toolsOnly),
            layout.additionalTools[BuiltinCatalog.lyrics] == nil { return .compact }
         let cardPadding = 2 * glass.inset(width: width)
         let sections = (voice: max(0, layout.voice.height), tray: max(0, layout.screenshots.height),
-                        spaces: max(0, layout.desktop.height))
+                        spaces: max(0, layout.windowArea.height))
         let width = max(0, width - cardPadding)
+        if content == .full || content == .toolsOnly {
+            for id in [BuiltinCatalog.memo, BuiltinCatalog.tasks] where toolOrder.contains(id) {
+                // Their editor/list, footer/input, and padding must remain usable.
+                // A zero-height or clipped note is not a fully presented sidebar.
+                if width < 96 || (layout.additionalTools[id]?.height ?? 0) < 72 { return .compact }
+            }
+            if pinnedCount > 0 && (layout.moduleRail?.height ?? 0) < min(points(.railHeight, in: referenceHeight ?? height), 24) {
+                return .compact
+            }
+        }
         let showsVoice = voice && [.full, .compact, .toolsOnly, .voiceOnly].contains(content)
         if showsVoice && voiceCompact {
             // Saytile's paused row contains one 48 × 27 control and two 12 pt margins.

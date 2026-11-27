@@ -5,6 +5,7 @@ import SwiftUI
 
 public struct LyricPanelView: View {
     @ObservedObject private var model: LyricAppModel
+    private let inheritsHostAppearance: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
@@ -16,7 +17,9 @@ public struct LyricPanelView: View {
     @State private var previousMotionPosition: MotionPosition?
     @FocusState private var controlsFocused: Bool
 
-    public init(model: LyricAppModel) { self.model = model }
+    public init(model: LyricAppModel, inheritsHostAppearance: Bool = false) {
+        self.model = model; self.inheritsHostAppearance = inheritsHostAppearance
+    }
     private var dark: Bool { (forcedScheme ?? colorScheme) == .dark }
     private var primary: Color { Color(nsColor: LyricPalette.primary(dark: dark)) }
     private var secondary: Color { Color(nsColor: LyricPalette.secondary(dark: dark)) }
@@ -46,7 +49,12 @@ public struct LyricPanelView: View {
                            removal: .offset(y: -8).combined(with: .opacity))
     }
     private var forcedScheme: ColorScheme? {
-        switch model.settings.appearance { case .automatic: nil; case .light: .light; case .dark: .dark }
+        if inheritsHostAppearance { return nil }
+        switch model.settings.appearance {
+        case .automatic: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
 
     public var body: some View {
@@ -81,7 +89,7 @@ public struct LyricPanelView: View {
                     if focused { revealControls() } else if !pointerInside { scheduleHide() }
                 }
                 .onChange(of: model.presentation) { _, _ in
-                    // Auxiliary windows are independent; they must not pin the tile.
+                    // Management navigation must not keep hover controls pinned.
                     if !pointerInside { releasePointerFocus(); scheduleHide() }
                 }
                 .onChange(of: model.songMenuIsOpen) { _, open in

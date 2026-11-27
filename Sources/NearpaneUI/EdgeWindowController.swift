@@ -244,7 +244,9 @@ public final class EdgeWindowController: NSWindowController {
                 func fits(_ frame: SurfaceRect) -> Bool {
                     open.sizeForm(width: frame.width, height: max(1, frame.height - PanelSizeMetrics.minimumSide),
                                   content: content, voice: voice, tray: tray, temporarilyExpanded: true,
-                                  lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id)) == .full
+                                  voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
+                                  lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
+                                  pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count) == .full
                 }
                 while !fits(frame) && frame.width < limit {
                     open.measures[.panelWidth] = .init(min(limit, frame.width * 1.5))
