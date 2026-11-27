@@ -29,7 +29,7 @@
                 guard left else { return finish(false) }
                 do {
                     FilmCaptureSupport.showAnimationControl(true)
-                    for variant in ["a", "b"] {
+                    for variant in ((FilmCaptureSupport.lyricsOnly || FilmCaptureSupport.originalOnly) ? ["a"] : ["a", "b"]) {
                         FilmCaptureSupport.useStableCueTransition = variant == "b"
                         model.perform(.seek(milliseconds: 0))
                         let reset = await wait { !model.isPerformingCommand && (model.playbackPositionMS ?? Int64.max) < 2_000 }
@@ -44,7 +44,8 @@
                     }
                     FilmCaptureSupport.showAnimationControl(false)
                     FilmCaptureSupport.useStableCueTransition = false
-                    let controlsTake = try await FilmCaptureSupport.beginScreenTake(language + "-controls", seconds: 10)
+                    if FilmCaptureSupport.lyricsOnly { continue }
+                    let controlsTake = try await FilmCaptureSupport.beginScreenTake(language + "-controls", seconds: 16)
                     await settle(1.4)
                     let entered = await input("enter")
                     let hovered = await wait { model.controlsVisible && model.panelInteractionActive }

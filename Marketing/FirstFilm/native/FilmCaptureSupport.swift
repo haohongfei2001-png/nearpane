@@ -27,6 +27,10 @@ enum FilmCaptureSupport {
     private static var captureScreen: NSScreen?
     static var photographyFrame: NSRect?
     static var useStableCueTransition = false
+    static var lyricsOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_LYRICS_ONLY"] == "1" }
+    static var originalOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_ORIGINAL_ONLY"] == "1" }
+    static var normalMotionRequested: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_NORMAL_MOTION"] == "1" }
+    private static var normalMotionEnvironmentOverride = false
     private static var activeTakeName: String?
     private static var motionGates: [String: [[String: Any]]] = [:]
     static var windowServerEnabled: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_WINDOWSERVER"] == "1" }
@@ -86,7 +90,11 @@ enum FilmCaptureSupport {
         // its sole replacement. There are no mirrored production views.
         panel.contentView = nil
         try? await Task.sleep(for: .milliseconds(200))
-        let view = NSHostingView(rootView: AnyView(LyricPanelView(model: model).frame(width: 208, height: 192)))
+        let root = LyricPanelView(model: model).frame(width: 208, height: 192)
+        normalMotionEnvironmentOverride = normalMotionRequested && NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let content = normalMotionEnvironmentOverride
+            ? AnyView(root.environment(\.accessibilityReduceMotion, false)) : AnyView(root)
+        let view = NSHostingView(rootView: content)
         view.frame = NSRect(x: 0, y: 0, width: 208, height: 192)
         photographyFrame = frame
         panel.setFrame(frame, display: true, animate: false)
@@ -103,6 +111,8 @@ enum FilmCaptureSupport {
                 "screenBackingScale": Double(screen.backingScaleFactor),
                 "displayID": (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value as Any? ?? NSNull(),
                 "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+                "normalMotionRequested": normalMotionRequested,
+                "normalMotionHostingOverrideApplied": normalMotionEnvironmentOverride,
                 "sourceWindowGeometryChangedForPhotography": true,
                 "viewScaleEffect": false, "forcedDisplayScale": false,
                 "offscreenProductionViews": 0]
@@ -284,6 +294,8 @@ enum FilmCaptureSupport {
             "stableTransitionCandidate": useStableCueTransition,
             "motionGateTrace": motionGates[take.name] ?? [],
             "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+                "normalMotionRequested": normalMotionRequested,
+                "normalMotionHostingOverrideApplied": normalMotionEnvironmentOverride,
             "sourceWindowGeometryChanged": true,
             "inputTarget": "The sole production LyricPanelView inside the original controller window, framed at 208x192 logical points on the native display; real CGEvent and fresh AX hit testing",
             "source": "Actual Music playing original local audio; original LRC imported through production repository. No synthetic playback clock and no bitmap animation.",

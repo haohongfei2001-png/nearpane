@@ -15,6 +15,9 @@ jobs:
     timeout-minutes: 25
     env:
       LYRICTILE_FILM_WINDOWSERVER: ${{ contains(github.event.head_commit.message, '[windowserver]') && '1' || '0' }}
+      LYRICTILE_FILM_NORMAL_MOTION: ${{ contains(github.event.head_commit.message, '[normal-motion]') && '1' || '0' }}
+      LYRICTILE_FILM_ORIGINAL_ONLY: ${{ contains(github.event.head_commit.message, '[original-only]') && '1' || '0' }}
+      LYRICTILE_FILM_LYRICS_ONLY: ${{ contains(github.event.head_commit.message, '[lyrics-only]') && '1' || '0' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with: {persist-credentials: false}
@@ -28,6 +31,9 @@ jobs:
       - name: Establish and verify native HiDPI capture display
         if: ${{ contains(github.event.head_commit.message, '[windowserver]') }}
         run: python3 Marketing/FirstFilm/native/prepare_hidpi.py "$RUNNER_TEMP/film-output"
+      - name: Select normal motion presentation for this isolated film session
+        if: ${{ contains(github.event.head_commit.message, '[normal-motion]') }}
+        run: python3 Marketing/FirstFilm/native/set_motion_preference.py "$RUNNER_TEMP/film-output"
       - name: Resolve pinned product dependencies
         env:
           FILM_PACKAGE_TOKEN: ${{ github.token }}
