@@ -26,19 +26,26 @@
                 await settle(0.2)
                 let left = await input("leave")
                 _ = await wait { !model.controlsVisible && !model.panelInteractionActive }
-                model.perform(.seek(milliseconds: 0))
-                let reset = await wait { !model.isPerformingCommand && (model.playbackPositionMS ?? Int64.max) < 2_000 }
-                let resetConfirmed = await commandConfirmed("seek", seekMS: 0)
-                await record("film-" + language + "-start-position-confirmed", left && reset && resetConfirmed)
-                guard left && reset && resetConfirmed else { return finish(false) }
-                await settle(0.25)
+                guard left else { return finish(false) }
                 do {
-                    let lyricTake = try await FilmCaptureSupport.beginScreenTake(language + "-lyrics", seconds: 18)
-                    let recorded = await FilmCaptureSupport.finishScreenTake(lyricTake)
-                    await record("film-" + language + "-continuous-lyrics-windowserver", recorded)
-                    guard recorded else { return finish(false) }
+                    FilmCaptureSupport.showAnimationControl(true)
+                    for variant in ["a", "b"] {
+                        FilmCaptureSupport.useStableCueTransition = variant == "b"
+                        model.perform(.seek(milliseconds: 0))
+                        let reset = await wait { !model.isPerformingCommand && (model.playbackPositionMS ?? Int64.max) < 2_000 }
+                        let resetConfirmed = await commandConfirmed("seek", seekMS: 0)
+                        await record("film-" + variant + "-" + language + "-start-position-confirmed", reset && resetConfirmed)
+                        guard reset && resetConfirmed else { return finish(false) }
+                        await settle(0.35)
+                        let lyricTake = try await FilmCaptureSupport.beginScreenTake(variant + "-" + language + "-lyrics", seconds: 18)
+                        let recorded = await FilmCaptureSupport.finishScreenTake(lyricTake)
+                        await record("film-" + variant + "-" + language + "-continuous-lyrics-windowserver", recorded)
+                        guard recorded else { return finish(false) }
+                    }
+                    FilmCaptureSupport.showAnimationControl(false)
+                    FilmCaptureSupport.useStableCueTransition = false
                     let controlsTake = try await FilmCaptureSupport.beginScreenTake(language + "-controls", seconds: 10)
-                    await settle(0.6)
+                    await settle(1.4)
                     let entered = await input("enter")
                     let hovered = await wait { model.controlsVisible && model.panelInteractionActive }
                     await record("film-" + language + "-native-hover", entered && hovered)
@@ -67,7 +74,8 @@
                     let recordedControls = await FilmCaptureSupport.finishScreenTake(controlsTake)
                     await record("film-" + language + "-controls-windowserver", recordedControls)
                     pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && finalPause && finalPaused && leavePosted && withdrawn
-                    if !pointerPassed || !recordedControls { return finish(false) }
+                    // A failed interaction remains a failure, but preserve the other language
+                    // in this same bounded run instead of discarding independent source footage.
                 } catch {
                     write("film-windowserver-error.json", ["error": error.localizedDescription, "language": language])
                     return finish(false)

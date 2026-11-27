@@ -4,7 +4,7 @@ import QuartzCore
 import SwiftUI
 
 /// Film-only instrumentation installed in a copied product tree.
-/// The on-screen product window, its geometry and its OS input route are unchanged.
+/// WindowServer mode uses the sole original controller window at explicit film framing.
 @MainActor
 enum FilmCaptureSupport {
     static var destination: URL? {
@@ -23,6 +23,12 @@ enum FilmCaptureSupport {
     }
     private static var photography: PhotographySession?
     private static var filmingBackdrop: NSPanel?
+    private static var probeControl: NSPanel?
+    private static var captureScreen: NSScreen?
+    static var photographyFrame: NSRect?
+    static var useStableCueTransition = false
+    private static var activeTakeName: String?
+    private static var motionGates: [String: [[String: Any]]] = [:]
     static var windowServerEnabled: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_WINDOWSERVER"] == "1" }
     static func inputWindowNumber(fallback: NSWindow) -> Int {
         windowServerEnabled ? (photography?.motion.window.windowNumber ?? fallback.windowNumber) : fallback.windowNumber
@@ -31,13 +37,8 @@ enum FilmCaptureSupport {
     static func bind(model: LyricAppModel, window: NSWindow) async {
         guard destination != nil, photography == nil else { return }
         if windowServerEnabled {
-            let plate = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 800, height: 768),
-                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            plate.isReleasedWhenClosed = false; plate.hasShadow = false; plate.isOpaque = true
-            plate.backgroundColor = NSColor(srgbRed: 0.965, green: 0.969, blue: 0.965, alpha: 1)
-            plate.ignoresMouseEvents = true; plate.hidesOnDeactivate = false; plate.level = .normal
-            plate.title = "Neutral filming backdrop"; plate.orderFrontRegardless()
-            filmingBackdrop = plate
+            await bindSingleProductionView(model: model, window: window)
+            return
         }
         func make(_ scale: CGFloat, x: CGFloat, visible: Bool = false) -> PhotographySurface {
             let content = AnyView(LyricPanelView(model: model)
@@ -61,8 +62,76 @@ enum FilmCaptureSupport {
         }
         photography = PhotographySession(sourceWindow: window, model: model,
             still: make(6, x: -4000),
-            motion: windowServerEnabled ? make(3, x: 32, visible: true) : make(4, x: -6000))
+            motion: make(4, x: -6000))
         try? await Task.sleep(for: .milliseconds(200))
+    }
+
+    private static func bindSingleProductionView(model: LyricAppModel, window: NSWindow) async {
+        guard let panel = window as? NSPanel else { return }
+        let screens = NSScreen.screens
+        let desiredID = UInt32(ProcessInfo.processInfo.environment["NEARPANE_FILM_DISPLAY_ID"] ?? "")
+        let screen = screens.first { candidate in
+            guard let desiredID else { return false }
+            return (candidate.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == desiredID
+        } ?? screens.max(by: { $0.backingScaleFactor < $1.backingScaleFactor }) ?? NSScreen.main!
+        captureScreen = screen
+        let bounds = screen.frame
+        let frame = NSRect(x: bounds.minX+32, y: bounds.maxY-192-48, width: 208, height: 192)
+        let plate = NSPanel(contentRect: bounds, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        plate.isReleasedWhenClosed = false; plate.hasShadow = false; plate.isOpaque = true
+        plate.backgroundColor = NSColor(srgbRed: 0.965, green: 0.969, blue: 0.965, alpha: 1)
+        plate.ignoresMouseEvents = true; plate.hidesOnDeactivate = false; plate.level = .normal
+        plate.title = "Neutral filming backdrop"; plate.orderFrontRegardless(); filmingBackdrop = plate
+        // Remove and release the original hosting hierarchy before constructing
+        // its sole replacement. There are no mirrored production views.
+        panel.contentView = nil
+        try? await Task.sleep(for: .milliseconds(200))
+        let view = NSHostingView(rootView: AnyView(LyricPanelView(model: model).frame(width: 208, height: 192)))
+        view.frame = NSRect(x: 0, y: 0, width: 208, height: 192)
+        photographyFrame = frame
+        panel.setFrame(frame, display: true, animate: false)
+        panel.contentView = view; panel.orderFrontRegardless()
+        let surface = PhotographySurface(window: panel, view: view)
+        photography = PhotographySession(sourceWindow: panel, model: model, still: surface, motion: surface)
+        try? await Task.sleep(for: .milliseconds(300))
+        if let destination {
+            let report: [String: Any] = [
+                "kind": "single-production-view-in-original-controller-window",
+                "productionViewCount": 1, "sourceWindowNumber": panel.windowNumber,
+                "logicalSize": [208,192], "actualWindowBackingScale": Double(panel.backingScaleFactor),
+                "actualViewBackingPixels": [Double(view.convertToBacking(view.bounds).width), Double(view.convertToBacking(view.bounds).height)],
+                "screenBackingScale": Double(screen.backingScaleFactor),
+                "displayID": (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value as Any? ?? NSNull(),
+                "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+                "sourceWindowGeometryChangedForPhotography": true,
+                "viewScaleEffect": false, "forcedDisplayScale": false,
+                "offscreenProductionViews": 0]
+            if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted,.sortedKeys]) {
+                try? data.write(to: destination.appendingPathComponent("single-view-photography.json"))
+            }
+        }
+    }
+    static func showAnimationControl(_ shown: Bool) {
+        if !shown { probeControl?.orderOut(nil); probeControl?.close(); probeControl = nil; return }
+        guard probeControl == nil, let frame = photographyFrame else { return }
+        let panel = NSPanel(contentRect: NSRect(x: frame.maxX+32, y: frame.minY+40, width: 300, height: 90),
+            styleMask: [.borderless,.nonactivatingPanel], backing: .buffered, defer: false)
+        panel.isReleasedWhenClosed = false; panel.hasShadow = false; panel.isOpaque = true
+        panel.backgroundColor = .white; panel.ignoresMouseEvents = true; panel.level = .floating
+        panel.contentView = NSHostingView(rootView: FilmAnimationControl())
+        panel.orderFrontRegardless(); probeControl = panel
+    }
+    static func recordMotionGate(previous: Int?, current: Int?, selectionStable: Bool,
+        reduceMotion: Bool, controls: Bool, browsing: Bool, seeking: Bool,
+        performing: Bool, playing: Bool, flows: Bool) {
+        guard let name = activeTakeName else { return }
+        motionGates[name,default:[]].append([
+            "hostUptime": ProcessInfo.processInfo.systemUptime,
+            "previousIndex": previous as Any? ?? NSNull(), "currentIndex": current as Any? ?? NSNull(),
+            "selectionStable": selectionStable, "reduceMotionEnvironment": reduceMotion,
+            "controlsVisible": controls, "browsing": browsing, "seeking": seeking,
+            "performingCommand": performing, "playing": playing, "flowsUpward": flows,
+            "stableTransitionCandidate": useStableCueTransition])
     }
 
     static func prepareLayers(_ view: NSView, scale: CGFloat) {
@@ -149,7 +218,10 @@ enum FilmCaptureSupport {
         let folder = destination.appendingPathComponent("windowserver", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let token = UUID().uuidString
-        let request: [String: Any] = ["token": token, "name": name, "seconds": Int(seconds)]
+        let screen = captureScreen ?? NSScreen.screens.first!
+        let displayIndex = Int(ProcessInfo.processInfo.environment["NEARPANE_FILM_SCREEN_INDEX"] ?? "") ?? ((NSScreen.screens.firstIndex(where: { $0 === screen }) ?? 0)+1)
+        let request: [String: Any] = ["token": token, "name": name, "seconds": Int(seconds), "displayIndex": displayIndex]
+        activeTakeName = name; motionGates[name] = []
         try JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]).write(to: folder.appendingPathComponent("request.json"), options: .atomic)
         let requestStart = ProcessInfo.processInfo.systemUptime
         var acknowledged = false
@@ -167,8 +239,6 @@ enum FilmCaptureSupport {
             while ProcessInfo.processInfo.systemUptime - start < seconds + 0.5 {
                 let original = photography.sourceWindow
                 let photo = photography.motion.window
-                if original.isVisible && !photo.isVisible { photo.orderFrontRegardless() }
-                if !original.isVisible && photo.isVisible { (photo as? LyricNonactivatingPanel)?.permitsKeyInteraction = false; photo.orderOut(nil) }
                 let frame = photo.frame
                 let mouse = NSEvent.mouseLocation
                 var row = sourceState(window: original)
@@ -185,18 +255,18 @@ enum FilmCaptureSupport {
     }
     static func finishScreenTake(_ take: ScreenTake) async -> Bool {
         var recorderResult: [String: Any] = ["exitCode": -2]
-        while ProcessInfo.processInfo.systemUptime-take.start < take.requestedSeconds+18 {
+        while true {
             if let data = try? Data(contentsOf: take.folder.appendingPathComponent("done.json")),
                let report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], report["token"] as? String == take.token {
                 recorderResult = report; break
             }
+            if ProcessInfo.processInfo.systemUptime-take.start >= take.requestedSeconds+18 { break }
             try? await Task.sleep(for: .milliseconds(50))
         }
         await take.sampler.value
         let rows = screenStates.removeValue(forKey: take.name) ?? []
-        let screen = NSScreen.screens.first
-        let screenHeight = screen?.frame.height ?? 768
-        let backingScale = screen?.backingScaleFactor ?? 1
+        let screen = captureScreen ?? NSScreen.screens.first!
+        let backingScale = screen.backingScaleFactor
         let frame = photography?.motion.window.frame ?? NSRect(x: 32, y: 96, width: 624, height: 576)
         let report: [String: Any] = [
             "kind": "actual-WindowServer-video-of-production-photography-view",
@@ -206,18 +276,23 @@ enum FilmCaptureSupport {
             "cursorIncluded": true,
             "requestedSeconds": take.requestedSeconds,
             "captureStartHostUptime": take.start,
-            "cropTopLeftPixels": [Int(frame.minX*backingScale), Int((screenHeight-frame.maxY)*backingScale), Int(frame.width*backingScale), Int(frame.height*backingScale)],
+            "cropTopLeftPixels": [Int((frame.minX-screen.frame.minX)*backingScale), Int((screen.frame.maxY-frame.maxY)*backingScale), Int(frame.width*backingScale), Int(frame.height*backingScale)],
             "screenBackingScale": Double(backingScale),
             "filmingBackdrop": "Separate neutral NSPanel RGB(0.965,0.969,0.965), below photography window, input disabled; production popover material unchanged",
-            "logicalSize": [208,192], "nativeDisplayScale": 3,
-            "sourceWindowGeometryChanged": false,
-            "inputTarget": "The on-screen 3x production LyricPanelView photography window; real CGEvent and fresh AX hit testing; same live LyricAppModel as original panel",
+            "logicalSize": [208,192], "nativeDisplayScale": Double(backingScale),
+            "productionViewCount": 1, "scaleEffect": false, "forcedDisplayScale": false,
+            "stableTransitionCandidate": useStableCueTransition,
+            "motionGateTrace": motionGates[take.name] ?? [],
+            "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+            "sourceWindowGeometryChanged": true,
+            "inputTarget": "The sole production LyricPanelView inside the original controller window, framed at 208x192 logical points on the native display; real CGEvent and fresh AX hit testing",
             "source": "Actual Music playing original local audio; original LRC imported through production repository. No synthetic playback clock and no bitmap animation.",
-            "limitations": "The 3x photography window is film-only, not the user's ordinary 176pt window. Original window remains unchanged. Fullscreen MOV is the primary visual source; state timestamps are sampled beside recording, not a frame-perfect media timestamp.",
+            "limitations": "Original controller window has film-only framing and its sole production view uses actual display backing resolution. No mirrored views or cacheDisplay motion. Fullscreen MOV is primary evidence; sampled state timestamps are not frame-perfect media timestamps. Stable-transition candidate removes only cueTransition guard in the temporary capture copy and is unreleased until independently accepted.",
             "states": rows]
         if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: take.folder.appendingPathComponent(take.name + ".json"))
         }
+        activeTakeName = nil
         return recorderResult["exitCode"] as? Int == 0
     }
 

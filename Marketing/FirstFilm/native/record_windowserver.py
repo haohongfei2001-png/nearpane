@@ -14,7 +14,7 @@ folder = args.directory / 'windowserver'
 folder.mkdir(parents=True, exist_ok=True)
 seen = set()
 deadline = time.monotonic() + 300
-names = {'zh-lyrics', 'en-lyrics', 'zh-controls', 'en-controls'}
+names = {'a-zh-lyrics', 'b-zh-lyrics', 'a-en-lyrics', 'b-en-lyrics', 'zh-controls', 'en-controls'}
 
 def write(name, data):
     temporary = folder / (name + '.tmp')
@@ -34,7 +34,10 @@ while time.monotonic() < deadline and not (folder / 'stop').exists():
         time.sleep(.05)
         continue
     seen.add(token)
-    command = ['/usr/sbin/screencapture', '-v', '-V', str(seconds), '-x', '-C', str(folder / (name + '-fullscreen.mov'))]
+    display_index = request.get('displayIndex', 1)
+    if not isinstance(display_index, int) or not 1 <= display_index <= 8:
+        raise SystemExit('Invalid capture display index')
+    command = ['/usr/sbin/screencapture', '-v', '-V', str(seconds), '-x', '-C', '-D', str(display_index), str(folder / (name + '-fullscreen.mov'))]
     started = time.monotonic()
     with (folder / (name + '-recorder.log')).open('w') as log:
         try:

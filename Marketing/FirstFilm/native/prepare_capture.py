@@ -12,6 +12,7 @@ a.destination.mkdir(parents=True,exist_ok=True)
 shutil.copytree(a.source,a.destination,dirs_exist_ok=True,ignore=shutil.ignore_patterns('.build','dist'))
 ui=a.destination/'Sources/LyricUI'
 shutil.copy2(assets/'FilmCaptureSupport.swift',ui/'FilmCaptureSupport.swift')
+shutil.copy2(assets/'FilmAnimationControl.swift',ui/'FilmAnimationControl.swift')
 shutil.copy2(assets/'FilmCaptureTests.swift',a.destination/'Tests/LyricUITests/FilmCaptureTests.swift')
 changes=[]
 def patch(path,before,after):
@@ -50,6 +51,22 @@ data['lyricIntervalSeconds']=4
 data['lyricLines']=['把微光留在纸上','窗外的风经过长街','让这一刻慢下来','脚步跟着雨停下来','灯在街角慢慢亮起','喜欢的旋律还在身边','把这一刻轻轻留下','让下一句自然到来']
 fixture.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
 if os.environ.get('LYRICTILE_FILM_WINDOWSERVER') == '1':
+    patch(ui/'LyricPanelController.swift',
+          '    private func resizeVisibleSurface() {\n',
+          '    private func resizeVisibleSurface() {\n        if let frame = FilmCaptureSupport.photographyFrame {\n            if panel.frame != frame { panel.setFrame(frame, display: true, animate: false) }\n            return\n        }\n')
+    patch(ui/'LyricNativePlayerVerification.swift',
+          '        capture(capturePrefix + "-lyrics")\n',
+          '        if !FilmCaptureSupport.windowServerEnabled { capture(capturePrefix + "-lyrics") }\n')
+    patch(ui/'LyricPanelView.swift',
+          '        guard flowsUpward else { return .identity }',
+          '        guard flowsUpward || FilmCaptureSupport.useStableCueTransition else { return .identity }')
+    patch(ui/'LyricPanelView.swift',
+          '                    previousMotionPosition = position',
+          '                    FilmCaptureSupport.recordMotionGate(previous: previousMotionPosition?.index, current: position.index, selectionStable: previousMotionPosition?.selection == position.selection, reduceMotion: reduceMotion, controls: model.controlsVisible, browsing: model.browsedCueIndex != nil, seeking: model.seekPreviewMS != nil, performing: model.isPerformingCommand, playing: model.snapshot.state == .playing, flows: flowsUpward)\n                    previousMotionPosition = position')
+    patch(a.destination/'Scripts/cloud_pointer.py', 'min(180, max(1, duration))', 'min(360, max(1, duration))')
+    patch(a.destination/'Scripts/CloudPointerHelper.swift', 'min(180, max(1, requestedSeconds))', 'min(360, max(1, requestedSeconds))')
+    patch(a.destination/'Scripts/check-cloud-music.py', 'start_cloud_pointer(out, seconds=180)', 'start_cloud_pointer(out, seconds=360)')
+    patch(a.destination/'Scripts/check-cloud-music.py', 'deadline = time.monotonic()+180', 'deadline = time.monotonic()+360')
     patch(ui/'LyricNativePlayerVerification.swift',
           '        await FilmCaptureSupport.record(window: panel.panel, name: "music-lyrics", seconds: 6)\n',
           (assets/'FilmWindowServerSequence.swift.inc').read_text())
@@ -68,5 +85,5 @@ if os.environ.get('LYRICTILE_FILM_WINDOWSERVER') == '1':
     for before, after in [('try post(.mouseMoved, at: center);', 'try moveSmooth(to: center);'),('try post(.mouseMoved, at: position); postedEvents', 'try moveSmooth(to: position); postedEvents'),('try post(.mouseMoved, at: outside);', 'try moveSmooth(to: outside);')]: patch(pointer,before,after)
     patch(pointer, 'actions.count < 12', 'actions.count < 20')
     patch(pointer, '["enter", "pause", "leave"].contains(request.action)', '["enter", "pause", "play", "seek", "leave"].contains(request.action)')
-(a.destination/'film-instrumentation.json').write_text(json.dumps({'productSource':'d57878e51137f9dbf238a61ac97ea4b0da8b81f6','changedInIsolatedCopy':sorted(set(changes)), 'addedCaptureHelper':'Sources/LyricUI/FilmCaptureSupport.swift','addedAuthoredFixtureTest':'Tests/LyricUITests/FilmCaptureTests.swift','testMediaChanges':'Only original authored lyric strings and interval in Tests/Fixtures/CloudAcceptance.json. Original generated chime waveform and all real-player checks remain.','shippingSourceModified':False,'renderScaleStills':6,'renderScaleSequence':4},indent=2)+'\n')
+(a.destination/'film-instrumentation.json').write_text(json.dumps({'productSource':'d57878e51137f9dbf238a61ac97ea4b0da8b81f6','changedInIsolatedCopy':sorted(set(changes)), 'addedCaptureHelper':'Sources/LyricUI/FilmCaptureSupport.swift','addedAuthoredFixtureTest':'Tests/LyricUITests/FilmCaptureTests.swift','testMediaChanges':'Only original authored lyric strings, names and interval in Tests/Fixtures/CloudAcceptance.json. Actual original generated chime waveform remains. WindowServer mode runs bounded filming checks and source readback rather than the complete product/performance verification suite.','shippingSourceModified':False,'renderScaleStills':6,'renderScaleSequence':None if os.environ.get('LYRICTILE_FILM_WINDOWSERVER') == '1' else 4, 'captureMode':'single-native-window-AB' if os.environ.get('LYRICTILE_FILM_WINDOWSERVER') == '1' else 'authored-native-static-and-state-samples'},indent=2)+'\n')
 print(a.destination)

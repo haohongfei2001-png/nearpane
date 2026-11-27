@@ -25,6 +25,9 @@ jobs:
           cp "$RUNNER_TEMP/film-product/film-instrumentation.json" "$RUNNER_TEMP/film-output/"
           sw_vers > "$RUNNER_TEMP/film-output/host.txt"
           git rev-parse HEAD >> "$RUNNER_TEMP/film-output/host.txt"
+      - name: Establish and verify native HiDPI capture display
+        if: ${{ contains(github.event.head_commit.message, '[windowserver]') }}
+        run: python3 Marketing/FirstFilm/native/prepare_hidpi.py "$RUNNER_TEMP/film-output"
       - name: Resolve pinned product dependencies
         env:
           FILM_PACKAGE_TOKEN: ${{ github.token }}
