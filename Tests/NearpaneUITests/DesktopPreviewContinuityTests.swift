@@ -15,6 +15,7 @@ import Testing
         let window = row
         let phase = OSAllocatedUnfairLock(initialState: 0)
         let alternate = UUID()
+        let (samples, sampled) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let feed = CurrentDesktopWindows(read: { request in
             let step = phase.withLock { $0 }
             var sample = await fixture.snapshot(step == 0 ? [window] : [], request: request, accessibility: .available)
@@ -30,11 +31,12 @@ import Testing
             }
             return sample
         }, sessionAvailable: { true }, fingerprint: { 0 })
+        feed.didSample = { sampled.yield(()) }
         feed.observe(true)
-        defer { feed.observe(false) }
+        defer { feed.observe(false); sampled.finish() }
         func wait(_ ready: () -> Bool) async throws {
-            let end = ContinuousClock.now + .seconds(3)
-            while !ready() && ContinuousClock.now < end { try await Task.sleep(for: .milliseconds(10)) }
+            if ready() { return }
+            for await _ in samples { if ready() { return } }
             try #require(ready())
         }
         try await wait { feed.snapshot?.windows == [window] }
@@ -108,20 +110,27 @@ import Testing
     @Test func aSpaceNotificationRetainsOnlyPresentationUntilTheNextConfirmedRoster() async throws {
         let fixture = StageHostGroupProjectionTests()
         let a = fixture.window(17)
+        let changedHome = OSAllocatedUnfairLock(initialState: false)
+        let (samples, sampled) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let feed = CurrentDesktopWindows(read: { request in
-            await fixture.snapshot(request.revision == 1 ? [a] : [], request: request)
+            await fixture.snapshot(changedHome.withLock { $0 } ? [] : [a], request: request)
         }, sessionAvailable: { true }, fingerprint: { 0 })
+        feed.didSample = { sampled.yield(()) }
         feed.observe(true)
-        defer { feed.observe(false) }
-        let deadline = ContinuousClock.now + .seconds(3)
-        while feed.snapshot == nil && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        defer { feed.observe(false); sampled.finish() }
+        func wait(_ ready: () -> Bool) async throws {
+            if ready() { return }
+            for await _ in samples { if ready() { return } }
+            try #require(ready())
+        }
+        try await wait { feed.snapshot != nil }
         let key = try #require(DesktopWindowKey(a))
         let issued = try #require(feed.lifetime(of: key))
+        changedHome.withLock { $0 = true }
         feed.invalidate(preservingOriginalWindows: true, reason: "active-space")
         #expect(feed.snapshot == nil && feed.lifetime(of: key) == nil)
         #expect(feed.departingPictures?.snapshot.windows == [a] && feed.pictureAppearance(of: key) == issued)
-        let end = ContinuousClock.now + .seconds(3)
-        while feed.snapshot == nil && ContinuousClock.now < end { try await Task.sleep(for: .milliseconds(10)) }
+        try await wait { feed.snapshot != nil }
         #expect(feed.snapshot?.windows == [] && feed.departingPictures == nil && feed.pictureAppearance(of: key) == nil)
         feed.invalidate(reason: "session-unavailable")
         #expect(feed.departingPictures == nil && feed.snapshot == nil)

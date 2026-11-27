@@ -1019,14 +1019,29 @@ struct DesktopWindowTarget: Equatable {
                           (hidden || cards[display]?[key] != nil),
                           hidden || (target.present(in: before) && target.present(in: snapshot())),
                           let windows = shared[key.number], windows.count == 1, let window = windows.first,
-                          let app = target.liveOwner(), hidden || (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()),
-                          let pipe = WindowFrameStream(window: window, target: target, audit: audit) else {
+                          target.liveOwner() != nil, hidden || (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
                         continue
+                    }
+                    guard let pipe = await WindowFrameStream(window: window, target: target, audit: audit) else { continue }
+                    guard await Self.awaitDispatchTurn(current: currentRun) else { pipe.finishOutput(); return }
+                    // Construction may cross a click, hide, close, display change or
+                    // replacement capture. Enroll only the original incarnation and
+                    // a still-unattempted pending departure after fresh physical reads.
+                    let currentPending = pendingPicture(target, snapshot: snapshot()).flatMap {
+                        $0.canStart(at: ProcessInfo.processInfo.systemUptime) ? $0 : nil
+                    }
+                    let currentlyHidden = currentPending?.confirmsHidden() == true && target.lastFrameAccess() == .allowed
+                    guard permitted(), streams.count < WindowFrameStream.limit, streams[key] == nil,
+                          (lifetime(key) ?? currentPending?.member.appearance) == incarnation, permitsWindow(key),
+                          currentlyHidden || cards[display]?[key] != nil,
+                          currentlyHidden || (target.present(in: before) && target.present(in: snapshot())),
+                          let app = target.liveOwner(), currentlyHidden || (offstage ? target.sharedSurface(visible: false, matchFrame: true) : target.isVisibleSurface()) else {
+                        pipe.finishOutput(); continue
                     }
                     let screen = content.displays.first { $0.frame.contains(window.frame) }
                     let live = Live(target, incarnation: incarnation, run: token, stream: pipe, needsMembership: offstage,
                                     app: app, window: window, screen: screen)
-                    if let pending { guard pending.bind(live.identity, started: live.acquired) else { continue } }
+                    if let currentPending { guard currentPending.bind(live.identity, started: live.acquired) else { pipe.finishOutput(); continue } }
                     audit?.record(key, .lifecycle, .created, epoch: pipe.epoch, sequence: 0)
                     streams[key] = live
                     lastService[key] = live.acquired

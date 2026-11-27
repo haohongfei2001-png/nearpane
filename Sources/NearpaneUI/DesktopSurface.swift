@@ -327,11 +327,12 @@ struct DesktopSurface: View {
 
     private func choose(_ member: NativeSidebarMember, group: UUID, lifetime: UUID?, snapshot: DesktopSnapshot, feed: CurrentDesktopWindows,
                         intent: StageSidebarSelection = .member) {
+        let admitted = canNavigate
         IndependentStageTrace.record("choose-group", ["window": member.key.number, "pid": member.key.pid,
-            "group": group.uuidString, "canNavigate": canNavigate, "lifetimePresent": lifetime != nil,
+            "group": group.uuidString, "canNavigate": admitted, "lifetimePresent": lifetime != nil,
             "stillGrouped": lifetime.map { feed.stillGroups(member, in: group, appearance: $0) } ?? false,
             "routesGroupChoice": feed.stageEngine.routesGroupChoice])
-        guard canNavigate else { return }
+        guard admitted else { return }
         guard let lifetime, let requested = feed.selectionGroup(member, in: snapshot), requested.id == group,
               feed.stillIntendsGroup(member, group: requested, appearance: lifetime) else {
             selectionIssue = StageGroupError.staleBinding.localizedDescription
@@ -356,8 +357,9 @@ struct DesktopSurface: View {
                               : feed.stillIntendsGroup(member, group: requested, appearance: lifetime)) &&
                     NativeSelectionPermit.inputCounters() == input
             }
-            IndependentStageTrace.record("group-job-start", ["window": member.key.number, "current": valid()])
-            guard valid() else { throw StageSwitchError.interrupted }
+            let currentAtEntry = valid()
+            IndependentStageTrace.record("group-job-start", ["window": member.key.number, "current": currentAtEntry])
+            guard currentAtEntry else { throw StageSwitchError.interrupted }
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: lifetime, current: valid)
             guard valid() else { throw StageSwitchError.interrupted }
@@ -365,8 +367,7 @@ struct DesktopSurface: View {
             IndependentStageTrace.record("group-job-fresh", ["window": member.key.number, "revision": fresh.revision])
             let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,
                 successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
-            IndependentStageTrace.record("group-job-result", ["window": member.key.number, "handled": handled,
-                "current": valid()])
+            IndependentStageTrace.record("group-job-result", ["window": member.key.number, "handled": handled])
             guard handled else { throw StageSwitchError.unavailable }
         }
     }
@@ -571,7 +572,7 @@ struct DesktopSurface: View {
                 let group = member?.location.flatMap { visibleGroups[$0.window] }
                 let chooseCurrent: @MainActor () -> Void = {
                     IndependentStageTrace.record("current-card-press", ["window": row.id.number, "pid": row.id.pid,
-                        "canNavigate": canNavigate, "feedPresent": feed != nil, "memberPresent": member != nil,
+                        "navigationPresented": navigationPresented, "feedPresent": feed != nil, "memberPresent": member != nil,
                         "visibleGroup": group?.id.uuidString ?? "none", "memberCount": group?.members.count ?? 0,
                         "appearancePresent": lifetime != nil, "routesGroupChoice": feed?.stageEngine.routesGroupChoice == true])
                     if let feed, feed.stageEngine.routesGroupChoice {

@@ -155,7 +155,7 @@ import os
         return Int32(refresh > 0 ? min(60, refresh) : 30)
     }
 
-    static func sRGBConfiguration() -> SCStreamConfiguration {
+    nonisolated static func sRGBConfiguration() -> SCStreamConfiguration {
         let config = SCStreamConfiguration()
         // Keep the captured BGRA bytes in the same color space VideoToolbox uses for untagged RGB.
         config.pixelFormat = kCVPixelFormatType_32BGRA
@@ -163,34 +163,63 @@ import os
         return config
     }
 
-    init?(window: SCWindow, target: DesktopWindowTarget, audit: PreviewPipelineAudit? = nil) {
-        let filter = SCContentFilter(desktopIndependentWindow: window)
-        let size = filter.contentRect.size
-        guard window.windowID == target.key.number, window.windowLayer == 0,
-              window.owningApplication?.processID == target.key.pid, target.acceptsContentSize(size),
-              window.frame.width > 0, window.frame.height > 0 else { return nil }
-        logicalSize = size
-        let scale = min(1, Self.longestEdge / max(size.width, size.height))
-        let config = Self.sRGBConfiguration()
-        config.width = max(1, Int((size.width * scale).rounded()))
-        config.height = max(1, Int((size.height * scale).rounded()))
-        config.minimumFrameInterval = CMTime(value: 1, timescale: Self.rate(on: target.display))
-        config.queueDepth = 3
-        config.showsCursor = false
-        config.capturesAudio = false
-        config.ignoreShadowsSingleWindow = true
-        config.ignoreGlobalClipSingleWindow = true
-        config.preservesAspectRatio = true
-        if #available(macOS 14.2, *) { config.includeChildWindows = false }
-        let (events, continuation) = AsyncStream<Update>.makeStream(bufferingPolicy: .bufferingNewest(1))
-        updates = events
-        output = Output(continuation, width: config.width, height: config.height,
-                        diagnostic: audit.map { OutputAudit(audit: $0, key: target.key) })
-        stream = SCStream(filter: filter, configuration: config, delegate: output)
-        do {
-            try stream.addStreamOutput(output, type: .screen,
-                sampleHandlerQueue: DispatchQueue(label: "com.holdsnow.nearpane.window-preview", qos: .userInitiated))
-        } catch { return nil }
+    /// Shareable-content objects are immutable snapshots. Construction transfers
+    /// them to one worker; the resulting SCStream has not started and is transferred
+    /// back only after its configuration and serial output queue are installed.
+    private struct Preparation: @unchecked Sendable {
+        let window: SCWindow, target: DesktopWindowTarget
+        let rate: Int32, longestEdge: CGFloat, audit: PreviewPipelineAudit?
+
+        struct Result: @unchecked Sendable {
+            let stream: SCStream, output: Output, updates: AsyncStream<Update>, size: CGSize
+        }
+
+        func build() -> Result? {
+            let filter = SCContentFilter(desktopIndependentWindow: window)
+            let size = filter.contentRect.size
+            guard window.windowID == target.key.number, window.windowLayer == 0,
+                  window.owningApplication?.processID == target.key.pid, target.acceptsContentSize(size),
+                  window.frame.width > 0, window.frame.height > 0 else { return nil }
+            let scale = min(1, longestEdge / max(size.width, size.height))
+            let config = WindowFrameStream.sRGBConfiguration()
+            config.width = max(1, Int((size.width * scale).rounded()))
+            config.height = max(1, Int((size.height * scale).rounded()))
+            config.minimumFrameInterval = CMTime(value: 1, timescale: rate)
+            config.queueDepth = 3
+            config.showsCursor = false
+            config.capturesAudio = false
+            config.ignoreShadowsSingleWindow = true
+            config.ignoreGlobalClipSingleWindow = true
+            config.preservesAspectRatio = true
+            if #available(macOS 14.2, *) { config.includeChildWindows = false }
+            let (events, continuation) = AsyncStream<Update>.makeStream(bufferingPolicy: .bufferingNewest(1))
+            let output = Output(continuation, width: config.width, height: config.height,
+                                diagnostic: audit.map { OutputAudit(audit: $0, key: target.key) })
+            // Even with capturesAudio=false, this constructor initializes CoreAudio
+            // clocks on a cold host. It must not delay delivery of a sidebar click.
+            let stream = SCStream(filter: filter, configuration: config, delegate: output)
+            do {
+                try stream.addStreamOutput(output, type: .screen,
+                    sampleHandlerQueue: DispatchQueue(label: "com.holdsnow.nearpane.window-preview", qos: .userInitiated))
+            } catch { continuation.finish(); return nil }
+            return Result(stream: stream, output: output, updates: events, size: size)
+        }
+    }
+
+    static func prepareOffActor<Value: Sendable>(_ build: @escaping @Sendable () -> Value) async -> Value {
+        await Task.detached(priority: .utility, operation: build).value
+    }
+
+    init?(window: SCWindow, target: DesktopWindowTarget, audit: PreviewPipelineAudit? = nil) async {
+        // NSScreen belongs to AppKit. Resolve only its refresh rate here; all cold
+        // framework construction happens away from the input/UI actor.
+        let request = Preparation(window: window, target: target, rate: Self.rate(on: target.display),
+                                  longestEdge: Self.longestEdge, audit: audit)
+        guard let ready = await Self.prepareOffActor({ request.build() }) else { return nil }
+        logicalSize = ready.size
+        updates = ready.updates
+        output = ready.output
+        stream = ready.stream
     }
 
     func start() async throws { try await stream.startCapture() }

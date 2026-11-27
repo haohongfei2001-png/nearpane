@@ -76,7 +76,7 @@ import Testing
         let appearance = UUID(), gallery = DesktopWindowGallery(permitsWindow: { $0.pid == getpid() }, cache: cache, lifetime: { _ in appearance })
         var starts = 0
         func capture(_ index: Int, channel: Int, reusing previous: CGImage? = nil) async throws -> CGImage {
-            let target = targets[index], pipe = try #require(WindowFrameStream(window: sources[index], target: target))
+            let target = targets[index], pipe = try #require(await WindowFrameStream(window: sources[index], target: target))
             try await pipe.start()
             starts += 1
             let timeout = Task { try await Task.sleep(for: .seconds(4)); pipe.finishOutput() }

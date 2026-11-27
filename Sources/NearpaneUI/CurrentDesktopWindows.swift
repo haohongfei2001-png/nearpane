@@ -425,6 +425,9 @@ import OSLog
         guard loop == nil else { return }
         let (stream, events) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         self.events = events
+        // The full roster establishes the first display state. A slow or queued
+        // window-number hint must not delay it; hints only request later reads.
+        events.yield(())
         let fingerprint = self.fingerprint
         loop = Task { [weak self] in
             let workspace = NSWorkspace.shared.notificationCenter

@@ -156,10 +156,11 @@ import NearpaneOrdinaryWindowRuntime
         lastEnvironmentalRead = now
         let records = Self.shipped.compactMap { StageWindowEngineAttestation.read($0,profile:profile) }
         if admissions != records { witness?.cancelArrivals(); admissions = records; granted = nil; consentRequest = nil }
-        let selected = StageWindowEngineAttestation.installedEnvironment(snapshot).flatMap {
+        let environment = StageWindowEngineAttestation.installedEnvironment(snapshot)
+        let selected = environment.flatMap {
             engine?.preferredRecord(records, in: $0)
         }
-        let candidateAvailable = candidateMode && StageWindowEngineAttestation.installedEnvironment(snapshot) != nil && AXIsProcessTrusted()
+        let candidateAvailable = candidateMode && environment?.permissions?.contains(.accessibility) == true
         observedCapability = candidateAvailable ? .spaces : selected?.backend
         guard let session = engine?.session, !session.isFrozen else { return }
         if session.qualifiedHiddenState == nil || (candidateMode ? !candidateAvailable : selected?.evidence != session.owner.evidence) { systemTakesOver() }
@@ -641,7 +642,7 @@ import NearpaneOrdinaryWindowRuntime
         var phase = "entry", completed = false
         SpacesWorkerLifecycle.trace("group-choice-entry", ["candidate": candidateMode, "routes": routesGroupChoice,
             "wallpaperPaused": wallpaperPaused, "unreadableLedger": unreadableLedger, "releasing": releasing,
-            "terminating": terminationOwnsLane, "hasController": engine != nil, "current": current()])
+            "terminating": terminationOwnsLane, "hasController": engine != nil])
         defer { SpacesWorkerLifecycle.trace("group-choice-exit", ["lastPhase": phase, "completed": completed]) }
         heldSuccessor = nil
         guard !wallpaperPaused else { throw StageSwitchError.busy }
@@ -724,8 +725,10 @@ import NearpaneOrdinaryWindowRuntime
             }
         }
         if engine.session != nil { feed.observeStageOwnership(true) }
-        SpacesWorkerLifecycle.trace("group-choice-configured", ["available": available, "hasSession": engine.session != nil, "permitted": permitted()])
-        guard available, permitted() else { throw StageSwitchError.unavailable }
+        let currentAfterConfiguration = permitted()
+        SpacesWorkerLifecycle.trace("group-choice-configured", ["available": available, "hasSession": engine.session != nil,
+            "permitted": currentAfterConfiguration])
+        guard available, currentAfterConfiguration else { throw StageSwitchError.unavailable }
         do {
             phase = "activate"
             witness?.preparePictures(leavingFor:group)

@@ -244,16 +244,19 @@ import NearpaneOrdinaryWindowRuntime
 
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
                       candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
+        let readStarted = ProcessInfo.processInfo.systemUptime
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
         defer {
             if !completed {
                 IndependentStageTrace.record("witness-read-rejected", ["step": step,
                     "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
-                    "bindings": bindings.count, "claims": claims.count, "sequence": sequence])
+                    "bindings": bindings.count, "claims": claims.count, "sequence": sequence,
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000])
             }
         }
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
               let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
+        let directoryReady = ProcessInfo.processInfo.systemUptime
         step = "host-access"
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
         hostAccess = access
@@ -296,6 +299,7 @@ import NearpaneOrdinaryWindowRuntime
             observedBindings[key] = binding
         }
         guard home == desktop, keys.isSubset(of:Set(observedBindings.keys)) else { throw StageSwitchError.interrupted }
+        let bindingsReady = ProcessInfo.processInfo.systemUptime
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
         for (key,b) in observedBindings {
             step = "physical-window-observation"; reading = key
@@ -326,6 +330,7 @@ import NearpaneOrdinaryWindowRuntime
                                 hiddenSpaceID: state == .stageSpace ? observed.membership : nil)
             focuses.append(observed.focus)
         }
+        let physicalReady = ProcessInfo.processInfo.systemUptime
         step = "closing-roster"; reading = nil
         guard let last = await feed.readAfterAction(), unchanged(),
               let closing = try? await roster(last, access: access, current: unchanged), unchanged(), closing.1 == keys,
@@ -376,7 +381,12 @@ import NearpaneOrdinaryWindowRuntime
         IndependentStageTrace.record("witness-read-completed", ["sequence": sequence, "windows": states.count,
             "managed": states.values.filter(mayManage).count, "roster": keys.count,
             "focusPID": focus?.pid ?? 0, "focusWindow": focus?.number ?? 0,
-            "focusLocal": focus.map { states[$0] != nil } ?? false, "foreignFocus": foreign != nil])
+            "focusLocal": focus.map { states[$0] != nil } ?? false, "foreignFocus": foreign != nil,
+            "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000,
+            "openingDirectoryMS": (directoryReady - readStarted) * 1000,
+            "bindingMS": (bindingsReady - directoryReady) * 1000,
+            "physicalWindowsMS": (physicalReady - bindingsReady) * 1000,
+            "closingDirectoryMS": (ProcessInfo.processInfo.systemUptime - physicalReady) * 1000])
         completed = true
         return sample
     }
