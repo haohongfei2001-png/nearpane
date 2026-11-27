@@ -1,0 +1,35 @@
+{
+  "checked_on": "2026-11-28 Asia/Shanghai",
+  "state": "INTEGRATED-RELEASE FILM BLOCKED; PREVIEW EDIT CAN BE PRODUCED",
+  "source_branch": "codex/lyrictile-standalone-20261126",
+  "source_commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+  "verified_existing": [
+    "LyricTile production native lyric view and music controls",
+    "Standalone LyricTile 1.0.0 build49 release evidence",
+    "NearpaneLyricsModule host facade exists",
+    "Current Riftlet 1.0.11 official brand icon"
+  ],
+  "not_verified_as_shipped": [
+    "Nearpane host consumes the lyrics module and ships it preinstalled/default enabled",
+    "Nearpane offers install/remove/re-add for Riftlet",
+    "Both modules can be independently closed, removed, and re-added in the integrated host",
+    "Public integrated Nearpane installer and matching website download endpoint"
+  ],
+  "minimal_product_handoff": [
+    "Wire the existing lyrics-module facade into the first integrated host distribution and verify default activation",
+    "Complete the existing or minimal module-management lifecycle for lyrics and screenshots without exposing unshipped modules",
+    "Publish and verify one actual Nearpane installer and official download link",
+    "Provide one continuous integrated-host recording of lyrics enabled and Riftlet being added/removed/re-added"
+  ],
+  "film_replacement_after_handoff": [
+    "Replace the 2-second planned Riftlet integration insert with actual integrated-host material",
+    "Replace the preview end caption with verified Download Nearpane / Lyrics included CTA",
+    "Keep the visual system, licensed music, bilingual timing and edit"
+  ],
+  "site_check": {
+    "url": "https://nearpane.com/",
+    "observed_http_status": 200,
+    "observed_copy": "当前还没有公开下载日期。工程进展可以通过 GitHub 项目查看。",
+    "standalone_path_probe": "https://nearpane.com/lyrictile/ returned HTTP404 in the current execution environment; not used as a CTA"
+  }
+}

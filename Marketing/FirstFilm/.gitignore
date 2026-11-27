@@ -1,0 +1,8 @@
+assets/
+renders/
+keyframes/
+qa/*.png
+qa/*.jpg
+qa/*.mp4
+*.zip
+__pycache__/
