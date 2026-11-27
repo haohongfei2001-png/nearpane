@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "title": "LyricTile Cloud Original 20261127",
+  "artist": "HOLDSNOW Verification",
+  "album": "Original Cloud Acceptance Audio",
+  "origin": "Original chime score and bilingual lyrics authored for cloud acceptance. Not a commercial recording.",
+  "durationSeconds": 180,
+  "sampleRate": 22050,
+  "peakAmplitude": 2200,
+  "fadeInSeconds": 0.03,
+  "noteDurationSeconds": 4,
+  "frequenciesHz": [261.63, 329.63, 392.0, 440.0],
+  "lyricIntervalSeconds": 8,
+  "lyricLines": [
+    "光慢慢落在窗边",
+    "A quiet note beside the window",
+    "把这一刻轻轻留下",
+    "The melody returns, and the words find their place beside the work we carry on",
+    "不必离开正在做的事",
+    "Let the next line arrive in its own time"
+  ]
+}

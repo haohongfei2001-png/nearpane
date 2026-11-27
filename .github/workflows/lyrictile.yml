@@ -24,7 +24,7 @@ jobs:
   native:
     name: Native tests, bundle and production UI load
     runs-on: xcode-27
-    timeout-minutes: 25
+    timeout-minutes: 35
     defaults:
       run:
         shell: bash
@@ -72,6 +72,8 @@ jobs:
         run: |
           set -o pipefail
           swift test --parallel --xunit-output dist/evidence/test-results.xml 2>&1 | tee dist/evidence/swift-test.log
+      - name: Validate the bilingual website and release manifest
+        run: python3 Scripts/verify-website.py Website > dist/evidence/website-integrity.json
       - name: Preserve authored native layout fixtures
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -109,6 +111,9 @@ jobs:
       - name: Probe the live lyric service with the production repository
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: swift run --configuration release LyricServiceProbe --output dist/evidence/live-lyrics.json
+      - name: Observe official QQ and NetEase clients without accounts
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        run: python3 Scripts/check-cloud-clients.py dist/LyricTile.app --audio dist/evidence/real-music/original-chimes.wav --output dist/evidence/cloud-clients
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
