@@ -300,6 +300,20 @@ struct DesktopWindowTarget: Equatable {
         }
     }
     private static let firstFrameTimeout: TimeInterval = 5
+    /// A live stream can deliver up to 60 frames per second. Its native pixel
+    /// admission reads must not compete with a queued or running window action
+    /// on MainActor. Keep the stream and last admitted pixels; the bounded stream
+    /// buffer retains its newest delivery. This wait grants no pixel permission:
+    /// every caller performs its complete native admission again afterward.
+    static func awaitDispatchTurn(navigation: NativeSidebarNavigation = .shared,
+                                  current: () -> Bool) async -> Bool {
+        while navigation.isDispatching {
+            guard !Task.isCancelled, current() else { return false }
+            do { try await Task.sleep(for: .milliseconds(20)) } catch { return false }
+        }
+        return !Task.isCancelled && current()
+    }
+
     @ObservationIgnored private var pendingHeld = [DesktopWindowKey: PendingHeldPicture]()
     @MainActor private final class Live {
         let identity = UUID()
@@ -873,7 +887,11 @@ struct DesktopWindowTarget: Equatable {
             !Task.isCancelled && operations[display] == token && allowed() &&
                 WindowContentPreview.sessionAvailable() && WindowPermissionProbe.screen.allowed()
         }
+        func currentRun() -> Bool {
+            !Task.isCancelled && operations[display] == token && allowed()
+        }
         for await _ in stream {
+            guard await Self.awaitDispatchTurn(current: currentRun) else { return }
             guard permitted() else { return }
             let sample = snapshot()
             var targets = sample.map { sample in
@@ -976,6 +994,7 @@ struct DesktopWindowTarget: Equatable {
                     onScreenWindowsOnly: !due.contains(where: { $0.overviewSpace != nil })) else {
                 continue
             }
+            guard await Self.awaitDispatchTurn(current: currentRun) else { return }
             guard permitted() else { return }
             let shared = Dictionary(grouping: content.windows, by: \.windowID)
             // Admit immediately verifiable public surfaces first. Off-stage membership checks can take a reader round-trip.
@@ -986,6 +1005,7 @@ struct DesktopWindowTarget: Equatable {
             for batch in Self.captureBatches(due, membership: membership) {
                 let offstage = membership.contains(batch[0].key)
                 let before = offstage ? await recheck?() : snapshot()
+                guard await Self.awaitDispatchTurn(current: currentRun) else { return }
                 guard permitted() else { return }
                 for target in batch {
                     let key = target.key
@@ -1046,14 +1066,24 @@ struct DesktopWindowTarget: Equatable {
         return result == .allowed
     }
 
+    /// State-only continuity while yielding. The physical admission and original
+    /// hidden-window witness are deliberately deferred until dispatch releases
+    /// the actor; no timestamp or first-frame budget is refreshed by this wait.
+    private func captureIsCurrent(_ live: Live, allowed: () -> Bool) -> Bool {
+        !live.cancelled && !Task.isCancelled && streams[live.target.key] === live &&
+            operations[live.target.display] == live.run && allowed() &&
+            (live.sequence > 0 || ProcessInfo.processInfo.systemUptime - live.acquired <= Self.firstFrameTimeout)
+    }
+
     /// Keep an actual delivery during the brief membership transaction. Waiting
     /// belongs to this existing capture consumer, never to window dispatch.
     private func awaitFrameAdmission(_ live: Live, snapshot: () -> DesktopSnapshot?, allowed: () -> Bool) async -> Bool {
-        while !admitted(live, snapshot: snapshot(), allowed: allowed) {
+        while true {
+            guard await Self.awaitDispatchTurn(current: { self.captureIsCurrent(live, allowed: allowed) }) else { return false }
+            if admitted(live, snapshot: snapshot(), allowed: allowed) { return true }
             guard canAwaitFirstHeldFrame(live, snapshot: snapshot(), allowed: allowed) else { return false }
             do { try await Task.sleep(for: .milliseconds(60)) } catch { return false }
         }
-        return true
     }
 
     private func consume(_ live: Live, snapshot: @escaping () -> DesktopSnapshot?, allowed: @escaping () -> Bool,
@@ -1061,7 +1091,8 @@ struct DesktopWindowTarget: Equatable {
         let target = live.target, key = target.key, pipe = live.stream
         capturesInFlight += 1
         var started = false
-        if admitted(live, snapshot: snapshot(), allowed: allowed) || canAwaitFirstHeldFrame(live, snapshot: snapshot(), allowed: allowed) {
+        if await Self.awaitDispatchTurn(current: { self.captureIsCurrent(live, allowed: allowed) }),
+           admitted(live, snapshot: snapshot(), allowed: allowed) || canAwaitFirstHeldFrame(live, snapshot: snapshot(), allowed: allowed) {
             do { try await pipe.start(); started = true } catch {}
         }
         capturesInFlight -= 1
@@ -1089,7 +1120,8 @@ struct DesktopWindowTarget: Equatable {
                     // A coalesced read may already have begun before this delivery. Join a fresh one then.
                     var after = await recheck?()
                     if let began = after?.native?.beganUptime, began < received, !live.cancelled { after = await recheck?() }
-                    guard let after, let began = after.native?.beganUptime, began >= received,
+                    guard await Self.awaitDispatchTurn(current: { self.captureIsCurrent(live, allowed: allowed) }),
+                          let after, let began = after.native?.beganUptime, began >= received,
                           target.present(in: after), admitted(live, snapshot: snapshot(), allowed: allowed) else {
                         audit?.record(key, .membership, .membershipUnconfirmed, epoch: epoch, sequence: live.sequence); continue
                     }

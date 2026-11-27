@@ -190,7 +190,7 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     static func projectGroups(_ raw: DesktopSnapshot, current: @MainActor () -> Bool = { true },
-        measure: (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) async -> DesktopSnapshot? {
+        measure: @escaping @Sendable (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?) async -> DesktopSnapshot? {
         guard needsDirectoryRead(raw) else { return nil }
         // Charge time spent querying AX. Time yielded to the UI cannot exhaust the remaining rows.
         var remainingReadTime: TimeInterval = 1
@@ -207,13 +207,21 @@ import NearpaneOrdinaryWindowRuntime
             m.overviewOrdinaryRole = nil
             m.minimized = nil
             if visibleCandidate && remainingReadTime > 0 {
-                await Task.yield()
                 guard !Task.isCancelled, current() else { return nil }
-                let started = ProcessInfo.processInfo.systemUptime
-                defer { remainingReadTime -= ProcessInfo.processInfo.systemUptime - started }
+                let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
+                let home = OrdinaryDesktopIdentity(display: w.displayID, record: record.id, uuid: uuid)
+                // Yielding immediately before a synchronous AX read still runs that
+                // read on MainActor. Keep the read sequential, but let the UI deliver
+                // new input and fresh Dock observations while it is in flight.
+                let (reading, elapsed) = await Task.detached(priority: .userInitiated) {
+                    let started = ProcessInfo.processInfo.systemUptime
+                    let result = Result { try measure(member, home) }
+                    return (result, ProcessInfo.processInfo.systemUptime - started)
+                }.value
+                remainingReadTime -= elapsed
+                guard !Task.isCancelled, current() else { return nil }
                 do {
-                    let member = NativeSpaceWindow(pid: key.pid, birth: key.birth, number: key.number)
-                    if let s = try measure(member, .init(display: w.displayID, record: record.id, uuid: uuid)) {
+                    if let s = try reading.get() {
                         if s.id.pid == key.pid, s.id.launch == key.birth, s.id.number == key.number,
                            s.membership == UInt64(record.id), s.frame == m.globalFrame, s.onscreen == m.isOnscreen {
                             m.overviewOrdinaryRole = true; m.fullScreen = false; m.minimized = s.minimized

@@ -1,4 +1,5 @@
 import AppKit
+import CReadOnlySpaces
 import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
 import OSLog
@@ -12,7 +13,7 @@ import OSLog
     #endif
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
-    private let fingerprint: @MainActor () -> Int
+    private let fingerprint: @Sendable () -> Int?
     private let session = UUID()
     private(set) var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
@@ -350,7 +351,7 @@ import OSLog
     private var stageOwnershipObserved = false
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
-         fingerprint: @escaping @MainActor () -> Int = CurrentDesktopWindows.windowNumbersFingerprint,
+         fingerprint: @escaping @Sendable () -> Int? = CurrentDesktopWindows.windowNumbersFingerprint,
          readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
         let store = StageGroupStore(profile: stageGroupProfile)
         groups = store
@@ -441,8 +442,13 @@ import OSLog
                 var settleUntil = last
                 var settledDragCount = CGEventSource.counterForEventType(.combinedSessionState, eventType: .leftMouseDragged)
                 while !Task.isCancelled {
-                    let now = ContinuousClock.now, numbers = fingerprint()
-                    if numbers != previous {
+                    // WindowServer enumeration can block even when only IDs are requested.
+                    // This wake-up hint must never hold the actor needed to consume a click's
+                    // fresh native observation. Only the full reader can authorize a dispatch.
+                    let numbers = await Task.detached(priority: .utility, operation: fingerprint).value
+                    guard !Task.isCancelled else { return }
+                    let now = ContinuousClock.now
+                    if let numbers, numbers != previous {
                         previous = numbers
                         // WindowServer's numbers can precede the settled Space membership.
                         settleUntil = now.advanced(by: .milliseconds(760))
@@ -647,15 +653,11 @@ import OSLog
         return expected == epoch ? result : nil
     }
 
-    /// The cheap wake-up check reads only raw WindowServer numbers. Even while
-    /// another app is frontmost a newly opened or closed sibling changes the list.
-    private static func windowNumbersFingerprint() -> Int {
-        var hash = Hasher()
-        for options: NSWindow.NumberListOptions in [.allApplications, [.allApplications, .allSpaces]] {
-            let ids = NSWindow.windowNumbers(options: options) ?? []
-            hash.combine(ids.count)
-            for id in ids { hash.combine(id.uint32Value) }
-        }
-        return hash.finalize()
+    /// A read-only wake-up hint, independent of AppKit and safe on a background executor.
+    /// A failed hint leaves the periodic full reader active; it never means an empty desktop.
+    private nonisolated static func windowNumbersFingerprint() -> Int? {
+        var value: UInt64 = 0
+        guard NPReadWindowNumbersFingerprint(&value) == 1 else { return nil }
+        return Int(truncatingIfNeeded: value)
     }
 }

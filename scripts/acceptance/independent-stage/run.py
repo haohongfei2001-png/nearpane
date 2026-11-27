@@ -159,7 +159,8 @@ def source_checks(out, env):
     # The filtered run uses real Core/Host/UI code. It does not grant WindowServer qualification.
     pattern = "|".join(("IndependentStage", "StageGroup", "StageWindow", "StageHost", "EngineABI",
                         "NativeMinimize", "AppleStageMinimize", "OrdinaryDesktopMembership", "StageCreationFocus",
-                        "SpaceInventoryTests", "SpacesWorkerLifecycleTests"))
+                        "SpaceInventoryTests", "SpacesWorkerLifecycleTests", "NativeSidebarNavigationTests",
+                        "DesktopPreviewContinuityTests"))
     checks["swift"] = execute(["bash", "scripts/test.sh", "--jobs", "4", "--filter", pattern,
                                 "--xunit-output", out / "swift.xml"], out, "swift", env, 1200)
     if checks["swift"]["status"] == "PASS":

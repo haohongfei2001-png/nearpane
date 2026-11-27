@@ -240,6 +240,71 @@ import Testing
         #expect(router.idleGeneration != nil && router.idleGeneration != idle)
     }
 
+    @Test func thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain() async {
+        let lane = NativeSidebarNavigation()
+        var first: CheckedContinuation<Void, Never>?, second: CheckedContinuation<Void, Never>?
+        lane.submit(selection: false, stage: true) { _ in await withCheckedContinuation { first = $0 } }
+        #expect(lane.isDispatching) // The click owns the lane before its task starts.
+        while first == nil { await Task.yield() }
+        var waiting = false, permission = true, admissionReads = 0
+        let refresh = Task {
+            guard await DesktopWindowGallery.awaitDispatchTurn(navigation: lane, current: {
+                waiting = true
+                return true
+            }) else { return false }
+            admissionReads += 1
+            return permission
+        }
+        while !waiting { await Task.yield() }
+        #expect(admissionReads == 0)
+        lane.submit(selection: false, stage: true) { _ in await withCheckedContinuation { second = $0 } }
+        first?.resume()
+        while second == nil { await Task.yield() }
+        #expect(lane.isDispatching && admissionReads == 0)
+        permission = false // A grant from before dispatch must not be replayed.
+        second?.resume()
+        #expect(await refresh.value == false)
+        #expect(admissionReads == 1 && !lane.isDispatching)
+    }
+
+    @Test func thumbnailDispatchWaitCanBeCancelledWithoutWaitingForTheWindowAction() async {
+        let lane = NativeSidebarNavigation()
+        var finish: CheckedContinuation<Void, Never>?
+        lane.submit(stage: true) { _ in await withCheckedContinuation { finish = $0 } }
+        while finish == nil { await Task.yield() }
+        var waiting = false
+        let refresh = Task {
+            await DesktopWindowGallery.awaitDispatchTurn(navigation: lane, current: { waiting = true; return true })
+        }
+        while !waiting { await Task.yield() }
+        refresh.cancel()
+        #expect(await refresh.value == false)
+        #expect(lane.isDispatching)
+        finish?.resume()
+        while lane.isDispatching { await Task.yield() }
+    }
+
+    @Test func thumbnailDispatchWaitDoesNotRenewAnExpiredFirstFrameOrRetiredCapture() async {
+        let lane = NativeSidebarNavigation()
+        var finish: CheckedContinuation<Void, Never>?
+        lane.submit(stage: true) { _ in await withCheckedContinuation { finish = $0 } }
+        while finish == nil { await Task.yield() }
+        let acquired: TimeInterval = 100
+        var now = acquired, waiting = false
+        let refresh = Task {
+            await DesktopWindowGallery.awaitDispatchTurn(navigation: lane, current: {
+                waiting = true
+                return now - acquired <= 5
+            })
+        }
+        while !waiting { await Task.yield() }
+        now = 105.001
+        #expect(await refresh.value == false)
+        #expect(lane.isDispatching)
+        finish?.resume()
+        while lane.isDispatching { await Task.yield() }
+    }
+
     @Test func groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() async {
         let router = NativeSidebarNavigation()
         var owner = false, effects = [String]()

@@ -35,5 +35,9 @@ int NPReadWindowNumberPresence(uint32_t window);
 // Anonymous pre-consent numbers only. No window dictionaries, titles or pixels.
 int NPReadExistingWindowNumbers(uint32_t * _Nonnull out, int capacity);
 
+// Background wake-up hint only: hash the ordered visible and all-window IDs.
+// Returns 0 on an unreadable list. Never establishes a window identity or authority.
+int NPReadWindowNumbersFingerprint(uint64_t * _Nonnull out);
+
 // Preserve global z-order using IDs alone; fetch metadata only for the supplied windows.
 CFArrayRef _Nullable NPReadVisibleWindowDescriptions(const uint32_t * _Nonnull windows, int count) CF_RETURNS_RETAINED;

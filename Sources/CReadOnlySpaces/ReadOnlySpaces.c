@@ -247,3 +247,24 @@ int NPReadExistingWindowNumbers(uint32_t *out, int capacity) {
     CFRelease(ids);
     return result;
 }
+
+int NPReadWindowNumbersFingerprint(uint64_t *out) {
+    if (!out) return 0;
+    const CGWindowListOption options[] = { kCGWindowListOptionOnScreenOnly, kCGWindowListOptionAll };
+    uint64_t hash = UINT64_C(14695981039346656037);
+    for (size_t list = 0; list < sizeof(options) / sizeof(options[0]); list++) {
+        CFArrayRef ids = CGWindowListCreate(options[list], kCGNullWindowID);
+        if (!ids) return 0;
+        CFIndex count = CFArrayGetCount(ids);
+        hash = (hash ^ (uint64_t)count) * UINT64_C(1099511628211);
+        for (CFIndex i = 0; i < count; i++) {
+            // CGWindowListCreate contains raw window numbers, not CFNumber objects.
+            uintptr_t id = (uintptr_t)CFArrayGetValueAtIndex(ids, i);
+            if (!id || id > UINT32_MAX) { CFRelease(ids); return 0; }
+            hash = (hash ^ (uint64_t)id) * UINT64_C(1099511628211);
+        }
+        CFRelease(ids);
+    }
+    *out = hash;
+    return 1;
+}

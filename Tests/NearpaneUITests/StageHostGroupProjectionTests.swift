@@ -1,7 +1,26 @@
 import Foundation
+import Dispatch
 import Testing
 import NearpaneCore
 @testable import NearpaneUI
+
+private final class ProjectionReadProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var windows = [UInt32]()
+    private var progressed = false
+    private var readOnMain = false
+    func record(_ window: UInt32) { lock.withLock { windows.append(window) } }
+    var requested: [UInt32] { lock.withLock { windows } }
+    func finishRead(mainActorProgress: Bool, onMainThread: Bool) {
+        lock.withLock { progressed = mainActorProgress; readOnMain = onMainThread }
+    }
+    var mainActorProgress: Bool { lock.withLock { progressed } }
+    var readOnMainThread: Bool { lock.withLock { readOnMain } }
+}
+
+@MainActor private final class ProjectionReadIntent {
+    var current = true
+}
 
 @MainActor struct StageHostGroupProjectionTests {
     @Test func anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus() throws {
@@ -162,13 +181,13 @@ import NearpaneCore
 
     @Test func actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() async throws {
         let raw = snapshot([window(8), window(9), window(10), window(11, member: "5")])
-        var requested = [UInt32]()
+        let probe = ProjectionReadProbe(), observation = seen(8), expectedDisplay = display, expectedSpace = space
         let copy = try #require(await StageWindowEngineHost.projectGroups(raw) { key, home in
-            requested.append(key.number)
-            #expect(home.display == display && home.uuid == space && home.record == "4")
-            switch key.number { case 8: return seen(8); case 9: return nil; default: throw StageSwitchError.incomplete }
+            probe.record(key.number)
+            #expect(home.display == expectedDisplay && home.uuid == expectedSpace && home.record == "4")
+            switch key.number { case 8: return observation; case 9: return nil; default: throw StageSwitchError.incomplete }
         })
-        #expect(requested == [8, 9, 10])
+        #expect(probe.requested == [8, 9, 10])
         #expect(raw.native?.accessibility == .denied && raw.windows[0].metadata?.overviewOrdinaryRole == nil)
         #expect(copy.native?.accessibility == .partial && copy.isCurrentDesktopWindow(copy.windows[0]))
         #expect(copy.windows[1].metadata?.overviewOrdinaryRole == false && !copy.isCurrentDesktopWindow(copy.windows[1]))
@@ -181,9 +200,10 @@ import NearpaneCore
         raw.native?.accessibility = .partial
         raw.windows[0].metadata?.overviewOrdinaryRole = true
         raw.windows[0].metadata?.minimized = false
+        let observation = seen(9)
         let projection = try #require(await StageWindowEngineHost.projectGroups(raw) { key, _ in
             #expect(key.number == 9)
-            return seen(9)
+            return observation
         })
         #expect(projection.windows[0] == raw.windows[0])
         #expect(projection.windows.allSatisfy(projection.isCurrentDesktopWindow))
@@ -193,12 +213,37 @@ import NearpaneCore
 
     @Test func interruptedDirectoryReadCannotPublishPartialHistoryOrQueryAnotherWindow() async {
         let raw = snapshot([window(8), window(9)])
-        var read = [UInt32]()
-        let result = await StageWindowEngineHost.projectGroups(raw, current: { read.isEmpty }) { key, _ in
-            read.append(key.number)
-            return seen(key.number)
+        let probe = ProjectionReadProbe(), observation = seen(8)
+        let result = await StageWindowEngineHost.projectGroups(raw, current: { probe.requested.isEmpty }) { key, _ in
+            probe.record(key.number)
+            return observation
         }
-        #expect(result == nil && read == [8])
+        #expect(result == nil && probe.requested == [8])
+    }
+
+    @Test func aPhysicalDirectoryReadAllowsMainActorProgressBeforeReturning() async throws {
+        let raw = snapshot([window(8)]), observation = seen(8), probe = ProjectionReadProbe()
+        let delivered = DispatchSemaphore(value: 0)
+        let result = await StageWindowEngineHost.projectGroups(raw) { _, _ in
+            Task { @MainActor in delivered.signal() }
+            let progressed = delivered.wait(timeout: .now() + 2) == .success
+            probe.finishRead(mainActorProgress: progressed, onMainThread: Thread.isMainThread)
+            return observation
+        }
+        #expect(probe.mainActorProgress && !probe.readOnMainThread)
+        let projection = try #require(result)
+        #expect(projection.isCurrentDesktopWindow(projection.windows[0]))
+    }
+
+    @Test func inputChangedDuringTheFinalPhysicalReadCannotPublishItsResult() async {
+        let raw = snapshot([window(8)]), observation = seen(8), intent = ProjectionReadIntent()
+        let delivered = DispatchSemaphore(value: 0)
+        let result = await StageWindowEngineHost.projectGroups(raw, current: { intent.current }) { _, _ in
+            Task { @MainActor in intent.current = false; delivered.signal() }
+            #expect(delivered.wait(timeout: .now() + 2) == .success)
+            return observation
+        }
+        #expect(!intent.current && result == nil)
     }
 
     @Test func foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() async throws {

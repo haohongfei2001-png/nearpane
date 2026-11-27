@@ -161,7 +161,10 @@ struct CrossSpaceFocusContinuity {
     private struct Job { let token: UUID, epoch: UUID, selection: Bool, stage: Bool, run: Work }
     private var pending: [Job] = []
     private var running = false
-    var idleGeneration: UUID? { dispatchAvailable && !running && pending.isEmpty ? generation : nil }
+    /// Capture refreshes yield while an explicit window action owns this lane.
+    /// Include queued work so they cannot slip between two rapid choices.
+    var isDispatching: Bool { running || !pending.isEmpty }
+    var idleGeneration: UUID? { dispatchAvailable && !isDispatching ? generation : nil }
     private(set) var issue: String?
     private(set) var canSwitch = false
     private(set) var canMove = false
