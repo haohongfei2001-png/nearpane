@@ -7,7 +7,7 @@
 - `LyricUI/LyricPanelView.swift`: five-cue reading layout for one/two-row current cues. Longer cues use three-cue context, giving the current cue three or four whole rows according to font/translation space, without reducing type size. Hover keeps at most two current rows between metadata and controls, retaining the cue's vertical centre. Immediate pointer entry / 280 ms control leave delay, native material, actual cover bytes, correct-source controls and readonly unavailable progress remain. The 192pt lyric surface and 104pt metadata-only surface each keep their frame on hover. No selection draws a transparent root. Missing artists are omitted rather than replaced by a player name.
 - `LyricUI/LyricGlyphText.swift`: native CoreText paragraph and glyph-run shaping. A bounded last-frame cache shares text/font/width layout between viewport measurement and rendering; height changes redraw clipping and overflow state even without a token clock. A one-shot timer updates masks only during a known active word, at up to 60 Hz (30 Hz in Low Power Mode); pauses, hidden views and unknown/stale clocks stop that timer. Source tokens with unknown ends activate discretely. UTF-16 spans are checked against composed-character boundaries. RTL glyph runs retain their native shaping and mask direction. Short cues are vertically centred; the viewport exposes whole rows at rest. Very long cues can be scrolled without shrinking the font.
 - `LyricUI/LyricAuxiliaryController.swift`: real native windows for welcome, settings, candidate search, local import, source provenance, timing adjustment and the full lyric document. A line does not seek on ordinary click; an explicit context-menu action sends a guarded seek. Login start uses SMAppService and is disabled for an unpackaged executable.
-- `LyricUI/LyricPanelController.swift`: nonactivating NSPanel, transparent rounded surface, top-strip drag, stable display UUID placement, sleep/display recovery, 192pt lyric / 104pt compact playing surfaces sharing a 192pt maximum slot. No playback has no surface or standalone registration. Playing is the only automatic show state; pausing retains only an existing same-recording pointer/keyboard interaction. Actual interaction is separate from accessibility-driven control visibility. User clicks may establish keyboard focus; pointer entry cannot activate the app.
+- `LyricUI/LyricPanelController.swift`: nonactivating NSPanel, transparent rounded surface, top-strip drag, stable display UUID placement, sleep/display recovery, 192pt lyric / 104pt compact playing surfaces. Coordinated reservations follow those actual heights; contraction waits one second to merge transient lookup states, while expansion revokes permission immediately and waits for the existing registry withdrawal barrier. No playback has no surface or standalone registration. Playing is the only automatic show state; pausing retains only an existing same-recording pointer/keyboard interaction. Actual interaction is separate from accessibility-driven control visibility. User clicks may establish keyboard focus; pointer entry cannot activate the app.
 - `LyricTileApp`: AppKit lifecycle and menu-bar entry. Normal installation starts with a welcome page and asks only the player's Automation permission when it is connected. Quit withdraws UI and drains the session.
 - `NearpaneLyricsModule`: reusable View + the same domain/service composition. It does not create a second standalone panel or alter the host width.
 
@@ -16,7 +16,9 @@
 The standalone app integrates TileDesktopCoordinator through these public PanelController hooks:
 
 ```swift
-var slotFrame: NSRect { get }       // Active reservation: maximum 192 pt rectangle.
+var slotFrame: NSRect { get }       // Current authorized reservation: 104 or 192 pt.
+var contentHeight: CGFloat { get }
+var contentHeightDidChange: ((CGFloat) -> Void)?
 var wantsPresentation: Bool { get }
 var visibilityIntentDidChange: ((Bool) -> Void)?
 var displayUUID: String? { get }
@@ -31,6 +33,8 @@ func show(userInitiated: Bool = false)
 ```
 
 The app sets placement permission false before an ordinary startup becomes visible. False withdraws immediately and also gates snapshot-driven visibility, so an asynchronous player update cannot bypass the layout barrier. The coordinator applies a committed frame while hidden, then permits/shows only while the registry still grants that generation authority. With coordinated placement enabled, display changes withdraw and invalidate the plan instead of independently restoring/showing the panel. The drag strip proposes a new right-column order/display; it does not make another product move. `surrender()` also disables input for ownership handoff.
+
+Content height changes use `TileDesktopCoordinator.setReservedHeight` without changing user order or replacing the registry algorithm. Hidden/stopped coordinators remember the requested height without registering a slot. Both the panel and coordinator reject a larger surface under an older compact grant; affected neighbours acknowledge their existing withdrawal transaction before expansion can show. Free placement still uses the 192pt envelope for saved-position clamping, without reserving shared column space.
 
 ## Session handoff
 

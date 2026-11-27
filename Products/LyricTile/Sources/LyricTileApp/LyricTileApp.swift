@@ -43,12 +43,16 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     func applicationDidFinishLaunching(_ notification: Notification) {
         panelController = LyricPanelController(model: model)
         if !nativeLoadCheck { panelController.setPlacementPermission(false) }
-        tileCoordinator = TileDesktopCoordinator(id: "com.holdsnow.lyrictile", reservedHeight: Double(LyricPanelLayout.maximumHeight),
+        tileCoordinator = TileDesktopCoordinator(id: "com.holdsnow.lyrictile", reservedHeight: Double(panelController.contentHeight),
             windowIDs: { [weak self] in self?.panelController.windowIDs.compactMap { UInt32(exactly: $0) } ?? [] },
             permit: { [weak self] allowed in self?.panelController.setPlacementPermission(allowed) },
             place: { [weak self] frame, display in self?.panelController.placeHidden(slot: frame, displayUUID: display) },
             show: { [weak self] in self?.panelController.show() },
             status: { [weak self] message in if let message { self?.model.actionMessage = message } })
+        panelController.contentHeightDidChange = { [weak self] height in
+            guard let self, !nativeLoadCheck, !terminating else { return }
+            tileCoordinator.setReservedHeight(Double(height))
+        }
         panelController.visibilityIntentDidChange = { [weak self] _ in
             guard let self, !nativeLoadCheck, !terminating else { return }
             placementTask?.cancel()
@@ -271,6 +275,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             return
         }
         if model.settings.coordinateTiles {
+            tileCoordinator.setReservedHeight(Double(panelController.contentHeight))
             await tileCoordinator.start(preferredDisplayID: model.settings.preferredDisplayUUID)
         } else {
             guard await tileCoordinator.stop() else { return }

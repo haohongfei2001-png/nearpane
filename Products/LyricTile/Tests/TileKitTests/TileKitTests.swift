@@ -87,6 +87,49 @@ final class TileKitTests: XCTestCase {
                                                   observation: .init(visibleWindowIDs: []))
         XCTAssertEqual(stable.phase, .stable); XCTAssertEqual(stable.placements["lyrictile"]?.rect.y, 88)
     }
+    func testCompactHeightReleasesGapAndExpansionWaitsForBothWindows() throws {
+        let registry = TileRegistry(directory: try temporary())
+        let screen = TileDisplay(id: "main", width: 1470, height: 900, isPrimary: true)
+        var lyric = TileMember(id: "lyrictile", reservedHeight: 192, windowIDs: [101], userOrder: 0)
+        let neighbour = TileMember(id: "fixture-tool", reservedHeight: 62, windowIDs: [102], userOrder: 1)
+        _ = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: []))
+        let expanded = try registry.reconcile(neighbour, displays: [screen], observation: .init(visibleWindowIDs: [101]))
+        let oldSlot = try XCTUnwrap(expanded.placements[lyric.id])
+        XCTAssertEqual(expanded.placements[neighbour.id]?.rect.y, 218)
+
+        lyric.reservedHeight = 104
+        let shrinking = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: [101, 102]))
+        XCTAssertEqual(shrinking.withdraw, [lyric.id, neighbour.id])
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: expanded.epoch, generation: expanded.generation, placement: oldSlot) {})
+        _ = try registry.acknowledgeHidden(id: lyric.id, instanceID: lyric.instanceID, generation: shrinking.generation,
+                                          observation: .init(visibleWindowIDs: [102]))
+        let compact = try registry.acknowledgeHidden(id: neighbour.id, instanceID: neighbour.instanceID, generation: shrinking.generation,
+                                                    observation: .init(visibleWindowIDs: []))
+        XCTAssertEqual(compact.phase, .stable)
+        let compactSlot = try XCTUnwrap(compact.placements[lyric.id])
+        XCTAssertEqual(compactSlot.rect.height, 104)
+        XCTAssertEqual(compact.placements[neighbour.id]?.rect.y, 130)
+        XCTAssertEqual(compact.placements[neighbour.id]!.rect.y - compactSlot.rect.y - compactSlot.rect.height, 10)
+
+        lyric.reservedHeight = 192
+        let growing = try registry.reconcile(lyric, displays: [screen], observation: .init(visibleWindowIDs: [101, 102]))
+        XCTAssertEqual(growing.withdraw, [lyric.id, neighbour.id])
+        let onlyLyricsHidden = try registry.acknowledgeHidden(id: lyric.id, instanceID: lyric.instanceID, generation: growing.generation,
+                                                            observation: .init(visibleWindowIDs: [102]))
+        XCTAssertEqual(onlyLyricsHidden.phase, .withdrawing)
+        XCTAssertFalse(onlyLyricsHidden.mayShow(lyric.id))
+        let stillVisible = try registry.acknowledgeHidden(id: neighbour.id, instanceID: neighbour.instanceID, generation: growing.generation,
+                                                        observation: .init(visibleWindowIDs: [102]))
+        XCTAssertEqual(stillVisible.phase, .withdrawing)
+        let restored = try registry.acknowledgeHidden(id: neighbour.id, instanceID: neighbour.instanceID, generation: growing.generation,
+                                                    observation: .init(visibleWindowIDs: []))
+        XCTAssertEqual(restored.phase, .stable)
+        XCTAssertEqual(restored.placements[lyric.id]?.rect.height, 192)
+        XCTAssertEqual(restored.placements[neighbour.id]?.rect.y, 218)
+        XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
+            epoch: compact.epoch, generation: compact.generation, placement: compactSlot) {})
+    }
     func testLeaseAgeAloneNeverReclaimsVisibleMember() throws {
         let registry = TileRegistry(directory: try temporary()), screen = TileDisplay(id: "main", width: 1470, height: 900)
         let old = TileMember(id: "saytile", reservedHeight: 62, windowIDs: [99])

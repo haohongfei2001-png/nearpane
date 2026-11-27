@@ -16,6 +16,10 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     /// Playback intent is separate from registry permission and window occlusion.
     public private(set) var wantsPresentation = false
     public var visibilityIntentDidChange: (@MainActor (Bool) -> Void)?
+    public var contentHeightDidChange: (@MainActor (CGFloat) -> Void)?
+    public var contentHeight: CGFloat {
+        model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight
+    }
     private let model: LyricAppModel
     private let defaults: UserDefaults
     private var subscriptions: Set<AnyCancellable> = []
@@ -24,6 +28,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private var userHidden = false
     private var surrendered = false
     private var saved: [String: SavedPlacement]
+    private var lastRequestedHeight: CGFloat = LyricPanelLayout.compactHeight
 
     private struct SavedPlacement: Codable {
         var horizontalFraction: Double
@@ -85,6 +90,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         guard wantsPresentation, placementPermitted else { return }
         if slotFrame == .zero { restorePosition(reset: false) }
         guard slotFrame != .zero else { return }
+        guard !usesCoordinatedPlacement || contentHeight <= slotFrame.height else { return }
         resizeVisibleSurface()
         if !panel.isVisible { panel.orderFrontRegardless() }
         model.isVisible = panel.occlusionState.contains(.visible)
@@ -155,6 +161,11 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     }
     private func refreshForPlayback() {
         updateVisibilityIntent()
+        let height = contentHeight
+        if height != lastRequestedHeight {
+            lastRequestedHeight = height
+            contentHeightDidChange?(height)
+        }
         guard wantsPresentation, placementPermitted else { withdraw(); return }
         show()
     }
@@ -170,7 +181,10 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     }
     private func resizeVisibleSurface() {
         guard !dragging, slotFrame != .zero else { return }
-        let height = model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight
+        let height = contentHeight
+        // Content can change before the coordinator has committed its new plan.
+        // Growing beyond the current grant would overlap a neighbouring tool.
+        guard !usesCoordinatedPlacement || height <= slotFrame.height else { return }
         let frame = NSRect(x: slotFrame.minX, y: slotFrame.maxY - height, width: slotFrame.width, height: height)
         if panel.frame != frame { panel.setFrame(frame, display: true, animate: false) }
     }

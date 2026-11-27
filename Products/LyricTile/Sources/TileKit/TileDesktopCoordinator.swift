@@ -22,6 +22,8 @@ public final class TileDesktopCoordinator {
     private var stopBarrier: Task<Bool, Never>?
     private var lastPlacement: TilePlacement?
     private var presentationGranted = false
+    private var requestedHeight: Double
+    private var heightChangeTask: Task<Void, Never>?
 
     public init(id: String, reservedHeight: Double,
                 registry: TileRegistry = TileRegistry(),
@@ -33,6 +35,7 @@ public final class TileDesktopCoordinator {
         self.registry = registry
         store = RegistryWorker(registry: registry)
         member = TileMember(id: id, reservedHeight: reservedHeight)
+        requestedHeight = reservedHeight
         self.windowIDs = windowIDs; self.permit = permit; self.place = place
         self.show = show; self.status = status
     }
@@ -43,6 +46,34 @@ public final class TileDesktopCoordinator {
         if let stopBarrier { _ = await stopBarrier.value }
         guard desiredActive, !Task.isCancelled, !active else { return }
         member.preferredDisplayID = preferredDisplayID
+        heightChangeTask?.cancel(); heightChangeTask = nil
+        member.reservedHeight = requestedHeight
+        beginLoop()
+    }
+
+    /// Keep a compact tile's reservation as small as its surface. Expansion
+    /// revokes the old permission immediately; neighbours still acknowledge the
+    /// registry's normal withdrawal plan before any larger surface is presented.
+    /// A short contraction delay absorbs lyrics arriving during a track change.
+    public func setReservedHeight(_ height: Double) {
+        guard height.isFinite, (1...4096).contains(height), height != requestedHeight else { return }
+        requestedHeight = height
+        heightChangeTask?.cancel(); heightChangeTask = nil
+        guard height != member.reservedHeight else { return }
+        if active && desiredActive && height < member.reservedHeight {
+            heightChangeTask = Task { [weak self] in
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                guard let self, requestedHeight == height else { return }
+                applyReservedHeight(height)
+                heightChangeTask = nil
+            }
+        } else { applyReservedHeight(height) }
+    }
+
+    private func applyReservedHeight(_ height: Double) {
+        member.reservedHeight = height
+        guard active, desiredActive else { return }
+        loop?.cancel()
         beginLoop()
     }
 
@@ -63,6 +94,8 @@ public final class TileDesktopCoordinator {
     /// is handed to Nearpane, so a stale standalone reservation cannot coexist.
     @discardableResult public func stop() async -> Bool {
         desiredActive = false; placementRevision &+= 1
+        heightChangeTask?.cancel(); heightChangeTask = nil
+        member.reservedHeight = requestedHeight
         return await stopLoop()
     }
 
@@ -156,6 +189,13 @@ public final class TileDesktopCoordinator {
                   let screen = screens.first(where: { $0.display.id == placement.displayID }) else {
                 revokePresentation()
                 if plan.phase == .stable { status("右侧暂时没有足够空间，可将歌词板移到另一个显示器。") }
+                return
+            }
+            // A previous withdrawal may complete after the desired height changed.
+            // Wait for reconciliation of the current size instead of presenting
+            // an obsolete slot or an oversized surface inside a compact grant.
+            guard placement.rect.height == member.reservedHeight else {
+                revokePresentation()
                 return
             }
             guard Self.screens() == screens else {
