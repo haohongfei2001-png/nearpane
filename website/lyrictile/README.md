@@ -8,9 +8,9 @@ The layout follows the existing brand's pale desktop colors, system typography, 
 
 ## Release state
 
-`release.json` is the single downloadable-release manifest. Until `published` is true and complete valid version/build/commit/HTTPS URL/checksum fields are present, both languages retain a candidate status and link to the relevant GitHub Actions workflow. The static HTML also retains that honest state if JavaScript or the request fails. There is no stale build 4 download fallback.
+`release.json` is the downloadable-release manifest. The script changes the download link only when `published` is true and complete valid version/build/commit/HTTPS URL/checksum fields are present. Each static HTML snapshot must retain its own verified status and matching URL: a candidate link before initial publication, or the last verified consumer release after publication. Failed, malformed or unpublished manifests leave those static links unchanged. There is no stale build 4 download fallback.
 
-After publishing and verifying the final Release, fill the manifest from that exact notarized DMG and update the verified player support text. Do not use repository-wide `/releases/latest` because this repository also publishes Nearpane. Keep the full commit and SHA-256 in the manifest.
+After publishing and verifying each Release, fill the manifest from that exact notarized DMG and update both language pages together: version, download URL, release URL, SHA-256, signing status and verified player support. This keeps the same usable download when JavaScript or the manifest request fails. Do not use repository-wide `/releases/latest` because this repository also publishes Nearpane. Keep the full commit and SHA-256 in the manifest.
 
 ## Verification
 

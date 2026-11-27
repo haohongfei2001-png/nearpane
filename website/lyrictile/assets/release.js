@@ -14,7 +14,6 @@
     return response.json();
   }).then(release => {
     const button = document.querySelector('[data-candidate-link]');
-    if (button && https(release.candidateURL)) button.href = release.candidateURL;
     const support = release.support && release.support[english ? 'en' : 'zh'];
     if (support) set('[data-player-support]', support);
     if (release.published !== true || !https(release.downloadURL) || !https(release.releaseURL) ||
@@ -28,5 +27,5 @@
     const details = document.querySelector('[data-downloads]'); if (details) details.hidden = false;
     const notes = document.querySelector('[data-release-link]'); if (notes) notes.href = release.releaseURL;
     const candidateNote = document.querySelector('[data-candidate-note]'); if (candidateNote) candidateNote.hidden = true;
-  }).catch(() => { /* The honest static candidate state remains usable when offline. */ });
+  }).catch(() => { /* Keep the verified static page links when the manifest is unavailable. */ });
 })();
