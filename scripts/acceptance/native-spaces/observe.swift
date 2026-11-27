@@ -644,39 +644,20 @@ func surfaceToggle(_ args: [String]) -> Object {
     }
     return ["issued":false,"reason":"menu did not expose toggle","openResult":menuResult as Any? ?? NSNull(),"actions":actions]
 }
-// Exercise only the app's explanation and its dismissal. Never press a consent or System Settings button.
+// The isolated-sidebar popover contract ended after 44c2739f6568b56927d245277bb5006216b4306b.
+// Permissions now belong to the retained management window. This legacy witness
+// cannot establish its route/window identity and must not press a deep-link or
+// interpret the intentionally absent window-access-done control as a failure.
+// Historical popover receipts remain scoped to their original candidate/observer.
 func guideResult() -> Object {
-    guard let host, AXIsProcessTrusted(), let signature = runningCodeHash(host.processIdentifier) else {
-        return ["status":"BLOCKED", "reason":"installed Host or observer unavailable"]
-    }
-    func index() -> Sidebar { Sidebar(host, rows: rows) }
-    func press(_ id: String) -> Bool {
-        guard id == "window-access-guide" || id == "window-access-done",
-              !host.isTerminated, runningCodeHash(host.processIdentifier) == signature,
-              let found = index().controls[id], found.count == 1,
-              value(found[0], kAXEnabledAttribute) as? Bool == true else { return false }
-        return AXUIElementPerformAction(found[0], kAXPressAction as CFString) == .success
-    }
-    guard !index().permissionControls.contains("window-access-done") else { return ["status":"BLOCKED","reason":"guide already open"] }
-    guard press("window-access-guide") else { return ["status":"BLOCKED","reason":"no unique visible guide"] }
-    var controls = Set<String>()
-    for _ in 0..<16 {
-        controls = index().permissionControls
-        if controls.contains("window-access-done") { break }
-        Thread.sleep(forTimeInterval: 0.06)
-    }
-    let dismissed = press("window-access-done")
-    var closed = false
-    if dismissed {
-        for _ in 0..<16 {
-            if !index().permissionControls.contains("window-access-done") { closed = true; break }
-            Thread.sleep(forTimeInterval: 0.06)
-        }
-    }
-    let pictures = !controls.isDisjoint(with: ["window-access-allow-pictures","window-access-pictures-granted"])
-    let focus = !controls.isDisjoint(with: ["window-access-allow-focus","window-access-focus-granted"])
-    return ["status":pictures && focus && closed ? "PASS" : "FAIL", "visibleControls":controls.sorted(),
-            "dismissed":closed,"systemPermissionActions":0]
+    ["status": "BLOCKED", "support": "UNSUPPORTED",
+     "check": "legacyIsolatedSidebarPermissionPopover",
+     "reason": "Permission explanations now use the unified main window; this sidebar-only witness does not verify that route.",
+     "historicalSourceThrough": "44c2739f6568b56927d245277bb5006216b4306b",
+     "replacementRecord": "docs/verification/2026-11-28-unified-workbench.md",
+     "requiredEvidence": "Native permission-page navigation, retained management-window identity and unchanged system consent gates for the same candidate.",
+     "issued": false, "dismissed": false, "systemPermissionActions": 0,
+     "mainWindowRoutingVerified": false]
 }
 // Independent check of membership and window kind. Read only CG/AX metadata;
 // never request titles, window contents or a permission prompt. Record counts only.

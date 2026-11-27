@@ -1039,7 +1039,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func connectManagementNavigation(_ modules: EmbeddedModules) {
         modules.openManagementPage = { [weak self] id, page in
             guard let self else { return }
-            if page == "library" {
+            if page == "permissions" {
+                settingsNavigation.showPermissions()
+            } else if page == "library" {
                 switch id {
                 case BuiltinCatalog.voice: settingsNavigation.showVoiceArchive()
                 case BuiltinCatalog.screenshots: settingsNavigation.showScreenshotArchive()

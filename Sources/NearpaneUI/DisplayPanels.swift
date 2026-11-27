@@ -486,7 +486,15 @@ import NearpaneCore
             if let panel = secondary[plan.id] {
                 controller = panel
             } else {
-                controller = EdgeWindowController(host: host)
+                let openManagement: ((String, String?) -> Void)?
+                if domains?.openManagementPage != nil {
+                    openManagement = { [weak self] module, page in
+                        self?.domains?.openManagementPage?(module, page)
+                    }
+                } else { openManagement = nil }
+                // Secondary surfaces receive only navigation, never the domain
+                // instances owned by the unique primary workbench.
+                controller = EdgeWindowController(host: host, openManagement: openManagement)
                 if displayID != nil { controller.window?.ignoresMouseEvents = true }
                 controller.usePointer(pointer)
                 secondary[plan.id] = controller

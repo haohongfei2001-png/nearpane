@@ -173,7 +173,7 @@ struct WindowPermissionButton: View {
 /// Apps requiring the isolated window-number reader use the signed action helper.
 struct WindowAccessGuide: View {
     let showPictures: Bool
-    @ViewState private var expanded = false
+    var openPermissions: (() -> Void)? = nil
     private let access = WindowOverviewAccess.shared
 
     var body: some View {
@@ -184,24 +184,15 @@ struct WindowAccessGuide: View {
             let missingFocus = access.checkedWorker && access.focusAvailable != true
             if missingPixels || missingFocus {
                 Button {
-                    expanded = true
+                    openPermissions?()
                 } label: {
                     Label(missingPixels && missingFocus ? "设置窗口权限" : missingPixels ? "启用窗口画面" : "检查窗口切换",
                           systemImage: "lock.open")
                         .lineLimit(1)
                 }
                 .controlSize(.small)
+                .disabled(openPermissions == nil)
                 .accessibilityIdentifier("window-access-guide")
-                .popover(isPresented: $expanded) {
-                    VStack(alignment: .trailing, spacing: 12) {
-                        WindowAccessSteps(showPictures: showPictures)
-                        Button("完成") { expanded = false }
-                            .controlSize(.small)
-                            .keyboardShortcut(.cancelAction)
-                            .accessibilityIdentifier("window-access-done")
-                    }
-                    .frame(width: 276).padding(14)
-                }
             }
         }
         .modifier(WindowGuideObserver(access: access))

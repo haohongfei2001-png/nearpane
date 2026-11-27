@@ -56,7 +56,9 @@ enum UnifiedWorkbenchAcceptance {
         }
         func singleMainWindow() -> Bool {
             let windows = NSApp.windows.filter { $0.identifier?.rawValue == "nearpane-main-window" }
-            let management = NSApp.windows.filter { $0.isVisible && $0.styleMask.contains(.titled) && !($0 is NSPanel) }
+            // Desktop edge panels are borderless. A titled NSPanel is still a
+            // management window and must not escape the single-window invariant.
+            let management = NSApp.windows.filter { $0.isVisible && $0.styleMask.contains(.titled) }
             return windows.count == 1 && windows.first === window && management.count == 1 && management.first === window
         }
         func enabled(_ id: String) -> Bool { host.registry.preferences.contains { $0.id == id && $0.enabled } }
@@ -163,13 +165,19 @@ enum UnifiedWorkbenchAcceptance {
                 (BuiltinCatalog.voice, "library", "voiceArchive"),
                 (BuiltinCatalog.screenshots, "library", "screenshotArchive"),
                 (BuiltinCatalog.lyrics, "fullLyrics", "lyrics"),
-                (BuiltinCatalog.lyrics, "source", "lyrics")
+                (BuiltinCatalog.lyrics, "source", "lyrics"),
+                (BuiltinCatalog.desktop, "permissions", "permissions")
             ] {
                 moduleRoute(moduleID, page)
                 try await Task.sleep(for: .milliseconds(160))
                 try check("module-entry-" + moduleID + "-" + page,
                           navigation.selectedPageIdentifier == expected && singleMainWindow() && window.windowNumber == originalNumber,
                           detail: "The production module-to-Host callback reused the same main window.")
+                if page == "permissions" {
+                    try await picture("10-permissions-explanation")
+                    try check("permissions-explanation-single-window", singleMainWindow() && window.windowNumber == originalNumber,
+                              detail: "The window-access explanation is an internal page of the retained main window; no system authorization button was invoked.")
+                }
             }
 
             navigation.showModules()
@@ -354,14 +362,27 @@ enum UnifiedWorkbenchAcceptance {
             queue.append((view, nil, "contentView"))
             if includeHitTests {
                 // Read-only native hit testing can expose SwiftUI scroll contents
-                // omitted from a container's children array. No coordinate click
-                // is dispatched: press still requires the exact semantic ID.
+                // omitted from a container's children array. EdgePanel's content
+                // view is an AppKit wrapper: its inner AXGroup hosting view must
+                // receive the query too. No coordinate click is dispatched.
+                var views = [view]
+                var hitTestRoots: [NSView] = []
+                while let candidate = views.popLast() {
+                    guard candidate.window === window else { continue }
+                    if candidate === view || candidate.accessibilityRole() == .group {
+                        hitTestRoots.append(candidate)
+                    }
+                    views.append(contentsOf: candidate.subviews)
+                }
                 let spacing: CGFloat = 24
-                for y in stride(from: view.bounds.minY + spacing / 2, to: view.bounds.maxY, by: spacing) {
-                    for x in stride(from: view.bounds.minX + spacing / 2, to: view.bounds.maxX, by: spacing) {
-                        let point = window.convertPoint(toScreen: view.convert(NSPoint(x: x, y: y), to: nil))
-                        if let hit = view.accessibilityHitTest(point) {
-                            queue.append((hit as AnyObject, nil, "accessibilityHitTest"))
+                for root in hitTestRoots {
+                    let bounds = root.visibleRect.intersection(root.bounds)
+                    for y in stride(from: bounds.minY + spacing / 2, to: bounds.maxY, by: spacing) {
+                        for x in stride(from: bounds.minX + spacing / 2, to: bounds.maxX, by: spacing) {
+                            let point = window.convertPoint(toScreen: root.convert(NSPoint(x: x, y: y), to: nil))
+                            if let hit = root.accessibilityHitTest(point) {
+                                queue.append((hit as AnyObject, nil, "accessibilityHitTest"))
+                            }
                         }
                     }
                 }
@@ -370,6 +391,7 @@ enum UnifiedWorkbenchAcceptance {
         var visited = Set<ObjectIdentifier>()
         var result: [AccessibilityNode] = []
         while let (object, parent, relation) = queue.popLast(), visited.count < 2_400 {
+            guard accessibilityObject(object, belongsTo: window) else { continue }
             guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
             let node = object as? any NSAccessibilityProtocol
             let role = node?.accessibilityRole()?.rawValue
@@ -423,6 +445,20 @@ enum UnifiedWorkbenchAcceptance {
             }
         }
         return result
+    }
+
+    private static func accessibilityObject(_ object: AnyObject, belongsTo window: NSWindow) -> Bool {
+        // Never climb from the target panel into NSApplication and then collect
+        // an unrelated main window's controls or the application's menu bar.
+        if object is NSApplication { return false }
+        if let owner = object as? NSWindow { return owner === window }
+        if let view = object as? NSView { return view.window === window }
+        if let owner = objectValue(object, "accessibilityWindow") {
+            return (owner as AnyObject) === window
+        }
+        // Some semantic nodes omit accessibilityWindow. They are accepted only
+        // when reached from the already bounded target tree or its native hit test.
+        return true
     }
 
     private static func booleanValue(_ value: AnyObject, _ name: String) -> Bool? {
@@ -511,7 +547,7 @@ enum UnifiedWorkbenchAcceptance {
                                                      in window: NSWindow, to output: URL) throws {
         let dump: [String: Any] = [
             "identifier": identifier, "actionDispatched": dispatched, "actions": actions,
-            "windowNumber": window.windowNumber, "windowVisible": window.isVisible,
+            "windowNumber": window.windowNumber, "windowVisible": window.isVisible, "targetWindowScoped": true,
             "nodeCount": rows.count, "truncated": rows.count > 400,
             "matchingNodes": rows.enumerated().filter { $0.element.identifier == identifier }.map { $0.offset },
             "nodes": rows.prefix(400).enumerated().map { index, row -> [String: Any] in
@@ -520,7 +556,7 @@ enum UnifiedWorkbenchAcceptance {
                  "role": row.role, "identifier": row.identifier, "label": row.label,
                  "enabled": row.enabled, "enabledKnown": row.enabledKnown,
                  "availablePublicSelectors": ["isAccessibilityEnabled", "accessibilityPerformPress", "accessibilityChildren",
-                    "accessibilityContents", "accessibilityVisibleChildren", "accessibilityChildrenInNavigationOrder", "accessibilityParent"]
+                    "accessibilityContents", "accessibilityVisibleChildren", "accessibilityChildrenInNavigationOrder", "accessibilityParent", "accessibilityWindow"]
                     .filter { (row.object as? NSObject)?.responds(to: NSSelectorFromString($0)) == true }]
             }
         ]

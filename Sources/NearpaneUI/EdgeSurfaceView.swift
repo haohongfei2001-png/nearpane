@@ -9,12 +9,17 @@ public struct EdgeSurfaceView: View {
     private let host: HostSession
     private let modules: EmbeddedModules?
     private let display: SurfaceDisplay?
+    private let openManagement: ((String, String?) -> Void)?
     @State private var scrollOffset = 0.0
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    public init(host: HostSession, modules: EmbeddedModules? = nil) { self.host = host; self.modules = modules; display = nil }
-    init(host: HostSession, modules: EmbeddedModules?, display: SurfaceDisplay) {
-        self.host = host; self.modules = modules; self.display = display
+    public init(host: HostSession, modules: EmbeddedModules? = nil,
+                openManagement: ((String, String?) -> Void)? = nil) {
+        self.host = host; self.modules = modules; display = nil; self.openManagement = openManagement
+    }
+    init(host: HostSession, modules: EmbeddedModules?, display: SurfaceDisplay,
+         openManagement: ((String, String?) -> Void)? = nil) {
+        self.host = host; self.modules = modules; self.display = display; self.openManagement = openManagement
     }
 
     private var settings: DisplaySettings {
@@ -175,7 +180,10 @@ public struct EdgeSurfaceView: View {
 
     private var desktop: some View {
         DesktopSurface(host: host, displayID: display?.id ?? host.configuration.preferredDisplayID,
-                       enabled: enabled(BuiltinCatalog.desktop), display:display, settings:settings)
+                       enabled: enabled(BuiltinCatalog.desktop), display:display, settings:settings,
+                       openPermissions: (modules?.openManagementPage ?? openManagement).map { open in
+                           { open(BuiltinCatalog.desktop, "permissions") }
+                       })
     }
 
     private func moduleRail(width:Double,height:Double) -> some View {

@@ -16,6 +16,8 @@ The window opens at Modules. The first experience answers what Nearpane contains
 
 Library and Settings remember their last page when people switch primary sections. Every menu or sidebar deep link selects an internal route in the same window. Module details have a visible return to Modules. The Spaces detail groups dispatch, window presentation and rules into a segmented control within that page.
 
+The sidebar's window-permission guide also opens the main Permissions page, replacing its former explanatory popover. Secondary display surfaces receive only a navigation callback for this purpose; they do not receive another set of module instances. Actual operating-system authorization prompts remain native system operations.
+
 ## Visual design
 
 - Default management content size: **920 × 660 points**. Minimum: **740 × 520**. Host retains frame and prevents new windows for repeated requests.

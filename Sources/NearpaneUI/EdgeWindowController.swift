@@ -75,7 +75,8 @@ public final class EdgeWindowController: NSWindowController {
     private var folded = false
     private var interactionHidden: Bool?
     private(set) var temporarilyExpanded = false
-    public init(host: HostSession, modules: EmbeddedModules? = nil) {
+    public init(host: HostSession, modules: EmbeddedModules? = nil,
+                openManagement: ((String, String?) -> Void)? = nil) {
         self.host = host; self.modules = modules
         let panel = EdgePanel(contentRect: NSRect(x: 0, y: 0, width: 180, height: 800),
                               styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
@@ -103,7 +104,8 @@ public final class EdgeWindowController: NSWindowController {
         surface.layer?.masksToBounds = true
         material.translatesAutoresizingMaskIntoConstraints = false
         surface.addSubview(material)
-        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display))
+        let content = SurfaceHostingView(rootView: EdgeSurfaceView(host: host, modules: modules, display: display,
+                                                                  openManagement: openManagement))
         contentView = content
         contentBottom = content.bottomAnchor.constraint(equalTo: surface.bottomAnchor)
         content.sizingOptions = []

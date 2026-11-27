@@ -22,6 +22,7 @@ struct DesktopSurface: View {
     let enabled: Bool
     var display: SurfaceDisplay?
     var settings: DisplaySettings = .init()
+    var openPermissions: (() -> Void)? = nil
     @ViewState private var appBadges: [DesktopWindowKey: WindowAppBadges.Badge] = [:]
     @ViewState private var appleStages = AppleNativeStages()
     @ViewState private var appleDrag = AppleNativeStageDrag()
@@ -92,7 +93,8 @@ struct DesktopSurface: View {
                     .layoutPriority(1)
             }
             if panelPresented {
-                WindowAccessGuide(showPictures: host.configuration.showsWindowThumbnails)
+                WindowAccessGuide(showPictures: host.configuration.showsWindowThumbnails,
+                                  openPermissions: openPermissions)
                     .layoutPriority(1)
             }
         }

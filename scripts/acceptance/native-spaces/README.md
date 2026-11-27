@@ -8,6 +8,14 @@ python3 scripts/acceptance/native-spaces/installed_profile.py build/verification
 ```
 
 
+## 权限说明入口的版本边界
+
+自统一主窗口权限入口替代侧栏 popover 后，`window-access-guide` 会定位到主窗口的权限页，产品不再提供 `window-access-done` 弹窗关闭控件。当前 `observe.swift guide` 因只观察隔离侧栏，不能证明主窗口复用或页面路由，因此明确输出 **`BLOCKED` / `UNSUPPORTED`**，不点击入口、不请求系统授权，也不把旧控件缺失计为产品失败或通过。
+
+旧 popover 源码合同最后适用于 `44c2739f6568b56927d245277bb5006216b4306b` 及其包含该界面的祖先版本；既有收据仍只证明各自记录的候选与观察器，不追认后续版本。需要复核旧结果时应使用收据绑定的源码，不用当前观察器重新解释历史。其他历史脚本仍识别 `window-access-done` 的兼容枚举不代表新版应出现该控件。
+
+`run.sh guide` 继续以退出码 2 保留这项阻塞；`current-sidebar` 若遇到权限说明入口，会保存 `guide.json` 并在旧弹窗步骤停止，不将整批写成成功。新入口应查阅[统一工作台原生验收记录](../../../docs/verification/2026-11-28-unified-workbench.md)，按同一候选的实际证据核对侧栏入口到权限页、重复调用的主窗口身份与系统授权边界。记录缺少对应证据时仍属未验收；本次脚本维护不产生新的原生 PASS。其他窗口焦点、调度、权限、安装身份与清理判据未改变。
+
 ## 正式侧栏合同
 
 从仓库根目录运行下列命令。每项使用新证据目录。在正常 Launch Services 入口启动正式安装版，`installed_profile.py` 验证独占测试资料锁并在结束后恢复日常配置。核心合同经系统 Mission Control 创建普通 A/B/C，保存创建与移除的 UUID 收据。正式 Space 行、Apple TextEdit 或受控文档、独立 WindowServer 及键盘输入分别记录在 actions.jsonl。
@@ -39,7 +47,7 @@ python3 scripts/acceptance/run-current-desktop-selection.py
 
 `mixed-roles` 同时建立普通文档与同进程辅助面板。它只对自建窗口比对拥有者和外部 AX 的身份、角色，以及当前公开呈现、最终清单和侧栏实拍。普通文档须列出且有对应画面，辅助面板须排除。即使读取器报告全局 AX 信息不完整，该用例也保存上述逐窗证据。
 
-正式安装版运行时，`scripts/acceptance/native-spaces/run.sh compare-roster <新目录>` 会把正式卡片集合与独立系统观察中的普通窗口比对，分别报告多画、漏画、重复和未核实的数量。该比对不采集窗口标题或像素。`current-sidebar` 另外检查正式权限引导、合成文档卡片和精确选窗。
+正式安装版运行时，`scripts/acceptance/native-spaces/run.sh compare-roster <新目录>` 会把正式卡片集合与独立系统观察中的普通窗口比对，分别报告多画、漏画、重复和未核实的数量。该比对不采集窗口标题或像素。历史 `current-sidebar` 还检查侧栏权限 popover、合成文档卡片和精确选窗；新版权限入口的阻塞边界见上节。
 
 隔离窗口清单通过 Launch Services 以后台方式打开两个身份核对过的测试包，并记录前台是否保持。这个入口在私有临时目录构建两款窗口夹具和一个隔离控制器，独立验证已登记窗口的内容、比例及增减。成功或失败均会输出本次证据目录，保留日志和已生成的 JSON、局部实拍。夹具退出后按路径注销并删除。确需只编译而不执行时，仍可调用 `build-current-desktop-selection.sh`；使用者负责该目录和 Launch Services 注册的清理。正式安装版侧栏的只读测量使用 `scripts/acceptance/native-spaces/run.sh roster <新的证据目录>`。
 
