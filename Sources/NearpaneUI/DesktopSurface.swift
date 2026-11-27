@@ -211,7 +211,8 @@ struct DesktopSurface: View {
                         .task(id: BadgeRefresh(session: snapshot.sessionID, members: badgeRows(windows, in: snapshot, on: screen).compactMap(DesktopWindowKey.init), visible: currentCardsPresented)) {
                             if currentCardsPresented {
                                 let rows = badgeRows(windows, in: snapshot, on: screen)
-                                let badges = WindowAppBadges.resolve(rows)
+                                let badges = await WindowAppBadges.resolve(rows)
+                                guard !Task.isCancelled else { return }
                                 appBadges = Dictionary(uniqueKeysWithValues: DesktopWindowRow.rows(rows).compactMap { row in
                                     guard let badge = badges[row.window.id] else { return nil }
                                     return (row.id, badge)

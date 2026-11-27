@@ -222,13 +222,14 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func dispatch(_ c: StageWindowCommand) async throws {
-        try await dispatch(c, coordinatedPreflight: nil)
+        _ = try await dispatch(c, coordinatedPreflight: nil)
     }
 
     /// The coordinator has just read the complete baseline before recording this
     /// primitive. Only normal Spaces operations can reuse it; the fresh read after
     /// worker health must still match before any window writer is entered.
-    func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?) async throws {
+    @discardableResult
+    func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?) async throws -> StageWindowSample? {
         if coordinatedPreflight != nil {
             guard owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
         }
@@ -337,7 +338,7 @@ struct UnsubmittedCornerHide: Error {
             witness.expectVisibility(c,nativeID:readback.nativeID,frame:readback.frame)
             let independentlyRead = try await read(c.scope)
             guard eligible(settling: true), independentlyRead.generation == pre.generation, independentlyRead.nativeID == pre.nativeID,
-                  independentlyRead.sequence > pre.sequence, let result = independentlyRead.windows[c.before.window],
+                  independentlyRead.sequence > lastReadSequence, let result = independentlyRead.windows[c.before.window],
                   result.lifetime == c.before.lifetime, let measured = readback.frame,
                   [measured.x,measured.y,measured.width,measured.height].allSatisfy(\.isFinite),
                   abs(measured.x-result.frame.x) <= 1, abs(measured.y-result.frame.y) <= 1,
@@ -347,7 +348,14 @@ struct UnsubmittedCornerHide: Error {
                     : result.hiddenSpaceID == nil) else {
                 freeze(); throw StageSwitchError.incomplete
             }
+            // This is the same full Host witness that just checked Rust's
+            // READBACK, not a cached receipt. The coordinator still validates its
+            // entire baseline and obtains a second, later physical observation.
+            if coordinatedPreflight != nil, owner.backend == .spaces, !c.restoring {
+                return independentlyRead
+            }
         }
+        return nil
     }
     func returnMeasured(_ proof: MeasuredCornerHide, intent: UUID, baseline: StageWindowSample) async throws {
         let c = proof.command

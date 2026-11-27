@@ -650,8 +650,7 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 throw StageSwitchError.interrupted
             }
         }
-        func read() async throws -> StageWindowSample {
-            let next = try await session.read(scope)
+        func validate(_ next: StageWindowSample) throws -> StageWindowSample {
             guard epoch == token, directory.hasSameWindowGroups(as: store.directory, in: scope), session.qualifiedHiddenState == mechanism, session.engineOwner == owner,
                   next.nativeID == first.nativeID,
                   next.scope == scope, next.generation == first.generation, next.workArea == first.workArea,
@@ -663,6 +662,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   }),
                   otherIDs.allSatisfy({ next.windows[$0] == first.windows[$0] }) else { throw StageSwitchError.interrupted }
             return next
+        }
+        func read() async throws -> StageWindowSample {
+            let next = try await session.read(scope)
+            return try validate(next)
         }
         func verifySelection() async throws {
             let parked = ledger.owned.filter { $0.scope == scope }
@@ -728,9 +731,10 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard epoch == token else { throw StageSwitchError.interrupted }
             let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
+            var coordinatedPost: StageWindowSample?
             do {
                 if let engine = session as? StageEngineSession, engine.owner.backend == .spaces, !command.restoring {
-                    try await engine.dispatch(command, coordinatedPreflight: pre)
+                    coordinatedPost = try await engine.dispatch(command, coordinatedPreflight: pre)
                 } else {
                     try await session.dispatch(command)
                 }
@@ -792,8 +796,17 @@ public enum StageSwitchError: LocalizedError, Equatable {
                 throw yielding ? StageSwitchError.superseded : .interrupted
             }
             var firstAfter: StageWindowState?
-            for _ in 0..<2 {
-                let post = try await read()
+            func requireSettlingIntent() throws {
+                // An already-sent primitive must settle before yielding to a
+                // newer card. Other lost input and cancellation still stop it.
+                guard epoch == token, !Task.isCancelled, current() || newerChoice() else { throw StageSwitchError.interrupted }
+            }
+            for confirmation in 0..<2 {
+                if coordinatedPost != nil { try requireSettlingIntent() }
+                let post: StageWindowSample
+                if confirmation == 0, let coordinatedPost { post = try validate(coordinatedPost) }
+                else { post = try await read() }
+                if coordinatedPost != nil { try requireSettlingIntent() }
                 try requireFocus(post, action == .focus ? id : pre.focus)
                 guard post.foreignFocusScope == (action == .focus ? nil : pre.foreignFocusScope),
                       let value = post.windows[id], check(value, post),

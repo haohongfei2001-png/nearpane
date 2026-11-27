@@ -41,7 +41,74 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-The latest completed source/full-package checkpoint is
+#### R4 latency work through d66866eb, 2026-11-27
+
+Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
+the actual thumbnail press through real sibling hiding, target restoration and exact
+focus. Interaction polish, broader stability qualification and release follow that
+physical result. This is implementation work on the selected route, not a new route
+comparison or a wholesale handoff.
+
+`d230e38c` moves directory AX projection and advisory window-number enumeration away
+from MainActor, and defers preview work during queued/running R4 dispatch. Its fast
+native run reaches exact focus and eight complete witnesses, but does not hide the
+two siblings before the unchanged eight-second physical-state deadline. The full
+candidate builds and passes signature verification but rejects an incomplete opening
+roster. Source reports 166 Rust passes and four issues among 204 Swift tests.
+[Exact d230 receipts](../verification/independent-stage/cloud-d230e38c-latency/README.md).
+
+`a3ab1e67` starts the full initial roster without waiting for the advisory hint,
+moves cold SCStream construction off MainActor, revalidates capture after preparation,
+and removes same-turn duplicate native queries. Its 166 Rust tests pass; 205 Swift
+tests leave one capture-scheduling test issue while the earlier continuity/hint
+failures pass. The fast product stops before input: a 72.6 ms catalogue is 12.45 seconds
+old at failure, alongside a 2.475 ms Dock read delivered 12.6 seconds late. Its saved
+directory already contains the three expected groups. Zero counted capture starts
+does not exclude construction in progress, and there is no startup sample to name
+the blocking call. The fast engine passes 26 requests; the separate diagnostics VM
+fails after six, with cleanup confirmed independently. The full candidate builds
+and passes signature verification. Its one actual R4
+press focuses the target and hides one sibling; the other sibling remains visible
+at the eight-second deadline. Eleven witness reads take 4,624 ms, approximately
+82% in opening/closing directory acquisition. Product cleanup is UNKNOWN /
+productionRestoreIncomplete: a restored-window AX list read cannot complete and
+is classified as Identity. Later worker EOF cleanup is not an independent physical
+return receipt and cannot upgrade this result.
+[Exact a3ab receipts](../verification/independent-stage/cloud-a3ab1e67-latency/README.md).
+
+`d66866eb` reuses the same Spaces coordinator's immediate full preflight inside the
+session, preserving the new full read after worker health, Rust READBACK, independent
+readback and both Coordinator post-write confirmations. A separate bounded startup
+sample and opt-in attestation phase timings distinguish startup from actual-click
+latency. The capture test now waits for a real MainActor turn instead of treating
+parallel suite scheduling as a two-second performance test. Local Python runner
+tests are 14/14 PASS. Exact-commit native source passes 166 Rust and 208 Swift
+cases with one explicit skip; the complete candidate builds and passes signature
+verification. The full product issues one actual R4 press but fails before both
+siblings hide; physical cleanup is confirmed. Its independent engine fails the
+later yellow-button case with cleanup confirmed. The fast and diagnostics native
+runs are BLOCKED before foreign writes by independent ordinary-desktop/canary
+preconditions; green job/platform-only status is not a foreign-engine PASS.
+The new fast startup sample directly identifies lazy app-icon generation during
+DesktopWindowCard Canvas drawing, waiting in synchronous IconServices XPC on the
+main thread. No attestation phase was reached in that blocked product run.
+The separate full run measures six environment attestations at 13.152–21.736 ms,
+median 18.867 ms; this evidence does not identify attestation as its seconds-long
+bottleneck. Its first witness takes 3,551 ms, including 1,136 ms opening directory
+and 1,755 ms initial binding. Later witnesses take 327–531 ms.
+[Exact d668 receipts](../verification/independent-stage/cloud-d66866eb-latency/README.md).
+
+Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
+maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state
+deadline eight seconds. No failed input is replayed. Formal R4 has not passed and
+no release qualification has been granted. At 22:12 Asia/Shanghai, Desktop Commander
+reports the target Mac offline for approximately 15 hours; current native runs use
+the existing controlled macOS cloud fixtures. Target and cloud evidence remain
+separate.
+
+#### Earlier target-engine and package checkpoints
+
+The earlier completed source/full-package checkpoint is
 `350e848cc30106c32156ddba2c222ab639ab141f`: **166 Rust /174 Swift pass, one explicit skip**.
 Complete workspace, companion resources and strict/deep ad-hoc bundle signatures pass. The full,
 fast and diagnostics VMs independently pass the normal foreign-window engine and cleanup. These

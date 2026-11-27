@@ -338,21 +338,30 @@ int32_t np_stage_move(int32_t c,uint32_t route,uint32_t num,uint64_t sid,uint32_
 
 typedef AXError (*AXNumber)(AXUIElementRef, CGWindowID *);
 static AXUIElementRef boundWindow(uint32_t n, int32_t pid, uint64_t started, AXUIElementRef retainedOffscreen, BOOL allowMinimized) CF_RETURNS_RETAINED;
-static void bindingFailure(uint32_t number,int32_t pid,const char *phase,AXError error,long long first,long long second) {
+typedef struct {
+    AXUIElementRef original;
+    BOOL unavailable;
+    BOOL rejected;
+} NPBindingRead;
+static void bindingFailure(NPBindingRead *read,uint32_t number,int32_t pid,const char *phase,AXError error,long long first,long long second) {
+    if(read) {
+        if(error==kAXErrorCannotComplete)read->unavailable=YES;
+        else read->rejected=YES;
+    }
     if(getenv("NP_SPACES_LAUNCH_TRACE"))
         fprintf(stderr,"{\"event\":\"spacesBindingFailure\",\"window\":%u,\"pid\":%d,\"phase\":\"%s\",\"axError\":%d,\"first\":%lld,\"second\":%lld}\n",
             number,pid,phase,(int)error,first,second);
 }
 static BOOL bindingAttribute(AXUIElementRef window,CFStringRef attribute,CFTypeRef expected,
-                             BOOL allowTrue,uint32_t number,int32_t pid,const char *phase) {
+                             BOOL allowTrue,uint32_t number,int32_t pid,const char *phase,NPBindingRead *read) {
     CFTypeRef value=NULL;
     AXError error=AXUIElementCopyAttributeValue(window,attribute,&value);
     BOOL valid=error==kAXErrorSuccess && value && (CFEqual(value,expected) || (allowTrue && CFEqual(value,kCFBooleanTrue)));
-    if(!valid)bindingFailure(number,pid,phase,error,value?(long long)CFGetTypeID(value):0,(long long)allowTrue);
+    if(!valid)bindingFailure(read,number,pid,phase,error,value?(long long)CFGetTypeID(value):0,(long long)allowTrue);
     if(value)CFRelease(value);
     return valid;
 }
-static BOOL bindingSubrole(AXUIElementRef window,BOOL originalMinimized,uint32_t number,int32_t pid) {
+static BOOL bindingSubrole(AXUIElementRef window,BOOL originalMinimized,uint32_t number,int32_t pid,NPBindingRead *read) {
     CFTypeRef value=NULL;
     AXError error=AXUIElementCopyAttributeValue(window,kAXSubroleAttribute,&value);
     BOOL standard=error==kAXErrorSuccess && value && CFEqual(value,kAXStandardWindowSubrole);
@@ -369,16 +378,16 @@ static BOOL bindingSubrole(AXUIElementRef window,BOOL originalMinimized,uint32_t
         fprintf(stderr,"{\"event\":\"spacesMinimizedSubrole\",\"window\":%u,\"pid\":%d,\"axError\":%d,\"subrole\":\"%s\",\"originalMinimized\":%s,\"accepted\":%s}\n",
             number,pid,(int)error,actual,originalMinimized?"true":"false",valid?"true":"false");
     }
-    if(!valid)bindingFailure(number,pid,"subrole",error,value?(long long)CFGetTypeID(value):0,originalMinimized);
+    if(!valid)bindingFailure(read,number,pid,"subrole",error,value?(long long)CFGetTypeID(value):0,originalMinimized);
     if(value)CFRelease(value);return valid;
 }
-static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen,BOOL allowMinimized,BOOL standardBeforeMinimizing) {
+static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen,BOOL allowMinimized,BOOL standardBeforeMinimizing,NPBindingRead *read) {
     if (!n || !started || birth(pid)!=started || !AXIsProcessTrusted()) {
-        bindingFailure(n,pid,"process-precondition",kAXErrorSuccess,0,0);return NULL;
+        bindingFailure(read,n,pid,"process-precondition",kAXErrorSuccess,0,0);return NULL;
     }
     static AXNumber number; static dispatch_once_t once;
     dispatch_once(&once,^{number=(AXNumber)dlsym(RTLD_DEFAULT,"_AXUIElementGetWindow");});
-    if (!number) {bindingFailure(n,pid,"window-number-symbol",kAXErrorNotImplemented,0,0);return NULL;}
+    if (!number) {bindingFailure(read,n,pid,"window-number-symbol",kAXErrorNotImplemented,0,0);return NULL;}
     AXUIElementRef app=AXUIElementCreateApplication(pid);
     CFArrayRef windows=NULL; CFIndex count=0;
     AXError error=app?AXUIElementSetMessagingTimeout(app,0.15f):kAXErrorInvalidUIElement;
@@ -390,7 +399,7 @@ static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t star
         enumerated=error==kAXErrorSuccess && windows && CFGetTypeID(windows)==CFArrayGetTypeID() && CFArrayGetCount(windows)==count;
     }
     if(!enumerated){
-        bindingFailure(n,pid,phase,error,(long long)count,windows?(long long)CFGetTypeID(windows):0);
+        bindingFailure(read,n,pid,phase,error,(long long)count,windows?(long long)CFGetTypeID(windows):0);
         if(app)CFRelease(app);if(windows)CFRelease(windows);return NULL;
     }
     AXUIElementRef found=NULL;
@@ -402,10 +411,15 @@ static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t star
         BOOL valid=item && CFGetTypeID(item)==AXUIElementGetTypeID();
         if(valid){phase="listed-window-pid";error=AXUIElementGetPid(item,&owner);valid=error==kAXErrorSuccess && owner==pid;}
         if(valid){phase="listed-window-number";error=number(item,&id);valid=error==kAXErrorSuccess;}
-        if(!valid){bindingFailure(n,pid,phase,error,(long long)j,(long long)id);complete=NO;break;}
+        if(!valid){bindingFailure(read,n,pid,phase,error,(long long)j,(long long)id);complete=NO;break;}
         if(id!=n)continue;
         if(found && !CFEqual(found,item)){
-            bindingFailure(n,pid,"conflicting-target",kAXErrorSuccess,(long long)j,0);complete=NO;break;
+            bindingFailure(read,n,pid,"conflicting-target",kAXErrorSuccess,(long long)j,0);complete=NO;break;
+        }
+        // A positive replacement must win over a later unavailable attribute or
+        // list entry, including while the original window is back onscreen.
+        if(read && read->original && !CFEqual(read->original,item)) {
+            bindingFailure(read,n,pid,"original-conflict",kAXErrorSuccess,(long long)j,0);complete=NO;break;
         }
         found=item;
     }
@@ -415,42 +429,48 @@ static AXUIElementRef boundWindowWithOrigin(uint32_t n,int32_t pid,uint64_t star
         // answer for the previously retained object, same PID/CGID and same lifetime.
         // Reject conflicting entries, partial lists and missing attributes.
         if(found && !CFEqual(found,retainedOffscreen)){
-            bindingFailure(n,pid,"retained-conflict",kAXErrorSuccess,0,0);found=NULL;
+            bindingFailure(read,n,pid,"retained-conflict",kAXErrorSuccess,0,0);found=NULL;
         }else{
             CGWindowID id=0;pid_t owner=0;
             phase="retained-pid";error=AXUIElementGetPid(retainedOffscreen,&owner);
             BOOL valid=error==kAXErrorSuccess && owner==pid;
             if(valid){phase="retained-number";error=number(retainedOffscreen,&id);valid=error==kAXErrorSuccess && id==n;}
-            if(!valid)bindingFailure(n,pid,phase,error,(long long)owner,(long long)id);
+            if(!valid)bindingFailure(read,n,pid,phase,error,(long long)owner,(long long)id);
             found=valid?retainedOffscreen:NULL;
         }
     }else if(!found){
-        bindingFailure(n,pid,"target-not-listed",kAXErrorSuccess,(long long)count,(long long)allowMinimized);
+        bindingFailure(read,n,pid,"target-not-listed",kAXErrorSuccess,(long long)count,(long long)allowMinimized);
     }
     if(found){
         error=AXUIElementSetMessagingTimeout(found,0.15f);
-        if(error!=kAXErrorSuccess)bindingFailure(n,pid,"window-timeout",error,0,0);
+        if(error!=kAXErrorSuccess)bindingFailure(read,n,pid,"window-timeout",error,0,0);
         // Only an already retained, previously standard window may use the
         // system's observed minimized subrole while AXMinimized is truly set.
         // A newly enumerated unknown/dialog window never obtains this origin.
         BOOL originalMinimized=error==kAXErrorSuccess && standardBeforeMinimizing && allowMinimized && np_stage_is_minimized(found)==1;
         BOOL ordinary=error==kAXErrorSuccess &&
-            bindingAttribute(found,kAXRoleAttribute,kAXWindowRole,NO,n,pid,"role") &&
-            bindingSubrole(found,originalMinimized,n,pid) &&
-            bindingAttribute(found,kAXMinimizedAttribute,kCFBooleanFalse,allowMinimized,n,pid,"minimized");
+            bindingAttribute(found,kAXRoleAttribute,kAXWindowRole,NO,n,pid,"role",read) &&
+            bindingSubrole(found,originalMinimized,n,pid,read) &&
+            bindingAttribute(found,kAXMinimizedAttribute,kCFBooleanFalse,allowMinimized,n,pid,"minimized",read);
         // Preserve the original check even if an earlier attribute failed; a
         // missing full-screen or minimized value never means false.
-        BOOL notFull=bindingAttribute(found,CFSTR("AXFullScreen"),kCFBooleanFalse,NO,n,pid,"full-screen");
-        if(originalMinimized && np_stage_is_minimized(found)!=1)ordinary=NO;
+        BOOL notFull=bindingAttribute(found,CFSTR("AXFullScreen"),kCFBooleanFalse,NO,n,pid,"full-screen",read);
+        if(originalMinimized) {
+            int32_t minimized=np_stage_is_minimized(found);
+            if(minimized!=1) {
+                bindingFailure(read,n,pid,"changed-minimized",minimized==kAXErrorCannotComplete?kAXErrorCannotComplete:kAXErrorSuccess,minimized,0);
+                ordinary=NO;
+            }
+        }
         uint64_t currentBirth=birth(pid);
-        if(currentBirth!=started)bindingFailure(n,pid,"changed-birth",kAXErrorSuccess,(long long)started,(long long)currentBirth);
+        if(currentBirth!=started)bindingFailure(read,n,pid,"changed-birth",kAXErrorSuccess,(long long)started,(long long)currentBirth);
         if(ordinary && notFull && currentBirth==started)CFRetain(found);else found=NULL;
     }
     if(windows)CFRelease(windows);
     CFRelease(app);return found;
 }
 static AXUIElementRef boundWindow(uint32_t n,int32_t pid,uint64_t started,AXUIElementRef retainedOffscreen,BOOL allowMinimized) {
-    return boundWindowWithOrigin(n,pid,started,retainedOffscreen,allowMinimized,NO);
+    return boundWindowWithOrigin(n,pid,started,retainedOffscreen,allowMinimized,NO,NULL);
 }
 void *np_stage_bind(uint32_t n,int32_t pid,uint64_t started) { return (void *)boundWindow(n,pid,started,NULL,NO); }
 int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
@@ -461,9 +481,21 @@ int32_t np_stage_check_bound(void *handle,uint32_t n,int32_t pid,uint64_t starte
 }
 int32_t np_stage_check_bound_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen) {
     if (!handle || onScreen>1) return 0;
-    AXUIElementRef current=boundWindowWithOrigin(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,YES,YES);
+    AXUIElementRef current=boundWindowWithOrigin(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,YES,YES,NULL);
     if (!current) return 0;
     BOOL ok=CFEqual((CFTypeRef)handle,current);CFRelease(current);return ok;
+}
+int32_t np_stage_check_bound_status(void *handle,uint32_t n,int32_t pid,uint64_t started,uint32_t onScreen,uint32_t allowMinimized) {
+    if(!handle || onScreen>1 || allowMinimized>1)return 0;
+    NPBindingRead read={.original=(AXUIElementRef)handle};
+    AXUIElementRef current=boundWindowWithOrigin(n,pid,started,onScreen?NULL:(AXUIElementRef)handle,
+        allowMinimized==1,allowMinimized==1,&read);
+    if(!current) {
+        // Missing transport evidence never overrides an observed replacement,
+        // invalid attribute or changed process. Boolean writer checks stay separate.
+        return read.unavailable && !read.rejected && birth(pid)==started ? kAXErrorCannotComplete : 0;
+    }
+    BOOL ok=CFEqual((CFTypeRef)handle,current);CFRelease(current);return ok?1:0;
 }
 int32_t np_stage_adopt_minimized(void *handle,uint32_t n,int32_t pid,uint64_t started) {
     return np_stage_check_bound_minimized(handle,n,pid,started,0)==1 && np_stage_is_minimized(handle)==1;

@@ -1,0 +1,12 @@
+{
+  "diagnosticOnly": true,
+  "durationSeconds": 1,
+  "exit": 0,
+  "finishedMonotonic": 1261.750529083,
+  "intervalMilliseconds": 10,
+  "pid": 45180,
+  "startedAfterHostSeconds": 0.526676875000021,
+  "startedMonotonic": 1242.886850666,
+  "status": "COMPLETE",
+  "trigger": "startup"
+}

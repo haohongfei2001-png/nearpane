@@ -768,8 +768,25 @@ import Security
             // window identity was obtained. Unknown cleanup stays unknown.
             _ = await ownerCommand(first, action: "close", nonce: config.nonce, index: 2)
         }
+        let shutdownStarted = ProcessInfo.processInfo.systemUptime
+        record("stageWindowShutdownEnter", ["targets": targets.count])
+        IndependentStageTrace.record("shutdown-enter", ["targets": targets.count])
+        save()
         let released = await modules.prepareStageWindowShutdown()
-        let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4)
+        let shutdownEnded = ProcessInfo.processInfo.systemUptime
+        let shutdown: [String: Any] = ["released": released, "start": shutdownStarted, "end": shutdownEnded,
+            "milliseconds": (shutdownEnded - shutdownStarted) * 1000]
+        report["stageWindowShutdown"] = shutdown
+        record("stageWindowShutdownExit", shutdown)
+        IndependentStageTrace.record("shutdown-exit", shutdown)
+        save()
+        let returned = await waitForState(targets, visible: Set(targets.map { $0.window.number }), focus: nil, seconds: 4,
+            diagnostic: { report["lastShutdownReturnReadback"] = $0 })
+        let physicalReturn: [String: Any] = ["confirmed": returned != nil, "observations": returned ?? []]
+        report["shutdownReturnReadback"] = physicalReturn
+        record("stageWindowReturnedHome", physicalReturn)
+        IndependentStageTrace.record("shutdown-return-readback", ["confirmed": returned != nil, "observations": returned?.count ?? 0])
+        save()
         let clean = released && returned != nil && lifecycleCreated == nil && !lifecycleCreationUnresolved
         panels.stop(); controller.close(); host.stop(); await modules.finishStopping()
         report["actualR4Inputs"] = actualInputs

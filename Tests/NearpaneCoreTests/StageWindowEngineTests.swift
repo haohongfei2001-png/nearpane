@@ -33,6 +33,7 @@ import Testing
     var withdrawalAttempts = [StageWindowCommand](), withdrawn = Set<UUID>()
     var visibleAfterMutation = [Int]()
     var observationsBeforeFirstWrite = [NativeSpaceWindow]()
+    var writtenReadbackIntents = [UUID]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
@@ -103,6 +104,7 @@ import Testing
             if reorderOnShow { stacking.removeAll { $0 == id }; stacking.append(id) }
         case 2:
             if effects.isEmpty { observationsBeforeFirstWrite.append(id) }
+            if writeIntents.contains(c.intent) { writtenReadbackIntents.append(c.intent) }
             let hidden = windows[id]?.visibility == .parked || windows[id]?.visibility == .stageSpace
             let flags: UInt32 = id.number == badReadback ? 0 : 4 | 8 | 16 | 32 | (hidden ? 2 | 128 : 1)
             return .init(status:0,flags:flags,intent:c.intent,nativeID:hidden && owner.backend == .spaces ? 60 : 22,frame:windows[id]?.frame)
@@ -270,7 +272,10 @@ import Testing
         let (session, fixture, pre, command) = try await focusPreflight()
         var readsAtHealth: UInt64?
         fixture.onPrimitiveHealth = { [unowned fixture] _ in readsAtHealth = fixture.sequence - pre.sequence }
-        if coordinated { try await session.dispatch(command, coordinatedPreflight: pre) }
+        if coordinated {
+            let post = try await session.dispatch(command, coordinatedPreflight: pre)
+            #expect(post == nil) // Ordinary focus still needs two new coordinator reads.
+        }
         else { try await session.dispatch(command) }
         #expect(readsAtHealth == (coordinated ? 0 : 1))
         #expect(fixture.sequence - pre.sequence == (coordinated ? 1 : 2))
@@ -337,6 +342,132 @@ import Testing
         #expect(firstPrimitiveReadCount == 3)
         #expect(store.activeGroup(in: fixture.scope) == groups[1].id)
         try await controller.release()
+    }
+
+    private func spacesController(_ profile: URL, _ store: StageGroupStore, _ fixture: EngineFixture) async throws -> StageWindowEngineController {
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()),
+                               witness: fixture, transport: fixture)
+        }
+        return controller
+    }
+
+    @Test func spacesCoordinatorConfirmsEachVisibilityWriteWithTwoDistinctHostReadsAndRustReadback() async throws {
+        let (profile, store, _, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        var confirmations = [UUID: [UInt64]]()
+        fixture.beforeRead = { [unowned fixture] in
+            guard let pending = try? readJournal(profile).pending, let entry = pending.entries.last,
+                  entry.after == nil, entry.action == .hide || entry.action == .show,
+                  fixture.writeIntents.contains(entry.intent) else { return }
+            confirmations[entry.intent, default: []].append(fixture.sequence + 1)
+        }
+        try await activate(groups[0], controller, fixture)
+        try await activate(groups[1], controller, fixture)
+        #expect(fixture.effects.map(\.0) == [3, 4, 3])
+        #expect(confirmations.count == 3)
+        for (intent, sequences) in confirmations {
+            #expect(sequences.count == 2)
+            #expect(sequences == sequences.sorted() && Set(sequences).count == 2)
+            #expect(fixture.writtenReadbackIntents.filter { $0 == intent }.count == 1)
+        }
+        #expect(store.activeGroup(in: fixture.scope) == groups[1].id)
+        fixture.beforeRead = nil
+        try await controller.release()
+    }
+
+    @Test(arguments: ["bystander", "focus", "target", "lifetime", "roster"], [1, 2])
+    func coordinatedVisibilityChecksTheEntireFirstAndSecondSample(_ change: String, _ changeAt: Int) async throws {
+        let (profile, store, _, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        let target = groups[1].members[0].windowHint
+        let bystander = try #require(fixture.windows.keys.first { $0.number == 3 })
+        var observations = 0
+        fixture.beforeRead = { [unowned fixture] in
+            guard fixture.effects.count == 1, fixture.effects.last?.0 == 3 else { return }
+            observations += 1
+            guard observations == changeAt else { return }
+            switch change {
+            case "bystander": fixture.windows[bystander]?.frame.x += 10
+            case "focus": fixture.focus = bystander
+            case "target": fixture.windows[target]?.frame.y += 10
+            case "lifetime":
+                if let old = fixture.windows[target] {
+                    fixture.windows[target] = .init(window: target, lifetime: UUID(), frame: old.frame,
+                        visibility: old.visibility, hiddenSpaceID: old.hiddenSpaceID)
+                }
+            default:
+                let arrived = NativeSpaceWindow(pid: 99, birth: 500, number: 99)
+                fixture.windows[arrived] = .init(window: arrived, lifetime: UUID(),
+                    frame: .init(x: 400, y: 30, width: 120, height: 80), visibility: .visible)
+            }
+        }
+        await #expect(throws: StageSwitchError.self) { try await activate(groups[0], controller, fixture) }
+        #expect(observations == changeAt && fixture.effects.count == 1)
+        #expect(fixture.writtenReadbackIntents.count == 1)
+        #expect(store.activeGroup(in: fixture.scope) == nil && controller.coordinator.requiresRecovery)
+        #expect(try readJournal(profile).pending?.entries.last?.after == nil)
+    }
+
+    @Test func aNewerSpacesChoiceStillSettlesBothPhysicalConfirmationsBeforeYielding() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        var queued = false, observations = 0
+        fixture.afterVisibilityWrite = { queued = true }
+        fixture.beforeRead = {
+            guard queued, let entry = try? readJournal(profile).pending?.entries.last,
+                  entry.action == .hide, entry.after == nil else { return }
+            observations += 1
+        }
+        await #expect(throws: StageSwitchError.superseded) {
+            try await controller.activate(groups[1].id, member: nil, in: fixture.scope, consent: true,
+                                          current: { !queued }, newerChoice: { queued })
+        }
+        #expect(observations == 2 && fixture.effects.count == 1 && fixture.writtenReadbackIntents.count == 1)
+        let journal = try readJournal(profile)
+        #expect(journal.pending == nil && journal.owned.count == 1 && !controller.coordinator.requiresRecovery)
+        #expect(store.activeGroup(in: fixture.scope) == nil)
+        fixture.afterVisibilityWrite = nil; fixture.beforeRead = nil
+        try await activate(groups[2], controller, fixture)
+        try await controller.release()
+    }
+
+    @Test func aFailedSpacesRustReadbackCannotSupplyACoordinatedConfirmation() async throws {
+        let (profile, store, _, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        fixture.afterVisibilityWrite = { [unowned fixture] in fixture.badReadback = groups[1].members[0].windowHint.number }
+        var postReads = 0
+        fixture.beforeRead = { [unowned fixture] in if !fixture.effects.isEmpty { postReads += 1 } }
+        await #expect(throws: StageSwitchError.incomplete) { try await activate(groups[0], controller, fixture) }
+        #expect(fixture.effects.count == 1 && fixture.writtenReadbackIntents.count == 1 && postReads == 0)
+        #expect(controller.session?.isFrozen == true && controller.coordinator.requiresRecovery)
+        #expect(store.activeGroup(in: fixture.scope) == nil && (try readJournal(profile)).pending?.entries.last?.after == nil)
+    }
+
+    @Test(arguments: [StageWindowBackend.spaces, .corner])
+    func publicAndRestoringDispatchKeepTheirOwnReadsAndReturnNoCoordinatedSample(_ backend: StageWindowBackend) async throws {
+        let (_, fixture, _, focus) = try await focusPreflight()
+        let owner = backend == .spaces
+            ? StageEngineOwner(spacesCandidate: environment, generation: fixture.epoch, evidence: UUID())
+            : StageEngineOwner(qualification: qualification(.corner), generation: fixture.epoch)
+        let session = StageEngineSession(owner: owner, witness: fixture, transport: fixture)
+        session.intentIsCurrent = { true }
+        let baseline = try await session.read(fixture.scope)
+        let hide = StageWindowCommand(intent: UUID(), group: focus.group, member: focus.member, generation: owner.generation,
+            scope: fixture.scope, nativeID: baseline.nativeID, action: .hide, before: focus.before, restoring: false, restoreFrame: nil)
+        try await session.dispatch(hide)
+        #expect(fixture.sequence - baseline.sequence == (backend == .spaces ? 3 : 4))
+        let hidden = try #require(fixture.windows[hide.before.window]), boundary = fixture.sequence
+        let restore = StageWindowCommand(intent: UUID(), group: hide.group, member: hide.member, generation: owner.generation,
+            scope: fixture.scope, nativeID: baseline.nativeID, action: .show, before: hidden, restoring: true, restoreFrame: hide.before.frame)
+        let result = try await session.dispatch(restore, coordinatedPreflight: nil)
+        #expect(result == nil && fixture.sequence - boundary == 2)
+        #expect(fixture.windows[hide.before.window] == hide.before && fixture.writtenReadbackIntents.count == 2)
     }
 
     @Test func independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() async throws {

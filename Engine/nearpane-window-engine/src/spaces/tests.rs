@@ -61,6 +61,10 @@ struct Fake {
     unavailable_first_return_read: bool,
     pending_unavailable_read: Cell<bool>,
     replace_fixture_on_return: bool,
+    cannot_complete_return_reads: u32,
+    pending_cannot_complete_return_reads: Cell<u32>,
+    return_binding_read_cost: Duration,
+    return_binding_observations: Cell<u32>,
     cannot_complete_minimized_reads: Cell<u32>,
     cannot_complete_read_cost: Duration,
     surface_read_cost: Duration,
@@ -298,8 +302,17 @@ impl Platform for Fake {
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
         let surface = self.surface(w)?;
         let t = self.windows[&w.number];
-        if (t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2) { Ok(surface) }
-        else { Err(unknown(Why::Identity)) }
+        self.return_binding_observations.set(self.return_binding_observations.get() + 1);
+        if !((t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2)) {
+            return Err(unknown(Why::Identity));
+        }
+        let unavailable = self.pending_cannot_complete_return_reads.get();
+        if unavailable > 0 {
+            self.pending_cannot_complete_return_reads.set(unavailable - 1);
+            self.wait(self.return_binding_read_cost);
+            return Err(unknown(Why::AXCannotComplete));
+        }
+        Ok(surface)
     }
     fn create(&mut self, _: i32) -> Check<u64> {
         self.next += 1;
@@ -327,6 +340,8 @@ impl Platform for Fake {
             }
             if mask == 15 {
                 self.pending_unavailable_read.set(self.unavailable_first_return_read);
+                self.pending_cannot_complete_return_reads.set(self.cannot_complete_return_reads);
+                self.return_binding_observations.set(0);
                 if self.replace_fixture_on_return { self.windows.get_mut(&w.number).unwrap().2 += 1; }
             }
         }
@@ -834,6 +849,71 @@ fn return_reobserves_an_unavailable_sample_but_never_accepts_a_replaced_original
             assert!(state.owned.is_empty() && state.slots.is_empty());
             assert!(!state.failed);
         }
+    }
+}
+
+#[test]
+fn return_reobserves_ax_transport_once_then_requires_two_complete_samples() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    state.sys.cannot_complete_return_reads = 1;
+    let writes = state.sys.moved.len();
+    let began = state.sys.now();
+    let result = state.run(&request(1, SHOW, 3), &guard);
+    assert_eq!(result.status, PASS);
+    assert_eq!(state.sys.moved.len(), writes + 1, "an absent AX response never resends the move");
+    assert_eq!(state.sys.return_binding_observations.get(), 5,
+        "one absent binding read followed by two complete views, each with two positive binding reads");
+    assert!(state.sys.now() - began < DEADLINE);
+    assert!(state.owned.is_empty() && state.slots.is_empty() && !state.failed);
+}
+
+#[test]
+fn return_identity_replacement_is_not_masked_by_pending_ax_transport_failure() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    let window = state.sys.windows[&1].0;
+    let original = state.owned[&window].witness;
+    state.sys.cannot_complete_return_reads = 1;
+    state.sys.replace_fixture_on_return = true;
+    let writes = state.sys.moved.len();
+    let destroyed = state.sys.destroyed.len();
+    let result = state.run(&request(1, SHOW, 3), &guard);
+    assert_eq!((result.status, result.detail), (UNKNOWN, Why::Identity as u32));
+    assert_eq!(state.sys.moved.len(), writes + 1);
+    assert_eq!(state.sys.return_binding_observations.get(), 1, "a positive replacement stops immediately");
+    assert_eq!(state.sys.pending_cannot_complete_return_reads.get(), 1);
+    assert_eq!(state.owned[&window].witness, original);
+    assert_eq!(state.sys.destroyed.len(), destroyed);
+    assert!(state.failed && !state.slots.is_empty());
+}
+
+#[test]
+fn return_ax_transport_exhaustion_keeps_the_lease_and_original_deadline() {
+    // A real 150 ms messaging timeout can already consume the entire 120 ms
+    // acknowledgement budget. That case must fail without granting a reread.
+    for cost in [Duration::ZERO, Duration::from_millis(150)] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+        let window = state.sys.windows[&1].0;
+        let original = state.owned[&window].witness;
+        state.sys.cannot_complete_return_reads = u32::MAX;
+        state.sys.return_binding_read_cost = cost;
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let began = state.sys.now();
+        let result = state.run(&request(1, SHOW, 3), &guard);
+        assert_eq!((result.status, result.detail), (TIMEOUT, Why::Uncertain as u32));
+        assert_eq!(state.sys.now() - began, DEADLINE.max(cost), "no fresh budget starts after the AX miss");
+        if cost >= DEADLINE { assert_eq!(state.sys.return_binding_observations.get(), 1); }
+        assert_eq!(state.sys.moved.len(), writes + 1);
+        assert_eq!(state.owned[&window].witness, original);
+        assert_eq!(state.owned[&window].pending_target.get(), Some(10));
+        assert_eq!(state.sys.destroyed.len(), destroyed);
+        assert!(state.failed && !state.slots.is_empty());
     }
 }
 

@@ -1,0 +1,12 @@
+{
+  "diagnosticOnly": true,
+  "durationSeconds": 3,
+  "exit": 0,
+  "finishedMonotonic": 1261.750838583,
+  "intervalMilliseconds": 10,
+  "pid": 45180,
+  "startedAfterHostSeconds": 5.276939791999894,
+  "startedMonotonic": 1247.637113583,
+  "status": "COMPLETE",
+  "trigger": "firstR4Request"
+}

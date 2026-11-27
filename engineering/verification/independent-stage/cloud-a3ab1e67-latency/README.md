@@ -2,9 +2,10 @@
 
 Exact source: `a3ab1e675e9250f7b5f5f56b12d28c0facfbfd0d` on the existing PR #16
 branch. [Run 46012254457](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012254457)
-has completed the fast runtime, diagnostics and full source checks. **The full
-release candidate build/runtime is still pending in this record.** These original
-results do not qualify subsequent code changes.
+has completed all lanes. **The full release R4 result is UNKNOWN because product
+restore was not confirmed; the fast R4 result is BLOCKED before input.** The full
+build and signature pass while source checks fail as recorded below. These
+original results do not qualify subsequent code changes.
 
 ## Observed outcomes
 
@@ -18,7 +19,7 @@ results do not qualify subsequent code changes.
 | Full Swift source tests | 205 tests, one recorded issue; FAIL |
 | Other full source checks | Worker/protocol, evidence classifiers, read-only context and native diagnostic tests PASS |
 | Separate diagnostic engine | FAIL, `repeatedSwitchFailed`, six hide/restore requests; cleanup confirmed |
-| Complete release runtime | PENDING |
+| Complete release runtime | UNKNOWN, `productionRestoreIncomplete`; one real R4 input, one sibling physically hidden |
 
 No R4 click-to-hide latency can be reported because this fast run never reaches
 a real button press. Merge/split, yellow routing, cold hidden preview, system
@@ -36,9 +37,10 @@ blocking function.
 
 `lastReadiness` has no snapshot and no fixture groups. The later failure snapshot
 has revision 1 and original window lifetimes, but it is stale and no visible
-group is bound. The preview metrics show zero capture requests, zero streams and
-zero delivered frames. Consequently this failure cannot be attributed to an
-observed SCStream constructor call in this run.
+group is bound. The preview metrics show zero counted capture starts and delivered frames. The
+capture counter increments only after asynchronous stream construction returns,
+so these counters do not exclude an in-progress SCStream constructor. No sample
+attributes this startup stall to SCStream.
 
 The original sampler receipt is explicitly `NOT_RUN`, reason
 `firstR4RequestNotObserved`. Sampling began only on a real R4 request in this
@@ -101,6 +103,57 @@ Investigate the initial catalogue / Host processing stall with a separate bounde
 startup sample, while retaining the actual-press sample. Correct the capture
 scheduling test's coordination, preserve the 750 ms ownership freshness limit,
 and rerun the same production path on the changed commit. Use newly added
-witness phase timings only when actual witness reads execute. Append the full
-release runtime when its exact-source artifact finishes, keeping these fast,
-source and diagnostic results intact.
+witness phase timings only when actual witness reads execute. The completed full release runtime is appended below, retaining the original
+fast, source and diagnostic results intact.
+
+
+## Completed full runtime: one real hide, incomplete restore
+
+[Full artifact 15206345777](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012254457/artifacts/15206345777)
+is 52,708,786 bytes; independently verified SHA-256
+`7811c23b25ed8446ecc16633fa1fdef83d433288c3f98207ee0d0141a00591d0`.
+The inner candidate ZIP is 25,426,673 bytes, SHA-256
+`c9b2f6e80c7706a72799020aa17967ce239c18569378572e908ceac69acae932`.
+The candidate receipt retains `sourceChecks=FAIL`, `fullBuild=PASS`, and
+`bundleSignature=PASS`; this build is not a qualified release.
+
+The full lane's direct engine passes all checks and 26 hide/restore request
+attempts, including confirmed engine cleanup. Its formal R4 run issues **one real
+AXPress**. The last independent readback confirms target window 53 focused at
+home on Space 12, same-app sibling 55 genuinely offscreen on hidden Space 33,
+and other-app sibling 56 still visible at home. This is a partial physical
+transition, not a completed group switch.
+
+The group begins at uptime 1203.864622917; new bindings arrive at 1206.179086125.
+Eleven witness reads follow. Their directly instrumented phases total:
+
+| Phase | Total across 11 reads | Median per read | Range per read |
+| --- | ---: | ---: | ---: |
+| Complete witness | 4,624.113 ms | 431.042 ms | 283.222–556.946 ms |
+| Opening directory | 1,927.876 ms | 152.783 ms | 120.876–255.435 ms |
+| Binding | 131.839 ms | 2.581 ms | 1.597–103.976 ms |
+| Physical windows | 708.526 ms | 48.474 ms | 40.586–118.439 ms |
+| Closing directory | 1,855.874 ms | 139.867 ms | 119.311–289.002 ms |
+
+Opening and closing directory work account for approximately 82% of measured
+witness duration. These are exact phase receipts for this run, not a throughput
+benchmark or a comparison across different VMs. The main-thread sample is mostly
+idle (58 of 66 samples waiting in the run loop), consistent with substantial
+asynchronous directory work; it does not provide per-suboperation attribution.
+
+The pre-cleanup product result is `FAIL/R4SwitchReadbackFailed`. The final product
+result becomes **`UNKNOWN/productionRestoreIncomplete`, cleanup=false**. The
+worker log records a `release-member` fault, status 2/detail 206, for hidden
+window 55. Later the worker observes parent exit and reports `released`, owned 0,
+engine destroyed. That terminal worker result is preserved but does not replace
+the missing independent physical restoration proof. Fixture exits and CI-owned
+desktop cleanup are confirmed separately. The product cleanup must remain
+unconfirmed; no crash/restart or lifecycle product qualification follows.
+
+Original full receipts: [runtime](full/runtime-summary.json),
+[product](full/product-result.json), [R4 press](full/r4-press-result.json),
+[phase timings](full/product.stderr.log), [main-thread sample](full/host-main-thread.sample.txt),
+[worker log](full/worker.jsonl), [worker identity](full/worker-lifecycle.json),
+[engine](full/engine-result.json), [candidate](full/candidate.json),
+[fixture exits](full/fixture-cleanup.json),
+[CI-owned desktop cleanup](full/ci-workspace-cleanup-receipt.json).

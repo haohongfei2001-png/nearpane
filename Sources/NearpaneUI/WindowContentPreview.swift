@@ -373,23 +373,72 @@ private final class WindowPickerObserver: NSObject, SCContentSharingPickerObserv
 
 @MainActor enum WindowAppBadges {
     struct Badge { let name: String; let icon: NSImage }
+    struct Owner: Hashable, Sendable { let pid: Int32; let birth: UInt64 }
+    // The new bitmap owns immutable pixel storage; no lazy NSImage or drawing
+    // context crosses the executor boundary.
+    struct Pixels: @unchecked Sendable { let name: String; let icon: CGImage }
 
-    static func resolve(_ windows: [WindowObservation]) -> [String: Badge] {
-        var owners = [Int32: (UInt64, Badge)](), badges = [String: Badge]()
+    static func resolve(_ windows: [WindowObservation]) async -> [String: Badge] {
+        var rows = [(String, Owner)]()
         for w in windows {
             guard let m = w.metadata, let birth = m.launchMicroseconds, m.pid > 0, birth > 0,
                   m.isOnscreen == true || m.overviewSpaceID != nil || w.membership != .unknown else { continue }
-            if owners[m.pid] == nil {
-                var info = proc_bsdinfo()
-                let size = Int32(MemoryLayout.size(ofValue: info))
-                guard proc_pidinfo(m.pid, PROC_PIDTBSDINFO, 0, &info, size) == size,
-                      info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == birth,
-                      let app = NSRunningApplication(processIdentifier: m.pid), !app.isTerminated,
-                      let name = app.localizedName, let icon = app.icon else { continue }
-                owners[m.pid] = (birth, Badge(name: name, icon: icon))
+            rows.append((w.id, Owner(pid: m.pid, birth: birth)))
+        }
+        let pixels = await prepareIcons(rows.map(\.1))
+        guard !Task.isCancelled else { return [:] }
+        var owners = [Owner: Badge](), badges = [String: Badge]()
+        for (id, owner) in rows {
+            if owners[owner] == nil, let rendered = pixels[owner], isLive(owner) {
+                // Only a completed bitmap reaches SwiftUI. AppKit's app icon is
+                // lazy and would otherwise call IconServices during Canvas.draw.
+                owners[owner] = Badge(name: rendered.name,
+                    icon: NSImage(cgImage: rendered.icon, size: NSSize(width: 32, height: 32)))
             }
-            if let (born, badge) = owners[m.pid], born == birth { badges[w.id] = badge }
+            if let badge = owners[owner] { badges[id] = badge }
         }
         return badges
+    }
+
+    static func prepareIcons(_ owners: [Owner],
+        read: @escaping @Sendable (Owner) -> Pixels? = readIcon) async -> [Owner: Pixels] {
+        let task = Task.detached(priority: .utility) {
+            var seen = Set<Owner>(), pixels = [Owner: Pixels]()
+            for owner in owners where seen.insert(owner).inserted {
+                guard !Task.isCancelled else { return [Owner: Pixels]() }
+                if let icon = read(owner) { pixels[owner] = icon }
+            }
+            return Task.isCancelled ? [:] : pixels
+        }
+        return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+    }
+
+    private nonisolated static func isLive(_ owner: Owner) -> Bool {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout.size(ofValue: info))
+        return proc_pidinfo(owner.pid, PROC_PIDTBSDINFO, 0, &info, size) == size &&
+            info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec == owner.birth
+    }
+
+    private nonisolated static func readIcon(_ owner: Owner) -> Pixels? {
+        guard isLive(owner), let app = NSRunningApplication(processIdentifier: owner.pid), !app.isTerminated,
+              let name = app.localizedName, let icon = app.icon, let pixels = rasterize(icon),
+              !app.isTerminated, isLive(owner) else { return nil }
+        return Pixels(name: name, icon: pixels)
+    }
+
+    nonisolated static func rasterize(_ icon: NSImage) -> CGImage? {
+        let side = 64
+        var proposed = CGRect(x: 0, y: 0, width: CGFloat(side), height: CGFloat(side))
+        guard let original = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil),
+              original.width > 0, original.height > 0,
+              let bitmap = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        let scale = min(CGFloat(side) / CGFloat(original.width), CGFloat(side) / CGFloat(original.height))
+        let size = CGSize(width: CGFloat(original.width) * scale, height: CGFloat(original.height) * scale)
+        bitmap.interpolationQuality = .high
+        bitmap.draw(original, in: CGRect(x: (CGFloat(side) - size.width) / 2,
+            y: (CGFloat(side) - size.height) / 2, width: size.width, height: size.height))
+        return bitmap.makeImage()
     }
 }

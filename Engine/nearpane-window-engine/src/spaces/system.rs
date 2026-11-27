@@ -42,15 +42,15 @@ mod mac {
         fn np_stage_window(w: u32, out: *mut WindowRow) -> i32;
         fn np_stage_bind(w: u32, pid: i32, birth: u64) -> *mut c_void;
         fn np_stage_adopt_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64) -> i32;
-        fn np_stage_check_bound_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, on_screen: u32) -> i32;
         fn np_stage_is_minimized(witness: *mut c_void) -> i32;
         fn np_stage_set_minimized(witness: *mut c_void, w: u32, pid: i32, birth: u64, minimized: u32) -> i32;
-        fn np_stage_check_bound(
+        fn np_stage_check_bound_status(
             witness: *mut c_void,
             w: u32,
             pid: i32,
             birth: u64,
             on_screen: u32,
+            allow_minimized: u32,
         ) -> i32;
         fn np_stage_release(witness: *mut c_void);
         fn np_stage_launch_token() -> *mut c_void;
@@ -219,18 +219,19 @@ mod mac {
         fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
             let observed = self.surface(w)?;
             let on_screen = u32::from(observed.visible);
-            let valid = match lease {
+            let binding = match lease {
                 Witness::Document(reference) => unsafe {
-                    np_stage_check_bound(
+                    np_stage_check_bound_status(
                         reference.0.as_ptr(),
                         w.number,
                         w.pid,
                         w.birth,
                         on_screen,
-                    ) == 1
+                        0,
+                    )
                 },
                 Witness::Minimized(reference) => unsafe {
-                    np_stage_check_bound_minimized(reference.0.as_ptr(), w.number, w.pid, w.birth, on_screen) == 1
+                    np_stage_check_bound_status(reference.0.as_ptr(), w.number, w.pid, w.birth, on_screen, 1)
                 },
                 Witness::Canary(token) => {
                     let p = panel_read(token, launch::PanelOp::Read, None)?;
@@ -242,25 +243,24 @@ mod mac {
                         eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"panel-identity\",\"window\":{},\"observedWindow\":{},\"observedPID\":{},\"observedBirth\":{},\"registered\":{}}}",
                             w.number,p.number,p.pid,p.birth,p.registered);
                     }
-                    same
+                    i32::from(same)
                 }
             };
-            if !valid
-                || self.fixture.as_ref().is_some_and(|session| {
-                    w == session.window()
-                        && match lease {
-                            Witness::Document(reference) | Witness::Minimized(reference) => {
-                                !session.same_document(reference.0.as_ptr(), &observed.rect)
-                            }
-                            Witness::Canary(_) => true,
+            let fixture_mismatch = self.fixture.as_ref().is_some_and(|session| {
+                w == session.window()
+                    && match lease {
+                        Witness::Document(reference) | Witness::Minimized(reference) => {
+                            !session.same_document(reference.0.as_ptr(), &observed.rect)
                         }
-                })
-            {
+                        Witness::Canary(_) => true,
+                    }
+            });
+            if binding != 1 || fixture_mismatch {
                 if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
-                    eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"retained-binding\",\"window\":{},\"pid\":{},\"bindingValid\":{},\"onscreen\":{}}}",
-                        w.number,w.pid,valid,on_screen);
+                    eprintln!("{{\"event\":\"spacesWindowObservation\",\"phase\":\"retained-binding\",\"window\":{},\"pid\":{},\"bindingValid\":{},\"bindingStatus\":{},\"onscreen\":{}}}",
+                        w.number,w.pid,binding == 1,binding,on_screen);
                 }
-                return Err(unknown(Why::Identity));
+                return Err(unknown(if binding == -25204 && !fixture_mismatch { Why::AXCannotComplete } else { Why::Identity }));
             }
             Ok(observed)
         }

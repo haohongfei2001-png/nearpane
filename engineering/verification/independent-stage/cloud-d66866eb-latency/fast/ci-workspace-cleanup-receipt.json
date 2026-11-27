@@ -1,0 +1,21 @@
+{
+  "cleanup": true,
+  "created": null,
+  "current": 1,
+  "currentHasSystemUUID": false,
+  "directWindowOperations": 0,
+  "lastRecordedStep": "issued:openMissionControl",
+  "originalCurrent": 1,
+  "phase": "cleaned",
+  "physicalGestureClaimed": false,
+  "process": {
+    "exit": 0,
+    "log": "ci-workspace-cleanup.log",
+    "status": "PASS",
+    "stderr": "ci-workspace-cleanup.stderr.log"
+  },
+  "qualificationGranted": false,
+  "schema": 1,
+  "status": "READY",
+  "systemInputs": 4
+}

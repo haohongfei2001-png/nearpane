@@ -1,0 +1,1079 @@
+{
+  "cleanup" : true,
+  "completedForeignCycles" : 2,
+  "context" : {
+    "boot" : "D031AB28-FC3C-43DF-AC3E-25C9309AA6A3",
+    "bounds" : [
+      0,
+      0,
+      1024,
+      768
+    ],
+    "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+    "home" : 12,
+    "kinds" : {
+      "1" : 0,
+      "12" : 0
+    },
+    "mainDisplay" : 1,
+    "managed" : [
+      {
+        "id" : 1,
+        "type" : 0
+      },
+      {
+        "id" : 12,
+        "type" : 0
+      }
+    ],
+    "screens" : [
+      [
+        0,
+        0,
+        1024,
+        768
+      ]
+    ]
+  },
+  "createdSpace" : 14,
+  "engineStateMachine" : "NOT_RUN",
+  "events" : [
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "baseline",
+      "uptime" : 189.86330425,
+      "verified" : true
+    },
+    {
+      "event" : "platformCreate",
+      "result" : 1,
+      "space" : 14,
+      "uptime" : 189.86411754166667
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "created-empty",
+      "uptime" : 189.95781570833336,
+      "verified" : true
+    },
+    {
+      "event" : "platformMove",
+      "mask" : 7,
+      "number" : 52,
+      "phase" : "hide",
+      "result" : 1,
+      "space" : 14,
+      "uptime" : 189.95824816666669
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : false,
+              "expectedSpace" : 14,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 0,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 14,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : false,
+              "expectedSpace" : 14,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 0,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 14,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "hidden-target-and-unchanged-bystanders",
+      "uptime" : 190.08885233333334,
+      "verified" : true
+    },
+    {
+      "event" : "platformMove",
+      "mask" : 15,
+      "number" : 52,
+      "phase" : "return",
+      "result" : 1,
+      "space" : 12,
+      "uptime" : 190.08912666666669
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "returned-target-and-unchanged-bystanders",
+      "uptime" : 190.17674329166667,
+      "verified" : true
+    },
+    {
+      "event" : "platformMove",
+      "mask" : 7,
+      "number" : 57,
+      "phase" : "hide",
+      "result" : 1,
+      "space" : 14,
+      "uptime" : 190.177043
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : false,
+              "expectedSpace" : 14,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 0,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 14,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : false,
+              "expectedSpace" : 14,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 0,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 14,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "hidden-target-and-unchanged-bystanders",
+      "uptime" : 190.30561216666669,
+      "verified" : true
+    },
+    {
+      "event" : "platformMove",
+      "mask" : 15,
+      "number" : 57,
+      "phase" : "return",
+      "result" : 1,
+      "space" : 12,
+      "uptime" : 190.30591237500002
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "returned-target-and-unchanged-bystanders",
+      "uptime" : 190.38377245833334,
+      "verified" : true
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "cleanup-before-destroy",
+      "uptime" : 190.47454066666668,
+      "verified" : true
+    },
+    {
+      "event" : "platformDestroy",
+      "occupantCount" : 0,
+      "result" : 1,
+      "space" : 14,
+      "uptime" : 190.47809829166667
+    },
+    {
+      "event" : "platformReadback",
+      "observations" : [
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        },
+        {
+          "contextStable" : true,
+          "windows" : [
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 52,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788858545872,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 54,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2545,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            },
+            {
+              "birth" : 1795788859534334,
+              "expectedOnScreen" : true,
+              "expectedSpace" : 12,
+              "foreignProcess" : true,
+              "geometryPreserved" : true,
+              "identityMatches" : true,
+              "number" : 57,
+              "onScreen" : 1,
+              "otherSpaceExcludesWindow" : true,
+              "pid" : 2553,
+              "retainedAXIdentity" : true,
+              "spaceContainsWindow" : true,
+              "verified" : true,
+              "windowSpace" : 12,
+              "windowSpaceCount" : 1
+            }
+          ]
+        }
+      ],
+      "phase" : "cleanup-final",
+      "uptime" : 190.61070554166668,
+      "verified" : true
+    }
+  ],
+  "foreignProcesses" : true,
+  "nonce" : "eb61eccf-6396-4972-8d23-adfb8fa362a6",
+  "numericHome" : 12,
+  "ordinaryUUIDRequiredByProduct" : true,
+  "originalSpaceInventory" : [
+    1,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+  ],
+  "prerequisiteEngineStatus" : "BLOCKED",
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "verifiedPlatformOnly",
+  "schema" : 1,
+  "scope" : "platform-only-mechanism",
+  "status" : "PLATFORM_FOREIGN_PASS",
+  "targetEnvironment" : {
+    "exactTarget" : false,
+    "kernelBuild" : "26A434",
+    "sipEnabled" : false
+  },
+  "windowWrites" : 4
+}

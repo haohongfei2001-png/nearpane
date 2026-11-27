@@ -652,7 +652,10 @@ impl<P: Platform> State<P> {
                         break;
                     }
                 }
-                Err(Fault(_, Why::Membership | Why::Readback)) => {
+                Err(Fault(_, Why::Membership | Why::Readback | Why::AXCannotComplete)) => {
+                    // Reobserve the same original binding after a transient AX
+                    // transport miss. The move is never resent and the original
+                    // acknowledgement deadline still bounds both full samples.
                     hit = 0;
                     missed |= self.sys.now().saturating_duration_since(started) >= grace;
                 }

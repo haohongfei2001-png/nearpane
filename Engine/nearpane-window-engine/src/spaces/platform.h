@@ -25,6 +25,9 @@ int32_t np_stage_move(int32_t connection, uint32_t route, uint32_t number, uint6
 void *np_stage_bind(uint32_t number, int32_t pid, uint64_t birth);
 int32_t np_stage_check_bound(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen);
 int32_t np_stage_check_bound_minimized(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen);
+// Read-only status: 1 is a complete original binding, -25204 is only absent AX
+// transport evidence, and 0 rejects every other failure. Writer checks stay Boolean.
+int32_t np_stage_check_bound_status(void *handle,uint32_t number,int32_t pid,uint64_t birth,uint32_t on_screen,uint32_t allow_minimized);
 // Only for a retained original standard window established by a visible readback.
 int32_t np_stage_adopt_minimized(void *handle,uint32_t number,int32_t pid,uint64_t birth);
 // 0/1 are positive Boolean reads. -25204 preserves AXCannotComplete;
