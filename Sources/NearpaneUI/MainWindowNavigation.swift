@@ -115,6 +115,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     public func showModules() { page = .modules }
     public func showLibrary() { page = lastLibrary }
     public func showAppearance() { page = .dimensions }
+    public func showDisplays() { page = .displays }
     public func showVoiceArchive() { page = .voiceArchive }
     public func showScreenshotArchive() { page = .screenshotArchive }
     public func showGeneral() { page = .general }

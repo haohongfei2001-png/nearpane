@@ -59,8 +59,6 @@ public struct WorkspaceDisplaySettings: View {
 
     private func settingsContent(_ screen: ScreenGeometry) -> some View {
         let settings = host.configuration.displays[screen.id] ?? .init()
-        let primary = primaryID == screen.id
-        let spacesEnabled = host.registry.preferences.contains { $0.id == BuiltinCatalog.desktop && $0.enabled }
         return VStack(alignment: .leading, spacing: 24) {
             if screens.count > 1 {
                 Picker("应用到", selection: Binding(get: { screen.id }, set: { chosen = $0 })) {
@@ -94,43 +92,7 @@ public struct WorkspaceDisplaySettings: View {
                 Text("强调色用于所有显示器和模块。")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Divider().opacity(0.5)
-            VStack(alignment: .leading, spacing: 14) {
-                heading("这一屏幕的位置")
-                Picker("停靠位置", selection: Binding(get: { settings.edge }, set: { value in update(screen) { $0.edge = value } })) {
-                    Text("跟随默认").tag(nil as SurfaceEdge?)
-                    Text("左侧").tag(SurfaceEdge?.some(.left))
-                    Text("右侧").tag(SurfaceEdge?.some(.right))
-                }.pickerStyle(.segmented).accessibilityIdentifier("sidebar-position")
-                Text("默认位置和主驻留屏可在「显示器与位置」中更改。")
-                    .font(.caption).foregroundStyle(.secondary)
-                if !primary && spacesEnabled {
-                    Picker("Spaces 显示方式", selection: Binding(get: { settings.policy }, set: { value in update(screen) { $0.policy = value } })) {
-                        Text("手动唤出").tag(SecondaryPolicy.onDemand)
-                        Text("有多个窗口时").tag(SecondaryPolicy.contextualAuto)
-                        Text("始终显示").tag(SecondaryPolicy.pinned)
-                    }
-                    Picker("呈现方式", selection: Binding(get: { settings.placement }, set: { value in update(screen) { $0.placement = value } })) {
-                        Text("贴边驻留").tag(SpacePanelPlacement.docked)
-                        Text("浮动").tag(SpacePanelPlacement.floating)
-                    }
-                    if settings.placement == .floating {
-                        Text("按住 Option 拖动 Spaces 面板，可调整它的位置。")
-                            .font(.caption).foregroundStyle(.secondary)
-                        if settings.floatingPosition != nil {
-                            Button("回到默认位置") { update(screen) { $0.floatingPosition = nil } }
-                        }
-                    }
-                    HStack(spacing: 12) {
-                        Button("显示 Spaces") { if stillCurrent(screen) { request(screen.id) } }
-                        Button("收起 Spaces") { if stillCurrent(screen) { dismiss(screen.id) } }
-                    }
-                }
-            }
-            if primary {
-                Divider().opacity(0.5)
-                FullscreenToolPreferencesView(host: host, display: screen.id)
-            }
+
         }
     }
 

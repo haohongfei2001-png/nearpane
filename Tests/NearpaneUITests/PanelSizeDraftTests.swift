@@ -88,10 +88,20 @@ import Testing
         var other = DisplaySettings()
         other.measures[.panelHeight] = Measure(73, .percent)
         host.setDisplaySettings(other, id: "main")
+        var expectedOther = other
+        expectedOther.visualStyleRevision = 1
+        expectedOther.measures = [:]
+        expectedOther.retiredVisualOverrides = [.panelHeight: Measure(73, .percent)]
         var settings = DisplaySettings()
         settings.measures[.reservedWidth] = Measure(113)
         settings.measures[.textPadding] = Measure(11.25)
         host.setDisplaySettings(settings, id: screen.id)
+        // The legacy dimension draft is still a pure compatibility value; the
+        // Host commits its normalized form without discarding retired inputs.
+        var expectedSettings = settings
+        expectedSettings.visualStyleRevision = 1
+        expectedSettings.measures = [.panelWidth: Measure(113)]
+        expectedSettings.retiredVisualOverrides = [.reservedWidth: Measure(113), .textPadding: Measure(11.25)]
         let domainState = host.registry.states
         var didChange = 0
         host.presentationChanged = { didChange += 1 }
@@ -103,24 +113,29 @@ import Testing
         #expect(atMinimum.width == PanelSizeMetrics.minimumSide && atMinimum.height == PanelSizeMetrics.minimumSide)
         draft.width.convert(to: .points, extent: 800)
         draft.width.enter("186.375")
-        #expect(didChange == 0 && store.value.displays[screen.id] == settings)
+        #expect(didChange == 0 && store.value.displays[screen.id] == expectedSettings)
 
         settings.measures[.rowGap] = Measure(5.5) // An independent settings change while the size editor is open.
         host.setDisplaySettings(settings, id: screen.id)
+        expectedSettings.retiredVisualOverrides[.rowGap] = Measure(5.5)
         let edited = try #require(draft.settings(over: settings, on: screen))
         host.setDisplaySettings(edited, id: screen.id)
+        var expectedEdited = expectedSettings
+        expectedEdited.measures[.panelWidth] = Measure(186.375)
+        expectedEdited.retiredVisualOverrides[.panelHeight] = Measure(1.5625, .percent)
         #expect(didChange == 2)
         #expect(edited.measures[.panelWidth] == Measure(186.375) && edited.measures[.panelHeight] == Measure(1.5625, .percent))
         #expect(edited.measures[.rowGap] == Measure(5.5) && edited.measures[.reservedWidth] == Measure(113))
         host.stop()
         await host.start()
-        #expect(store.value.displays["main"] == other && host.configuration.displays[screen.id] == edited)
+        #expect(store.value.displays["main"] == expectedOther && host.configuration.displays[screen.id] == expectedEdited)
+        #expect(host.configuration.displays[screen.id]?.panel(on: screen, fallbackEdge: .right)?.width == 220)
         #expect(host.registry.states == domainState)
         draft = PanelSizeDraft()
         let reset = try #require(draft.settings(over: edited, on: screen))
-        #expect(host.configuration.displays[screen.id] == edited)
+        #expect(host.configuration.displays[screen.id] == expectedEdited)
         host.setDisplaySettings(reset, id: screen.id)
-        #expect(store.value.displays[screen.id] == settings && store.value.displays["main"] == other)
+        #expect(store.value.displays[screen.id] == expectedSettings && store.value.displays["main"] == expectedOther)
     }
 
     @Test func invalidOrPartialInputCannotReplaceTheOtherDimension() {

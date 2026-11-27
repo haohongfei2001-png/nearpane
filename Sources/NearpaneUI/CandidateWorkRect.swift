@@ -307,7 +307,7 @@ public struct CandidateWorkRectView: View {
                             Button("停止兼容窗口管理并恢复位置") { session.send("disable") }
                         }
                     }
-                    Text("在「外观与尺寸」调整预留宽度，在「窗口规则」设置应用排除。")
+                    Text("在「设置 → 外观与布局」调整侧栏宽度，在本页的「规则」中设置应用排除。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding()

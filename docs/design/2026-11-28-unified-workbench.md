@@ -52,6 +52,8 @@ Module capabilities describe sidebar presence, settings and optional user-conten
 
 The previous duplicate Spaces enable switch inside window presentation is removed; the module header is the common enable control. Theme color belongs to Appearance, and profile import/restore belongs to Data management. App update and feedback remain under About & Updates.
 
+Appearance contains width, transparency and the shared accent. Display & Placement owns the default edge, primary display, per-display edge overrides, secondary Spaces presentation and fullscreen tool-strip behavior in one scrolling page. A per-display edge explicitly inherits the default unless the user overrides it; position controls are not scattered through Appearance. Both pages retain their display selector when multiple screens are present.
+
 The product exposes one bounded sidebar-width control, the shared accent and one transparency adjustment. Voice text and window labels each offer small, standard and large typography choices in their module. Arbitrary per-element geometry, pt/% fields, separate module heights, corner radii, padding, icon/button sizes and per-field reset actions no longer appear, including in advanced sections. Their internal tokens remain available to layout code. The visual-policy migration retains retired values in `retiredVisualOverrides` and `retiredGlassOverrides`, while current rendering uses the designed defaults. Startup resolves this policy in memory; the original file is not rewritten merely by opening the app. Later normal preference saves preserve both the current values and the retired record. See [the settings migration record](2026-11-28-settings-convergence.md).
 
 ## Library behavior
@@ -88,6 +90,7 @@ The `b2112280` owner decision requires top/bottom edges, horizontal content, per
 - `ModuleSwitchCoordinator.swift`: shared module state changes and the existing Spaces return barrier, without changing its window-dispatch algorithm.
 - `NotebookLibraryView.swift`: notes/tasks/vocabulary over the original store.
 - `MainWindowGeneralSettings.swift`: menu visibility, sidebar visibility and native login-item status. Login registration only occurs after a user toggles it.
+- `DisplayPlacementSettings.swift`: default placement and per-display inheritance, secondary presentation and fullscreen-entry preferences in one page.
 - `ModuleCapabilities.swift`: module destination metadata without changing saved preference IDs.
 - `HostLyrics.swift` and lyric module: host-owned auxiliary routing and persistent paused-session presentation.
 

@@ -577,26 +577,10 @@ public struct SettingsView: View {
     }
 
     private var appearance: some View {
-        Form {
-            Picker("默认停靠边缘", selection: Binding(get: { host.configuration.edge }, set: {
-                host.setPlacement(edge: $0, displayID: host.configuration.preferredDisplayID); placementChanged()
-            })) {
-                ForEach(SurfaceEdge.allCases, id: \.self) { Text($0 == .left ? "左侧" : "右侧").tag($0) }
-            }
-            Picker("主驻留显示器", selection: Binding(get: { host.configuration.preferredDisplayID ?? "" }, set: {
-                host.setPlacement(edge: host.configuration.edge, displayID: $0.isEmpty ? nil : $0); placementChanged()
-            })) {
-                Text("跟随菜单栏所在屏幕").tag("")
-                ForEach(Array(screens.enumerated()), id: \.element.id) { index, screen in
-                    Text("显示器 \(index + 1) · \(Int(screen.frame.width)) × \(Int(screen.frame.height))").tag(screen.id)
-                }
-                if let missing = host.configuration.preferredDisplayID, !screens.contains(where: { $0.id == missing }) {
-                    Text("首选显示器暂未连接（已保留选择）").tag(missing)
-                }
-            }
-            Text("完整侧栏仅在主驻留屏显示。拔除首选屏时暂用可用屏，重新连接后恢复选择。")
-                .font(.callout).foregroundStyle(.secondary)
-        }.formStyle(.grouped)
+        DisplayPlacementSettings(host: host, screens: screens,
+            request: requestSecondary, dismiss: dismissSpaces,
+            stillCurrent: inventory.contains, placementChanged: placementChanged)
+            .padding(.horizontal, 28).padding(.bottom, 24)
     }
 
     private var mockSettings: some View {

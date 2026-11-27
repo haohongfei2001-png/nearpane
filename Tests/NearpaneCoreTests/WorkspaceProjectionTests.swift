@@ -50,6 +50,14 @@ struct WorkspaceProjectionTests {
         host.setDisplaySettings(b, id: "b")
         a.measures[.textSize] = nil
         host.setDisplaySettings(a, id: "a")
+        // Host persistence now stores the supported visual revision. Legacy
+        // spacing survives in recovery data, while display policies stay intact.
+        var expectedA = a
+        expectedA.visualStyleRevision = 1
+        var expectedB = b
+        expectedB.visualStyleRevision = 1
+        expectedB.measures = [:]
+        expectedB.retiredVisualOverrides = [.trayPadding: Measure(6.5)]
         var prefs = WorkspacePreferences()
         prefs.overflow = .continuousSplit
         host.setWorkspacePreferences(prefs)
@@ -57,17 +65,19 @@ struct WorkspaceProjectionTests {
         host.stop()
         await host.start()
         #expect(
-            host.configuration.displays["a"] == a && host.configuration.displays["b"] == b
+            host.configuration.displays["a"] == expectedA && host.configuration.displays["b"] == expectedB
                 && host.configuration.workspaces == prefs)
+        #expect(host.configuration.displays["b"]?.placement == .floating && host.configuration.displays["b"]?.policy == .pinned)
         let safe = SurfaceRect(width: 1600, height: 900)
         let screen = ScreenGeometry(id: "a", frame: safe, visibleFrame: safe)
-        #expect(a.panel(on: screen, fallbackEdge: .right)?.width == 300)
-        #expect(a.referenceExtent(for: .panelWidth, screen: screen, primary: true) == 1600)
+        let restoredA = try #require(host.configuration.displays["a"])
+        #expect(restoredA.panel(on: screen, fallbackEdge: .right)?.width == 300)
+        #expect(restoredA.referenceExtent(for: .panelWidth, screen: screen, primary: true) == 1600)
         #expect(try JSONDecoder().decode(DisplaySettings.self, from: Data("{}".utf8)).placement == .docked)
         var invalid = a
         invalid.measures[.textSize] = .init(.nan)
         host.setDisplaySettings(invalid, id: "a")
-        #expect(host.configurationSaveFailed && store.value.displays["a"] == a)
+        #expect(host.configurationSaveFailed && store.value.displays["a"] == expectedA)
         host.stop()
     }
 }

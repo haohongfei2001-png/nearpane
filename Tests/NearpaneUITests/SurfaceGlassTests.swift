@@ -63,7 +63,7 @@ import NearpaneCore
         }
     }
 
-    @Test func hiddenPanelMaterialTracksPresentedWidthAndCustomCardRadius() async throws {
+    @Test func hiddenPanelMaterialTracksMigratedWidthAndDesignCardRadius() async throws {
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()
@@ -75,14 +75,19 @@ import NearpaneCore
         let surface = try #require(panel.window?.contentView)
         #expect(surface.subviews.first is PanelGlassMaterial)
         let layer = try #require(surface.layer)
-        for (width, corner) in [(180.0, nil as Measure?), (240, nil), (240, Measure(8, .percent))] {
+        for (width, corner, expectedWidth) in [(180.0, nil as Measure?, 220.0), (240, nil, 240), (240, Measure(8, .percent), 240)] {
             settings.measures[.panelWidth] = Measure(width)
             settings.measures[.cornerRadius] = corner
             host.setDisplaySettings(settings, id: screen.id)
             panel.place(on: screen, primary: screen.id, content: .full)
             let presented = Double(try #require(panel.window?.frame.width))
-            #expect(presented == width)
-            let expected = (corner?.points(in: presented) ?? 16) + PanelSizeMetrics.cardInset(width: presented)
+            #expect(presented == expectedWidth)
+            // Retired rounding remains recoverable, but the material uses the
+            // designed card radius and the actual supported presentation width.
+            let committed = try #require(host.configuration.displays[screen.id])
+            #expect(committed.visualStyleRevision == 1 && committed.measures[.panelWidth] == Measure(width))
+            #expect(committed.measures[.cornerRadius] == nil && committed.retiredVisualOverrides[.cornerRadius] == corner)
+            let expected = 16 + PanelSizeMetrics.cardInset(width: presented)
             #expect(abs(Double(layer.cornerRadius) - expected) < 0.00001)
             #expect(layer.cornerCurve == .continuous && panel.window?.isVisible == false)
         }

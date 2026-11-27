@@ -41,6 +41,7 @@ enum UnifiedWorkbenchAcceptance {
                 "activationPolicy": NSApp.activationPolicy().rawValue,
                 "assistiveAccessibilityEnvironmentEnabled": NativeVerificationAccessibility.isEnabled,
                 "accessibilityScope": "Public SwiftUI accessibilityEnabled environment on DEBUG CI alpha fixture views; normal product defaults, system permissions and player lease unchanged",
+                "accessibilityDispatch": "Public native AX press via NSAccessibilityProtocol or an exact BOOL selector bridge; semantic identifier, role, native enabled state, dispatch return and product-state result are required",
                 "evidenceScope": "Packaged Nearpane native UI; isolated generated content; in-process accessibility actions",
                 "playbackScope": "Synthetic snapshots only; does not certify a real music player's controls or metadata",
                 "spacesScope": "No real window dispatch was performed; PR 16 remains separately qualified",
@@ -125,6 +126,8 @@ enum UnifiedWorkbenchAcceptance {
             navigation.showAppearance()
             try await picture("09-settings-appearance")
             try await picture("10-settings-compact-dark", appearance: .darkAqua, size: NSSize(width: 740, height: 520))
+            navigation.showDisplays()
+            try await picture("10-display-placement-settings")
             navigation.showModule(BuiltinCatalog.voice)
             try await picture("10-voice-module-settings")
             navigation.showModule(BuiltinCatalog.desktop)
@@ -249,9 +252,13 @@ enum UnifiedWorkbenchAcceptance {
                         try check("paused-native-hover-controls", cleared && moved && modules.lyricsVerificationControlsVisible,
                                   detail: "A native cursor move into the actual paused lyric card exercised SwiftUI hover after clearing only fixture controls.")
                         pictures.append(try await capture(panel, name: "lyrics-paused-native-hover", to: output))
-                        let playButtons = accessibilityNodes(in: panel).filter { $0.identifier == "lyric-playback-toggle" }
+                        let pausedNodes = accessibilityNodes(in: panel, includeHitTests: true)
+                        let playButtons = pausedNodes.filter { $0.identifier == "lyric-playback-toggle" }
+                        try writeAccessibilityDiagnostics("lyric-playback-toggle", rows: pausedNodes, actions: [],
+                            dispatched: false, in: panel, to: output)
                         checks.append(["check": "paused-play-control-fixture-scope",
-                                       "passed": !playButtons.isEmpty && !modules.lyricsVerificationOwnsSession,
+                                       "passed": !playButtons.isEmpty && playButtons.allSatisfy { $0.enabledKnown && !$0.enabled } &&
+                                           !modules.lyricsVerificationOwnsSession,
                                        "evidenceKind": "native-accessibility-inspection",
                                        "matchingNodes": playButtons.count,
                                        "enabledNodes": playButtons.filter(\.enabled).count,
@@ -326,24 +333,43 @@ enum UnifiedWorkbenchAcceptance {
 
     private struct AccessibilityNode {
         let object: AnyObject
-        let parent: Int?
+        var parent: Int?
         let role: String
         let identifier: String
         let label: String
         let enabled: Bool
+        let enabledKnown: Bool
         let bridge: String
+        let relation: String
     }
 
     /// SwiftUI may vend Objective-C accessibility objects without declaring the
     /// formal NSAccessibilityProtocol. Inspect public selectors as well as native
-    /// view children so a protocol bridge gap is visible in the diagnostic record.
-    /// Input still uses the typed native protocol; inspection never implies input.
-    private static func accessibilityNodes(in window: NSWindow) -> [AccessibilityNode] {
-        var queue: [(AnyObject, Int?)] = [(window, nil)]
-        if let view = window.contentView { queue.append((view, nil)) }
+    /// view children. Public BOOL selectors need a BOOL-returning function bridge,
+    /// not NSObject.perform's object-returning convention. A successful dispatch
+    /// must still produce the expected product state before an input check passes.
+    private static func accessibilityNodes(in window: NSWindow, includeHitTests: Bool = false) -> [AccessibilityNode] {
+        var queue: [(AnyObject, Int?, String)] = [(window, nil, "window")]
+        if let view = window.contentView {
+            queue.append((view, nil, "contentView"))
+            if includeHitTests {
+                // Read-only native hit testing can expose SwiftUI scroll contents
+                // omitted from a container's children array. No coordinate click
+                // is dispatched: press still requires the exact semantic ID.
+                let spacing: CGFloat = 24
+                for y in stride(from: view.bounds.minY + spacing / 2, to: view.bounds.maxY, by: spacing) {
+                    for x in stride(from: view.bounds.minX + spacing / 2, to: view.bounds.maxX, by: spacing) {
+                        let point = window.convertPoint(toScreen: view.convert(NSPoint(x: x, y: y), to: nil))
+                        if let hit = view.accessibilityHitTest(point) {
+                            queue.append((hit as AnyObject, nil, "accessibilityHitTest"))
+                        }
+                    }
+                }
+            }
+        }
         var visited = Set<ObjectIdentifier>()
         var result: [AccessibilityNode] = []
-        while let (object, parent) = queue.popLast(), visited.count < 2_400 {
+        while let (object, parent, relation) = queue.popLast(), visited.count < 2_400 {
             guard visited.insert(ObjectIdentifier(object)).inserted else { continue }
             let node = object as? any NSAccessibilityProtocol
             let role = node?.accessibilityRole()?.rawValue
@@ -357,20 +383,56 @@ enum UnifiedWorkbenchAcceptance {
                 ?? legacyValue(object, "AXDescription") as? String
                 ?? legacyValue(object, "AXTitle") as? String ?? ""
             let enabled = node?.isAccessibilityEnabled()
-                ?? legacyValue(object, "AXEnabled") as? Bool ?? false
+                ?? booleanValue(object, "isAccessibilityEnabled")
+                ?? legacyValue(object, "AXEnabled") as? Bool
             let index = result.count
             result.append(.init(object: object, parent: parent, role: role, identifier: identifier,
-                                label: String(label.prefix(120)), enabled: enabled,
-                                bridge: node != nil ? "NSAccessibilityProtocol" : "public selectors (inspection only)"))
-            let children = node?.accessibilityChildren()
-                ?? objectValue(object, "accessibilityChildren") as? [Any]
-                ?? legacyValue(object, "AXChildren") as? [Any] ?? []
-            queue.append(contentsOf: children.map { ($0 as AnyObject, index) })
+                                label: String(label.prefix(120)), enabled: enabled ?? false, enabledKnown: enabled != nil,
+                                bridge: node != nil ? "NSAccessibilityProtocol" : "public selectors with typed BOOL bridge",
+                                relation: relation))
             if let view = object as? NSView {
-                queue.append(contentsOf: view.subviews.map { ($0, index) })
+                queue.append(contentsOf: view.subviews.map { ($0, index, "NSView.subviews") })
+            }
+            // These are complementary public AX relationships, not fallbacks:
+            // a scroll area may have children=[] but nonempty contents.
+            for (selector, legacy) in [
+                ("accessibilityChildren", "AXChildren"),
+                ("accessibilityContents", "AXContents"),
+                ("accessibilityVisibleChildren", "AXVisibleChildren"),
+                ("accessibilityChildrenInNavigationOrder", "AXChildrenInNavigationOrder")
+            ] {
+                let children = objectValue(object, selector) as? [Any]
+                    ?? legacyValue(object, legacy) as? [Any] ?? []
+                queue.append(contentsOf: children.map { ($0 as AnyObject, index, selector) })
+            }
+            if relation == "accessibilityHitTest" || relation == "accessibilityParent" {
+                if let nativeParent = objectValue(object, "accessibilityParent") {
+                    queue.append((nativeParent as AnyObject, nil, "accessibilityParent"))
+                }
+            }
+        }
+        // Prefer the platform's semantic parent when an element was reached by
+        // hit testing or through more than one public child relationship.
+        let indices = Dictionary(uniqueKeysWithValues: result.enumerated().map {
+            (ObjectIdentifier($0.element.object), $0.offset)
+        })
+        for index in result.indices {
+            if let nativeParent = objectValue(result[index].object, "accessibilityParent"),
+               let parentIndex = indices[ObjectIdentifier(nativeParent as AnyObject)], parentIndex != index {
+                result[index].parent = parentIndex
             }
         }
         return result
+    }
+
+    private static func booleanValue(_ value: AnyObject, _ name: String) -> Bool? {
+        guard let object = value as? NSObject else { return nil }
+        let selector = NSSelectorFromString(name)
+        guard object.responds(to: selector) else { return nil }
+        typealias BooleanMethod = @convention(c) (AnyObject, Selector) -> Bool
+        let implementation: IMP = object.method(for: selector)
+        let method = unsafeBitCast(implementation, to: BooleanMethod.self)
+        return method(object, selector)
     }
 
     private static func objectValue(_ value: AnyObject, _ name: String) -> Any? {
@@ -391,10 +453,12 @@ enum UnifiedWorkbenchAcceptance {
         var rows: [AccessibilityNode] = []
         var actions: [[String: Any]] = []
         var dispatched = false
+        var includeHitTests = false
         let interactive = Set(["AXButton", "AXCheckBox", "AXRadioButton", "AXSwitch", "AXMenuItem"])
         for attempt in 0..<20 {
             window.contentView?.layoutSubtreeIfNeeded()
-            rows = accessibilityNodes(in: window)
+            if attempt > 0 && !rows.contains(where: { $0.identifier == identifier }) { includeHitTests = true }
+            rows = accessibilityNodes(in: window, includeHitTests: includeHitTests)
             var attempted = Set<ObjectIdentifier>()
             for (index, match) in rows.enumerated() where match.identifier == identifier {
                 // An identifier can be attached to a SwiftUI label. Only its real
@@ -416,7 +480,8 @@ enum UnifiedWorkbenchAcceptance {
                 guard target.enabled else {
                     if attempt == 0 {
                         actions.append(["matchedNode": index, "pressedNode": candidate, "role": target.role,
-                                        "identifier": target.identifier, "method": "disabled or unbridged node", "returned": false])
+                                        "identifier": target.identifier, "enabled": target.enabled, "enabledKnown": target.enabledKnown,
+                                        "method": "native enabled state is false or unavailable", "returned": false])
                     }
                     continue
                 }
@@ -424,6 +489,8 @@ enum UnifiedWorkbenchAcceptance {
                 let method: String
                 if let node = target.object as? any NSAccessibilityProtocol {
                     result = node.accessibilityPerformPress(); method = "NSAccessibilityProtocol.accessibilityPerformPress"
+                } else if let pressed = booleanValue(target.object, "accessibilityPerformPress") {
+                    result = pressed; method = "public accessibilityPerformPress selector via typed BOOL IMP"
                 } else {
                     result = false; method = "typed accessibility press unavailable"
                 }
@@ -435,6 +502,13 @@ enum UnifiedWorkbenchAcceptance {
             if dispatched { try await Task.sleep(for: .milliseconds(180)); break }
             try await Task.sleep(for: .milliseconds(100))
         }
+        try writeAccessibilityDiagnostics(identifier, rows: rows, actions: actions, dispatched: dispatched, in: window, to: output)
+        return dispatched
+    }
+
+    private static func writeAccessibilityDiagnostics(_ identifier: String, rows: [AccessibilityNode],
+                                                     actions: [[String: Any]], dispatched: Bool,
+                                                     in window: NSWindow, to output: URL) throws {
         let dump: [String: Any] = [
             "identifier": identifier, "actionDispatched": dispatched, "actions": actions,
             "windowNumber": window.windowNumber, "windowVisible": window.isVisible,
@@ -442,13 +516,16 @@ enum UnifiedWorkbenchAcceptance {
             "matchingNodes": rows.enumerated().filter { $0.element.identifier == identifier }.map { $0.offset },
             "nodes": rows.prefix(400).enumerated().map { index, row -> [String: Any] in
                 ["node": index, "parent": row.parent ?? -1,
-                 "class": String(reflecting: Swift.type(of: row.object)), "bridge": row.bridge,
-                 "role": row.role, "identifier": row.identifier, "label": row.label, "enabled": row.enabled]
+                 "class": String(reflecting: Swift.type(of: row.object)), "bridge": row.bridge, "relation": row.relation,
+                 "role": row.role, "identifier": row.identifier, "label": row.label,
+                 "enabled": row.enabled, "enabledKnown": row.enabledKnown,
+                 "availablePublicSelectors": ["isAccessibilityEnabled", "accessibilityPerformPress", "accessibilityChildren",
+                    "accessibilityContents", "accessibilityVisibleChildren", "accessibilityChildrenInNavigationOrder", "accessibilityParent"]
+                    .filter { (row.object as? NSObject)?.responds(to: NSSelectorFromString($0)) == true }]
             }
         ]
         let data = try JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted, .sortedKeys])
         try data.write(to: output.appendingPathComponent("ax-" + identifier + ".json"), options: .atomic)
-        return dispatched
     }
 
     private static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
