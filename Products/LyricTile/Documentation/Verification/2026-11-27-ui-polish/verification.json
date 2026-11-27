@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-27 Asia/Shanghai",
+  "sourceCommit": "8079441ad2e59da63ebbdb606a201abfa6cc5092",
+  "workflow": {
+    "id": 45935989967,
+    "number": 35,
+    "jobID": 140299202358,
+    "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45935989967",
+    "conclusion": "success"
+  },
+  "host": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\narm64\nXcode 27.1\nBuild version 27A9275\nApple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)\nTarget: arm64-apple-macosx27.0.0\n8079441ad2e59da63ebbdb606a201abfa6cc5092\n",
+  "layout": {
+    "lyricsHeightPT": 192,
+    "compactHeightPT": 104,
+    "cornerRadiusPT": 18,
+    "defaultCueCount": 5,
+    "longCueCount": 3,
+    "maximumCurrentRows": 4,
+    "hoverMaximumCurrentRows": 2,
+    "authoredNativeScenarios": 10,
+    "manualScreenshotReview": "PASS",
+    "auxiliaryScreenshotReview": "PASS",
+    "welcomeSizePT": [
+      400,
+      360
+    ],
+    "settingsSizePT": [
+      450,
+      620
+    ]
+  },
+  "verification": {
+    "productionAppBuild": "PASS",
+    "hostModuleBuild": "PASS",
+    "swiftTestingDefinitions": 76,
+    "xctestCases": 15,
+    "totalTestDefinitions": 91,
+    "failures": 0,
+    "errors": 0,
+    "nativeSmoke": {
+      "status": "PASS",
+      "exitCode": 0,
+      "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "observation": {
+        "check": "native-ui-load",
+        "height": 104,
+        "idlePanelHidden": true,
+        "networkStarted": false,
+        "panelScreenshotSaved": false,
+        "passed": true,
+        "realPlayerTest": false,
+        "screenshotRequested": true,
+        "settings": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 620,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 450
+        },
+        "welcome": {
+          "contentMounted": true,
+          "exists": true,
+          "height": 360,
+          "passed": true,
+          "screenshotSaved": true,
+          "visible": true,
+          "width": 400
+        },
+        "width": 176
+      },
+      "realPlayerQualification": "NOT_RUN"
+    },
+    "packagedMediaHelperLoad": "PASS",
+    "adHocCandidateBundle": "PASS",
+    "dynamicSlotRegistryTests": "PASS",
+    "pausedArrivalAndDeferredContractionTests": "PASS"
+  },
+  "idle": {
+    "scope": "actual_candidate_idle_no_player",
+    "status": "MEASURED",
+    "withinTargets": true,
+    "qualification": "Hosted idle baseline only; no real-player/line/word/8-hour performance claim.",
+    "durationSeconds": 120.15473287499981,
+    "samples": 105,
+    "cpuMeanPercentOneCore": 0.14980762022628177,
+    "rssMedianMiB": 55.40625,
+    "rssPeakMiB": 55.40625
+  },
+  "artifacts": [
+    {
+      "id": 15170841438,
+      "name": "LyricTile-ui-35",
+      "sha256": "0f93a2913f204c51522913d9a7528e50430ad21a99f20e4a2bf0a1d44b6c949a",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45935989967/artifacts/15170841438"
+    },
+    {
+      "id": 15170801422,
+      "name": "LyricTile-candidate-35",
+      "sha256": "802219c90e3ab9fc4d6236c1cdb2e723cf0708de7ba99cf76409a4c01a611fa2",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45935989967/artifacts/15170801422"
+    }
+  ],
+  "imageSHA256": {
+    "fixture-compact-hover.png": "f538cb42a2e2a36cb6e2c6f20d06abf2863222234cd97f438dcd1f8af276b67c",
+    "fixture-compact.png": "887b40dc686d24a6db3c044887872f84b5d7ed84774dc95f9ad91d0205b766c6",
+    "fixture-light-long-lyrics-hover.png": "5aa05613d56053d2b8c0c65c6ece3e8ad6610fdf5b6d7b1c8dbd318cf6c14efb",
+    "fixture-light-long-lyrics.png": "451b96feb7252ef913dde03eaa817ba842e89e0868300a5bb96aac99fa72ebd5",
+    "fixture-light-lyrics-hover.png": "939677ddd64f7ef133864acc6c10b6234a7d4a353b192b058dba8521721daa3f",
+    "fixture-light-lyrics.png": "107e794e12051c10e3da312cc4c0a452226d6d232180e7825b81271db8bce61f",
+    "fixture-missing-metadata.png": "a4208a9540d00edacf64f7fb1c39f4907151f29c1729500dc696a9bbc73785a1",
+    "fixture-narrow-dark-long-lyrics-hover.png": "0f9602a33eb3978a5c2959efc91eed9f7f3c5d43aef8bc80a7680734f11237ca",
+    "fixture-narrow-dark-long-lyrics.png": "4d52214028d1c349c29419fe3a053bd39321e934210f7d8a57375cd6219ce6ff",
+    "fixture-no-song-transparent.png": "97e5bd1497288b938e7405b71c0c5d3adb1052147659ec2490a89109115f18b9",
+    "native-settings.png": "ce2b8b8c14626818cb6cb4e751bea6025211ca343e25f22d193c4b0115ccfbda",
+    "native-welcome.png": "98130238a7bcd330bfc12e17e289698d6bfc687a475c2ad5c3e9dc41794e89b8"
+  },
+  "limitations": [
+    "Layout screenshots use authored test input only; no player or production session lease is started.",
+    "Fixture transport controls are disabled. Real artwork acceptance, pointer events and transport readback are not exercised.",
+    "Registry tests use temporary state and observed window-ID fixtures; they do not qualify two real applications sharing a physical desktop.",
+    "Actual desktop pause/leave/resume, late lyrics, wallpaper material contrast and cooperating sidebar layout on the updated signed app remain unverified.",
+    "This candidate is ad-hoc signed. This round does not replace the installed build 4 or publish a Developer ID signed/notarized installer. Old build 4 eight-hour results do not qualify this UI source."
+  ]
+}

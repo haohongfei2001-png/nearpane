@@ -1,0 +1,25 @@
+{
+  "artworkAcceptanceTested" : false,
+  "controlsPresented" : false,
+  "darkAppearance" : false,
+  "glyphViewports" : [
+    {
+      "height" : 27,
+      "width" : 180,
+      "x" : 14,
+      "y" : 83
+    }
+  ],
+  "image" : "fixture-light-lyrics.png",
+  "kind" : "authored-native-layout-fixture",
+  "limitations" : "Authored test input. No session lease: transport is disabled and cover acceptance is not exercised. Hover presentation is pinned; no mouse event is claimed.",
+  "logicalHeight" : 192,
+  "logicalWidth" : 208,
+  "maximumAlpha" : 1,
+  "nativeGlyphViews" : 1,
+  "networkStarted" : false,
+  "realPlayerTest" : false,
+  "scenario" : "light-lyrics",
+  "sessionLeaseAcquired" : false,
+  "transportCommandsTested" : false
+}

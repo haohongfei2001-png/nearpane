@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "exitCode": 0,
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "observation": {
+    "check": "native-ui-load",
+    "height": 104,
+    "idlePanelHidden": true,
+    "networkStarted": false,
+    "panelScreenshotSaved": false,
+    "passed": true,
+    "realPlayerTest": false,
+    "screenshotRequested": true,
+    "settings": {
+      "contentMounted": true,
+      "exists": true,
+      "height": 620,
+      "passed": true,
+      "screenshotSaved": true,
+      "visible": true,
+      "width": 450
+    },
+    "welcome": {
+      "contentMounted": true,
+      "exists": true,
+      "height": 360,
+      "passed": true,
+      "screenshotSaved": true,
+      "visible": true,
+      "width": 400
+    },
+    "width": 176
+  },
+  "realPlayerQualification": "NOT_RUN"
+}

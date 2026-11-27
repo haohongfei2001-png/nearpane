@@ -1,0 +1,20 @@
+{
+  "artworkAcceptanceTested" : false,
+  "controlsPresented" : false,
+  "darkAppearance" : false,
+  "glyphViewports" : [
+
+  ],
+  "image" : "fixture-compact.png",
+  "kind" : "authored-native-layout-fixture",
+  "limitations" : "Authored test input. No session lease: transport is disabled and cover acceptance is not exercised. Hover presentation is pinned; no mouse event is claimed.",
+  "logicalHeight" : 104,
+  "logicalWidth" : 208,
+  "maximumAlpha" : 1,
+  "nativeGlyphViews" : 0,
+  "networkStarted" : false,
+  "realPlayerTest" : false,
+  "scenario" : "compact",
+  "sessionLeaseAcquired" : false,
+  "transportCommandsTested" : false
+}
