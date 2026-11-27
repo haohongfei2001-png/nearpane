@@ -1,0 +1,68 @@
+name: Nearpane film native capture
+on:
+  push:
+    branches: ['creative/nearpane-first-film-20261128']
+    paths: ['Marketing/FirstFilm/native/**', '.github/workflows/film-native-capture.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: film-native-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: xcode-27
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - name: Isolate frozen product and add capture-only instrumentation
+        run: |
+          python3 Marketing/FirstFilm/native/prepare_capture.py --source Products/LyricTile --destination "$RUNNER_TEMP/film-product"
+          mkdir -p "$RUNNER_TEMP/film-output"
+          cp "$RUNNER_TEMP/film-product/film-instrumentation.json" "$RUNNER_TEMP/film-output/"
+          sw_vers > "$RUNNER_TEMP/film-output/host.txt"
+          git rev-parse HEAD >> "$RUNNER_TEMP/film-output/host.txt"
+      - name: Resolve pinned product dependencies
+        env:
+          FILM_PACKAGE_TOKEN: ${{ github.token }}
+        run: |
+          set +x
+          cd "$RUNNER_TEMP/film-product"
+          film_auth=$(printf 'x-access-token:%s' "$FILM_PACKAGE_TOKEN" | base64 | tr -d '\n')
+          printf '::add-mask::%s\n' "$film_auth"
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0=http.https://github.com/jpsim/Yams.git.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $film_auth"
+          export GIT_CONFIG_KEY_1=http.https://github.com/sparkle-project/Sparkle.git.extraheader
+          export GIT_CONFIG_VALUE_1="AUTHORIZATION: basic $film_auth"
+          swift package resolve
+      - name: Render authored native production views at six times logical scale
+        run: |
+          cd "$RUNNER_TEMP/film-product"
+          LYRICTILE_FILM_OUTPUT="$RUNNER_TEMP/film-output" swift test --filter FilmCaptureTests 2>&1 | tee "$RUNNER_TEMP/film-output/fixture-build.log"
+      - name: Build real app with capture-only instrumentation
+        env:
+          LYRICTILE_BUILD_NUMBER: 49
+        run: |
+          cd "$RUNNER_TEMP/film-product"
+          bash Scripts/build-app.sh 2>&1 | tee "$RUNNER_TEMP/film-output/app-build.log"
+      - name: Record actual Music playback and real OS pointer interactions
+        run: |
+          python3 Marketing/FirstFilm/native/record_desktop.py "$RUNNER_TEMP/film-output" &
+          film_recorder=$!
+          cd "$RUNNER_TEMP/film-product"
+          LYRICTILE_FILM_OUTPUT="$RUNNER_TEMP/film-output" python3 Scripts/check-cloud-music.py dist/LyricTile.app --output "$RUNNER_TEMP/film-output/real-music"
+          wait "$film_recorder"
+      - name: Capture an actual TextEdit work window
+        if: ${{ !cancelled() }}
+        run: swift Marketing/FirstFilm/native/capture_textedit.swift "$RUNNER_TEMP/film-output/work-window"
+      - name: Preserve only film assets and provenance
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-film-native-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/film-output
+          if-no-files-found: error
+          retention-days: 30
