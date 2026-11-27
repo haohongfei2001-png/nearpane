@@ -74,17 +74,20 @@ public enum LyricNativePlayerVerification {
                   command["targetBundleID"] as? String == model.snapshot.selection?.playerBundleID else { return false }
             return seekMS == nil || (command["seekMS"] as? NSNumber)?.int64Value == seekMS
         }
-        func qqPausedSourceDoesNotReusePlayingClock() async -> Bool {
+        func pausedMediaRemoteSourceDoesNotReusePlayingClock() async -> Bool {
             guard let data = try? await model.nativePlayerDiagnosticReport(),
                   let report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                   let players = report["players"] as? [[String: Any]],
-                  let player = players.first(where: { $0["player"] as? String == "qqMusic" }) else { return false }
-            guard ["73284", "73285"].contains(player["build"] as? String ?? "") else { return true }
+                  let player = players.first(where: { $0["player"] as? String == expectedPlayer.rawValue }) else { return false }
+            let build = player["build"] as? String ?? ""
+            let knownStalePause = (expectedPlayer == .qqMusic && ["73284", "73285"].contains(build))
+                || (expectedPlayer == .netease && build == "3459")
+            guard knownStalePause else { return true }
             guard let payload = report["currentMediaRemotePayload"] as? [String: Any],
                   payload["playing"] as? Bool == false else { return false }
-            // CI43's real pause retained the earlier seek timestamp/elapsed
-            // with a positive rate. A stable number alone was a false pass:
-            // this source must not be exposed as a current paused clock.
+            // QQ in CI43 and NetEase in CI44 retained the earlier seek
+            // timestamp/elapsed with a positive rate. A stable number alone
+            // was a false pass; it is not a current paused clock.
             if ((payload["playbackRate"] as? NSNumber)?.doubleValue ?? 0) > 0 {
                 return model.playbackPositionMS == nil && player["positionMS"] == nil
                     && player["quality"] as? String == "unavailable"
@@ -229,9 +232,9 @@ public enum LyricNativePlayerVerification {
         }
         await record("pause-confirmed-and-interacted-panel-retained", pausePosted && paused && pauseConfirmed && panel.panel.isVisible
             && panel.panel.frame.height == LyricPanelLayout.lyricsHeight && retainsImportedLyrics())
-        if expectedPlayer == .qqMusic {
-            let sourceConsistent = await qqPausedSourceDoesNotReusePlayingClock()
-            await record("qq-paused-source-does-not-reuse-playing-anchor", sourceConsistent)
+        if expectedPlayer == .qqMusic || expectedPlayer == .netease {
+            let sourceConsistent = await pausedMediaRemoteSourceDoesNotReusePlayingClock()
+            await record("mediaremote-paused-source-does-not-reuse-playing-anchor", sourceConsistent)
         }
         capture(capturePrefix + "-paused")
         let pausedPosition = model.playbackPositionMS

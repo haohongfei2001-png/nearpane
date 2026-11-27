@@ -8,6 +8,7 @@ on:
       - 'Products/LyricTile/Package.resolved'
       - 'Products/LyricTile/Sources/**'
       - 'Products/LyricTile/Tests/**'
+      - 'Products/LyricTile/CloudAcceptance/**'
       - 'Products/LyricTile/Tools/**'
       - 'Products/LyricTile/Scripts/**'
       - 'Products/LyricTile/Packaging/**'
@@ -112,6 +113,9 @@ jobs:
       - name: Probe the live lyric service with the production repository
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: swift run --configuration release LyricServiceProbe --output dist/evidence/live-lyrics.json
+      - name: Verify one real public recording with automatic online lyrics
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        run: python3 Scripts/check-cloud-online-song.py dist/LyricTile.app --output dist/evidence/real-online-song
       - name: Observe official QQ and NetEase clients without accounts
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-cloud-clients.py dist/LyricTile.app --audio dist/evidence/real-music/original-chimes.wav --output dist/evidence/cloud-clients

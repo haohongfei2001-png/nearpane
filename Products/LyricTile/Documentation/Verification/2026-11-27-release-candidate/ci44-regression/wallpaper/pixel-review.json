@@ -1,0 +1,38 @@
+[
+  {
+    "source": "desktop-wallpaper-light.png",
+    "sourceSHA256": "90212a309aa9f4f4a04d8ca3822584941a6c07d62441abfa0ae83de4e2bcc80c",
+    "roi": [
+      848,
+      63,
+      992,
+      223
+    ],
+    "roiRGBSHA256": "37bc69a81f55ab22fade5aface73cf741eee72583df40dc874e2b344df3ab0f2",
+    "colors": 352
+  },
+  {
+    "source": "desktop-wallpaper-dark.png",
+    "sourceSHA256": "43a879f98581fe0117b8588f56e47c85d6767702b28b5fe26bf26b2d34d3e3b5",
+    "roi": [
+      848,
+      63,
+      992,
+      223
+    ],
+    "roiRGBSHA256": "37bc69a81f55ab22fade5aface73cf741eee72583df40dc874e2b344df3ab0f2",
+    "colors": 352
+  },
+  {
+    "source": "desktop-wallpaper-busy.png",
+    "sourceSHA256": "566754c4ac0c791236b50876480c8564d7333d99a34b2d217bbdcdad28b129dc",
+    "roi": [
+      848,
+      63,
+      992,
+      223
+    ],
+    "roiRGBSHA256": "37bc69a81f55ab22fade5aface73cf741eee72583df40dc874e2b344df3ab0f2",
+    "colors": 352
+  }
+]

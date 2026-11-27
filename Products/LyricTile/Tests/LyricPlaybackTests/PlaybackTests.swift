@@ -383,10 +383,12 @@ private func remoteFields() -> [String: JSONValue] {
     #expect(try scopedObservation().positionMS == 30_000)
 }
 
-@Test func knownQQBuildsDoNotRewindToSeekTargetWhenPauseRetainsPlayingAnchor() throws {
-    for build in ["73284", "73285"] {
-        let process = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1, version: "fixture", build: build)
+@Test func knownMediaRemoteBuildsDoNotRewindToSeekTargetWhenPauseRetainsPlayingAnchor() throws {
+    let clients: [(PlayerID, String)] = [(.qqMusic, "73284"), (.qqMusic, "73285"), (.netease, "3459")]
+    for (player, build) in clients {
+        let process = PlayerProcess(player: player, pid: 123, startMicros: 1, version: "fixture", build: build)
         var fields = remoteFields()
+        fields["bundleIdentifier"] = .string(player.bundleID)
         fields["elapsedTimeMicros"] = .int(64_000_000)
         fields["timestampEpochMicros"] = .int(100_000_000)
         func sample(_ process: PlayerProcess, at seconds: Double) throws -> PlayerObservation {
@@ -396,8 +398,8 @@ private func remoteFields() -> [String: JSONValue] {
         let playing = try sample(process, at: 103)
         #expect(playing.positionMS == 67_000)
 
-        // Real QQ pause changes only the playing flag; elapsed and timestamp
-        // still describe the old 64-second seek while playback has advanced.
+        // Actual QQ and NetEase pauses can change only the playing flag;
+        // elapsed/timestamp still describe the old seek after playback advanced.
         fields["playing"] = .bool(false)
         let paused = try sample(process, at: 104)
         #expect(paused.state == .paused)
@@ -409,7 +411,7 @@ private func remoteFields() -> [String: JSONValue] {
         #expect(CommandReadback.confirms(.pause, before: playing, after: paused, sentAt: stamp(103_500)))
 
         // Do not generalize a known source quirk to unobserved builds.
-        let unknown = PlayerProcess(player: .qqMusic, pid: 123, startMicros: 1,
+        let unknown = PlayerProcess(player: player, pid: 123, startMicros: 1,
             version: "fixture", build: "unknown-build")
         let unknownPaused = try sample(unknown, at: 104)
         #expect(unknownPaused.positionMS == 64_000)

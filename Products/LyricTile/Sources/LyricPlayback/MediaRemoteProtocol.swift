@@ -132,13 +132,14 @@ struct MediaRemotePayload: Sendable {
         case .netease: publishesTransientItemUUIDs = process.build == "3459"
         default: publishesTransientItemUUIDs = false
         }
-        // QQ can flip the global playing flag before refreshing the playing
-        // anchor. Presenting its old elapsed field would rewind on pause.
-        // Both known builds have independently reproduced this stale pause
-        // payload. Identity normalization alone does not qualify other clocks.
-        let awaitingPauseAnchor = process.player == .qqMusic
-            && (process.build == "73284" || process.build == "73285")
-            && state == .paused && (rawRate ?? 0) > 0
+        // These observed client builds can flip the global playing flag before
+        // refreshing the playing anchor. Reusing elapsed would rewind on pause.
+        // NetEase 3459 delivered a valid rate-zero anchor in CI43, but retained
+        // its seek anchor with rate one in CI44: accept only its refreshed clock.
+        // Keep this source-clock rule separate from transient item identity.
+        let awaitingPauseAnchor = state == .paused && (rawRate ?? 0) > 0
+            && ((process.player == .qqMusic && (process.build == "73284" || process.build == "73285"))
+                || (process.player == .netease && process.build == "3459"))
         var currentPosition: Int64? = awaitingPauseAnchor ? nil : elapsed
         if state == .playing {
             // A quiet stream can carry an old *valid* source anchor. Rebase that

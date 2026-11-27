@@ -195,7 +195,10 @@ public struct LyricPanelView: View {
                            browse: { model.browse(by: $0) })
                 .id(cue.id).transition(cueTransition)
         } else {
-            Text(model.frame.phase == .interlude ? LyricLocalization.text("间奏", "Interlude") : LyricLocalization.text("歌词暂不可用", "Lyrics unavailable"))
+            let placeholder = model.snapshot.state == .paused ? LyricLocalization.text("已暂停", "Paused")
+                : model.frame.phase == .interlude ? LyricLocalization.text("间奏", "Interlude")
+                : LyricLocalization.text("歌词暂不可用", "Lyrics unavailable")
+            Text(placeholder)
                 .font(.system(size: 16, weight: .medium)).foregroundStyle(secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }

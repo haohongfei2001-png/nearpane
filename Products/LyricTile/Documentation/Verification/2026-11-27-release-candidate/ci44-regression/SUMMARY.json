@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "kind": "Derived review summary; original JSON remains unchanged under netease/.",
+  "finding": "PAUSED_SOURCE_ANCHOR_REUSED",
+  "originalNativeStatus": "PASS",
+  "qualificationDecision": "CI44 is not the final release candidate; require the targeted production fix and a newer native run.",
+  "observedAppRollbackMS": 756,
+  "cause": "The paused raw payload keeps playbackRate=1 and the preceding seek elapsed/timestamp. The adapter correctly reports paused but exposes that stale 64000 ms anchor as a current position. The old stable-paused assertion does not detect its invalid freshness.",
+  "unchangedRecordingAndLyrics": true,
+  "independentAcousticClockQualification": false,
+  "phases": [
+    {
+      "sourceFile": "netease/source-05-seek-command-readback.json",
+      "check": "seek-command-readback",
+      "originalPassed": true,
+      "raw": {
+        "processIdentifier": 29702,
+        "contentItemIdentifier": "F26373FC-DBDF-4C50-87D3-B1DD060192DF",
+        "playing": true,
+        "playbackRate": 1,
+        "elapsedTimeMicros": 64000000,
+        "timestampEpochMicros": 1795785979053286
+      },
+      "adapter": {
+        "version": "3.1.14",
+        "build": "3459",
+        "pid": 29702,
+        "state": "playing",
+        "positionMS": 64244,
+        "quality": "coarseSourceAnchor",
+        "observedUptimeNanoseconds": 932917034000
+      },
+      "app": {
+        "state": "playing",
+        "positionMS": 64253,
+        "cueIndex": 8,
+        "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+        "selectionGeneration": 1,
+        "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+        "height": 192
+      },
+      "lastCommand": {
+        "intent": "seek",
+        "outcome": "readback_confirmed",
+        "seekMS": 64000
+      }
+    },
+    {
+      "sourceFile": "netease/source-09-hover-keeps-outer-frame.json",
+      "check": "hover-keeps-outer-frame",
+      "originalPassed": true,
+      "raw": {
+        "processIdentifier": 29702,
+        "contentItemIdentifier": "F26373FC-DBDF-4C50-87D3-B1DD060192DF",
+        "playing": true,
+        "playbackRate": 1,
+        "elapsedTimeMicros": 64000000,
+        "timestampEpochMicros": 1795785979053286
+      },
+      "adapter": {
+        "version": "3.1.14",
+        "build": "3459",
+        "pid": 29702,
+        "state": "playing",
+        "positionMS": 64244,
+        "quality": "coarseSourceAnchor",
+        "observedUptimeNanoseconds": 932917034000
+      },
+      "app": {
+        "state": "playing",
+        "positionMS": 64756,
+        "cueIndex": 8,
+        "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+        "selectionGeneration": 1,
+        "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+        "height": 192
+      },
+      "lastCommand": {
+        "intent": "seek",
+        "outcome": "readback_confirmed",
+        "seekMS": 64000
+      }
+    },
+    {
+      "sourceFile": "netease/source-11-pause-confirmed-and-interacted-panel-retained.json",
+      "check": "pause-confirmed-and-interacted-panel-retained",
+      "originalPassed": true,
+      "raw": {
+        "processIdentifier": 29702,
+        "contentItemIdentifier": "F26373FC-DBDF-4C50-87D3-B1DD060192DF",
+        "playing": false,
+        "playbackRate": 1,
+        "elapsedTimeMicros": 64000000,
+        "timestampEpochMicros": 1795785979053286
+      },
+      "adapter": {
+        "version": "3.1.14",
+        "build": "3459",
+        "pid": 29702,
+        "state": "paused",
+        "positionMS": 64000,
+        "quality": "coarseSourceAnchor",
+        "observedUptimeNanoseconds": 933817751666
+      },
+      "app": {
+        "state": "paused",
+        "positionMS": 64000,
+        "cueIndex": 8,
+        "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+        "selectionGeneration": 1,
+        "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+        "height": 192
+      },
+      "lastCommand": {
+        "intent": "pause",
+        "outcome": "readback_confirmed"
+      }
+    },
+    {
+      "sourceFile": "netease/source-12-paused-position-does-not-advance-or-invent-a-clock.json",
+      "check": "paused-position-does-not-advance-or-invent-a-clock",
+      "originalPassed": true,
+      "raw": {
+        "processIdentifier": 29702,
+        "contentItemIdentifier": "F26373FC-DBDF-4C50-87D3-B1DD060192DF",
+        "playing": false,
+        "playbackRate": 1,
+        "elapsedTimeMicros": 64000000,
+        "timestampEpochMicros": 1795785979053286
+      },
+      "adapter": {
+        "version": "3.1.14",
+        "build": "3459",
+        "pid": 29702,
+        "state": "paused",
+        "positionMS": 64000,
+        "quality": "coarseSourceAnchor",
+        "observedUptimeNanoseconds": 933817751666
+      },
+      "app": {
+        "state": "paused",
+        "positionMS": 64000,
+        "cueIndex": 8,
+        "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+        "selectionGeneration": 1,
+        "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+        "height": 192
+      },
+      "lastCommand": {
+        "intent": "pause",
+        "outcome": "readback_confirmed"
+      }
+    },
+    {
+      "sourceFile": "netease/source-15-resume-automatically-restores-lyrics.json",
+      "check": "resume-automatically-restores-lyrics",
+      "originalPassed": true,
+      "raw": {
+        "processIdentifier": 29702,
+        "contentItemIdentifier": "DD9CD0C4-7DEA-4039-9E2E-D67B8F930329",
+        "playing": true,
+        "playbackRate": 1,
+        "elapsedTimeMicros": 65109614,
+        "timestampEpochMicros": 1795785981569950
+      },
+      "adapter": {
+        "version": "3.1.14",
+        "build": "3459",
+        "pid": 29702,
+        "state": "playing",
+        "positionMS": 65288,
+        "quality": "coarseSourceAnchor",
+        "observedUptimeNanoseconds": 935368359541
+      },
+      "app": {
+        "state": "playing",
+        "positionMS": 65378,
+        "cueIndex": 8,
+        "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+        "selectionGeneration": 1,
+        "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+        "height": 192
+      },
+      "lastCommand": {
+        "intent": "play",
+        "outcome": "readback_confirmed"
+      }
+    }
+  ],
+  "expectedRegressionCheck": "For this observed build and contradictory paused source, do not publish the old playing anchor as current paused progress; retain recording/document state and verify normal resume on the next run.",
+  "wallpaperVisualFinding": {
+    "reviewDecision": "PASS",
+    "reviewer": "Root and release_ready independently inspected original pixels and enlarged QA crops.",
+    "scope": "Light app appearance, three actual desktop wallpapers, 1x, same ordinary QQ-backed LyricTile panel window93.",
+    "originalHelperStatus": "CAPTURED",
+    "initialPreviewObservation": "Initial whole-image previews appeared to omit dark/busy lyric detail; reopening and original-pixel comparison resolved this preview ambiguity.",
+    "confirmedObservation": "Light, dark and busy original PNGs contain identical, readable lyric pixels in the panel interior.",
+    "roi": [
+      848,
+      63,
+      992,
+      223
+    ],
+    "roiRGBSHA256": "37bc69a81f55ab22fade5aface73cf741eee72583df40dc874e2b344df3ab0f2",
+    "allThreeInteriorPixelMatricesEqual": true,
+    "restoration": "RESTORED",
+    "minimizeFallbackExercised": false,
+    "productionDefectFromWallpaperEvidence": false,
+    "pixelMetrics": [
+      {
+        "file": "wallpaper/desktop-wallpaper-light.png",
+        "originalImageBytesUnchanged": true,
+        "interiorPixelBounds": [
+          848,
+          63,
+          992,
+          223
+        ],
+        "pixelCount": 23040,
+        "uniqueRGBColors": 352,
+        "minimumLuminance": 41,
+        "maximumLuminance": 245,
+        "medianLuminance": 245,
+        "pixelsAtLeast32DarkerThanMedian": 3497
+      },
+      {
+        "file": "wallpaper/desktop-wallpaper-dark.png",
+        "originalImageBytesUnchanged": true,
+        "interiorPixelBounds": [
+          848,
+          63,
+          992,
+          223
+        ],
+        "pixelCount": 23040,
+        "uniqueRGBColors": 352,
+        "minimumLuminance": 41,
+        "maximumLuminance": 245,
+        "medianLuminance": 245,
+        "pixelsAtLeast32DarkerThanMedian": 3497
+      },
+      {
+        "file": "wallpaper/desktop-wallpaper-busy.png",
+        "originalImageBytesUnchanged": true,
+        "interiorPixelBounds": [
+          848,
+          63,
+          992,
+          223
+        ],
+        "pixelCount": 23040,
+        "uniqueRGBColors": 352,
+        "minimumLuminance": 41,
+        "maximumLuminance": 245,
+        "medianLuminance": 245,
+        "pixelsAtLeast32DarkerThanMedian": 3497
+      }
+    ]
+  }
+}

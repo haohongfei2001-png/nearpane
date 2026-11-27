@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "Original CI44 evidence subset copied byte-for-byte; no original result was rewritten.",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "sourceCommit": "e252115471001f5137396230bdd99a54ed72c348",
+  "version": "1.0.0",
+  "build": 44,
+  "runID": 46005463505,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46005463505",
+  "originalWorkflowConclusion": "success",
+  "artifactName": "LyricTile-candidate-44",
+  "artifactID": 15200709032,
+  "artifactBytes": 28381395,
+  "artifactSHA256": "6608d80afab80c53034dbf6f512f9aa6273d5020203e24f2cbb65ea505a29a31",
+  "scope": "Actual NetEase 3.1.14 build3459, authored local PCM and LRC, no login; pause-source regression discovered despite original PASS markers. Also preserves the independently reviewed actual QQ wallpaper screenshots; original pixels resolve an initial whole-image preview ambiguity.",
+  "originalFiles": {
+    "netease/native-player.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/native-player.json",
+      "bytes": 17537,
+      "sha256": "89189e79148cb378dfeadf2e65e8e42d5e83de2a647fb3bf1e0ffd9f8b36e4e3"
+    },
+    "netease/source-05-seek-command-readback.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/source-05-seek-command-readback.json",
+      "bytes": 2814,
+      "sha256": "f43c62487420032c35c81d14531a78f4c9c9fb082fe2560f739ae9386b165ec4"
+    },
+    "netease/source-09-hover-keeps-outer-frame.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/source-09-hover-keeps-outer-frame.json",
+      "bytes": 2814,
+      "sha256": "f43c62487420032c35c81d14531a78f4c9c9fb082fe2560f739ae9386b165ec4"
+    },
+    "netease/source-11-pause-confirmed-and-interacted-panel-retained.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/source-11-pause-confirmed-and-interacted-panel-retained.json",
+      "bytes": 3378,
+      "sha256": "0bc99a62f3490d7e2050b20674a74097f7f2fddf5bcd7904d52d1991a2361217"
+    },
+    "netease/source-12-paused-position-does-not-advance-or-invent-a-clock.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/source-12-paused-position-does-not-advance-or-invent-a-clock.json",
+      "bytes": 3378,
+      "sha256": "c7addc6a9bc4c57883f0f9ac00c2850e57eebd5c83ec247b1d5d7f22040f5574"
+    },
+    "netease/source-15-resume-automatically-restores-lyrics.json": {
+      "sourcePath": "dist/evidence/cloud-clients/netease/native-player/source-15-resume-automatically-restores-lyrics.json",
+      "bytes": 3939,
+      "sha256": "47d5d47c423ea3bb89477395766bd117d874d71c904b28da4ac625c7125da95b"
+    },
+    "wallpaper/desktop-wallpaper-report.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-report.json",
+      "bytes": 6788,
+      "sha256": "596f1fb9c9e9646ba940cc437eda51c604235f0245c2ffc6abd6da2c075192ec"
+    },
+    "wallpaper/desktop-wallpaper-light.png": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-light.png",
+      "bytes": 97064,
+      "sha256": "90212a309aa9f4f4a04d8ca3822584941a6c07d62441abfa0ae83de4e2bcc80c"
+    },
+    "wallpaper/desktop-wallpaper-dark.png": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-dark.png",
+      "bytes": 95904,
+      "sha256": "43a879f98581fe0117b8588f56e47c85d6767702b28b5fe26bf26b2d34d3e3b5"
+    },
+    "wallpaper/desktop-wallpaper-busy.png": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-busy.png",
+      "bytes": 197763,
+      "sha256": "566754c4ac0c791236b50876480c8564d7333d99a34b2d217bbdcdad28b129dc"
+    }
+  },
+  "derivedFiles": {
+    "SUMMARY.json": "Review summary extracted from the unchanged original JSON and original screenshot pixels.",
+    "wallpaper/pixel-review.json": "Independent root pixel inspection; original PNG hashes and exact RGB ROI hashes were rechecked by release_ready."
+  }
+}

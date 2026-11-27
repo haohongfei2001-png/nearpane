@@ -1,0 +1,263 @@
+{
+  "activeDisplayID": 1,
+  "applicationAppearance": "light",
+  "appPID": 24008,
+  "backingScaleFactor": 1,
+  "captures": [
+    {
+      "appPID": 24008,
+      "captureKind": "WindowServer primary-display screenshot",
+      "file": "desktop-wallpaper-light.png",
+      "inputSHA256": "2fb2dc9755934324ed885c4400716b8df005dc91b354c38e98d622a1d00879b5",
+      "name": "light",
+      "observedUptime": 747.3274725416667,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "pixelHeight": 768,
+      "pixelWidth": 1024,
+      "sha256": "90212a309aa9f4f4a04d8ca3822584941a6c07d62441abfa0ae83de4e2bcc80c",
+      "wallpaperURLReadbackMatched": true,
+      "windowNumber": 93
+    },
+    {
+      "appPID": 24008,
+      "captureKind": "WindowServer primary-display screenshot",
+      "file": "desktop-wallpaper-dark.png",
+      "inputSHA256": "4b116977fd1759d0fbe3b5e07a9e4a48eb5a62b4a3310da6dab5ffc1054a2d4f",
+      "name": "dark",
+      "observedUptime": 748.3246034583334,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "pixelHeight": 768,
+      "pixelWidth": 1024,
+      "sha256": "43a879f98581fe0117b8588f56e47c85d6767702b28b5fe26bf26b2d34d3e3b5",
+      "wallpaperURLReadbackMatched": true,
+      "windowNumber": 93
+    },
+    {
+      "appPID": 24008,
+      "captureKind": "WindowServer primary-display screenshot",
+      "file": "desktop-wallpaper-busy.png",
+      "inputSHA256": "d64dea41786deb00188e3c1342a77b446555d56abd96e22c2e17fb40314ac14c",
+      "name": "busy",
+      "observedUptime": 749.306578875,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "pixelHeight": 768,
+      "pixelWidth": 1024,
+      "sha256": "566754c4ac0c791236b50876480c8564d7333d99a34b2d217bbdcdad28b129dc",
+      "wallpaperURLReadbackMatched": true,
+      "windowNumber": 93
+    }
+  ],
+  "displayModesChanged": false,
+  "elapsedSeconds": 3.994782999999984,
+  "fixtureSHA256": "44c21eb56c931dafdf225028038be80304c27f869cd8c872c82bdb117b5c3e3f",
+  "originalDesktopCapture": {
+    "appPID": 24008,
+    "captureKind": "WindowServer primary-display screenshot",
+    "file": "ordinary-app-desktop.png",
+    "pixelHeight": 768,
+    "pixelWidth": 1024,
+    "sha256": "49c341821fbf090e1a789255a5d5c110a712eee530df2b6c233a919c46908422",
+    "windowNumber": 93
+  },
+  "panelBounds": {
+    "height": 192,
+    "width": 176,
+    "x": 832,
+    "y": 47
+  },
+  "panelVisibilityChecks": [
+    {
+      "appPID": 24008,
+      "AXHitResult": 0,
+      "coveringWindows": [
+        {
+          "alpha": 1,
+          "bounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "layer": 20,
+          "owner": "Dock",
+          "ownerPID": 395,
+          "windowNumber": 17
+        }
+      ],
+      "hitPID": 24008,
+      "hitWithinActualTargetWindow": true,
+      "inputPosted": false,
+      "observedUptime": 746.2285762500001,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "systemWideAXHit": true,
+      "windowNumber": 93
+    },
+    {
+      "appPID": 24008,
+      "AXHitResult": 0,
+      "coveringWindows": [
+        {
+          "alpha": 1,
+          "bounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "layer": 20,
+          "owner": "Dock",
+          "ownerPID": 395,
+          "windowNumber": 17
+        }
+      ],
+      "hitPID": 24008,
+      "hitWithinActualTargetWindow": true,
+      "inputPosted": false,
+      "observedUptime": 747.1415501666667,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "systemWideAXHit": true,
+      "windowNumber": 93
+    },
+    {
+      "appPID": 24008,
+      "AXHitResult": 0,
+      "coveringWindows": [
+        {
+          "alpha": 1,
+          "bounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "layer": 20,
+          "owner": "Dock",
+          "ownerPID": 395,
+          "windowNumber": 17
+        }
+      ],
+      "hitPID": 24008,
+      "hitWithinActualTargetWindow": true,
+      "inputPosted": false,
+      "observedUptime": 748.2072671666667,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "systemWideAXHit": true,
+      "windowNumber": 93
+    },
+    {
+      "appPID": 24008,
+      "AXHitResult": 0,
+      "coveringWindows": [
+        {
+          "alpha": 1,
+          "bounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "layer": 20,
+          "owner": "Dock",
+          "ownerPID": 395,
+          "windowNumber": 17
+        }
+      ],
+      "hitPID": 24008,
+      "hitWithinActualTargetWindow": true,
+      "inputPosted": false,
+      "observedUptime": 749.207867125,
+      "panelBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "systemWideAXHit": true,
+      "windowNumber": 93
+    }
+  ],
+  "permissionsRequested": false,
+  "physicalMouseTest": false,
+  "playerWindowExposure": {
+    "hiddenAfter": true,
+    "hiddenBefore": false,
+    "hideReturned": false,
+    "method": "hide-readback",
+    "permissionsRequested": false,
+    "playerPID": 22403,
+    "visibleWindowNumbersAfterHide": []
+  },
+  "qualification": "Actual composed screenshots; contrast review is pending. No unexercised display scale, dark-app wallpaper matrix, mouse or commercial-catalog claim.",
+  "restoration": {
+    "displayModesChanged": false,
+    "failures": [],
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "playerWindowMinimizedStateRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "scope": "same ordinary QQ-backed LyricTile process on actual desktop wallpapers",
+  "status": "CAPTURED",
+  "virtualDisplaysCreated": false,
+  "visualReview": "PENDING",
+  "windowNumber": 93,
+  "boundedExternalRestoration": {
+    "displayModesChanged": false,
+    "failures": [],
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "playerWindowMinimizedStateRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "productReleaseGate": false
+}

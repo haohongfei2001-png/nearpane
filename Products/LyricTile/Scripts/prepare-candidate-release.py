@@ -233,6 +233,7 @@ def evidence_zip(artifact, manifest, remote):
     patterns = [r'dist/evidence/native-[^/]+\.png', r'dist/evidence/layout/fixture-[^/]+\.(png|json)',
                 r'dist/evidence/variants/(en|zh-Hans)-(light|dark)/native-(welcome\.png|settings\.png|smoke\.json)',
                 r'dist/evidence/real-music/([^/]+\.(png|json)|performance/summary\.json)',
+                r'dist/evidence/real-online-song/[^/]+\.json',
                 r'dist/evidence/cloud-clients/[^/]+/([^/]+\.png|result\.json|permission-ui/native-permission-ui\.json)',
                 r'dist/evidence/cloud-clients/(qqMusic|netease)/native-player/([^/]+\.(png|json)|performance/summary\.json)']
     selected = sorted(name for name in artifact.names if name in exact or any(re.fullmatch(pattern, name) for pattern in patterns))

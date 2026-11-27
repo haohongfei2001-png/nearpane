@@ -63,15 +63,9 @@ python3 Scripts/run-native-smoke.py "$LT_APP" --output "$LT_EVIDENCE/native-fina
 
 使用本机既有 Sparkle 工具流程为最终 feed 保留需要的签名；修改 feed 内容后重新签署，不复制旧签名块。`verify-release.py` 必须通过真实 Ed25519、App/ZIP/DMG 元数据和内容一致性、校验值、Developer ID、stapler、Gatekeeper 检查。最后的native smoke只确认本机刚生成的同一签名包能启动及正确显示窗口，自动保存实际显示比例；不重跑云端全套矩阵。若构建或公证失败，修正具体问题后重复受影响步骤；不要用旧 build 4 代替。
 
-## 2. 只补尚未完成的真实 Apple Music 闭环
+## 2. 升级同一包，然后公开正确渠道
 
-先查看最终云端 Apple Music 记录；若已完整通过则跳过本节。若受云端 Music 初始化、TCC 或会话限制，仅用上述同一最终 App 和本机已有合法可播放歌曲补验：自动识别正确曲目和歌词版本，播放/暂停/恢复，前后定位，切歌后切换歌词，Hover 控制真实读回，以及停止播放后消失。按需集中处理一次 macOS Automation 提示。记录实际 macOS、Music 版本、歌曲版本、取得歌词的来源及耗时；无在线结果时可导入本地歌词验证同步，但不得计为在线自动匹配成功。
-
-需要原始证据时，先退出普通 App，再运行同一包的 `--diagnostics --player appleMusic --seconds 120 --output /absolute/new/private-evidence-dir`；该入口只观察，不代替面板控制操作。确认没有明确回归即可；不要求 Spotify、QQ、网易全部通过，不将独立逐字资格或重新八小时长稳设为首发条件。未通过的播放器保持明确限制。只有发现与最新修改有关的具体性能异常，才定向采样定位。
-
-## 3. 升级同一包，然后公开正确渠道
-
-复用本机已经跑通的 Sparkle CLI / 受控签名 feed 流程，将**原样公证 build 4** 升级到上面的最终 ZIP。临时测试 feed 仅用于验证，公开 feed 保留 HTTPS。确认升级后版本、构建号、源码 SHA、签名、启动正常，偏好和本地歌词保留；目标 App 与最终 DMG 的 plist/可执行文件一致。不要把既有 2→4 结果记作此次通过。
+复用本机已经跑通的 Sparkle CLI / 受控签名 feed 流程，将**原样公证 build 4** 升级到上面的最终 ZIP。临时测试 feed 仅用于验证，公开 feed 保留 HTTPS。确认升级后版本、构建号、源码 SHA、签名、启动正常，偏好和本地歌词保留；目标 App 与最终 DMG 的 plist/可执行文件一致。再从“应用程序”正常启动这一签名包，用一首本机合法可播放音轨确认最终应用身份下的 Automation 与歌词显示；可用已验证的本地导入路径。这是同一最终签名/升级包的短检查，不重跑云端完整控制矩阵。不要把既有 2→4 结果记作此次通过。
 
 检查通过后按用户已有发行授权连续完成：创建 `$LT_TAG` 指向 `$LT_SOURCE_COMMIT` 的 **LyricTile 专属 Release**，上传最终 ZIP、DMG、`SHA256SUMS` 和准确支持范围；公开后重新下载核对哈希，再更新开发分支 `Products/LyricTile/Updates/appcast.xml` 与官网 `main:website/lyrictile/release.json`。官网 manifest 的 `published`、`version`、`build`、`commit`、`downloadURL`、`releaseURL`、`sha256` 必须对应本次最终 DMG，并同步产品分支的 `Website/release.json`。保留 HOLDSNOW 产品页和中英文说明。不要使用仓库通用 `releases/latest`，也不要将历史 build 4 草稿改名冒充新版。
 
