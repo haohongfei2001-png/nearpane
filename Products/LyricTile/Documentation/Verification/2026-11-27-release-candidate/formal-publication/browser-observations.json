@@ -1,0 +1,114 @@
+{
+  "evidenceClass": "Actual cloud-browser product/help rendering and actual download click; not native-player validation",
+  "siteCommit": "0b761876a8335735bbefa3271a1096d705e4e744",
+  "pagesRun": 46037564049,
+  "releaseID": 460855402,
+  "checks": [
+    {
+      "candidateNoteHidden": true,
+      "download": {
+        "text": "下载 Mac 版",
+        "url": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg"
+      },
+      "hash": "SHA-256 a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "horizontalOverflow": false,
+      "images": [
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/mark.svg"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/lyrics.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/lyrics.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/controls.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/compact.png"
+        }
+      ],
+      "language": "zh-CN",
+      "release": "1.0.0 (49)",
+      "title": "LyricTile — 歌词，自然在旁。 · HOLDSNOW",
+      "url": "https://nearpane.com/lyrictile/#experience",
+      "viewport": {
+        "height": 936,
+        "width": 1363
+      }
+    },
+    {
+      "candidateNoteHidden": true,
+      "download": {
+        "text": "Download for Mac",
+        "url": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg"
+      },
+      "hash": "SHA-256 a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+      "horizontalOverflow": false,
+      "images": [
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/mark.svg"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/lyrics-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/lyrics-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/controls-en.png"
+        },
+        {
+          "loaded": true,
+          "src": "https://nearpane.com/lyrictile/assets/compact.png"
+        }
+      ],
+      "language": "en",
+      "release": "1.0.0 (49)",
+      "title": "LyricTile — Lyrics, naturally beside you. · HOLDSNOW",
+      "url": "https://nearpane.com/lyrictile/en/#experience",
+      "viewport": {
+        "height": 936,
+        "width": 1363
+      }
+    },
+    {
+      "downloadLinks": [
+        "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg"
+      ],
+      "horizontalOverflow": false,
+      "language": "en",
+      "releaseText": true,
+      "signedText": true,
+      "title": "Install and use · LyricTile",
+      "url": "https://nearpane.com/lyrictile/en/help.html"
+    },
+    {
+      "downloadLinks": [
+        "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.dmg"
+      ],
+      "horizontalOverflow": false,
+      "language": "zh-CN",
+      "releaseText": true,
+      "signedText": true,
+      "title": "安装与使用 · LyricTile",
+      "url": "https://nearpane.com/lyrictile/help.html"
+    }
+  ],
+  "download": {
+    "action": "Clicked the visible 下载 Mac 版 control after registering the download listener",
+    "completedPath": "/opt/codex/downloads/18f08a92-1ee5-4210-a6b5-b57c816d14b9/b9532c52-1e36-4d67-b81f-e14203434029",
+    "sharedCopy": "/workspace/shared/LyricTile-1.0.0-49-browser-download.dmg",
+    "sha256Verification": "Pending independent workspace byte check"
+  }
+}

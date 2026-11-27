@@ -1,10 +1,10 @@
-# LyricTile 1.0.0 · 最终候选验收
+# LyricTile 1.0.0 · 最终验收与发行记录
 
-> CI49 原生候选已完成，工作流成功。以下结果来自原件和独立复算；Developer ID、公证、更新与正式公开另记录，不能由工程候选结论代替。
+> LyricTile 1.0.0 / build49已正式公开发行。CI49原生验收、最终签名公证、真实4→49升级、2×窗口smoke、本机安装、匿名公开下载、线上更新源及正式官网均有独立实际记录；各阶段范围分别保留。
 
 ## 对象与证据
 
-候选源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，build **49**，[macOS CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。文档、网站和 Release manifest 在冻结源码之后提交，不改变已测试二进制的来源。正式签名、公证和升级另记，不属于工程候选的通过范围。
+正式版本源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，build **49**，[macOS CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。文档、网站和 Release manifest 在冻结源码之后提交，不改变已测试二进制的来源。最终签名、公证、升级及安装另见[本机原件](owner-mac-signing/README.md)，由独立实际检查证明。
 
 证据分为四类：**真实播放器原生验收**使用系统 Music 或已校验签名的官方客户端及其真实时间/状态；**原生布局夹具**挂载生产 AppKit/SwiftUI 视图，输入是原创测试数据；**真实服务请求**调用公网生产歌词服务；**云浏览器验收**只确认官网实际渲染与链接。测试夹具与网页不能替代实际播放器。
 
@@ -57,7 +57,7 @@ QQ 和网易曾在已暂停时继续报告 `rate=1` 与旧 seek 锚点，造成�
 
 ## 原生视觉与交互的范围
 
-生产布局覆盖 12 个原创场景：176/208pt、长中文与英文、深浅色、hover、无歌词紧凑态、缺少元数据和无播放透明态。长句正常态可显示多行，hover 为控制区留出空间后显示较少的完整文本行，其余可原生滚动并有 tooltip；不承诺任意长度同时全见。欢迎/设置另有中英 × 深浅四组合。现场截图只证明其记录的显示比例；本轮主机为实际 **1× backing scale**。
+生产布局覆盖 12 个原创场景：176/208pt、长中文与英文、深浅色、hover、无歌词紧凑态、缺少元数据和无播放透明态。长句正常态可显示多行，hover 为控制区留出空间后显示较少的完整文本行，其余可原生滚动并有 tooltip；不承诺任意长度同时全见。欢迎/设置另有中英 × 深浅四组合。现场截图只证明其记录的显示比例；CI49主机为实际 **1× backing scale**。随后同一最终签名包在用户Mac完成中英×深浅四组合 **2× native smoke**；不扩展为2×真实播放器全矩阵或所有显示器通过。
 
 真实播放器流程独立检查开始播放显示、无歌词 104pt、导入后扩容 192pt、seek、暂停与恢复、鼠标移入/点击暂停/移出、隐藏与重新出现。输入来自系统 CGEvent，并检查真实 AX 命中及播放器读回；不是手工固定 hover 状态，也不称为物理硬件鼠标测试。Music 的两首不同原创 WAV 另检查 next 清除旧文档、第二首导入扩容，以及 previous 返回第一首后自动恢复原绑定。
 
@@ -77,12 +77,38 @@ TileKit 的排列、收缩释放 88pt、扩容撤回确认、退出清理、顺�
 
 ## 安装、更新与发行边界
 
-原生构建检查实际 App/helper 加载、ZIP CRC/版本/源码/可执行文件、DMG 真正挂载及 Applications 入口、包与校验文件一致。候选 ZIP/DMG 不具有 Developer ID 公证资格；空更新 feed 没有可安装项目。当前不存在用旧 build4 代替最终包的正式下载。
+原生构建检查实际 App/helper 加载、ZIP CRC/版本/源码/可执行文件、DMG 真正挂载及 Applications 入口、包与校验文件一致。CI49原始ZIP/DMG保留为ad-hoc工程候选；最终消费包以独立签名、公证和安装记录为准，来源仍是原CI49负载。正式公开feed及下载入口已经在对应Release公开、真实下载与签名核实后切换，见下方正式公开记录。
 
-官网复用原有 HOLDSNOW 品牌和 GitHub Pages，包含中英文产品、帮助及隐私六页。[本轮实际浏览器验收](ci49-website/README.md)对应main `3ed378b`及成功Pages46029097621：六页、双语导航和图片加载正常，当前桌面视口无横向溢出。宣传图片是同一最新源码的原生原创布局截图，原图逐字节复制，来源和限制见 `Website/assets/SCREENSHOTS.json`；页面装饰背景与真实桌面测试分开标记。官网的下载状态只由同一次正式发行 manifest 决定，避免仓库通用 `releases/latest` 指向 Nearpane。
+官网复用原有HOLDSNOW品牌和GitHub Pages，包含中英文产品、帮助及隐私六页。[候选期浏览器原件](ci49-website/README.md)对应main `3ed378b`及Pages46029097621，记录当时六页、双语导航与图片加载；不作为正式发布页面的验收。正式版本另见[发布后浏览器与下载原件](formal-publication/README.md)：main `0b761876a8335735bbefa3271a1096d705e4e744`、成功Pages46037564049，中英产品及帮助四页实际通过，产品页1363×936视口无横向溢出、图片加载、版本49及DMG hash正确；实际点击中文下载按钮并独立核对完整DMG。两页未变的隐私页本次未重复，仍引用候选期六页记录。宣传图片是同一最新源码的原生原创布局截图，原图逐字节复制，来源和限制见 `Website/assets/SCREENSHOTS.json`；页面装饰背景与真实桌面测试分开标记。官网使用专用正式发行manifest及确切LyricTile下载链接，不依赖仓库通用 `releases/latest`。
 
 工程草稿已通过[真实准备工作流46028875940](https://github.com/haohongfei2001-png/nearpane/actions/runs/46028875940)创建，Release ID460802999为draft/prerelease，6附件上传和hash复核通过，verification ZIP保留213份原件及两XML。[独立复核](ci49-draft/independent-review.json)记录API状态；原第一次下载HTTP415经正确区分Actions与Release下载类型后实际解决。该工程草稿不用于消费者下载。
 
-已公证 **build4** 的八小时稳定性和旧升级结果是历史基线。本轮实际播放短回归、空闲采样与资源释放记录属于本轮包；没有重新声称当前包通过八小时或 4→当前版本升级。
+### 最终签名、升级与安装
 
-Actions 主机没有可用发行签名身份。最终核对时发现用户已授权的远程 Mac 在线且原 Developer ID 有效，正检查已有 notarytool / Sparkle 配置；若可用，将直接完成同一候选的签名、公证、短启动及4→最终包升级。其实际结果另记，不因本页原生通过就提前公开。仅确实需要人工授权的剩余步骤才保留到 [LOCAL_ONLY_HANDOFF](../../LOCAL_ONLY_HANDOFF.md)；不重跑云端完整矩阵，不生成新更新密钥。Spotify 登录曲库、商业曲库整体覆盖、独立逐字声学精度和额外显示环境不作为首发已验证支持范围，也不要求为这四项扩大首版。
+授权Mac使用原Developer ID团队 `ZB9D4T66QB`、原公证配置和原LyricTile更新密钥，直接对CI49副本签名，未重编译。App公证 `a6abeb64-7d98-4814-a18f-ae75209e469b`、DMG公证 `c2640d58-0dba-49c4-9a63-d09315249a1e` 均为 **Accepted**。37项发行检查和真实Sparkle签名验证通过；[签名阶段原始摘要](owner-mac-signing/signing-acceptance-summary.json)保留该阶段 `appLaunched=false` 的原值，不将它改写成后续安装回执。
+
+负载比较检查191路径、7个Mach-O文件及12个架构slice；除4个明确发行Info键、签名内容和公证票据外，资源及完整非签名前缀相同。该比较不替代codesign、stapler或Gatekeeper；三项系统检查均另行完成。
+
+| 正式文件 | 字节数 | SHA-256 |
+| --- | ---: | --- |
+| `LyricTile-1.0.0-49-arm64.zip` | 4,029,734 | `4e2161d2598fb6194401f00c951d641070161943bbc4697d4b7eac3f15e10515` |
+| `LyricTile-1.0.0-49-arm64.dmg` | 4,439,015 | `a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329` |
+
+随后使用原样build4副本和签名回环feed执行真实 **Sparkle 4→49** 安装，升级后完整App树与最终公证DMG相同。最终签名包完成中文/英文×深浅色四组合2×原生窗口smoke。最终 `~/Applications/LyricTile.app` 通过LaunchServices正常启动，读回1.0.0/build49/source `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`，完整树、codesign、stapler及Gatekeeper均通过。
+
+在实际Sparkle升级完成的检查点，产品设置和原有2个持久文件的字节得到保留；基线 `bindings=0`、`adjustments=0`，所以该结果**不证明已有导入绑定或时间校准的迁移**。原样build4备份保留。随后正常播放产生的新用户缓存、非测试Music曲目及暂停状态均保留，没有将最终整个Support恢复为旧基线；仅按明确测试ID清理自有测试曲目和列表。私人播放信息与凭据留本机，可公开记录仅保留状态、数量和公开产品包hash；不公开私人数据的hash。
+
+旧build4的八小时稳定性和2→4结果继续作为历史基线。本次4→49有独立实测；本轮短资源采样没有被描述为最新包八小时或逐字长期验收。Spotify登录曲库、商业曲库整体、独立声学逐字精度及未覆盖的显示/多屏环境仍不列为通过。
+
+### 正式公开记录
+
+- 正式tag：`lyrictile-v1.0.0-build49`；精确source：`b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`。
+- Release ID：**460855402**；`draft=false`、`prerelease=false`，7个附件均为uploaded。
+- Release URL：[LyricTile 1.0.0 / build49](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)
+- published_at：**2026-11-27T16:52:36Z**；北京时间 **2026-11-28 00:52:36**。
+
+[正式发布原件索引](formal-publication/README.md)保存API、公开下载、线上feed、浏览器与网站来源记录。公开tag读回为上述冻结source；正式feed/consumer提交为 `ec93f1d35e701ecad4c9b237ee62dd2fbdfba0e0`。7附件保持已验证原字节，工程候选草稿仍独立保留。
+
+ZIP、DMG、SHA256SUMS与appcast四项实际匿名下载均HTTP200，字节/hash与已验证包一致。实际线上feed读回原签名XML1318字节；使用原产品密钥对该live XML及其指定的实际匿名ZIP验签，均exit0。正式官网中文按钮的真实浏览器下载另得4,439,015字节DMG、SHA256 `a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329`，与最终公证包一致。
+
+没有必须交接Codex的本机发行事项；[LOCAL_ONLY_HANDOFF](../../LOCAL_ONLY_HANDOFF.md)保留已完成记录。PR17继续保持open draft及原开发base；本轮不合并PR、不删除承载更新源的开发分支。

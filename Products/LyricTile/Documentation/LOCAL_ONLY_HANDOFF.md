@@ -1,74 +1,23 @@
-# LyricTile 最后签名与发行执行路径
+# LyricTile · 本机专属事项已完成
 
-> 当前已发现授权的在线 Mac、有效原 Developer ID 与公证配置，正在远程执行最终发行。不要并行重跑此文件；先看 STATUS 中的最终结果。若已完成，则没有本机交接事项。以下保留为确有本机专属阻塞时的连续执行路径。
+**当前没有必须交给Codex继续的本机发行步骤。** 已通过现有授权远程Mac完成最终49的签名、公证、升级和安装；本文件保留结果入口，不再要求重复构建、重新生成密钥或重跑验收。
 
-继续 `haohongfei2001-png/nearpane` 的 PR #17，产品目录 `Products/LyricTile`。先读 `STATUS.md` 和 `Documentation/RELEASE.md`，继承云端已经完成的开发、原生界面、在线歌词与性能证据。本指令只补本机凭据及云端确实无法完成的最后环节，不重新设计或全量重验。
+- 固定版本 **1.0.0 / build49**，源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`；普通产品负载来自已测CI49副本，未重新编译。
+- 原Developer ID及产品更新密钥沿用；App/DMG Apple公证、Sparkle签名和37项发行检查通过。
+- 原样build4→同一最终49的真实Sparkle安装通过；中英×深浅四组合2×窗口smoke通过。
+- 最终 `~/Applications/LyricTile.app` 普通LaunchServices启动通过，版本/源码和完整App树与公证DMG一致，codesign/stapler/Gatekeeper通过。
+- 在实际Sparkle升级完成的检查点，原有2个持久文件与产品设置字节保留；基线没有导入绑定和时间校准，不据此声称这些已有数据的迁移。原build4备份留在本机。
+- 随后正常播放产生的新用户缓存、非测试Music曲目及暂停状态均保留，没有将最终整个Support恢复为旧基线；仅按明确测试ID清理自有测试曲目和列表。私人轨迹与凭据不进入公开文档。
 
-## 1. 冻结同一候选，沿用已有凭据
+详见[本机签名与安装记录](Verification/2026-11-27-release-candidate/owner-mac-signing/README.md)、[最终验收](Verification/2026-11-27-release-candidate/final-acceptance.md)和[STATUS](../STATUS.md)。
 
-固定本轮候选：源码 `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`、构建号 **49**、[macOS CI49](https://github.com/haohongfei2001-png/nearpane/actions/runs/46024615269)。执行时核对包内 `LyricTileBuildCommit`、`CFBundleVersion` 与 `dist/evidence/release-integrity.json`，不能用随后仅更新文档或官网的分支 HEAD 代替。云端包是候选；**当前最新包尚未取得本机 Developer ID 签名与公证**。已公证 build 4 仅是旧版本和升级来源。
+## 正式发布已完成
 
-前提：Apple silicon / macOS 27+、可用完整 Xcode、GitHub 仓库写权限，以及本机原有 Developer ID Application、notarytool Keychain profile、Sparkle `sign_update`。沿用 build 4 的 Team `ZB9D4T66QB` 和钥匙串账户 `com.holdsnow.lyrictile.updates.v1`；不生成新更新密钥。凭据在本机使用，不写入仓库或聊天。保留原样 build 4 App 和现有偏好/本地歌词，供升级验证。
+- 正式tag：`lyrictile-v1.0.0-build49`；精确source：`b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`。
+- Release ID：**460855402**；`draft=false`、`prerelease=false`，7个附件均为uploaded。
+- Release URL：[LyricTile 1.0.0 / build49](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)
+- published_at：**2026-11-27T16:52:36Z**；北京时间 **2026-11-28 00:52:36**。
 
-仅以下三个本机工具/凭据名称由 Codex 自动查找已有配置后替换：`LT_SIGN_UPDATE`、`LYRICTILE_SIGN_IDENTITY`、`LYRICTILE_NOTARY_PROFILE`。源码和构建号已固定；如果 49 已用于另一份正式包，才使用更高构建号并记录原因。
+公开ZIP、DMG、校验文件及appcast的匿名下载、实际live feed签名、正式中英产品与帮助四页及中文下载按钮所得完整DMG均已核实。详见[正式发布原件](Verification/2026-11-27-release-candidate/formal-publication/README.md)。本机和远程发行环节均无必须转交Codex的剩余步骤。
 
-```bash
-set -euo pipefail
-LT_SOURCE_COMMIT='b95b6f5ed7680cbde1427a4ed1a904bd5875e17b'
-LT_BUILD='49'
-LT_SIGN_UPDATE='/absolute/path/to/existing/Sparkle/bin/sign_update'
-export LYRICTILE_SIGN_IDENTITY='EXISTING_Developer_ID_Application_identity'
-export LYRICTILE_NOTARY_PROFILE='EXISTING_notarytool_Keychain_profile'
-[[ "$LT_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
-[[ "$LT_BUILD" =~ ^[0-9]+$ && "$LT_BUILD" -gt 4 ]]
-
-git fetch origin codex/lyrictile-standalone-20261126
-LT_WORKTREE="$(dirname "$(git rev-parse --show-toplevel)")/lyrictile-release-$LT_BUILD"
-git worktree add --detach "$LT_WORKTREE" "$LT_SOURCE_COMMIT"
-cd "$LT_WORKTREE/Products/LyricTile"
-[[ "$(git rev-parse HEAD)" == "$LT_SOURCE_COMMIT" ]]
-export LYRICTILE_VERSION='1.0.0'
-export LYRICTILE_BUILD_NUMBER="$LT_BUILD"
-export LYRICTILE_ARCH='arm64' LYRICTILE_CONFIGURATION='release' LYRICTILE_CREATE_DMG='1'
-export LYRICTILE_OUTPUT="$PWD/dist" LYRICTILE_NOTARY_OUTPUT="$PWD/dist/notarized"
-export LYRICTILE_UPDATE_FEED='https://raw.githubusercontent.com/haohongfei2001-png/nearpane/refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml'
-export LYRICTILE_UPDATE_PUBLIC_KEY='NjwCt0hsJ9Ps97gwa1ZQvHfaVkr69TN0JIjNi7E522w='
-bash Scripts/build-app.sh
-bash Scripts/notarize-candidate.sh dist/LyricTile.app
-
-LT_EVIDENCE="$PWD/dist/local-release-evidence"
-mkdir -p "$LT_EVIDENCE"
-LT_APP="$PWD/dist/LyricTile.app"
-LT_FINAL_DIR="$PWD/dist/notarized"
-LT_STEM="LyricTile-$LYRICTILE_VERSION-$LT_BUILD-arm64"
-LT_TAG="lyrictile-v$LYRICTILE_VERSION-build$LT_BUILD"
-LT_ZIP="$LT_FINAL_DIR/$LT_STEM.zip"
-LT_DMG="$LT_FINAL_DIR/$LT_STEM.dmg"
-LT_ZIP_URL="https://github.com/haohongfei2001-png/nearpane/releases/download/$LT_TAG/$LT_STEM.zip"
-"$LT_SIGN_UPDATE" --account com.holdsnow.lyrictile.updates.v1 "$LT_ZIP" > "$LT_EVIDENCE/sign-update.txt"
-LT_SIGNATURE="$(python3 - "$LT_EVIDENCE/sign-update.txt" <<'PY'
-import pathlib,re,sys
-m=re.search(r'edSignature="([^"]+)"',pathlib.Path(sys.argv[1]).read_text())
-if not m: raise SystemExit('Inspect the existing sign_update tool output; do not invent a signature.')
-print(m.group(1))
-PY
-)"
-python3 Scripts/write-appcast.py --app "$LT_APP" --archive "$LT_ZIP" \
-  --download-url "$LT_ZIP_URL" --ed-signature "$LT_SIGNATURE" \
-  --output "$LT_EVIDENCE/appcast.xml"
-python3 Scripts/verify-release.py --mode release --app "$LT_APP" \
-  --archive "$LT_ZIP" --dmg "$LT_DMG" --checksums "$LT_FINAL_DIR/SHA256SUMS" \
-  --expected-commit "$LT_SOURCE_COMMIT" --minimum-build 4 \
-  --appcast "$LT_EVIDENCE/appcast.xml" --output "$LT_EVIDENCE/release-verification.json"
-python3 Scripts/run-native-smoke.py "$LT_APP" --output "$LT_EVIDENCE/native-final"
-```
-
-使用本机既有 Sparkle 工具流程为最终 feed 保留需要的签名；修改 feed 内容后重新签署，不复制旧签名块。`verify-release.py` 必须通过真实 Ed25519、App/ZIP/DMG 元数据和内容一致性、校验值、Developer ID、stapler、Gatekeeper 检查。最后的 native smoke 只确认本机刚生成的同一签名包能启动及正确显示窗口，自动保存实际显示比例；不重跑云端全套矩阵。若构建或公证失败，修正具体问题后重复受影响步骤；不要用旧 build 4 代替。
-
-## 2. 升级同一包，然后公开正确渠道
-
-复用本机已经跑通的 Sparkle CLI / 受控签名 feed 流程，将**原样公证 build 4** 升级到上面的最终 ZIP。临时测试 feed 仅用于验证，公开 feed 保留 HTTPS。确认升级后版本、构建号、源码 SHA、签名、启动正常，偏好和本地歌词保留；目标 App 与最终 DMG 的 plist/可执行文件一致。再从“应用程序”正常启动这一签名包，用一首本机合法可播放音轨确认最终应用身份下的 Automation 与歌词显示；可用已验证的本地导入路径。这是同一最终签名/升级包的短检查，不重跑云端完整控制矩阵。不要把既有 2→4 结果记作此次通过。
-
-检查通过后按用户已有发行授权连续完成：创建 `$LT_TAG` 指向 `$LT_SOURCE_COMMIT` 的 **LyricTile 专属 Release**，上传最终 ZIP、DMG、`SHA256SUMS` 和准确支持范围；公开后重新下载核对哈希，再更新开发分支 `Products/LyricTile/Updates/appcast.xml` 与官网 `main:website/lyrictile/release.json`。官网 manifest 的 `published`、`version`、`build`、`commit`、`downloadURL`、`releaseURL`、`sha256` 必须对应本次最终 DMG，并同步产品分支的 `Website/release.json`。保留 HOLDSNOW 产品页和中英文说明。不要使用仓库通用 `releases/latest`，也不要将历史 build 4 草稿改名冒充新版。
-
-最后在开发分支提交一份简短 `Documentation/Verification/local-release-YYYY-MM-DD.md` 并更新 `STATUS.md` / PR #17：准确源码与构建号、包哈希、公证回执 ID、实际补验和 4→最终版本升级结果、最终下载/feed/官网地址、真实支持范围。私人曲目轨迹留本机。若缺少的仅是不可用凭据或必需的一次系统授权，汇总为一个明确阻塞，保留完整待发布包；不宣称已签名、公证或公开。
+PR17保留open draft及原base，不合并或删除承载正式feed的开发分支。

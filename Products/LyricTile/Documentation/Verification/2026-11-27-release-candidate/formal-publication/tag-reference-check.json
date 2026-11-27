@@ -1,0 +1,8 @@
+{
+  "status": "PASS_EXACT_RELEASE_TAG",
+  "method": "git ls-remote origin refs/tags/lyrictile-v1.0.0-build49",
+  "ref": "refs/tags/lyrictile-v1.0.0-build49",
+  "observedCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "matchesCI49Source": true
+}
+

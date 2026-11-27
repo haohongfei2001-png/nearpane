@@ -1,0 +1,20 @@
+{
+  "siteCommit": "0b761876a8335735bbefa3271a1096d705e4e744",
+  "pagesRun": 46037564049,
+  "sourceCommit": "b95b6f5ed7680cbde1427a4ed1a904bd5875e17b",
+  "screenshots": {
+    "lyrictile-release49-zh.jpg": {
+      "bytes": 179643,
+      "sha256": "6735a6a52c84115e222c00c980d583ae2a34c94e244313040eac57aea8383a56"
+    },
+    "lyrictile-release49-en.jpg": {
+      "bytes": 200408,
+      "sha256": "cdaf60b2c8dddb7e0cee2eaa1f90131dc3af7a4eeca1f3a0ef8372ef5dadf359"
+    },
+    "lyrictile-release49-hero.jpg": {
+      "bytes": 61608,
+      "sha256": "a071a76cd6ab7eada79e9b7caca7dccbeff1aa7d1a52d350c0aaf3fcc825de75"
+    }
+  },
+  "scope": "Actual cloud browser; product renders native authored fixtures; previous candidate-phase six-page proof remains separately preserved."
+}

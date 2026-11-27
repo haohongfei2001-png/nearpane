@@ -1,0 +1,11 @@
+{
+  "status": "PASS_ACTUAL_WEBSITE_CLICK_DOWNLOAD",
+  "releaseID": 460855402,
+  "siteCommit": "0b761876a8335735bbefa3271a1096d705e4e744",
+  "pagesRun": 46037564049,
+  "action": "Actual visible Chinese Download for Mac button clicked in cloud browser; download completion awaited before independent file read.",
+  "bytes": 4439015,
+  "sha256": "a6813cbebc59ae465e215d2ab5053d7591bb0fef8e89644a1723f58ed6e58329",
+  "matchesFinalNotarizedDMG": true,
+  "nativePlayerValidation": false
+}

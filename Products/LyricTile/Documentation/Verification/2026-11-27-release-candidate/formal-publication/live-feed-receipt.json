@@ -1,0 +1,30 @@
+{
+  "status": "PASS_ANONYMOUS_LIVE_SIGNED_FEED",
+  "feedURLReadFromInstalled49": "https://raw.githubusercontent.com/haohongfei2001-png/nearpane/refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml",
+  "httpStatus": 200,
+  "authenticationUsed": false,
+  "feedBytes": 1318,
+  "feedSHA256": "45c303ef043751dd9944eacc7f45e2227a14f6c0d9d99fdfc6e76d6ecae734c9",
+  "sameExactSignedAppcast": true,
+  "liveFeedCommit": "ec93f1d35e701ecad4c9b237ee62dd2fbdfba0e0",
+  "updateBuild": 49,
+  "version": "1.0.0",
+  "enclosureURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/lyrictile-v1.0.0-build49/LyricTile-1.0.0-49-arm64.zip",
+  "enclosureLength": 4029734,
+  "xmlSignatureVerifiedWithExistingAccount": true,
+  "downloadedZIPSignatureVerifiedFromLiveFeed": true,
+  "signatureChecks": [
+    {
+      "check": "live-xml",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "check": "live-feed-zip",
+      "exitCode": 0,
+      "passed": true
+    }
+  ],
+  "privateKeyExported": false,
+  "playerOrUserDataModified": false
+}
