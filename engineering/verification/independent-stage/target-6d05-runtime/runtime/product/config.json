@@ -1,0 +1,72 @@
+{
+  "fixtures": [
+    {
+      "birth": 1795802453025618,
+      "directory": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/FixtureA",
+      "executable": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "pid": 88276,
+      "windows": [
+        {
+          "frame": [
+            120,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 122068,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        },
+        {
+          "frame": [
+            400,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 1,
+          "key": false,
+          "miniaturized": false,
+          "number": 122070,
+          "text": "Fixture 1 / ready",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "birth": 1795802454011705,
+      "directory": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/FixtureB",
+      "executable": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "pid": 88282,
+      "windows": [
+        {
+          "frame": [
+            680,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 122073,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        }
+      ]
+    }
+  ],
+  "iterations": 3,
+  "nonce": "07276f67-128a-4ff6-813e-2904426b1067",
+  "output": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/product",
+  "profile": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/product/profile",
+  "r4Controller": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/kit/Controller.app/Contents/MacOS/Controller",
+  "schema": 1,
+  "systemHelper": "/private/tmp/nearpane-independent-6d05-target-20261128/runtime/kit/SplitViewHelper"
+}

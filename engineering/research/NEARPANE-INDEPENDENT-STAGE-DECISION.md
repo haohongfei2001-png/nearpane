@@ -43,7 +43,90 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through c64bf6d5, 2026-11-28
+#### 10195c7e compile rejection and narrow correction
+
+The target release and cloud source compiler reject the new nested `rejected`
+helper in StageWindowEngineHost: accesses to `phase` and `permittedRejection`
+are diagnosed as concurrent/non-Sendable captures. The target fails after
+64.510 seconds, before packaging or launching any candidate. Its original
+[failed build receipts](../verification/independent-stage/target-1019-build/README.md)
+remain FAIL. Cloud Rust passes180 tests, but Swift tests and the Host R4 path
+are not executed. Fast's subsequent runtime step runs only the direct engine
+(26 requests and cleanup pass); it does not prove Host compilation.
+[Exact1019 cloud compiler and engine originals](../verification/independent-stage/cloud-10195c7e-latency/README.md).
+
+The following one-line correction explicitly marks the local helper `@MainActor`,
+matching the original enclosing actor domain. It preserves the complete body,
+short-circuit guards, native-query count, deadlines and failure semantics.
+Static review missed the inferred isolation problem; native compilation of the
+explicit correction remains the required gate.
+
+#### Current verification checkpoint: f4934582, 2026-11-28
+
+`f4934582` reuses a pending directory result only when both its actual wall-clock
+and native sampling starts are strictly later than the new action boundary. It
+retains the real revision, all freshness/completeness limits, session revocation
+and the subsequent independent proof. Its new async test runs all 16 parameter
+cases successfully. Source reports 180 Rust and 228 Swift passes with one skip.
+The original XML confirms229 function entries (228 passes/one skip), while the
+new function has16 actual parameter executions in stdout. C identity checks
+pass13 cases with zero window writes.
+The target Mac separately completes the full release build (265.445 seconds),
+package and strict deep signature. It remains a build-only result: the most recent
+target context was locked, and no new candidate GUI or R4 input was launched.
+[Target f493 native build originals](../verification/independent-stage/target-f493-build/README.md).
+
+Fast issues one real R4 input and confirms no complete switch. Its sole initial
+witness succeeds in818.329 ms, after222.763 ms preparation. There is no roster
+rejection. All three explicit after-action reads finish with `reusedPrior=false`;
+the sole prior revision3 sample began74.135 ms before both entry clocks, so the
+new branch correctly refuses it and returns the fresh revision4. This lane has
+not exercised a positive reuse hit and supplies no measured speedup.
+
+The subsequent canary Open fails its existing300 ms budget. The label
+`main-queue-timeout` covers queue wait plus the complete AppKit call: measured
+queue wait is0.683 ms and panel-call work747.248 ms. The original guard prevents
+late `orderFront` after construction. No fixture HIDE/SHOW follows. In parallel,
+a Dock read runs1903.447 ms and arrives1096.859 ms after its native end; Host
+revokes ownership. The worker has no absolute event timestamps in this revision,
+so those two failures cannot be ordered against each other. Host main-thread
+sampling does not identify the worker's slow AppKit subcall.
+
+Fast's final status is UNKNOWN/productionRestoreIncomplete. Host shutdown reports
+`released=false` and cleanup remains false. Two independent physical reads confirm
+the three fixture windows at home and visible, while the worker separately retains
+a `release-pending` receipt with status2/detail225/flags128/owned1. Outer CI cleanup
+is successful. These three cleanup boundaries remain distinct. Fast's direct
+engine passes26 requests; the separate diagnostics engine is BLOCKED before writes
+by its canary, with only a platform fallback pass. A green diagnostics job does
+not establish the direct engine result.
+The unsampled full release also issues one input and confirms no switch, but
+has a different early failure. Preparation succeeds in2860.695 ms; its first
+directory waits1914.895 ms for prior revision4 and then843.606 ms for fresh
+revision5. That prior begins46.973 ms before the actual read entry on both clocks
+and is correctly not reused. The old native sample itself takes1914.856 ms;
+its task queue takes only0.604 ms, so this is not a demonstrated actor-admission
+stall. At roughly2955 ms after input, group choice exits at `current-intent`
+with the generic busy error, before any witness, roster check or worker creation.
+The four short-circuit checks at that point are wallpaper state, exact member
+lifetime, current selection/session/input, and current environment. No action-time
+Dock revocation or new-selection event selects one of them from the old trace.
+Full's Host release, physical return double-read and outer CI cleanup all pass;
+its direct engine passes26 requests.
+[Exact f493 source and runtime evidence](../verification/independent-stage/cloud-f4934582-latency/README.md).
+
+The next scoped patch explicitly carries the calling Swift task priority through
+the existing worker SUBMIT/POLL/wait bridge, and measures actual task priority and
+request timing. The old bridge omits that argument and samples execute on a
+default-QoS queue; this does not measure their Swift task priority or explain the
+747 ms panel body. Separate opt-in worker timing will locate time within the
+original Open steps and correlate late callbacks using an absolute clock and call
+ID. It adds no window/focus queries, moves no native operation and extends no
+deadline. The same patch also caches the first failed current-intent guard and
+its already-read environment rejection; it does not repeat these queries at exit.
+No catalogue exception or cleanup-success override is justified here.
+
+#### Earlier R4 latency work through 6d058079, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -285,7 +368,7 @@ probe demonstrates the concrete path mismatch: `proc_pidpath` reports
 inode. The old controller compares those raw strings before its signature check.
 [Target c64 results and the path probe](../verification/independent-stage/target-c64-runtime/README.md).
 
-The next correction carries the Host's already captured executable device/inode
+`60cf3219` carries the Host's already captured executable device/inode
 into the R4 request. The R4-only verifier compares both canonical paths and those
 fixed file identities; direct parent, process birth, live/disk signatures, the
 acceptance marker and single-press deadline remain required. Its actual C
@@ -293,7 +376,101 @@ comparator passes13 filesystem cases on both the local executor and the target
 Mac, including path aliases, redirection and replaced-file rejection. This does
 not upgrade the old zero-input trial. Cached failure labels also distinguish the
 existing witness, original-window reader and management checks, preserving their
-short-circuit order and native query count. New full native validation is pending.
+short-circuit order and native query count. The target complete release build
+(225.321 seconds), package and strict/deep signature pass. Cloud source passes
+180 Rust and225 Swift cases with one explicit skip; the added C comparator
+build and self-test exit successfully.
+
+The60cf fast product issues one real R4 input but confirms no switch. Its
+3,726.860 ms initial directory preparation includes804.559 ms waiting for the
+older read. After a session is created, the signed-Dock observation expires and
+revokes its Host revision and navigation intent. The next ordinary Dock result
+cannot revive that old intent. The initial binding stage therefore rejects before
+a backend launch; this is not evidence that `StageHostWindow.bind` itself failed.
+Product and CI workspace cleanup both pass. The periodic Dock poll still starts
+from an implicit-priority Timer task, independently of the navigation job's
+explicit user-initiated priority. A pending-request timestamp must not be joined
+to an unrelated later physical sample to infer a single request's queue delay.
+[Exact60cf cloud evidence](../verification/independent-stage/cloud-60cf3219-latency/README.md).
+
+On the target, a new60cf release run without Host sampling passes the corrected
+parent/file identity boundary but remains BLOCKED before input: the external AX
+tree becomes unreadable and the last window-list read returns AXCannotComplete.
+The retained tree diagnostic is from an earlier traversal, not proof that the
+panel disappeared. A subsequent, separately identified diagnostic run of the same
+release binary with the existing sampling enabled issues one successful actual
+AXPress. Its first directory preparation takes508.944 ms; the first physical
+rebinding read then throws after40.141 ms, with total preparation563.380 ms.
+The raw failure is `stagePhysicalReadRejected / final-continuity`. Its error type
+places the failure after the focus check, within original number, forward Space
+membership, raw inventory equality or native Stage Manager state; the current
+receipt does not distinguish those four checks. No witness/backend launch or HIDE
+is reached. All three original windows remain visible at home4 and exact target
+focus is not confirmed. Both target runs independently confirm product/engine
+cleanup, fixture exit and preservation of the original desktop, foreground and
+preferences. Their direct engines fail the later yellow-button case, separately
+from these R4 results.
+[Target60cf without sampling](../verification/independent-stage/target-60cf-runtime/README.md).
+[Separate target60cf diagnostic](../verification/independent-stage/target-60cf-diagnostic/README.md).
+
+`6d058079` gives only the existing periodic Dock poll
+user-initiated priority while navigation is dispatching, preserving its idle
+priority, read cadence,750 ms bound and revocation semantics. Per-request timing
+distinguishes creation, actual task start and the same request's physical
+return. The physical reader's final continuity checks also receive cached,
+short-circuit failure labels without additional native reads or weaker proofs.
+The60cf full release runtime, with sampling disabled, issues one real R4 input.
+It positively confirms exact target54 focus and the first sibling56 hidden in
+Space34 with `onScreen=false`; sibling57 is still visible at home12 at the final
+readback. Thus the complete switch still fails the unchanged eight-second bound.
+All11 witness reads complete; the last is the fresh read preceding the second
+sibling HIDE and finishes after shutdown has already begun, so the following
+interruption must not be described as an earlier failed witness. Preparation
+takes1,912.256 ms and the initial witness2,518.362 ms, while subsequent witnesses
+are much shorter. The direct engine passes26 requests, and Host double physical
+return and outer CI workspace cleanup both pass. The new source comparator's
+original stdout confirms13 PASS, zero failures and zero window writes.
+
+The6d05 native source gate passes180 Rust and227 Swift cases with one skip;
+both new test functions pass, including both priority arguments and the bounded
+in-memory inventory diagnostic. Its sampled fast lane issues two actual R4
+inputs and completes the first full switch in7,442.021 ms: target54 remains
+visible on home12 with exact focus, while siblings56/57 are independently
+confirmed hidden in Spaces33/34 with their original frames. Its34 periodic
+Dock polls created during navigation actually run at priority25, and neither
+action is revoked by Dock ownership. The second action fails in the next
+opening roster after the last successful witness sequence25; its current
+directory revision68 returns successfully and is rejected0.373 ms later.
+The full release, without sampling, fails at its first opening roster after
+only912.271 ms from the actual press. Preparation succeeds in234.217 ms and
+the directory read in517.407 ms, with no prior wait or ownership revocation.
+Thus neither particular rejection is an eight-second timeout or evidence of
+slow task admission. The failing snapshots' exact catalog/roster condition is
+not yet captured; a later good snapshot must not replace it. All three direct
+engines pass, and both products' physical cleanup and outer CI cleanup pass.
+[Exact6d05 cloud results](../verification/independent-stage/cloud-6d058079-latency/README.md).
+
+The target6d05 release build, package and signature pass, but both original
+context receipts explicitly say `screenLocked=true`. The wrapper incorrectly
+continued because its guard checked console/login and secure-input status
+without that lock flag. The engine and product then correctly refuse useful
+work: no engine window writes, no product directory snapshot and zero R4 input.
+All fixture cleanup and original context checks pass. This is a locked-session
+precondition failure, not a product scheduling regression. Subsequent target
+orchestration now refuses a locked session and will not request foreground
+restoration while locked. No unlock operation is attempted.
+[Target6d05 original locked-session evidence](../verification/independent-stage/target-6d05-runtime/README.md).
+
+The next implementation can reuse a pending directory result only when its
+actual native start and wall-clock sampling start are both strictly later than
+the current `readAfterAction` entry, with current session/epoch, complete uncapped
+data and fresh evidence. It retains the real revision and the subsequent
+independent reads. The60cf full trace contains a concrete candidate: revision3
+starts native sampling31.402 ms after entry but the current code still performs
+an additional861.340 ms fresh read. The old trace lacks its wall-clock start,
+so this is potential avoided work, not a demonstrated speedup. Additional
+cached roster-rejection facts will distinguish the actual opening-catalog and
+membership conditions without adding native queries or weakening them.
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state

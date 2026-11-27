@@ -24,6 +24,7 @@ import NearpaneCore
     private var spaceMonitor: NSObjectProtocol?
     private var sampleGeneration = UUID()
     private var sampleBegan: TimeInterval?
+    private var sampleRequestID: UUID?
     private var stopped = false
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
@@ -248,6 +249,14 @@ import NearpaneCore
         setMissionControl(.unknown, evidence: "panelOcclusionChanged")
     }
 
+    /// A live ownership read is part of the waiting user's action. Idle polls
+    /// retain their caller's scheduling priority; this changes no read budget.
+    @discardableResult
+    static func startOwnershipRead(duringUserAction: Bool,
+                                   operation: @escaping @MainActor @Sendable () async -> Void) -> Task<Void, Never> {
+        Task(priority: duringUserAction ? .userInitiated : nil, operation: operation)
+    }
+
     private func pollSystemOwnership() {
         guard !stopped, let missionControlReader else { return }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
@@ -258,6 +267,7 @@ import NearpaneCore
             if let interval = missionControlReadInterval,
                !Self.missionControlReadIsFresh(start: interval.start, end: interval.end, now: now) {
                 IndependentStageTrace.record("dispatch-dock-observation-expired", [
+                    "requestID": sampleRequestID?.uuidString ?? "unknown",
                     "pendingRequestStart": sampleBegan, "readStart": interval.start, "readEnd": interval.end,
                     "readTotalMilliseconds": (now - interval.start) * 1000])
                 setMissionControl(.unknown, evidence: "sampleExpired")
@@ -265,13 +275,35 @@ import NearpaneCore
             return
         }
         let generation = sampleGeneration
-        sampleBegan = ProcessInfo.processInfo.systemUptime
-        Task { [weak self] in
+        let requestID = UUID(), requestStarted = ProcessInfo.processInfo.systemUptime
+        let duringUserAction = navigation.isDispatching
+        sampleBegan = requestStarted
+        sampleRequestID = requestID
+        IndependentStageTrace.record("dispatch-dock-poll-created", ["requestID": requestID.uuidString,
+            "requestStart": requestStarted, "generation": generation.uuidString,
+            "dispatching": duringUserAction, "creatorPriority": Task.currentPriority.rawValue])
+        Self.startOwnershipRead(duringUserAction: duringUserAction) { [weak self] in
+            IndependentStageTrace.record("dispatch-dock-poll-started", ["requestID": requestID.uuidString,
+                "requestStart": requestStarted, "generation": generation.uuidString,
+                "dispatching": duringUserAction, "taskPriority": Task.currentPriority.rawValue])
             let value = await missionControlReader.read()
-            guard let self else { return }
+            var facts: [String: Any] = ["requestID": requestID.uuidString, "requestStart": requestStarted,
+                "generation": generation.uuidString, "taskPriority": Task.currentPriority.rawValue,
+                "readStart": value.startUptime, "readEnd": value.endUptime,
+                "visibility": value.visibility.rawValue, "evidence": value.evidence]
+            guard let self else {
+                facts["hostPresent"] = false
+                IndependentStageTrace.record("dispatch-dock-poll-completed", facts)
+                return
+            }
             let started = sampleBegan
             sampleBegan = nil
-            guard generation == sampleGeneration, !stopped else { return }
+            sampleRequestID = nil
+            let sameGeneration = generation == sampleGeneration
+            facts["hostPresent"] = true
+            facts["sameGeneration"] = sameGeneration
+            IndependentStageTrace.record("dispatch-dock-poll-completed", facts)
+            guard sameGeneration, !stopped else { return }
             setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
             if let started { acceptMissionControl(value, requestedAt: started) }
         }

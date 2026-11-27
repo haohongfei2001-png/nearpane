@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "sourceRevision": "60cf3219901c6997db400a1d08e143ddd011d0a0",
+  "startedUTC": "2026-11-27T17:32:29.821045+00:00",
+  "launched": false,
+  "steps": {
+    "fetch": {
+      "exit": 0,
+      "durationSeconds": 3.0051080000121146
+    },
+    "fastforward": {
+      "exit": 0,
+      "durationSeconds": 0.24944266700185835
+    },
+    "release": {
+      "exit": 0,
+      "durationSeconds": 225.32078841689508
+    },
+    "package": {
+      "exit": 0,
+      "durationSeconds": 2.379346999921836
+    },
+    "signature": {
+      "exit": 0,
+      "durationSeconds": 0.11438954109326005
+    }
+  },
+  "originalRevision": "c64bf6d587247e512fb72c50a666d8e41c539e04",
+  "originalCheckoutClean": true,
+  "exactRevisionConfirmed": true,
+  "workspaceCandidate": "/private/tmp/NearpaneIndependentStage-60cf.app",
+  "files": {
+    "Contents/MacOS/NearpaneHost": {
+      "bytes": 39238928,
+      "sha256": "3fdd3ff96fa2ae2bb4c156ebaf2dffeb5e1204a27a6abc8567459c0a4cf94503"
+    },
+    "Contents/Helpers/NearpaneSpacesEngine": {
+      "bytes": 2540672,
+      "sha256": "f917a638f406adc17844cd88ed070e51f4158b7aaf8c2d5cc1542a2353b62bb9"
+    },
+    "Contents/Helpers/NearpaneDesktopReader": {
+      "bytes": 6404152,
+      "sha256": "86d8c3efe56f2c68794208faad16af52d239f0c267757ca4dac03f8f8cf82778"
+    },
+    "Contents/Info.plist": {
+      "bytes": 4210,
+      "sha256": "b52de120856e59d05c86c30c80627e4eabd59d3aec5994c7fe124c88cccd749c"
+    }
+  },
+  "finishedUTC": "2026-11-27T17:36:21.056051+00:00"
+}

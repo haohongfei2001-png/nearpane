@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "log": "r4-file-identity.log",
+  "status": "PASS",
+  "stderr": "r4-file-identity.stderr.log"
+}

@@ -32,13 +32,44 @@ actor SpacesEngineWorker {
     }
     func submit(_ input: NativeStageEngineRequest, timeoutMilliseconds: UInt32 = 1000,
                 expectedEpoch: UInt64? = nil) async throws -> NativeStageEngineReceipt {
+        let priority = Task.currentPriority, started = ProcessInfo.processInfo.systemUptime
         try Task.checkCancellation()
         guard input.backend == NP_SPACES else { throw NativeStageEngineError.correlation }
         let epoch = try expectedEpoch ?? channel.currentEpoch()
+        let intent = input.intent.uuidString
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] == "1"
+        var pollCount = 0, completedPollCount = 0, maxPollQueueMS: Double = 0
+        var pollPriorities = Set<UInt8>(), waitPriorities = Set<UInt8>()
+        var step = "submit", terminal: NativeStageEngineReceipt?
+        defer {
+            if tracing {
+                var facts: [String: Any] = ["intent": intent, "operation": input.operation, "epoch": epoch,
+                    "requestStartUptime": started, "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
+                    "requestedPriority": priority.rawValue, "returnPriority": Task.currentPriority.rawValue,
+                    "step": step, "cancelled": Task.isCancelled, "terminalReceipt": terminal != nil,
+                    "pollCount": pollCount, "completedPollCount": completedPollCount,
+                    "pollPriorities": pollPriorities.sorted(), "waitPriorities": waitPriorities.sorted()]
+                if completedPollCount > 0 { facts["maxPollQueueMS"] = maxPollQueueMS }
+                if let terminal {
+                    facts["status"] = terminal.status; facts["detail"] = terminal.detail
+                    facts["owned"] = terminal.owned; facts["flags"] = terminal.flags
+                }
+                SpacesWorkerLifecycle.trace("worker-request-exit", facts)
+            }
+        }
+        SpacesWorkerLifecycle.trace("worker-request-enter", ["intent": intent, "operation": input.operation,
+            "epoch": epoch, "requestStartUptime": started, "requestedPriority": priority.rawValue,
+            "timeoutMilliseconds": timeoutMilliseconds])
         var raw = NativeStageWindowEngine.encode(input, timeout: timeoutMilliseconds, epoch: epoch)
         let payload = withUnsafeBytes(of: &raw) { Data($0) }, channel = channel
-        let accepted = try await Task.detached {
-            try channel.exchange(UInt32(NP_SW_SUBMIT), request: payload)
+        let submitCreated = ProcessInfo.processInfo.systemUptime
+        let accepted = try await Task.detached(priority: priority) {
+            let entered = ProcessInfo.processInfo.systemUptime
+            SpacesWorkerLifecycle.trace("worker-request-submit-started", ["intent": intent, "operation": input.operation,
+                "epoch": epoch, "requestStartUptime": started, "taskCreatedUptime": submitCreated,
+                "taskStartedUptime": entered, "queueMS": (entered - submitCreated) * 1000,
+                "taskPriority": Task.currentPriority.rawValue])
+            return try channel.exchange(UInt32(NP_SW_SUBMIT), request: payload)
         }.value
         guard accepted.transport == NP_OK, accepted.ticket > 0 else {
             throw NativeStageEngineError.transport(accepted.transport)
@@ -48,13 +79,33 @@ actor SpacesEngineWorker {
             // A cancellation still consumes the native terminal receipt. If the
             // channel itself fails, the worker consumes it before releasing leases.
             while true {
-                let response = try await Task.detached {
-                    try channel.exchange(UInt32(NP_SW_POLL), ticket: ticket)
+                step = "poll"; pollCount += 1
+                let firstPoll = pollCount == 1, created = tracing ? ProcessInfo.processInfo.systemUptime : 0
+                let (response, entered, actualPriority) = try await Task.detached(priority: priority) {
+                    let entered = tracing ? ProcessInfo.processInfo.systemUptime : 0
+                    let actualPriority = Task.currentPriority.rawValue
+                    if firstPoll {
+                        SpacesWorkerLifecycle.trace("worker-request-poll-started", ["intent": intent, "operation": input.operation,
+                            "epoch": epoch, "ticket": ticket, "requestStartUptime": started,
+                            "taskCreatedUptime": created, "taskStartedUptime": entered, "taskPriority": actualPriority])
+                    }
+                    return (try channel.exchange(UInt32(NP_SW_POLL), ticket: ticket), entered, actualPriority)
                 }.value
+                if tracing {
+                    completedPollCount += 1
+                    maxPollQueueMS = max(maxPollQueueMS, (entered - created) * 1000)
+                    pollPriorities.insert(actualPriority)
+                }
                 if response.transport == NP_PENDING {
-                    await Task.detached { try? await Task.sleep(for: .milliseconds(2)) }.value
+                    let waiting = await Task.detached(priority: priority) {
+                        let before = Task.currentPriority.rawValue
+                        try? await Task.sleep(for: .milliseconds(2))
+                        return (before, Task.currentPriority.rawValue)
+                    }.value
+                    if tracing { waitPriorities.insert(waiting.0); waitPriorities.insert(waiting.1) }
                     continue
                 }
+                step = "terminal-receipt"
                 guard response.transport == NP_OK else {
                     throw NativeStageEngineError.transport(response.transport)
                 }
@@ -63,6 +114,7 @@ actor SpacesEngineWorker {
                     channel.disconnect()
                     throw NativeStageEngineError.correlation
                 }
+                terminal = result; step = "complete"
                 return result
             }
         } onCancel: { channel.cancel(ticket) }

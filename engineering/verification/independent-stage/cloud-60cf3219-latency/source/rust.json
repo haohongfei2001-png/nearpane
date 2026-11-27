@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "log": "rust.log",
+  "status": "PASS",
+  "stderr": "rust.stderr.log"
+}

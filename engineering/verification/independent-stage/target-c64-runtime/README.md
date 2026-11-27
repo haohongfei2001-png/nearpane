@@ -6,7 +6,7 @@ Primary revision: `c64bf6d587247e512fb72c50a666d8e41c539e04`, original PR #16 br
 
 ## Build and focused source verification
 
-[The build receipt](build/result.json) verifies a clean checkout, fast-forward to the exact revision, and the candidate's executable/helper hashes. Actual results are:
+[The build receipt](source-build/result.json) verifies a clean checkout, fast-forward to the exact revision, and the candidate's executable/helper hashes. Actual results are:
 
 | Step | Result | Duration |
 | --- | --- | ---: |
@@ -15,7 +15,7 @@ Primary revision: `c64bf6d587247e512fb72c50a666d8e41c539e04`, original PR #16 br
 | Strict/deep bundle signature verification | Exit 0 | 0.065913 s |
 | NativeSidebarNavigationTests build and run | Exit 0 | 168.825104 s |
 
-The target test scope is **NativeSidebarNavigationTests: 26 tests, zero failures/errors/skips**, including the five new activity lifecycle tests. [The original XML](build/navigation-tests.xml) records test execution of 0.204132125 seconds; [the original log](build/navigation-tests.log) includes the build and tests. These are focused state tests, not the complete cloud Swift/Rust suite or a successful target R4 transition.
+The target test scope is **NativeSidebarNavigationTests: 26 tests, zero failures/errors/skips**, including the five new activity lifecycle tests. [The original XML](source-build/navigation-tests.xml) records test execution of 0.204132125 seconds; [the original log](source-build/navigation-tests.log) includes the build and tests. These are focused state tests, not the complete cloud Swift/Rust suite or a successful target R4 transition.
 
 ## Target runtime outcomes
 

@@ -281,42 +281,42 @@
   ],
   "rawFiles": [
     {
-      "file": "build/result.json",
+      "file": "source-build/result.json",
       "originalPath": "/private/tmp/nearpane-c64-target-build/result.json",
       "bytes": 1619,
       "sha256": "93e356cd9f49536983b624bf98163c850427bce993b466c1741a83a62e77ecd6",
       "evidenceGroup": "c64-build-and-runtime"
     },
     {
-      "file": "build/release.log",
+      "file": "source-build/release.log",
       "originalPath": "/private/tmp/nearpane-c64-target-build/release.log",
       "bytes": 15273,
       "sha256": "83a873fd5508eb3b6990a96103f8f8029741f1270b9f46ccd2e390eb08a330a0",
       "evidenceGroup": "c64-build-and-runtime"
     },
     {
-      "file": "build/package.log",
+      "file": "source-build/package.log",
       "originalPath": "/private/tmp/nearpane-c64-target-build/package.log",
       "bytes": 149,
       "sha256": "6bf7a9ce7a13756823b4a08117aca9ac318f9dfb332c214bd1147ef934259200",
       "evidenceGroup": "c64-build-and-runtime"
     },
     {
-      "file": "build/signature.log",
+      "file": "source-build/signature.log",
       "originalPath": "/private/tmp/nearpane-c64-target-build/signature.log",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "evidenceGroup": "c64-build-and-runtime"
     },
     {
-      "file": "build/navigation-tests.log",
+      "file": "source-build/navigation-tests.log",
       "originalPath": "/private/tmp/nearpane-c64-target-build/navigation-tests.log",
       "bytes": 205141,
       "sha256": "dfe39205412635a43340a822003488376cc9e4f5b54fa926817a2becb3f98ddb",
       "evidenceGroup": "c64-build-and-runtime"
     },
     {
-      "file": "build/navigation-tests.xml",
+      "file": "source-build/navigation-tests.xml",
       "originalPath": "/private/tmp/nearpane-c64-target-build/navigation-tests.xml",
       "bytes": 4391,
       "sha256": "bac70985eeaccc35588ad43a35bb46174f64ae63c3c51f96b1f39a50fdccca1e",

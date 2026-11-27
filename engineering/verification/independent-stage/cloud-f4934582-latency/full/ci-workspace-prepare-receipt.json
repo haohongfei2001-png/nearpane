@@ -1,0 +1,25 @@
+{
+  "cleanup": false,
+  "created": {
+    "id": 12,
+    "type": 0,
+    "uuid": "0B3A989E-C952-2C93-F3A0-F519285E7BF4"
+  },
+  "current": 12,
+  "currentHasSystemUUID": true,
+  "directWindowOperations": 0,
+  "lastRecordedStep": "issued:select",
+  "originalCurrent": 1,
+  "phase": "readyCreated",
+  "physicalGestureClaimed": false,
+  "process": {
+    "exit": 0,
+    "log": "ci-workspace-prepare.log",
+    "status": "PASS",
+    "stderr": "ci-workspace-prepare.stderr.log"
+  },
+  "qualificationGranted": false,
+  "schema": 1,
+  "status": "READY",
+  "systemInputs": 6
+}

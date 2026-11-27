@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "sourceRevision": "10195c7e5e50756816ba25cb49202a5cb7f01ef4",
+  "deviceId": "ea7c2cb7-378e-4226-a030-4f3e02a6ba2f",
+  "decodedExportSHA256": "841e7c424ffa632c3d2698d9224b61d424f522637710b010d8fc1c9b9849875e",
+  "files": [
+    {
+      "relativePath": "result.json",
+      "originalPath": "/private/tmp/nearpane-1019-target-build/result.json",
+      "bytes": 561,
+      "sha256": "aaae2b50ef9b4a49daff5ecf1ed257e820b03e461cbfb71f61f969bd617ea90e",
+      "publishedPath": "source-build/result.json",
+      "kind": "original"
+    },
+    {
+      "relativePath": "fetch.log",
+      "originalPath": "/private/tmp/nearpane-1019-target-build/fetch.log",
+      "bytes": 232,
+      "sha256": "da8541b1f61e052b19d41fc4e164d9be0f9b1cd77461c42cb74ba4bb28c33239",
+      "publishedPath": "source-build/fetch.log",
+      "kind": "original"
+    },
+    {
+      "relativePath": "fastforward.log",
+      "originalPath": "/private/tmp/nearpane-1019-target-build/fastforward.log",
+      "bytes": 13578,
+      "sha256": "4522f5689ffb000917914241781039040746357c1256d33ab2e16ef6889cd5b8",
+      "publishedPath": "source-build/fastforward.log",
+      "kind": "original"
+    },
+    {
+      "relativePath": "release.log",
+      "originalPath": "/private/tmp/nearpane-1019-target-build/release.log",
+      "bytes": 11894,
+      "sha256": "3a7b77e15da3482757d325094f0c9ee415d991f3efedb80ab77b05b3fc689684",
+      "publishedPath": "source-build/release.log",
+      "kind": "original"
+    }
+  ]
+}

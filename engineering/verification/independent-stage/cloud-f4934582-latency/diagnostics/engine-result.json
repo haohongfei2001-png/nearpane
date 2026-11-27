@@ -1,0 +1,129 @@
+{
+  "checks" : {
+    "cleanup" : {
+      "scope" : "all enrolled foreign windows on their original desktop; no owned Space remains",
+      "status" : "PASS"
+    },
+    "crossAppGroup" : {
+      "status" : "NOT_RUN"
+    },
+    "focusRestore" : {
+      "status" : "NOT_RUN"
+    },
+    "foreignRoundTrip" : {
+      "status" : "NOT_RUN"
+    },
+    "initialVisibleBindings" : {
+      "status" : "NOT_RUN"
+    },
+    "initialYellowButton" : {
+      "status" : "NOT_RUN"
+    },
+    "launchCanary" : {
+      "scope" : "controller-owned panel only",
+      "status" : "BLOCKED"
+    },
+    "repeatedSwitch" : {
+      "status" : "NOT_RUN"
+    },
+    "sameAppIndependent" : {
+      "status" : "NOT_RUN"
+    },
+    "yellowButton" : {
+      "status" : "NOT_RUN"
+    }
+  },
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "enrolledWindows" : [
+    {
+      "attempted" : false,
+      "birth" : 1795803570801894,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        120,
+        386,
+        250,
+        202
+      ],
+      "group" : "49802878-6823-4DE9-B78D-100E8EAA9C60",
+      "hidden" : false,
+      "index" : 0,
+      "lifetime" : "980D2B83-2E22-4D37-8A67-263098C28425",
+      "member" : "3379D12D-AFC2-4926-92FB-A8516F97D5D8",
+      "number" : 53,
+      "pid" : 7962
+    },
+    {
+      "attempted" : false,
+      "birth" : 1795803570801894,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        400,
+        386,
+        250,
+        202
+      ],
+      "group" : "390358FD-03EE-469D-9BEB-BF94CFED45A3",
+      "hidden" : false,
+      "index" : 1,
+      "lifetime" : "D06C53CE-50C2-42F7-A549-C3EAAD2CB285",
+      "member" : "F0E39174-790E-4EF5-9586-85741D3264BC",
+      "number" : 55,
+      "pid" : 7962
+    },
+    {
+      "attempted" : false,
+      "birth" : 1795803571888178,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureB",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureB.app\/Contents\/MacOS\/FixtureB",
+      "frame" : [
+        680,
+        386,
+        250,
+        202
+      ],
+      "group" : "EC616167-5A09-4BAC-BDFF-B235D20DA7D2",
+      "hidden" : false,
+      "index" : 0,
+      "lifetime" : "184A8634-3CE0-43DC-8C79-FC444015FE99",
+      "member" : "E5D2DDC2-F51D-41FB-96D6-1C3248126805",
+      "number" : 56,
+      "pid" : 7966
+    }
+  ],
+  "fixtureFocusCommands" : 1,
+  "foreignProcesses" : true,
+  "fullScreenSplitView" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nonce" : "eeeca887-45c0-4da1-adc6-0f52f82f47b6",
+  "operationReason" : "candidateCanaryNotConfirmed",
+  "operationStatus" : "BLOCKED",
+  "ordinaryHome" : 12,
+  "originalSpaceInventory" : [
+    1,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+  ],
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "candidateCanaryNotConfirmed",
+  "schema" : 1,
+  "setupAXWrites" : 2,
+  "status" : "BLOCKED",
+  "targetEnvironment" : {
+    "exactTarget" : false,
+    "kernelBuild" : "26A434",
+    "sipEnabled" : false
+  },
+  "windowWrites" : 0,
+  "windowWritesScope" : "engine hide\/restore request attempts, including rejected or unverified requests"
+}

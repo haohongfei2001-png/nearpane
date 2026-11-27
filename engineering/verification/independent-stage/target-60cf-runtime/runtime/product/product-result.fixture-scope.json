@@ -1,0 +1,620 @@
+{
+  "actualR4Inputs": 0,
+  "appExpose": "NOT_RUN",
+  "applicationExitLifecycle": "NOT_RUN",
+  "cleanup": true,
+  "coldHiddenPreview": "NOT_RUN",
+  "desktopGestures": "NOT_RUN",
+  "dispatchAttempted": false,
+  "events": [
+    {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "phase": "R4OverviewOpenRequested",
+      "route": "productionOverviewCommand",
+      "uptime": 798161.5703155
+    },
+    {
+      "phase": "stageWindowShutdownEnter",
+      "targets": 3,
+      "uptime": 798168.8709265834
+    },
+    {
+      "end": 798168.8734257084,
+      "milliseconds": 2.5014999555423856,
+      "phase": "stageWindowShutdownExit",
+      "released": true,
+      "start": 798168.8709242084,
+      "uptime": 798168.87343325
+    },
+    {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 798168.8811845001,
+          "readStart": 798168.8761980417,
+          "received": 798168.9606486667,
+          "uptime": 798168.9606486667,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121914,
+              "onScreen": true,
+              "pid": 85676,
+              "space": 4,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121916,
+              "onScreen": true,
+              "pid": 85676,
+              "space": 4,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121924,
+              "onScreen": true,
+              "pid": 85682,
+              "space": 4,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 798169.2087470001,
+          "readStart": 798169.1964181251,
+          "received": 798169.362331375,
+          "uptime": 798169.362331375,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121914,
+              "onScreen": true,
+              "pid": 85676,
+              "space": 4,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121916,
+              "onScreen": true,
+              "pid": 85676,
+              "space": 4,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 4,
+              "homeRequired": true,
+              "number": 121924,
+              "onScreen": true,
+              "pid": 85682,
+              "space": 4,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ],
+      "phase": "stageWindowReturnedHome",
+      "uptime": 798169.3623822083
+    }
+  ],
+  "foreignWindowReadback": false,
+  "fullScreenSplitView": "NOT_RUN",
+  "groupMergeSplit": "NOT_RUN",
+  "lastExternalR4Press": {
+    "attributeTimeoutMS": 250,
+    "axError": -25200,
+    "directEngineInvocation": false,
+    "discoveryBudgetMS": 6000,
+    "issued": false,
+    "nonce": "99a35ffc-6ff3-4924-92b3-fdcafe9efb40",
+    "panelFrame": [
+      1230,
+      33,
+      240,
+      923
+    ],
+    "physicalPointerGesture": false,
+    "prePressRediscoveries": 0,
+    "processExit": 2,
+    "qualificationGranted": false,
+    "reason": "panelIdentityOrVisibilityUnconfirmed",
+    "receipt": "r4-press-17865219-5d87-492c-a169-b41253da23fc.result.json",
+    "schema": 1,
+    "status": "UNKNOWN",
+    "tree": {
+      "complete": false,
+      "matchingButtons": 0,
+      "nodes": [
+        {
+          "batchFieldCount": 6,
+          "batchRead": 0,
+          "identifier": "<redacted-or-absent>",
+          "identifierRead": -25212,
+          "role": "AXWindow",
+          "roleRead": 0
+        },
+        {
+          "batchFieldCount": 6,
+          "batchRead": 0,
+          "identifier": "<redacted-or-absent>",
+          "identifierRead": -25212,
+          "role": "AXGroup",
+          "roleRead": 0
+        },
+        {
+          "batchFieldCount": 6,
+          "batchRead": 0,
+          "identifier": "<redacted-or-absent>",
+          "identifierRead": 0,
+          "role": "AXScrollArea",
+          "roleRead": 0
+        },
+        {
+          "batchFieldCount": 0,
+          "batchRead": -25204,
+          "identifier": "<redacted-or-absent>",
+          "identifierRead": -25204,
+          "role": "unknown",
+          "roleRead": -25204
+        },
+        {
+          "batchFieldCount": 0,
+          "batchRead": -25204,
+          "identifier": "<redacted-or-absent>",
+          "identifierRead": -25204,
+          "role": "unknown",
+          "roleRead": -25204
+        }
+      ],
+      "visited": 5
+    },
+    "uptime": 798168.7055997917,
+    "windowListRead": -25204
+  },
+  "lastObservedReadiness": {
+    "accessibilityRead": "partial",
+    "accessibilityTrusted": true,
+    "catalogComplete": true,
+    "catalogCompletenessObserved": true,
+    "currentScopes": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "ordinaryUUID": "0695C8A7-8344-4AEC-A780-2FE0562E63B9",
+        "record": "4"
+      }
+    ],
+    "distinctFixtureGroupCount": 3,
+    "fixtureGroupCount": 3,
+    "fresh": true,
+    "missionControlEvidence": "signedDockAXListWithoutMC",
+    "missionControlState": "ordinary",
+    "nativeStageManager": "off",
+    "observedCapability": "spaces",
+    "panelVisible": true,
+    "permitsStageEngine": true,
+    "previewVisibleDisplays": [
+      "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+    ],
+    "r4OpenRequested": true,
+    "revision": 1,
+    "roster": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121924,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85682
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121916,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121914,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85676
+      }
+    ],
+    "snapshotAvailable": true,
+    "spacesRead": "observed",
+    "targets": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121914,
+        "onActiveDesktop": true,
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121916,
+        "onActiveDesktop": true,
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121924,
+        "onActiveDesktop": true,
+        "pid": 85682
+      }
+    ],
+    "windowCount": 20,
+    "windowDispatchEligible": true
+  },
+  "lastR4ButtonSearch": {
+    "completeTraversal": true,
+    "expectedIDs": [
+      "current-desktop-window:85676:121914",
+      "native-held-group:C35EB67D-8C3E-4476-BC37-C7354192955A",
+      "stage-group-select:C35EB67D-8C3E-4476-BC37-C7354192955A"
+    ],
+    "matchingButtons": 0,
+    "nodes": [
+      {
+        "children": 1,
+        "class": "NearpaneUI.EdgePanel",
+        "enabled": false,
+        "frame": "{{1230, 0}, {240, 923}}",
+        "identifier": "nil",
+        "intersectsPanel": true,
+        "role": "AXWindow",
+        "samePanelWindow": false,
+        "windowClass": "nil"
+      },
+      {
+        "children": 0,
+        "class": "NearpaneUI.(unknown context at $101fb3950).SurfaceHostingView",
+        "enabled": false,
+        "frame": "{{1230, 0}, {240, 923}}",
+        "identifier": "nil",
+        "intersectsPanel": true,
+        "role": "AXGroup",
+        "samePanelWindow": true,
+        "windowClass": "NearpaneUI.EdgePanel"
+      }
+    ],
+    "nonProtocolClasses": {},
+    "panelFrame": "{{1230, 0}, {240, 923}}",
+    "panelNumber": 121935,
+    "panelVisible": true,
+    "protocolNodes": 2,
+    "visited": 2
+  },
+  "lastReadiness": {
+    "accessibilityRead": "partial",
+    "accessibilityTrusted": true,
+    "catalogComplete": true,
+    "catalogCompletenessObserved": true,
+    "currentScopes": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "ordinaryUUID": "0695C8A7-8344-4AEC-A780-2FE0562E63B9",
+        "record": "4"
+      }
+    ],
+    "distinctFixtureGroupCount": 3,
+    "fixtureGroupCount": 3,
+    "fresh": true,
+    "missionControlEvidence": "signedDockAXListWithoutMC",
+    "missionControlState": "ordinary",
+    "nativeStageManager": "off",
+    "observedCapability": "spaces",
+    "panelVisible": true,
+    "permitsStageEngine": true,
+    "previewVisibleDisplays": [
+      "37D8832A-2D66-02CA-B9F7-8F30A301B230"
+    ],
+    "r4OpenRequested": true,
+    "revision": 1,
+    "roster": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121924,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85682
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121916,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121914,
+        "onActiveDesktop": true,
+        "ordinaryRole": "ordinary",
+        "pid": 85676
+      }
+    ],
+    "snapshotAvailable": true,
+    "spacesRead": "observed",
+    "targets": [
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121914,
+        "onActiveDesktop": true,
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121916,
+        "onActiveDesktop": true,
+        "pid": 85676
+      },
+      {
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "included": true,
+        "isOnscreen": true,
+        "membership": "known(recordIDs: [\"4\"])",
+        "number": 121924,
+        "onActiveDesktop": true,
+        "pid": 85682
+      }
+    ],
+    "windowCount": 20,
+    "windowDispatchEligible": true
+  },
+  "lastShutdownReturnReadback": {
+    "focus": {
+      "required": false
+    },
+    "readEnd": 798169.2087470001,
+    "readStart": 798169.1964181251,
+    "received": 798169.362331375,
+    "uptime": 798169.362331375,
+    "verified": true,
+    "windows": [
+      {
+        "framePreserved": true,
+        "frameRequired": true,
+        "home": 4,
+        "homeRequired": true,
+        "number": 121914,
+        "onScreen": true,
+        "pid": 85676,
+        "space": 4,
+        "visibilityMatched": true
+      },
+      {
+        "framePreserved": true,
+        "frameRequired": true,
+        "home": 4,
+        "homeRequired": true,
+        "number": 121916,
+        "onScreen": true,
+        "pid": 85676,
+        "space": 4,
+        "visibilityMatched": true
+      },
+      {
+        "framePreserved": true,
+        "frameRequired": true,
+        "home": 4,
+        "homeRequired": true,
+        "number": 121924,
+        "onScreen": true,
+        "pid": 85682,
+        "space": 4,
+        "visibilityMatched": true
+      }
+    ]
+  },
+  "missionControl": "NOT_RUN",
+  "nativeDesktopReveal": "NOT_RUN",
+  "nativeDesktopSwitch": "NOT_RUN",
+  "nativeFullScreen": "NOT_RUN",
+  "newWindowLifecycle": "NOT_RUN",
+  "nonce": "99a35ffc-6ff3-4924-92b3-fdcafe9efb40",
+  "purpose": "product",
+  "qualificationGranted": false,
+  "r4DispatchStateAtFailure": {
+    "catalogComplete": true,
+    "consentRequestPresent": false,
+    "fresh": true,
+    "groupIssue": "none",
+    "groupLoadIssue": "none",
+    "holdsDispatch": false,
+    "navigationDispatchAvailable": true,
+    "navigationIssue": "none",
+    "revision": 6,
+    "routesGroupChoice": true,
+    "sampleAgeSeconds": 1.2660718333208933,
+    "sampleDurationSeconds": 0.4170566665707156,
+    "snapshotAvailable": true,
+    "targets": [
+      {
+        "groupLifetime": "C3EE97FD-95D1-4972-8FEE-E8EE8BD99925",
+        "number": 121914,
+        "ordinaryLifetime": "C3EE97FD-95D1-4972-8FEE-E8EE8BD99925",
+        "pid": 85676,
+        "visibleGroup": "C35EB67D-8C3E-4476-BC37-C7354192955A",
+        "visibleGroupBound": true,
+        "visibleGroupMembers": 1
+      },
+      {
+        "groupLifetime": "2B8D0EF4-8603-4238-88CA-092D0B774AA9",
+        "number": 121916,
+        "ordinaryLifetime": "2B8D0EF4-8603-4238-88CA-092D0B774AA9",
+        "pid": 85676,
+        "visibleGroup": "98E4A8CA-B0AD-4BF8-BFD4-2787868BD8F0",
+        "visibleGroupBound": true,
+        "visibleGroupMembers": 1
+      },
+      {
+        "groupLifetime": "CC73207F-A314-41F7-A6A9-103EE6650ED6",
+        "number": 121924,
+        "ordinaryLifetime": "CC73207F-A314-41F7-A6A9-103EE6650ED6",
+        "pid": 85682,
+        "visibleGroup": "5D9AF971-8C0F-4A0A-8B8A-A01E21F18C46",
+        "visibleGroupBound": true,
+        "visibleGroupMembers": 1
+      }
+    ]
+  },
+  "r4OpenDisplay": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+  "r4OpenRequested": true,
+  "reason": "realExternalR4ButtonNotAccepted",
+  "reasonBeforeCleanup": "realExternalR4ButtonNotAccepted",
+  "schema": 1,
+  "shutdownReturnReadback": {
+    "confirmed": true,
+    "observations": [
+      {
+        "readEnd": 798168.8811845001,
+        "readStart": 798168.8761980417,
+        "received": 798168.9606486667,
+        "uptime": 798168.9606486667,
+        "windows": [
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121914,
+            "onScreen": true,
+            "pid": 85676,
+            "space": 4,
+            "visibilityMatched": true
+          },
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121916,
+            "onScreen": true,
+            "pid": 85676,
+            "space": 4,
+            "visibilityMatched": true
+          },
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121924,
+            "onScreen": true,
+            "pid": 85682,
+            "space": 4,
+            "visibilityMatched": true
+          }
+        ]
+      },
+      {
+        "readEnd": 798169.2087470001,
+        "readStart": 798169.1964181251,
+        "received": 798169.362331375,
+        "uptime": 798169.362331375,
+        "windows": [
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121914,
+            "onScreen": true,
+            "pid": 85676,
+            "space": 4,
+            "visibilityMatched": true
+          },
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121916,
+            "onScreen": true,
+            "pid": 85676,
+            "space": 4,
+            "visibilityMatched": true
+          },
+          {
+            "framePreserved": true,
+            "frameRequired": true,
+            "home": 4,
+            "homeRequired": true,
+            "number": 121924,
+            "onScreen": true,
+            "pid": 85682,
+            "space": 4,
+            "visibilityMatched": true
+          }
+        ]
+      }
+    ]
+  },
+  "stageWindowShutdown": {
+    "end": 798168.8734257084,
+    "milliseconds": 2.5014999555423856,
+    "released": true,
+    "start": 798168.8709242084
+  },
+  "status": "BLOCKED",
+  "statusBeforeCleanup": "BLOCKED",
+  "windowCloseLifecycle": "NOT_RUN",
+  "windowPreviewMetrics": {
+    "activeStreams": 8,
+    "cacheEntries": 9,
+    "captureRequests": 9,
+    "capturesInFlight": 0,
+    "chargedPixelBytes": 7824896,
+    "deliveredFrames": 88,
+    "gallerySessions": 1,
+    "visibleDisplays": 1,
+    "windowManagementBusy": false
+  },
+  "yellowButtonRouting": "NOT_RUN"
+}
