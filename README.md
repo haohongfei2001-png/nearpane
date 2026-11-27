@@ -1,3 +1,5 @@
+> **2026-11-28 现行产品权威：** [产品宪章与统一规格](PRODUCT_CONSTITUTION.md) · [开发规则](AGENTS.md)。下方此前版本的说明仅反映旧状态，尤其模块等级、比例、空间路线、默认组合与发行策略以新宪章为准。
+
 # Nearpane
 
 **当前开发：独立台前调度替代。** Nearpane 通过真实隐藏 Space 调度工作组，以 R4 平放缩略图提供唯一台前调度界面。产品与技术采用[唯一现行裁决](engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md)，[实现与验证入口](engineering/verification/independent-stage/README.md)分别记录代码、候选及真实系统证据。独立候选与日常安装使用不同的应用身份和资料目录。

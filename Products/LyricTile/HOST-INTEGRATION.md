@@ -1,3 +1,5 @@
+> **2026-11-28 产品规则更新：** [产品宪章](../../PRODUCT_CONSTITUTION.md) 优先。LyricTile 是平等、可按需下载/启停的 Nearpane 模块；暂停保持卡片及控制，退出播放器才撤下，所有管理功能走唯一主窗口。下文是早期集成候选记录，不等于新目标已完成。
+
 # Nearpane bundled lyrics domain
 
 Lyrics baseline: signed build 49, `b95b6f5ed7680cbde1427a4ed1a904bd5875e17b`.

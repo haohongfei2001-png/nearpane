@@ -1,3 +1,6 @@
+> **2026-11-28 权威范围更新 — ARCHIVED / 已废止。Native/Virtual 双模式及相应创建、删除、迁移系统 Space 的旧产品路线不再执行；原生桌面手势和系统身份保持，Spaces 模块使用现行独立台前调度路线。**
+> 现行最高产品规则见 [Nearpane 产品宪章](../PRODUCT_CONSTITUTION.md)。下方原文保留用于追溯，不得复活与宪章相抵触的规定。
+
 # ADR-010 — 原生 Spaces / Nearpane Workspaces 双模式
 
 **状态：ACCEPTED（产品决定）；工程尚未实现或完成验证**  
