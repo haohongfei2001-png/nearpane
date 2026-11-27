@@ -1,5 +1,7 @@
 # Nearpane
 
+> **现行产品权威（2026-11-28 所有者裁决）：** [产品宪章与统一规格](PRODUCT_CONSTITUTION.md) · [开发规则](AGENTS.md)。以下原 README 中的产品描述、默认模块、尺寸和功能状态仅供了解此前版本；有冲突时以宪章为准。官网和安装包不因文档更新而改变。
+
 **A persistent, modular interaction layer for the Mac desktop.**
 
 Nearpane brings real macOS Spaces, windows, and displays together with two first-party always-on capabilities — Saytile voice input and Riftlet screenshot capture — plus user-configurable modules such as an AI assistant, notes, tasks, calendar, clock, and weather.
