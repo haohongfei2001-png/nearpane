@@ -1,0 +1,69 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : -25200,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "issued" : false,
+  "nonce" : "99a35ffc-6ff3-4924-92b3-fdcafe9efb40",
+  "panelFrame" : [
+    1230,
+    33,
+    240,
+    923
+  ],
+  "physicalPointerGesture" : false,
+  "prePressRediscoveries" : 0,
+  "qualificationGranted" : false,
+  "reason" : "panelIdentityOrVisibilityUnconfirmed",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "tree" : {
+    "complete" : false,
+    "matchingButtons" : 0,
+    "nodes" : [
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXWindow",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXScrollArea",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 0,
+        "batchRead" : -25204,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25204,
+        "role" : "unknown",
+        "roleRead" : -25204
+      },
+      {
+        "batchFieldCount" : 0,
+        "batchRead" : -25204,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25204,
+        "role" : "unknown",
+        "roleRead" : -25204
+      }
+    ],
+    "visited" : 5
+  },
+  "uptime" : 798168.70559979172,
+  "windowListRead" : -25204
+}

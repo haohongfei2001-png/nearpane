@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through c64bf6d5, 2026-11-28
+#### R4 latency work through 60cf3219, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -283,7 +283,7 @@ probe demonstrates the concrete path mismatch: `proc_pidpath` reports
 inode. The old controller compares those raw strings before its signature check.
 [Target c64 results and the path probe](../verification/independent-stage/target-c64-runtime/README.md).
 
-The next correction carries the Host's already captured executable device/inode
+`60cf3219` carries the Host's already captured executable device/inode
 into the R4 request. The R4-only verifier compares both canonical paths and those
 fixed file identities; direct parent, process birth, live/disk signatures, the
 acceptance marker and single-press deadline remain required. Its actual C
@@ -291,7 +291,60 @@ comparator passes13 filesystem cases on both the local executor and the target
 Mac, including path aliases, redirection and replaced-file rejection. This does
 not upgrade the old zero-input trial. Cached failure labels also distinguish the
 existing witness, original-window reader and management checks, preserving their
-short-circuit order and native query count. New full native validation is pending.
+short-circuit order and native query count. The target complete release build
+(225.321 seconds), package and strict/deep signature pass. Cloud source passes
+180 Rust and225 Swift cases with one explicit skip; the added C comparator
+build and self-test exit successfully.
+
+The60cf fast product issues one real R4 input but confirms no switch. Its
+3,726.860 ms initial directory preparation includes804.559 ms waiting for the
+older read. After a session is created, the signed-Dock observation expires and
+revokes its Host revision and navigation intent. The next ordinary Dock result
+cannot revive that old intent. The initial binding stage therefore rejects before
+a backend launch; this is not evidence that `StageHostWindow.bind` itself failed.
+Product and CI workspace cleanup both pass. The periodic Dock poll still starts
+from an implicit-priority Timer task, independently of the navigation job's
+explicit user-initiated priority. A pending-request timestamp must not be joined
+to an unrelated later physical sample to infer a single request's queue delay.
+[Exact60cf cloud evidence](../verification/independent-stage/cloud-60cf3219-latency/README.md).
+
+On the target, a new60cf release run without Host sampling passes the corrected
+parent/file identity boundary but remains BLOCKED before input: the external AX
+tree becomes unreadable and the last window-list read returns AXCannotComplete.
+The retained tree diagnostic is from an earlier traversal, not proof that the
+panel disappeared. A subsequent, separately identified diagnostic run of the same
+release binary with the existing sampling enabled issues one successful actual
+AXPress. Its first directory preparation takes508.944 ms; the first physical
+rebinding read then throws after40.141 ms, with total preparation563.380 ms.
+The raw failure is `stagePhysicalReadRejected / final-continuity`. Its error type
+places the failure after the focus check, within original number, forward Space
+membership, raw inventory equality or native Stage Manager state; the current
+receipt does not distinguish those four checks. No witness/backend launch or HIDE
+is reached. All three original windows remain visible at home4 and exact target
+focus is not confirmed. Both target runs independently confirm product/engine
+cleanup, fixture exit and preservation of the original desktop, foreground and
+preferences. Their direct engines fail the later yellow-button case, separately
+from these R4 results.
+[Target60cf without sampling](../verification/independent-stage/target-60cf-runtime/README.md).
+[Separate target60cf diagnostic](../verification/independent-stage/target-60cf-diagnostic/README.md).
+
+The next narrow scheduling correction gives only the existing periodic Dock poll
+user-initiated priority while navigation is dispatching, preserving its idle
+priority, read cadence,750 ms bound and revocation semantics. Per-request timing
+will distinguish creation, actual task start and the same request's physical
+return. The physical reader's final continuity checks also receive cached,
+short-circuit failure labels without additional native reads or weaker proofs.
+The60cf full release runtime, with sampling disabled, issues one real R4 input.
+It positively confirms exact target54 focus and the first sibling56 hidden in
+Space34 with `onScreen=false`; sibling57 is still visible at home12 at the final
+readback. Thus the complete switch still fails the unchanged eight-second bound.
+All11 witness reads complete; the last is the fresh read preceding the second
+sibling HIDE and finishes after shutdown has already begun, so the following
+interruption must not be described as an earlier failed witness. Preparation
+takes1,912.256 ms and the initial witness2,518.362 ms, while subsequent witnesses
+are much shorter. The direct engine passes26 requests, and Host double physical
+return and outer CI workspace cleanup both pass. The new source comparator's
+original stdout confirms13 PASS, zero failures and zero window writes.
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state

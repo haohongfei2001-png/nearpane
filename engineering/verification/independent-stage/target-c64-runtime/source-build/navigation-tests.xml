@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="26" failures="0" skipped="0" time="0.204132125">
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="interveningQueuedMoveCannotResurrectAnOlderStageSelection()" time="0.109411083" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime()" time="0.111637" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="rejectedAndAutomaticJobsDoNotBeginUserActivities()" time="0.112420083" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="replacedAndClearedActivitiesEndWithoutEndingRunningWork()" time="0.11270775" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="thumbnailDispatchWaitDoesNotRenewAnExpiredFirstFrameOrRetiredCapture()" time="0.202918916" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="revocationCancelsOnlyFutureGestureSteps()" time="0.109570125" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation()" time="0.109502084" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent()" time="0.1100495" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain()" time="0.202731" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="subsequentSelectionCannotDiscardQueuedMove()" time="0.109839333" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="thumbnailDispatchWaitCanBeCancelledWithoutWaitingForTheWindowAction()" time="0.112863958" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="draggingALiveMemberOutDetachesOnlyOnReleaseInTheSameWorkspace()" time="0.110973417" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology()" time="0.109695125" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries()" time="0.111455417" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="utilitySubmissionKeepsUserActionPriorityAcrossSuspension()" time="0.112767166" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused()" time="0.112493584" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch()" time="0.111429833" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose()" time="0.110800833" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="observerCompletionHoldsOutliveOnlyTheirRunningUserJob()" time="0.112668" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow()" time="0.109299625" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="userActivityBeginsBeforePreparationAndEndsAfterWorkReturns()" time="0.112292625" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="skippedUnconfirmedAndThrowingJobsEachEndTheirAcceptedActivity()" time="0.112594208" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="groupNameReadCannotCommitAcrossASidebarIntentOrOwnershipLoss()" time="0.102218167" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="onlyANewerGroupChoiceInTheOriginalOwnershipEpochMayTakeOver()" time="0.102738084" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="overlappingLiveMembersDragAndSelectOnlyTheFrontWindowInOneGroupSnapshot()" time="0.109300583" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="externalActivationRetiresOnlyThePendingCrossSpaceFocus()" time="0.1109365" />
+  </testsuite>
+</testsuites>

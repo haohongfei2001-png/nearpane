@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "sourceRevision": "60cf3219901c6997db400a1d08e143ddd011d0a0",
+  "startedUTC": "2026-11-27T17:40:27.356462+00:00",
+  "preferenceWrites": 0,
+  "desktopNavigationInputs": 0,
+  "hostSampling": "enabledDiagnostics",
+  "runtimeStarted": true,
+  "exactSource": true,
+  "checkoutClean": true,
+  "originalCurrent": [
+    {
+      "current": 1,
+      "id": 4,
+      "type": 0
+    }
+  ],
+  "originalFront": {
+    "birth": 1795797428268564,
+    "pid": 75829
+  },
+  "originalPreferences": {
+    "AutoHide": false,
+    "GloballyEnabled": false,
+    "LeftStripMaximumRowCount": null
+  },
+  "originalEffectiveNativeEnabled": false,
+  "hidBefore": {
+    "counts": [
+      19934,
+      19934,
+      181,
+      181,
+      0,
+      0,
+      2364191,
+      57160,
+      53,
+      0,
+      11115,
+      11115,
+      585,
+      631132
+    ],
+    "pressed": false,
+    "secure": false
+  },
+  "competingTestOrEngineProcesses": [],
+  "runtimeExit": 1,
+  "runtimeDurationSeconds": 68.71251108392607,
+  "hidAfter": {
+    "counts": [
+      19934,
+      19934,
+      181,
+      181,
+      0,
+      0,
+      2364191,
+      57160,
+      53,
+      0,
+      11115,
+      11115,
+      585,
+      631132
+    ],
+    "pressed": false,
+    "secure": false
+  },
+  "cleanupConfirmed": true,
+  "newHardwareInput": false,
+  "engine": {
+    "status": "FAIL",
+    "reason": "yellowButtonFailed",
+    "cleanup": true,
+    "requests": null
+  },
+  "product": {
+    "status": "FAIL",
+    "reason": "R4SwitchReadbackFailed",
+    "cleanup": true,
+    "actualR4Inputs": 1
+  },
+  "fixtureCleanup": [
+    {
+      "command": "ownedWindowQuit",
+      "exit": 0
+    },
+    {
+      "command": "ownedWindowQuit",
+      "exit": 0
+    }
+  ],
+  "foregroundRestoreRequested": false,
+  "finalFront": {
+    "birth": 1795797428268564,
+    "pid": 75829
+  },
+  "originalForegroundPreserved": true,
+  "finalPreferences": {
+    "AutoHide": false,
+    "GloballyEnabled": false,
+    "LeftStripMaximumRowCount": null
+  },
+  "preferencesUnchanged": true,
+  "finalCurrent": [
+    {
+      "current": 1,
+      "id": 4,
+      "type": 0
+    }
+  ],
+  "originalDesktopPreserved": true,
+  "finishedUTC": "2026-11-27T17:41:37.550646+00:00",
+  "status": "UNKNOWN"
+}
