@@ -9,8 +9,10 @@
             func settle(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
             for language in ["zh", "en"] {
                 if language == "en" {
-                    model.perform(.play)
-                    _ = await wait { model.snapshot.state == .playing && !model.isPerformingCommand }
+                    let relaunched = await FilmCaptureSupport.restartOriginalMusicPlaylist(script: directory.appendingPathComponent("music-select-first.applescript"))
+                    let restoredFirst = await wait(15) { model.snapshot.state == .playing && model.snapshot.selection?.recording.title == title && !model.isPerformingCommand }
+                    await record("film-real-music-relaunch-original-playlist", relaunched && restoredFirst)
+                    guard relaunched && restoredFirst else { return finish(false) }
                     model.perform(.next)
                     let selected = await wait { model.snapshot.selection?.recording.title == nextTitle && !model.isPerformingCommand }
                     let confirmed = await commandConfirmed("next")
@@ -67,14 +69,17 @@
                     let playReadback = await commandConfirmed("play")
                     await record("film-" + language + "-native-resume-readback", playPosted && resumed && playReadback)
                     await settle(0.5)
-                    let finalPause = await input("pause")
-                    let finalPaused = await wait { model.snapshot.state == .paused && !model.isPerformingCommand }
                     let leavePosted = await input("leave")
+                    let leftWhilePlaying = await wait { !model.controlsVisible && !model.panelInteractionActive && model.snapshot.state == .playing }
+                    await settle(0.35)
+                    let musicApplication = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").first
+                    let quitPosted = musicApplication?.terminate() == true
+                    let playerExited = await wait { NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty }
                     let withdrawn = await wait { !panel.panel.isVisible && !model.controlsVisible }
-                    await record("film-" + language + "-native-paused-withdrawal", finalPause && finalPaused && leavePosted && withdrawn)
+                    await record("film-" + language + "-actual-player-exit-withdrawal", leavePosted && leftWhilePlaying && quitPosted && playerExited && withdrawn)
                     let recordedControls = await FilmCaptureSupport.finishScreenTake(controlsTake)
                     await record("film-" + language + "-controls-windowserver", recordedControls)
-                    pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && finalPause && finalPaused && leavePosted && withdrawn
+                    pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && leavePosted && leftWhilePlaying && quitPosted && playerExited && withdrawn
                     // A failed interaction remains a failure, but preserve the other language
                     // in this same bounded run instead of discarding independent source footage.
                 } catch {

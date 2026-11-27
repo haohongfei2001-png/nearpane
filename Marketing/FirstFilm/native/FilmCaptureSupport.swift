@@ -31,6 +31,30 @@ enum FilmCaptureSupport {
     static var originalOnly: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_ORIGINAL_ONLY"] == "1" }
     static var normalMotionRequested: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_NORMAL_MOTION"] == "1" }
     private static var normalMotionEnvironmentOverride = false
+    static func effectiveReduceMotion(_ actualEnvironmentValue: Bool) -> Bool {
+        // accessibilityReduceMotion is read-only. This film-only input shim is
+        // used only if the isolated runner keeps its reduced-motion environment.
+        let override = normalMotionRequested && actualEnvironmentValue
+        if override { normalMotionEnvironmentOverride = true }
+        return override ? false : actualEnvironmentValue
+    }
+    static func restartOriginalMusicPlaylist(script: URL) async -> Bool {
+        guard let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music"),
+              FileManager.default.fileExists(atPath: script.path) else { return false }
+        let configuration = NSWorkspace.OpenConfiguration(); configuration.activates = false
+        guard (try? await NSWorkspace.shared.openApplication(at: app, configuration: configuration)) != nil else { return false }
+        try? await Task.sleep(for: .milliseconds(500))
+        let process = Process(); process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = [script.path]; process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() } catch { return false }
+        let deadline = ProcessInfo.processInfo.systemUptime + 15
+        while process.isRunning && ProcessInfo.processInfo.systemUptime < deadline {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        if process.isRunning { process.terminate(); return false }
+        return process.terminationStatus == 0
+    }
     private static var activeTakeName: String?
     private static var motionGates: [String: [[String: Any]]] = [:]
     static var windowServerEnabled: Bool { ProcessInfo.processInfo.environment["LYRICTILE_FILM_WINDOWSERVER"] == "1" }
@@ -91,9 +115,7 @@ enum FilmCaptureSupport {
         panel.contentView = nil
         try? await Task.sleep(for: .milliseconds(200))
         let root = LyricPanelView(model: model).frame(width: 208, height: 192)
-        normalMotionEnvironmentOverride = normalMotionRequested && NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        let content = normalMotionEnvironmentOverride
-            ? AnyView(root.environment(\.accessibilityReduceMotion, false)) : AnyView(root)
+        let content = AnyView(root)
         let view = NSHostingView(rootView: content)
         view.frame = NSRect(x: 0, y: 0, width: 208, height: 192)
         photographyFrame = frame
@@ -112,7 +134,7 @@ enum FilmCaptureSupport {
                 "displayID": (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value as Any? ?? NSNull(),
                 "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
                 "normalMotionRequested": normalMotionRequested,
-                "normalMotionHostingOverrideApplied": normalMotionEnvironmentOverride,
+                "normalMotionCaptureInputOverrideApplied": normalMotionEnvironmentOverride,
                 "sourceWindowGeometryChangedForPhotography": true,
                 "viewScaleEffect": false, "forcedDisplayScale": false,
                 "offscreenProductionViews": 0]
@@ -132,13 +154,14 @@ enum FilmCaptureSupport {
         panel.orderFrontRegardless(); probeControl = panel
     }
     static func recordMotionGate(previous: Int?, current: Int?, selectionStable: Bool,
-        reduceMotion: Bool, controls: Bool, browsing: Bool, seeking: Bool,
+        reduceMotion: Bool, actualReduceMotionEnvironment: Bool, controls: Bool, browsing: Bool, seeking: Bool,
         performing: Bool, playing: Bool, flows: Bool) {
         guard let name = activeTakeName else { return }
         motionGates[name,default:[]].append([
             "hostUptime": ProcessInfo.processInfo.systemUptime,
             "previousIndex": previous as Any? ?? NSNull(), "currentIndex": current as Any? ?? NSNull(),
-            "selectionStable": selectionStable, "reduceMotionEnvironment": reduceMotion,
+            "selectionStable": selectionStable, "reduceMotionEnvironment": actualReduceMotionEnvironment,
+            "effectiveReduceMotionInput": reduceMotion, "normalMotionInputShimApplied": normalMotionRequested && actualReduceMotionEnvironment,
             "controlsVisible": controls, "browsing": browsing, "seeking": seeking,
             "performingCommand": performing, "playing": playing, "flowsUpward": flows,
             "stableTransitionCandidate": useStableCueTransition])
@@ -295,8 +318,9 @@ enum FilmCaptureSupport {
             "motionGateTrace": motionGates[take.name] ?? [],
             "reduceMotionSystemPreference": NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
                 "normalMotionRequested": normalMotionRequested,
-                "normalMotionHostingOverrideApplied": normalMotionEnvironmentOverride,
+                "normalMotionCaptureInputOverrideApplied": normalMotionEnvironmentOverride,
             "sourceWindowGeometryChanged": true,
+            "withdrawalTrigger": "actual Music process exit after resumed playback and pointer departure; never pause-hide",
             "inputTarget": "The sole production LyricPanelView inside the original controller window, framed at 208x192 logical points on the native display; real CGEvent and fresh AX hit testing",
             "source": "Actual Music playing original local audio; original LRC imported through production repository. No synthetic playback clock and no bitmap animation.",
             "limitations": "Original controller window has film-only framing and its sole production view uses actual display backing resolution. No mirrored views or cacheDisplay motion. Fullscreen MOV is primary evidence; sampled state timestamps are not frame-perfect media timestamps. Stable-transition candidate removes only cueTransition guard in the temporary capture copy and is unreleased until independently accepted.",
