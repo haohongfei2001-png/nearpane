@@ -11,10 +11,10 @@ public enum LyricRepositoryError: Error, LocalizedError, Sendable {
     case storageUnavailable, corruptIndex, corruptDocument, invalidAdjustment
     public var errorDescription: String? {
         switch self {
-        case .storageUnavailable: "歌词存储暂时不可用。"
-        case .corruptIndex: "歌词索引无法读取，原始绑定文件仍已保留。"
-        case .corruptDocument: "已保存的歌词文件无法读取。"
-        case .invalidAdjustment: "歌词校准必须在提前或延后 10 秒以内。"
+        case .storageUnavailable: LyricLocalization.text("歌词存储暂时不可用。", "Lyric storage is temporarily unavailable.")
+        case .corruptIndex: LyricLocalization.text("歌词索引无法读取，原始绑定文件仍已保留。", "The lyric index could not be read. Your original saved lyric files are still kept.")
+        case .corruptDocument: LyricLocalization.text("已保存的歌词文件无法读取。", "The saved lyric file could not be read.")
+        case .invalidAdjustment: LyricLocalization.text("歌词校准必须在提前或延后 10 秒以内。", "Lyric timing can be adjusted by up to 10 seconds earlier or later.")
         }
     }
 }

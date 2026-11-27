@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Disposable macOS runner: real Music playback, ordinary app, original media.
 
-This does not change TCC, log into an account, fetch copyrighted recordings, or
-substitute snapshots. BLOCKED remains distinct from a real application failure.
+This never edits TCC databases, logs into an account, fetches copyrighted music,
+or substitutes snapshots. A CI-only helper can press narrowly observed native
+Music controls using existing Accessibility access. All actions are recorded.
 """
 import argparse
 import hashlib
@@ -17,13 +18,14 @@ import subprocess
 import time
 import wave
 from pathlib import Path
+from cloud_ui import start_cloud_ui, stop_cloud_ui
 
 p = argparse.ArgumentParser()
 p.add_argument('app', type=Path)
 p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
-if os.environ.get('GITHUB_ACTIONS') != 'true' or platform.system() != 'Darwin':
-    p.error('Only run on a disposable GitHub Actions macOS host.')
+if os.environ.get('GITHUB_ACTIONS') != 'true' or platform.system() != 'Darwin' or not os.environ.get('RUNNER_TEMP'):
+    p.error('Only run on a disposable GitHub Actions macOS host with RUNNER_TEMP.')
 out = a.output.resolve()
 out.mkdir(parents=True, exist_ok=True)
 fixture_path = Path(__file__).resolve().parent.parent/'Tests/Fixtures/CloudAcceptance.json'
@@ -33,6 +35,7 @@ title = fixture['title']
 audio = out / 'original-chimes.wav'
 lyrics = out / 'original-lyrics.lrc'
 process = None
+permission_helper = None
 music_app = Path('/System/Applications/Music.app')
 music_baseline_pids = set()
 music_launch_attempted = False
@@ -128,6 +131,9 @@ try:
             'musicEnvironment':initial,'reason':'The system Music app did not start on this host.',
             'realPlayerTestStarted':False})
         raise SystemExit(0)
+    # CI39 captured the actual Automation prompt and Music welcome page. Use
+    # only an already-trusted AX connection and exact freshly read controls.
+    permission_helper = start_cloud_ui(out/'setup-ui', 'music', seconds=40)
     stage = 'Music AppleScript import and play'
     setup = apple('''tell application "Music"
         set sound volume to 0
@@ -140,6 +146,7 @@ try:
         delay 2
         return (name of current track) & " | " & (player state as string) & " | " & (player position as string)
     end tell''')
+    save('setup-permission-ui.json', stop_cloud_ui(permission_helper)); permission_helper = None
     (out / 'music-setup.log').write_text(setup.stdout + setup.stderr)
     if setup.returncode or title not in setup.stdout or 'playing' not in setup.stdout:
         environment = music_environment('music-setup-failure')
@@ -157,9 +164,13 @@ try:
     process = subprocess.Popen([str(a.app.resolve()/'Contents/MacOS/LyricTile'),'--verify-native-player',
         '--verification-output',str(out),'--verification-lyrics',str(lyrics),'--verification-title',title,
         '--verification-hold-seconds','75'],stdout=stdout,stderr=stderr,start_new_session=True)
+    permission_helper = start_cloud_ui(out/'app-ui', 'music', seconds=115)
     deadline = time.monotonic()+110
     while process.poll() is None and not (out/'native-player-ready.json').exists() and time.monotonic()<deadline:
         time.sleep(.5)
+    # Stop AX traversal before performance sampling; helper CPU is not part of
+    # the ordinary production workload and must not obscure resource evidence.
+    save('app-permission-ui.json', stop_cloud_ui(permission_helper)); permission_helper = None
     if (out/'native-player-ready.json').exists() and process.poll() is None:
         save('cloud-desktop-capture.json',capture_desktop('real-music-cloud-desktop','before runtime sampling'))
         stage = 'runtime measurement'
@@ -199,6 +210,8 @@ except subprocess.TimeoutExpired as e:
     if process is not None:
         raise SystemExit(1)
 finally:
+    if permission_helper:
+        save('unfinished-permission-ui.json', stop_cloud_ui(permission_helper))
     if process and process.poll() is None:
         os.killpg(process.pid,signal.SIGTERM)
         try: process.wait(timeout=5)

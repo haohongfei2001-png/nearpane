@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "version": "1.0.0",
+  "runID": null,
+  "sourceCommit": null,
+  "build": null,
+  "artifactName": null,
+  "note": "Enable only after the final native run succeeds. Pin that run ID, exact 40-character source SHA, run/build number, and LyricTile-candidate-N artifact. This prepares an unsigned engineering draft only."
+}

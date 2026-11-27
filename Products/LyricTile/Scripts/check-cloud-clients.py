@@ -3,6 +3,8 @@
 
 Uses original audio supplied by the caller and the packaged production adapter.
 No account, TCC database, preference, entitlement, or licence dialog is changed.
+The observed optional QQ Media Library prompt may be declined through existing
+Accessibility access; every native action and trust check is preserved.
 A downloaded/started client is never counted as successful playback support.
 """
 from __future__ import annotations
@@ -24,6 +26,7 @@ import time
 import urllib.parse
 import urllib.request
 import wave
+from cloud_ui import start_cloud_ui, stop_cloud_ui
 
 QQ_ENDPOINT = 'https://y.qq.com/download/download.js'
 NETEASE_ENDPOINT = 'https://music.163.com/api/mac/package/download/latest?arch=arm64&productName=music'
@@ -191,11 +194,93 @@ def observed_audio(directory: Path, player: str, bundle_id: str, expected_titles
                 matched.append(event)
     positions = [row['anchor']['positionMS'] for row in matched if row.get('state') == 'playing'
                  and isinstance((row.get('anchor') or {}).get('positionMS'), (int, float))]
+    anchors = {(row['anchor'].get('positionMS'), row['anchor'].get('observedUptimeNanoseconds'))
+               for row in matched if row.get('state') == 'playing' and row.get('anchor')}
     advancing = len(positions) >= 2 and max(positions) - min(positions) >= 500
     return dict(eventCount=total, matchedOriginalAudioSnapshots=len(matched),
                 matchedPlayingPositions=len(positions), positionAdvanced=advancing,
+                distinctSourceAnchors=len(anchors),
+                minimumPositionMS=min(positions) if positions else None,
+                maximumPositionMS=max(positions) if positions else None,
+                positionAssessment='Only source anchors are compared; no time is added by this verifier.',
                 observedTitles=sorted({(row.get('selection') or {}).get('recording', {}).get('title') for row in matched}),
                 requiresAuthorization=authorized, source='production adapter events.ndjson')
+
+
+def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directory: Path):
+    """Run the ordinary production app only after independently observed playback."""
+    directory.mkdir(parents=True, exist_ok=True)
+    lyrics = audio.parent/'original-lyrics.lrc'
+    if not lyrics.is_file():
+        return {'status':'FAIL','reason':'The caller-supplied original local LRC is missing.'}
+    settings = dict(appearance='light',largeText=False,showTranslation=False,onlineLyrics=False,
+        hideWhenIdle=True,showInFullScreen=False,coordinateTiles=True,preferredPlayer=player,completedWelcome=True)
+    subprocess.run(['/usr/bin/defaults','write','com.holdsnow.lyrictile','LyricTile.settings.v1','-data',
+        json.dumps(settings).encode().hex()],check=True,capture_output=True,timeout=10)
+    process = None
+    try:
+        with (directory/'ordinary-app.log').open('w') as stream:
+            process = subprocess.Popen([str(app/'Contents/MacOS/LyricTile'),'--verify-native-player',
+                '--verification-player',player,'--verification-title',title,
+                '--verification-lyrics',str(lyrics),'--verification-output',str(directory),
+                '--verification-hold-seconds','75'],stdout=stream,stderr=stream,start_new_session=True)
+        deadline = time.monotonic()+100
+        ready = directory/'native-player-ready.json'
+        while process.poll() is None and not ready.exists() and time.monotonic()<deadline:
+            time.sleep(.5)
+        if ready.exists() and process.poll() is None:
+            capture_desktop(directory,'ordinary-app-desktop')
+            measurement = command(['python3',str(Path(__file__).with_name('measure-runtime.py')),
+                '--pid',str(process.pid),'--seconds','60','--mode','line','--output',str(directory/'performance')],
+                timeout=85,log=directory/'performance-command.json')
+        else:
+            measurement = None
+        try:
+            process.wait(timeout=90)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid,signal.SIGTERM)
+            try: process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid,signal.SIGKILL); process.wait(timeout=5)
+            return {'status':'FAIL','reason':'The ordinary native app verification timed out.'}
+        report_path = directory/'native-player.json'
+        result = json.loads(report_path.read_text()) if report_path.exists() else {
+            'status':'FAIL','reason':'The ordinary native app exited without its verification report.'}
+        if process.returncode != 0 and result.get('status') != 'BLOCKED':
+            result.update(status='FAIL',processExitCode=process.returncode)
+        result['runtimeMeasurementStarted'] = measurement is not None
+        if measurement is not None:
+            result['runtimeMeasurementExitCode'] = measurement['exitCode']
+            if measurement['exitCode'] != 0:
+                result.update(status='FAIL',runtimeMeasurementError='Runtime sampling did not complete.')
+        save(directory/'ordinary-app-result.json',result)
+        return result
+    except Exception as error:
+        result = {'status':'FAIL','reason':f'{type(error).__name__}: {error}'}
+        save(directory/'ordinary-app-result.json',result)
+        return result
+    finally:
+        # Cleanup must not overwrite a real native FAIL with the outer client's
+        # environmental BLOCKED classification (or hide a completed result).
+        cleanup = {}
+        try:
+            if process is not None and process.poll() is None:
+                os.killpg(process.pid,signal.SIGTERM)
+                try: process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid,signal.SIGKILL); process.wait(timeout=5)
+        except ProcessLookupError:
+            pass
+        except Exception as error:
+            cleanup['processError'] = f'{type(error).__name__}: {error}'
+        try:
+            removed = subprocess.run(['/usr/bin/defaults','delete','com.holdsnow.lyrictile','LyricTile.settings.v1'],
+                capture_output=True,text=True,timeout=10)
+            cleanup.update(preferenceExitCode=removed.returncode, preferenceStderr=removed.stderr)
+        except Exception as error:
+            cleanup['preferenceError'] = f'{type(error).__name__}: {error}'
+        try: save(directory/'ordinary-app-cleanup.json',cleanup)
+        except OSError: pass
 
 
 def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Path, expected_titles, duration_ms):
@@ -206,9 +291,10 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
     install = work / 'Applications'
     install.mkdir()
     mounted = False
+    permission_helper = None
     report = dict(player=client['player'], status='NOT_RUN', scope='official client and production-adapter observation',
                   metadataEndpoint=client['endpoint'], expectedBundleID=client['bundleID'],
-                  accountUsed=False, TCCModified=False, protocolsAccepted=False,
+                  accountUsed=False, TCCDatabaseModified=False, protocolsAccepted=False,
                   completePlayerQualification=False, nativeLyricUIQualification='NOT_RUN',
                   transportQualification='NOT_RUN', stage='metadata')
     try:
@@ -264,6 +350,8 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
             report['status'] = 'BLOCKED'
             return report
         report['stage'] = 'ordinary open-file launch'
+        permission_helper = start_cloud_ui(directory/'permission-ui',
+            'qqMusic' if client['player'] == 'qqMusic' else 'inspect', seconds=40)
         launch = command(['/usr/bin/open', '-a', str(target), str(audio)], timeout=15, log=directory/'launch.json')
         report['launchRequestAccepted'] = launch['exitCode'] == 0
         time.sleep(6)
@@ -275,8 +363,9 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
         report['stage'] = 'production adapter observation'
         observation_dir = directory/'adapter'
         diagnostic = command([str(app/'Contents/MacOS/LyricTile'), '--diagnostics', '--player', client['player'],
-                              '--seconds', '12', '--output', str(observation_dir)],
-                             timeout=25, log=directory/'diagnostic-command.json')
+                              '--seconds', '24', '--output', str(observation_dir)],
+                             timeout=38, log=directory/'diagnostic-command.json')
+        report['permissionUI'] = stop_cloud_ui(permission_helper); permission_helper = None
         report['diagnosticExitCode'] = diagnostic['exitCode']
         report['diagnosticTimedOut'] = diagnostic['timedOut']
         report['observation'] = observed_audio(observation_dir, client['player'], client['bundleID'], expected_titles, duration_ms)
@@ -288,10 +377,25 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
         report['reason'] = ('The real player exposed the supplied original recording and advancing position.'
             if report['status'] == 'PARTIAL' else 'No confirmed advancing playback of the supplied original audio. Review the actual first-launch screenshot and adapter evidence.')
         capture_desktop(directory, 'native-desktop-after-observation')
+        if client['player'] == 'qqMusic' and report['status'] == 'PARTIAL':
+            report['stage'] = 'ordinary native app, local import and real controls'
+            native = verify_ordinary_app(app,audio,client['player'],report['observation']['observedTitles'][0],directory/'native-player')
+            report['ordinaryAppVerification'] = native
+            report['nativeLyricUIQualification'] = native.get('status','FAIL')
+            report['transportQualification'] = native.get('status','FAIL')
+            if native.get('status') == 'PASS':
+                report.update(status='PASS_LOCAL_CORE',localPlaybackQualification='PASS',
+                    reason='The ordinary app passed real local audio detection, local LRC import, panel visibility, seek, pause and resume. No account, commercial-catalog, independent word accuracy or physical mouse qualification.')
+            elif native.get('status') == 'FAIL':
+                report.update(status='FAIL',reason='The production app failed a real local playback or control check; inspect native-player evidence.')
+            else:
+                report['reason'] = 'Real playback was observed, but the ordinary app needs additional authorization.'
         report['stage'] = 'completed'
     except Exception as error:
         report.update(status='BLOCKED', error=f'{type(error).__name__}: {error}')
     finally:
+        if permission_helper:
+            report['permissionUI'] = stop_cloud_ui(permission_helper)
         report['cleanup'] = stop_own_processes(install)
         if mounted:
             detach = command(['/usr/bin/hdiutil', 'detach', str(mount)], timeout=15, log=directory/'unmount.json')
@@ -332,10 +436,12 @@ def main():
                             'https://support.spotify.com/us/article/local-files/'], completePlayerQualification=False)
     report = dict(host=platform.platform(), sourceAudioSHA256=hashlib.sha256(audio.read_bytes()).hexdigest(),
                   sourceAudioDurationMS=duration_ms, clients=results+[spotify],
-                  realPlayerObservationOnly=True, credentialsUsed=False,
+                  realPlayerObservationOnly=not any('ordinaryAppVerification' in item for item in results), credentialsUsed=False,
                   allPlayersSupported=False, releaseGate=False)
     save(output/'cloud-clients.json', report)
     print(json.dumps({'clients':[{key:item.get(key) for key in ['player','status','stage','reason']} for item in results+[spotify]]}, ensure_ascii=False))
+    if any(item.get('status') == 'FAIL' for item in results):
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':

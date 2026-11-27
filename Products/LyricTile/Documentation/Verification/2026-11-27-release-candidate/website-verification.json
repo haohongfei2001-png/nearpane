@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "scope": "public cloud browser and static site validation; not native application/player acceptance",
+  "websiteCommit": "7e0b2f836407ecb0182a794c9b431ae3ac0922f1",
+  "deploymentRun": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45985251945",
+  "deploymentConclusion": "success",
+  "date": "2026-11-27",
+  "browser": "cloud Chrome",
+  "viewportCSSPixels": {
+    "width": 1363,
+    "height": 936
+  },
+  "documentWidthCSSPixels": 1348,
+  "pagesObserved": [
+    "https://nearpane.com/lyrictile/",
+    "https://nearpane.com/lyrictile/en/",
+    "https://nearpane.com/lyrictile/help.html",
+    "https://nearpane.com/lyrictile/en/help.html",
+    "https://nearpane.com/lyrictile/privacy.html",
+    "https://nearpane.com/lyrictile/en/privacy.html"
+  ],
+  "checks": {
+    "chineseEnglishNavigation": "PASS",
+    "downloadAnchor": "PASS",
+    "allProductImagesLoaded": "PASS",
+    "noHorizontalOverflowAtObservedViewport": "PASS",
+    "releaseManifestApplied": "PASS",
+    "candidateBranchLink": "PASS",
+    "candidateStateDisclosed": "PASS",
+    "oldBuild4NotOfferedAsCurrent": "PASS",
+    "helpAndPrivacyNavigation": "PASS",
+    "firstPartyConsoleErrors": 0
+  },
+  "observedNonProductConsoleErrors": [
+    "One browser extension metadata-send error; chrome-extension:// source, not product JavaScript."
+  ],
+  "notAssessed": [
+    "mobile viewport rendering",
+    "real signed installer download (unpublished)",
+    "native playback via this browser"
+  ],
+  "screenshotSource": "CI38 original native authored fixtures, described in website/assets/SCREENSHOTS.json"
+}

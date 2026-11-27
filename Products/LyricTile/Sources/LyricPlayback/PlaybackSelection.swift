@@ -103,7 +103,7 @@ enum TransportRoutePolicy {
         guard now.clockDomainID == observation.stamp.clockDomainID,
               now.nanoseconds >= observation.stamp.nanoseconds,
               now.nanoseconds - observation.stamp.nanoseconds <= 8_000_000_000,
-              observation.quality != .stale else { throw PlaybackError.unavailable("播放状态已过期") }
+              observation.quality != .stale else { throw PlaybackError.unavailable(LyricLocalization.text("播放状态已过期", "The playback state is out of date.")) }
         guard observation.process.player.usesAppleEvents || observation.sourceIsCurrent else { throw PlaybackError.sourceNotCurrent }
         guard observation.capabilities.allows(command) else { throw PlaybackError.unsupported }
         if case .seek(let ms) = command {

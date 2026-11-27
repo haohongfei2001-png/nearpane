@@ -1,0 +1,44 @@
+name: LyricTile engineering draft preparation
+
+on:
+  push:
+    branches: ['codex/lyrictile-standalone-20261126']
+    paths: ['Products/LyricTile/Release/candidate.json']
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: lyrictile-engineering-draft
+  cancel-in-progress: false
+
+jobs:
+  prepare-draft:
+    if: github.repository == 'haohongfei2001-png/nearpane' && github.ref == 'refs/heads/codex/lyrictile-standalone-20261126'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify pinned native candidate and prepare unpublished draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 Products/LyricTile/Scripts/prepare-candidate-release.py \
+            --manifest Products/LyricTile/Release/candidate.json \
+            --output "$RUNNER_TEMP/lyrictile-draft" --apply
+      - name: Preserve draft preparation result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LyricTile-draft-preparation-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/lyrictile-draft/preparation-result.json
+            ${{ runner.temp }}/lyrictile-draft/release-notes.md
+            ${{ runner.temp }}/lyrictile-draft/assets/candidate-verification.json
+          if-no-files-found: warn
+          retention-days: 30

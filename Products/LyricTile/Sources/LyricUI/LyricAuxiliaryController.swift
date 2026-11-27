@@ -296,7 +296,11 @@ private struct LyricAuxiliaryView: View {
                     LabeledContent(localized("歌词格式", "Format"), value: document.originalFormat.rawValue)
                     LabeledContent(localized("时间信息", "Timing"), value: document.timingLevel == .token ? localized("逐字时间", "Word timing") : document.timingLevel == .line ? localized("逐行时间", "Line timing") : localized("纯文本", "Plain text"))
                     if let credit = document.source.contributorCredit, !credit.isEmpty { LabeledContent(localized("提供者", "Contributor"), value: credit) }
-                    if let attribution = document.source.rights.attributionText, !attribution.isEmpty { Text(attribution).font(.system(size: 12)) }
+                    if document.source.providerID == "local" {
+                        Text(localized("本地歌词", "Local lyrics")).font(.system(size: 12))
+                    } else if let attribution = document.source.rights.attributionText, !attribution.isEmpty {
+                        Text(attribution).font(.system(size: 12))
+                    }
                     if let url = document.source.sourceURL { Link(localized("打开来源页面", "Open source page"), destination: url) }
                     if let url = document.source.rights.apiEvidenceURL { Link(localized("接口使用条件", "API terms"), destination: url) }
                     if let url = document.source.rights.contentEvidenceURL { Link(localized("内容使用条件", "Content terms"), destination: url) }
