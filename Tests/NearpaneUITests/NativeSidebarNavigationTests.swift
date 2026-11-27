@@ -240,6 +240,43 @@ import Testing
         #expect(router.idleGeneration != nil && router.idleGeneration != idle)
     }
 
+    @Test(.timeLimit(.minutes(1))) func utilitySubmissionKeepsUserActionPriorityAcrossSuspension() async throws {
+        let lane = NativeSidebarNavigation()
+        let submitted = AsyncStream<TaskPriority>.makeStream()
+        let started = AsyncStream<TaskPriority>.makeStream()
+        let resume = AsyncStream<Void>.makeStream()
+        let finished = AsyncStream<TaskPriority>.makeStream()
+        defer {
+            submitted.continuation.finish(); started.continuation.finish()
+            resume.continuation.finish(); finished.continuation.finish()
+        }
+        let submitter = Task.detached(priority: .utility) {
+            await MainActor.run {
+                let sourcePriority = Task.currentPriority
+                lane.submit(stage: true) { _ in
+                    started.continuation.yield(Task.currentPriority)
+                    var release = resume.stream.makeAsyncIterator()
+                    _ = await release.next()
+                    finished.continuation.yield(Task.currentPriority)
+                }
+                submitted.continuation.yield(sourcePriority)
+            }
+        }
+        // Await streams, not submitter.value: a high-priority waiter would
+        // otherwise elevate the utility parent and mask the inheritance bug.
+        var origin = submitted.stream.makeAsyncIterator()
+        var entry = started.stream.makeAsyncIterator()
+        var completion = finished.stream.makeAsyncIterator()
+        let sourcePriority = try #require(await origin.next())
+        let enteredPriority = try #require(await entry.next())
+        #expect(sourcePriority == .utility && enteredPriority == .userInitiated)
+        #expect(lane.isDispatching)
+        resume.continuation.yield(())
+        let resumedPriority = try #require(await completion.next())
+        #expect(resumedPriority == .userInitiated)
+        await submitter.value
+    }
+
     @Test func thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain() async {
         let lane = NativeSidebarNavigation()
         var first: CheckedContinuation<Void, Never>?, second: CheckedContinuation<Void, Never>?

@@ -204,10 +204,11 @@ struct CrossSpaceFocusContinuity {
         pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage, run: work))
         guard !running else { return }
         running = true
-        Task {
+        Task(priority: .userInitiated) {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
                 IndependentStageTrace.record("navigation-dequeue", ["stage": job.stage,
+                    "taskPriority": Task.currentPriority.rawValue,
                     "dispatchAvailable": dispatchAvailable, "sameEpoch": job.epoch == ownershipEpoch,
                     "currentSelection": !job.selection || isCurrent(job.token), "stageOwnsDispatch": stageOwnsWindowDispatch()])
                 guard dispatchAvailable, job.epoch == ownershipEpoch, !job.selection || isCurrent(job.token),

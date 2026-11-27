@@ -642,6 +642,7 @@ import OSLog
                 let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
                 var fields: [String: Any] = ["requestRevision": request.revision,
                     "step": step, "completed": completed, "receivedReply": receivedReply,
+                    "taskPriority": Task.currentPriority.rawValue,
                     "taskCreatedUptime": taskCreated, "taskStartedUptime": taskStarted,
                     "taskQueueMS": (taskStarted - taskCreated) * 1000, "durationMS": totalMS,
                     "readerAwaitMS": readerMS, "sidebarHistoryMS": historyMS,

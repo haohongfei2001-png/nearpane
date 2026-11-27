@@ -1,0 +1,164 @@
+{
+  "buildRunID": "pro-independent-stage",
+  "candidate": {
+    "completeApp": "/Users/hhf/Documents/GitHub/nearpane-pro-independent-20261126/build/standalone.pro-independent-stage/products/release/Nearpane.app",
+    "status": "SUPPLIED"
+  },
+  "revision": "a37b56c6ac7ad2240405d23a33f02459dffb9a7a",
+  "runtime": {
+    "R4ProductPath": "BLOCKED",
+    "appExpose": "NOT_RUN",
+    "applicationExitLifecycle": "NOT_RUN",
+    "ciWorkspaceCleanup": null,
+    "ciWorkspaceCleanupBeforeFixtures": null,
+    "ciWorkspacePreparation": {
+      "reason": "notGitHubHostedAcceptance",
+      "status": "NOT_RUN"
+    },
+    "coldHiddenPreview": "NOT_RUN",
+    "desktopGestures": "NOT_RUN",
+    "engine": "BLOCKED",
+    "engineReceipt": {
+      "R4ProductPath": "NOT_RUN",
+      "checks": {
+        "cleanup": {
+          "scope": "all enrolled foreign windows on their original desktop; no owned Space remains",
+          "status": "PASS"
+        },
+        "crossAppGroup": {
+          "status": "NOT_RUN"
+        },
+        "focusRestore": {
+          "status": "NOT_RUN"
+        },
+        "foreignRoundTrip": {
+          "status": "NOT_RUN"
+        },
+        "initialVisibleBindings": {
+          "status": "NOT_RUN"
+        },
+        "initialYellowButton": {
+          "status": "NOT_RUN"
+        },
+        "launchCanary": {
+          "status": "NOT_RUN"
+        },
+        "repeatedSwitch": {
+          "status": "NOT_RUN"
+        },
+        "sameAppIndependent": {
+          "status": "NOT_RUN"
+        },
+        "yellowButton": {
+          "status": "NOT_RUN"
+        }
+      },
+      "cleanup": true,
+      "desktopGestures": "NOT_RUN",
+      "enrolledWindows": [],
+      "fixtureFocusCommands": 0,
+      "foreignProcesses": false,
+      "fullScreenSplitView": "NOT_RUN",
+      "missionControl": "NOT_RUN",
+      "nonce": "dbf79fbe-515e-4e20-8e7e-8de04f4bd225",
+      "operationReason": "ordinaryCurrentDesktopCountNotOne",
+      "operationStatus": "BLOCKED",
+      "ordinaryHome": 0,
+      "originalSpaceInventory": [
+        4,
+        7,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        17,
+        18,
+        19,
+        31,
+        38,
+        654,
+        6628,
+        6629,
+        7015,
+        7015
+      ],
+      "qualificationGranted": false,
+      "reason": "ordinaryCurrentDesktopCountNotOne",
+      "schema": 1,
+      "setupAXWrites": 0,
+      "status": "BLOCKED",
+      "targetEnvironment": {
+        "exactTarget": true,
+        "kernelBuild": "26A428",
+        "sipEnabled": true
+      },
+      "windowWrites": 0,
+      "windowWritesScope": "engine hide/restore request attempts, including rejected or unverified requests"
+    },
+    "exactTargetEngine": "NOT_PROVEN",
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "fullScreenSplitView": "NOT_RUN",
+    "groupMergeSplit": "NOT_RUN",
+    "hostCrashRecovery": "NOT_RUN",
+    "missionControl": "NOT_RUN",
+    "nativeDesktopReveal": "NOT_RUN",
+    "nativeDesktopSwitch": "NOT_RUN",
+    "nativeFullScreen": "NOT_RUN",
+    "newWindowLifecycle": "NOT_RUN",
+    "overall": "INCOMPLETE",
+    "platformDiagnosticReceipt": null,
+    "platformForeignMechanism": "NOT_RUN",
+    "productReceipt": {
+      "actualR4Inputs": 0,
+      "appExpose": "NOT_RUN",
+      "applicationExitLifecycle": "NOT_RUN",
+      "cleanup": true,
+      "coldHiddenPreview": "NOT_RUN",
+      "desktopGestures": "NOT_RUN",
+      "events": [],
+      "foreignWindowReadback": false,
+      "fullScreenSplitView": "NOT_RUN",
+      "groupMergeSplit": "NOT_RUN",
+      "hostCrashRecovery": "NOT_RUN",
+      "lifecycleReceipt": {
+        "reason": "mainR4AndCrashRestartCleanupRequired",
+        "status": "NOT_RUN"
+      },
+      "missionControl": "NOT_RUN",
+      "nativeDesktopReveal": "NOT_RUN",
+      "nativeDesktopSwitch": "NOT_RUN",
+      "nativeFullScreen": "NOT_RUN",
+      "newWindowLifecycle": "NOT_RUN",
+      "nonce": "dbf79fbe-515e-4e20-8e7e-8de04f4bd225",
+      "purpose": "product",
+      "qualificationGranted": false,
+      "reason": "fixtureBaselineUnavailable",
+      "schema": 1,
+      "status": "BLOCKED",
+      "windowCloseLifecycle": "NOT_RUN",
+      "yellowButtonRouting": "NOT_RUN"
+    },
+    "qualificationGranted": false,
+    "schema": 1,
+    "windowCloseLifecycle": "NOT_RUN",
+    "yellowButtonRouting": "NOT_RUN"
+  },
+  "schema": 1,
+  "source": "NOT_RUN",
+  "toolchain": {
+    "cargo": "/Users/hhf/Documents/GitHub/nearpane/build/window-engine/toolchain/portable/bin/cargo",
+    "source": "PATH",
+    "status": "AVAILABLE"
+  }
+}

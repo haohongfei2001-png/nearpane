@@ -1,6 +1,6 @@
 # Nearpane — independent Stage Manager replacement
 
-Current authority, 2026-11-27 (Asia/Shanghai). Baseline: PR #15, `6ac5eb63c97b7597e662770bac485be61f571bb8`.
+Current authority, 2026-11-28 (Asia/Shanghai). Baseline: PR #15, `6ac5eb63c97b7597e662770bac485be61f571bb8`.
 Work branch: `pro/independent-stage-engine-20261126`.
 
 ## Product contract
@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through cb95d6aa, 2026-11-27
+#### R4 latency work through b2513db0, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -156,13 +156,63 @@ independently confirm every original window returned at shutdown. Neither reache
 a held selection, so this run does not physically validate the new idle gate.
 [Exact cb95d6aa receipts](../verification/independent-stage/cloud-cb95d6aa-latency/README.md).
 
+`a37b56c6` makes automatic HostSession display polling yield while the R4
+navigation lane is occupied, without changing explicit authoritative reads,
+in-flight readers or the saved snapshot's original expiry. Directory-task phase
+timing separates queueing, native-helper work, projection and publication. The
+external AX driver retains its first semantic button identifier across bounded
+pre-press rediscovery, never replaying an issued action. Canary home discovery
+distinguishes a narrowly proven missing Finder desktop AXRole from positive focus
+or identity changes; its existing650ms deadline requires two new complete proofs,
+remembering the first observed home across incomplete samples.
+
+Both a37 product lanes still fail their first selection. Fast preparation is
+286.6ms and navigation queueing0.54ms. One sibling is genuinely hidden and the
+selected window has exact focus, but the other sibling remains visible at8s.
+Initial witness binding takes1382.8ms; a subsequent fresh directory task waits
+1499.4ms to start, then runs for154.1ms. Full preparation is132.4ms, with fast
+opening directory reads, but its first witness rejects after4466.3ms when dispatch
+evidence expires. The retained Dock observation itself took3.043ms and was3415.1ms
+past its native end at expiry; this does not establish its first delivery time.
+The full sample is mostly main-run-loop waiting and shows the background physical
+reader on a utility-QoS cooperative worker. It does not prove App Nap or a single
+synchronous call caused the elapsed interval. Both lanes confirm complete physical
+return at shutdown; only fast had actually hidden a window. All three separate
+direct-engine lanes pass26 requests.
+[Exact a37 cloud originals](../verification/independent-stage/cloud-a37b56c6-latency/README.md).
+
+The a37 source gate fails independently: three Rust test-mock E0609 compilation
+errors and an old Swift test's two-second MainActor semaphore assertion.
+`b2513db0` changes only these tests: explicit optional-window unwrapping and
+deterministic physical-read/input handshakes. Its exact cloud source passes
+180 Rust and219 Swift tests with one explicit skip. The same180 Rust tests and
+full release build pass on the SIP-enabled target Mac. Those source/build results
+do not upgrade the separately unpassed formal R4 runtime.
+
+The target reconnected at23:43 Asia/Shanghai on November27. Its existing clean
+isolated checkout was fast-forwarded, preserving the daily installation. The a37
+complete release build succeeds in371.913s. Actual native preflight then finds
+one display whose current Space7015 is raw type4, while ordinary desktop4 is
+present but inactive. It correctly performs zero R4 inputs and zero window writes,
+records BLOCKED and confirms unchanged Space inventory/fixture cleanup. A later
+read-only context confirms that fullscreen state.
+[Exact target preflight originals](../verification/independent-stage/target-a37-r4-preflight/README.md).
+
+The next scoped scheduling correction explicitly gives the existing navigation
+drain Task user-initiated priority. Its inherited utility priority is now a
+concrete sampled execution concern, not proof of App Nap. Existing dequeue and
+directory-task traces record actual Task priority, and a new test submits from
+a utility parent and checks priority both before and after real suspension.
+The queue, latest-choice rules, permission checks and full physical proofs are
+unchanged. Native validation of this follow-up is pending.
+
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state
 deadline eight seconds. No failed input is replayed. Formal R4 has not passed and
-no release qualification has been granted. At 22:12 Asia/Shanghai, Desktop Commander
-reports the target Mac offline for approximately 15 hours; current native runs use
-the existing controlled macOS cloud fixtures. Target and cloud evidence remain
-separate.
+no release qualification has been granted. Current target attempts and the existing
+controlled macOS cloud fixtures retain separate exact-source evidence. A reversible
+ordinary-desktop target trial is being executed after positively identifying its
+original fullscreen Space; it must independently verify cleanup and desktop return.
 
 #### Earlier target-engine and package checkpoints
 
