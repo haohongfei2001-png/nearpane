@@ -31,5 +31,14 @@
     "observed_http_status": 200,
     "observed_copy": "当前还没有公开下载日期。工程进展可以通过 GitHub 项目查看。",
     "standalone_path_probe": "https://nearpane.com/lyrictile/ returned HTTP404 in the current execution environment; not used as a CTA"
+  },
+  "observed_host_architecture": {
+    "path": "Sources/NearpaneCore/Modules.swift",
+    "facts": [
+      "Riftlet is currently kind.core in BuiltinCatalog",
+      "Core registration defaults to enabled",
+      "Lyrics module is not present in the host built-in catalog",
+      "EmbeddedModules bundles adapters at compile time; install/remove/re-add download lifecycle has not been implemented"
+    ]
   }
 }

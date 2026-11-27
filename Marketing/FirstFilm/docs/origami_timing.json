@@ -1,0 +1,1089 @@
+{
+  "track": "Origami",
+  "artist": "Scott Buckley",
+  "source_excerpt_seconds": [
+    0,
+    32
+  ],
+  "analysis_file": "origami_opening_32s_master.wav",
+  "sample_rate": 48000,
+  "duration_seconds": 32.0,
+  "method": "Stereo average; 24kHz analysis; 1024-sample STFT, hop256; positive log spectral flux. Weighted low(35\u2013250Hz) 0.4, mid(250\u20132000Hz) 0.4, high(2\u201310kHz) 0.2. Local peak selection \u00b10.55s around proposed edit points.",
+  "perceptual_review": "NOT PERFORMED; runtime does not support audio input.",
+  "limitations": [
+    "These are measured acoustic onsets, not certified strong beats or phrase boundaries.",
+    "No 90 BPM assumption is made; 90 BPM belongs only to the separate original backup score.",
+    "Fades are already present at 0\u20130.018s and 29.6\u201332s.",
+    "Use cut times as nearby editorial options; musical fit still needs listening."
+  ],
+  "scene_cues": [
+    {
+      "nominal_seconds": 6,
+      "recommended_seconds": 5.5787,
+      "offset_seconds": -0.4213,
+      "strength": 0.8547,
+      "frame_24": 134,
+      "frame_30": 167,
+      "frame_60": 335,
+      "alternatives": [
+        {
+          "time_seconds": 5.5787,
+          "strength": 0.8547,
+          "low_band": 0.6303,
+          "mid_band": 2.1109,
+          "high_band": 0.1814,
+          "dominant_band": "mid"
+        },
+        {
+          "time_seconds": 6.368,
+          "strength": 0.7475,
+          "low_band": 0.6606,
+          "mid_band": 1.4251,
+          "high_band": 0.7041,
+          "dominant_band": "mid"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    },
+    {
+      "nominal_seconds": 11,
+      "recommended_seconds": 10.784,
+      "offset_seconds": -0.216,
+      "strength": 0.7969,
+      "frame_24": 259,
+      "frame_30": 324,
+      "frame_60": 647,
+      "alternatives": [
+        {
+          "time_seconds": 10.784,
+          "strength": 0.7969,
+          "low_band": 1.2511,
+          "mid_band": 1.1813,
+          "high_band": 0.0681,
+          "dominant_band": "low"
+        },
+        {
+          "time_seconds": 11.3813,
+          "strength": 0.7905,
+          "low_band": 1.451,
+          "mid_band": 1.1181,
+          "high_band": 0.0965,
+          "dominant_band": "low"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    },
+    {
+      "nominal_seconds": 16,
+      "recommended_seconds": 16.384,
+      "offset_seconds": 0.384,
+      "strength": 1.12,
+      "frame_24": 393,
+      "frame_30": 492,
+      "frame_60": 983,
+      "alternatives": [
+        {
+          "time_seconds": 15.7867,
+          "strength": 0.8496,
+          "low_band": 0.4346,
+          "mid_band": 2.0613,
+          "high_band": 0.2558,
+          "dominant_band": "mid"
+        },
+        {
+          "time_seconds": 15.9893,
+          "strength": 0.7229,
+          "low_band": 0.8037,
+          "mid_band": 1.1485,
+          "high_band": 0.1168,
+          "dominant_band": "mid"
+        },
+        {
+          "time_seconds": 16.192,
+          "strength": 0.7244,
+          "low_band": 1.0145,
+          "mid_band": 1.0518,
+          "high_band": 0.0658,
+          "dominant_band": "mid"
+        },
+        {
+          "time_seconds": 16.384,
+          "strength": 1.12,
+          "low_band": 2.0291,
+          "mid_band": 1.1412,
+          "high_band": 1.1299,
+          "dominant_band": "low"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    },
+    {
+      "nominal_seconds": 22,
+      "recommended_seconds": 22.3787,
+      "offset_seconds": 0.3787,
+      "strength": 2.3748,
+      "frame_24": 537,
+      "frame_30": 671,
+      "frame_60": 1343,
+      "alternatives": [
+        {
+          "time_seconds": 21.792,
+          "strength": 1.0004,
+          "low_band": 1.7836,
+          "mid_band": 0.8685,
+          "high_band": 0.0933,
+          "dominant_band": "low"
+        },
+        {
+          "time_seconds": 21.984,
+          "strength": 1.6768,
+          "low_band": 2.8703,
+          "mid_band": 0.8876,
+          "high_band": 0.79,
+          "dominant_band": "low"
+        },
+        {
+          "time_seconds": 22.1867,
+          "strength": 1.4697,
+          "low_band": 0.5445,
+          "mid_band": 0.2543,
+          "high_band": 3.7113,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 22.3787,
+          "strength": 2.3748,
+          "low_band": 4.1134,
+          "mid_band": 2.2162,
+          "high_band": 3.0801,
+          "dominant_band": "low"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    },
+    {
+      "nominal_seconds": 26,
+      "recommended_seconds": 25.9733,
+      "offset_seconds": -0.0267,
+      "strength": 2.6298,
+      "frame_24": 623,
+      "frame_30": 779,
+      "frame_60": 1558,
+      "alternatives": [
+        {
+          "time_seconds": 25.5893,
+          "strength": 1.5597,
+          "low_band": 3.3022,
+          "mid_band": 1.1675,
+          "high_band": 0.3436,
+          "dominant_band": "low"
+        },
+        {
+          "time_seconds": 25.7707,
+          "strength": 1.1871,
+          "low_band": 0.3268,
+          "mid_band": 1.0046,
+          "high_band": 4.7494,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 25.9733,
+          "strength": 2.6298,
+          "low_band": 3.4939,
+          "mid_band": 1.4334,
+          "high_band": 8.2445,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 26.3893,
+          "strength": 1.8964,
+          "low_band": 0.3609,
+          "mid_band": 1.7716,
+          "high_band": 4.2574,
+          "dominant_band": "high"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    },
+    {
+      "nominal_seconds": 28.5,
+      "recommended_seconds": 28.7787,
+      "offset_seconds": 0.2787,
+      "strength": 2.4489,
+      "frame_24": 691,
+      "frame_30": 863,
+      "frame_60": 1727,
+      "alternatives": [
+        {
+          "time_seconds": 27.9787,
+          "strength": 2.7645,
+          "low_band": 4.6794,
+          "mid_band": 2.1943,
+          "high_band": 4.8037,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 28.1813,
+          "strength": 1.52,
+          "low_band": 0.6263,
+          "mid_band": 1.8952,
+          "high_band": 6.6007,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 28.5867,
+          "strength": 0.8371,
+          "low_band": 0.9449,
+          "mid_band": 0.3696,
+          "high_band": 2.3352,
+          "dominant_band": "high"
+        },
+        {
+          "time_seconds": 28.7787,
+          "strength": 2.4489,
+          "low_band": 3.8033,
+          "mid_band": 2.4198,
+          "high_band": 1.254,
+          "dominant_band": "low"
+        },
+        {
+          "time_seconds": 28.9813,
+          "strength": 1.2859,
+          "low_band": 0.4227,
+          "mid_band": 0.666,
+          "high_band": 6.5896,
+          "dominant_band": "high"
+        }
+      ],
+      "note": "Broadband/low-band spectral onset; inferred from signal, not confirmed musical downbeat."
+    }
+  ],
+  "stronger_cues_with_0_8s_flexibility": [
+    {
+      "nominal_seconds": 6,
+      "recommended_seconds": 5.5787,
+      "frame_24": 134,
+      "frame_30": 167,
+      "frame_60": 335,
+      "offset_seconds": -0.4213,
+      "strength": 0.8547
+    },
+    {
+      "nominal_seconds": 11,
+      "recommended_seconds": 11.5733,
+      "frame_24": 278,
+      "frame_30": 347,
+      "frame_60": 694,
+      "offset_seconds": 0.5733,
+      "strength": 3.2193
+    },
+    {
+      "nominal_seconds": 16,
+      "recommended_seconds": 16.7787,
+      "frame_24": 403,
+      "frame_30": 503,
+      "frame_60": 1007,
+      "offset_seconds": 0.7787,
+      "strength": 1.8652
+    },
+    {
+      "nominal_seconds": 22,
+      "recommended_seconds": 22.7733,
+      "frame_24": 547,
+      "frame_30": 683,
+      "frame_60": 1366,
+      "offset_seconds": 0.7733,
+      "strength": 4.698
+    },
+    {
+      "nominal_seconds": 26,
+      "recommended_seconds": 25.9733,
+      "frame_24": 623,
+      "frame_30": 779,
+      "frame_60": 1558,
+      "offset_seconds": -0.0267,
+      "strength": 2.6298
+    },
+    {
+      "nominal_seconds": 28.5,
+      "recommended_seconds": 27.9787,
+      "frame_24": 671,
+      "frame_30": 839,
+      "frame_60": 1679,
+      "offset_seconds": -0.5213,
+      "strength": 2.7645
+    }
+  ],
+  "largest_acoustic_accents": [
+    {
+      "time_seconds": 11.5733,
+      "strength": 3.2193,
+      "low_band": 2.8292,
+      "mid_band": 1.9327,
+      "high_band": 7.0488,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 14.3787,
+      "strength": 2.3746,
+      "low_band": 4.0395,
+      "mid_band": 1.7483,
+      "high_band": 3.0638,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 17.5787,
+      "strength": 2.6239,
+      "low_band": 4.7557,
+      "mid_band": 2.3862,
+      "high_band": 3.7455,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 22.3787,
+      "strength": 2.3748,
+      "low_band": 4.1134,
+      "mid_band": 2.2162,
+      "high_band": 3.0801,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 22.7733,
+      "strength": 4.698,
+      "low_band": 4.7161,
+      "mid_band": 3.8338,
+      "high_band": 16.6311,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 25.9733,
+      "strength": 2.6298,
+      "low_band": 3.4939,
+      "mid_band": 1.4334,
+      "high_band": 8.2445,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 27.9787,
+      "strength": 2.7645,
+      "low_band": 4.6794,
+      "mid_band": 2.1943,
+      "high_band": 4.8037,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 28.7787,
+      "strength": 2.4489,
+      "low_band": 3.8033,
+      "mid_band": 2.4198,
+      "high_band": 1.254,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 29.184,
+      "strength": 2.1691,
+      "low_band": 0.9217,
+      "mid_band": 1.8522,
+      "high_band": 1.7429,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 29.5787,
+      "strength": 2.8335,
+      "low_band": 1.6352,
+      "mid_band": 2.561,
+      "high_band": 11.5515,
+      "dominant_band": "high"
+    }
+  ],
+  "strong_onsets": [
+    {
+      "time_seconds": 0.384,
+      "strength": 1.052,
+      "low_band": 1.2217,
+      "mid_band": 1.7458,
+      "high_band": 0.1586,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 0.7787,
+      "strength": 0.8547,
+      "low_band": 0.6601,
+      "mid_band": 1.6484,
+      "high_band": 0.3598,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 1.1733,
+      "strength": 0.8271,
+      "low_band": 0.3684,
+      "mid_band": 2.0991,
+      "high_band": 0.8197,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 1.5787,
+      "strength": 0.833,
+      "low_band": 0.8415,
+      "mid_band": 1.7034,
+      "high_band": 0.3077,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 1.7813,
+      "strength": 0.7282,
+      "low_band": 0.672,
+      "mid_band": 1.3293,
+      "high_band": 0.1235,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 2.7733,
+      "strength": 0.9472,
+      "low_band": 1.4846,
+      "mid_band": 1.5328,
+      "high_band": 0.5355,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 3.1787,
+      "strength": 0.8084,
+      "low_band": 1.2338,
+      "mid_band": 1.4132,
+      "high_band": 0.161,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 3.9787,
+      "strength": 0.8618,
+      "low_band": 0.3533,
+      "mid_band": 2.0579,
+      "high_band": 0.6144,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 4.576,
+      "strength": 0.829,
+      "low_band": 0.4564,
+      "mid_band": 1.7907,
+      "high_band": 0.451,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 5.5787,
+      "strength": 0.8547,
+      "low_band": 0.6303,
+      "mid_band": 2.1109,
+      "high_band": 0.1814,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 6.368,
+      "strength": 0.7475,
+      "low_band": 0.6606,
+      "mid_band": 1.4251,
+      "high_band": 0.7041,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 6.7733,
+      "strength": 0.906,
+      "low_band": 0.9008,
+      "mid_band": 2.364,
+      "high_band": 0.6534,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 9.184,
+      "strength": 0.8548,
+      "low_band": 1.3002,
+      "mid_band": 1.0773,
+      "high_band": 0.0926,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 9.568,
+      "strength": 0.733,
+      "low_band": 0.4982,
+      "mid_band": 1.3306,
+      "high_band": 0.1816,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 9.9733,
+      "strength": 0.7207,
+      "low_band": 0.6836,
+      "mid_band": 1.0218,
+      "high_band": 0.2226,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 10.784,
+      "strength": 0.7969,
+      "low_band": 1.2511,
+      "mid_band": 1.1813,
+      "high_band": 0.0681,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 11.3813,
+      "strength": 0.7905,
+      "low_band": 1.451,
+      "mid_band": 1.1181,
+      "high_band": 0.0965,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 11.5733,
+      "strength": 3.2193,
+      "low_band": 2.8292,
+      "mid_band": 1.9327,
+      "high_band": 7.0488,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 11.9787,
+      "strength": 1.8695,
+      "low_band": 0.787,
+      "mid_band": 1.5127,
+      "high_band": 6.4811,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 12.384,
+      "strength": 0.8522,
+      "low_band": 0.5395,
+      "mid_band": 1.7813,
+      "high_band": 0.4275,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 12.7787,
+      "strength": 0.8777,
+      "low_band": 0.6815,
+      "mid_band": 1.566,
+      "high_band": 0.8541,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 13.5893,
+      "strength": 0.8839,
+      "low_band": 0.509,
+      "mid_band": 1.5138,
+      "high_band": 0.243,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 13.9733,
+      "strength": 1.3729,
+      "low_band": 0.5143,
+      "mid_band": 1.1544,
+      "high_band": 3.4837,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 14.3787,
+      "strength": 2.3746,
+      "low_band": 4.0395,
+      "mid_band": 1.7483,
+      "high_band": 3.0638,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 14.784,
+      "strength": 1.4044,
+      "low_band": 1.0846,
+      "mid_band": 1.6607,
+      "high_band": 3.3179,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 15.1787,
+      "strength": 0.8438,
+      "low_band": 0.4657,
+      "mid_band": 1.9007,
+      "high_band": 0.7964,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 15.3813,
+      "strength": 0.8145,
+      "low_band": 0.5202,
+      "mid_band": 1.6934,
+      "high_band": 0.7071,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 15.7867,
+      "strength": 0.8496,
+      "low_band": 0.4346,
+      "mid_band": 2.0613,
+      "high_band": 0.2558,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 15.9893,
+      "strength": 0.7229,
+      "low_band": 0.8037,
+      "mid_band": 1.1485,
+      "high_band": 0.1168,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 16.192,
+      "strength": 0.7244,
+      "low_band": 1.0145,
+      "mid_band": 1.0518,
+      "high_band": 0.0658,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 16.384,
+      "strength": 1.12,
+      "low_band": 2.0291,
+      "mid_band": 1.1412,
+      "high_band": 1.1299,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 16.7787,
+      "strength": 1.8652,
+      "low_band": 5.1366,
+      "mid_band": 1.2326,
+      "high_band": 0.7776,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 16.9813,
+      "strength": 0.8235,
+      "low_band": 0.5335,
+      "mid_band": 0.777,
+      "high_band": 2.7242,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 17.5787,
+      "strength": 2.6239,
+      "low_band": 4.7557,
+      "mid_band": 2.3862,
+      "high_band": 3.7455,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 17.984,
+      "strength": 0.8799,
+      "low_band": 1.1458,
+      "mid_band": 1.7407,
+      "high_band": 0.4841,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 18.176,
+      "strength": 0.7631,
+      "low_band": 0.8025,
+      "mid_band": 0.6018,
+      "high_band": 0.3765,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 18.3787,
+      "strength": 0.6978,
+      "low_band": 0.9658,
+      "mid_band": 0.988,
+      "high_band": 0.1537,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 19.584,
+      "strength": 1.3009,
+      "low_band": 2.749,
+      "mid_band": 1.4196,
+      "high_band": 0.2895,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 20.192,
+      "strength": 0.8789,
+      "low_band": 1.1688,
+      "mid_band": 1.2821,
+      "high_band": 0.0964,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 20.7893,
+      "strength": 0.9443,
+      "low_band": 2.5691,
+      "mid_band": 0.4612,
+      "high_band": 0.1798,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 21.3867,
+      "strength": 1.7623,
+      "low_band": 4.8389,
+      "mid_band": 1.2069,
+      "high_band": 0.9696,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 21.792,
+      "strength": 1.0004,
+      "low_band": 1.7836,
+      "mid_band": 0.8685,
+      "high_band": 0.0933,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 21.984,
+      "strength": 1.6768,
+      "low_band": 2.8703,
+      "mid_band": 0.8876,
+      "high_band": 0.79,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 22.1867,
+      "strength": 1.4697,
+      "low_band": 0.5445,
+      "mid_band": 0.2543,
+      "high_band": 3.7113,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 22.3787,
+      "strength": 2.3748,
+      "low_band": 4.1134,
+      "mid_band": 2.2162,
+      "high_band": 3.0801,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 22.7733,
+      "strength": 4.698,
+      "low_band": 4.7161,
+      "mid_band": 3.8338,
+      "high_band": 16.6311,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 23.1787,
+      "strength": 1.2148,
+      "low_band": 0.4858,
+      "mid_band": 1.1711,
+      "high_band": 1.8749,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 23.3813,
+      "strength": 2.0477,
+      "low_band": 2.4349,
+      "mid_band": 1.8487,
+      "high_band": 4.05,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 23.584,
+      "strength": 1.8911,
+      "low_band": 0.4502,
+      "mid_band": 2.8838,
+      "high_band": 3.2156,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 23.7867,
+      "strength": 1.199,
+      "low_band": 0.3559,
+      "mid_band": 0.5819,
+      "high_band": 3.2302,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 23.9787,
+      "strength": 1.131,
+      "low_band": 1.2573,
+      "mid_band": 1.6174,
+      "high_band": 1.5497,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 24.1813,
+      "strength": 1.6458,
+      "low_band": 0.7428,
+      "mid_band": 1.0297,
+      "high_band": 5.3379,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 24.3627,
+      "strength": 1.2213,
+      "low_band": 1.0666,
+      "mid_band": 0.9453,
+      "high_band": 3.7415,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 24.576,
+      "strength": 1.3227,
+      "low_band": 1.2285,
+      "mid_band": 0.9377,
+      "high_band": 3.2289,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 24.7787,
+      "strength": 2.1069,
+      "low_band": 3.7907,
+      "mid_band": 2.016,
+      "high_band": 2.8715,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 24.9707,
+      "strength": 1.123,
+      "low_band": 0.6092,
+      "mid_band": 0.6794,
+      "high_band": 2.8028,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 25.1627,
+      "strength": 1.3177,
+      "low_band": 1.3135,
+      "mid_band": 1.2509,
+      "high_band": 5.2348,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 25.376,
+      "strength": 1.9644,
+      "low_band": 3.8305,
+      "mid_band": 1.6216,
+      "high_band": 1.2128,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 25.5893,
+      "strength": 1.5597,
+      "low_band": 3.3022,
+      "mid_band": 1.1675,
+      "high_band": 0.3436,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 25.7707,
+      "strength": 1.1871,
+      "low_band": 0.3268,
+      "mid_band": 1.0046,
+      "high_band": 4.7494,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 25.9733,
+      "strength": 2.6298,
+      "low_band": 3.4939,
+      "mid_band": 1.4334,
+      "high_band": 8.2445,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 26.3893,
+      "strength": 1.8964,
+      "low_band": 0.3609,
+      "mid_band": 1.7716,
+      "high_band": 4.2574,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 26.592,
+      "strength": 1.528,
+      "low_band": 3.7497,
+      "mid_band": 1.373,
+      "high_band": 0.607,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 26.7947,
+      "strength": 1.562,
+      "low_band": 0.61,
+      "mid_band": 1.5127,
+      "high_band": 4.0028,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 26.9867,
+      "strength": 0.8272,
+      "low_band": 0.3065,
+      "mid_band": 1.7183,
+      "high_band": 0.719,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 27.1787,
+      "strength": 0.8113,
+      "low_band": 0.2435,
+      "mid_band": 0.8851,
+      "high_band": 2.337,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 27.3813,
+      "strength": 1.5563,
+      "low_band": 0.1703,
+      "mid_band": 1.0549,
+      "high_band": 6.4374,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 27.5733,
+      "strength": 1.6033,
+      "low_band": 0.9344,
+      "mid_band": 2.5199,
+      "high_band": 5.2896,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 27.7867,
+      "strength": 0.7767,
+      "low_band": 1.2891,
+      "mid_band": 1.0484,
+      "high_band": 0.3373,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 27.9787,
+      "strength": 2.7645,
+      "low_band": 4.6794,
+      "mid_band": 2.1943,
+      "high_band": 4.8037,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 28.1813,
+      "strength": 1.52,
+      "low_band": 0.6263,
+      "mid_band": 1.8952,
+      "high_band": 6.6007,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 28.5867,
+      "strength": 0.8371,
+      "low_band": 0.9449,
+      "mid_band": 0.3696,
+      "high_band": 2.3352,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 28.7787,
+      "strength": 2.4489,
+      "low_band": 3.8033,
+      "mid_band": 2.4198,
+      "high_band": 1.254,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 28.9813,
+      "strength": 1.2859,
+      "low_band": 0.4227,
+      "mid_band": 0.666,
+      "high_band": 6.5896,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 29.184,
+      "strength": 2.1691,
+      "low_band": 0.9217,
+      "mid_band": 1.8522,
+      "high_band": 1.7429,
+      "dominant_band": "mid"
+    },
+    {
+      "time_seconds": 29.3867,
+      "strength": 1.4132,
+      "low_band": 2.7102,
+      "mid_band": 1.2012,
+      "high_band": 0.5112,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 29.5787,
+      "strength": 2.8335,
+      "low_band": 1.6352,
+      "mid_band": 2.561,
+      "high_band": 11.5515,
+      "dominant_band": "high"
+    },
+    {
+      "time_seconds": 29.8027,
+      "strength": 0.8672,
+      "low_band": 1.1035,
+      "mid_band": 0.669,
+      "high_band": 0.4192,
+      "dominant_band": "low"
+    },
+    {
+      "time_seconds": 29.984,
+      "strength": 1.518,
+      "low_band": 0.7284,
+      "mid_band": 1.3972,
+      "high_band": 4.1139,
+      "dominant_band": "high"
+    }
+  ],
+  "autocorrelation_pulse_candidates": [
+    {
+      "period_seconds": 0.40533,
+      "bpm_equivalent": 148.03,
+      "relative_correlation": 0.535
+    },
+    {
+      "period_seconds": 0.8,
+      "bpm_equivalent": 75.0,
+      "relative_correlation": 0.529
+    },
+    {
+      "period_seconds": 0.59733,
+      "bpm_equivalent": 100.45,
+      "relative_correlation": 0.455
+    },
+    {
+      "period_seconds": 0.50133,
+      "bpm_equivalent": 119.68,
+      "relative_correlation": 0.142
+    },
+    {
+      "period_seconds": 0.896,
+      "bpm_equivalent": 66.96,
+      "relative_correlation": 0.117
+    }
+  ],
+  "license_notes_file": "../MUSIC_CREDITS.txt",
+  "editorial_recommendation": {
+    "seconds": [
+      5.5787,
+      11.5733,
+      16.384,
+      22.7733,
+      25.9733,
+      28.7787
+    ],
+    "frames_30fps": [
+      167,
+      347,
+      492,
+      683,
+      779,
+      863
+    ],
+    "seconds_snapped_30fps": [
+      5.566667,
+      11.566667,
+      16.4,
+      22.766667,
+      25.966667,
+      28.766667
+    ],
+    "reason": "Keep the control and brand timing close to plan, but allow the 11s and 22s changes to follow the two strongest nearby acoustic accents.",
+    "status": "Signal-based editorial recommendation; subjective music fit unverified."
+  }
+}

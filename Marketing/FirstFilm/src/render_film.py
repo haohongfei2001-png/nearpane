@@ -43,21 +43,33 @@ def font(size, weight='regular', chinese=False):
     except Exception: pass
     return f
 
-@lru_cache(maxsize=45)
-def read_image(file): return Image.open(file).convert('RGBA')
+@lru_cache(maxsize=12)
+def read_image(file):
+    im=Image.open(file).convert('RGBA')
+    im.info['_film_source']=file
+    return im
+
+@lru_cache(maxsize=4)
+def resized_source(file,w,h): return read_image(file).resize((w,h),RESAMPLE)
+
+@lru_cache(maxsize=16)
+def shadow_sprite(w,h,radius,opacity):
+    margin=round(w*.20)
+    sh=Image.new('RGBA',(w+2*margin,h+2*margin),(0,0,0,0))
+    d=ImageDraw.Draw(sh)
+    d.rounded_rectangle((margin,margin+round(w*.04),margin+w,margin+h+round(w*.04)),radius=radius,fill=(10,27,26,round(32*opacity/255)))
+    return sh.filter(ImageFilter.GaussianBlur(max(1,w*.045))),margin
 
 def paste(dst, src, box, opacity=1, shadow=False, radius=20):
     if opacity <= .001: return
     x,y,w,h=map(round,box)
     if w<1 or h<1: return
     if shadow:
-        margin=round(w*.20)
-        sh=Image.new('RGBA',(w+2*margin,h+2*margin),(0,0,0,0))
-        d=ImageDraw.Draw(sh)
-        d.rounded_rectangle((margin,margin+round(w*.04),margin+w,margin+h+round(w*.04)),radius=radius,fill=(10,27,26,round(32*opacity)))
-        sh=sh.filter(ImageFilter.GaussianBlur(max(1,w*.045)))
+        sh,margin=shadow_sprite(w,h,radius,round(opacity*255))
         dst.alpha_composite(sh,(x-margin,y-margin))
-    if src.size!=(w,h): src=src.resize((w,h),RESAMPLE)
+    if src.size!=(w,h):
+        file=src.info.get('_film_source')
+        src=resized_source(file,w,h) if file else src.resize((w,h),RESAMPLE)
     if opacity<.999:
         src=src.copy(); src.putalpha(src.getchannel('A').point(lambda p:round(p*opacity)))
     dst.alpha_composite(src,(x,y))
@@ -86,18 +98,25 @@ class Film:
         if not self.has_native and not draft:
             raise RuntimeError('Native macOS source frames are required; draft placeholders cannot ship.')
         self.sequences={}
-        for key in ['music-lyrics','music-controls','authored-motion-zh','authored-motion-en']:
+        for key in ['windowserver-lyrics-zh','windowserver-lyrics-en','windowserver-controls-zh','windowserver-controls-en',
+                    'music-lyrics','music-controls','music-controls-en','authored-motion-zh','authored-motion-en']:
             folder=ASSETS/'native'/key
             manifest=folder/'capture.json'
             if manifest.exists():
-                rows=json.loads(manifest.read_text()).get('frames',[])
+                capture=json.loads(manifest.read_text())
+                rows=capture.get('frames',[])
+                for row in rows:
+                    if capture.get('cursorIncluded'): row['cursorIncluded']=True
                 rows=[r for r in rows if r.get('file') and (folder/r['file']).exists()]
                 if rows: self.sequences[key]=(folder,rows,[r['elapsed'] for r in rows])
-        work=ASSETS/'workspace/textedit-native-window.png'
+        work=ASSETS/f'workspace/textedit-{lang}-native.png'
+        if not work.exists(): work=ASSETS/'workspace/textedit-native-window.png'
         self.work=read_image(str(work)) if work.exists() else None
         self.riftlet=read_image(str(ASSETS/'riftlet/riftlet-official-1024.png')) if (ASSETS/'riftlet/riftlet-official-1024.png').exists() else None
         self.static_bg=None
         self.static_bg_key=None
+        self.scene_key=None
+        self.scene_base=None
 
     def p(self, box): return tuple(round(x*self.s) for x in box)
     def txt(self, dst, s, x,y,size, **kw):
@@ -105,9 +124,9 @@ class Film:
         text(dst,s,(round(x*self.s),round(y*self.s)),round(size*self.s),**kw)
 
     def camera(self,t):
-        return interpolate(t,[(0,(1.7,1340,390)),(4.7,(1.7,1340,390)),(7.1,(1,960,540)),
-            (10.6,(1,960,540)),(13,(2.05,1670,335)),(21.1,(2.05,1670,335)),
-            (23.4,(1,960,540)),(28.2,(1,960,540)),(29.2,(.985,960,540))])
+        return interpolate(t,[(0,(1.7,1340,390)),(4.7,(1.7,1340,390)),(5.5667,(1,960,540)),
+            (10.5,(1,960,540)),(11.5667,(1.85,1595,340)),(21.6,(1.85,1595,340)),
+            (22.7667,(1,960,540)),(28.2,(1,960,540)),(29.2,(.985,960,540))])
 
     def background(self,t):
         if self.portrait:
@@ -138,9 +157,9 @@ class Film:
     def panel_box(self,t):
         if not self.portrait: return self.world_box(t,(1540,195,260,240))
         box=interpolate(t,[(0,(250,650,580,535.38)),(4.7,(250,650,580,535.38)),
-           (7.1,(640,430,330,304.62)),(10.6,(640,430,330,304.62)),
-           (13,(240,620,600,553.85)),(21.1,(240,620,600,553.85)),
-           (23.4,(640,430,330,304.62)),(25.5,(640,430,330,304.62)),
+           (5.5667,(640,430,330,304.62)),(10.5,(640,430,330,304.62)),
+           (11.5667,(240,620,600,553.85)),(21.6,(240,620,600,553.85)),
+           (22.7667,(640,430,330,304.62)),(25.5,(640,430,330,304.62)),
            (26.5,(260,480,560,516.92)),(28.2,(260,480,560,516.92))])
         return self.p(box)
 
@@ -154,33 +173,53 @@ class Film:
         if key not in self.sequences: return None
         folder,rows,times=self.sequences[key]
         i=max(0,min(len(rows)-1,bisect.bisect_right(times,t)-1))
-        return read_image(str(folder/rows[i]['file']))
+        im=read_image(str(folder/rows[i]['file']))
+        if 'windowVisible' in rows[i]: im.info['film_visible']=rows[i]['windowVisible']
+        im.info['film_frame_metadata']=rows[i]
+        return im
 
     def panel(self,t):
-        # A continuous six-second passage is native motion, not interpolated UI artwork.
-        if 10.6<=t<16.6:
+        # Final masters use WindowServer video, which includes the presentation-layer
+        # animation. cacheDisplay state sequences are useful only for composition drafts.
+        if .35<=t<16.4:
+            seq=self.sequence(f'windowserver-lyrics-{self.lang}',t-.35)
+            if seq is not None: return seq
+        if 16.4<=t<23.8:
+            seq=self.sequence(f'windowserver-controls-{self.lang}',t-16.4)
+            if seq is not None: return seq
+        # Retained to reproduce early documented studies, never allowed in final video.
+        if .35<=t<6.35:
+            seq=self.sequence(f'authored-motion-{self.lang}',t-.35)
+            if seq is not None: return seq
+        if 10.4<=t<16.4:
             key=f'authored-motion-{self.lang}'
-            seq=self.sequence(key,t-10.6)
+            seq=self.sequence(key,t-10.4)
             if seq is not None: return seq
             if self.lang=='zh':
-                seq=self.sequence('music-lyrics',t-10.6)
+                seq=self.sequence('music-lyrics',t-10.4)
                 if seq is not None: return seq
-        if 16.6<=t<21.8:
-            if self.lang=='zh':
-                seq=self.sequence('music-controls',t-16.6)
-                if seq is not None: return seq
+        if 16.4<=t<21.8:
+            key='music-controls-en' if self.lang=='en' and 'music-controls-en' in self.sequences else 'music-controls'
+            seq=self.sequence(key,t-16.4)
+            if seq is not None: return seq
             return self.cue(2,True)
         n=min(7,1+int(t/4))
         if t>25: n=5
         return self.cue(n)
 
-    def cursor(self,frame,t,box):
+    def cursor(self,frame,t,box,metadata=None):
         if not 16.2<t<21.7: return
-        # Editorial cursor overlay follows the real control demonstration.
-        # Its presence does not qualify an input test; the macOS capture manifest does.
+        if metadata and metadata.get('cursorIncluded'): return
+        if not self.draft: return
+        # Early composition studies only. Final video contains the actual OS pointer.
         t0=t-16.2
         px,py=interpolate(t0,[(0,(1.22,.92)),(.7,(.57,.77)),(1.8,(.5,.76)),
                          (2.3,(.5,.76)),(3.5,(.71,.90)),(4.5,(.71,.90)),(5.5,(1.2,1.15))])
+        if metadata:
+            pointer=metadata.get('pointerNormalized',{})
+            if 'x' in pointer and 'y' in pointer: px,py=pointer['x'],pointer['y']
+            elif 'pointerX' in metadata and 'pointerY' in metadata: px,py=metadata['pointerX'],metadata['pointerY']
+        if px < -.6 or px > 1.8 or py < -.6 or py > 1.8: return
         x,y,w,h=box
         x+=w*px;y+=h*py
         sz=max(18,round(w*.068))
@@ -196,9 +235,15 @@ class Film:
         wide=min(1,wide)
         if self.work is not None and wide>.001:
             ratio=self.work.height/self.work.width
-            if self.portrait: box=self.p((80,880,920,920*ratio))
-            else: box=self.world_box(t,(100,145,1150,1150*ratio))
-            paste(im,self.work,box,wide,True,radius=round(12*self.s))
+            if self.portrait: box=self.p((40,850,780,780*ratio))
+            else: box=self.world_box(t,(300,90,900,900*ratio))
+            scene_key=(self.static_bg_key,box,round(wide,5))
+            if self.scene_key==scene_key:
+                im=self.scene_base.copy()
+            else:
+                paste(im,self.work,box,wide,False,radius=round(12*self.s))
+                self.scene_key=scene_key
+                self.scene_base=im.copy()
 
         visible=ease((t-.35)/.48)
         visible*=1-ease((t-23.2)/.55)
@@ -206,9 +251,13 @@ class Film:
         visible*=1-ease((t-28.1)/.6)
         box=self.panel_box(t)
         if visible>.001:
+            panel=self.panel(t)
+            if panel.info.get('film_visible') is False: visible=0
+            if not self.draft and abs(panel.width/panel.height-208/192)>.02:
+                raise RuntimeError('Product source aspect ratio differs from the 208x192 photography view. Never stretch the native interface.')
             box=(box[0],box[1]+round((1-visible)*8*self.s),box[2],box[3])
-            paste(im,self.panel(t),box,visible,True,radius=round(box[2]*.09))
-            self.cursor(im,t,box)
+            paste(im,panel,box,visible,True,radius=round(box[2]*.09))
+            self.cursor(im,t,box,panel.info.get('film_frame_metadata'))
 
         # The primary brand is present from the first shot. The small stage label
         # prevents this preview from claiming an available integrated download.
@@ -226,18 +275,6 @@ class Film:
         else:
             self.txt(im,'让音乐，留在手边。' if self.lang=='zh' else 'Keep the music close.',155,855,49,opacity=intro)
 
-        working=envelope(t,7.1,10.9,.4)
-        if self.portrait:
-            self.txt(im,'做你的事。\n听你的歌。' if self.lang=='zh' else 'Stay in flow.\nStay with the music.',85,230,58,opacity=working,spacing=8)
-        else:
-            self.txt(im,'做你的事。听你的歌。' if self.lang=='zh' else 'Stay in flow. Stay with the music.',150,972,30,opacity=working,color=(243,247,243))
-
-        leaving=envelope(t,22.7,25.6,.4)
-        if self.portrait:
-            self.txt(im,'不需要时，\n把空间还给你。' if self.lang=='zh' else 'When you are done,\nyour space is yours.',85,235,55,opacity=leaving,spacing=8)
-        else:
-            self.txt(im,'不需要时，把空间还给你。' if self.lang=='zh' else 'When you are done, your space is yours.',150,972,30,opacity=leaving,color=(243,247,243))
-
         extra=envelope(t,25.9,28.55,.35)
         if extra>.001:
             if self.portrait:
@@ -251,11 +288,11 @@ class Film:
                 self.txt(im,'Riftlet',1628,490,25,opacity=extra,weight='bold')
                 self.txt(im,'截图助手 · 规划接入' if self.lang=='zh' else 'Planned integration',1628,532,16,opacity=extra)
 
-        outro=ease((t-28.0)/.65)
+        outro=ease((t-28.4)/.3667)
         if outro>.001:
             veil=Image.new('RGBA',im.size,(*PAPER,round(255*outro)))
             im.alpha_composite(veil)
-            a=ease((t-28.3)/.6)
+            a=ease((t-28.3667)/.4)
             if self.portrait:
                 self.txt(im,'HOLDSNOW',540,560,19,opacity=a*.7,anchor='ma')
                 self.txt(im,'Nearpane',540,665,108,opacity=a,anchor='ma',weight='bold')
@@ -278,11 +315,18 @@ class Film:
 
 def video(film, dest, start, duration, fps=30, crf=18):
     dest.parent.mkdir(parents=True,exist_ok=True)
+    if not film.draft:
+        for kind,a,b in [('lyrics',.35,16.4),('controls',16.4,23.75)]:
+            if start>=b or start+duration<=a: continue
+            seconds=max(0,min(start+duration,b)-a)
+            key=f'windowserver-{kind}-{film.lang}'
+            if key not in film.sequences or film.sequences[key][2][-1]<seconds-.05:
+                raise RuntimeError(f'Final video requires continuous native WindowServer {kind} footage ({seconds}s), not state snapshots.')
     audio=ASSETS/'audio/origami-32s.wav'
     cmd=['ffmpeg','-y','-hide_banner','-loglevel','warning','-f','rawvideo','-pix_fmt','rgb24','-s',f'{film.w}x{film.h}','-r',str(fps),'-i','pipe:0',
          '-ss',str(start),'-i',str(audio),'-t',str(duration),'-map','0:v','-map','1:a',
-         '-c:v','libx264','-preset','fast','-crf',str(crf),'-pix_fmt','yuv420p','-profile:v','high',
-         '-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-c:a','aac','-b:a','256k','-ar','48000',
+         '-c:v','libx264','-threads','3','-preset','fast','-crf',str(crf),'-vf','scale=out_color_matrix=bt709:out_range=tv,format=yuv420p','-profile:v','high',
+         '-color_range','tv','-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-c:a','aac','-b:a','256k','-ar','48000',
          '-movflags','+faststart','-metadata','title=Nearpane — Keep the music close (Product preview)',
          '-metadata','comment=Music: Origami by Scott Buckley, CC BY 4.0, https://www.scottbuckley.com.au/library/origami/; edited 32-second excerpt. Product footage provenance supplied separately.',str(dest)]
     p=subprocess.Popen(cmd,stdin=subprocess.PIPE)

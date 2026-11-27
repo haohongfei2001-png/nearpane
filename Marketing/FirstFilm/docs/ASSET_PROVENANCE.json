@@ -1,0 +1,619 @@
+{
+  "schema_version": 1,
+  "title": "Nearpane — 让音乐，留在手边。",
+  "snapshot_date": "2026-11-28",
+  "timezone": "Asia/Shanghai",
+  "manifest_state": "PROVISIONAL_BEFORE_FINAL_MEDIA_INGEST",
+  "publication_class": "PRODUCT_PREVIEW_ONLY",
+  "publication_claims": {
+    "verified_destination": "https://nearpane.com/",
+    "call_to_action_zh": "了解 Nearpane · 产品预览",
+    "call_to_action_en": "Discover Nearpane · Product preview",
+    "integrated_nearpane_available_for_download": false,
+    "lyric_module_preinstalled_default_enabled_in_integrated_host": "NOT_VERIFIED_AS_SHIPPED",
+    "riftlet_install_remove_readd_in_integrated_host": "NOT_IMPLEMENTED_OR_NOT_VERIFIED_AS_SHIPPED",
+    "evidence_file": "docs/release-gaps.json",
+    "do_not_claim": [
+      "立即下载已集成的Nearpane",
+      "歌词板已随Nearpane正式预装",
+      "可在Nearpane中下载安装/移除/重加Riftlet",
+      "本片证明所有播放器或全部交互已经验收通过"
+    ]
+  },
+  "source_baseline": {
+    "repository": "https://github.com/haohongfei2001-png/nearpane",
+    "branch": "codex/lyrictile-standalone-20261126",
+    "commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+    "production_view": "LyricPanelView",
+    "film_capture_modifications": "Filming instrumentation and authored fixture inputs were applied to an isolated copy. This is not a signed integrated Nearpane release.",
+    "instrumentation_manifest": {
+      "source_archive_path": "product-evidence/native-capture-3/film-instrumentation.json",
+      "sha256": "22dd9b88d0cc335ff78a181f4e725172693507c411fc1a9d9d67098f60c1c45d"
+    },
+    "final_capture_run": null
+  },
+  "asset_groups": {
+    "production_view_stills": {
+      "status": "FILES_VERIFIED",
+      "classification": "PRODUCTION_NATIVE_VIEW_WITH_AUTHORED_FIXTURE_DATA",
+      "description_zh": "由macOS上的实际生产SwiftUI/AppKit歌词视图渲染；逻辑尺寸保持208×192，原生宿主视图按6倍尺寸生成清晰像素。文案与cue状态由本片编排，不是播放器自动取得的整段实录。",
+      "source_metadata": {
+        "captureMethod": "Native view at unchanged 208x192 logical layout, scaled by SwiftUI into a larger actual hosting surface, then captured at 1x; no bitmap enlargement",
+        "cuesPerLanguage": 8,
+        "kind": "authored-native-layout-fixture",
+        "languages": [
+          "zh",
+          "en"
+        ],
+        "limitations": "Original authored fixture states rendered by production AppKit/SwiftUI view. Hover layout only; actual enabled controls and interactions are in real-music captures.",
+        "logicalSize": [
+          208,
+          192
+        ],
+        "probeOnly": false,
+        "productionView": "LyricPanelView",
+        "realPlayerTest": false,
+        "renderScale": 6,
+        "transportEnabled": false
+      },
+      "files": [
+        {
+          "path": "assets/native/authored-native/SOURCE.json",
+          "bytes": 655,
+          "sha256": "a9be4abec81cb5cf95be2a0c5ba6ba4ef57404381b12ddca3481f7c57e6465b3"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-0.png",
+          "bytes": 87919,
+          "sha256": "349a0a83e2365f004b001e5281a6485ab3c64f42651e64c56dad79c9c6f81ed0",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-1.png",
+          "bytes": 100247,
+          "sha256": "eb89d07cd2263b1f1cf2486b86ddff1dc4f2059c3a9c3ed92b59d021f53151ec",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-2.png",
+          "bytes": 110644,
+          "sha256": "a30838f0adee41e945d1db2f1779b16a5766fcc1bf54721e522f7735ea0601f5",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-3.png",
+          "bytes": 109080,
+          "sha256": "20b97f888ad8afc5d221036c4ff494bc0cdc397e0066d3d3deb669da0b7cf623",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-4.png",
+          "bytes": 109023,
+          "sha256": "79da58cc8b91ec47da8db3bfb1fbbe100dfd4e1efa57cd61a8df53f567d1ab04",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-5.png",
+          "bytes": 111577,
+          "sha256": "5e74923a5986232222205d48ef48a1ae42b15425fb5f1410be3f9d66c6cf720c",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-6.png",
+          "bytes": 96595,
+          "sha256": "c4feb9c1b2a66538ec5bbb1abc691abbd7d162422af975c9660858d16eaaf16d",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-cue-7.png",
+          "bytes": 80389,
+          "sha256": "56616b501f4b9516a32d1eb25e0380bf9120bc23e81fb5873b8a48352e006bc3",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-hover-layout-only.png",
+          "bytes": 96199,
+          "sha256": "157d1635b7e7e06d27c34ab5afc4b864d130da5abbdefee5c0cdf11a2c21390d",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/en-original.lrc",
+          "bytes": 264,
+          "sha256": "df08034fd1b0beae0b3fda5793542e2ace93143ccf4638b6928329b221b00651"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-0.png",
+          "bytes": 95397,
+          "sha256": "6e8f06966c7e81f82fdbce3c90f6cc5898a326634cac6c72f23ca348a2795117",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-1.png",
+          "bytes": 113398,
+          "sha256": "448723755aa11b592e99a8942cc0835a019df0f00eed7a74e73c00c6156adf02",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-2.png",
+          "bytes": 122619,
+          "sha256": "9decc1f977c3eb908c6cb4f576dcfea5d9e2cb2c841203b4ee98d8af32830022",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-3.png",
+          "bytes": 125886,
+          "sha256": "7833db24f435300ee0fa84f4c155831b191b083922919abf66a074a0257d01ed",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-4.png",
+          "bytes": 121414,
+          "sha256": "d27a368e4b7ad9c583f90d91ce0065dec256b065f8a237e18ad320c0fcadc8da",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-5.png",
+          "bytes": 123960,
+          "sha256": "ef6c122f32849d3bec04fd49128c03e527e5777cdf5e860ad600ad91d230636d",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-6.png",
+          "bytes": 109616,
+          "sha256": "cdf6e7577fb2d84eae19aade37e3a7171074085cc94a6d5d7e8c784007f61248",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-cue-7.png",
+          "bytes": 93066,
+          "sha256": "4ac1e0e5d81d4fa88616f58eb2e1d42d4012bfbc421a216b355a17c514a36b92",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-hover-layout-only.png",
+          "bytes": 95716,
+          "sha256": "df52c5c1c98a2705079c161d5bcb6d3b1fa1033ec027f94ae69fa98aa880f252",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/authored-native/zh-original.lrc",
+          "bytes": 276,
+          "sha256": "fa1b0990d8ee14321fca8c2a7b8f78028764f518b502af73d91b8c2ec8552a80"
+        }
+      ],
+      "claims_excluded": [
+        "真实歌曲播放端到端通过",
+        "悬停静态图证明按钮可用",
+        "Nearpane主程序已完成集成"
+      ]
+    },
+    "authored_cue_sequences": {
+      "classification": "AUTHORED_CUE_FIXTURE_SEQUENCE",
+      "description_zh": "生产歌词视图随编排时间推进的连续原生帧。非真实Music时钟、非声学同步验收，也非整段桌面屏幕录制。",
+      "sequences": [
+        {
+          "status": "SOURCE_FILES_PRESENT_REVIEW_SCOPE_LIMITED",
+          "path": "assets/native/authored-motion-zh",
+          "source_run": null,
+          "manifest": {
+            "path": "assets/native/authored-motion-zh/capture.json",
+            "bytes": 24266,
+            "sha256": "a5c903b635c025cdc85ee07948c85261b92237014a7e877a52f95ea431551e4c"
+          },
+          "manifest_metadata": {
+            "kind": "authored-native-view-motion",
+            "limitations": "Native production SwiftUI cue transition rendered with authored input; not a player, transport or acoustic-sync qualification.",
+            "origin": "Original HOLDSNOW demo lyrics; fixture source positions follow host monotonic elapsed time.",
+            "productionView": "LyricPanelView",
+            "realPlayer": false,
+            "renderScale": 4,
+            "targetFPS": 30
+          },
+          "frame_count": 180,
+          "first_elapsed": 9.237500000836008e-05,
+          "last_elapsed": 5.977007333333347,
+          "frame_file_list_sha256": "681cdad5003ae47e52b0e3c8b88b6fcf0052fa5cf091dde79fbd530884e6300d",
+          "frame_file_list_hash_method": "SHA-256 of UTF-8 lines sorted by path: <file-sha256><two spaces><project-relative-path><LF>.",
+          "representative_frame_files": [
+            {
+              "path": "assets/native/authored-motion-zh/frame-0000.png",
+              "bytes": 69865,
+              "sha256": "775b4fcf4620e43d1c0add6af095909ed28ba720dffe4438e3280eab264a82c2",
+              "width": 832,
+              "height": 768,
+              "mode": "RGBA"
+            },
+            {
+              "path": "assets/native/authored-motion-zh/frame-0179.png",
+              "bytes": 79070,
+              "sha256": "21f8f96ef8733a4fa7e3b3c496784e0760d3ae5f5da1a6e2763c885966873b67",
+              "width": 832,
+              "height": 768,
+              "mode": "RGBA"
+            }
+          ]
+        },
+        {
+          "status": "SOURCE_FILES_PRESENT_REVIEW_SCOPE_LIMITED",
+          "path": "assets/native/authored-motion-en",
+          "source_run": null,
+          "manifest": {
+            "path": "assets/native/authored-motion-en/capture.json",
+            "bytes": 24270,
+            "sha256": "0885cafd6bb6c1890bf4f22262989c408cac25a642a683796991d4da3b5a7d94"
+          },
+          "manifest_metadata": {
+            "kind": "authored-native-view-motion",
+            "limitations": "Native production SwiftUI cue transition rendered with authored input; not a player, transport or acoustic-sync qualification.",
+            "origin": "Original HOLDSNOW demo lyrics; fixture source positions follow host monotonic elapsed time.",
+            "productionView": "LyricPanelView",
+            "realPlayer": false,
+            "renderScale": 4,
+            "targetFPS": 30
+          },
+          "frame_count": 180,
+          "first_elapsed": 2.8000000014571924e-05,
+          "last_elapsed": 5.970685583333335,
+          "frame_file_list_sha256": "4486c00b34a0d357c4dc05cdc86577f2f4e93e35678270220c54b473ffeda24e",
+          "frame_file_list_hash_method": "SHA-256 of UTF-8 lines sorted by path: <file-sha256><two spaces><project-relative-path><LF>.",
+          "representative_frame_files": [
+            {
+              "path": "assets/native/authored-motion-en/frame-0000.png",
+              "bytes": 61441,
+              "sha256": "9444e009160e4dbe94e7a1ebb26c9a9bb4d05a20d96c57e9e35f3686a44e6db6",
+              "width": 832,
+              "height": 768,
+              "mode": "RGBA"
+            },
+            {
+              "path": "assets/native/authored-motion-en/frame-0179.png",
+              "bytes": 66878,
+              "sha256": "ae12970e615851d736649afa00947ab5d6c222539bfcb79e293e36eddf620418",
+              "width": 832,
+              "height": 768,
+              "mode": "RGBA"
+            }
+          ]
+        }
+      ],
+      "motion_review_at_snapshot": {
+        "status": "NEEDS_RECHECK",
+        "finding": "First seven-second edit changes the lyric stack between 1.833s and 1.867s with no visible intermediate states; do not label smooth native animation as passed.",
+        "evidence": "qa/independent-cue-transition.jpg"
+      }
+    },
+    "real_music_and_cgevent_capture": {
+      "status": "PENDING_FINAL_RUN_INGEST_AND_REVIEW",
+      "source_run": null,
+      "source_commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+      "capture_manifests": [],
+      "selected_clip_ranges": [],
+      "command_receipts": [],
+      "input_method": "Must be backed by actual Music playback, CGEvent input and native capture receipts; not inferred from fixture images.",
+      "verified_at_this_snapshot": false,
+      "earlier_run_not_a_pass": {
+        "run": 46041890766,
+        "summary": "Earlier run completed real lyric import, cue advance, seek and hover observations, but full result was FAIL after delayed pause readback; next/previous were not established by that run. It is not used as a final pass."
+      }
+    },
+    "desktop_workspace": {
+      "status": "PENDING_REPLACEMENT_WITH_FINAL_CAPTURE",
+      "classification": "ACTUAL_MACOS_TEXTEDIT_WINDOW_CAPTURE",
+      "description_zh": "真实TextEdit窗口与本片原创文稿的截图；放置于后期桌面合成中。当前在盘文件是待替换版本，未将工具栏整理后的新图算作已收到。",
+      "current_file": {
+        "path": "assets/workspace/textedit-native-window.png",
+        "bytes": 111905,
+        "sha256": "b12e9ca51dd9ab8b33f86d8aad6a5c4cb8b59635d7b7bccf00f93fd8b8ec17eb",
+        "width": 739,
+        "height": 789,
+        "mode": "RGBA"
+      },
+      "final_source_run": null,
+      "final_file": null,
+      "private_user_data": "No personal working document is intended for this asset. Final chosen capture still requires review."
+    },
+    "generated_environment": {
+      "status": "FILE_AND_ORIGIN_VERIFIED",
+      "classification": "AI_GENERATED_BACKGROUND_ONLY",
+      "generator": "OpenAI image_gen, generated during this production session",
+      "generated_on": "2026-11-28 Asia/Shanghai",
+      "file": {
+        "path": "assets/backgrounds/morning-water.png",
+        "bytes": 1787355,
+        "sha256": "fa78d5e57fa430f7a1ebd9be9126647eb5639e4181b4bfc04368a3d0e6885ba6",
+        "width": 1672,
+        "height": 941,
+        "mode": "RGB"
+      },
+      "original_local_filename": "generated_images/exec-7964b6de-a152-4f79-8978-312b0f64b637.png",
+      "original_file_sha256_matches": true,
+      "description_zh": "晨雾湖湾、石墨青水面、珍珠色晨空；不含生成的软件界面、标志或设备。软件像素来自另行采集的原生素材。",
+      "exact_original_prompt": null,
+      "prompt_status": "NOT_RETAINED_LOCALLY; no reconstructed text is represented as the original prompt.",
+      "rights_basis": {
+        "source": "https://openai.com/policies/terms-of-use/",
+        "source_checked_on": "2026-11-28",
+        "terms_effective_date": "2026-01-01",
+        "summary_zh": "在适用法律允许的范围内，OpenAI与用户之间的输出归属按服务条款处理；条款同时说明输出可能不独一。此处不宣称独占版权。"
+      }
+    },
+    "riftlet_icon": {
+      "status": "VERIFIED_CURRENT_RELEASE_SOURCE_ICON",
+      "classification": "OFFICIAL_APPLICATION_BRAND_ASSET",
+      "description_zh": "从当前官方ICNS逐字节提取PNG；与1.0.11发布源码图标一致。用于“规划接入”编辑图形，不能当作已安装模块截图。",
+      "provenance": {
+        "repository": "haohongfei2001-png/Riftlet",
+        "retrieved_main_commit": "2b270aec5cf57d2b4165acd52bcc730fa1052a02",
+        "current_release_source_commit": "2598c0004d1f897880951e6c8a38c7503eb61948",
+        "source_icon_identical_to_release_source": true,
+        "release": "1.0.11 (67)",
+        "source_paths": [
+          "Resources/Riftlet.icns",
+          "website-assets/riftlet.svg"
+        ],
+        "icon_source_sha256": "b84de92fab292cdf18b94f1aac79a0bd2ed4a373b2542fd985bbd6eaea91c048",
+        "files": [
+          {
+            "name": "riftlet-official.svg",
+            "sha256": "f31d71318e1aaef2464bbcc25c5a105fa6959d10006eb7c64d30aac42fbb3e90",
+            "bytes": 343
+          },
+          {
+            "name": "riftlet-official-512.png",
+            "sha256": "2a8a9ec696bde2060be02dde3c73c317772e9ec009b20079153d2d4992013a2a",
+            "bytes": 10021
+          },
+          {
+            "name": "riftlet-official-1024.png",
+            "sha256": "6b33fafa75caef2f76463db5f9540878d0c4b790adb456881694b0be7f32515f",
+            "bytes": 23167
+          },
+          {
+            "name": "Riftlet-current.icns",
+            "sha256": "b84de92fab292cdf18b94f1aac79a0bd2ed4a373b2542fd985bbd6eaea91c048",
+            "bytes": 61888
+          }
+        ],
+        "extraction": "PNG chunks ic09 (512px) and ic10 (1024px) extracted byte-for-byte from official ICNS, no drawing, upscaling, recoloring, or image editing.",
+        "scope": "Official current brand/app icon. Not a screenshot and not evidence of Nearpane module integration. Suitable for brief planned-integration title alongside actual lyric panel.",
+        "rights": "User-authorized use of own Riftlet brand assets in Nearpane product film.",
+        "excluded": "Older 1.0.4/1.0.5 native tray screenshots have insufficient resolution and are not current version evidence. Official 1.0.11 verification says private native screenshots are retained privately; not retrieved or reused.",
+        "approved_caption_zh": "Riftlet 截图助手 · 规划接入",
+        "approved_caption_en": "Riftlet screenshots · Planned integration"
+      },
+      "files": [
+        {
+          "path": "assets/riftlet/PROVENANCE.json",
+          "bytes": 1912,
+          "sha256": "f942fac39a72ee0ab82e4b112b0e372ebd654df35b2cacf3df1241eeb6549ba1"
+        },
+        {
+          "path": "assets/riftlet/Riftlet-current.icns",
+          "bytes": 61888,
+          "sha256": "b84de92fab292cdf18b94f1aac79a0bd2ed4a373b2542fd985bbd6eaea91c048"
+        },
+        {
+          "path": "assets/riftlet/riftlet-official-1024.png",
+          "bytes": 23167,
+          "sha256": "6b33fafa75caef2f76463db5f9540878d0c4b790adb456881694b0be7f32515f",
+          "width": 1024,
+          "height": 1024,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/riftlet/riftlet-official-512.png",
+          "bytes": 10021,
+          "sha256": "2a8a9ec696bde2060be02dde3c73c317772e9ec009b20079153d2d4992013a2a",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/riftlet/riftlet-official.svg",
+          "bytes": 343,
+          "sha256": "f31d71318e1aaef2464bbcc25c5a105fa6959d10006eb7c64d30aac42fbb3e90"
+        }
+      ],
+      "rights_basis": "User-authorized use of their own Riftlet brand assets for the Nearpane film."
+    },
+    "music": {
+      "status": "OFFICIAL_SOURCE_AND_LICENSE_VERIFIED",
+      "title": "Origami",
+      "artist": "Scott Buckley",
+      "official_track_page": "https://www.scottbuckley.com.au/library/origami/",
+      "official_download_url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/10/Origami.mp3",
+      "usage_guidance": "https://www.scottbuckley.com.au/library/using-this-music/",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "commercial_synchronization": "Permitted with attribution according to the archived official track and usage pages.",
+      "original": {
+        "path": "assets/audio/Origami-original.mp3",
+        "bytes": 7572590,
+        "sha256": "8b8edd81ee2110a62169b48e3233e1556c0f9de10003b21f41a28e5b4bcbfe14"
+      },
+      "edit": {
+        "path": "assets/audio/origami-32s.wav",
+        "bytes": 9216208,
+        "sha256": "6ef62a072bf6ada3f08db3f5e0040598a3cd3e5f7c58a8995914667efea4f1c4"
+      },
+      "edit_description": "Opening 32-second excerpt, fades and loudness normalization; final mixed-file parameters still require final-output verification.",
+      "lyrics_relationship_zh": "配乐是纯音乐。画面里的歌词为本片原创演示文案，不是Scott Buckley作品的歌词，不把两者写成同一首带歌词歌曲。",
+      "attribution_to_publish": "Music: 'Origami' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au",
+      "publication_requirements": [
+        "Include credit with every published version; for YouTube it must be in the video description, not only the end frame.",
+        "Include source and license links and indicate that the track was edited.",
+        "Do not submit the track to audio fingerprinting/Content ID services or publish the source file as a standalone music release."
+      ],
+      "archived_license_evidence": [
+        {
+          "path": "licenses/ScottBuckley_Origami.html",
+          "bytes": 80280,
+          "sha256": "f11ccfead79014199448de85b67b1107dcf6a8737cdd24c9c2126b8b676d2602"
+        },
+        {
+          "path": "licenses/ScottBuckley_UsingThisMusic.html",
+          "bytes": 44873,
+          "sha256": "e170fe62943850f03e4e9cfb81ce34be7afe0cd31a2d16678e8d23aa58d53a29"
+        },
+        {
+          "path": "licenses/CC-BY-4.0.txt",
+          "bytes": 18657,
+          "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
+        }
+      ],
+      "perceptual_listening_review": "NOT_PERFORMED_AT_THIS_SNAPSHOT"
+    },
+    "fonts": {
+      "status": "FILES_AND_BUNDLED_LICENSES_VERIFIED",
+      "license": "SIL Open Font License 1.1",
+      "families": [
+        {
+          "name": "Inter",
+          "source": "Official rsms/inter distribution on GitHub",
+          "upstream": "https://github.com/rsms/inter",
+          "exact_download_url": null,
+          "download_url_status": "Not retained; not reconstructed.",
+          "files": [
+            {
+              "path": "assets/fonts/InterVariable.ttf",
+              "bytes": 879708,
+              "sha256": "4989b125924991b90d05b2d16e0e388c48f7d5bb8b30539bbf9c755278d0ccaf"
+            }
+          ],
+          "license_file": {
+            "path": "licenses/Inter-LICENSE.txt",
+            "bytes": 4380,
+            "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+          }
+        },
+        {
+          "name": "Noto Sans CJK",
+          "source": "Preinstalled system package; associated copyright/OFL text copied into this project",
+          "upstream": "https://github.com/notofonts/noto-cjk",
+          "files": [
+            {
+              "path": "assets/fonts/NotoSansCJK-Regular.ttc",
+              "bytes": 19484784,
+              "sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a"
+            },
+            {
+              "path": "assets/fonts/NotoSansCJK-Bold.ttc",
+              "bytes": 20050760,
+              "sha256": "faa5f3656a78b2e2d450d27fe8382c778bc2b6bb5ea29c986664a6a435056ceb"
+            }
+          ],
+          "license_file": {
+            "path": "licenses/NotoSansCJK-LICENSE.txt",
+            "bytes": 14712,
+            "sha256": "849f4ea9c214fa4ac3593b770c699f387534b11ce671264c1b10d85bdcb5997b"
+          }
+        }
+      ],
+      "commercial_use": "The retained OFL permits use in commercial visual work. Keep copyright and OFL files with redistributed font binaries.",
+      "native_system_fonts": "Apple system-font pixels may appear in actual software captures; no Apple proprietary font files are distributed."
+    },
+    "authored_text": {
+      "status": "ORIGINAL_FOR_THIS_FILM",
+      "description_zh": "中英文宣传文案、演示歌词与工作文稿为本片创作；未借用第三方歌曲歌词。",
+      "lyric_files": [
+        {
+          "path": "assets/native/authored-native/zh-original.lrc",
+          "bytes": 276,
+          "sha256": "fa1b0990d8ee14321fca8c2a7b8f78028764f518b502af73d91b8c2ec8552a80"
+        },
+        {
+          "path": "assets/native/authored-native/en-original.lrc",
+          "bytes": 264,
+          "sha256": "df08034fd1b0beae0b3fda5793542e2ace93143ccf4638b6928329b221b00651"
+        }
+      ],
+      "rights_basis": "Created at the user’s request for the HOLDSNOW/Nearpane production; no third-party song lyrics were supplied as this text."
+    }
+  },
+  "editorial_compositing": {
+    "description_zh": "最终画面是原生软件素材、真实TextEdit窗口、生成环境背景及编辑文字的合成；镜头推拉、淡入淡出和部分鼠标显示由制作工程组织，不是未经剪辑的完整桌面实录。",
+    "product_ui_redrawn_by_image_generation": false,
+    "integrated_module_install_ui_shown": false,
+    "cursor_overlay": "Final compositor must use measured pointer coordinates when available and identify editorial overlay separately; do not infer input success from the drawn cursor.",
+    "renderer_source_final_sha256": null
+  },
+  "exclusions": {
+    "reference_films": "Official Apple Music, Linear and Things videos were inspected for research only. Their images, audio and video must not enter the delivery assets or final film.",
+    "placeholders": "assets/native/placeholder-*.png and WIP/old failed capture files are not approved production or final delivery assets.",
+    "unlicensed_music_or_lyrics": "None intentionally included; no popular commercial song was used as footage or soundtrack."
+  },
+  "packaging": {
+    "github": "Editable text source, brand/editorial records, license records and provenance manifests. Exclude videos, native frame sequences, source audio, font binaries and unrelated reference films from ordinary Git history.",
+    "asset_archive": "Separate asset ZIP containing chosen original/processed materials, fonts with licenses, and capture receipts. Source music is for this editing handoff, not a standalone public music release.",
+    "delivery_links": [],
+    "github_branch_url": null,
+    "github_commit": null,
+    "asset_zip_file": null,
+    "asset_zip_sha256": null
+  },
+  "final_delivery": {
+    "status": "PENDING_RENDER_FREEZE",
+    "files": [],
+    "bilingual_video_versions": null,
+    "landscape_resolution": null,
+    "portrait_resolution": null,
+    "duration_seconds": null,
+    "cover_files": [],
+    "core_sample_file": null
+  },
+  "final_quality": {
+    "full_film_visual_review": "PENDING",
+    "native_cue_motion_recheck": "PENDING",
+    "real_music_control_claims_review": "PENDING_FINAL_CAPTURE",
+    "audio_technical_check": "PENDING_FINAL_MUX",
+    "audio_perceptual_review": "NOT_PERFORMED_AT_THIS_SNAPSHOT",
+    "final_cover_contrast_recheck": "PENDING_LATEST_COVERS",
+    "all_output_decode_and_hash_check": "PENDING"
+  },
+  "pending_fields": [
+    "source_baseline.final_capture_run",
+    "asset_groups.real_music_and_cgevent_capture.source_run/capture_manifests/selected_clip_ranges/command_receipts/verified_at_this_snapshot",
+    "asset_groups.desktop_workspace.final_source_run/final_file/status",
+    "asset_groups.authored_cue_sequences.motion_review_at_snapshot",
+    "editorial_compositing.renderer_source_final_sha256",
+    "final_delivery.*",
+    "final_quality.*",
+    "packaging.github_branch_url/github_commit/asset_zip_file/asset_zip_sha256/delivery_links"
+  ]
+}

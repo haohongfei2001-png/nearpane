@@ -1,0 +1,30 @@
+FINAL FILM MUSIC — ORIGAMI ONLY
+
+Music: “Origami” by Scott Buckley — released under CC-BY 4.0.
+Artist: https://www.scottbuckley.com.au
+Source: https://www.scottbuckley.com.au/library/origami/
+License: https://creativecommons.org/licenses/by/4.0/
+Edited for this film: continuous opening 32 seconds, fades and loudness mastering.
+
+Publication requirements
+- Put this credit with every published film. On YouTube it must be in the video description, not only the end frame.
+- Do not register the music in Content ID or another audio-fingerprinting service.
+- Do not resell the track in isolation or redistribute it as a standalone music release.
+- The complete source track accompanies the authorized production assets only.
+- No separate attribution-free license was purchased.
+
+Edit details
+Original excerpt: 0.000–32.000 seconds, continuous.
+Fade-in: 0.000–0.018 seconds. Fade-out: 29.600–32.000 seconds.
+Master: 48 kHz, stereo, 24-bit PCM. Measured -16.00 LUFS, -1.71 dBTP, LRA 3.70 LU.
+These measurements are reused from the previously verified master; the final file is byte-identical.
+Subjective listening review is not verified. Technical measurements do not establish perceived quality.
+
+The on-screen original demonstration lyrics are separate from this instrumental recording.
+They must not be identified as lyrics sung in Origami.
+
+Official evidence
+ScottBuckley_Origami.html — the selected track’s attribution and commercial-use statement.
+ScottBuckley_UsingThisMusic.html — the creator’s usage and publication guidance.
+CC-BY-4.0.txt — full official license text.
+sources.json — selected source, SHA-256, master identity, edits and measurement record.

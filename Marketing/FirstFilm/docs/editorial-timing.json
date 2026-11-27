@@ -1,0 +1,28 @@
+{
+  "fps": 30,
+  "durationSeconds": 32,
+  "audio": "Scott Buckley / Origami, opening excerpt",
+  "soundReference": "origami_timing.json",
+  "majorVisualArrivalsSeconds": [
+    5.5667,
+    11.5667,
+    16.4,
+    22.7667,
+    25.9667,
+    28.7667
+  ],
+  "musicOnsetQualification": "Acoustic onset analysis; not claimed downbeats or subjective listening",
+  "coreNativePassagesSeconds": [
+    [
+      0.35,
+      16.4
+    ],
+    [
+      16.4,
+      23.8
+    ]
+  ],
+  "copyPolicy": "Opening and ending carry the tagline; no oversized feature headings in the core interaction",
+  "releaseStage": "Product preview; no download-now claim",
+  "nativeMotionRequirement": "Continuous WindowServer capture, preserving source presentation-layer animation. Static view snapshots cannot qualify."
+}

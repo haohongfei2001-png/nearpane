@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-28",
+  "scope": "Official motion references visually inspected for original Nearpane film; copyrighted clips for internal reference only, excluded from production assets.",
+  "references": [
+    {
+      "brand": "Linear",
+      "title": "Introducing Linear Agent",
+      "page": "https://linear.app/changelog/2026-03-24-introducing-linear-agent",
+      "asset": "https://webassets.linear.app/files/ornj730p/production/c8530d6578e71e2e6c1461778f1fe599bb5f0e00.mp4",
+      "local_file": "/workspace/scratch/be9b9c627bdc/reference-visuals/linear.mp4",
+      "contact_sheet": "/workspace/scratch/be9b9c627bdc/reference-visuals/linear-contact.jpg",
+      "duration_seconds": 54.868,
+      "resolution": "1280x720",
+      "fps": 30,
+      "verified_by": "Downloaded official MP4 and inspected 12 timestamped frames across full duration; no claim of audio listening.",
+      "observations": [
+        {
+          "time": "1.1–8.2 s",
+          "description": "产品从第一幕就在画面中；黑底斜置界面由窗口局部移动到右下角输入框，光线与焦点引导视线。"
+        },
+        {
+          "time": "13.2–41.2 s",
+          "description": "同一任务连续展开：输入、结果、计划、创建项目；镜头在界面内部切换尺度，画面主角始终是产品的因果变化。"
+        },
+        {
+          "time": "46.6–53.8 s",
+          "description": "产品界面退场后保持黑色留白，先字标再图标，片尾拥有清楚驻留时间。"
+        }
+      ],
+      "use_for_nearpane": [
+        "开场直接看到产品用途；界面动作构成叙事，文字只辅助。",
+        "只对有信息价值的操作近拍，镜头退出时保留歌词板和桌面的空间关系。"
+      ],
+      "do_not_copy": [
+        "不沿用黑底、强倾斜、明显失焦，它们会降低本片歌词可读性。"
+      ],
+      "sha256": "6ecb1d9ff89d9c6ca0b71ceef0a0160a9ea9208773191b14e97776130318d1da"
+    },
+    {
+      "brand": "Things / Cultured Code",
+      "title": "Meet the all-new Things (official site remastered film)",
+      "page": "https://culturedcode.com/things/",
+      "asset": "https://static.culturedcode.com/things/videos/2026-06-25-meet-things-remastered-2/meettheallnewthings.mp4",
+      "local_file": "/workspace/scratch/be9b9c627bdc/reference-visuals/things.mp4",
+      "contact_sheet": "/workspace/scratch/be9b9c627bdc/reference-visuals/things-contact.jpg",
+      "duration_seconds": 70.866667,
+      "resolution": "1920x1080",
+      "fps": 30,
+      "verified_by": "Downloaded official MP4 and inspected 12 timestamped frames across full duration; no claim of audio listening.",
+      "observations": [
+        {
+          "time": "5.7–10.6 s",
+          "description": "大面积浅灰背景，单个设备由远景进入清晰界面，软阴影建立质感。"
+        },
+        {
+          "time": "17.0–31.2 s",
+          "description": "实际UI在局部特写中承担视觉吸引力：侧栏、完成状态、编辑区；有限的品牌色出现在真实功能细节。"
+        },
+        {
+          "time": "46.1–53.2 s",
+          "description": "设备边缘与内容同时保留，交替使用整体与细节构图；避免始终贴满屏幕。"
+        },
+        {
+          "time": "65.9–69.4 s",
+          "description": "浅色清晰品牌收尾，单一图标+名称，没有重复功能清单。"
+        }
+      ],
+      "use_for_nearpane": [
+        "浅暖灰环境、真实柔影、安静留白；UI文字需要在清晰平面显示。",
+        "镜头节奏来自宽景/近景/动作完成后的短暂停留，不依赖轮番的标题卡。"
+      ],
+      "do_not_copy": [
+        "无需模拟手机硬件或照搬Things蓝色。Nearpane本体是桌面歌词板。"
+      ],
+      "sha256": "4818de99957269e8b1447d3ce979e30f5e3eca158c16cde87a06b41b74409b48"
+    },
+    {
+      "brand": "Apple Music",
+      "title": "Apple Music Sing official feature animation (not a standalone launch film)",
+      "page": "https://www.apple.com/apple-music/",
+      "asset": "https://www.apple.com/105/media/us/apple-music/2025/9f6fa542-6505-4985-b302-3a4bdd265894/anim/sing/large_2x.mp4",
+      "local_file": "/workspace/scratch/be9b9c627bdc/reference-visuals/apple-sing.mp4",
+      "contact_sheet": "/workspace/scratch/be9b9c627bdc/reference-visuals/apple-sing-contact.jpg",
+      "duration_seconds": 4.966667,
+      "resolution": "1632x920",
+      "fps": 30,
+      "verified_by": "Downloaded official MP4 and inspected 12 timestamped frames over 4.97 s; HTML identifies the animation as synced lyrics. Clip is a site feature loop, not a full launch film.",
+      "observations": [
+        {
+          "time": "0.1–1.0 s",
+          "description": "当前歌词高对比突出，前后句降对比；画面及专辑封面稳定。"
+        },
+        {
+          "time": "1.5–3.0 s",
+          "description": "歌词换行和高亮变化即为主要动态，镜头本身无需运动才能传达音乐同步。"
+        },
+        {
+          "time": "3.5–4.9 s",
+          "description": "产品功能内的反应图标沿画面上升，歌词依然是可识别的信息层。"
+        }
+      ],
+      "use_for_nearpane": [
+        "歌词本身即是叙事：原创歌词按音乐变化，先保持稳定机位让观众读到一句。",
+        "上下文歌词应退到次要层，视觉焦点不与鼠标、镜头、字幕同时争抢。"
+      ],
+      "do_not_copy": [
+        "不添加原产品不存在的逐字卡拉OK高亮或爱心反应。只使用Nearpane实际支持的逐行变化。",
+        "不使用Apple的歌曲、封面、原片或字体文件作为本片素材。"
+      ],
+      "sha256": "802cf9af62030018713d55cdb81a4eea1bde5f5ddf3aa2e15a52e2c20c7fd65e"
+    }
+  ],
+  "recommended_direction": {
+    "concept": "让音乐，留在手边。 / Keep the music close.",
+    "visual_language": "Warm off-white desktop; a single muted cool accent; actual product UI at readable scale; edge light and real shadow; almost no decorative animation.",
+    "narrative": "音乐开始时，歌词板出现；完成一小段真实阅读/写作；鼠标靠近揭示控制；歌词随播放变化；音乐停止时退场；最多3秒扩展功能；Nearpane品牌及实际下载入口驻留。",
+    "camera": "Establish desk relationship once, then move smoothly to panel. One 6–8s unbroken experience shot. Static framing while the key lyric changes. Return to spatial context before outro.",
+    "attention_rule": "同一瞬间只让歌词、鼠标或镜头中的一个承担主动态，其他稳定。",
+    "brand_rule": "早段只以小型Nearpane标识建立归属，片尾主品牌Nearpane；LyricTile只解释歌词板，不作为独立下载。",
+    "anti_slideshow_rule": "不得用6张静态卡片加淡入淡出构成整片。至少一个连续交互镜头要有时间因果：播放→出现→歌词变化→悬停→控制。"
+  }
+}
