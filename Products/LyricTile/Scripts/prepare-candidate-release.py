@@ -226,7 +226,8 @@ def evidence_zip(artifact, manifest, remote):
     exact = {'dist/bundle-verification.json', 'dist/evidence/native-smoke.json', 'dist/evidence/host.txt',
              'dist/evidence/signing-identities.txt', 'dist/evidence/media-helper-load.json',
              'dist/evidence/live-lyrics.json', 'dist/evidence/release-integrity.json',
-             'dist/evidence/website-integrity.json', 'dist/evidence/idle/idle-check.json',
+             'dist/evidence/website-integrity.json', 'dist/evidence/test-results.xml',
+             'dist/evidence/test-results-swift-testing.xml', 'dist/evidence/idle/idle-check.json',
              'dist/evidence/idle/idle-samples/summary.json', 'dist/evidence/real-music/cloud-music.json',
              'dist/evidence/real-music/native-player.json', 'dist/evidence/real-music/cloud-desktop-capture.json',
              'dist/evidence/real-music/media-provenance.json', 'dist/evidence/cloud-clients/cloud-clients.json'}

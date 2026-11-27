@@ -1,0 +1,24 @@
+{
+  "player": "netease",
+  "status": "BLOCKED",
+  "scope": "official client and production-adapter observation",
+  "metadataEndpoint": "https://music.163.com/api/mac/package/download/latest?arch=arm64&productName=music",
+  "expectedBundleID": "com.netease.163music",
+  "accountUsed": false,
+  "TCCDatabaseModified": false,
+  "protocolsAccepted": false,
+  "completePlayerQualification": false,
+  "nativeLyricUIQualification": "NOT_RUN",
+  "transportQualification": "NOT_RUN",
+  "stage": "download",
+  "downloadURL": "https://d1.music.126.net/dmusic/NeteaseCloudMusic_Music_official_3.1.14.3459_arm64.dmg",
+  "advertisedVersion": "3.1.14",
+  "advertisedBuild": "3459",
+  "metadataSHA256": "5cd4558573b70c2b39533954fae015bc084b9dd3f549e2c8c191901af4927607",
+  "error": "URLError: <urlopen error _ssl.c:1129: The handshake operation timed out>",
+  "cleanup": {
+    "termPIDs": [],
+    "killPIDs": [],
+    "remainingPIDs": []
+  }
+}

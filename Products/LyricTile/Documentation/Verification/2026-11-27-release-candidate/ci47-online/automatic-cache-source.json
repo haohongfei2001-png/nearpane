@@ -1,0 +1,36 @@
+{
+  "providerID": "lrclib",
+  "providerRecordID": "332580",
+  "sourceURL": "https://lrclib.net/api/get/332580",
+  "fetchedAtReferenceSeconds": 817482926.803442,
+  "envelopeSHA256": "df075f64f0539b01986d96ba50bccf4e5d7a13deefb8c350d9bf1de82500c894",
+  "documentContentSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+  "rawPayloadSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+  "rawPayloadByteCount": 17738,
+  "referenceSourceHashMatched": false,
+  "referenceSourceHashScope": "syncedLyrics reference only; informational for other source formats",
+  "recording": {
+    "platformIDs": [
+      {
+        "namespace": "com.apple.Music.playerTrack",
+        "value": "4F77C5AF1B8D6225"
+      }
+    ],
+    "fingerprint": "com.apple.Music:id:4F77C5AF1B8D6225",
+    "durationMS": 189309,
+    "versionTags": [],
+    "title": "Code Monkey",
+    "album": "Thing a Week Three",
+    "artists": [
+      "Jonathan Coulton"
+    ]
+  },
+  "timingLevel": "token",
+  "originalFormat": "lyricsfileV1Draft",
+  "cueCount": 54,
+  "wordSynchronizationQualified": false,
+  "sourceAdvanceMS": 0,
+  "automaticIndexBindingVerified": true,
+  "cacheWasInitiallyEmpty": true,
+  "observedResolutionSeconds": 1.5284183329999905
+}

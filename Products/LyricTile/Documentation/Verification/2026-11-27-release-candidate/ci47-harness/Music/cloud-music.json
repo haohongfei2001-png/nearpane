@@ -1,0 +1,28 @@
+{
+  "status": "FAIL",
+  "failureClass": "test_harness_setup",
+  "stage": "Music local playback setup",
+  "exitCode": 1,
+  "appleScriptErrorNumber": 10001,
+  "details": "3164:3273: execution error: LyricTile harness: two distinct imported file tracks were not readable within the bound. The playlist does not yet contain two readable file tracks. (10001)\n",
+  "musicEnvironment": {
+    "applicationPath": "/System/Applications/Music.app",
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "processes": [
+      {
+        "pid": 21689,
+        "parentPID": 1,
+        "state": "S",
+        "elapsed": "00:38",
+        "executable": "/System/Applications/Music.app/Contents/MacOS/Music"
+      }
+    ],
+    "bundleID": "com.apple.Music",
+    "version": "1.7",
+    "build": "1.7.0",
+    "executable": "Music",
+    "processQueryExitCode": 0,
+    "running": true
+  },
+  "realPlayerTestStarted": false
+}

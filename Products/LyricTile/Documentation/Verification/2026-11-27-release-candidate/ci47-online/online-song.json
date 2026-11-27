@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_REAL_ONLINE_SONG",
+  "scope": "ordinary native app, actual Apple Music, one public original recording and automatic LRCLIB",
+  "nativeVerificationModeUsed": false,
+  "injectedLyrics": false,
+  "accountUsed": false,
+  "audioBodyRetained": false,
+  "lyricBodyRetained": false,
+  "screenshotsTaken": false,
+  "independentAcousticClockQualification": false,
+  "checks": [
+    {
+      "check": "same-production-candidate-bundle",
+      "passed": true,
+      "build": "47",
+      "sourceCommit": "01d21fc5ba61161f5cbf54ee494ed13778921910",
+      "executableSHA256": "9001398263a302a5afee720f5c445449c6ad7e17b24802c2853e5a3458378ce3"
+    },
+    {
+      "check": "read-only-native-observer-compiles",
+      "passed": true
+    },
+    {
+      "check": "official-audio-bytes",
+      "passed": true,
+      "sha256": "3866a8aa2fba54bdc278e8b55b278d73f51c6cf0ad06bf1e9835c409c824d586",
+      "bytes": 4319316,
+      "contentType": "audio/mpeg",
+      "finalURL": "https://www.jonathancoulton.com/wp-content/uploads/encodes/Thing_a_Week_Three/mp3/03_Code_Monkey_mp3_118604e.mp3"
+    },
+    {
+      "check": "actual-music-original-tags-and-imported-file",
+      "passed": true,
+      "title": "Code Monkey",
+      "artist": "Jonathan Coulton",
+      "album": "Thing a Week Three",
+      "persistentID": "4F77C5AF1B8D6225",
+      "durationSeconds": 189.309005737305,
+      "importedFileSHA256": "3866a8aa2fba54bdc278e8b55b278d73f51c6cf0ad06bf1e9835c409c824d586",
+      "metadataEdited": false
+    },
+    {
+      "check": "actual-music-current-track-is-imported-source",
+      "passed": true,
+      "expectedPersistentID": "4F77C5AF1B8D6225",
+      "lastReadback": [
+        {
+          "currentTitle": "Code Monkey",
+          "currentArtist": "Jonathan Coulton",
+          "currentAlbum": "Thing a Week Three",
+          "currentPersistentID": "4F77C5AF1B8D6225",
+          "currentState": "playing",
+          "positionMS": 490,
+          "observedUptime": 805.070707708
+        }
+      ]
+    },
+    {
+      "check": "production-automatic-online-source-and-cache",
+      "passed": true,
+      "providerID": "lrclib",
+      "providerRecordID": "332580",
+      "sourceURL": "https://lrclib.net/api/get/332580",
+      "fetchedAtReferenceSeconds": 817482926.803442,
+      "envelopeSHA256": "df075f64f0539b01986d96ba50bccf4e5d7a13deefb8c350d9bf1de82500c894",
+      "documentContentSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+      "rawPayloadSHA256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+      "rawPayloadByteCount": 17738,
+      "referenceSourceHashMatched": false,
+      "referenceSourceHashScope": "syncedLyrics reference only; informational for other source formats",
+      "recording": {
+        "platformIDs": [
+          {
+            "namespace": "com.apple.Music.playerTrack",
+            "value": "4F77C5AF1B8D6225"
+          }
+        ],
+        "fingerprint": "com.apple.Music:id:4F77C5AF1B8D6225",
+        "durationMS": 189309,
+        "versionTags": [],
+        "title": "Code Monkey",
+        "album": "Thing a Week Three",
+        "artists": [
+          "Jonathan Coulton"
+        ]
+      },
+      "timingLevel": "token",
+      "originalFormat": "lyricsfileV1Draft",
+      "cueCount": 54,
+      "wordSynchronizationQualified": false,
+      "sourceAdvanceMS": 0,
+      "automaticIndexBindingVerified": true,
+      "cacheWasInitiallyEmpty": true,
+      "observedResolutionSeconds": 1.5284183329999905
+    },
+    {
+      "check": "two-distinct-native-current-lines-follow-actual-Music-position",
+      "passed": true
+    }
+  ],
+  "observations": [
+    {
+      "beforeMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 2306,
+        "state": "playing",
+        "observedUptime": 806.88046525
+      },
+      "afterMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 2557,
+        "state": "playing",
+        "observedUptime": 807.120850875
+      },
+      "native": {
+        "accessibilityAlreadyTrusted": true,
+        "centerTextHashes": [
+          "c49840c959b6bbb431d7f0609a52a1cf0fd3b0bd3b89b78dfe3df13f13d7872f"
+        ],
+        "durationMilliseconds": 38.36466666666638,
+        "hitBelongsToTargetWindow": true,
+        "hitBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "hitResult": 0,
+        "hitRole": "AXStaticText",
+        "hitWindowIdentityEqual": true,
+        "inputPosted": false,
+        "normalization": "trim whitespaceAndNewlines; preserve internal whitespace; SHA256 of UTF-8",
+        "permissionsRequested": false,
+        "pid": 24191,
+        "point": {
+          "x": 920,
+          "y": 143
+        },
+        "status": "OBSERVED",
+        "textIncluded": false,
+        "textObservations": [
+          {
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "directHit": true,
+            "hashes": [
+              "c49840c959b6bbb431d7f0609a52a1cf0fd3b0bd3b89b78dfe3df13f13d7872f"
+            ],
+            "role": "AXStaticText"
+          }
+        ],
+        "visibleCandidateWindowCount": 1,
+        "visitedElements": 1,
+        "windowBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "windowNumber": 88
+      },
+      "passed": false,
+      "expectedCueIndex": 0,
+      "expectedCueSHA256": "c49840c959b6bbb431d7f0609a52a1cf0fd3b0bd3b89b78dfe3df13f13d7872f"
+    },
+    {
+      "beforeMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 3123,
+        "state": "playing",
+        "observedUptime": 807.691060666
+      },
+      "afterMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 3440,
+        "state": "playing",
+        "observedUptime": 808.005845833
+      },
+      "native": {
+        "accessibilityAlreadyTrusted": true,
+        "centerTextHashes": [
+          "135741f5dc742d3dc93db62d8f5ecb743fd9017f0a551a05cbc9e646ca71bcbb"
+        ],
+        "durationMilliseconds": 54.78708333339455,
+        "hitBelongsToTargetWindow": true,
+        "hitBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "hitResult": 0,
+        "hitRole": "AXStaticText",
+        "hitWindowIdentityEqual": true,
+        "inputPosted": false,
+        "normalization": "trim whitespaceAndNewlines; preserve internal whitespace; SHA256 of UTF-8",
+        "permissionsRequested": false,
+        "pid": 24191,
+        "point": {
+          "x": 920,
+          "y": 143
+        },
+        "status": "OBSERVED",
+        "textIncluded": false,
+        "textObservations": [
+          {
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "directHit": true,
+            "hashes": [
+              "135741f5dc742d3dc93db62d8f5ecb743fd9017f0a551a05cbc9e646ca71bcbb"
+            ],
+            "role": "AXStaticText"
+          }
+        ],
+        "visibleCandidateWindowCount": 1,
+        "visitedElements": 1,
+        "windowBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "windowNumber": 88
+      },
+      "passed": false,
+      "expectedCueIndex": null,
+      "expectedCueSHA256": null
+    },
+    {
+      "beforeMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 4140,
+        "state": "playing",
+        "observedUptime": 808.711588625
+      },
+      "afterMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 4390,
+        "state": "playing",
+        "observedUptime": 808.961889666
+      },
+      "native": {
+        "accessibilityAlreadyTrusted": true,
+        "centerTextHashes": [
+          "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae"
+        ],
+        "durationMilliseconds": 32.18983333329106,
+        "hitBelongsToTargetWindow": true,
+        "hitBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "hitResult": 0,
+        "hitRole": "AXStaticText",
+        "hitWindowIdentityEqual": true,
+        "inputPosted": false,
+        "normalization": "trim whitespaceAndNewlines; preserve internal whitespace; SHA256 of UTF-8",
+        "permissionsRequested": false,
+        "pid": 24191,
+        "point": {
+          "x": 920,
+          "y": 143
+        },
+        "status": "OBSERVED",
+        "textIncluded": false,
+        "textObservations": [
+          {
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "directHit": true,
+            "hashes": [
+              "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae"
+            ],
+            "role": "AXStaticText"
+          }
+        ],
+        "visibleCandidateWindowCount": 1,
+        "visitedElements": 1,
+        "windowBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "windowNumber": 88
+      },
+      "passed": true,
+      "expectedCueIndex": 1,
+      "expectedCueSHA256": "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae"
+    },
+    {
+      "beforeMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 7617,
+        "state": "playing",
+        "observedUptime": 809.696502666
+      },
+      "afterMusic": {
+        "title": "Code Monkey",
+        "artist": "Jonathan Coulton",
+        "album": "Thing a Week Three",
+        "persistentID": "4F77C5AF1B8D6225",
+        "positionMS": 7850,
+        "state": "playing",
+        "observedUptime": 809.925166
+      },
+      "native": {
+        "accessibilityAlreadyTrusted": true,
+        "centerTextHashes": [
+          "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6"
+        ],
+        "durationMilliseconds": 26.788333333342962,
+        "hitBelongsToTargetWindow": true,
+        "hitBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "hitResult": 0,
+        "hitRole": "AXStaticText",
+        "hitWindowIdentityEqual": true,
+        "inputPosted": false,
+        "normalization": "trim whitespaceAndNewlines; preserve internal whitespace; SHA256 of UTF-8",
+        "permissionsRequested": false,
+        "pid": 24191,
+        "point": {
+          "x": 920,
+          "y": 143
+        },
+        "status": "OBSERVED",
+        "textIncluded": false,
+        "textObservations": [
+          {
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "directHit": true,
+            "hashes": [
+              "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6"
+            ],
+            "role": "AXStaticText"
+          }
+        ],
+        "visibleCandidateWindowCount": 1,
+        "visitedElements": 1,
+        "windowBounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "windowNumber": 88
+      },
+      "passed": true,
+      "expectedCueIndex": 2,
+      "expectedCueSHA256": "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6"
+    }
+  ],
+  "musicStartReadbacks": [
+    {
+      "currentTitle": "Code Monkey",
+      "currentArtist": "Jonathan Coulton",
+      "currentAlbum": "Thing a Week Three",
+      "currentPersistentID": "4F77C5AF1B8D6225",
+      "currentState": "playing",
+      "positionMS": 490,
+      "observedUptime": 805.070707708
+    }
+  ],
+  "realMusicSeekTargetSeconds": 7.09,
+  "distinctMatchedCurrentCueHashes": [
+    "157d11bf8d0b12dae8aedda2c399f5a90cafdccf76e4fa022f51b2e3a8c563f6",
+    "b58df2ea5f430bcd7ab72098b56c0c93e9e55107a40f589356c5ddde8f325cae"
+  ],
+  "cleanup": {
+    "privateAudioAndLyricsRemoved": true,
+    "previousApplicationSupportRestored": true,
+    "previousPreferencesRestored": true,
+    "errors": []
+  },
+  "elapsedSeconds": 14.266
+}

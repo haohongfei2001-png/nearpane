@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "workflowRunID": 46016001883,
+  "workflowRunURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46016001883",
+  "sourceCommit": "01d21fc5ba61161f5cbf54ee494ed13778921910",
+  "build": 47,
+  "artifactID": 15206239025,
+  "artifactZIP_SHA256": "ea96c1691bdae50104763b743c0b2f27bcbea7356f3bcf71ae72257ee1e56316",
+  "artifactZIPVerifiedLocally": true,
+  "artifactZIPBytes": 7367,
+  "originalJSONFilesCopiedByteForByte": true,
+  "files": [
+    {
+      "name": "automatic-cache-source.json",
+      "bytes": 1255,
+      "sha256": "6a853d38ab0d25231dc0b06ef8b939edc4d459ea5efbc31c6b14b89e76bd7904"
+    },
+    {
+      "name": "ax-helper-compile.json",
+      "bytes": 36,
+      "sha256": "e6a10e00d2c33708d71cc4e9d9250d129e14cd0f1488869e828680c4c9b24b41"
+    },
+    {
+      "name": "online-song-progress.json",
+      "bytes": 12461,
+      "sha256": "6ea52531695b94429be162e6c294ceaf37bc38c71e332108e293f39b626d9de1"
+    },
+    {
+      "name": "online-song.json",
+      "bytes": 12970,
+      "sha256": "1de5f5793628f592e8d153932e2627c2901999bb7c82101a556f20298f03c8c0"
+    },
+    {
+      "name": "permission-actions.json",
+      "bytes": 194,
+      "sha256": "2a1ce2056b82d4e734e9f96cad135bcfadd257b63a70b1354caeebbf12f3e6ca"
+    },
+    {
+      "name": "source-provenance.json",
+      "bytes": 1405,
+      "sha256": "1fcb90d4c9ea8e3af9cf42df957b280be9bfee383970b07d45ba6e372a41f6c5"
+    }
+  ],
+  "independentReadOnlyReview": {
+    "automaticProviderAndActualMusicIdentityAgree": true,
+    "documentAndRawPayloadHashesAgree": true,
+    "matchedObservations": 2,
+    "unmatchedObservationsRetained": 2,
+    "distinctNativeCueHashes": 2,
+    "sameRealWindowAndProcessForMatchedReads": true,
+    "temporaryMediaCleanupAndStateRestorationSucceeded": true
+  },
+  "scope": "Real ordinary candidate app, actual Music playback of the official recording, production automatic LRCLIB resolution and two native center-text hash matches against actual Music reads.",
+  "limitations": [
+    "The independent Music two-track/core verification from the same workflow is a separate result; this report does not turn it into a pass.",
+    "The first two observations did not meet the matching gate and remain unchanged in the raw report.",
+    "This does not measure zero latency, whole-song timing error, independent acoustic accuracy, or word-synchronization accuracy.",
+    "The actual source is lyricsfileV1Draft/token; the older syncedLyrics reference hash is informational and is not the actual selected payload hash.",
+    "This does not prove Developer ID signing, notarization, installation or update behavior."
+  ]
+}

@@ -1,16 +1,57 @@
 # LyricTile · HOLDSNOW
 
-**歌词，自然在旁。** A native macOS companion for the music player you already use.
+**歌词，自然在旁。** LyricTile 是 HOLDSNOW 的独立 macOS 歌词伴侣，使用你已有的音乐播放器，无需启动 Nearpane。
 
-LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
+**发行状态：正式包准备中。** 最新候选、源码与逐项验收结果统一记录在 [STATUS](STATUS.md)。当前云端工程包使用 ad-hoc 签名，尚不是完成 Developer ID 签名和 Apple 公证的消费者下载。官网在正式包就绪前保持“准备中”；已公证的旧 build 4 仅保留历史验收用途，不替代最新版本。
 
-**Current channel: final release preparation.** The latest source and cloud-built candidate are identified in [STATUS](STATUS.md). Notarized LyricTile 1.0.0 (4) is a historical installation baseline, predating the current interface; it is not offered as the latest download. The initial platform remains Apple silicon, macOS 27 or later. [Live product page](https://nearpane.com/lyrictile/) · [English](https://nearpane.com/lyrictile/en/) · [Installation](Documentation/INSTALL.md) · [Release preparation](Documentation/RELEASE.md).
+首发目标为 **Apple silicon、macOS 27 或更新版本**。[中文产品页](https://nearpane.com/lyrictile/) · [English website](https://nearpane.com/lyrictile/en/) · [安装说明](Documentation/INSTALL.md) · [真实支持范围](Documentation/SUPPORT.md) · [隐私说明](Documentation/PRIVACY.md)
 
-## Evidence and supported scope
+## 日常使用
 
-Historical build 4 played local tracks through Apple Music 1.7 and QQ Music 11.11.0 on macOS 27.0 (26A428), with native controls and a signed build 2→4 update exercised on a MacBook Air. These results apply to that package. Latest cloud compilation, native UI, real-player attempts, and exact evidence are linked from [STATUS](STATUS.md); [support scope](Documentation/SUPPORT.md) separates current and historical results. Spotify and NetEase must not be called verified merely because their adapters exist. First release support is limited to the actual passing paths, not gated on all four players.
+- 开始播放音乐，歌词自然出现；暂停后离开面板，或没有播放内容时，面板收起并释放桌面空间。
+- 当前句居中突出，上下文逐级弱化。长句会换行并调整上下文，特别长的内容可在原生视图内滚动。
+- 鼠标移到面板，查看封面、曲名、歌手、播放控制和可用进度；没有歌词时保留紧凑的音乐摘要。
+- 可选在线查词，也可导入自己的 LRC、增强 LRC、TTML 或纯文本歌词。设置页提供外观、字号、歌词来源和桌面排列选项。
 
-## Start here
+## 已实际验证的播放器
+
+以下是有原始 macOS 运行证据的具体路径。播放器版本、验证 build 与未覆盖范围详见 [SUPPORT](Documentation/SUPPORT.md)；最终候选仍以 STATUS 为准。
+
+| 播放器 | 已验证的使用路径 |
+| --- | --- |
+| Apple Music 1.7 / build 1.7.0 | 两首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复、真实 hover/按钮事件、next/previous、返回原曲自动恢复已绑定歌词；[CI46 原始记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087) |
+| QQ 音乐 11.11.1 / build 73285 | 一首原创本地音轨；自动识别、本地歌词、逐行推进、seek、暂停/恢复和实际指针交互；[CI46 原始记录](https://github.com/haohongfei2001-png/nearpane/actions/runs/46012637087) |
+| 网易云音乐 3.1.14 / build 3459 | 同样的单曲本地核心路径在 [CI45](https://github.com/haohongfei2001-png/nearpane/actions/runs/46009188167) 实际通过；其生产 Sources 与 CI46 相同。CI46 的官方安装包下载超时，没有运行网易云复验 |
+| Spotify 桌面版 | 适配器已经实现，尚无已登录实际播放的通过记录，不列为已实测支持 |
+
+这些本地播放检查使用真实客户端、真实音频和普通 LyricTile App，无需音乐账号。它们不代表订阅曲库、广告、Connect、每个录音版本或所有歌曲都有歌词。在线接口抽样与“实际歌曲播放后自动取词”的完整路径分别记录，不互相替代。
+
+## 安装与首次使用
+
+1. 正式包开放后，从官网对应的 **LyricTile** 下载入口获取 DMG，把 `LyricTile.app` 拖入“应用程序”，再从那里打开。工程候选和正式包的区别见[安装说明](Documentation/INSTALL.md)。
+2. 在欢迎页了解在线查词的数据使用方式，完成开始使用。LyricTile 不要求注册自己的账号；音乐服务的账号要求由所用播放器决定。
+3. 打开音乐播放器并播放歌曲。连接 Apple Music 或 Spotify 时，按需允许系统“自动化”提示；权限被拒绝时，可在“系统设置 → 隐私与安全性 → 自动化”重新开启对应播放器。
+4. 没有合适歌词时，使用菜单栏的本地导入或来源选择。没有有效进度时，界面不会编造一个同步时钟。
+
+日常使用无需为 LyricTile 开启“辅助功能”或“屏幕录制”权限。云端验收的指针和截图助手使用的是测试主机已有权限，不是软件安装要求。
+
+在线查词通过 LRCLIB 完成，默认开启并在欢迎页说明；设置中可随时关闭。查词会发送曲名、歌手、专辑及可用时长等匹配信息。本地导入可独立使用。歌词覆盖和准确匹配取决于来源、元数据及录音版本；歌词内容权利属于原权利人，API 可访问性不等同于每首歌词的内容授权。详情见[隐私与数据流](Documentation/PRIVACY.md)和[第三方说明](Documentation/THIRD_PARTY_NOTICES.md)。
+
+**首发实际核验以逐行同步为主。** 连续逐字扫光还需要真实逐字时码和对应的时间精度证据；目前不承诺所有歌曲逐字，也不把原生夹具当作独立逐字准确度验收。旧 build 4 的八小时运行、公证及 build 2→4 更新结果仅适用于旧包；最新签名包和升级结果另有对应记录。
+
+## English overview
+
+LyricTile is an independent HOLDSNOW app for **Apple silicon Macs running macOS 27 or later**. Lyrics appear while music plays, keep the current line centered, and make room for long lines. Hover reveals artwork, track details, controls and available progress. Tracks without lyrics use a compact summary. Local imports work independently of optional LRCLIB lookup.
+
+**The signed consumer download is being prepared.** The current engineering package is ad-hoc signed; it is not a notarized consumer release. [STATUS](STATUS.md) identifies the exact candidate and evidence. Historical notarized build 4 is not offered as the latest version. The product page will expose the new download when the signed package is ready.
+
+Real native tests have exercised Apple Music 1.7 with two authored local recordings, QQ Music 11.11.1/build 73285 with one local recording, and NetEase 3.1.14/build 3459 with one local recording. The [support matrix](Documentation/SUPPORT.md) records the exact runs and limitations; NetEase's CI45 result uses the same production Sources as CI46, whose installer download timed out before that client could run. Spotify remains unverified. These results do not qualify an entire commercial catalog, every song version or independent word-level timing.
+
+Once the signed release is available, download LyricTile from its product page, drag the app into Applications and complete the welcome screen. Allow Automation for the selected Apple Music or Spotify connection when macOS asks. Normal operation does not require Accessibility or Screen Recording permission. LRCLIB lookup is disclosed during onboarding and can be disabled in Settings. See the bilingual [installation](Documentation/INSTALL.md), [support](Documentation/SUPPORT.md) and [privacy](Documentation/PRIVACY.md) pages.
+
+## Development and release references
+
+The independent app is maintained under `Products/LyricTile`, with its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), lifecycle, settings, updater and package pipeline. Future Nearpane integration uses the native view and service modules directly.
 
 - [Current status and exact next step](STATUS.md): latest implementation, validation, remaining work and the small set of files to read next; no prior conversation retrieval is needed.
 - [Complete product/design/source research](Research/2026-11-26/README_START_HERE.md): 54 archived deliverables, three high-fidelity directions, selected design, interaction specification, source pins and macOS acceptance cases.
@@ -46,10 +87,10 @@ Tests use clearly authored fixtures under `Tests/`; production startup has no de
 
 The panel appears automatically only while an identified song is playing. Its 192-point lyric surface centers the current cue and softens surrounding context. Ordinary cues show up to two cues above and below; long cues reduce context to allow three or four complete text rows, with native scrolling for exceptionally long lines. Songs without lyrics use a 104-point summary. Hover reveals artwork, title, artist, transport, and progress in the same outer frame while retaining the current lyric. Missing artwork uses a neutral symbol; unknown fields stay unknown. No playback leaves no desktop panel. A paused song retains an already-visible panel only during interaction. Connection status, local import, and settings remain in the menu bar.
 
-| Player | Implemented route | Runtime limitation to verify on the exact installed build |
+| Player | Implemented route | Route boundaries |
 |---|---|---|
-| Apple Music | Process-targeted ScriptingBridge metadata, progress, artwork and commands | On-demand Automation consent, local/cloud tracks, seek/readback, sleep/wake |
-| Spotify desktop | Process-targeted ScriptingBridge and bounded official artwork download | Ads, podcasts/unsupported media, Connect, remote-output position and controls |
+| Apple Music | Process-targeted ScriptingBridge metadata, progress, artwork and commands | On-demand Automation consent; cloud tracks and sleep/wake require their own evidence |
+| Spotify desktop | Process-targeted ScriptingBridge and bounded official artwork download | Actual playback remains unverified; ads, podcasts, Connect and remote outputs are not qualified |
 | QQ Music | Isolated MediaRemote stream/snapshot helper | Actual source participation; global commands only while the intended source owns Now Playing; paused seek disabled |
 | NetEase Music | Same isolated helper, independent adapter capability state | Actual client version's timestamp/capability behavior and current-source ownership |
 

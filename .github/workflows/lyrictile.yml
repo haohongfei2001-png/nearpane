@@ -110,6 +110,14 @@ jobs:
       - name: Verify real Music local playback without an account
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-cloud-music.py dist/LyricTile.app --output dist/evidence/real-music
+      - name: Preserve the actual Music result immediately
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LyricTile-music-${{ github.run_number }}
+          path: Products/LyricTile/dist/evidence/real-music/*.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Probe the live lyric service with the production repository
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: swift run --configuration release LyricServiceProbe --output dist/evidence/live-lyrics.json

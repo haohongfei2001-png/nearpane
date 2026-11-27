@@ -150,89 +150,204 @@ try:
     # CI41 proved that changing a newly imported WAV's name can return -50.
     # Keep the player's actual metadata. A temporary playlist gives the real
     # production next/previous commands two distinct original recordings.
+    import_report = {'schemaVersion':1,'temporaryPlaylist':playlist_name,
+        'scope':'only this newly created playlist; no other library tracks are inspected',
+        'attempts':[],'selectedSources':[],'currentTrackReadbacks':[]}
+
+    def setup_log(label, result):
+        with (out/'music-setup.log').open('a') as stream:
+            stream.write(label+'\n'+result.stdout+result.stderr+'\n')
+
+    def setup_failure(details, error_number=10001, exit_code=1):
+        global permission_helper
+        save('music-import-observations.json',import_report)
+        if permission_helper:
+            save('setup-permission-ui.json',stop_cloud_ui(permission_helper))
+            permission_helper = None
+        environment = music_environment('music-setup-failure')
+        capture_desktop('music-setup-failure-desktop','failed AppleScript import and play')
+        harness_error = error_number not in {-1743, -600, -1712}
+        save('cloud-music.json', {'status':'FAIL' if harness_error else 'BLOCKED',
+             'failureClass':'test_harness_setup' if harness_error else 'player_setup',
+             'stage':'Music local playback setup','exitCode':exit_code,
+             'appleScriptErrorNumber':error_number,
+             'details':details,'musicEnvironment':environment,'realPlayerTestStarted':False})
+        raise SystemExit(1 if harness_error else 0)
+
+    def checked_setup_command(label, script, timeout=8):
+        result = apple(script,timeout=timeout)
+        setup_log(label,result)
+        if result.returncode:
+            number = re.search(r'\((-?\d+)\)\s*$',result.stderr)
+            setup_failure(result.stdout+result.stderr,
+                int(number[1]) if number else None,result.returncode)
+        return result
+
     setup_script = '''tell application "Music"
         set sound volume to 0
         set testPlaylist to make new user playlist with properties {name:''' + apple_string(playlist_name) + '''}
         add POSIX file ''' + apple_string(audio) + ''' to testPlaylist
-        add POSIX file ''' + apple_string(second_audio) + ''' to testPlaylist
-        set firstTrack to missing value
-        set secondTrack to missing value
-        set importsReady to false
-        set lastImportError to "The playlist does not yet contain two readable file tracks."
-        set lastImportErrorNumber to 10001
-        set importDeadline to (current date) + 12
-        repeat
-            try
-                with timeout of 2 seconds
-                    -- Resolve a fresh concrete list; do not carry unevaluated
-                    -- item references across play, which changes Music state.
-                    set importedTracks to get file tracks of testPlaylist
-                    set lastImportErrorNumber to 10001
-                    set lastImportError to "The playlist does not yet contain two readable file tracks."
-                    if (count of importedTracks) is 2 then
-                        set firstTrack to get item 1 of importedTracks
-                        set secondTrack to get item 2 of importedTracks
-                        set firstTitle to (get name of firstTrack) as string
-                        set firstID to (get persistent ID of firstTrack) as string
-                        set firstDuration to (get duration of firstTrack) as real
-                        set firstLocation to get location of firstTrack
-                        set secondTitle to (get name of secondTrack) as string
-                        set secondID to (get persistent ID of secondTrack) as string
-                        set secondDuration to (get duration of secondTrack) as real
-                        set secondLocation to get location of secondTrack
-                        if firstTitle is not "" and secondTitle is not "" and firstTitle is not secondTitle and firstID is not "" and secondID is not "" and firstID is not secondID and firstDuration > 0 and secondDuration > 0 and firstLocation is not missing value and secondLocation is not missing value and firstLocation is not secondLocation then
-                            set importsReady to true
-                            exit repeat
-                        end if
-                    end if
-                end timeout
-            on error importMessage number importNumber
-                set lastImportError to importMessage & " (" & importNumber & ")"
-                set lastImportErrorNumber to importNumber
-                if importNumber is -1743 or importNumber is -600 then error importMessage number importNumber
-            end try
-            if (current date) >= importDeadline then exit repeat
-            delay 0.25
-        end repeat
-        if not importsReady then
-            if lastImportErrorNumber is -1712 then error lastImportError number -1712
-            error ("LyricTile harness: two distinct imported file tracks were not readable within the bound. " & lastImportError) number 10001
-        end if
+    end tell'''
+    (out/'music-setup.applescript').write_text(setup_script)
+    checked_setup_command('create playlist and import first original',setup_script,timeout=25)
+    read_tracks_script = '''tell application "Music"
+        set testPlaylist to first user playlist whose name is ''' + apple_string(playlist_name) + '''
+        set importedTracks to get tracks of testPlaylist
     end tell
-    -- Materialize locations outside Music before changing playback context.
-    set firstPath to POSIX path of firstLocation
-    set secondPath to POSIX path of secondLocation
-    tell application "Music"
+    set readback to "COUNT" & tab & ((count of importedTracks) as string)
+    repeat with trackIndex from 1 to count of importedTracks
+        try
+            tell application "Music"
+                set importedTrack to get item trackIndex of importedTracks
+                try
+                    set trackKind to (get class of importedTrack) as string
+                on error kindMessage number kindNumber
+                    set trackKind to "unreadable class (" & (kindNumber as string) & ")"
+                end try
+                set trackTitle to (get name of importedTrack) as string
+                set trackID to (get persistent ID of importedTrack) as string
+                set trackDuration to (get duration of importedTrack) as string
+                set trackLocation to get location of importedTrack
+            end tell
+            -- POSIX conversion is an AppleScript operation outside Music.
+            set trackPath to POSIX path of trackLocation
+            set readback to readback & linefeed & "TRACK" & tab & (trackIndex as string) & tab & trackKind & tab & trackTitle & tab & trackID & tab & trackDuration & tab & trackPath
+        on error importMessage number importNumber
+            set readback to readback & linefeed & "ERROR" & tab & (trackIndex as string) & tab & (importNumber as string) & tab & importMessage
+        end try
+    end repeat
+    return readback'''
+    (out/'music-import-readback.applescript').write_text(read_tracks_script)
+    original_hashes = {'first':hashlib.sha256(audio.read_bytes()).hexdigest(),
+                       'second':hashlib.sha256(second_audio.read_bytes()).hexdigest()}
+
+    def wait_for_imports(expected, phase):
+        limit = time.monotonic()+12
+        last_error_number = 10001
+        while time.monotonic()<limit:
+            attempt = {'phase':phase,'observedUptime':time.monotonic(),
+                       'trackCount':None,'tracks':[],'trackErrors':[]}
+            try:
+                observed = apple(read_tracks_script,timeout=max(.25,min(4,limit-time.monotonic())))
+                setup_log(phase,observed)
+                attempt.update(exitCode=observed.returncode,stderr=observed.stderr)
+                rows = observed.stdout.strip().splitlines()
+                if observed.returncode:
+                    number = re.search(r'\((-?\d+)\)\s*$',observed.stderr)
+                    last_error_number = int(number[1]) if number else 10001
+                else:
+                    last_error_number = 10001
+                    for row in rows:
+                        fields = row.split('\t')
+                        if fields[0]=='COUNT' and len(fields)==2:
+                            attempt['trackCount'] = int(fields[1])
+                        elif fields[0]=='ERROR':
+                            attempt['trackErrors'].append(row)
+                            if len(fields)>=3:
+                                try:
+                                    attempt.setdefault('trackErrorNumbers',[]).append(int(fields[2]))
+                                except ValueError:
+                                    attempt['trackErrors'].append('Malformed AppleScript error number.')
+                        elif fields[0]=='TRACK' and len(fields)==7:
+                            track = dict(index=int(fields[1]),kind=fields[2],actualTitle=fields[3],
+                                persistentID=fields[4],durationSeconds=float(fields[5]),location=fields[6])
+                            try:
+                                track['importedFileSHA256'] = hashlib.sha256(Path(fields[6]).read_bytes()).hexdigest()
+                            except OSError as error:
+                                track['fileReadError'] = type(error).__name__+': '+str(error)
+                            attempt['tracks'].append(track)
+                        else:
+                            attempt['trackErrors'].append('Malformed track readback: '+row)
+            except subprocess.TimeoutExpired as error:
+                last_error_number = -1712
+                decode = lambda value: value.decode('utf-8','replace') if isinstance(value,bytes) else value or ''
+                attempt.update(timedOut=True,timeoutSeconds=error.timeout,
+                    partialStdout=decode(error.stdout),stderr=decode(error.stderr))
+            track_error_numbers = attempt.get('trackErrorNumbers',[])
+            critical_error = next((number for number in track_error_numbers if number in {-1743,-600}),None)
+            if critical_error is not None:
+                last_error_number = critical_error
+            elif track_error_numbers and all(number==-1712 for number in track_error_numbers):
+                last_error_number = -1712
+            import_report['attempts'].append(attempt)
+            save('music-import-observations.json',import_report)
+            if last_error_number in {-1743,-600}:
+                setup_failure('Actual Music playlist readback was denied or its process disappeared.',last_error_number)
+            matches = {key:[row for row in attempt['tracks']
+                if row.get('importedFileSHA256')==original_hashes[key]
+                and row['persistentID'] and row['actualTitle']
+                and abs(row['durationSeconds']-fixture['durationSeconds'])<1] for key in expected}
+            if (attempt['trackCount']==len(expected) and not attempt['trackErrors']
+                    and all(len(rows)==1 for rows in matches.values())):
+                selected = {key:rows[0] for key,rows in matches.items()}
+                if (len({row['persistentID'] for row in selected.values()})==len(expected)
+                        and len({row['location'] for row in selected.values()})==len(expected)):
+                    return selected
+            time.sleep(.25)
+        setup_failure('The actual playlist did not expose the required distinct original files within 12 seconds; see music-import-observations.json.',last_error_number)
+
+    wait_for_imports(['first'],'wait for first original')
+    checked_setup_command('import second original','''tell application "Music"
+        set testPlaylist to first user playlist whose name is ''' + apple_string(playlist_name) + '''
+        add POSIX file ''' + apple_string(second_audio) + ''' to testPlaylist
+    end tell''')
+    imported = wait_for_imports(['first','second'],'wait for both originals')
+    first, second = imported['first'], imported['second']
+    import_report['selectedSources'] = [first,second]
+    save('music-import-observations.json',import_report)
+    # Resolve and play this playlist's concrete first source. Keep its playlist
+    # context for the production next/previous checks, never a library queue.
+    play_script = '''tell application "Music"
+        set testPlaylist to first user playlist whose name is ''' + apple_string(playlist_name) + '''
         set shuffle enabled to false
         set song repeat to off
-        play testPlaylist
-        delay 2
+        play (first track of testPlaylist whose persistent ID is ''' + apple_string(first['persistentID']) + ''')
+    end tell'''
+    (out/'music-select-first.applescript').write_text(play_script)
+    checked_setup_command('select verified original in this playlist',play_script)
+    read_current_script = '''tell application "Music"
         set actualState to player state as string
         set actualPosition to player position as string
         set actualID to persistent ID of current track as string
+        set actualTitle to name of current track as string
+        set actualLocation to get location of current track
     end tell
-    return firstTitle & tab & firstID & tab & (firstDuration as string) & tab & firstPath & tab & secondTitle & tab & secondID & tab & (secondDuration as string) & tab & secondPath & tab & actualState & tab & actualPosition & tab & actualID'''
-    (out/'music-setup.applescript').write_text(setup_script)
-    setup = apple(setup_script,timeout=50)
+    set actualPath to POSIX path of actualLocation
+    return actualState & tab & actualPosition & tab & actualID & tab & actualTitle & tab & actualPath'''
+    (out/'music-current-readback.applescript').write_text(read_current_script)
+    play_deadline = time.monotonic()+12
+    current = None
+    last_play_error = 10001
+    while time.monotonic()<play_deadline:
+        observed = apple(read_current_script,timeout=max(.25,min(4,play_deadline-time.monotonic())))
+        setup_log('current playback readback',observed)
+        values = observed.stdout.strip().split('\t')
+        row = {'exitCode':observed.returncode,'stderr':observed.stderr,'observedUptime':time.monotonic()}
+        last_play_error = 10001
+        if observed.returncode==0 and len(values)==5:
+            row.update(state=values[0],positionSeconds=float(values[1]),persistentID=values[2],
+                       actualTitle=values[3],location=values[4])
+            if (row['state']=='playing' and row['persistentID']==first['persistentID']
+                    and row['actualTitle']==first['actualTitle'] and row['location']==first['location']):
+                current = row
+        elif observed.returncode:
+            number = re.search(r'\((-?\d+)\)\s*$',observed.stderr)
+            last_play_error = int(number[1]) if number else 10001
+        import_report['currentTrackReadbacks'].append(row)
+        save('music-import-observations.json',import_report)
+        if last_play_error in {-1743,-600}:
+            setup_failure('Actual Music current-track readback was denied or its process disappeared.',last_play_error)
+        if current is not None:
+            break
+        time.sleep(.25)
+    if current is None:
+        setup_failure('Music did not confirm the verified first source as its actual playing track within 12 seconds.',last_play_error)
+    fields = [first['actualTitle'],first['persistentID'],str(first['durationSeconds']),first['location'],
+              second['actualTitle'],second['persistentID'],str(second['durationSeconds']),second['location'],
+              current['state'],str(current['positionSeconds']),current['persistentID']]
+    setup_readback = '\t'.join(fields)
     setup_ui_result = stop_cloud_ui(permission_helper); permission_helper = None
-    save('setup-permission-ui.json', setup_ui_result)
-    (out / 'music-setup.log').write_text(setup.stdout + setup.stderr)
-    fields = setup.stdout.strip().split('\t')
-    if setup.returncode or len(fields) != 11 or fields[8] != 'playing':
-        environment = music_environment('music-setup-failure')
-        capture_desktop('music-setup-failure-desktop','failed AppleScript import and play')
-        # An undefined script variable (-2753), malformed readback, or other
-        # setup error is a harness failure. Only observed environmental Apple
-        # Event denial, process absence or timeout is classified as blocked.
-        error_match = re.search(r'\((-?\d+)\)\s*$', setup.stderr)
-        error_number = int(error_match[1]) if error_match else None
-        harness_error = error_number not in {-1743, -600, -1712}
-        save('cloud-music.json', {'status':'FAIL' if harness_error else 'BLOCKED',
-             'failureClass':'test_harness_setup' if harness_error else 'player_setup',
-             'stage':'Music local playback setup','exitCode':setup.returncode,
-             'appleScriptErrorNumber':error_number,
-             'details':setup.stdout+setup.stderr,'musicEnvironment':environment,'realPlayerTestStarted':False})
-        raise SystemExit(1 if harness_error else 0)
+    save('setup-permission-ui.json',setup_ui_result)
     # Independently link actual imported files to the authored bytes; merely
     # returning the desired song title is not proof that this audio is playing.
     title, first_id, first_duration, first_location, second_title, second_id, second_duration, second_location, _, initial_position, current_id = fields
@@ -300,7 +415,7 @@ try:
     if report.get('status') == 'PASS' and process.returncode != 0:
         report['status'] = 'FAIL'
         report['reason'] = 'Native checks completed, but the ordinary app did not exit successfully.'
-    report.update(host=platform.platform(),appExitCode=process.returncode,realPlayerSetup=setup.stdout.strip())
+    report.update(host=platform.platform(),appExitCode=process.returncode,realPlayerSetup=setup_readback)
     save('cloud-music.json', report)
     print(json.dumps({'status':report['status'],'scope':'native app with real Music and original local audio',
         'checks':len(report.get('checks',[]))}))

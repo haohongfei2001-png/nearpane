@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "Original CI47 Music setup failure copied byte-for-byte, with bounded harness diagnosis.",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "sourceCommit": "01d21fc5ba61161f5cbf54ee494ed13778921910",
+  "sourceTree": "593eb852b00cf8667c3a098db3fa087732c6a8ac",
+  "version": "1.0.0",
+  "build": 47,
+  "runID": 46016001883,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46016001883",
+  "originalWorkflowConclusion": "failure",
+  "artifactName": "LyricTile-candidate-47",
+  "artifactID": 15207145581,
+  "artifactBytes": 27217612,
+  "artifactSHA256": "f922b4906183ce1f0c69896af90631488421f04440e4b86de6338935ac8a1544",
+  "originalFiles": {
+    "cloud-music.json": {
+      "sourcePath": "dist/evidence/real-music/cloud-music.json",
+      "bytes": 901,
+      "sha256": "7b0dfc6f87511b00086952f53b55573e0141bf1e31c42426fa1d8de664b3fb6f"
+    },
+    "music-setup.applescript": {
+      "sourcePath": "dist/evidence/real-music/music-setup.applescript",
+      "bytes": 4056,
+      "sha256": "69534eec0d047d6a067d5d27879c5bf0337a87dbb3bd4c16c0407e4c171e7395"
+    },
+    "music-setup.log": {
+      "sourcePath": "dist/evidence/real-music/music-setup.log",
+      "bytes": 185,
+      "sha256": "92ee5f3582f1a59ed967329a4f9da1b960a5fe31ab98282943998013e1b818d7"
+    },
+    "music-setup-failure.json": {
+      "sourcePath": "dist/evidence/real-music/music-setup-failure.json",
+      "bytes": 449,
+      "sha256": "70d014a04da862831fda9190f6094b96ac99ca0652ad576739c6c512f0d9fcd4"
+    },
+    "music-setup-failure-desktop.png": {
+      "sourcePath": "dist/evidence/real-music/music-setup-failure-desktop.png",
+      "bytes": 185989,
+      "sha256": "a6be89124c4ff3e9bcc218ec48488823eb83be841e7395549bca0e6727112115"
+    },
+    "setup-permission-ui.json": {
+      "sourcePath": "dist/evidence/real-music/setup-permission-ui.json",
+      "bytes": 12544,
+      "sha256": "d9148d5465d1bfca59a0da7c2b5b489cadbc1ea48c25301b9de4deae2d27520f"
+    },
+    "media-provenance.json": {
+      "sourcePath": "dist/evidence/real-music/media-provenance.json",
+      "bytes": 779,
+      "sha256": "f187144d13aa79f5a0370ee0a03e61cb439817855fee33da08cb7f04a664bad1"
+    }
+  },
+  "derivedFiles": {
+    "README.md": {
+      "bytes": 2266,
+      "sha256": "2e9f0995081391305bf1900531a8163cedf7f87115f612b56aca5992b4badd68"
+    }
+  }
+}

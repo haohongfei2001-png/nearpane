@@ -1,0 +1,19 @@
+{
+  "applicationPath": "/System/Applications/Music.app",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "processes": [
+    {
+      "pid": 21689,
+      "parentPID": 1,
+      "state": "S",
+      "elapsed": "00:38",
+      "executable": "/System/Applications/Music.app/Contents/MacOS/Music"
+    }
+  ],
+  "bundleID": "com.apple.Music",
+  "version": "1.7",
+  "build": "1.7.0",
+  "executable": "Music",
+  "processQueryExitCode": 0,
+  "running": true
+}

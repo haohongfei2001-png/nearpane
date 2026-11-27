@@ -1,0 +1,438 @@
+{
+  "accessibilityAlreadyTrusted": true,
+  "accessibilityRequested": false,
+  "accountUsed": false,
+  "actions": [
+    {
+      "AXResult": 0,
+      "bundleID": "com.apple.Music",
+      "button": "Start Listening",
+      "freshWindowText": "Music\nSidebar\nSearch\nSearch\nHome house outline\nHome\nradio\nRadio\nLibrary\nclock\nRecently Added\nArtists\nStack of squares\nAlbums\nsong\nSongs\nStore\nshopping bag\niTunes Store\nPlaylists\nSquare grid, three by three\nAll Playlists\nLoading…\nMini Player\ndo not shuffle\nPrevious\nPlay\nNext\ndo not repeat\nShow Now Playing\nLyrics\nplaying next\nVolume\nWelcome to Apple Music\nThe new home for music on your Mac. All the music you’ve added or purchased from iTunes is all right here.\nPersonal Data Use, Your searches, browsing, purchases, and device trust score help improve the service and prevent fraud. If you subscribe, we also use your music library and what you play to personalize your experience and send you notifications. Your device serial number may be used to check eligibility for offers. See how your data is managed…\nStart Listening",
+      "pid": 21689,
+      "timestamp": "2026-11-27T14:34:42Z"
+    },
+    {
+      "AXResult": 0,
+      "bundleID": "com.apple.UserNotificationCenter",
+      "button": "Allow",
+      "freshWindowText": "alert\nalert\n“hosted-compute-agent” wants access to control “Music”. Allowing control will provide access to documents and data in “Music”, and to perform actions within that app.\nHelp\nDon’t Allow\nAllow",
+      "pid": 22795,
+      "timestamp": "2026-11-27T14:34:44Z"
+    }
+  ],
+  "coordinateClicks": false,
+  "inputMethod": "AXPress on a freshly inspected native accessibility element",
+  "mode": "music",
+  "protocolsAccepted": false,
+  "status": "COMPLETED",
+  "TCCDatabaseModified": false,
+  "windows": [
+    {
+      "application": "Finder",
+      "bundleID": "com.apple.finder",
+      "buttons": [],
+      "pid": 378,
+      "text": "desktop\ndesktop"
+    },
+    {
+      "application": "MenuBarAgent",
+      "bundleID": "com.apple.MenuBarAgent",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "Spotlight",
+            "Search"
+          ]
+        }
+      ],
+      "pid": 369,
+      "text": "Control Center\nClock\nFri Nov 27  2:34 PM\nSpotlight\nSearch"
+    },
+    {
+      "application": "Music",
+      "bundleID": "com.apple.Music",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "do not shuffle"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Previous"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Play"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not repeat"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Show Now Playing"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Lyrics"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "playing next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Volume"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Personal Data Use, Your searches, browsing, purchases, and device trust score help improve the service and prevent fraud. If you subscribe, we also use your music library and what you play to personalize your experience and send you notifications. Your device serial number may be used to check eligibility for offers. See how your data is managed…"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Start Listening"
+          ]
+        }
+      ],
+      "pid": 21689,
+      "text": "Music\nSidebar\nSearch\nSearch\nHome house outline\nHome\nradio\nRadio\nLibrary\nclock\nRecently Added\nArtists\nStack of squares\nAlbums\nsong\nSongs\nStore\nshopping bag\niTunes Store\nPlaylists\nSquare grid, three by three\nAll Playlists\nLoading…\nMini Player\ndo not shuffle\nPrevious\nPlay\nNext\ndo not repeat\nShow Now Playing\nLyrics\nplaying next\nVolume\nWelcome to Apple Music\nThe new home for music on your Mac. All the music you’ve added or purchased from iTunes is all right here.\nPersonal Data Use, Your searches, browsing, purchases, and device trust score help improve the service and prevent fraud. If you subscribe, we also use your music library and what you play to personalize your experience and send you notifications. Your device serial number may be used to check eligibility for offers. See how your data is managed…\nStart Listening"
+    },
+    {
+      "application": "Music",
+      "bundleID": "com.apple.Music",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "Apple Account, Sign In"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Retry"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not shuffle"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Previous"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Play"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not repeat"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Show Now Playing"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Lyrics"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "playing next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Volume"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        }
+      ],
+      "pid": 21689,
+      "text": "Music\nSidebar\nSearch\nSearch\nHome house outline\nHome\nradio\nRadio\nLibrary\nclock\nRecently Added\nArtists\nStack of squares\nAlbums\nsong\nSongs\nStore\nshopping bag\niTunes Store\nPlaylists\nSquare grid, three by three\nAll Playlists\nApple Account, Sign In\nCannot Connect\nThe page couldn’t be loaded. Try again.\nRetry\nMini Player\ndo not shuffle\nPrevious\nPlay\nNext\ndo not repeat\nShow Now Playing\nLyrics\nplaying next\nVolume"
+    },
+    {
+      "application": "UserNotificationCenter",
+      "bundleID": "com.apple.UserNotificationCenter",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "Help"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Don’t Allow"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Allow"
+          ]
+        }
+      ],
+      "pid": 22795,
+      "text": "alert\nalert\n“hosted-compute-agent” wants access to control “Music”. Allowing control will provide access to documents and data in “Music”, and to perform actions within that app.\nHelp\nDon’t Allow\nAllow"
+    },
+    {
+      "application": "Music",
+      "bundleID": "com.apple.Music",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "Apple Account, Sign In"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Retry"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not shuffle"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Previous"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Play"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not repeat"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Show Now Playing"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Lyrics"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "playing next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Volume",
+            "Muted"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Continue"
+          ]
+        }
+      ],
+      "pid": 21689,
+      "text": "Music\nSidebar\nSearch\nSearch\nHome house outline\nHome\nradio\nRadio\nLibrary\nclock\nRecently Added\nArtists\nStack of squares\nAlbums\nsong\nSongs\nStore\nshopping bag\niTunes Store\nPlaylists\nSquare grid, three by three\nAll Playlists\nplaylist\nLyricTile Cloud Acceptance 46016001883\nLyricTile Cloud Acceptance 46016001883\nAnalyzing audio characteristics…\nApple Account, Sign In\nCannot Connect\nThe page couldn’t be loaded. Try again.\nRetry\nMini Player\ndo not shuffle\nPrevious\nPlay\nNext\ndo not repeat\nShow Now Playing\nLyrics\nplaying next\nVolume\nMuted\nHear About New Music First\nGet notified about new music from your favorites, new features, live events, and special offers.\nNot Now\nContinue"
+    },
+    {
+      "application": "Music",
+      "bundleID": "com.apple.Music",
+      "buttons": [
+        {
+          "enabled": true,
+          "labels": [
+            "Apple Account, Sign In"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Retry"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not shuffle"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Previous"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Play"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": [
+            "Next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "do not repeat"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Show Now Playing"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Lyrics"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "playing next"
+          ]
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Volume",
+            "Muted"
+          ]
+        },
+        {
+          "enabled": false,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": []
+        },
+        {
+          "enabled": true,
+          "labels": [
+            "Continue"
+          ]
+        }
+      ],
+      "pid": 21689,
+      "text": "Music\nSidebar\nSearch\nSearch\nHome house outline\nHome\nradio\nRadio\nLibrary\nclock\nRecently Added\nArtists\nStack of squares\nAlbums\nsong\nSongs\nStore\nshopping bag\niTunes Store\nPlaylists\nSquare grid, three by three\nAll Playlists\nplaylist\nLyricTile Cloud Acceptance 46016001883\nLyricTile Cloud Acceptance 46016001883\nApple Account, Sign In\nCannot Connect\nThe page couldn’t be loaded. Try again.\nRetry\nMini Player\ndo not shuffle\nPrevious\nPlay\nNext\ndo not repeat\nShow Now Playing\nLyrics\nplaying next\nVolume\nMuted\nHear About New Music First\nGet notified about new music from your favorites, new features, live events, and special offers.\nNot Now\nContinue"
+    }
+  ],
+  "helperExitCode": -15
+}
