@@ -2,11 +2,12 @@ name: Nearpane unified workbench
 on:
   push:
     branches: [pro/r4-integrated-lyrics-20261128]
+    paths-ignore: ['**/*.md', 'docs/verification/**']
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: integrated-lyrics-${{ github.ref }}
+  group: integrated-lyrics-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 jobs:
   host:
@@ -16,6 +17,29 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Identify the native toolchain
+        id: toolchain
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, subprocess
+          tools = subprocess.check_output(['xcrun', 'swift', '--version']) + subprocess.check_output(['xcode-select', '-p'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('fingerprint=' + hashlib.sha256(tools).hexdigest()[:16] + '\n')
+          PY
+      - name: Restore verified dependency and native build caches
+        id: native-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-
       - name: Test Host, module lifecycle and existing integration
         env:
           NEARPANE_ROSTER_SAMPLE_DIR: ${{ github.workspace }}/build/unified-workbench-evidence/current-render-samples
@@ -41,6 +65,18 @@ jobs:
       - name: Exercise and capture the native main window and sidebar
         if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
+      - name: Preserve incremental compilation even when an acceptance check fails
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: ${{ !cancelled() && steps.native-cache.outputs.cache-hit != 'true' }}
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Probe real Apple Music pause, resume and exit when available
         if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
         run: python3 -B scripts/acceptance/unified-workbench/native_player.py
