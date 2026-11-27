@@ -1,3 +1,6 @@
+> **2026-11-28 权威范围更新 — 历史整体架构参考；保留宿主编排、领域自治、失败隔离等兼容内容。Native/Virtual 双模式、固定核心区域、独立设置、旧窗口调度与模块等级不再具备产品权威。**
+> 现行最高产品规则见 [Nearpane 产品宪章](../PRODUCT_CONSTITUTION.md)。下方原文保留用于追溯，不得复活与宪章相抵触的规定。
+
 # Nearpane — 整体产品架构与第一方集成方案
 
 **窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](../engineering/research/NEARPANE-STAGE-GROUP-ARCHITECTURE.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。

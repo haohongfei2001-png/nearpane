@@ -1,3 +1,5 @@
+> **2026-11-28 现行产品权威：** [产品宪章与统一规格](PRODUCT_CONSTITUTION.md) · [开发规则](AGENTS.md)。下方此前版本的说明仅反映旧状态，尤其模块等级、比例、空间路线、默认组合与发行策略以新宪章为准。
+
 # Nearpane
 
 日常使用从 Finder 的「应用程序」打开 Nearpane。菜单栏的「打开 Nearpane」集中提供语音档案、截图档案和设置。本机统一安装位置为 `/Applications/Nearpane.app`。[个人 Alpha 使用帮助](docs/ALPHA-HELP.md)

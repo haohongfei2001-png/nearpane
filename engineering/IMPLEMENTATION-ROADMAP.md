@@ -1,3 +1,6 @@
+> **2026-11-28 权威范围更新 — 历史工程阶段规划，保留已经发生的验收记录、权限与恢复约束。不得以旧 P0/P1/P2 阶段门槛阻塞独立成熟模块，或者要求恢复旧 Native/Virtual 产品行为。新产品交付以新宪章及各当前候选真实验收为准。**
+> 现行最高产品规则见 [Nearpane 产品宪章](../PRODUCT_CONSTITUTION.md)。下方原文保留用于追溯，不得复活与宪章相抵触的规定。
+
 # Nearpane — 工程实施路线与交付门槛
 
 **窗口调度路线已更新。** 当前工程采用[StageGroup 裁决](research/NEARPANE-STAGE-GROUP-IMPLEMENTATION-PLAN.md)。下文涉及原生桌面切换、跨 Space 迁窗与双模式的历史要求均为 ARCHIVED。
