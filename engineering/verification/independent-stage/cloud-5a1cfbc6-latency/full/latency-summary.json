@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "derivedFrom": [
+    "product.stderr.log",
+    "product-result.json",
+    "r4-press-*.result.json"
+  ],
+  "clock": "Host and helper systemUptime seconds on same runner; worker health log has no event timestamp",
+  "actualPresses": [
+    {
+      "receipt": "r4-press-efcac3ea-534f-4d18-818a-14f417954efd.result.json",
+      "inputUptime": 653.2394898333333,
+      "issued": true,
+      "identifier": "current-desktop-window:25710:53"
+    },
+    {
+      "receipt": "r4-press-cc081412-7b6f-4a5d-8d0f-f89171365ffe.result.json",
+      "inputUptime": 658.4607289583333,
+      "issued": true,
+      "identifier": "native-held-group:83DE8295-1CA1-4B51-8FC8-5E7202D9FB15"
+    }
+  ],
+  "switchConfirmations": [
+    {
+      "phase": "R4SwitchConfirmed",
+      "step": "singletonCycle/0",
+      "window": 53,
+      "uptime": 656.7915893333334,
+      "pressToDoubleReadMS": 3552.0962500000905
+    }
+  ],
+  "witnessCount": 20,
+  "witnessStatistics": {
+    "durationMS": {
+      "sumMS": 4541.218125,
+      "minimumMS": 134.8772916667258,
+      "medianMS": 171.7676666665966,
+      "maximumMS": 521.7465833333108
+    },
+    "openingDirectoryMS": {
+      "sumMS": 1968.2226250001804,
+      "minimumMS": 58.9041250000264,
+      "medianMS": 73.91345833326568,
+      "maximumMS": 199.0550833334055
+    },
+    "bindingMS": {
+      "sumMS": 243.0252499996186,
+      "minimumMS": 0.5346666666810052,
+      "medianMS": 0.8697708332761067,
+      "maximumMS": 163.66825000000063
+    },
+    "physicalWindowsMS": {
+      "sumMS": 494.96129166664105,
+      "minimumMS": 15.377000000057706,
+      "medianMS": 18.22620833337396,
+      "maximumMS": 76.45804166656944
+    },
+    "closingDirectoryMS": {
+      "sumMS": 1835.0109166673292,
+      "minimumMS": 58.503458333348135,
+      "medianMS": 74.93410416674351,
+      "maximumMS": 190.76849999999013
+    }
+  },
+  "navigationTrace": [
+    {
+      "appearancePresent": true,
+      "event": "independentStageProduct",
+      "feedPresent": true,
+      "memberCount": 1,
+      "memberPresent": true,
+      "navigationPresented": true,
+      "phase": "current-card-press",
+      "pid": 25710,
+      "routesGroupChoice": true,
+      "uptime": 653.2473125,
+      "visibleGroup": "7C337FEC-F5CE-4B2F-914B-C2BD4965E731",
+      "window": 53
+    },
+    {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": false,
+      "selection": true,
+      "stage": true,
+      "stageOwnsDispatch": false,
+      "uptime": 653.2528410833334
+    },
+    {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": false,
+      "uptime": 653.253286625
+    },
+    {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 653.2583837916667
+    },
+    {
+      "current": true,
+      "event": "independentStageProduct",
+      "phase": "group-job-start",
+      "uptime": 653.2588319166667,
+      "window": 53
+    },
+    {
+      "event": "independentStageProduct",
+      "phase": "group-job-fresh",
+      "revision": 4,
+      "uptime": 653.3769739583333,
+      "window": 53
+    },
+    {
+      "candidate": true,
+      "event": "spacesHostLifecycle",
+      "hasController": true,
+      "phase": "group-choice-entry",
+      "releasing": false,
+      "routes": true,
+      "terminating": false,
+      "unreadableLedger": false,
+      "uptime": 653.377160625,
+      "wallpaperPaused": false
+    },
+    {
+      "completed": true,
+      "event": "spacesHostLifecycle",
+      "lastPhase": "activate",
+      "phase": "group-choice-exit",
+      "uptime": 657.5509081666667
+    },
+    {
+      "event": "independentStageProduct",
+      "handled": true,
+      "phase": "group-job-result",
+      "uptime": 657.5510290000001,
+      "window": 53
+    },
+    {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": false,
+      "selection": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 658.46132075
+    },
+    {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 658.461909
+    },
+    {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 658.46574475
+    },
+    {
+      "event": "stageActivationBeforeBackendRejected",
+      "group": "83DE8295-1CA1-4B51-8FC8-5E7202D9FB15",
+      "step": "initial-witness",
+      "uptime": 659.2673132083333
+    },
+    {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "\u7a97\u53e3\u6216\u7126\u70b9\u5df2\u53d8\u5316\uff0c\u672c\u6b21\u5207\u6362\u5df2\u505c\u6b62\u3002",
+      "uptime": 659.2727073750001
+    }
+  ],
+  "qualificationGranted": false,
+  "firstWitness": {
+    "sequence": 1,
+    "uptime": 653.917196375,
+    "durationMS": 521.7465833333108,
+    "openingDirectoryMS": 168.87791666670182,
+    "bindingMS": 163.66825000000063,
+    "physicalWindowsMS": 76.45804166656944,
+    "closingDirectoryMS": 112.74245833340046
+  }
+}

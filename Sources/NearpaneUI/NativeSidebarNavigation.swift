@@ -165,6 +165,12 @@ struct CrossSpaceFocusContinuity {
     /// Include queued work so they cannot slip between two rapid choices.
     var isDispatching: Bool { running || !pending.isEmpty }
     var idleGeneration: UUID? { dispatchAvailable && !isDispatching ? generation : nil }
+    /// Starting an idle observation and checking the action lane are one actor turn.
+    /// A caller still owns completion of a read that began before the next action.
+    func whenIdle(_ observe: @MainActor () -> Void) {
+        guard !isDispatching else { return }
+        observe()
+    }
     private(set) var issue: String?
     private(set) var canSwitch = false
     private(set) var canMove = false

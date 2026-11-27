@@ -1,0 +1,319 @@
+{
+  "schema": 1,
+  "revision": "5a1cfbc614545256e35057ac5234ae48dc7116ef",
+  "workflowRun": 46018370133,
+  "recorded": "2026-11-27",
+  "fullRuntimeAtRecord": "COMPLETE_FAIL_CLEANUP_CONFIRMED",
+  "purpose": "Exact source and completed cloud native evidence; partial formal R4 success with remaining failures; no later fix qualification",
+  "artifacts": {
+    "context": {
+      "id": 15206643387,
+      "job": 140571277046,
+      "bytes": 24112,
+      "sha256": "a22ab997e6156254a151bb8e2f735ecf31b24e9d4560b8b3fd867f4e85178806"
+    },
+    "diagnostics": {
+      "id": 15206891925,
+      "job": 140571276983,
+      "bytes": 1455435,
+      "sha256": "c8fe063a6ed36efe884176e8b4a453707b1179d5226d8ec0a167d4467794ae6a"
+    },
+    "fast": {
+      "id": 15207321651,
+      "job": 140571276448,
+      "bytes": 24603378,
+      "sha256": "e9c9a70fcae354fc0b6514a383eaa7eeff114a7a4db954c83a9a312a4d0898e7"
+    },
+    "full": {
+      "id": 15208640088,
+      "job": 140571277046,
+      "bytes": 53234194,
+      "sha256": "dc8aed3a2881d534fb47cec58c0fa0a114d2ee0bd4e126f01ef5a7eaa0eb7e31"
+    }
+  },
+  "files": [
+    {
+      "file": "source/summary.json",
+      "artifact": 15206643387,
+      "artifactPath": "source/summary.json",
+      "bytes": 1253,
+      "sha256": "cb708807a70c3b66768cee50fff474e84eb71c7a468ee430cfefa00896c6d809"
+    },
+    {
+      "file": "source/swift.log",
+      "artifact": 15206643387,
+      "artifactPath": "source/swift.log",
+      "bytes": 52051,
+      "sha256": "f845ad923525ca370bc0e2a50240d5a9081350d89bd09fb520cf2ceff70c84ab"
+    },
+    {
+      "file": "source/context-summary.json",
+      "artifact": 15206643387,
+      "artifactPath": "summary.json",
+      "bytes": 1689,
+      "sha256": "eaaf4ec364806679e22b7beb5bbc83ff1d2c26ca9b1c50956af6c9fd77d1c867"
+    },
+    {
+      "file": "diagnostics/runtime-summary.json",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 6847,
+      "sha256": "09d27282d0d38dfb9d58dc0dc6f274a4d29048c969aa7c8bcbe9a12a8855cc7a"
+    },
+    {
+      "file": "diagnostics/engine-result.json",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "e0dd1fbaabd3151d21d0ff6c34c7d542b951a7d55dbac79e694db461777fbf4c"
+    },
+    {
+      "file": "diagnostics/engine.stderr.log",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 19794,
+      "sha256": "479e3ccc790a84f59203ea0e7be8f844096affafc79a86a7d91c2136a27b5cb4"
+    },
+    {
+      "file": "diagnostics/engine.log",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 44329,
+      "sha256": "f931f0f51e0f3bb714fea45c14d1d98faffe8fecc444e5632019f7542c5f095c"
+    },
+    {
+      "file": "diagnostics/ci-workspace-prepare-receipt.json",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "9dc60c25e3cf57bed04be800deb7cb933ad81a6fe9ac6416b6e73c08a6c80c68"
+    },
+    {
+      "file": "diagnostics/ci-workspace-cleanup-receipt.json",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "b900c198f697e58ded43721d03f41b9ad2466fee5447c15a44df13d27d697677"
+    },
+    {
+      "file": "diagnostics/fixture-cleanup.json",
+      "artifact": 15206891925,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/runtime-summary.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 27158,
+      "sha256": "ce3ec5141516780ef7f512b5a771834957b4c7a07b2154d4a21f284d1eb1a255"
+    },
+    {
+      "file": "fast/engine-result.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "7e858dbb809cb12e8638e08531c6273cb5cbf4a4caa08d196a7e945673d4bf0d"
+    },
+    {
+      "file": "fast/engine.stderr.log",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 19294,
+      "sha256": "6ed1c276f48ae686150e36f49b2056d203af8c6f283aae5f4940339f0fa02d11"
+    },
+    {
+      "file": "fast/engine.log",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 44400,
+      "sha256": "a4d7dcc58b6099feb23f9875de0c86b52adba83f61a720464947c11c3d4f275f"
+    },
+    {
+      "file": "fast/ci-workspace-prepare-receipt.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "ab7e79b9902309e967d30770cb0d52da30b02c07c2c18b39040bd0fa44637c0b"
+    },
+    {
+      "file": "fast/ci-workspace-cleanup-receipt.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "5c4426e2f8c215947a6f159f1e97b95e3020cf1fc2acba68a71868912615b59f"
+    },
+    {
+      "file": "fast/fixture-cleanup.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/product-result.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 19396,
+      "sha256": "e2fb9e7a1a32256451ae0454d04883041e933e7f5daecb468752821cfb6afdd2"
+    },
+    {
+      "file": "fast/host-main-thread-sample.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 289,
+      "sha256": "745579729a1f39b48668d17210978cfbd20ef69585da2c063ecb19c5f3a256fb"
+    },
+    {
+      "file": "fast/host-startup-main-thread-sample.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 284,
+      "sha256": "d0fd6555d964847ddf341afbfdd7f5805713c865321cca5e2d6dc65cd5d6a94d"
+    },
+    {
+      "file": "fast/host-main-thread.sample.txt",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 270630,
+      "sha256": "a96f7616f4a7dd88045553064611b4f6d480b074f525f8be82c9bfcf081d1647"
+    },
+    {
+      "file": "fast/host-startup-main-thread.sample.txt",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 229946,
+      "sha256": "2d32ae3934b8e3286e7b4242fea3fa3723ef3a2f705bde0863765b757252fc16"
+    },
+    {
+      "file": "fast/product.stderr.log",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 12030,
+      "sha256": "bd129eab2c494e5af8b377b20750fa3a5b0b7e0727b6943a2b81927acc9b0ca6"
+    },
+    {
+      "file": "fast/r4-press-5824f825-3175-44db-816a-5161a37b2d91.result.json",
+      "artifact": 15207321651,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-5824f825-3175-44db-816a-5161a37b2d91.result.json",
+      "bytes": 3253,
+      "sha256": "d15433512fca607774fbd4483dae75f5c9fb1cc2df078cd5fd905438e0f255a8"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifact": 15208640088,
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "156b6a79c31a101e11a1de4bf3feeb8695b9678323eaf46e05a4810046786000"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 33326,
+      "sha256": "233548c712bf4f4374d50071e81c5cc40141cae4abc9e0029bb566062db823f2"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "a3efc91656b5130dfc16710c1886e7e8524d03cf774dd54a79c88fa46348c986"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 62825,
+      "sha256": "1432da0ffdfac95fd3d954a4a7b252c0ef6fee6f1cd2a7a7c1c7f873272f2044"
+    },
+    {
+      "file": "full/ci-workspace-prepare-receipt.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "0115d4ba072765eeb7b4105a2a80905f00d017347ff423902bc430851accd854"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "8802fba79109f7ad21ca72ea66718368469499aad542c0a54bed04275de2396f"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 25267,
+      "sha256": "c0c5a508116c72c706cfc3f97afafdb545c40cc783204cffc8c6359879992639"
+    },
+    {
+      "file": "full/host-main-thread-sample.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 291,
+      "sha256": "b741f0e353e025bb6993b8993b1e646e02d8b1ce31b6f069d3bb3d00a4595800"
+    },
+    {
+      "file": "full/host-startup-main-thread-sample.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 284,
+      "sha256": "3b446163c14e07fa940e4f2ee4c682f6b8bc9b6df694906c8a1455d3044ec2c6"
+    },
+    {
+      "file": "full/r4-press-cc081412-7b6f-4a5d-8d0f-f89171365ffe.result.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-cc081412-7b6f-4a5d-8d0f-f89171365ffe.result.json",
+      "bytes": 4095,
+      "sha256": "8c661ade9fbeb0fb2dab19c7a0dddae782196e26348c6f6c28fa2c3e94208b10"
+    },
+    {
+      "file": "full/r4-press-efcac3ea-534f-4d18-818a-14f417954efd.result.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-efcac3ea-534f-4d18-818a-14f417954efd.result.json",
+      "bytes": 3622,
+      "sha256": "4efa54454191a84b9f2523371310722283f9cdf90941ec4737712f0508e8d7c2"
+    },
+    {
+      "file": "full/spaces-worker-240f56e0-d64b-4566-a134-d34607bdd136.jsonl",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-240f56e0-d64b-4566-a134-d34607bdd136.jsonl",
+      "bytes": 29960,
+      "sha256": "d0e1a3c02e3cd78a81ea47166203133f5aa5e0446a8e752a91b89f2f0bf78fde"
+    },
+    {
+      "file": "full/spaces-lifecycle-0ac280f4-cfe4-4e0b-ae3b-5888d2f1e468.json",
+      "artifact": 15208640088,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-0ac280f4-cfe4-4e0b-ae3b-5888d2f1e468.json",
+      "bytes": 1085,
+      "sha256": "7dcafc50fe00e8b7d15f65810fdc0097b9b98700e4260f541e3ac9e192fd1385"
+    }
+  ],
+  "fullCandidateArchive": {
+    "artifactPath": "Nearpane-independent-candidate.zip",
+    "bytes": 25646818,
+    "sha256": "69a2f781357c00fa142aa8f05d04d8089cf5c18c7110ca85d0b06ef661261b8b",
+    "retainedInRepository": false
+  },
+  "derivedFiles": [
+    {
+      "file": "full/latency-summary.json",
+      "source": [
+        "full/product.stderr.log",
+        "full/product-result.json",
+        "full/r4-press-*.result.json"
+      ],
+      "method": "Original JSON events, arithmetic timestamp differences and witness aggregation; no worker timestamp inferred"
+    }
+  ]
+}

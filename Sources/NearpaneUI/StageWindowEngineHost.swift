@@ -799,6 +799,13 @@ import NearpaneOrdinaryWindowRuntime
     func refreshHeld(feed: CurrentDesktopWindows) {
         if wallpaperPaused { verifyWallpaperReturn(); return }
         drainMinimized()
+        // A selection reads its retained roster before controller.activate marks
+        // the engine busy. Do not let a publisher start an idle verification in
+        // that gap, or it can mistake the ensuing transaction for lost ownership.
+        NativeSidebarNavigation.shared.whenIdle { beginHeldRefresh(feed: feed) }
+    }
+
+    private func beginHeldRefresh(feed: CurrentDesktopWindows) {
         guard minimizeTask == nil, let witness, heldRefresh == nil, let engine, engine.canObserve, let session = engine.session,
               engine.coordinator.retainedOwner == session.owner,
               ProcessInfo.processInfo.systemUptime - lastVerifiedAt > 0.75 else { return }

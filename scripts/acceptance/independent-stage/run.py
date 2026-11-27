@@ -7,6 +7,7 @@ to two freshly launched fixture apps. Receipts preserve NOT_RUN/BLOCKED explicit
 import argparse
 from contextlib import ExitStack
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -55,13 +56,79 @@ def atomic(path, value):
     pending.replace(path)
 
 
+def json_object(path):
+    try:
+        if not 0 < path.stat().st_size <= 262144:
+            return None
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def positive_time(value):
+    return type(value) in (int, float) and math.isfinite(value) and value > 0
+
+
+def confirmed_r4_press(directory, host_pid, request_observed):
+    """A result path exists before discovery. Only a complete successful receipt is input evidence."""
+    configuration = json_object(directory / "config.json")
+    if not configuration or not isinstance(configuration.get("nonce"), str) or not configuration["nonce"]:
+        return None
+    confirmed = []
+    for path in directory.glob("r4-press-*.request.json"):
+        observed = request_observed.setdefault(path.name, time.monotonic())
+        request = json_object(path)
+        if not request or request.get("schema") != 1 or request.get("nonce") != configuration.get("nonce"):
+            continue
+        host = request.get("host")
+        result_path = path.with_name(path.name.replace(".request.json", ".result.json"))
+        destination = request.get("result")
+        if not isinstance(host, dict) or host.get("pid") != host_pid or not isinstance(destination, str) or Path(destination).resolve() != result_path.resolve():
+            continue
+        result = json_object(result_path)
+        if not result or result.get("schema") != 1 or result.get("nonce") != request["nonce"]:
+            continue
+        if result.get("status") != "ISSUED" or result.get("issued") is not True or type(result.get("axError")) is not int or result["axError"] != 0:
+            continue
+        pressed, returned = result.get("inputUptime"), result.get("uptime")
+        if not positive_time(pressed) or not positive_time(returned) or returned < pressed:
+            continue
+        confirmed.append({"requestFile": path.name, "receiptFile": result_path.name, "nonce": request["nonce"],
+                          "requestObservedMonotonic": observed, "actualPressUptime": pressed, "pressReceiptUptime": returned,
+                          "receiptObservedMonotonic": time.monotonic()})
+    return min(confirmed, key=lambda value: value["actualPressUptime"]) if confirmed else None
+
+
+def selection_preparation_start(reader, partial):
+    """Read only complete JSON lines from this directly launched Host's stderr."""
+    lines = (partial + reader.read()).split("\n")
+    partial = lines.pop()
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict) or event.get("event") != "independentStageProduct" or event.get("phase") != "group-job-start":
+            continue
+        if positive_time(event.get("uptime")):
+            return partial, {"selectionStartUptime": event["uptime"], "selectionObservedMonotonic": time.monotonic(),
+                             "selectionWindow": event.get("window"), "selectionCurrentAtEntry": event.get("current")}
+    return partial, None
+
+
 def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=None):
     with ExitStack() as sampling_files, (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
         samplers = {}
         sample_reports = {
             "host-startup-main-thread": {"status": "NOT_RUN", "reason": "hostExitedBeforeStartupSample", "diagnosticOnly": True},
-            "host-main-thread": {"status": "NOT_RUN", "reason": "firstR4RequestNotObserved", "diagnosticOnly": True},
+            "host-main-thread": {"status": "NOT_RUN", "reason": "successfulR4PressNotObserved", "diagnosticOnly": True},
+            "host-selection-preparation-main-thread": {"status": "NOT_RUN", "reason": "groupSelectionJobNotObserved", "diagnosticOnly": True},
         }
+        request_observed = {}
+        actual_press = selection_start = None
+        log_partial = ""
+        trace_reader = sampling_files.enter_context((out / (name + ".stderr.log")).open(errors="replace")) if sample_host is not None else None
         try:
             if reap_children or sample_host is not None:
                 # The lifecycle Host must observe a positively exited fixture
@@ -74,22 +141,43 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                         for child in reap_children:
                             child.poll()
                         if sample_host is not None:
-                            # A startup stall can prevent the first R4 request. Keep
-                            # a separate one-second sample beginning after 0.5 s,
-                            # as well as the existing first-real-input sample.
-                            # Neither diagnostic gates or delays the Host.
+                            if actual_press is None:
+                                actual_press = confirmed_r4_press(sample_host, running.pid, request_observed)
+                            if selection_start is None:
+                                log_partial, selection_start = selection_preparation_start(trace_reader, log_partial)
+                            # The controller creates its result file before looking
+                            # for a button. Request discovery is not actual input.
+                            # Job-start evidence can arrive before the press receipt;
+                            # sample it immediately without gating the Host.
                             triggers = (
-                                ("host-startup-main-thread", "startup", 1, time.monotonic() - host_started >= .5),
-                                ("host-main-thread", "firstR4Request", 3, next(sample_host.glob("r4-press-*.request.json"), None) is not None),
+                                ("host-startup-main-thread", "startup", 1, {} if time.monotonic() - host_started >= .5 else None),
+                                ("host-main-thread", "firstConfirmedExternalAXPress", 3, actual_press),
+                                ("host-selection-preparation-main-thread", "firstGroupSelectionJob", 3, selection_start),
                             )
-                            for stem, trigger, duration, ready in triggers:
-                                if not ready or sample_reports[stem]["status"] != "NOT_RUN":
+                            for stem, trigger, duration, evidence in triggers:
+                                if evidence is None or sample_reports[stem]["status"] != "NOT_RUN":
                                     continue
                                 started = time.monotonic()
                                 sample_report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
                                                  "durationSeconds": duration, "intervalMilliseconds": 10, "trigger": trigger,
-                                                 "startedMonotonic": started, "startedAfterHostSeconds": started - host_started}
+                                                 "triggerObservedMonotonic": started,
+                                                 "sampleFile": stem + ".sample.txt",
+                                                 "sampleLaunchMonotonic": started, "startedAfterHostSeconds": started - host_started,
+                                                 **evidence}
                                 sample_reports[stem] = sample_report
+                                if duration == 3:
+                                    shared = next((owner for owner, sampler in samplers.items()
+                                                   if sample_reports[owner]["durationSeconds"] == 3 and sampler.poll() is None), None)
+                                    if shared is not None:
+                                        # Each logical trigger keeps its own evidence. Reusing a
+                                        # live sampling process does not claim that its capture
+                                        # includes either event's exact native-time boundary.
+                                        owner_report = sample_reports[shared]
+                                        sample_report.update(status="SHARED", sharedWith=shared,
+                                                             sampleFile=owner_report["sampleFile"],
+                                                             sampleLaunchMonotonic=owner_report["sampleLaunchMonotonic"],
+                                                             startedAfterHostSeconds=owner_report["startedAfterHostSeconds"])
+                                        continue
                                 try:
                                     sample_log = sampling_files.enter_context((sample_host / (stem + "-sample.log")).open("x"))
                                     sample_error = sampling_files.enter_context((sample_host / (stem + "-sample.stderr.log")).open("x"))
@@ -130,8 +218,16 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                         except subprocess.TimeoutExpired:
                             sample_report["reason"] = "samplerReapUnavailable"
                 sample_report.update(status="COMPLETE" if sampler.returncode == 0 else "INCOMPLETE", exit=sampler.returncode,
-                                     finishedMonotonic=time.monotonic())
+                                     reapedMonotonic=time.monotonic())
+                # Only physical subprocesses are waited for. Logical reports
+                # reference the same file and final process receipt explicitly.
+                for shared_report in sample_reports.values():
+                    if shared_report.get("sharedWith") == stem:
+                        shared_report.update({key: sample_report[key] for key in ("status", "exit", "reapedMonotonic", "reason")
+                                              if key in sample_report})
             if sample_host is not None:
+                if actual_press is not None and selection_start is not None and actual_press["actualPressUptime"] <= selection_start["selectionStartUptime"]:
+                    sample_reports["host-selection-preparation-main-thread"].update(actual_press)
                 for stem, sample_report in sample_reports.items():
                     atomic(sample_host / (stem + "-sample.json"), sample_report)
     report.update(log=name + ".log", stderr=name + ".stderr.log")

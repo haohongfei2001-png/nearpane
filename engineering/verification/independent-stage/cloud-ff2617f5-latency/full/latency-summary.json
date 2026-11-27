@@ -1,0 +1,246 @@
+{
+  "schema": 1,
+  "derivedFrom": [
+    "product.stderr.log",
+    "product-result.json",
+    "r4-press-*.result.json"
+  ],
+  "clock": "Host and helper systemUptime seconds on same runner; worker health log has no event timestamp",
+  "actualPresses": [
+    {
+      "receipt": "r4-press-6464bafa-a0df-4d5b-80f1-4e6f49e4ce17.result.json",
+      "inputUptime": 1119.4280622083334,
+      "issued": true,
+      "identifier": "current-desktop-window:37426:53"
+    },
+    {
+      "receipt": "r4-press-b693f3a1-5bbd-44de-a53f-644c81efda03.result.json",
+      "inputUptime": 1126.5791733333333,
+      "issued": true,
+      "identifier": "native-held-group:DAD8DE71-2152-40E2-96E6-11A69C483A32"
+    },
+    {
+      "receipt": "r4-press-4f1a1796-8997-4acd-a636-778a1c643a36.result.json",
+      "inputUptime": 1134.0657589583334,
+      "issued": true,
+      "identifier": "native-held-group:86BC4F64-B3F6-439E-9D99-9C2B07446301"
+    }
+  ],
+  "switchConfirmations": [
+    {
+      "phase": "R4SwitchConfirmed",
+      "step": "singletonCycle/0",
+      "window": 53,
+      "uptime": 1124.0462330416667,
+      "pressToDoubleReadMS": 4618.1687083333145
+    },
+    {
+      "phase": "R4SwitchConfirmed",
+      "step": "singletonCycle/1",
+      "window": 55,
+      "uptime": 1133.5685004166667,
+      "pressToDoubleReadMS": 6989.323708333359
+    }
+  ],
+  "witnessCount": 35,
+  "witnessStatistics": {
+    "durationMS": {
+      "sumMS": 14322.221166665713,
+      "minimumMS": 154.56862499991075,
+      "medianMS": 289.91354166669225,
+      "maximumMS": 1577.1351666667215
+    },
+    "openingDirectoryMS": {
+      "sumMS": 6348.787249999987,
+      "minimumMS": 66.57183333345529,
+      "medianMS": 125.39650000007896,
+      "maximumMS": 1267.1799583333723
+    },
+    "bindingMS": {
+      "sumMS": 521.242333332566,
+      "minimumMS": 0.522499999988213,
+      "medianMS": 5.384708333394883,
+      "maximumMS": 185.21737500009294
+    },
+    "physicalWindowsMS": {
+      "sumMS": 1705.0792500006082,
+      "minimumMS": 18.243624999968233,
+      "medianMS": 40.97037499991529,
+      "maximumMS": 132.94062499994652
+    },
+    "closingDirectoryMS": {
+      "sumMS": 5747.117458333605,
+      "minimumMS": 66.20208333333721,
+      "medianMS": 146.94237499998053,
+      "maximumMS": 584.8244999999679
+    }
+  },
+  "navigationTrace": [
+    {
+      "appearancePresent": true,
+      "event": "independentStageProduct",
+      "feedPresent": true,
+      "memberCount": 1,
+      "memberPresent": true,
+      "navigationPresented": true,
+      "phase": "current-card-press",
+      "pid": 37426,
+      "routesGroupChoice": true,
+      "uptime": 1119.4367822916668,
+      "visibleGroup": "24F5763E-EFB2-400A-AB7A-5737679211C6",
+      "window": 53
+    },
+    {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": false,
+      "selection": true,
+      "stage": true,
+      "stageOwnsDispatch": false,
+      "uptime": 1119.4408512083335
+    },
+    {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": false,
+      "uptime": 1119.4414624583335
+    },
+    {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 1119.4432245
+    },
+    {
+      "current": true,
+      "event": "independentStageProduct",
+      "phase": "group-job-start",
+      "uptime": 1119.44380825,
+      "window": 53
+    },
+    {
+      "event": "independentStageProduct",
+      "phase": "group-job-fresh",
+      "revision": 5,
+      "uptime": 1119.5518101666667,
+      "window": 53
+    },
+    {
+      "candidate": true,
+      "event": "spacesHostLifecycle",
+      "hasController": true,
+      "phase": "group-choice-entry",
+      "releasing": false,
+      "routes": true,
+      "terminating": false,
+      "unreadableLedger": false,
+      "uptime": 1119.552092875,
+      "wallpaperPaused": false
+    },
+    {
+      "completed": true,
+      "event": "spacesHostLifecycle",
+      "lastPhase": "activate",
+      "phase": "group-choice-exit",
+      "uptime": 1125.0111820833333
+    },
+    {
+      "event": "independentStageProduct",
+      "handled": true,
+      "phase": "group-job-result",
+      "uptime": 1125.0113239166667,
+      "window": 53
+    },
+    {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": false,
+      "selection": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 1126.579900375
+    },
+    {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 1126.5802688333333
+    },
+    {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 1126.5835449166668
+    },
+    {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": true,
+      "selection": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 1134.0661200833333
+    },
+    {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-superseded",
+      "reason": "\u5f53\u524d\u73af\u5883\u6682\u4e0d\u80fd\u5207\u6362\u6574\u4e2a\u7a97\u53e3\u7ec4\u3002",
+      "uptime": 1137.260285625
+    },
+    {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 1137.260949625
+    },
+    {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 1137.26776575
+    },
+    {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "\u7a97\u53e3\u6216\u7126\u70b9\u5df2\u53d8\u5316\uff0c\u672c\u6b21\u5207\u6362\u5df2\u505c\u6b62\u3002",
+      "uptime": 1137.2681331666668
+    }
+  ],
+  "qualificationGranted": false,
+  "firstWitness": {
+    "sequence": 1,
+    "uptime": 1120.1458037083335,
+    "durationMS": 562.4623333333147,
+    "openingDirectoryMS": 173.5969583332917,
+    "bindingMS": 185.21737500009294,
+    "physicalWindowsMS": 84.59100000004582,
+    "closingDirectoryMS": 119.0571249999266
+  }
+}

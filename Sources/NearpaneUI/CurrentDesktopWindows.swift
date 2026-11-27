@@ -254,38 +254,78 @@ import OSLog
     func prepareGroupSelection(_ member: NativeSidebarMember, group: StageGroupDirectory.Group, appearance: UUID,
                                current: @escaping @MainActor () -> Bool,
                                measure supplied: (@MainActor (NativeSpaceWindow, OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation?)? = nil) async throws -> DesktopSnapshot {
-        let originalEpoch = epoch
-        func valid() -> Bool {
-            !Task.isCancelled && epoch == originalEpoch && current() &&
-                stillIntendsGroup(member, group: group, appearance: appearance)
+        let originalEpoch = epoch, started = ProcessInfo.processInfo.systemUptime
+        var step = "entry", rejectedBy = "none", completed = false
+        var awaits = [[String: Any]]()
+        defer {
+            IndependentStageTrace.record("group-selection-preparation-exit", ["window": member.key.number,
+                "completed": completed, "step": step, "rejectedBy": rejectedBy,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000, "awaits": awaits,
+                "epochMatches": epoch == originalEpoch, "cancelled": Task.isCancelled,
+                "appearanceMatches": lifetimes[member.key] == appearance,
+                "groupLifetimePresent": groupLifetime(of: member.key) != nil,
+                "revision": revision, "pendingRead": pending != nil, "holdsDispatch": stageEngine.holdsDispatch])
         }
-        guard valid(), let first = await readAfterAction(), valid() else { throw StageSwitchError.interrupted }
+        func valid() -> Bool {
+            // Keep the original short-circuit order. Diagnostics reuse these
+            // decisions; they never perform another live navigation check.
+            guard !Task.isCancelled else { rejectedBy = "cancelled"; return false }
+            guard epoch == originalEpoch else { rejectedBy = "epochChanged"; return false }
+            guard current() else { rejectedBy = "selectionNoLongerCurrent"; return false }
+            guard stillIntendsGroup(member, group: group, appearance: appearance) else {
+                rejectedBy = "groupIntentChanged"; return false
+            }
+            return true
+        }
+        func readDirectory(_ phase: String) async -> DesktopSnapshot? {
+            step = phase
+            let began = ProcessInfo.processInfo.systemUptime
+            let result = await readAfterAction()
+            awaits.append(["step": phase, "durationMS": (ProcessInfo.processInfo.systemUptime - began) * 1000,
+                           "resultPresent": result != nil, "revision": result?.revision ?? 0])
+            if result == nil { rejectedBy = "directoryUnavailable" }
+            return result
+        }
+        guard valid(), let first = await readDirectory("first-directory"), valid() else { throw StageSwitchError.interrupted }
+        step = "first-home-catalog"
         let sample = stageEngine.snapshotForGroups(first)
         guard let catalog = member.source.resolve(sample), catalog.current.id == member.source.space,
               catalog.current.ordinaryUUID == member.source.uuid else { throw StageSwitchError.incomplete }
         let candidates = stageWindows(in: sample, on: catalog.display)
         if !candidates.contains(where: groups.needsRebinding) {
+            step = "existing-group-binding"
             guard stillGroups(member, in: group.id, appearance: appearance) else { throw StageGroupError.staleBinding }
+            completed = true
             return first // Normal already-bound selections keep their existing fast path.
         }
+        step = "opening-rebinding-roster"
         guard !stageEngine.holdsDispatch else { throw StageSwitchError.recoveryRequired }
         let before = try rebindingRoster(first, source: member.source), directory = groups.directory
         let native: (@Sendable (NativeSpaceWindow, OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation?)?
+        step = "directory-reader-access"
         if supplied == nil { native = try StageHostAccess.directoryReader() }
         else { native = nil }
-        func physical(_ roster: RebindingRoster) async throws -> [NativeSpaceWindow: StageWindowState] {
+        func physical(_ roster: RebindingRoster, phase: String) async throws -> [NativeSpaceWindow: StageWindowState] {
             var values = [NativeSpaceWindow: StageWindowState]()
             for window in roster.windows {
+                step = phase + "-before-read"
                 guard valid(), !stageEngine.holdsDispatch else { throw StageSwitchError.interrupted }
                 let observed: StageWindowPhysicalObservation?
-                if let supplied {
-                    observed = try await supplied(window.identity, roster.home)
-                } else if let native {
-                    // Pure AX/CG/Space reads must not prevent the UI from
-                    // receiving real input or fresh system-ownership samples.
-                    let identity = window.identity, home = roster.home
-                    observed = try await Task.detached(priority: .userInitiated) { try native(identity, home) }.value
-                } else { throw StageSwitchError.unavailable }
+                step = phase + "-read"
+                do {
+                    let began = ProcessInfo.processInfo.systemUptime
+                    defer { awaits.append(["step": step, "window": window.identity.number,
+                        "durationMS": (ProcessInfo.processInfo.systemUptime - began) * 1000]) }
+                    if let supplied {
+                        observed = try await supplied(window.identity, roster.home)
+                    } else if let native {
+                        // Pure AX/CG/Space reads must not prevent the UI from
+                        // receiving real input or fresh system-ownership samples.
+                        let identity = window.identity, home = roster.home
+                        observed = try await Task.detached(priority: .userInitiated) { try native(identity, home) }.value
+                    } else { throw StageSwitchError.unavailable }
+                }
+                step = phase + "-verify"
                 guard valid(), !stageEngine.holdsDispatch, let read = observed,
                       read.id.pid == window.identity.pid, read.id.launch == window.identity.birth, read.id.number == window.identity.number,
                       read.membership == UInt64(roster.home.record), read.onscreen, !read.minimized,
@@ -294,18 +334,22 @@ import OSLog
             }
             return values
         }
-        let firstRead = try await physical(before)
-        guard let second = await readAfterAction(), second.sessionID == first.sessionID, second.revision > first.revision,
+        let firstRead = try await physical(before, phase: "first-physical")
+        guard let second = await readDirectory("second-directory"), second.sessionID == first.sessionID, second.revision > first.revision,
               valid(), !stageEngine.holdsDispatch else { throw StageSwitchError.interrupted }
+        step = "closing-rebinding-roster"
         let after = try rebindingRoster(second, source: member.source)
-        guard after == before, try await physical(after) == firstRead, valid(), !stageEngine.holdsDispatch,
+        guard after == before, try await physical(after, phase: "second-physical") == firstRead, valid(), !stageEngine.holdsDispatch,
               second.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) else {
             throw StageSwitchError.interrupted
         }
+        step = "rebind-current-scope"
         try groups.rebindCurrentScope(after.windows,
             in: .init(display: try requireDisplay(member.source.display), nativeSpace: member.source.uuid), unchanged: directory)
+        step = "final-group-binding"
         guard stillGroups(member, in: group.id, appearance: appearance) else { throw StageGroupError.staleBinding }
         IndependentStageTrace.record("current-click-new-bindings", ["windows": after.windows.count, "group": group.id.uuidString])
+        completed = true
         return second
     }
 
@@ -537,12 +581,37 @@ import OSLog
 
     /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
     func readAfterAction() async -> DesktopSnapshot? {
-        let boundary = revision, expected = epoch
+        let boundary = revision, expected = epoch, started = ProcessInfo.processInfo.systemUptime
+        var priorMS: Double = 0, freshMS: Double = 0, receivedRevision: UInt64 = 0
+        var step = "waiting-prior", completed = false, hadPrior = false
+        defer {
+            IndependentStageTrace.record("after-action-directory-read", ["step": step, "completed": completed,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
+                "priorWaitMS": priorMS, "freshReadMS": freshMS, "hadPrior": hadPrior,
+                "boundaryRevision": boundary, "receivedRevision": receivedRevision, "revision": revision,
+                "epochMatches": epoch == expected, "cancelled": Task.isCancelled, "pendingRead": pending != nil])
+        }
         if let prior = pending {
+            hadPrior = true
+            let began = ProcessInfo.processInfo.systemUptime
             _ = await prior.1.value
+            priorMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
             if pending?.0 == prior.0 { pending = nil }
         }
-        guard epoch == expected, let fresh = await readNow(), fresh.revision > boundary, epoch == expected else { return nil }
+        step = "epoch-after-prior"
+        guard epoch == expected else { return nil }
+        step = "fresh-read"
+        let began = ProcessInfo.processInfo.systemUptime
+        let result = await readNow()
+        freshMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
+        step = "fresh-read-unavailable"
+        guard let fresh = result else { return nil }
+        receivedRevision = fresh.revision
+        step = "fresh-read-revision"
+        guard fresh.revision > boundary else { return nil }
+        step = "epoch-after-fresh"
+        guard epoch == expected else { return nil }
+        step = "complete"; completed = true
         return fresh
     }
 

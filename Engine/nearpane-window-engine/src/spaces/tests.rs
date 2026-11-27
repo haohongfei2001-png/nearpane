@@ -1,6 +1,6 @@
 // Synthetic system implementing the same single-window reverse and forward membership reads as Darwin.
 use super::*;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 struct Guard {
     ok: Cell<bool>,
@@ -34,6 +34,9 @@ impl Authority for Guard {
 struct Fake {
     clock: Cell<Option<Instant>>,
     windows: BTreeMap<u32, (Window, u64, u64, bool)>,
+    departure_read_costs: BTreeMap<u32, Duration>,
+    unavailable_departures: BTreeSet<u32>,
+    departure_observations: RefCell<Vec<Window>>,
     spaces: Rows,
     moved: Vec<(Route, u32, u64, u32)>,
     destroyed: Vec<u64>,
@@ -278,6 +281,9 @@ impl Platform for Fake {
         Ok(!self.windows.contains_key(&n) && !(n == 77 && self.cg_keeps_closed_probe))
     }
     fn departed(&self, w: Window) -> Check<bool> {
+        self.departure_observations.borrow_mut().push(w);
+        self.wait(self.departure_read_costs.get(&w.number).copied().unwrap_or_default());
+        if self.unavailable_departures.contains(&w.number) { return Err(unknown(Why::Readback)); }
         Ok(self.windows.get(&w.number).is_some_and(|r| r.0 != w) || self.absent(w.number)?)
     }
     fn transparent_canary(&self, w: &u64) -> bool {
@@ -743,6 +749,120 @@ fn passive_worker_tick_freezes_after_external_change_and_never_dispatches_recove
     assert_eq!(s.run(&request(1, RESTORE, 4), &a).status, PASS);
     assert_eq!(s.sys.moved.len(), writes);
     assert!(s.slots.is_empty());
+}
+
+#[test]
+fn passive_health_budget_excludes_unrelated_slots_and_visible_bindings() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    let mut other = request(2, HIDE, 3);
+    other.group = [9; 16];
+    assert_eq!(state.run(&other, &guard).status, PASS);
+    assert_eq!(state.run(&request(3, READBACK, 4), &guard).status, PASS);
+    let selected = state.sys.windows[&1].0;
+    let visible = state.sys.windows[&3].0;
+    state.sys.departure_read_costs = BTreeMap::from([
+        (1, Duration::from_millis(20)), (2, Duration::from_secs(1)), (3, Duration::from_secs(1))]);
+    state.sys.departure_observations.borrow_mut().clear();
+    state.sys.return_binding_observations.set(0);
+    let writes = state.sys.moved.len();
+    let started = state.sys.now();
+    state.observe_health();
+    assert!(!state.failed);
+    assert_eq!(state.sys.now() - started, Duration::from_millis(20));
+    assert_eq!(state.sys.departure_observations.borrow().as_slice(), &[selected]);
+    assert_eq!(state.sys.return_binding_observations.get(), 2, "the selected original still receives its full paired read");
+    assert_eq!(state.owned.len(), 2);
+    assert!(state.visible.contains_key(&visible));
+    assert_eq!(state.sys.moved.len(), writes);
+}
+
+#[test]
+fn passive_health_reaps_its_slot_and_still_rejects_a_replaced_occupant() {
+    for replaced in [false, true] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+        assert_eq!(state.run(&request(2, HIDE, 3), &guard).status, PASS);
+        let selected = state.sys.windows[&1].0;
+        let departed = state.sys.windows[&2].0;
+        if replaced { state.sys.windows.get_mut(&2).unwrap().0.birth += 1; }
+        else { state.sys.windows.remove(&2); }
+        state.sys.departure_observations.borrow_mut().clear();
+        let writes = state.sys.moved.len();
+        state.observe_health();
+        assert_eq!(state.sys.departure_observations.borrow().as_slice(), &[selected, departed]);
+        assert!(!state.owned.contains_key(&departed));
+        assert!(state.owned.contains_key(&selected));
+        assert_eq!(state.failed, replaced, "a replacement left in the same Space remains an unowned occupant");
+        assert_eq!(state.sys.moved.len(), writes);
+    }
+}
+
+#[test]
+fn passive_health_never_reaps_an_unavailable_departure_read() {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+    assert_eq!(state.run(&request(2, HIDE, 3), &guard).status, PASS);
+    let originals: Vec<_> = state.owned.values().map(|bound| (bound.lease.window, bound.witness)).collect();
+    state.sys.unavailable_departures = BTreeSet::from([1, 2]);
+    state.sys.departure_observations.borrow_mut().clear();
+    let writes = state.sys.moved.len();
+    state.observe_health();
+    assert!(!state.failed, "the subsequent complete original-window health read remains required");
+    assert_eq!(state.sys.departure_observations.borrow().len(), 2);
+    for (window, witness) in originals { assert_eq!(state.owned[&window].witness, witness); }
+    assert_eq!(state.sys.moved.len(), writes);
+}
+
+#[test]
+fn passive_health_ends_a_departed_selection_without_reading_or_rebinding_another_window() {
+    for replaced in [false, true] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+        let mut other = request(2, HIDE, 3);
+        other.group = [9; 16];
+        assert_eq!(state.run(&other, &guard).status, PASS);
+        let selected = state.sys.windows[&1].0;
+        let remaining = state.sys.windows[&2].0;
+        if replaced { state.sys.windows.get_mut(&1).unwrap().0.birth += 1; }
+        else { state.sys.windows.remove(&1); }
+        state.sys.departure_observations.borrow_mut().clear();
+        state.sys.minimized_observations.set(0);
+        state.sys.return_binding_observations.set(0);
+        let writes = state.sys.moved.len();
+        state.observe_health();
+        assert!(!state.owned.contains_key(&selected));
+        assert!(state.owned.contains_key(&remaining));
+        assert_eq!(state.sys.departure_observations.borrow().as_slice(), &[selected]);
+        assert_eq!(state.sys.minimized_observations.get(), 0);
+        assert_eq!(state.sys.return_binding_observations.get(), 0, "no complete sample is claimed for another or replacement window");
+        assert_eq!(state.sys.moved.len(), writes);
+    }
+}
+
+#[test]
+fn passive_health_slot_preparation_still_spends_the_original_deadline() {
+    for slow_window in [1, 2] {
+        let (mut state, guard) = setup();
+        assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+        assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS);
+        assert_eq!(state.run(&request(2, HIDE, 3), &guard).status, PASS);
+        state.sys.departure_read_costs.insert(slow_window, Duration::from_millis(700));
+        state.sys.minimized_observations.set(0);
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let started = state.sys.now();
+        state.observe_health();
+        assert_eq!(state.sys.now() - started, Duration::from_millis(700));
+        assert!(state.failed && state.owned.len() == 2, "an expired preparation cannot start a fresh 650 ms budget");
+        assert_eq!(state.sys.minimized_observations.get(), 0);
+        assert_eq!(state.sys.moved.len(), writes);
+        assert_eq!(state.sys.destroyed.len(), destroyed);
+    }
 }
 
 #[test]

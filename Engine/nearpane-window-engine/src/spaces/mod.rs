@@ -989,12 +989,27 @@ impl<P: Platform> State<P> {
             return;
         }
         self.next_tick = Some(now + Duration::from_millis(350));
-        self.reap_departed();
-        if self.owned.is_empty() { return; }
         let index = self.tick_cursor % self.owned.len();
         self.tick_cursor = index + 1;
         let lease = self.owned.values().nth(index).unwrap().lease;
-        let mut phase = "health-connection";
+        // This tick observes one original lease and its hidden Space. Reaping
+        // unrelated slots or read-only visible bindings would spend its budget
+        // before that observation starts. Commands and release still reap all.
+        let members: Vec<_> = self.owned.values().filter(|bound| bound.lease.slot == lease.slot)
+            .map(|bound| bound.lease.window).collect();
+        let gone: Vec<_> = members.iter().copied()
+            .filter(|window| self.sys.departed(*window).is_ok_and(|gone| gone)).collect();
+        for window in &gone { self.owned.remove(window); }
+        let selected_departed = !self.owned.contains_key(&lease.window);
+        if std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some() {
+            eprintln!("{{\"event\":\"spacesHealthPreparation\",\"window\":{},\"pid\":{},\"slotMembers\":{},\"departed\":{},\"selectedDeparted\":{},\"elapsedMS\":{},\"budgetMS\":{}}}",
+                lease.window.number,lease.window.pid,members.len(),gone.len(),selected_departed,
+                self.sys.now().saturating_duration_since(now).as_millis(),AX_OBSERVATION_BUDGET.as_millis());
+        }
+        // A confirmed departure ends this observation, without rebinding the
+        // number, selecting another window or reporting a healthy sample.
+        if selected_departed { return; }
+        let mut phase = "health-preparation";
         let mut parking = 0;
         let mut deadline = Passive(now + AX_OBSERVATION_BUDGET);
         let mut unavailable = None;
@@ -1005,6 +1020,7 @@ impl<P: Platform> State<P> {
             }
             let sample = (|| -> Check<()> {
                 deadline.observation()?;
+                phase = "health-connection";
                 let c = self.connection.ok_or(unknown(Why::Connection))?;
                 let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
                 parking = sid;

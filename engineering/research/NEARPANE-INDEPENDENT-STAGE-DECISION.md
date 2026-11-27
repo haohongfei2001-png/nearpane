@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through d66866eb, 2026-11-27
+#### R4 latency work through 5a1cfbc6, 2026-11-27
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -97,6 +97,40 @@ median 18.867 ms; this evidence does not identify attestation as its seconds-lon
 bottleneck. Its first witness takes 3,551 ms, including 1,136 ms opening directory
 and 1,755 ms initial binding. Later witnesses take 327–531 ms.
 [Exact d668 receipts](../verification/independent-stage/cloud-d66866eb-latency/README.md).
+
+`ff2617f5` materializes app icons into independent bitmap pixels off MainActor,
+shares the session's already-complete post-write Host witness with the Coordinator's
+first confirmation, and preserves the second distinct complete confirmation. It
+also distinguishes AXCannotComplete transport absence from a positive identity
+failure without changing the 120 ms move-readback deadline. Its full release run
+completes the first two actual R4 selections: 4,618 ms and 6,989 ms from external
+AXPress to two independent physical readbacks and the exact-target-focus gate.
+The first selection hides both siblings; the second restores the selected original
+window and hides the previously active window. The third press queues 3,195 ms
+behind the previous navigation job and is not completed. A separate worker health
+receipt records zero complete observations and 882 ms elapsed against its unchanged
+650 ms budget, still in the connection phase; it has no event timestamp permitting
+an exact placement on the Host timeline. All original windows are independently
+confirmed restored at shutdown. The product remains FAIL, although the direct
+engine passes. Source Rust passes 169 tests; two Swift test compilation mistakes
+are corrected in the following commit.
+[Exact ff2617 receipts](../verification/independent-stage/cloud-ff2617f5-latency/README.md).
+
+`5a1cfbc6` passes 169 Rust and 215 Swift tests, with one explicit Swift skip.
+The full release package and signature pass, as do all three direct-engine lanes.
+Full R4 completes its first real selection in 3,552 ms, then rejects the second
+at the Coordinator's initial witness. That second click dequeues immediately;
+its two overlapping witness intervals identify concurrent observation for further
+investigation, not proof of a WindowServer write failure. All original windows
+are physically confirmed restored. The fast R4 lane is BLOCKED before input:
+the retained accessibility element changes from AXButton to AXStaticText and loses
+its identifier at the pre-press check. It is correctly not pressed. Neither lane
+is a full product PASS. No native -25204 binding fault occurs in these runs, so
+their successful cleanup does not independently exercise the new transport-retry
+classification. Opening/closing directory acquisition accounts for approximately
+84% of summed full witness durations in both revisions; overlapping durations
+are not wall-clock totals.
+[Exact 5a1cfbc receipts](../verification/independent-stage/cloud-5a1cfbc6-latency/README.md).
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state
