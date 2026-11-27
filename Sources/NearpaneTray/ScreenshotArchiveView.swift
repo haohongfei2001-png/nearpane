@@ -13,10 +13,16 @@ private typealias ViewState<T> = State<T>
     }
 
     public var body: some View {
+        content
+            .task(id: module.active) { await module.openArchive() }
+            .onDisappear { module.closeArchive() }
+    }
+
+    @ViewBuilder private var content: some View {
         if let session = module.archiveSession {
             ArchiveBrowser(module: module, session: session)
                 .id(session)
-        } else if module.connecting {
+        } else if module.connecting || module.archiveOpening {
             ProgressView("正在连接截图资料库…").frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ContentUnavailableView {
@@ -38,6 +44,7 @@ private typealias ViewState<T> = State<T>
     @ViewState private var selected: UUID?
     @ViewState private var failed = false
     @ViewState private var retry = 0
+    @ViewState private var copyNotice: String?
 
     var body: some View {
         Group {
@@ -145,9 +152,19 @@ private typealias ViewState<T> = State<T>
 
     private func detail(_ entry: ScreenshotArchiveEntry) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button { selected = nil } label: { Label("返回截图档案", systemImage: "chevron.left") }
+            HStack {
+                Button { selected = nil } label: { Label("返回截图仓库", systemImage: "chevron.left") }
+                Spacer()
+                Button {
+                    Task {
+                        copyNotice = await module.copyArchiveImage(entry.record.image, session: session) ? "已复制原图" : "原图暂时不可用"
+                    }
+                } label: { Label("复制", systemImage: "doc.on.doc") }
+                .accessibilityIdentifier("screenshot-library-copy")
+            }
             ArchiveImage(module: module, session: session, entry: entry, pixels: 1536)
                 .frame(maxHeight: .infinity)
+            if let copyNotice { Text(copyNotice).font(.caption).foregroundStyle(.secondary) }
             Text("截图 \(entry.record.sequence)").font(.title3.weight(.semibold))
             Text(entry.date.formatted(date: .long, time: .standard)).monospacedDigit()
             Text("\(entry.record.image.pixelWidth) × \(entry.record.image.pixelHeight) px · \(ByteCountFormatter.string(fromByteCount: entry.record.image.byteCount, countStyle: .file))")
@@ -183,6 +200,7 @@ private typealias ViewState<T> = State<T>
                 Label("图像不可用", systemImage: "photo").foregroundStyle(.secondary).font(.caption)
             }
         }
+        .onDrag { module.archiveDragProvider(entry.record.image, session: session) }
         .task(id: entry.record.image) {
             loaded = false
             image = nil

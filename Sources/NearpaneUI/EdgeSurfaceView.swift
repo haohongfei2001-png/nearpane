@@ -35,8 +35,20 @@ public struct EdgeSurfaceView: View {
                                                 trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             ZStack(alignment: .topLeading) {
                 SurfaceShell(layout: layout, width: geometry.size.width, settings: settings)
-                if layout.voice.height > 0 { voice.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.voice) }
-                if layout.screenshots.height > 0 { screenshots.surfaceCard(width: geometry.size.width, settings: settings).place(in:layout.screenshots) }
+                if layout.voice.height > 0 {
+                    voice.surfaceCard(width: geometry.size.width, settings: settings)
+                        .contextMenu {
+                            Button("语音仓库…") { modules?.openManagementPage?(BuiltinCatalog.voice, "library") }
+                            Button("语音设置…") { modules?.openManagementPage?(BuiltinCatalog.voice, nil) }
+                        }.place(in:layout.voice)
+                }
+                if layout.screenshots.height > 0 {
+                    screenshots.surfaceCard(width: geometry.size.width, settings: settings)
+                        .contextMenu {
+                            Button("截图仓库…") { modules?.openManagementPage?(BuiltinCatalog.screenshots, "library") }
+                            Button("截图设置…") { modules?.openManagementPage?(BuiltinCatalog.screenshots, nil) }
+                        }.place(in:layout.screenshots)
+                }
                 #if canImport(NearpaneLyricsModule)
                 if let lyrics = modules?.lyrics, let rect = layout.additionalTools[BuiltinCatalog.lyrics], rect.height > 0 {
                     HostLyricsCard(lyrics: lyrics).place(in: rect)

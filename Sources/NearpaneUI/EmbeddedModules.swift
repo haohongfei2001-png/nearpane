@@ -19,6 +19,16 @@ public final class EmbeddedModules {
     #if canImport(NearpaneLyricsModule)
     let lyrics: HostLyrics?
     #endif
+    /// Every module asks the Host to navigate its one management window.
+    public var openManagementPage: ((String, String?) -> Void)? {
+        didSet {
+            #if canImport(NearpaneLyricsModule)
+            lyrics?.requestManagementPage = { [weak self] page in
+                self?.openManagementPage?(BuiltinCatalog.lyrics, page)
+            }
+            #endif
+        }
+    }
     var lyricsHeight: Double {
         #if canImport(NearpaneLyricsModule)
         lyrics?.height ?? 0
@@ -87,7 +97,11 @@ public final class EmbeddedModules {
     public let candidate: Bool
     public init(support: URL, testSession: URL? = nil, candidate: Bool = false, boundDraft: Bool = false) {
         #if canImport(NearpaneLyricsModule)
+        #if DEBUG
+        lyrics = HostLyrics(directory: support.appendingPathComponent("Lyrics", isDirectory: true), verificationOnly: testSession != nil)
+        #else
         lyrics = testSession == nil ? HostLyrics(directory: support.appendingPathComponent("Lyrics", isDirectory: true)) : nil
+        #endif
         #endif
         notebook = SidebarNotebook(directory: support)
         windowPreviews = WindowContentPreview(readOverview: testSession == nil ? NativeDesktopProvider.packagedReader(overview: true) : nil,

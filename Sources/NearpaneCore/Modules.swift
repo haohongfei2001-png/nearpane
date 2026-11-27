@@ -163,6 +163,25 @@ public final class ModuleRegistry {
         preferences.swapAt(slots[index], slots[next])
     }
 
+    /// Reorder the actual tool slots without disturbing the elastic desktop or
+    /// retired preferences. Disabled tools keep their relative position as well.
+    public func move(_ id: String, before target: String?) throws {
+        guard preferences.contains(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        guard BuiltinCatalog.sidebarTools.contains(id) else { throw RegistryError.coreOrderLocked }
+        if let target {
+            guard preferences.contains(where: { $0.id == target }) else { throw RegistryError.unknownModule }
+            guard BuiltinCatalog.sidebarTools.contains(target) else { throw RegistryError.coreOrderLocked }
+            if target == id { return }
+        }
+        let slots = preferences.indices.filter { BuiltinCatalog.sidebarTools.contains(preferences[$0].id) }
+        var tools = slots.map { preferences[$0] }
+        guard let source = tools.firstIndex(where: { $0.id == id }) else { return }
+        let moving = tools.remove(at: source)
+        let destination = target.flatMap { target in tools.firstIndex { $0.id == target } } ?? tools.endIndex
+        tools.insert(moving, at: destination)
+        for (slot, preference) in zip(slots, tools) { preferences[slot] = preference }
+    }
+
     public func expand(_ id: String) throws {
         guard manifests.contains(where: { $0.id == id && $0.kind == .builtin }),
               preferences.contains(where: { $0.id == id && $0.enabled && $0.pinned }),

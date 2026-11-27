@@ -74,7 +74,8 @@ public final class LyricAuxiliaryController: NSObject, NSWindowDelegate {
     }
 }
 
-private struct LyricAuxiliaryView: View {
+/// Reusable content only. Nearpane routes this view into its existing main window.
+public struct LyricAuxiliaryView: View {
     @ObservedObject var model: LyricAppModel
     let page: LyricAuxiliaryPage
     let close: () -> Void
@@ -84,7 +85,11 @@ private struct LyricAuxiliaryView: View {
     @State private var positionExpanded = false
     @State private var followsCurrentLine = true
 
-    var body: some View {
+    public init(model: LyricAppModel, page: LyricAuxiliaryPage, close: @escaping () -> Void = {}) {
+        self.model = model; self.page = page; self.close = close
+    }
+
+    public var body: some View {
         VStack(spacing: 0) {
             switch page {
             case .welcome: welcome
@@ -139,7 +144,7 @@ private struct LyricAuxiliaryView: View {
                     Text(localized("界面示意", "Interface preview")).font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 .accessibilityHidden(true)
-                Text(localized("播放时自动出现，停止时自动收起。鼠标移入即可查看歌曲和控制播放。", "Appears while music plays. Hover for song details and playback controls."))
+                Text(localized("播放音乐时出现，暂停时保留，播放器退出后收起。鼠标移入即可控制播放。", "Appears with a song, stays when paused, and closes when the player quits. Hover for playback controls."))
                     .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -180,7 +185,7 @@ private struct LyricAuxiliaryView: View {
                 }
                 Toggle(localized("大号歌词", "Larger lyrics"), isOn: $model.settings.largeText)
                 Toggle(localized("在全屏时显示", "Show over full-screen apps"), isOn: $model.settings.showInFullScreen)
-                Text(localized("播放时自动显示，不播放时自动收起。", "Appears during playback and hides when playback stops."))
+                Text(localized("播放时自动显示，暂停时保留，播放器退出后收起。", "Stays visible when paused and hides when the player quits."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section(localized("播放与歌词", "Playback and lyrics")) {
@@ -204,7 +209,7 @@ private struct LyricAuxiliaryView: View {
             Section(localized("通用", "General")) {
                 Toggle(localized("登录时启动", "Open at login"), isOn: Binding(get: {
                     loginStatus == .enabled || loginStatus == .requiresApproval
-                }, set: updateLogin))
+                }, set: { enabled in updateLogin(enabled) }))
                     .disabled(loginBusy || !canManageLoginItem)
                 if canManageLoginItem && loginStatus == .requiresApproval {
                     Text(localized("等待系统允许，尚未启用。也可以关闭上方开关取消登录启动。", "Waiting for system approval. Turn the switch off to cancel."))

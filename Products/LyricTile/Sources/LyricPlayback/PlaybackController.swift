@@ -204,7 +204,9 @@ public actor PlaybackController {
                 accept(observation)
             } catch {
                 errors[id] = playbackError(error)
-                if errors[id] == .selectionChanged { observations.removeValue(forKey: id) }
+                // A sparse read or transient media-source mismatch does not prove
+                // the selected player has quit. The process census above is the
+                // authority for removing its established session.
                 observations[id]?.quality = .stale; observations[id]?.capabilities = .init()
                 // TCC denial is retried slowly; a real playback notification or
                 // explicit source choice rechecks immediately after Settings changes.
@@ -256,8 +258,9 @@ public actor PlaybackController {
     }
 
     private func accept(_ incoming: PlayerObservation) {
-        let observation = qualifications.applying(to: incoming, systemBuild: systemBuild)
-        let id = observation.process.player
+        let id = incoming.process.player
+        let continuous = PlaybackObservationContinuity.merging(incoming, with: observations[id])
+        let observation = qualifications.applying(to: continuous, systemBuild: systemBuild)
         if observation.state == .playing, let previous = observations[id], previous.state != .playing {
             transitionCounter &+= 1; lastPlayingTransition[id] = transitionCounter
         }

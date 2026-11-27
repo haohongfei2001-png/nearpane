@@ -691,6 +691,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let modules = EmbeddedModules(support: support.appendingPathComponent("Nearpane"), testSession: testSession,
                                       candidate: candidate, boundDraft: boundDraft)
         self.modules = modules
+        connectManagementNavigation(modules)
         if independent { modules.connectIndependentStageObservation() }
         if let selectionService, testSession == nil, candidate, let id = UUID(uuidString: support.lastPathComponent) {
             modules.bindSelectionService(selectionService, generation: id)
@@ -990,9 +991,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             entry.target = self
             return entry
         }
+        _ = action("打开 Nearpane", #selector(openMainWindow))
+        _ = action("模块…", #selector(showModules))
+        _ = action("仓库…", #selector(showLibrary))
+        _ = action("设置…", #selector(showGeneralSettings))
+        menu.addItem(.separator())
         _ = action("显示本屏窗口总览", #selector(showWindowOverview))
         _ = action("窗口管理…", #selector(showWindowManagement))
-        _ = action("打开 Nearpane", #selector(openMainWindow))
         _ = action("隐藏侧栏", #selector(toggleSurface))
         menu.addItem(.separator())
         let update = action("更新状态…", #selector(checkForUpdates))
@@ -1014,6 +1019,28 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openMainWindow() { requestMainWindow() }
+
+    private func connectManagementNavigation(_ modules: EmbeddedModules) {
+        modules.openManagementPage = { [weak self] id, page in
+            guard let self else { return }
+            if page == "library" {
+                switch id {
+                case BuiltinCatalog.voice: settingsNavigation.showVoiceArchive()
+                case BuiltinCatalog.screenshots: settingsNavigation.showScreenshotArchive()
+                default: settingsNavigation.showLibrary()
+                }
+            } else if id == BuiltinCatalog.lyrics {
+                settingsNavigation.showLyrics(page ?? "settings")
+            } else {
+                settingsNavigation.showModule(id)
+            }
+            showSettings()
+        }
+    }
+
+    @objc private func showModules() { settingsNavigation.showModules(); showSettings() }
+    @objc private func showLibrary() { settingsNavigation.showLibrary(); showSettings() }
+    @objc private func showGeneralSettings() { settingsNavigation.showGeneral(); showSettings() }
 
     @objc private func showWindowManagement() {
         settingsNavigation.showWindowManagement()
@@ -1057,9 +1084,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func checkForUpdates() {
-        if let updater, updater.canCheck { updater.check(); return }
         settingsNavigation.showApplicationServices()
         showSettings()
+        if let updater, updater.canCheck { updater.check() }
     }
 
     @objc private func lockChanged(_ note: Notification) {
@@ -1163,16 +1190,19 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
         guard host != nil, passiveDisplayID == nil else { return }
         if settings == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 752, height: 572),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 660),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: true)
-            window.contentMinSize = NSSize(width: 640, height: 476)
+            window.contentMinSize = NSSize(width: 740, height: 520)
             window.title = "Nearpane"
             window.identifier = .init("nearpane-main-window")
+            window.tabbingMode = .disallowed
+            window.titlebarAppearsTransparent = true
             window.isReleasedWhenClosed = false
             if let screen = surface?.window?.screen {
                 let f = screen.visibleFrame
                 window.setFrameOrigin(NSPoint(x: f.midX - window.frame.width / 2, y: f.midY - window.frame.height / 2))
             } else { window.center() }
+            window.setFrameAutosaveName("NearpaneMainWindow")
             settings = NSWindowController(window: window)
             let center = NotificationCenter.default
             center.addObserver(self, selector: #selector(settingsClosing(_:)), name: NSWindow.willCloseNotification, object: window)
@@ -1241,54 +1271,64 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     #if canImport(SaytileKit)
-    /// Render the Finder candidate's Settings in an executable-bound fixture. Never order or activate a window.
+    /// Exercise the packaged product in an executable-bound, disposable cloud profile.
     func renderSettingsReadback(_ session: NativeAcceptanceSession) async throws {
+        #if DEBUG
         let app = NSApplication.shared
-        app.setActivationPolicy(.prohibited)
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
         let embedded = EmbeddedModules(support: session.support.appendingPathComponent("Nearpane"),
                                        testSession: session.directory, candidate: true)
         modules = embedded
-        let host = embedded.makeHost(store: MemoryConfigurationStore())
+        connectManagementNavigation(embedded)
+        let store = FileConfigurationStore(url: session.support.appendingPathComponent("Nearpane/host-configuration.json"))
+        let host = embedded.makeHost(store: store)
         self.host = host
         await host.start()
         await embedded.voice.waitForTransition()
         await embedded.tray.connect()
         updater = ApplicationUpdater(allowNetwork: false)
-        let size = SurfaceRect(width: 1470, height: 956)
-        settingsScreens.update([ScreenGeometry(id: "fixture", frame: size, visibleFrame: size)])
-        let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 752, height: 572),
-                              styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        settingsScreens.update(SystemScreens.geometry())
+        let window = NSWindow(contentRect: .init(x: 0, y: 0, width: 920, height: 660),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window.contentMinSize = NSSize(width: 740, height: 520)
         window.isReleasedWhenClosed = false
+        window.identifier = .init("nearpane-main-window")
+        window.title = "Nearpane"
+        window.tabbingMode = .disallowed
+        window.titlebarAppearsTransparent = true
         window.appearance = NSAppearance(named: .aqua)
+        window.center()
         settings = NSWindowController(window: window)
-        settingsNavigation.showAppearance()
+        settingsNavigation.showModules()
         updateSettingsContent()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-appearance.png"))
-        settingsNavigation.showDesktop()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-desktop.png"))
-        settingsNavigation.showWindowManagement()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-window-management.png"))
-        settingsNavigation.showGeneral()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-general.png"))
-        settingsNavigation.showVoiceArchive()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-voice-archive.png"))
-        settingsNavigation.showScreenshotArchive()
-        try await renderHiddenSettings(window, to: session.directory.appendingPathComponent("settings-screenshot-archive.png"))
-        let (menu, _) = makeStatusMenu()
-        let entries = menu.items.filter { !$0.isSeparatorItem }
-        guard entries.allSatisfy({ $0.target === self && $0.action.map { self.responds(to: $0) } == true }) else {
-            throw CocoaError(.featureUnsupported)
+        showSettings()
+        do {
+            try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
+                navigation: settingsNavigation, window: window, openMainWindow: { [self] in
+                    showSettings()
+                    return settings?.window
+                })
+            let (menu, _) = makeStatusMenu()
+            let entries = menu.items.filter { !$0.isSeparatorItem }
+            guard entries.allSatisfy({ $0.target === self && $0.action.map { self.responds(to: $0) } == true }) else {
+                throw CocoaError(.featureUnsupported)
+            }
+            try JSONEncoder().encode(entries.map(\.title)).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
+        } catch {
+            window.close()
+            _ = await embedded.prepareStageWindowShutdown()
+            host.stop()
+            await embedded.finishStopping()
+            throw error
         }
-        let titles = entries.map(\.title)
-        hideStatusIcon()
-        guard !host.configuration.showsMenuBarIcon, host.setShowsMenuBarIcon(true) else {
-            throw CocoaError(.fileWriteUnknown)
-        }
-        try JSONEncoder().encode(titles).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
         window.close()
-        await embedded.prepareStageWindowShutdown()
+        _ = await embedded.prepareStageWindowShutdown()
         host.stop()
         await embedded.finishStopping()
+        #else
+        throw CocoaError(.featureUnsupported)
+        #endif
     }
 
     private func renderHiddenSettings(_ window: NSWindow, to url: URL) async throws {

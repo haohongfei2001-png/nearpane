@@ -90,8 +90,8 @@ struct ScreenshotArchivePage {
 actor ScreenshotArchiveMedia {
     static let shared = ScreenshotArchiveMedia()
 
-    func preview(_ image: ImportedAsset, root: URL, pixels: Int) -> CGImage? {
-        guard !Task.isCancelled, pixels > 0, image.byteCount > 0,
+    func originalBytes(_ image: ImportedAsset, root: URL) -> Data? {
+        guard !Task.isCancelled, image.byteCount > 0,
               image.byteCount <= ScreenshotImportLimits.bytes, !image.fileName.isEmpty,
               image.fileName != ".", image.fileName != "..",
               !image.fileName.contains("/"), !image.fileName.utf8.contains(0) else { return nil }
@@ -111,7 +111,12 @@ actor ScreenshotArchiveMedia {
               let bytes = try? handle.read(upToCount: Int(info.st_size)),
               bytes.count == info.st_size,
               SHA256.hash(data: bytes).map({ String(format: "%02x", $0) }).joined() == image.sha256,
-              !Task.isCancelled,
+              !Task.isCancelled else { return nil }
+        return bytes
+    }
+
+    func preview(_ image: ImportedAsset, root: URL, pixels: Int) -> CGImage? {
+        guard pixels > 0, let bytes = originalBytes(image, root: root),
               let source = CGImageSourceCreateWithData(bytes as CFData, [kCGImageSourceShouldCache: false] as CFDictionary)
         else { return nil }
         return CGImageSourceCreateThumbnailAtIndex(source, 0, [

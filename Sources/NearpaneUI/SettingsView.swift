@@ -7,69 +7,6 @@ import NearpaneVoice
 import NearpaneTray
 #endif
 
-enum SettingsPage: String, CaseIterable, Identifiable {
-    case voiceArchive, screenshotArchive, general, dimensions, windowManagement, windowRules, displays, desktop, modules, app, voice, tray, diagnostics
-    var id: Self { self }
-    var label: String {
-        switch self {
-        case .voiceArchive: "语音档案"
-        case .screenshotArchive: "截图档案"
-        case .general: "通用"
-        case .dimensions: "外观与尺寸"
-        case .windowManagement: "窗口管理"
-        case .windowRules: "窗口规则"
-        case .displays: "显示器"
-        case .desktop: "本屏窗口"
-        case .voice: "Saytile 语音设置"
-        case .tray: "Riftlet 截图设置"
-        case .modules: "模块"
-        case .app: "应用与更新"
-        case .diagnostics: "开发诊断"
-        }
-    }
-    var navigationLabel: String {
-        switch self {
-        case .voice: "Saytile 语音"
-        case .tray: "Riftlet 截图"
-        default: label
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .voiceArchive: "waveform"
-        case .screenshotArchive: "photo.on.rectangle.angled"
-        case .general: "gearshape"
-        case .dimensions: "slider.horizontal.3"
-        case .windowManagement: "macwindow.on.rectangle"
-        case .windowRules: "list.bullet"
-        case .displays: "display"
-        case .desktop: "rectangle.3.group"
-        case .voice: "mic"
-        case .tray: "camera"
-        case .modules: "square.grid.2x2"
-        case .app: "arrow.triangle.2.circlepath"
-        case .diagnostics: "wrench.and.screwdriver"
-        }
-    }
-}
-
-@Observable @MainActor public final class SettingsNavigation {
-    #if canImport(NearpaneVoice)
-    var page = SettingsPage.voiceArchive
-    #else
-    var page = SettingsPage.general
-    #endif
-    public init() {}
-    public func showAppearance() { page = .dimensions }
-    public func showVoiceArchive() { page = .voiceArchive }
-    public func showScreenshotArchive() { page = .screenshotArchive }
-    public func showGeneral() { page = .general }
-    public func showApplicationServices() { page = .app }
-    public func showDesktop() { page = .desktop }
-    public func showWindowManagement() { page = .windowManagement }
-}
-
 struct InstalledBuild {
     let version, build: String
 
@@ -155,94 +92,185 @@ public struct SettingsView: View {
 
     public var body: some View {
         GeometryReader { bounds in
-            let sidebarWidth = bounds.size.width >= 720 ? 168.0 : 152.0
+            let sidebarWidth = bounds.size.width >= 850 ? 184.0 : 164.0
             HStack(spacing: 0) {
+                sidebar.frame(width: sidebarWidth)
+                    .background(.regularMaterial)
+                    .overlay(alignment: .trailing) { Rectangle().fill(Color.primary.opacity(0.055)).frame(width: 1) }
                 VStack(alignment: .leading, spacing: 0) {
-                    ScrollView {
-                        VStack(spacing: 2) {
-                            navigationGroup("档案", pages: [.voiceArchive, .screenshotArchive])
-                            navigationGroup("Nearpane 设置", pages: [.general, .dimensions, .windowManagement, .windowRules, .displays, .desktop, .modules, .app])
-                            navigationGroup("模块设置", pages: [.voice, .tray, .diagnostics])
-                        }.padding(8)
-                    }.accessibilityLabel("Nearpane 导航")
-                    Divider()
-                    Text(installedBuild.label)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .padding(12)
-                        .accessibilityIdentifier("settings-installed-version")
+                    pageHeader
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .accessibilityIdentifier("main-content-" + navigation.page.rawValue)
                 }
-                .frame(width: sidebarWidth)
-                .background {
-                    Rectangle().fill(.regularMaterial)
-                        .overlay(Color.primary.opacity(colorScheme == .dark ? 0.035 : 0.045))
-                }
-                Divider().frame(width: 1)
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(navigation.page.label).font(.title2.weight(.semibold))
-                            .accessibilityAddTraits(.isHeader)
-                        Spacer()
-                        if navigation.page == .voiceArchive && availablePages.contains(.voice) {
-                            Button { navigation.page = .voice } label: { Label("语音设置", systemImage: "gearshape") }
-                                .controlSize(.small)
-                                .accessibilityIdentifier("archive-voice-settings")
-                        } else if navigation.page == .screenshotArchive {
-                            Button { navigation.page = .tray } label: { Label("截图设置", systemImage: "gearshape") }
-                                .controlSize(.small)
-                                .accessibilityIdentifier("archive-tray-settings")
-                        }
-                    }
-                    content.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
-                .padding(16)
-                .frame(width: max(0, bounds.size.width - sidebarWidth - 1), height: bounds.size.height, alignment: .topLeading)
-                .background(Color(nsColor: .controlBackgroundColor))
+                .frame(width: max(0, bounds.size.width - sidebarWidth), height: bounds.size.height)
+                .background(Color(nsColor: .windowBackgroundColor))
             }
         }
         .onAppear {
-            if !availablePages.contains(navigation.page) { navigation.showGeneral() }
+            if !availablePages.contains(navigation.page) { navigation.showModules() }
         }
         .refreshWindowPermissions()
         .productAccent(host.configuration.accent)
-        .frame(minWidth: 640, minHeight: 476)
+        .frame(minWidth: 740, minHeight: 520)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    @ViewBuilder private func navigationGroup(_ label: String, pages: [SettingsPage]) -> some View {
-        let entries = pages.filter { availablePages.contains($0) }
-        if !entries.isEmpty {
-            Text(label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, 3)
-            ForEach(entries) { page in
-                let selected = navigation.page == page
-                Button { navigation.page = page } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: page.symbol).frame(width: 18)
-                            .foregroundStyle(selected ? host.configuration.accent.color : .secondary)
-                        Text(page.navigationLabel)
-                            .lineLimit(1).fontWeight(selected ? .medium : .regular)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 8).frame(maxWidth: .infinity, alignment: .leading).frame(height: 28)
-                    .background(selected ? host.configuration.accent.color.opacity(0.14) : .clear,
-                                in: RoundedRectangle(cornerRadius: 6))
-                    .contentShape(Rectangle())
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "rectangle.righthalf.inset.filled")
+                    .font(.system(size: 17, weight: .medium)).foregroundStyle(host.configuration.accent.color)
+                Text("Nearpane").font(.system(size: 15, weight: .semibold))
+            }.padding(.horizontal, 18).padding(.top, 22).padding(.bottom, 20)
+            VStack(spacing: 4) {
+                ForEach(MainWindowSection.allCases) { section in
+                    navigationButton(section.title, symbol: section.symbol, selected: navigation.section == section,
+                                     identifier: "main-nav-" + section.rawValue) { navigation.select(section) }
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? .isSelected : [])
-                .accessibilityIdentifier("settings-nav-" + page.rawValue)
-            }
+            }.padding(.horizontal, 10)
+            Rectangle().fill(Color.primary.opacity(0.07)).frame(height: 1)
+                .padding(.horizontal, 18).padding(.vertical, 18)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 3) {
+                    switch navigation.section {
+                    case .modules:
+                        Text("已启用").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                            .padding(.horizontal, 10).padding(.bottom, 7)
+                        ForEach(enabledModules) { manifest in
+                            navigationButton(ModulePresentation.title(manifest), symbol: manifest.symbol,
+                                             selected: navigation.moduleID == manifest.id,
+                                             identifier: "main-module-nav-" + manifest.id, compact: true) {
+                                navigation.showModule(manifest.id)
+                            }
+                        }
+                        if enabledModules.isEmpty {
+                            Text("从模块页选择需要的工具").font(.caption).foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                        }
+                    case .library:
+                        navigationGroup(pages: [.voiceArchive, .screenshotArchive, .memoArchive, .tasksArchive, .wordArchive])
+                    case .settings:
+                        navigationGroup(pages: [.general, .dimensions, .displays, .permissions, .data, .app, .diagnostics])
+                    }
+                }.padding(.horizontal, 10)
+            }.accessibilityLabel("Nearpane 页面导航")
+            Text(installedBuild.label)
+                .font(.system(size: 10)).foregroundStyle(.tertiary)
+                .textSelection(.enabled).padding(18)
+                .accessibilityIdentifier("settings-installed-version")
         }
+    }
+
+    private var enabledModules: [ModuleManifest] {
+        let enabled = host.registry.preferences.filter(\.enabled).compactMap { pref in
+            host.registry.manifests.first { $0.id == pref.id }
+        }
+        return enabled.filter { BuiltinCatalog.sidebarTools.contains($0.id) }
+            + enabled.filter { !BuiltinCatalog.sidebarTools.contains($0.id) && $0.id != BuiltinCatalog.desktop }
+            + enabled.filter { $0.id == BuiltinCatalog.desktop }
+    }
+
+    private var pageTitle: String {
+        if let id = navigation.moduleID,
+           let manifest = host.registry.manifests.first(where: { $0.id == id }) {
+            return ModulePresentation.title(manifest)
+        }
+        return navigation.page.label
+    }
+
+    private var pageHeader: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                if navigation.moduleID != nil {
+                    Button { navigation.showModules() } label: {
+                        Label("模块", systemImage: "chevron.left").font(.system(size: 12, weight: .medium))
+                    }.buttonStyle(.plain).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("main-back-to-modules")
+                    Text("/").foregroundStyle(.quaternary)
+                } else if navigation.section != .modules {
+                    Text(navigation.section.title).font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text("/").foregroundStyle(.quaternary)
+                }
+                Text(pageTitle).font(.system(size: 22, weight: .semibold))
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 12)
+                headerAction
+            }
+            if navigation.moduleID == BuiltinCatalog.desktop {
+                Picker("空间调度页面", selection: Binding(get: { navigation.page }, set: { navigation.page = $0 })) {
+                    Text("调度").tag(SettingsPage.windowManagement)
+                    Text("窗口显示").tag(SettingsPage.desktop)
+                    Text("规则").tag(SettingsPage.windowRules)
+                }.pickerStyle(.segmented).frame(maxWidth: 340)
+                    .accessibilityIdentifier("module-spaces-pages")
+            }
+            if host.configurationProtected || host.configurationSaveFailed {
+                Label(host.configurationProtected ? "无法读取原配置，原文件已保留。" : "设置尚未保存，请检查资料目录。",
+                      systemImage: "exclamationmark.circle")
+                    .font(.callout).foregroundStyle(.orange)
+            }
+        }.padding(.horizontal, 28).padding(.top, 26).padding(.bottom, 20)
+    }
+
+    @ViewBuilder private var headerAction: some View {
+        if let id = navigation.moduleID,
+           let preference = host.registry.preferences.first(where: { $0.id == id }) {
+            Toggle(preference.enabled ? "已启用" : "启用", isOn: Binding(get: {
+                host.registry.preferences.first(where: { $0.id == id })?.enabled == true
+            }, set: { value in
+                if id == BuiltinCatalog.desktop && !value { domains?.stopWindowContentPreview() }
+                host.handle(.setEnabled(id, value))
+            }))
+            .toggleStyle(.switch).controlSize(.small).fixedSize()
+            .accessibilityIdentifier("module-detail-enabled-" + id)
+        } else if navigation.page == .voiceArchive {
+            Button { navigation.showModule(BuiltinCatalog.voice) } label: { Image(systemName: "gearshape") }
+                .buttonStyle(.borderless).help("语音设置").accessibilityLabel("语音设置")
+                .accessibilityIdentifier("archive-voice-settings")
+        } else if navigation.page == .screenshotArchive {
+            Button { navigation.showModule(BuiltinCatalog.screenshots) } label: { Image(systemName: "gearshape") }
+                .buttonStyle(.borderless).help("截图设置").accessibilityLabel("截图设置")
+                .accessibilityIdentifier("archive-tray-settings")
+        }
+    }
+
+    @ViewBuilder private func navigationGroup(pages: [SettingsPage]) -> some View {
+        ForEach(pages.filter { availablePages.contains($0) }) { page in
+            navigationButton(page.label, symbol: page.symbol, selected: navigation.page == page,
+                             identifier: "settings-nav-" + page.rawValue, compact: true) { navigation.page = page }
+        }
+    }
+
+    private func navigationButton(_ title: String, symbol: String, selected: Bool,
+                                  identifier: String, compact: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol).font(.system(size: compact ? 13 : 15, weight: .medium)).frame(width: 20)
+                    .foregroundStyle(selected ? host.configuration.accent.color : .secondary)
+                Text(title).font(.system(size: compact ? 12 : 13, weight: selected ? .semibold : .regular)).lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10).frame(height: compact ? 32 : 38)
+            .background(selected ? host.configuration.accent.color.opacity(colorScheme == .dark ? 0.18 : 0.10) : .clear,
+                        in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .accessibilityIdentifier(identifier)
     }
 
     private var availablePages: [SettingsPage] {
         SettingsPage.allCases.filter { page in
             switch page {
-            case .voice: return hasDomains && domains?.candidate == true
-            case .tray, .voiceArchive, .screenshotArchive: return hasDomains
+            case .voice, .tray, .voiceArchive, .screenshotArchive: return hasDomains
+            case .memoArchive, .tasksArchive, .wordArchive: return domains != nil
+            case .lyrics:
+                #if canImport(NearpaneLyricsModule)
+                return domains?.lyrics != nil
+                #else
+                return false
+                #endif
             case .diagnostics: return domains?.candidate != true
             case .app: return applicationServices != nil
             default: return true
@@ -262,18 +290,35 @@ public struct SettingsView: View {
         switch navigation.page {
         case .voiceArchive:
             #if canImport(NearpaneVoice)
-            if let domains { VoiceArchiveView(module: domains.voice, openSettings: { navigation.page = .voice }) }
+            if let domains { VoiceArchiveView(module: domains.voice, openSettings: { navigation.showModule(BuiltinCatalog.voice) }).padding(.horizontal, 12).padding(.bottom, 12) }
             #else
             EmptyView()
             #endif
         case .screenshotArchive:
             #if canImport(NearpaneTray)
-            if let domains { ScreenshotArchiveView(module: domains.tray, openSettings: { navigation.page = .tray }) }
+            if let domains { ScreenshotArchiveView(module: domains.tray, openSettings: { navigation.showModule(BuiltinCatalog.screenshots) }).padding(.horizontal, 12).padding(.bottom, 12) }
             #else
             EmptyView()
             #endif
-        case .general: general
-        case .modules: modules
+        case .general: MainWindowGeneralSettings(host: host, menuVisibilityChanged: menuVisibilityChanged)
+        case .modules: ModuleManagementView(host: host, open: { navigation.showModule($0) })
+        case .module: genericModule
+        case .lyrics:
+            #if canImport(NearpaneLyricsModule)
+            if let lyrics = domains?.lyrics {
+                HostLyricsManagementView(lyrics: lyrics, page: navigation.lyricsPage)
+                    .padding(.horizontal, 28).padding(.bottom, 24)
+            }
+            #else
+            EmptyView()
+            #endif
+        case .memoArchive, .tasksArchive, .wordArchive:
+            if let notebook = domains?.notebook {
+                NotebookLibraryView(notebook: notebook, kind: navigation.page == .memoArchive ? .notes : navigation.page == .tasksArchive ? .tasks : .vocabulary)
+                    .id(navigation.page)
+            }
+        case .permissions: permissions
+        case .data: dataManagement
         case .voice:
             #if canImport(NearpaneVoice)
             if let domains { VoiceInputSettings(module: domains.voice) }
@@ -336,16 +381,19 @@ public struct SettingsView: View {
                         }.disabled(!tray.active || tray.connecting)
                     }
                     if let issue = tray.issue { Text(issue).foregroundStyle(.secondary) }
-                }.padding()
+                }.formStyle(.grouped)
             }
             #else
             EmptyView()
             #endif
         case .displays: appearance
         case .dimensions:
-            WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
-                                     dismiss: dismissSpaces, stillCurrent: inventory.contains,
-                                     previewExposure: previewExposure)
+            VStack(alignment: .leading, spacing: 16) {
+                AccentSettings(host: host).padding(.horizontal, 28)
+                WorkspaceDisplaySettings(host: host, screens: screens, request: requestSecondary,
+                                         dismiss: dismissSpaces, stillCurrent: inventory.contains,
+                                         previewExposure: previewExposure)
+            }
         case .windowRules: WorkspacePolicySettings(host: host, showWindowManagement: navigation.showWindowManagement)
         case .windowManagement:
             if let manager = domains?.workRect {
@@ -361,30 +409,90 @@ public struct SettingsView: View {
         }
     }
 
-    private var general: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            AccentSettings(host: host)
-            Divider()
-            if domains?.workRect != nil {
-                Button("打开窗口管理…") { navigation.showWindowManagement() }
-                    .accessibilityIdentifier("settings-general-window-management")
+    @ViewBuilder private var genericModule: some View {
+        if let id = navigation.moduleID,
+           let manifest = host.registry.manifests.first(where: { $0.id == id }) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Text(manifest.summary).font(.callout).foregroundStyle(.secondary)
+                    if let state = ModulePresentation.status(host.registry.states[id] ?? .available) {
+                        HStack {
+                            Text(state).font(.callout).foregroundStyle(.secondary)
+                            if host.registry.states[id] == .degraded {
+                                Button("重新启动") { host.handle(.setEnabled(id, true)) }
+                            }
+                        }
+                    }
+                    if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(id),
+                       let preference = host.registry.preferences.first(where: { $0.id == id }) {
+                        Toggle("显示在侧栏", isOn: Binding(get: {
+                            host.registry.preferences.first(where: { $0.id == id })?.pinned == true
+                        }, set: { host.handle(.setPinned(id, $0)) }))
+                        .toggleStyle(.switch).controlSize(.small).disabled(!preference.enabled)
+                    }
+                    if id == BuiltinCatalog.clock { ClockDetails(host: host) }
+                    if let library = manifest.capabilities.library {
+                        Button { openLibrary(library) } label: { Label("在仓库中查看内容", systemImage: "tray.full") }
+                    }
+                    Text("外观和尺寸沿用 Nearpane 的全局设置。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("外观与布局", action: navigation.showAppearance).font(.callout)
+                }.padding(.horizontal, 28).padding(.bottom, 24).frame(maxWidth: .infinity, alignment: .leading)
             }
-            Toggle("在菜单栏显示 Nearpane", isOn: Binding(get: {
-                host.configuration.showsMenuBarIcon
-            }, set: { visible in
-                if host.setShowsMenuBarIcon(visible) { menuVisibilityChanged(visible) }
-            }))
-            .accessibilityIdentifier("settings-menu-bar-icon")
-            Text("隐藏图标后，双击 Finder 中的 Nearpane 即可打开此窗口。")
-                .font(.callout).foregroundStyle(.secondary)
-            if host.configurationSaveFailed {
-                Text("设置未能保存，请检查资料目录后再试。").foregroundStyle(.secondary)
-            }
-            if !host.configuration.showsMenuBarIcon {
-                Button("退出 Nearpane") { NSApp.terminate(nil) }
-                    .accessibilityIdentifier("settings-quit-nearpane")
-            }
-        }.padding(.top, 8)
+        }
+    }
+
+    private func openLibrary(_ library: ModuleLibraryKind) {
+        switch library {
+        case .voice: navigation.showVoiceArchive()
+        case .screenshots: navigation.showScreenshotArchive()
+        case .notes: navigation.showNotebookLibrary()
+        case .tasks: navigation.showNotebookLibrary("tasks")
+        case .vocabulary: navigation.showNotebookLibrary("vocabulary")
+        }
+    }
+
+    private var permissions: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("按使用需要授权。更改系统权限后，Nearpane 会重新读取当前状态。")
+                    .font(.callout).foregroundStyle(.secondary)
+                WindowAccessSteps(showPictures: true)
+                Divider().opacity(0.5)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("模块权限").font(.system(size: 12, weight: .semibold))
+                    if hasDomains {
+                        permissionLink("麦克风与语音识别", detail: "语音", module: BuiltinCatalog.voice)
+                        permissionLink("截图目录与浏览器附加", detail: "截图", module: BuiltinCatalog.screenshots)
+                    }
+                    #if canImport(NearpaneLyricsModule)
+                    if domains?.lyrics != nil { permissionLink("播放器访问", detail: "歌词", module: BuiltinCatalog.lyrics) }
+                    #endif
+                }
+            }.padding(.horizontal, 28).padding(.bottom, 24)
+        }
+    }
+
+    private func permissionLink(_ title: String, detail: String, module: String) -> some View {
+        HStack {
+            Text(title).font(.callout)
+            Spacer()
+            Button(detail + "设置") { navigation.showModule(module) }.buttonStyle(.link)
+        }
+    }
+
+    private var dataManagement: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                Text("语音、截图、备忘录与待办保存在当前 Nearpane 资料中。停用模块不会清除这些内容。")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Button("打开仓库", action: navigation.showLibrary)
+                if let profileImport {
+                    Divider().opacity(0.5)
+                    profileImport
+                }
+            }.padding(.horizontal, 28).padding(.bottom, 24)
+        }
     }
 
     private var desktopOptions: some View {
@@ -404,10 +512,6 @@ public struct SettingsView: View {
                 Button("重新注册快捷键") { DesktopOverviewShortcut.shared.configure(host.configuration.overviewShortcut) }
             }
             let enabled = host.registry.preferences.first(where: { $0.id == BuiltinCatalog.desktop })?.enabled == true
-            Toggle("显示本屏窗口", isOn: Binding(get: { enabled }, set: {
-                if !$0 { domains?.stopWindowContentPreview() }
-                host.handle(.setEnabled(BuiltinCatalog.desktop, $0))
-            }))
             Toggle("显示当前桌面的窗口缩略图", isOn: Binding(get: { host.configuration.showsWindowThumbnails }, set: { show in
                 host.setWindowThumbnails(show)
                 if !show { domains?.windowPreviews.gallery.clear() }
@@ -437,71 +541,7 @@ public struct SettingsView: View {
             }
             Text("未取得画面权限时，侧栏显示应用与窗口轮廓。")
                 .font(.callout).foregroundStyle(.secondary)
-        }.padding(16)
-    }
-
-    private var modules: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                if domains?.candidate == true { AlphaHelp() }
-                if let profileImport { profileImport; Divider() }
-                Text("按侧栏的播放按钮开始收音，按相同位置暂停。")
-                    .font(.callout).foregroundStyle(.secondary)
-                if let notebook = domains?.notebook {
-                    WordbookSection(notebook: notebook).id(ObjectIdentifier(notebook))
-                }
-                ForEach(host.registry.preferences, id: \.id) { pref in
-                    if let manifest = host.registry.manifests.first(where: { $0.id == pref.id }) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            HStack {
-                                Toggle(manifest.name, isOn: Binding(get: { pref.enabled }, set: { host.handle(.setEnabled(pref.id, $0)) }))
-                                    .accessibilityIdentifier("module-enabled-" + pref.id)
-                                Spacer()
-                                if manifest.kind == .builtin && !BuiltinCatalog.sidebarTools.contains(pref.id) {
-                                    Toggle("固定", isOn: Binding(get: { pref.pinned }, set: { host.handle(.setPinned(pref.id, $0)) }))
-                                        .fixedSize()
-                                }
-                                if manifest.kind == .builtin || BuiltinCatalog.sidebarTools.contains(pref.id) {
-                                        Button { host.handle(.move(pref.id, -1)) } label: { Image(systemName: "arrow.up") }
-                                            .accessibilityLabel("Move \(manifest.name) up").accessibilityIdentifier("module-up-" + pref.id)
-                                        Button { host.handle(.move(pref.id, 1)) } label: { Image(systemName: "arrow.down") }
-                                            .accessibilityLabel("Move \(manifest.name) down").accessibilityIdentifier("module-down-" + pref.id)
-                                }
-                            }
-                            #if canImport(NearpaneLyricsModule)
-                            if pref.id == BuiltinCatalog.lyrics, let lyrics = domains?.lyrics {
-                                if pref.enabled { HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model) }
-                                else { Text("播放音乐时自动显示歌词。启用后可选择关闭 LRCLIB 在线查找。")
-                                    .font(.caption).foregroundStyle(.secondary) }
-                            }
-                            #endif
-                            HStack {
-                                Text(moduleStatus(host.registry.states[pref.id] ?? .available)).font(.caption).foregroundStyle(.secondary)
-                                if host.registry.states[pref.id] == .degraded {
-                                    Button("重新启动模块") { host.handle(.setEnabled(pref.id, true)) }
-                                }
-                            }
-                        }
-                        Divider()
-                    }
-                }
-                Text(domains?.candidate == true ? "固定时钟后，点击主驻留屏的时间可选择额外时区。" : "使用箭头调整工具顺序。窗口和桌面显示在工具下方。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }.padding(8)
-        }
-    }
-
-    private func moduleStatus(_ state: ModuleState) -> String {
-        switch state {
-        case .available: "可启用"
-        case .enabling: "正在启动"
-        case .permissionRequired: "需要授权"
-        case .resident: "已启用"
-        case .expanded: "已展开"
-        case .suspended: "已暂停"
-        case .degraded: "暂不可用"
-        case .disabled: "已关闭"
-        }
+        }.formStyle(.grouped)
     }
 
     private var appearance: some View {
@@ -524,7 +564,7 @@ public struct SettingsView: View {
             }
             Text("主驻留屏默认预留可用宽度的 1/8。拔除首选屏时暂用可用屏，重新连接后恢复选择。")
                 .font(.callout).foregroundStyle(.secondary)
-        }.padding(16)
+        }.formStyle(.grouped)
     }
 
     private var mockSettings: some View {

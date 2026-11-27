@@ -23,7 +23,12 @@ public final class TrayModule: HostModule {
     @ObservationIgnored private var interaction = UUID()
     @ObservationIgnored private var revision = 0
     private(set) var archiveRevision: UInt64 = 0
-    var archiveSession: UUID? { connected ? epoch : nil }
+    var archiveSession: UUID? { connected ? epoch : (archiveOwner == nil ? nil : archiveEpoch) }
+    private var archiveOwner: TrayOwner?
+    private var archiveEpoch = UUID()
+    private(set) var archiveOpening = false
+    @ObservationIgnored private var archiveTask: Task<Void, Never>?
+    @ObservationIgnored private var archiveDrain: Task<Void, Never>?
     @ObservationIgnored private var acceptedRows: [UUID: Int64] = [:]
     @ObservationIgnored private var settle: Task<Void, Never>?
     @ObservationIgnored private var observe: Task<Void, Never>?
@@ -217,6 +222,8 @@ public final class TrayModule: HostModule {
         collectionDrain = Task { await previous?.value; await current.finish(); withExtendedLifetime(pin) {} }
     }
     public func finishStopping() async {
+        closeArchive()
+        await archiveDrain?.value
         await connectionTask?.value
         await collectionDrain?.value
         await ownerDrain?.value
@@ -259,10 +266,12 @@ public final class TrayModule: HostModule {
 
     public func connect() async {
         guard active, !connecting, owner == nil else { return }
+        closeArchive()
         connecting = true; issue = nil
         let entry = epoch
         let previous = connectionTask, closingCollection = collectionDrain, closingOwner = ownerDrain
         let task = Task { [weak self] in
+            await self?.archiveDrain?.value
             await previous?.value
             await closingCollection?.value
             await closingOwner?.value
@@ -422,17 +431,64 @@ public final class TrayModule: HostModule {
         owner.thumbnails.image(for: row.image, maxPixelSize: pixels, completion: completion)
     }
     func archivePage(offset: Int, session: UUID) async throws -> ScreenshotArchivePage {
-        guard session == archiveSession, let owner else { throw CancellationError() }
+        guard session == archiveSession, let owner = owner ?? archiveOwner else { throw CancellationError() }
         let batch = try await owner.store.historySnapshot(limit: ScreenshotArchivePage.size + 1, offset: offset)
         let mode = await owner.store.mode
-        guard self.owner === owner, session == archiveSession else { throw CancellationError() }
+        guard (self.owner === owner || archiveOwner === owner), session == archiveSession else { throw CancellationError() }
         return ScreenshotArchivePage(batch, policy: owner.receiptPolicy, mode: mode)
     }
 
     func archiveImage(_ asset: ImportedAsset, pixels: Int, session: UUID) async -> CGImage? {
-        guard session == archiveSession, let owner else { return nil }
+        guard session == archiveSession, let owner = owner ?? archiveOwner else { return nil }
         let image = await ScreenshotArchiveMedia.shared.preview(asset, root: owner.root, pixels: pixels)
         return session == archiveSession && !Task.isCancelled ? image : nil
+    }
+
+    func archiveOriginalData(_ asset: ImportedAsset, session: UUID) async -> Data? {
+        guard session == archiveSession, let owner = owner ?? archiveOwner else { return nil }
+        let bytes = await ScreenshotArchiveMedia.shared.originalBytes(asset, root: owner.root)
+        return session == archiveSession && !Task.isCancelled ? bytes : nil
+    }
+
+    /// Browsing saved captures has its own short-lived store ownership. It never
+    /// enables collection, screenshot capture, browser observation, or attachment.
+    func openArchive() async {
+        guard owner == nil, archiveOwner == nil else { return }
+        if let archiveTask { await archiveTask.value; return }
+        let token = UUID(); archiveEpoch = token; archiveOpening = true
+        let connecting = connectionTask, collecting = collectionDrain, closing = ownerDrain, archiveClosing = archiveDrain
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await connecting?.value
+            await collecting?.value
+            await closing?.value
+            await archiveClosing?.value
+            guard token == archiveEpoch, owner == nil else { return }
+            do {
+                let opened = try await open({}, { [weak self] message in self?.issue = message })
+                guard token == archiveEpoch, owner == nil else {
+                    opened.close(); await opened.finishWork(); return
+                }
+                archiveOwner = opened
+                archiveRevision &+= 1
+            } catch {
+                if token == archiveEpoch { issue = "暂时无法读取截图仓库，原有截图已保留。" }
+            }
+        }
+        archiveTask = task
+        await task.value
+        if token == archiveEpoch { archiveTask = nil; archiveOpening = false }
+    }
+
+    func closeArchive() {
+        let reading = archiveOwner, opening = archiveTask, previous = archiveDrain
+        archiveEpoch = UUID(); archiveOwner = nil; archiveTask = nil; archiveOpening = false
+        reading?.close()
+        archiveDrain = Task {
+            await previous?.value
+            await opening?.value
+            await reading?.finishWork()
+        }
     }
     func beginPress(_ row: AssetRecord) -> TrayPress? {
         guard active, !hidden, let owner, acceptedRows[row.id] == row.visibilityRevision,

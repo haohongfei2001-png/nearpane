@@ -1,4 +1,4 @@
-name: Nearpane integrated lyrics
+name: Nearpane unified workbench
 on:
   push:
     branches: [pro/r4-integrated-lyrics-20261128]
@@ -11,21 +11,35 @@ concurrency:
 jobs:
   host:
     runs-on: macos-26
-    timeout-minutes: 35
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Test Host layout, module lifecycle and existing integration
-        run: bash scripts/test.sh --no-parallel --filter 'LyricsLayoutTests|LayoutTests|IntegratedHostTests|NearpaneCoreTests'
+      - name: Test Host, module lifecycle and existing integration
+        run: |
+          mkdir -p build/unified-workbench-evidence
+          set -o pipefail
+          bash scripts/test.sh --no-parallel 2>&1 | tee build/unified-workbench-evidence/swift-tests.log
       - name: Compile and package integrated Nearpane
         run: |
-          bash scripts/build-app.sh debug
-          python3 -B scripts/verify-packages.py build/debug/Nearpane.app
+          set -o pipefail
+          bash scripts/build-app.sh debug 2>&1 | tee build/unified-workbench-evidence/build.log
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/unified-workbench-evidence/package-verification.log
+      - name: Exercise and capture the native main window and sidebar
+        run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
       - name: Archive Host candidate
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-integrated-lyrics.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('Nearpane-integrated-lyrics.zip') != '' }}
         with:
           name: Nearpane-integrated-lyrics
           path: Nearpane-integrated-lyrics.zip
           if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Nearpane-unified-workbench-evidence
+          path: build/unified-workbench-evidence
+          if-no-files-found: warn

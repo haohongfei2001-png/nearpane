@@ -2,6 +2,8 @@ import AppKit
 import Combine
 import Foundation
 import LyricUI
+import LyricCore
+import LyricPlayback
 import SwiftUI
 
 /// Owns a native View and the same domain services as the standalone product; no nested NSPanel.
@@ -10,14 +12,18 @@ public final class NearpaneLyricsModule: NSObject, ObservableObject {
     public let model: LyricAppModel
     @Published public private(set) var isPresented = false
     public var hostSurfaceDidWithdraw: (@MainActor () async -> Bool)?
-    private let auxiliary: LyricAuxiliaryController
+    /// The Host owns all management navigation. This module never creates an NSWindow.
+    public var openManagementPage: (@MainActor (LyricAuxiliaryPage) -> Void)?
+    private var presentationSubscription: AnyCancellable?
     private var transitioning = false
 
     public init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
         let model = LyricAppModel(storageURL: storageURL, defaults: defaults)
         self.model = model
-        auxiliary = LyricAuxiliaryController(model: model)
         super.init()
+        presentationSubscription = model.$presentation.compactMap { $0 }.sink { [weak self] page in
+            self?.openManagementPage?(page)
+        }
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(releaseRequested), name: LyricHandoff.request, object: nil)
     }
 
@@ -46,7 +52,7 @@ public final class NearpaneLyricsModule: NSObject, ObservableObject {
         transitioning = true
         defer { transitioning = false }
         isPresented = false; model.isVisible = false
-        auxiliary.closeAll()
+        model.presentation = nil
         // Hosts can confirm their own view transaction; a host window itself stays visible.
         if let hostSurfaceDidWithdraw {
             guard await hostSurfaceDidWithdraw() else { return false }
@@ -59,6 +65,22 @@ public final class NearpaneLyricsModule: NSObject, ObservableObject {
         return true
     }
     public var view: some View { NearpaneLyricsView(module: self) }
+
+    public func managementView(for page: LyricAuxiliaryPage) -> some View {
+        LyricAuxiliaryView(model: model, page: page, close: { [weak self] in
+            self?.model.presentation = nil
+            self?.openManagementPage?(.settings)
+        })
+    }
+
+    #if DEBUG
+    /// Explicit fixture for native rendering tests; does not claim a real media session.
+    public func installVerificationSnapshot(_ snapshot: PlaybackSnapshot, document: LyricDomain.Document? = nil) {
+        precondition(!transitioning && !model.ownsSession)
+        model.installVerificationSnapshot(snapshot, document: document)
+        isPresented = snapshot.selection != nil
+    }
+    #endif
 
     @objc private func releaseRequested(_ notification: Notification) {
         guard let requestID = LyricHandoff.requestID(from: notification, targeting: .host), model.ownsSession else { return }

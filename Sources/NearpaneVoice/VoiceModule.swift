@@ -456,13 +456,27 @@ public final class VoiceModule: HostModule {
 
     func withArchiveRead<T>(_ operation: (SaytileStore) async throws -> T) async throws -> T {
         try Task.checkCancellation()
-        guard active else { throw CancellationError() }
         let epoch = generation
         // A cancelled playback may be one of the jobs the next transition must join.
         let opening = transition
         await opening?.value
         try Task.checkCancellation()
-        guard active, generation == epoch else { throw CancellationError() }
+        guard generation == epoch else { throw CancellationError() }
+        if !active {
+            // A library visit opens only the saved text database. It never creates
+            // an audio controller, starts recovery, or enables microphone capture.
+            let archive = try openStore()
+            do {
+                let result = try await operation(archive)
+                try await archive.close()
+                try Task.checkCancellation()
+                guard generation == epoch else { throw CancellationError() }
+                return result
+            } catch {
+                try? await archive.close()
+                throw error
+            }
+        }
         guard store != nil else { throw StoreError.database("语音资料库未打开。") }
         let result = try await withPanelRead(operation)
         try Task.checkCancellation()

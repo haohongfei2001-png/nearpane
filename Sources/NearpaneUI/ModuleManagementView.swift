@@ -1,0 +1,164 @@
+import NearpaneCore
+import SwiftUI
+
+/// Management lives here, leaving the desktop surface entirely about its content.
+struct ModuleManagementView: View {
+    let host: HostSession
+    let open: (String) -> Void
+
+    private var enabled: [ModuleManifest] { manifests(enabled: true) }
+    private var disabled: [ModuleManifest] { manifests(enabled: false) }
+    private var tools: [ModuleManifest] { enabled.filter { BuiltinCatalog.sidebarTools.contains($0.id) } }
+    private var resident: [ModuleManifest] {
+        let rest = enabled.filter { !BuiltinCatalog.sidebarTools.contains($0.id) }
+        return rest.filter { $0.id != BuiltinCatalog.desktop } + rest.filter { $0.id == BuiltinCatalog.desktop }
+    }
+    private func manifests(enabled: Bool) -> [ModuleManifest] {
+        host.registry.preferences.filter { $0.enabled == enabled }.compactMap { preference in
+            host.registry.manifests.first { $0.id == preference.id }
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) {
+                Text("让需要的工具留在身边。启用后即可使用，停用会保留设置和历史内容。")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 7) {
+                    sectionHeader("侧栏中的工具", count: tools.count, detail: tools.count > 1 ? "拖动调整顺序" : nil)
+                    if tools.isEmpty {
+                        MainWindowEmptyState(symbol: "rectangle.righthalf.inset.filled", title: "选择你的第一个工具",
+                                             message: "从下方启用语音、截图或歌词，侧栏会随内容自然展开。")
+                            .frame(height: 134)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(tools) { manifest in
+                                row(manifest, enabled: true, movable: true)
+                            }
+                            Color.clear.frame(height: 12)
+                                .contentShape(Rectangle())
+                                .dropDestination(for: String.self) { ids, _ in
+                                    guard let id = ids.first, tools.contains(where: { $0.id == id }) else { return false }
+                                    return host.moveModule(id, before: nil)
+                                }
+                                .accessibilityIdentifier("module-order-end")
+                        }
+                    }
+                }
+                if !resident.isEmpty {
+                    VStack(alignment: .leading, spacing: 7) {
+                        sectionHeader("常驻区域", count: resident.count, detail: nil)
+                        VStack(spacing: 0) {
+                            ForEach(resident) { manifest in row(manifest, enabled: true, movable: false) }
+                        }
+                        Text("时钟在工具下方；Spaces 按可用空间伸展。")
+                            .font(.caption).foregroundStyle(.secondary).padding(.top, 3)
+                    }
+                }
+                if !disabled.isEmpty {
+                    VStack(alignment: .leading, spacing: 7) {
+                        sectionHeader("未启用", count: disabled.count, detail: "随时添加")
+                        VStack(spacing: 0) {
+                            ForEach(disabled) { manifest in row(manifest, enabled: false, movable: false) }
+                        }
+                    }
+                }
+            }.padding(.horizontal, 28).padding(.bottom, 28)
+        }
+        .accessibilityIdentifier("module-management")
+    }
+
+    private func sectionHeader(_ title: String, count: Int, detail: String?) -> some View {
+        HStack(spacing: 7) {
+            Text(title).font(.system(size: 12, weight: .semibold))
+            Text("\(count)").font(.system(size: 11, weight: .medium)).foregroundStyle(.tertiary)
+            Spacer()
+            if let detail { Text(detail).font(.system(size: 11)).foregroundStyle(.secondary) }
+        }.padding(.bottom, 2)
+    }
+
+    private func row(_ manifest: ModuleManifest, enabled: Bool, movable: Bool) -> some View {
+        ModuleManagementRow(host: host, manifest: manifest, enabled: enabled, movable: movable, open: open)
+    }
+}
+
+private struct ModuleManagementRow: View {
+    let host: HostSession
+    let manifest: ModuleManifest
+    let enabled: Bool
+    let movable: Bool
+    let open: (String) -> Void
+    @State private var targeted = false
+
+    var body: some View {
+        HStack(spacing: 14) {
+            if movable {
+                detailButton.draggable(manifest.id) {
+                    Label(ModulePresentation.title(manifest), systemImage: manifest.symbol)
+                        .padding(12).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                }
+            } else { detailButton }
+            Toggle("启用" + ModulePresentation.title(manifest), isOn: Binding(get: {
+                host.registry.preferences.first(where: { $0.id == manifest.id })?.enabled == true
+            }, set: { host.handle(.setEnabled(manifest.id, $0)) }))
+            .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            .accessibilityIdentifier("module-enabled-" + manifest.id)
+        }
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.07)).frame(height: 1) }
+        .overlay(alignment: .top) {
+            if targeted { RoundedRectangle(cornerRadius: 1).fill(host.configuration.accent.color).frame(height: 2) }
+        }
+        .contentShape(Rectangle())
+        .dropDestination(for: String.self) { ids, _ in
+            guard movable, let id = ids.first, id != manifest.id,
+                  BuiltinCatalog.sidebarTools.contains(id),
+                  host.registry.preferences.contains(where: { $0.id == id && $0.enabled }) else { return false }
+            return host.moveModule(id, before: manifest.id)
+        } isTargeted: { targeted = movable && $0 }
+    }
+
+    private var detailButton: some View {
+        Button { open(manifest.id) } label: {
+            HStack(spacing: 14) {
+                Image(systemName: manifest.symbol)
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(enabled ? host.configuration.accent.color : .secondary)
+                    .frame(width: 38, height: 38)
+                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 8) {
+                        Text(ModulePresentation.title(manifest)).font(.system(size: 14, weight: .semibold))
+                        if let brand = ModulePresentation.brand(manifest.id) {
+                            Text(brand).font(.system(size: 11)).foregroundStyle(.tertiary)
+                        }
+                        if let state = ModulePresentation.status(host.registry.states[manifest.id] ?? .available) {
+                            Text(state).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                        }
+                    }
+                    Text(manifest.summary).font(.system(size: 12)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true).lineLimit(2)
+                }
+                Spacer(minLength: 2)
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(.tertiary)
+            }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+            .accessibilityIdentifier("module-open-" + manifest.id)
+            .help(movable ? "打开设置；也可拖动调整侧栏顺序" : "打开模块设置")
+    }
+}
+
+struct MainWindowEmptyState: View {
+    let symbol: String
+    let title: String
+    let message: String
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 28, weight: .light)).foregroundStyle(.tertiary)
+            Text(title).font(.system(size: 14, weight: .medium))
+            Text(message).font(.system(size: 12)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).frame(maxWidth: 360)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}

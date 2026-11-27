@@ -3,6 +3,7 @@ import AppKit
 import Combine
 import Foundation
 import LyricPlayback
+import LyricCore
 import LyricUI
 import NearpaneCore
 import NearpaneLyricsModule
@@ -17,6 +18,8 @@ final class HostLyrics: HostModule {
     private(set) var status = "等待播放音乐"
     private(set) var requested = false
     var openingFailed: (() -> Void)?
+    @ObservationIgnored var requestManagementPage: ((String) -> Void)?
+    private let verificationOnly: Bool
     @ObservationIgnored var heightDidChange: (() -> Void)?
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var subscriptions = Set<AnyCancellable>()
@@ -25,13 +28,22 @@ final class HostLyrics: HostModule {
     @ObservationIgnored private var hostHidden = true
     @ObservationIgnored private var policy = LyricPanelVisibilityPolicy()
 
-    init(directory: URL) {
+    init(directory: URL, verificationOnly: Bool = false) {
+        #if DEBUG
+        self.verificationOnly = verificationOnly
+        #else
+        self.verificationOnly = false
+        #endif
         module = NearpaneLyricsModule(storageURL: directory)
+        module.openManagementPage = { [weak self] page in self?.requestManagementPage?(page.rawValue) }
         module.model.objectWillChange.sink { [weak self] _ in self?.scheduleRefresh() }.store(in: &subscriptions)
         module.$isPresented.sink { [weak self] _ in self?.scheduleRefresh() }.store(in: &subscriptions)
     }
 
-    func start() throws { requested = true; status = "正在连接播放器"; reconcile() }
+    func start() throws {
+        requested = true; status = "正在连接播放器"
+        if verificationOnly { refresh() } else { reconcile() }
+    }
     func stop() {
         requested = false
         status = "已停用"
@@ -39,7 +51,7 @@ final class HostLyrics: HostModule {
         height = 0
         updateVisibility()
         if changed { heightDidChange?() }
-        reconcile()
+        if !verificationOnly { reconcile() }
     }
     func suspend() { stop() }
     func resume() throws { try start() }
@@ -99,7 +111,7 @@ final class HostLyrics: HostModule {
         let model = module.model
         let interacting = !hostHidden && mounted &&
             (model.panelInteractionActive || model.songMenuIsOpen || model.seekPreviewMS != nil)
-        let visible = requested && module.isPresented && model.ownsSession &&
+        let visible = requested && module.isPresented && (model.ownsSession || verificationOnly) &&
             policy.shouldPresent(model.snapshot, wasVisible: height > 0 && mounted && !hostHidden, isInteracting: interacting)
         let next = visible ? Double(model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight) : 0
         let changed = height != next
@@ -108,15 +120,25 @@ final class HostLyrics: HostModule {
         if !requested { nextStatus = "已停用" }
         else if !module.isPresented { nextStatus = model.ownershipMessage ?? "等待歌词会话" }
         else if model.snapshot.requiresAuthorization { nextStatus = "需要允许播放器自动化权限" }
+        else if model.snapshot.state == .paused && visible { nextStatus = "已暂停 · 可在侧栏继续播放" }
         else { nextStatus = model.snapshot.statusMessage ?? (visible ? "正在跟随播放器" : "播放音乐时自动显示") }
         if status != nextStatus { status = nextStatus }
         updateVisibility()
         if changed { heightDidChange?() }
-        if requested && !module.isPresented && worker == nil {
+        if requested && !module.isPresented && worker == nil && !verificationOnly {
             // Another client explicitly took the shared session. Do not ping-pong.
             openingFailed?()
         }
     }
+    #if DEBUG
+    func installVerificationSnapshot(_ snapshot: PlaybackSnapshot, document: LyricDomain.Document? = nil) -> Bool {
+        guard verificationOnly else { return false }
+        module.installVerificationSnapshot(snapshot, document: document)
+        refresh()
+        return true
+    }
+    #endif
+
     private func updateVisibility() {
         let visible = requested && height > 0 && mounted && !hostHidden && module.isPresented
         if module.model.isVisible != visible { module.model.isVisible = visible }
@@ -140,7 +162,9 @@ struct HostLyricsSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(lyrics.status).font(.caption).foregroundStyle(.secondary)
-            Picker("跟随播放器", selection: $model.settings.preferredPlayer) {
+            Picker("跟随播放器", selection: Binding(get: { model.settings.preferredPlayer }, set: {
+                model.selectPlayer($0.flatMap(PlayerID.init(rawValue:)))
+            })) {
                 Text("自动").tag(String?.none)
                 ForEach(PlayerID.allCases, id: \.self) { player in
                     Text(player.displayName).tag(Optional(player.rawValue))
@@ -149,18 +173,51 @@ struct HostLyricsSettings: View {
             Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
             Text("在线查找会向 LRCLIB 发送歌曲名、歌手、专辑和时长。关闭后仍可导入本地歌词。")
                 .font(.caption).foregroundStyle(.secondary)
+            Text("歌曲暂停时保留歌词和播放控制；播放器退出后自动收起。")
+                .font(.callout).foregroundStyle(.secondary)
             Toggle("大号歌词", isOn: $model.settings.largeText)
             Toggle("显示歌词翻译（如有）", isOn: $model.settings.showTranslation)
             if model.snapshot.requiresAuthorization {
                 Button("允许访问播放器…") { model.openAutomationSettings() }
             }
+            HStack {
+                Button("完整歌词") { model.show(.fullLyrics) }.disabled(model.document == nil)
+                Button("歌词来源") { model.show(.source) }.disabled(model.document == nil)
+                Button("时间校准") { model.show(.adjustment) }.disabled(model.document == nil)
+            }
             if model.ownsSession {
+                Button("选择其他歌词版本") { model.show(.candidates) }.disabled(model.snapshot.selection == nil)
                 Button("重新连接") { model.reconnect() }
                 Button("为当前歌曲导入歌词…") { model.importLyrics() }
                     .disabled(model.snapshot.selection == nil)
             }
+            DisclosureGroup("歌词缓存") {
+                Text("自动缓存仅用于加快歌词匹配，不属于内容仓库。清理后仍保留已绑定的本地歌词。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("清理自动缓存") { model.clearCache() }
+            }
+            if let message = model.actionMessage { Text(message).font(.callout).foregroundStyle(.secondary) }
         }
         .accessibilityIdentifier("nearpane-lyrics-settings")
     }
 }
+
+/// All lyric management content stays inside the Host's existing main window.
+struct HostLyricsManagementView: View {
+    let lyrics: HostLyrics
+    let page: String
+    var body: some View {
+        let destination = LyricAuxiliaryPage(rawValue: page) ?? .settings
+        if destination == .settings || destination == .welcome {
+            ScrollView {
+                HostLyricsSettings(lyrics: lyrics, model: lyrics.module.model)
+                    .padding(20).frame(maxWidth: 620, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            lyrics.module.managementView(for: destination).id(destination)
+        }
+    }
+}
+
 #endif

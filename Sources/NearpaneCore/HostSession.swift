@@ -142,11 +142,23 @@ public final class HostSession {
                 }
                 persistModulePreferences()
                 presentationChanged?()
-            case .setPinned, .move: persistModulePreferences()
+            case .setPinned, .move:
+                persistModulePreferences()
+                presentationChanged?()
             default: break
             }
         }
         return result
+    }
+
+    @discardableResult public func moveModule(_ id: String, before target: String?) -> Bool {
+        guard isRunning, !configurationProtected else { return false }
+        do {
+            try registry.move(id, before: target)
+            persistModulePreferences()
+            presentationChanged?()
+            return !configurationSaveFailed
+        } catch { return false }
     }
 
     public func setDisplaySettings(_ value: DisplaySettings, id: String) {

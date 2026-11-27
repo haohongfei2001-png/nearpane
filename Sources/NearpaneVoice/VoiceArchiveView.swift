@@ -59,15 +59,8 @@ public struct VoiceArchiveView: View {
     }
 
     public var body: some View {
-        if module.active {
-            VoiceArchiveBrowser(module: module, openSettings: openSettings).id(ObjectIdentifier(module))
-        } else {
-            ContentUnavailableView {
-                Label("语音模块未启用", systemImage: "waveform")
-            } actions: {
-                Button("语音设置", action: openSettings)
-            }
-        }
+        VoiceArchiveBrowser(module: module, openSettings: openSettings)
+            .id(ObjectIdentifier(module))
     }
 }
 

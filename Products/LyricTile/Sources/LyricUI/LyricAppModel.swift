@@ -23,7 +23,13 @@ public final class LyricAppModel: ObservableObject {
     @Published public private(set) var advanceMS: Int64 = 0
     // Position is projected from the real anchor when read. A hidden progress
     // label must not invalidate the entire lyric surface every second.
-    public var playbackPositionMS: Int64? { snapshot.selection == nil ? nil : projectedPosition() }
+    public var playbackPositionMS: Int64? {
+        guard snapshot.selection != nil else { return nil }
+        return projectedPosition() ?? (snapshot.state == .paused ? retainedPausedPositionMS : nil)
+    }
+    // A confirmed paused position is stable until a fresh source position arrives.
+    // Never derive this fallback from a playing anchor or use it to authorize seeking.
+    private var retainedPausedPositionMS: Int64?
     @Published public var actionMessage: String?
     @Published public var lyricFailure: String?
     @Published public var presentation: LyricAuxiliaryPage?
@@ -92,6 +98,19 @@ public final class LyricAppModel: ObservableObject {
         lease = TileSessionLease(moduleID: "lyrics")
     }
 
+    #if DEBUG
+    /// Native visual verification only: uses production rendering with explicitly
+    /// synthetic data, without ownership, observers, lookup, audio or transport.
+    public func installVerificationSnapshot(_ value: PlaybackSnapshot, document: LyricDomain.Document? = nil) {
+        precondition(!ownsSession && startBarrier == nil && updateTask == nil)
+        cancelLyricRequest(); cancelCandidateSearch(); cancelAdjustment()
+        snapshot = value; self.document = document
+        retainedPausedPositionMS = value.state == .paused ? projectedPosition() : nil
+        isResolving = false; lyricFailure = nil
+        refreshFrame()
+    }
+    #endif
+
     /// The kernel lease is the authority. A handoff notification never grants ownership.
     @discardableResult public func start() async -> Bool {
         guard !stopping else { return false }
@@ -152,7 +171,7 @@ public final class LyricAppModel: ObservableObject {
             // Already sent transport commands must drain before the new owner may dispatch.
             if let commandTask { await commandTask.value }
             await playback.stop()
-            snapshot = .empty; document = nil
+            snapshot = .empty; document = nil; retainedPausedPositionMS = nil
             candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil; seekSelection = nil
             isResolving = false; isSearchingCandidates = false
             controlsVisible = false; panelInteractionActive = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
@@ -416,7 +435,11 @@ public final class LyricAppModel: ObservableObject {
                   panelInteractionActive || songMenuIsOpen || seekPreviewMS != nil {
             pausedPanelContent = panelContent
         }
+        if changed || update.state != .paused { retainedPausedPositionMS = nil }
         snapshot = update
+        if update.state == .paused, let confirmed = projectedPosition() {
+            retainedPausedPositionMS = confirmed
+        }
         refreshArtwork(from: update, sessionChanged: changed)
         if changed {
             cancelLyricRequest(); cancelCandidateSearch(); cancelAdjustment(); browseTask?.cancel()
@@ -533,6 +556,18 @@ public final class LyricAppModel: ObservableObject {
         guard let selection = snapshot.selection else {
             frame = .init(selection: nil, phase: .noPlayback, playbackState: snapshot.state, lookupMS: nil, presentedCues: [])
             return
+        }
+        let previous = frame
+        defer {
+            // Sparse polls retain the last rendered cue while the same session
+            // reconnects. The source status still reports stale/unavailable data;
+            // no elapsed time or new lyric position is invented.
+            if frame.phase == .positionUnavailable, document != nil,
+               Self.sameSession(previous.selection, snapshot.selection),
+               [.syncedLine, .syncedToken, .plainText, .interlude].contains(previous.phase) {
+                frame = .init(selection: selection, phase: previous.phase, playbackState: snapshot.state,
+                              lookupMS: previous.lookupMS, presentedCues: previous.presentedCues)
+            }
         }
         if let anchor = snapshot.anchor, let projected = try? timeline.frame(anchor: anchor, at: PlaybackClock.now(), document: document, adjustment: adjustment) {
             if isResolving && document == nil {

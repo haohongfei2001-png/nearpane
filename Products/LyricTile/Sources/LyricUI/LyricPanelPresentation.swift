@@ -65,37 +65,15 @@ extension LyricAppModel {
     }
 }
 
-/// A paused player may retain controls already under the user's pointer. It never
-/// creates a panel for a paused song at launch, even when VoiceOver reveals controls.
+/// The playback controller owns the lifetime of a valid media session. A pause,
+/// pointer exit, hidden Host surface or temporarily missing clock is not an exit.
+/// Process termination clears the selection at the playback boundary; only then
+/// does the lyric slot disappear. The legacy arguments remain source-compatible.
 public struct LyricPanelVisibilityPolicy {
     public init() {}
-    private var retainsPausedInteraction = false
-    private var previousSelection: LyricDomain.Selection?
 
     public mutating func shouldPresent(_ snapshot: PlaybackSnapshot, wasVisible: Bool,
-                                isInteracting: Bool) -> Bool {
-        let sameSelection = previousSelection.map { previous in
-            guard let selection = snapshot.selection else { return false }
-            return previous.playerBundleID == selection.playerBundleID
-                && previous.sessionID == selection.sessionID
-                && previous.generation == selection.generation
-                && previous.recording.fingerprint == selection.recording.fingerprint
-        } ?? false
-        defer { previousSelection = snapshot.selection }
-        guard snapshot.selection != nil else {
-            retainsPausedInteraction = false
-            return false
-        }
-        switch snapshot.state {
-        case .playing:
-            retainsPausedInteraction = false
-            return true
-        case .paused:
-            retainsPausedInteraction = sameSelection && isInteracting && (wasVisible || retainsPausedInteraction)
-            return retainsPausedInteraction
-        case .stopped, .buffering, .unknown:
-            retainsPausedInteraction = false
-            return false
-        }
+                                      isInteracting: Bool) -> Bool {
+        snapshot.player != nil && snapshot.selection != nil
     }
 }

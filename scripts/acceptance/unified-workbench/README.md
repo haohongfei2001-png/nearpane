@@ -1,0 +1,33 @@
+# Unified workbench native verification
+
+Run `python3 scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app`
+on an isolated native macOS desktop after building the full debug candidate. The
+GitHub `Nearpane unified workbench` workflow performs this automatically.
+
+The runner copies the candidate, applies the existing alpha fixture identity and
+an ad-hoc signature, then uses the existing executable-bound acceptance profile.
+It does not install over a daily app or read a user's profile. It opens the actual
+retained main window, performs native accessibility presses, renders the actual
+desktop sidebar and saves screenshots plus a structured receipt.
+
+Screenshots prefer WindowServer `screencapture`. If screen recording access is
+unavailable, the receipt identifies a fallback to `NSView.cacheDisplay` of the
+same visible native window. The window's existence and visibility are checked
+against WindowServer independently of either capture method.
+
+## Evidence boundaries
+
+- Navigation and toggle actions use the real views' accessibility actions.
+- Repeated entry uses the Host's normal main-window opener and checks object
+  identity, window number and the count of standard management windows.
+- Reordering exercises the same persisted command used by drag/drop. It is not a
+  physical pointer drag test.
+- Content consists of the existing generated native acceptance library entries.
+  Counts and configuration readbacks check preservation while toggling modules.
+- Lyric screenshots use labelled synthetic snapshots in the production lyric
+  view/model. They do not certify Apple Music/QQ Music/NetEase control or discovery.
+- The existing PR 16 Spaces engine qualification is independent of this UI run.
+- A successful debug build/native UI receipt is not a signed, notarized release.
+
+Artifacts contain the original packaged candidate separately from the fixture
+copy, complete build/test logs and the native screenshots and receipts.

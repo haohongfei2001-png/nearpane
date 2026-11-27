@@ -6,13 +6,15 @@ enum PlaybackSourcePolicy {
                        observations: [PlayerID: PlayerObservation], available: Set<PlayerID>,
                        transitions: [PlayerID: UInt64]) -> PlayerID? {
         if let preferred { return preferred }
-        let playing = PlayerID.allCases.filter { observations[$0]?.state == .playing && observations[$0]?.quality != .stale }
+        let playing = PlayerID.allCases.filter {
+            available.contains($0) && observations[$0]?.state == .playing && observations[$0]?.quality != .stale
+        }
         if let currentSource, playing.contains(currentSource) { return currentSource }
         let latest = playing.map { transitions[$0] ?? 0 }.max() ?? 0
         if let previous, playing.contains(previous), (transitions[previous] ?? 0) == latest { return previous }
         if let best = playing.first(where: { (transitions[$0] ?? 0) == latest }) { return best }
         if let previous, available.contains(previous) { return previous }
-        return PlayerID.allCases.first { observations[$0]?.hasRecording == true }
+        return PlayerID.allCases.first { available.contains($0) && observations[$0]?.hasRecording == true }
             ?? PlayerID.allCases.first { available.contains($0) }
     }
 }
@@ -24,9 +26,18 @@ struct PlaybackSelectionTracker: Sendable {
     private var generation: UInt64 = 0
     mutating func clear() { selection = nil; processIdentity = nil; lastObservation = nil }
     mutating func update(_ observation: PlayerObservation) -> LyricDomain.Selection? {
-        guard observation.hasRecording, observation.state != .stopped else { clear(); return nil }
         let processChanged = processIdentity != observation.process.identity || selection?.playerBundleID != observation.process.player.bundleID
             || lastObservation.map { $0.mediaPID != observation.mediaPID || $0.mediaProcessStart != observation.mediaProcessStart } == true
+        // An established session survives sparse player reads and a stopped
+        // transport. A new/restarted process still needs a real song observation.
+        // The controller removes observations when the matching process exits.
+        if !observation.hasRecording {
+            if !processChanged, selection != nil { return selection }
+            clear(); return nil
+        }
+        if selection == nil, observation.state == .stopped || observation.state == .unknown {
+            clear(); return nil
+        }
         let recordingChanged = lastObservation.map { !Self.sameRecording($0, observation) } ?? true
         var identity = observation
         if !processChanged, !recordingChanged, let previous = lastObservation {

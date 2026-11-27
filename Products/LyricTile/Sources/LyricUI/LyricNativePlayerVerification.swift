@@ -290,15 +290,21 @@ public enum LyricNativePlayerVerification {
         } else {
             model.panelInteractionActive = false; model.setControlsVisible(false)
         }
-        let hidden = await wait { !panel.panel.isVisible && !panel.wantsPresentation }
-        await record("paused-without-interaction-withdraws-panel", hidden)
+        // Pausing is not a lifecycle exit. Observe a quiet interval after the
+        // pointer leaves; the same surface must remain available for resumption.
+        let retainedFrame = panel.panel.frame
+        try? await Task.sleep(for: .seconds(3))
+        let retained = panel.panel.isVisible && panel.wantsPresentation
+            && model.snapshot.state == .paused && retainsImportedLyrics()
+            && panel.panel.frame == retainedFrame
+        await record("paused-without-interaction-retains-panel", retained)
         model.perform(.play)
         let resumed = await wait {
             model.snapshot.state == .playing && panel.panel.isVisible && !model.isPerformingCommand && model.actionMessage == nil
                 && retainsImportedLyrics() && model.currentCueIndex != nil && panel.panel.frame.height == LyricPanelLayout.lyricsHeight
         }
         let resumeConfirmed = await commandConfirmed("play")
-        await record("resume-automatically-restores-lyrics", resumed && resumeConfirmed)
+        await record("resume-continues-from-retained-lyrics", resumed && resumeConfirmed)
 
         if trackSwitchRequested {
             trackSwitchAttempted = true

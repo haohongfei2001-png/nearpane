@@ -8,7 +8,7 @@ import SaytileKit
         let dir = VoiceTests().directory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = try SaytileStore(directory: dir)
-        let module = VoiceModule(openStore: { store }, makeInput: { _, notify in
+        let module = VoiceModule(openStore: { try SaytileStore(directory: dir) }, makeInput: { _, notify in
             Issue.record("Browsing must not open the audio controller"); return ScriptedInput(notify)
         })
         try module.start(); await module.waitForTransition()
@@ -47,7 +47,9 @@ import SaytileKit
         #expect(versions.revisions.contains(where: { $0.origin == .userEdit && $0.text == "用户已修订" }))
         #expect(module.transcript == originalPanel && module.capture == .paused)
         module.stop(); await module.waitForTransition()
-        await #expect(throws: CancellationError.self) { try await module.archivePage(.latest, query: "") }
+        let saved = try await module.archivePage(.latest, query: "")
+        #expect(saved.rows.count == 3)
+        #expect(!module.active && module.capture == .paused)
     }
 
     @Test func onlyTheExplicitParagraphPlaysAndCaptureIsNeverBorrowed() async throws {
