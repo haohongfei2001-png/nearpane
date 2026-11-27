@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "observationDateUTC": "2026-11-27",
+  "kind": "Independent post-CI45 primary API inspection in memory; metadata, counts and hashes only.",
+  "sourceURL": "https://lrclib.net/api/get/332580",
+  "providerRecordID": "332580",
+  "trackName": "Code Monkey",
+  "artistName": "Jonathan Coulton",
+  "albumName": "Thing a Week Three",
+  "durationSeconds": 189,
+  "instrumental": false,
+  "payloads": {
+    "lyricsfile": {
+      "characters": 17726,
+      "sha256": "581d4e66b796f8de2e05c915c8ca9bfcba5830e88cc3cc623863e8a509b6b263",
+      "version": "1.0",
+      "topLevelKeys": [
+        "version",
+        "metadata",
+        "lines",
+        "plain"
+      ],
+      "lineCount": 54,
+      "timedLineCount": 54,
+      "wordTokenCount": 299,
+      "firstLineStartMS": 680,
+      "firstLineEndMS": 2398
+    },
+    "syncedLyrics": {
+      "characters": 2189,
+      "sha256": "736940a1bd40c68f8e4b70f2eaf71c24473b296dda749456ee565175497fc702",
+      "bracketTimeTagCount": 52,
+      "wordTimeTagCount": 0
+    }
+  },
+  "productionInterpretation": {
+    "providerPayloadPreference": [
+      "lyricsfile",
+      "syncedLyrics",
+      "plainLyrics"
+    ],
+    "parserTimingLevelForObservedLyricsfile": "token",
+    "lineDisplayStillAllowed": true,
+    "wordSynchronizationQualified": false
+  },
+  "limitation": "CI45 failed before its harness saved actual cache timingLevel, originalFormat or raw-payload hash. This independent API observation explains the parser-compatible token format; it does not reconstruct those missing native fields or prove native current-line visibility.",
+  "responseBodyRetained": false,
+  "lyricTextRetained": false,
+  "audioRetained": false
+}

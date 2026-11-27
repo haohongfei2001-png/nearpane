@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "Unmodified CI45 online harness originals plus clearly separated metadata-only diagnosis.",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "sourceCommit": "59a4530302e592fc80040c955fffbba339aa3f89",
+  "sourceTree": "b70fc4aa82a0274b065709b5bdb7fd9e241493e0",
+  "version": "1.0.0",
+  "build": 45,
+  "runID": 46009188167,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46009188167",
+  "originalWorkflowConclusion": "failure",
+  "artifactName": "LyricTile-candidate-45",
+  "artifactID": 15203013021,
+  "artifactBytes": 28949076,
+  "artifactSHA256": "7ff6a4cfef949773815ddc592f8fc1d1c187f817f6aa0518367d9accc6042b46",
+  "originalFiles": {
+    "online-song.json": {
+      "sourcePath": "dist/evidence/real-online-song/online-song.json",
+      "bytes": 1910,
+      "sha256": "530b7df0fe76382ee1f4e64613e5330fce189efbc98fa8cff33b90c435bdd530"
+    },
+    "online-song-progress.json": {
+      "sourcePath": "dist/evidence/real-online-song/online-song-progress.json",
+      "bytes": 1595,
+      "sha256": "88ed9ace7fc43a358e01ab61f373f3ff0adacd5d6d7319b6c7818d4c5055b54d"
+    },
+    "ax-helper-compile.json": {
+      "sourcePath": "dist/evidence/real-online-song/ax-helper-compile.json",
+      "bytes": 36,
+      "sha256": "e6a10e00d2c33708d71cc4e9d9250d129e14cd0f1488869e828680c4c9b24b41"
+    },
+    "permission-actions.json": {
+      "sourcePath": "dist/evidence/real-online-song/permission-actions.json",
+      "bytes": 194,
+      "sha256": "2a1ce2056b82d4e734e9f96cad135bcfadd257b63a70b1354caeebbf12f3e6ca"
+    },
+    "source-provenance.json": {
+      "sourcePath": "dist/evidence/real-online-song/source-provenance.json",
+      "bytes": 1405,
+      "sha256": "1fcb90d4c9ea8e3af9cf42df957b280be9bfee383970b07d45ba6e372a41f6c5"
+    }
+  },
+  "derivedFiles": {
+    "lrclib-format-metadata.json": {
+      "bytes": 1684,
+      "sha256": "beec620e6bfe028e7d8f53c369eb4d3c87b84be98e34c8b0649c1f6e20462deb"
+    },
+    "README.md": {
+      "bytes": 2396,
+      "sha256": "43dc59b3002e13963e84cc393c6adfd4383f6e0141a3ced3793008429332013a"
+    }
+  }
+}

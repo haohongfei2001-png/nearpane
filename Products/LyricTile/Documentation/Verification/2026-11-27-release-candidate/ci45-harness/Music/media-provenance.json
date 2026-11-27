@@ -1,0 +1,16 @@
+{
+  "origin": "Original chime score and bilingual lyrics authored for cloud acceptance. Not a commercial recording.",
+  "title": "LyricTile Cloud Original 20261127",
+  "fixtureSHA256": "44c21eb56c931dafdf225028038be80304c27f869cd8c872c82bdb117b5c3e3f",
+  "notBundledWithProduct": true,
+  "durationSeconds": 240,
+  "audioSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8",
+  "lyricSHA256": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+  "streamingSubscription": false,
+  "secondRecording": {
+    "audioSHA256": "8b63f0dadae34c35495e2c0fd2be66efcd67f9f1fbae8ca16fb757d409ee9043",
+    "lyricSHA256": "2c112bffdb3b185f3ef479da5b448af6323f798363cf95d44abac73e7161673e",
+    "durationSeconds": 240,
+    "frequencyOrder": "reverse"
+  }
+}

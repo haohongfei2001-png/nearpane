@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "status": "UNVERIFIED",
+  "scope": "ordinary native app, actual Apple Music, one public original recording and automatic LRCLIB",
+  "nativeVerificationModeUsed": false,
+  "injectedLyrics": false,
+  "accountUsed": false,
+  "audioBodyRetained": false,
+  "lyricBodyRetained": false,
+  "screenshotsTaken": false,
+  "independentAcousticClockQualification": false,
+  "checks": [
+    {
+      "check": "same-production-candidate-bundle",
+      "passed": true,
+      "build": "45",
+      "sourceCommit": "59a4530302e592fc80040c955fffbba339aa3f89",
+      "executableSHA256": "0456e8c31e613842a92648357ce5812585aaced98b430383985a47f0d19bbf96"
+    },
+    {
+      "check": "read-only-native-observer-compiles",
+      "passed": true
+    },
+    {
+      "check": "official-audio-bytes",
+      "passed": true,
+      "sha256": "3866a8aa2fba54bdc278e8b55b278d73f51c6cf0ad06bf1e9835c409c824d586",
+      "bytes": 4319316,
+      "contentType": "audio/mpeg",
+      "finalURL": "https://www.jonathancoulton.com/wp-content/uploads/encodes/Thing_a_Week_Three/mp3/03_Code_Monkey_mp3_118604e.mp3"
+    },
+    {
+      "check": "actual-music-original-tags-file-and-current-track",
+      "passed": true,
+      "title": "Code Monkey",
+      "artist": "Jonathan Coulton",
+      "album": "Thing a Week Three",
+      "persistentID": "9E2E6B4F4F2B31B3",
+      "currentPersistentID": "9E2E6B4F4F2B31B3",
+      "durationSeconds": 189.309005737305,
+      "importedFileSHA256": "3866a8aa2fba54bdc278e8b55b278d73f51c6cf0ad06bf1e9835c409c824d586",
+      "metadataEdited": false
+    }
+  ],
+  "observations": []
+}

@@ -171,8 +171,6 @@ def main():
             cues = sorted((cue for lane in document.get('lanes', []) if lane.get('kind') == 'lead'
                            for cue in lane.get('cues', []) if isinstance(cue.get('sourceStartMS'), int)
                            and cue.get('text', '').strip()), key=lambda cue: cue['sourceStartMS'])
-            require(document.get('timingLevel') == 'line' and len(cues) >= 2,
-                    'The automatic source did not produce timed line lyrics.')
             timing = document.get('sourceTiming', {})
             offset = (timing.get('sourceAdvanceMS') or 0) if timing.get('interpretation') == 'normalizedKnownFormat' else 0
             metadata = dict(providerID=provenance['providerID'], providerRecordID=provenance['providerRecordID'],
@@ -180,8 +178,17 @@ def main():
                 envelopeSHA256=digest(data), documentContentSHA256=document['contentHash'],
                 rawPayloadSHA256=digest(raw), rawPayloadByteCount=len(raw),
                 referenceSourceHashMatched=digest(raw) == source['referenceSyncedLyricsSHA256'],
-                recording=recording, timingLevel=document['timingLevel'], cueCount=len(cues),
+                referenceSourceHashScope='syncedLyrics reference only; informational for other source formats',
+                recording=recording, timingLevel=document.get('timingLevel'),
+                originalFormat=document.get('originalFormat'), cueCount=len(cues),
+                wordSynchronizationQualified=False,
                 sourceAdvanceMS=offset, automaticIndexBindingVerified=True, cacheWasInitiallyEmpty=True)
+            # Save the actual format and hashes even if the timed-cue gate fails.
+            # Token documents still have line cues; this probe verifies current
+            # line text, without qualifying the player's clock for word timing.
+            save('automatic-cache-source.json', metadata)
+            require(document.get('timingLevel') in ('line', 'token') and len(cues) >= 2,
+                    'The automatic source did not produce at least two timed lead cues.')
             return document, cues, offset, metadata
         return None
 

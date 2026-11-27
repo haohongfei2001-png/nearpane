@@ -12,6 +12,7 @@ import math
 import os
 import platform
 import plistlib
+import re
 import signal
 import struct
 import subprocess
@@ -154,31 +155,65 @@ try:
         set testPlaylist to make new user playlist with properties {name:''' + apple_string(playlist_name) + '''}
         add POSIX file ''' + apple_string(audio) + ''' to testPlaylist
         add POSIX file ''' + apple_string(second_audio) + ''' to testPlaylist
+        set firstTrack to missing value
+        set secondTrack to missing value
+        set importsReady to false
+        set lastImportError to "The playlist does not yet contain two readable file tracks."
+        set lastImportErrorNumber to 10001
+        set importDeadline to (current date) + 12
+        repeat
+            try
+                with timeout of 2 seconds
+                    -- Resolve a fresh concrete list; do not carry unevaluated
+                    -- item references across play, which changes Music state.
+                    set importedTracks to get file tracks of testPlaylist
+                    set lastImportErrorNumber to 10001
+                    set lastImportError to "The playlist does not yet contain two readable file tracks."
+                    if (count of importedTracks) is 2 then
+                        set firstTrack to get item 1 of importedTracks
+                        set secondTrack to get item 2 of importedTracks
+                        set firstTitle to (get name of firstTrack) as string
+                        set firstID to (get persistent ID of firstTrack) as string
+                        set firstDuration to (get duration of firstTrack) as real
+                        set firstLocation to get location of firstTrack
+                        set secondTitle to (get name of secondTrack) as string
+                        set secondID to (get persistent ID of secondTrack) as string
+                        set secondDuration to (get duration of secondTrack) as real
+                        set secondLocation to get location of secondTrack
+                        if firstTitle is not "" and secondTitle is not "" and firstTitle is not secondTitle and firstID is not "" and secondID is not "" and firstID is not secondID and firstDuration > 0 and secondDuration > 0 and firstLocation is not missing value and secondLocation is not missing value and firstLocation is not secondLocation then
+                            set importsReady to true
+                            exit repeat
+                        end if
+                    end if
+                end timeout
+            on error importMessage number importNumber
+                set lastImportError to importMessage & " (" & importNumber & ")"
+                set lastImportErrorNumber to importNumber
+                if importNumber is -1743 or importNumber is -600 then error importMessage number importNumber
+            end try
+            if (current date) >= importDeadline then exit repeat
+            delay 0.25
+        end repeat
+        if not importsReady then
+            if lastImportErrorNumber is -1712 then error lastImportError number -1712
+            error ("LyricTile harness: two distinct imported file tracks were not readable within the bound. " & lastImportError) number 10001
+        end if
+    end tell
+    -- Materialize locations outside Music before changing playback context.
+    set firstPath to POSIX path of firstLocation
+    set secondPath to POSIX path of secondLocation
+    tell application "Music"
         set shuffle enabled to false
         set song repeat to off
-        set firstTrack to item 1 of (tracks of testPlaylist)
-        set secondTrack to item 2 of (tracks of testPlaylist)
         play testPlaylist
         delay 2
-        set firstTitle to name of firstTrack as string
-        set firstID to persistent ID of firstTrack as string
-        set firstDuration to duration of firstTrack as string
-        set firstLocation to get location of firstTrack
-        set secondTitle to name of secondTrack as string
-        set secondID to persistent ID of secondTrack as string
-        set secondDuration to duration of secondTrack as string
-        set secondLocation to get location of secondTrack
         set actualState to player state as string
         set actualPosition to player position as string
         set actualID to persistent ID of current track as string
     end tell
-    -- Resolve the remote location properties before asking AppleScript for
-    -- their POSIX paths. Music does not evaluate a nested POSIX-path specifier.
-    set firstPath to POSIX path of firstLocation
-    set secondPath to POSIX path of secondLocation
-    return firstTitle & tab & firstID & tab & firstDuration & tab & firstPath & tab & secondTitle & tab & secondID & tab & secondDuration & tab & secondPath & tab & actualState & tab & actualPosition & tab & actualID'''
+    return firstTitle & tab & firstID & tab & (firstDuration as string) & tab & firstPath & tab & secondTitle & tab & secondID & tab & (secondDuration as string) & tab & secondPath & tab & actualState & tab & actualPosition & tab & actualID'''
     (out/'music-setup.applescript').write_text(setup_script)
-    setup = apple(setup_script,timeout=35)
+    setup = apple(setup_script,timeout=50)
     setup_ui_result = stop_cloud_ui(permission_helper); permission_helper = None
     save('setup-permission-ui.json', setup_ui_result)
     (out / 'music-setup.log').write_text(setup.stdout + setup.stderr)
@@ -186,10 +221,16 @@ try:
     if setup.returncode or len(fields) != 11 or fields[8] != 'playing':
         environment = music_environment('music-setup-failure')
         capture_desktop('music-setup-failure-desktop','failed AppleScript import and play')
-        harness_error = any(value in setup.stderr for value in ['(-1728)','(-1700)','(-50)','syntax error'])
+        # An undefined script variable (-2753), malformed readback, or other
+        # setup error is a harness failure. Only observed environmental Apple
+        # Event denial, process absence or timeout is classified as blocked.
+        error_match = re.search(r'\((-?\d+)\)\s*$', setup.stderr)
+        error_number = int(error_match[1]) if error_match else None
+        harness_error = error_number not in {-1743, -600, -1712}
         save('cloud-music.json', {'status':'FAIL' if harness_error else 'BLOCKED',
              'failureClass':'test_harness_setup' if harness_error else 'player_setup',
              'stage':'Music local playback setup','exitCode':setup.returncode,
+             'appleScriptErrorNumber':error_number,
              'details':setup.stdout+setup.stderr,'musicEnvironment':environment,'realPlayerTestStarted':False})
         raise SystemExit(1 if harness_error else 0)
     # Independently link actual imported files to the authored bytes; merely
