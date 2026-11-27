@@ -8,6 +8,7 @@
 - 中文/英文产品页：[Website](../Website/README.md)，现有官网挂载点 `https://nearpane.com/lyrictile/`。正式包未就绪时显示候选状态；不会自动回退下载旧包。
 - 用户资料：[安装](INSTALL.md)、[支持范围](SUPPORT.md)、[隐私](PRIVACY.md)、[第三方许可](THIRD_PARTY_NOTICES.md)。隐私与完整依赖许可随包分发。
 - 更新源：`https://raw.githubusercontent.com/haohongfei2001-png/nearpane/refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml`。
+- 已安装版本使用上述固定 feed。没有完成明确的更新源迁移前，保留该分支及路径；合并 PR 时不要随手删除提供 feed 的分支。
 - 专用 Ed25519 公钥已配置；私钥仍由持有者钥匙串管理。当前空 feed 没有可安装项目。不能将空通道称为“已更新到最新正式版”。
 
 ## 云端工程草稿

@@ -1,0 +1,88 @@
+{
+  "appleEventsRevision" : "holdsnow-appleevents-v1",
+  "commands" : [
+
+  ],
+  "currentMediaRemotePayload" : {
+    "album" : "",
+    "artist" : "",
+    "bundleIdentifier" : "com.netease.163music",
+    "contentItemIdentifier" : "05D0C8DF-6BE2-4FD9-857C-9587A31443DE",
+    "durationMicros" : 240000000,
+    "elapsedTimeMicros" : 0,
+    "playbackRate" : 1,
+    "playing" : true,
+    "processIdentifier" : 21567,
+    "supportedCommands" : [
+      {
+        "enabled" : true,
+        "id" : 0,
+        "name" : "Play"
+      },
+      {
+        "enabled" : true,
+        "id" : 1,
+        "name" : "Pause"
+      },
+      {
+        "enabled" : true,
+        "id" : 2,
+        "name" : "TogglePlayPause"
+      },
+      {
+        "enabled" : true,
+        "id" : 4,
+        "name" : "NextTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 5,
+        "name" : "PreviousTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 24,
+        "name" : "SeekToPlaybackPosition",
+        "options" : {
+          "kMRMediaRemoteCommandInfoCanBeControlledByScrubbingKey" : false,
+          "kMRMediaRemoteCommandInfoSupportsReferencePosition" : false
+        }
+      }
+    ],
+    "timestampEpochMicros" : 1795782506379852,
+    "title" : "original-chimes"
+  },
+  "dataOrigin" : "real_player",
+  "exportedAt" : "2026-11-27T12:28:57Z",
+  "mediaRemoteRevision" : "2ef957c736256cee7905c9f3f1c7e279087bf195",
+  "players" : [
+    {
+      "album" : "",
+      "artist" : "",
+      "build" : "3459",
+      "bundleID" : "com.netease.163music",
+      "capabilities" : {
+        "canNext" : true,
+        "canPause" : true,
+        "canPlay" : true,
+        "canPrevious" : true,
+        "canSeek" : true
+      },
+      "durationMS" : 240000,
+      "isCurrentSystemSource" : true,
+      "mediaPID" : 21567,
+      "mediaProcessStartMicros" : 1795782473424473,
+      "observedUptimeNanoseconds" : 765575554000,
+      "pid" : 21567,
+      "player" : "netease",
+      "positionMS" : 28433,
+      "processStartMicros" : 1795782473424473,
+      "quality" : "coarseSourceAnchor",
+      "state" : "playing",
+      "title" : "original-chimes",
+      "version" : "3.1.14"
+    }
+  ],
+  "selectedPlayer" : "netease",
+  "systemBuild" : "26A434"
+}

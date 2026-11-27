@@ -1,5 +1,7 @@
 # CI38 · 云端验收覆盖与证据边界
 
+本文件固定记录 CI38 的基线范围。后续新增的播放器回归、真实输入及切歌验收，以 [当前状态](../../../STATUS.md) 和最新原始记录为准，不将本页的96项或未运行状态当作当前候选结论。
+
 核对对象：[CI38](https://github.com/haohongfei2001-png/nearpane/actions/runs/45983237023)，源码 `f966478b3ca31e6ecbc76690716226a362b15bb5`，候选 build 38，macOS 27.0.1 arm64。只核对已运行结果及相应测试实现；没有新增测试或修改生产代码。
 
 ## 计数与原始产物
@@ -16,7 +18,7 @@
 
 原始佐证还包括 `dist/evidence/swift-test.log`、`native-smoke.json`、`layout/*.json` / `*.png`、`variants/*/native-smoke.json`、`real-music/cloud-music.json` 和 `idle/idle-check.json`。真实歌词服务结果另保存为本目录的 [live-lyrics-ci38.json](live-lyrics-ci38.json) 与[摘要](live-lyrics-summary.md)。这些路径均为 CI38 下载产物内的路径。
 
-当前测试 Swift 文件与 CI38 的已测版本一致；之后新增的 `Tests/Fixtures/CloudAcceptance.json` 不计入 CI38 覆盖。
+本次CI38审计时，测试 Swift 文件与其已测版本一致；之后新增的 `Tests/Fixtures/CloudAcceptance.json` 和后续回归测试不计入 CI38 覆盖。
 
 ## 用户目标对应表
 

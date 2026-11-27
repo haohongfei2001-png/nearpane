@@ -1,0 +1,39 @@
+{
+  "sourceCommit": "791d0917a92120f6e518ed11dcd6573eedcd9bee",
+  "build": 42,
+  "runID": 45997411802,
+  "artifactID": 15197556174,
+  "artifactSHA256": "e1bf604ef25af4a540807395267ac9d28abb6f30f4b4fc7fe35563afa33ce080",
+  "files": {
+    "music-setup.json": {
+      "originalPath": "dist/evidence/real-music/cloud-music.json",
+      "sha256": "7ebb9c3dd940daf769f34533f0c7700aef8613ea9214efbae2db535d7e3c6c74",
+      "bytes": 880
+    },
+    "music-setup.applescript": {
+      "originalPath": "dist/evidence/real-music/music-setup.applescript",
+      "sha256": "736fc1b0e8c2236d7f596708eb65a3af76e443e64ce841b15640d81d2d5e08c9",
+      "bytes": 1146
+    },
+    "qq-pointer.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/native-pointer.json",
+      "sha256": "aff12e728862131ca965c4fecd5edb06f7415696d5b614a953ac6c632db5b7c1",
+      "bytes": 7049
+    },
+    "qq-hover.png": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/real-qqMusic-hover.png",
+      "sha256": "ab3b32101f616565f2b5df0dfe627fefda63b0705c53419e9aad24283b9f39f2",
+      "bytes": 13617
+    },
+    "netease-before-seek.json": {
+      "originalPath": "dist/evidence/cloud-clients/netease/native-player/source-04-local-import-expands-real-panel.json",
+      "sha256": "9c10fecf231753197d2e9efba260459d11c36cdb7be5907690bd3e3682f19bf2",
+      "bytes": 2223
+    },
+    "netease-after-seek.json": {
+      "originalPath": "dist/evidence/cloud-clients/netease/native-player/source-05-seek-command-readback.json",
+      "sha256": "c280bc403d42e3fff1cffa042a6fe7d2cf109b69384aa61c9b983b96abdbc273",
+      "bytes": 2814
+    }
+  }
+}

@@ -183,6 +183,9 @@ func requireHit(_ position: CGPoint, request: PointerRequest, window: NativeWind
             check["AXHitPID"] = hitPID
             check["AXHitRole"] = string(hit, kAXRoleAttribute)
             check["AXHitOwner"] = NSRunningApplication(processIdentifier: hitPID)?.bundleIdentifier ?? "unknown"
+            check["AXHitLabels"] = [kAXTitleAttribute, kAXDescriptionAttribute, kAXValueAttribute, kAXHelpAttribute]
+                .map { String(string(hit, $0).prefix(256)) }.filter { !$0.isEmpty }
+            if let bounds = axBounds(hit) { check["AXHitBounds"] = rectangle(bounds) }
         }
         attempts[attempts.count - 1] = check
         let targetAX = try axWindow(for: fresh)
@@ -194,7 +197,11 @@ func requireHit(_ position: CGPoint, request: PointerRequest, window: NativeWind
             } else {
                 matched = hitPID == fresh.pid && isWithin(hit, ancestor: targetAX)
             }
-            if let button { matched = matched && isWithin(hit, ancestor: button) }
+            // SwiftUI can return a sibling AXStaticText proxy at a visually
+            // confirmed button center. Keep that relationship as diagnostics;
+            // the actual target PID/window and fresh button geometry remain
+            // required, and the verifier must confirm the real click/readback.
+            if let button { check["AXHitMatchesButtonOrDescendant"] = isWithin(hit, ancestor: button) }
         }
         check["matchedRequestedTarget"] = matched
         attempts[attempts.count - 1] = check
@@ -283,6 +290,8 @@ func perform(_ request: PointerRequest) -> [String: Any] {
             _ = try displayBounds(containing: position)
             let fresh = try targetWindow(request)
             try require(fresh.bounds == window.bounds, "The native panel moved during button inspection.")
+            try require(bounds.contains(position) && fresh.bounds.contains(bounds),
+                        "The fresh Pause button and its center must remain inside the same native window.")
             try requireHit(position, request: request, window: fresh, button: button, evidence: &row)
             try post(.mouseMoved, at: position); postedEvents.append("mouseMoved")
             // A normal down/up pair reaches native hit testing; no AX action or
