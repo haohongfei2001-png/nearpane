@@ -10,6 +10,14 @@
 - 更新源：`https://raw.githubusercontent.com/haohongfei2001-png/nearpane/refs/heads/codex/lyrictile-standalone-20261126/Products/LyricTile/Updates/appcast.xml`。
 - 专用 Ed25519 公钥已配置；私钥仍由持有者钥匙串管理。当前空 feed 没有可安装项目。不能将空通道称为“已更新到最新正式版”。
 
+## 云端工程草稿
+
+`.github/workflows/lyrictile-candidate-release.yml` 与 `Release/candidate.json` 将一次**已成功**的原生 CI 固定为独立工程草稿。Manifest 只有在 run ID、完整源码 SHA、build 和 artifact 名称一致后才启用；它不跟随一个随时变化的“latest”包。脚本核对成功运行、来源分支、ZIP/DMG、包内元数据、实际 macOS 完整性报告和校验值，然后创建 `lyrictile-v1.0.0-buildN-candidate` 草稿。
+
+草稿附原始候选 ZIP/DMG、SHA256SUMS、完整性与验收摘要、带逐文件哈希的原始截图/小报告归档。它明确标记为 unsigned engineering candidate，保持 `draft=true`、`prerelease=true`，不会修改公开 appcast 或官网正式下载状态。重复运行只接受同一来源和完全相同的附件；不会覆盖公开发行或把历史 build4草稿改名。
+
+这一步使用仓库正常的 Actions token，不需要本机签名钥匙。最终正式版本仍按以下同源签名、公证和真实更新验证流程完成，并使用独立的正式 tag，避免把工程候选附件混入消费级发行。
+
 ## 最终同一包的构建与校验
 
 `build-app.sh` 生成含版本及构建号的候选 ZIP/DMG。`notarize-candidate.sh` 沿用该 App 的版本与构建号，生成 `LyricTile-VERSION-BUILD-arm64.zip/.dmg`、Apple 回执及精确 `SHA256SUMS`，不会把目录中其他旧包收入新校验文件。
@@ -38,7 +46,7 @@ python3 Scripts/verify-release.py \
 
 创建该版本独立 Release 草稿；上传最终 ZIP、DMG、`SHA256SUMS`、发行说明和验收摘要。核对 tag 指向实际最终源码，检查 asset 大小与哈希。确认核心闭环及上述发行检查通过后，将该 Release 公开；验证公开下载后再更新 appcast 和官网正式下载字段。官网 manifest 的 `published`、`downloadURL`、`releaseURL`、`version`、`build`、`sha256` 和支持列表必须来自同一次发行，不能指向临时 CI 归档。
 
-历史草稿 `459311386` 属于 build 4；本轮不要直接把它改名为新版本而保留旧附件。可以单独保留历史草稿，不影响新版独立发行。
+历史草稿 `459311386` 属于 build 4；本轮不要直接把它改名为新版本而保留旧附件。新的 `-candidate` 工程草稿也独立保留其原始字节与证据，正式签名版本使用不含 `-candidate` 的新 tag。
 
 ## 首版发行说明草稿
 

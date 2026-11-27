@@ -4,7 +4,7 @@
 
 LyricTile is an **independent application**, maintained in the Nearpane repository under `Products/LyricTile`. It has its own Swift package, bundle identifier (`com.holdsnow.lyrictile`), app lifecycle, settings, updater and package pipeline. It does not launch Nearpane and does not require the Nearpane window engine. Future Nearpane integration uses the native view and service modules directly.
 
-**Current channel: final release preparation.** The latest source and cloud-built candidate are identified in [STATUS](STATUS.md). Notarized LyricTile 1.0.0 (4) is a historical installation baseline, predating the current interface; it is not offered as the latest download. The initial platform remains Apple silicon, macOS 27 or later. [Product page source](Website/README.md) · [Installation](Documentation/INSTALL.md) · [Release preparation](Documentation/RELEASE.md).
+**Current channel: final release preparation.** The latest source and cloud-built candidate are identified in [STATUS](STATUS.md). Notarized LyricTile 1.0.0 (4) is a historical installation baseline, predating the current interface; it is not offered as the latest download. The initial platform remains Apple silicon, macOS 27 or later. [Live product page](https://nearpane.com/lyrictile/) · [English](https://nearpane.com/lyrictile/en/) · [Installation](Documentation/INSTALL.md) · [Release preparation](Documentation/RELEASE.md).
 
 ## Evidence and supported scope
 

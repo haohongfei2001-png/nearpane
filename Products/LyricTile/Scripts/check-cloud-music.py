@@ -19,6 +19,7 @@ import time
 import wave
 from pathlib import Path
 from cloud_ui import start_cloud_ui, stop_cloud_ui
+from cloud_pointer import start_cloud_pointer, stop_cloud_pointer
 
 p = argparse.ArgumentParser()
 p.add_argument('app', type=Path)
@@ -35,6 +36,7 @@ title = fixture['title']
 audio = out / 'original-chimes.wav'
 lyrics = out / 'original-lyrics.lrc'
 process = None
+pointer_helper = None
 permission_helper = None
 music_app = Path('/System/Applications/Music.app')
 music_baseline_pids = set()
@@ -138,7 +140,11 @@ try:
     setup = apple('''tell application "Music"
         set sound volume to 0
         set addedTracks to add POSIX file ''' + apple_string(audio) + '''
-        set testTrack to item 1 of addedTracks
+        if class of addedTracks is list then
+            set testTrack to item 1 of addedTracks
+        else
+            set testTrack to addedTracks
+        end if
         set name of testTrack to ''' + apple_string(title) + '''
         set artist of testTrack to ''' + apple_string(fixture['artist']) + '''
         set album of testTrack to ''' + apple_string(fixture['album']) + '''
@@ -146,31 +152,43 @@ try:
         delay 2
         return (name of current track) & " | " & (player state as string) & " | " & (player position as string)
     end tell''')
-    save('setup-permission-ui.json', stop_cloud_ui(permission_helper)); permission_helper = None
+    setup_ui_result = stop_cloud_ui(permission_helper); permission_helper = None
+    save('setup-permission-ui.json', setup_ui_result)
     (out / 'music-setup.log').write_text(setup.stdout + setup.stderr)
     if setup.returncode or title not in setup.stdout or 'playing' not in setup.stdout:
         environment = music_environment('music-setup-failure')
         capture_desktop('music-setup-failure-desktop','failed AppleScript import and play')
-        save('cloud-music.json', {'status':'BLOCKED','stage':'Music local playback setup','exitCode':setup.returncode,
+        harness_error = any(value in setup.stderr for value in ['(-1728)','(-1700)','syntax error'])
+        save('cloud-music.json', {'status':'FAIL' if harness_error else 'BLOCKED',
+             'failureClass':'test_harness_setup' if harness_error else 'player_setup',
+             'stage':'Music local playback setup','exitCode':setup.returncode,
              'details':setup.stdout+setup.stderr,'musicEnvironment':environment,'realPlayerTestStarted':False})
-        raise SystemExit(0)
+        raise SystemExit(1 if harness_error else 0)
     music_environment('music-playing')
     stage = 'ordinary LyricTile verification'
+    first_use = setup_ui_result.get('accessibilityAlreadyTrusted') is True
     settings = dict(appearance='light',largeText=False,showTranslation=False,onlineLyrics=False,
-        hideWhenIdle=True,showInFullScreen=False,coordinateTiles=True,preferredPlayer='appleMusic',completedWelcome=True)
+        hideWhenIdle=True,showInFullScreen=False,coordinateTiles=True,preferredPlayer='appleMusic',completedWelcome=not first_use)
     subprocess.run(['/usr/bin/defaults','write','com.holdsnow.lyrictile','LyricTile.settings.v1','-data',
                     json.dumps(settings).encode().hex()],check=True)
-    stdout = (out/'app.stdout.log').open('w'); stderr = (out/'app.stderr.log').open('w')
-    process = subprocess.Popen([str(a.app.resolve()/'Contents/MacOS/LyricTile'),'--verify-native-player',
+    # Compile and establish input-helper availability before the app's timed
+    # verification begins; neither helper is included in runtime sampling.
+    pointer_helper = start_cloud_pointer(out, seconds=120)
+    permission_helper = start_cloud_ui(out/'app-ui', 'music', seconds=115,
+        welcome_ready=out/'first-use-ready.json' if first_use else None)
+    arguments = [str(a.app.resolve()/'Contents/MacOS/LyricTile'),'--verify-native-player',
         '--verification-output',str(out),'--verification-lyrics',str(lyrics),'--verification-title',title,
-        '--verification-hold-seconds','75'],stdout=stdout,stderr=stderr,start_new_session=True)
-    permission_helper = start_cloud_ui(out/'app-ui', 'music', seconds=115)
+        '--verification-hold-seconds','75']
+    if first_use: arguments += ['--verification-first-use']
+    stdout = (out/'app.stdout.log').open('w'); stderr = (out/'app.stderr.log').open('w')
+    process = subprocess.Popen(arguments,stdout=stdout,stderr=stderr,start_new_session=True)
     deadline = time.monotonic()+110
     while process.poll() is None and not (out/'native-player-ready.json').exists() and time.monotonic()<deadline:
         time.sleep(.5)
     # Stop AX traversal before performance sampling; helper CPU is not part of
     # the ordinary production workload and must not obscure resource evidence.
     save('app-permission-ui.json', stop_cloud_ui(permission_helper)); permission_helper = None
+    stop_cloud_pointer(pointer_helper); pointer_helper = None
     if (out/'native-player-ready.json').exists() and process.poll() is None:
         save('cloud-desktop-capture.json',capture_desktop('real-music-cloud-desktop','before runtime sampling'))
         stage = 'runtime measurement'
@@ -210,6 +228,8 @@ except subprocess.TimeoutExpired as e:
     if process is not None:
         raise SystemExit(1)
 finally:
+    if pointer_helper:
+        stop_cloud_pointer(pointer_helper)
     if permission_helper:
         save('unfinished-permission-ui.json', stop_cloud_ui(permission_helper))
     if process and process.poll() is None:

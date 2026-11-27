@@ -2,7 +2,8 @@
 """Observe official QQ/NetEase clients on a disposable GitHub macOS runner.
 
 Uses original audio supplied by the caller and the packaged production adapter.
-No account, TCC database, preference, entitlement, or licence dialog is changed.
+No account, TCC database, entitlement, or licence agreement is changed.
+Disposable LyricTile test preferences are cleaned up; desktop state is restored.
 The observed optional QQ Media Library prompt may be declined through existing
 Accessibility access; every native action and trust check is preserved.
 A downloaded/started client is never counted as successful playback support.
@@ -27,6 +28,7 @@ import urllib.parse
 import urllib.request
 import wave
 from cloud_ui import start_cloud_ui, stop_cloud_ui
+from cloud_pointer import start_cloud_pointer, stop_cloud_pointer
 
 QQ_ENDPOINT = 'https://y.qq.com/download/download.js'
 NETEASE_ENDPOINT = 'https://music.163.com/api/mac/package/download/latest?arch=arm64&productName=music'
@@ -42,7 +44,7 @@ def save(path: Path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
 
-def command(args, timeout=20, log: Path | None = None):
+def command(args, timeout=20, log: Path | None = None, termination_grace=3):
     """Bound every subprocess and preserve its actual result."""
     started = time.monotonic()
     process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
@@ -55,13 +57,13 @@ def command(args, timeout=20, log: Path | None = None):
         except ProcessLookupError:
             pass
         try:
-            stdout, stderr = process.communicate(timeout=3)
+            stdout, stderr = process.communicate(timeout=termination_grace)
         except subprocess.TimeoutExpired:
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            stdout, stderr = process.communicate(timeout=3)
+            stdout, stderr = process.communicate(timeout=termination_grace)
         value = dict(exitCode=None, stdout=stdout[-65536:], stderr=stderr[-65536:], timedOut=True)
     value['elapsedSeconds'] = round(time.monotonic() - started, 3)
     if log:
@@ -197,6 +199,9 @@ def observed_audio(directory: Path, player: str, bundle_id: str, expected_titles
     anchors = {(row['anchor'].get('positionMS'), row['anchor'].get('observedUptimeNanoseconds'))
                for row in matched if row.get('state') == 'playing' and row.get('anchor')}
     advancing = len(positions) >= 2 and max(positions) - min(positions) >= 500
+    required_controls = ('canPlay','canPause','canSeek')
+    all_controls = bool(matched) and all(all((row.get('capabilities') or {}).get(key) is True
+                                           for key in required_controls) for row in matched)
     return dict(eventCount=total, matchedOriginalAudioSnapshots=len(matched),
                 matchedPlayingPositions=len(positions), positionAdvanced=advancing,
                 distinctSourceAnchors=len(anchors),
@@ -204,7 +209,75 @@ def observed_audio(directory: Path, player: str, bundle_id: str, expected_titles
                 maximumPositionMS=max(positions) if positions else None,
                 positionAssessment='Only source anchors are compared; no time is added by this verifier.',
                 observedTitles=sorted({(row.get('selection') or {}).get('recording', {}).get('title') for row in matched}),
+                requiredControlCapabilities=list(required_controls),allMatchedControlCapabilitiesAvailable=all_controls,
+                latestMatchedState=matched[-1].get('state') if matched else None,
                 requiresAuthorization=authorized, source='production adapter events.ndjson')
+
+
+def prepare_desktop_probe(directory: Path):
+    """Compile and generate original patterns before the ordinary app's hold."""
+    work = Path(tempfile.mkdtemp(prefix='LyricTile-desktop-', dir=os.environ['RUNNER_TEMP']))
+    helper = work/'desktop-probe'
+    control = dict(work=work, helper=helper, ready=False,
+                   report={'status':'BLOCKED','reason':'Desktop helper preparation did not complete.'})
+    try:
+        compiled = command(['/usr/bin/xcrun','swiftc','-parse-as-library','-O',
+            '-target',f'{platform.machine()}-apple-macos27.0',
+            str(Path(__file__).with_name('verify-cloud-desktop.swift')),'-o',str(helper)],
+            timeout=60,log=directory/'desktop-helper-compile.json')
+        if compiled['exitCode'] != 0:
+            control['report']['reason'] = 'The public desktop helper could not compile on this runner.'
+            return control
+        prepared = command([str(helper),'prepare','--state',str(work),'--evidence',str(directory),
+            '--config',str(Path(__file__).resolve().parent.parent/'Tests/Fixtures/CloudAcceptance.json')],
+            timeout=12,log=directory/'desktop-helper-prepare.json')
+        report = json.loads(prepared['stdout']) if prepared['exitCode'] == 0 else {}
+        control['ready'] = report.get('status') == 'PREPARED'
+        control['report'] = report or {'status':'BLOCKED','reason':'Desktop preparation timed out or produced no report.'}
+    except Exception as error:
+        control['report'] = {'status':'BLOCKED','reason':f'{type(error).__name__}: {error}'}
+    return control
+
+
+def restore_desktop_probe(control, directory: Path):
+    if control is None:
+        return {'status':'NOT_NEEDED','restored':True,'reason':'This player did not run desktop mutation.'}
+    if not control['helper'].is_file():
+        return {'status':'NOT_NEEDED','restored':True,'reason':'The helper never ran.'}
+    try:
+        result = command([str(control['helper']),'restore','--state',str(control['work']),
+            '--evidence',str(directory)], timeout=4,termination_grace=.25,
+            log=directory/'desktop-helper-restore-command.json')
+        report = json.loads(result['stdout']) if result['exitCode'] == 0 else {}
+        return report or {'status':'BLOCKED','restored':False,'reason':'Bounded restoration returned no confirmation.'}
+    except Exception as error:
+        return {'status':'BLOCKED','restored':False,'reason':f'{type(error).__name__}: {error}'}
+
+
+def run_desktop_probe(control, directory: Path, app_pid: int):
+    if not control['ready']:
+        return control['report']
+    report = {'status':'BLOCKED','reason':'Desktop probe did not complete.'}
+    try:
+        # 19 s + two 0.25 s termination bounds stays below the 20 s phase budget.
+        result = command([str(control['helper']),'run','--state',str(control['work']),
+            '--evidence',str(directory),'--app-pid',str(app_pid)], timeout=19,termination_grace=.25,
+            log=directory/'desktop-helper-run.json')
+        if result['exitCode'] == 0:
+            report = json.loads(result['stdout'])
+        else:
+            report['reason'] = 'Desktop probe exceeded its 20-second bound or exited without a report.'
+    except Exception as error:
+        report = {'status':'BLOCKED','reason':f'{type(error).__name__}: {error}'}
+    finally:
+        restoration = restore_desktop_probe(control, directory)
+        report['boundedExternalRestoration'] = restoration
+        if restoration.get('restored') is not True:
+            report.update(status='BLOCKED',reason='Original desktop restoration could not be confirmed.')
+        report.update(permissionsRequested=False,displayModesChanged=False,
+                      productReleaseGate=False,visualReview='PENDING')
+        save(directory/'desktop-wallpaper-report.json',report)
+    return report
 
 
 def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directory: Path):
@@ -213,23 +286,39 @@ def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directo
     lyrics = audio.parent/'original-lyrics.lrc'
     if not lyrics.is_file():
         return {'status':'FAIL','reason':'The caller-supplied original local LRC is missing.'}
+    desktop = prepare_desktop_probe(directory) if player == 'qqMusic' else None
+    desktop_report = {'status':'NOT_RUN','reason':'The ordinary app has not confirmed its core playback checks.',
+                      'preparation':desktop['report'] if desktop else {'status':'NOT_RUN','reason':'Wallpaper coverage is scoped to QQ Music.'}}
     settings = dict(appearance='light',largeText=False,showTranslation=False,onlineLyrics=False,
         hideWhenIdle=True,showInFullScreen=False,coordinateTiles=True,preferredPlayer=player,completedWelcome=True)
     subprocess.run(['/usr/bin/defaults','write','com.holdsnow.lyrictile','LyricTile.settings.v1','-data',
         json.dumps(settings).encode().hex()],check=True,capture_output=True,timeout=10)
     process = None
+    pointer = None
+    pointer_report = {'available':False,'status':'NOT_RUN'}
+    result = None
     try:
+        # Compilation and permission inventory happen before the measured app.
+        pointer = start_cloud_pointer(directory,seconds=120)
         with (directory/'ordinary-app.log').open('w') as stream:
             process = subprocess.Popen([str(app/'Contents/MacOS/LyricTile'),'--verify-native-player',
                 '--verification-player',player,'--verification-title',title,
                 '--verification-lyrics',str(lyrics),'--verification-output',str(directory),
-                '--verification-hold-seconds','75'],stdout=stream,stderr=stream,start_new_session=True)
+                '--verification-hold-seconds','100'],stdout=stream,stderr=stream,start_new_session=True)
         deadline = time.monotonic()+100
         ready = directory/'native-player-ready.json'
         while process.poll() is None and not ready.exists() and time.monotonic()<deadline:
             time.sleep(.5)
         if ready.exists() and process.poll() is None:
-            capture_desktop(directory,'ordinary-app-desktop')
+            pointer_report = stop_cloud_pointer(pointer); pointer = None
+            if desktop:
+                desktop_report = run_desktop_probe(desktop,directory,process.pid)
+            else:
+                desktop_report = {'status':'NOT_RUN','reason':'Wallpaper coverage is scoped to QQ Music.'}
+            if not desktop or not desktop['ready']:
+                capture_desktop(directory,'ordinary-app-desktop')
+            # Wallpaper work has stopped/restored before the measured interval.
+            time.sleep(2)
             measurement = command(['python3',str(Path(__file__).with_name('measure-runtime.py')),
                 '--pid',str(process.pid),'--seconds','60','--mode','line','--output',str(directory/'performance')],
                 timeout=85,log=directory/'performance-command.json')
@@ -242,13 +331,16 @@ def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directo
             try: process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid,signal.SIGKILL); process.wait(timeout=5)
-            return {'status':'FAIL','reason':'The ordinary native app verification timed out.'}
+            result = {'status':'FAIL','reason':'The ordinary native app verification timed out.'}
+            return result
         report_path = directory/'native-player.json'
         result = json.loads(report_path.read_text()) if report_path.exists() else {
             'status':'FAIL','reason':'The ordinary native app exited without its verification report.'}
         if process.returncode != 0 and result.get('status') != 'BLOCKED':
             result.update(status='FAIL',processExitCode=process.returncode)
         result['runtimeMeasurementStarted'] = measurement is not None
+        result['desktopVisualVerification'] = desktop_report
+        result['physicalPointerVerification'] = pointer_report
         if measurement is not None:
             result['runtimeMeasurementExitCode'] = measurement['exitCode']
             if measurement['exitCode'] != 0:
@@ -263,6 +355,16 @@ def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directo
         # Cleanup must not overwrite a real native FAIL with the outer client's
         # environmental BLOCKED classification (or hide a completed result).
         cleanup = {}
+        if pointer is not None:
+            try: pointer_report = stop_cloud_pointer(pointer)
+            except Exception as error:
+                pointer_report = {'available':False,'status':'BLOCKED','reason':f'{type(error).__name__}: {error}'}
+            pointer = None
+        cleanup['desktop'] = restore_desktop_probe(desktop,directory)
+        if desktop and cleanup['desktop'].get('restored') is True:
+            shutil.rmtree(desktop['work'],ignore_errors=True)
+        elif desktop:
+            cleanup['desktop']['retainedRestoreState'] = str(desktop['work'])
         try:
             if process is not None and process.poll() is None:
                 os.killpg(process.pid,signal.SIGTERM)
@@ -281,6 +383,11 @@ def verify_ordinary_app(app: Path, audio: Path, player: str, title: str, directo
             cleanup['preferenceError'] = f'{type(error).__name__}: {error}'
         try: save(directory/'ordinary-app-cleanup.json',cleanup)
         except OSError: pass
+        if result is not None:
+            result['physicalPointerVerification'] = pointer_report
+            result['desktopVisualVerification'] = desktop_report
+            try: save(directory/'ordinary-app-result.json',result)
+            except OSError: pass
 
 
 def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Path, expected_titles, duration_ms):
@@ -369,6 +476,31 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
         report['diagnosticExitCode'] = diagnostic['exitCode']
         report['diagnosticTimedOut'] = diagnostic['timedOut']
         report['observation'] = observed_audio(observation_dir, client['player'], client['bundleID'], expected_titles, duration_ms)
+        if client['player'] == 'netease' and report['observation']['matchedOriginalAudioSnapshots'] == 0:
+            # CI40 reached the logged-out homepage after the first open-file
+            # request. Retry that same ordinary request once, without UI,
+            # agreement, sign-in, permission or private-player automation.
+            report['initialObservation'] = report['observation']
+            report['stage'] = 'one ordinary NetEase open-file retry'
+            retry_launch = command(['/usr/bin/open','-a',str(target),str(audio)],timeout=15,
+                                   log=directory/'retry-open-file.json')
+            retry = {'attempts':1,'method':'ordinary open -a with the same original WAV',
+                     'launchExitCode':retry_launch['exitCode'],'UIInteraction':False,
+                     'agreementsAccepted':False,'credentialsUsed':False}
+            if retry_launch['exitCode'] == 0:
+                time.sleep(2)
+                retry_dir = directory/'adapter-retry-open-file'
+                retry_diagnostic = command([str(app/'Contents/MacOS/LyricTile'),'--diagnostics','--player','netease',
+                    '--seconds','24','--output',str(retry_dir)],timeout=38,log=directory/'retry-diagnostic-command.json')
+                retry_observation = observed_audio(retry_dir,client['player'],client['bundleID'],expected_titles,duration_ms)
+                retry.update(diagnosticExitCode=retry_diagnostic['exitCode'],diagnosticTimedOut=retry_diagnostic['timedOut'],
+                             observation=retry_observation)
+                if retry_diagnostic['exitCode'] == 0 and retry_observation['matchedOriginalAudioSnapshots'] > 0 and retry_observation['positionAdvanced']:
+                    diagnostic = retry_diagnostic
+                    report.update(observation=retry_observation,diagnosticExitCode=retry_diagnostic['exitCode'],
+                                  diagnosticTimedOut=retry_diagnostic['timedOut'],selectedObservation='adapter-retry-open-file')
+            retry['desktop'] = capture_desktop(directory,'native-desktop-after-retry')
+            report['openFileRetry'] = retry
         # A read-only collector never certifies controls, lyric matching, UI or
         # account music. Even a positive real-source result is only PARTIAL.
         report['status'] = 'PARTIAL' if (diagnostic['exitCode'] == 0
@@ -377,7 +509,11 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
         report['reason'] = ('The real player exposed the supplied original recording and advancing position.'
             if report['status'] == 'PARTIAL' else 'No confirmed advancing playback of the supplied original audio. Review the actual first-launch screenshot and adapter evidence.')
         capture_desktop(directory, 'native-desktop-after-observation')
-        if client['player'] == 'qqMusic' and report['status'] == 'PARTIAL':
+        netease_core_ready = (client['player'] == 'netease' and report['status'] == 'PARTIAL'
+            and report['observation']['allMatchedControlCapabilitiesAvailable']
+            and report['observation']['latestMatchedState'] == 'playing'
+            and not report['observation']['requiresAuthorization'])
+        if report['status'] == 'PARTIAL' and (client['player'] == 'qqMusic' or netease_core_ready):
             report['stage'] = 'ordinary native app, local import and real controls'
             native = verify_ordinary_app(app,audio,client['player'],report['observation']['observedTitles'][0],directory/'native-player')
             report['ordinaryAppVerification'] = native
@@ -385,7 +521,7 @@ def verify_client(client, app: Path, audio: Path, output: Path, runner_temp: Pat
             report['transportQualification'] = native.get('status','FAIL')
             if native.get('status') == 'PASS':
                 report.update(status='PASS_LOCAL_CORE',localPlaybackQualification='PASS',
-                    reason='The ordinary app passed real local audio detection, local LRC import, panel visibility, seek, pause and resume. No account, commercial-catalog, independent word accuracy or physical mouse qualification.')
+                    reason='The ordinary app passed real local audio detection, local LRC import, panel visibility, seek, pause and resume. Physical mouse and wallpaper results are recorded separately. No account, commercial-catalog or independent word accuracy qualification.')
             elif native.get('status') == 'FAIL':
                 report.update(status='FAIL',reason='The production app failed a real local playback or control check; inspect native-player evidence.')
             else:

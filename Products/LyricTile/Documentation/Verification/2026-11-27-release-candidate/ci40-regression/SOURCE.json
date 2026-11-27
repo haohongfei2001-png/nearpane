@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "e3c64e364da6846dcc278cec7214cbd44583c73c",
+  "build": 40,
+  "run": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45988292487",
+  "status": "FAIL",
+  "files": {
+    "qq-native-player.json": {
+      "originalArtifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/native-player.json",
+      "sha256": "cd39b34152f5bb532077aea045f9889c80efa5a920db2f71a5227030b60c58d7"
+    },
+    "qq-before-seek.png": {
+      "originalArtifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/real-qqMusic-lyrics.png",
+      "sha256": "ae37f53b7fbf0e1141b8c0bd53b4e17546fce9209247dbc53c75445b9d4a60b1"
+    },
+    "qq-after-seek.png": {
+      "originalArtifactPath": "dist/evidence/cloud-clients/qqMusic/native-player/real-qqMusic-light.png",
+      "sha256": "294571074c729aa3f4b6af7ee4bb70ce0c4485868f8ca17d7d4537ba17c1df44"
+    },
+    "music-setup.json": {
+      "originalArtifactPath": "dist/evidence/real-music/cloud-music.json",
+      "sha256": "f3de90ad34c86b8dc39d242e712b79f61c28941c2e462eb74fbc61ac42f8a0d7"
+    }
+  }
+}

@@ -4,13 +4,23 @@
   "artist": "HOLDSNOW Verification",
   "album": "Original Cloud Acceptance Audio",
   "origin": "Original chime score and bilingual lyrics authored for cloud acceptance. Not a commercial recording.",
-  "durationSeconds": 180,
+  "durationSeconds": 240,
   "sampleRate": 22050,
   "peakAmplitude": 2200,
   "fadeInSeconds": 0.03,
   "noteDurationSeconds": 4,
   "frequenciesHz": [261.63, 329.63, 392.0, 440.0],
   "lyricIntervalSeconds": 8,
+  "desktopPatterns": {
+    "origin": "Original solid colors and checkerboard geometry for disposable cloud desktop acceptance.",
+    "width": 1920,
+    "height": 1200,
+    "patterns": [
+      {"name": "light", "kind": "solid", "colors": [[246, 245, 242]]},
+      {"name": "dark", "kind": "solid", "colors": [[20, 24, 32]]},
+      {"name": "busy", "kind": "checkerboard", "cellSize": 32, "colors": [[43, 65, 89], [245, 214, 150], [186, 95, 104], [227, 232, 237]]}
+    ]
+  },
   "lyricLines": [
     "光慢慢落在窗边",
     "A quiet note beside the window",

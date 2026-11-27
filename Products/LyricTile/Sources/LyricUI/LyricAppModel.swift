@@ -239,6 +239,11 @@ public final class LyricAppModel: ObservableObject {
         guard ownsSession else { return }
         Task { await playback.select(snapshot.player ?? settings.player) }
     }
+    // Explicit native verification only. Reuse the production actor's bounded
+    // diagnostic snapshot; ordinary operation does not record player metadata.
+    func nativePlayerDiagnosticReport() async throws -> Data {
+        try await playback.diagnosticReport()
+    }
     public func openAutomationSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") { NSWorkspace.shared.open(url) }
     }

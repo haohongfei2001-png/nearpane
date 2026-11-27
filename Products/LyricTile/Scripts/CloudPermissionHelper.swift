@@ -66,9 +66,15 @@ func eligibleAction(_ nodes: [Node], bundle: String) -> String? {
        text.contains("allowing control will provide access to documents and data in") {
         return "Allow"
     }
-    if mode == "music", bundle == "com.apple.Music", text.contains("welcome to music"),
+    if mode == "music", bundle == "com.apple.Music",
+       (text.contains("welcome to music") || text.contains("welcome to apple music")),
        text.contains("start listening"), !text.contains("agree"), !text.contains("terms and conditions") {
         return "Start Listening"
+    }
+    if mode == "music", bundle == "com.holdsnow.lyrictile",
+       let ready = argument("--welcome-ready"), FileManager.default.fileExists(atPath: ready),
+       text.contains("lyrics, right beside you."), text.contains("get started") {
+        return "Get started"
     }
     if mode == "qqMusic", bundle.hasPrefix("com.apple."), text.contains("allow \"qq音乐\" to access your"),
        text.contains("media library in apple music") {

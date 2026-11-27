@@ -234,7 +234,7 @@ def evidence_zip(artifact, manifest, remote):
                 r'dist/evidence/variants/(en|zh-Hans)-(light|dark)/native-(welcome\.png|settings\.png|smoke\.json)',
                 r'dist/evidence/real-music/([^/]+\.(png|json)|performance/summary\.json)',
                 r'dist/evidence/cloud-clients/[^/]+/([^/]+\.png|result\.json|permission-ui/native-permission-ui\.json)',
-                r'dist/evidence/cloud-clients/qqMusic/native-player/([^/]+\.(png|json)|performance/summary\.json)']
+                r'dist/evidence/cloud-clients/(qqMusic|netease)/native-player/([^/]+\.(png|json)|performance/summary\.json)']
     selected = sorted(name for name in artifact.names if name in exact or any(re.fullmatch(pattern, name) for pattern in patterns))
     require('dist/evidence/native-smoke.json' in selected and any('/layout/' in name and name.endswith('.png') for name in selected),
             'Original native screenshot evidence is missing.')

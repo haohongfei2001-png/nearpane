@@ -4,7 +4,7 @@
 
 ## 1. 冻结同一候选，沿用已有凭据
 
-最终候选必须取自**最新已成功的 macOS CI**：源码 `<FINAL_SUCCESSFUL_CI_40_HEX_SHA>`、构建号 `<FINAL_CI_BUILD>`、运行 `<FINAL_CI_RUN_URL>`。CI39 尚未结束时保留这些显式占位；执行前由 Codex 从最终 CI 的包内 `LyricTileBuildCommit`、`CFBundleVersion` 和 `dist/evidence/release-integrity.json` 核对后填入，不能用随后仅更新文档的分支 HEAD 代替。云端包是候选；**当前最新包尚未取得本机 Developer ID 签名与公证**。已公证 build 4 仅是旧版本和升级来源。
+最终候选必须取自**最新已成功的 macOS CI**：源码 `<FINAL_SUCCESSFUL_CI_40_HEX_SHA>`、构建号 `<FINAL_CI_BUILD>`、运行 `<FINAL_CI_RUN_URL>`。最终原生验收尚未结束时保留这些显式占位；执行前由 Codex 从最终 CI 的包内 `LyricTileBuildCommit`、`CFBundleVersion` 和 `dist/evidence/release-integrity.json` 核对后填入，不能用随后仅更新文档的分支 HEAD 代替。云端包是候选；**当前最新包尚未取得本机 Developer ID 签名与公证**。已公证 build 4 仅是旧版本和升级来源。
 
 前提：Apple silicon / macOS 27+、可用完整 Xcode、GitHub 仓库写权限，以及本机原有 Developer ID Application、notarytool Keychain profile、Sparkle `sign_update`。沿用 build 4 的 Team `ZB9D4T66QB` 和钥匙串账户 `com.holdsnow.lyrictile.updates.v1`；不生成新更新密钥。凭据在本机使用，不写入仓库或聊天。保留原样 build 4 App 和现有偏好/本地歌词，供升级验证。
 

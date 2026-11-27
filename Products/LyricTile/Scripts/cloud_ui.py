@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 
-def start_cloud_ui(directory: Path, mode: str, seconds=35):
+def start_cloud_ui(directory: Path, mode: str, seconds=35, welcome_ready=None):
     directory.mkdir(parents=True, exist_ok=True)
     report = directory / 'native-permission-ui.json'
     if (os.environ.get('GITHUB_ACTIONS') != 'true' or platform.system() != 'Darwin'
@@ -28,7 +28,10 @@ def start_cloud_ui(directory: Path, mode: str, seconds=35):
                 'accessibilityRequested': False, 'TCCDatabaseModified': False}) + '\n')
             return None, report
     stream = (directory / 'native-permission-process.log').open('w')
-    process = subprocess.Popen([str(binary), '--mode', mode, '--seconds', str(seconds), '--output', str(report)],
+    arguments = [str(binary), '--mode', mode, '--seconds', str(seconds), '--output', str(report)]
+    if welcome_ready is not None:
+        arguments += ['--welcome-ready', str(welcome_ready)]
+    process = subprocess.Popen(arguments,
                                stdout=stream, stderr=stream, start_new_session=True)
     stream.close()
     return process, report

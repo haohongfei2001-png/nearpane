@@ -1,0 +1,229 @@
+{
+  "audio" : "authored local PCM recording played by the actual installed player",
+  "checks" : [
+    {
+      "check" : "production-adapter-real-local-track",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : false,
+        "ownsSession" : true,
+        "positionMS" : 24269,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "playing-without-lyrics-shows-compact-summary",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 24329,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "real-player-position-advances",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 26328,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "local-import-expands-real-panel",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : 3,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "local",
+        "height" : 192,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 26420,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "seek-command-readback",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 67224,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "seek-updates-current-lyric",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 67224,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "hover-keeps-outer-frame",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 67628,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : false
+    },
+    {
+      "check" : "pause-confirmed-and-interacted-panel-retained",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 64000,
+        "requiresAuthorization" : false,
+        "state" : "paused",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "paused-position-stays-still",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 64000,
+        "requiresAuthorization" : false,
+        "state" : "paused",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "paused-without-interaction-withdraws-panel",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : false,
+        "ownsSession" : true,
+        "positionMS" : 64000,
+        "requiresAuthorization" : false,
+        "state" : "paused",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "resume-automatically-restores-lyrics",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 70943,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : true
+    },
+    {
+      "check" : "continued-playback",
+      "observation" : {
+        "actionMessage" : null,
+        "adapterStatus" : null,
+        "cueIndex" : null,
+        "detectedPlayer" : "qqMusic",
+        "documentSource" : "",
+        "height" : 104,
+        "nativePanelVisible" : true,
+        "ownsSession" : true,
+        "positionMS" : 146861,
+        "requiresAuthorization" : false,
+        "state" : "playing",
+        "title" : "original-chimes"
+      },
+      "passed" : false
+    }
+  ],
+  "commercialCatalogTest" : false,
+  "independentClockAccuracyTest" : false,
+  "lyrics" : "caller-supplied original local LRC imported by the production repository",
+  "physicalMouseTest" : false,
+  "player" : "qqMusic",
+  "scope" : "ordinary-native-app-real-player",
+  "status" : "FAIL",
+  "wordSyncQualification" : "NOT_RUN"
+}

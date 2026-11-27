@@ -1,0 +1,26 @@
+{
+  "status": "BLOCKED",
+  "stage": "Music local playback setup",
+  "exitCode": 1,
+  "details": "225:231: execution error: Music got an error: Can’t get item 1 of file track id 118 of library playlist id 62 of source id 61. (-1728)\n",
+  "musicEnvironment": {
+    "applicationPath": "/System/Applications/Music.app",
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "processes": [
+      {
+        "pid": 14266,
+        "parentPID": 1,
+        "state": "U",
+        "elapsed": "00:21",
+        "executable": "/System/Applications/Music.app/Contents/MacOS/Music"
+      }
+    ],
+    "bundleID": "com.apple.Music",
+    "version": "1.7",
+    "build": "1.7.0",
+    "executable": "Music",
+    "processQueryExitCode": 0,
+    "running": true
+  },
+  "realPlayerTestStarted": false
+}

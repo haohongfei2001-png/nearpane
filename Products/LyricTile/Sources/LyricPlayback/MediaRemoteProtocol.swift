@@ -126,10 +126,14 @@ struct MediaRemotePayload: Sendable {
         let elapsed = MediaTime.micros(fields["elapsedTimeMicros"]?.integer)
         let rawRate = fields["playbackRate"]?.number
         let rate = state == .playing ? ((rawRate?.isFinite == true && rawRate! > 0 && rawRate! <= 8) ? rawRate! : 1) : 0
-        let qqPublishesTransientItems = process.player == .qqMusic && process.build == "73284"
+        let qqPublishesTransientItems = process.player == .qqMusic
+            && (process.build == "73284" || process.build == "73285")
         // QQ can flip the global playing flag before refreshing the playing
         // anchor. Presenting its old elapsed field would rewind on pause.
-        let awaitingPauseAnchor = qqPublishesTransientItems && state == .paused && (rawRate ?? 0) > 0
+        // Keep the independently observed paused-clock workaround scoped to
+        // its original build; identity normalization does not qualify clocks.
+        let awaitingPauseAnchor = process.player == .qqMusic && process.build == "73284"
+            && state == .paused && (rawRate ?? 0) > 0
         var currentPosition: Int64? = awaitingPauseAnchor ? nil : elapsed
         if state == .playing {
             // A quiet stream can carry an old *valid* source anchor. Rebase that
@@ -143,8 +147,9 @@ struct MediaRemotePayload: Sendable {
         }
         var itemID = fields["contentItemIdentifier"]?.string
         let alternateID = fields["uniqueIdentifier"]?.string
-        // This QQ build publishes a new content UUID on pause/resume and before
-        // new metadata arrives on skip. It identifies an update, not a recording.
+        // These QQ builds can refresh a content UUID during same-track control
+        // updates. It identifies an update, not a catalog recording. Preserve
+        // other IDs and metadata distinctions, and leave unknown builds alone.
         if qqPublishesTransientItems,
            let value = itemID, UUID(uuidString: value) != nil {
             itemID = alternateID == value ? nil : alternateID
