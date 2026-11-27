@@ -1,0 +1,77 @@
+        if FilmCaptureSupport.windowServerEnabled {
+            pointerAttempted = pointerReport()?["available"] as? Bool == true
+            guard imported, pointerAttempted else { return finish(false) }
+            var sequence = 0
+            func input(_ action: String) async -> Bool {
+                sequence += 1
+                return await pointerAction(sequence, action)
+            }
+            func settle(_ seconds: Double) async { try? await Task.sleep(for: .seconds(seconds)) }
+            for language in ["zh", "en"] {
+                if language == "en" {
+                    model.perform(.play)
+                    _ = await wait { model.snapshot.state == .playing && !model.isPerformingCommand }
+                    model.perform(.next)
+                    let selected = await wait { model.snapshot.selection?.recording.title == nextTitle && !model.isPerformingCommand }
+                    let confirmed = await commandConfirmed("next")
+                    trackSwitchAttempted = true; trackSwitchPassed = selected && confirmed
+                    await record("film-next-real-source-confirmed", trackSwitchPassed)
+                    guard trackSwitchPassed, let nextLyrics, let secondSelection = model.snapshot.selection else { return finish(false) }
+                    model.importLyrics(from: URL(fileURLWithPath: nextLyrics), for: secondSelection)
+                    let ready = await wait { model.document?.source.providerID == "local" && model.document?.recording.fingerprint == secondSelection.recording.fingerprint && model.currentCue != nil }
+                    await record("film-english-original-lyrics-bound", ready)
+                    guard ready else { return finish(false) }
+                }
+                FilmCaptureSupport.restoreWindowServerSurfaceIfSourceVisible()
+                await settle(0.2)
+                let left = await input("leave")
+                _ = await wait { !model.controlsVisible && !model.panelInteractionActive }
+                model.perform(.seek(milliseconds: 0))
+                let reset = await wait { !model.isPerformingCommand && (model.playbackPositionMS ?? Int64.max) < 2_000 }
+                let resetConfirmed = await commandConfirmed("seek", seekMS: 0)
+                await record("film-" + language + "-start-position-confirmed", left && reset && resetConfirmed)
+                guard left && reset && resetConfirmed else { return finish(false) }
+                await settle(0.25)
+                do {
+                    let lyricTake = try await FilmCaptureSupport.beginScreenTake(language + "-lyrics", seconds: 18)
+                    let recorded = await FilmCaptureSupport.finishScreenTake(lyricTake)
+                    await record("film-" + language + "-continuous-lyrics-windowserver", recorded)
+                    guard recorded else { return finish(false) }
+                    let controlsTake = try await FilmCaptureSupport.beginScreenTake(language + "-controls", seconds: 10)
+                    await settle(0.6)
+                    let entered = await input("enter")
+                    let hovered = await wait { model.controlsVisible && model.panelInteractionActive }
+                    await record("film-" + language + "-native-hover", entered && hovered)
+                    await settle(0.65)
+                    let positionBeforeSeek = model.playbackPositionMS ?? 0
+                    let seekPosted = await input("seek")
+                    let seekDone = await wait { !model.isPerformingCommand && model.seekPreviewMS == nil && model.actionMessage == nil && abs((model.playbackPositionMS ?? positionBeforeSeek)-positionBeforeSeek) > 12_000 }
+                    let seekReadback = await commandConfirmed("seek")
+                    await record("film-" + language + "-native-slider-drag-readback", seekPosted && seekDone && seekReadback)
+                    await settle(0.35)
+                    let pausePosted = await input("pause")
+                    let paused = await wait { model.snapshot.state == .paused && !model.isPerformingCommand }
+                    let pauseReadback = await commandConfirmed("pause")
+                    await record("film-" + language + "-native-pause-readback", pausePosted && paused && pauseReadback)
+                    await settle(0.5)
+                    let playPosted = await input("play")
+                    let resumed = await wait { model.snapshot.state == .playing && !model.isPerformingCommand }
+                    let playReadback = await commandConfirmed("play")
+                    await record("film-" + language + "-native-resume-readback", playPosted && resumed && playReadback)
+                    await settle(0.5)
+                    let finalPause = await input("pause")
+                    let finalPaused = await wait { model.snapshot.state == .paused && !model.isPerformingCommand }
+                    let leavePosted = await input("leave")
+                    let withdrawn = await wait { !panel.panel.isVisible && !model.controlsVisible }
+                    await record("film-" + language + "-native-paused-withdrawal", finalPause && finalPaused && leavePosted && withdrawn)
+                    let recordedControls = await FilmCaptureSupport.finishScreenTake(controlsTake)
+                    await record("film-" + language + "-controls-windowserver", recordedControls)
+                    pointerPassed = pointerPassed && entered && hovered && seekPosted && seekDone && seekReadback && pausePosted && paused && pauseReadback && playPosted && resumed && playReadback && finalPause && finalPaused && leavePosted && withdrawn
+                    if !pointerPassed || !recordedControls { return finish(false) }
+                } catch {
+                    write("film-windowserver-error.json", ["error": error.localizedDescription, "language": language])
+                    return finish(false)
+                }
+            }
+            return finish(checks.allSatisfy { $0["passed"] as? Bool == true })
+        }
