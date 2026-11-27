@@ -58,9 +58,10 @@ python3 Scripts/verify-release.py --mode release --app "$LT_APP" \
   --archive "$LT_ZIP" --dmg "$LT_DMG" --checksums "$LT_FINAL_DIR/SHA256SUMS" \
   --expected-commit "$LT_SOURCE_COMMIT" --minimum-build 4 \
   --appcast "$LT_EVIDENCE/appcast.xml" --output "$LT_EVIDENCE/release-verification.json"
+python3 Scripts/run-native-smoke.py "$LT_APP" --output "$LT_EVIDENCE/native-final"
 ```
 
-使用本机既有 Sparkle 工具流程为最终 feed 保留需要的签名；修改 feed 内容后重新签署，不复制旧签名块。`verify-release.py` 必须通过真实 Ed25519、App/ZIP/DMG 元数据和内容一致性、校验值、Developer ID、stapler、Gatekeeper 检查。若构建或公证失败，修正具体问题后重复受影响步骤；不要用旧 build 4 代替。
+使用本机既有 Sparkle 工具流程为最终 feed 保留需要的签名；修改 feed 内容后重新签署，不复制旧签名块。`verify-release.py` 必须通过真实 Ed25519、App/ZIP/DMG 元数据和内容一致性、校验值、Developer ID、stapler、Gatekeeper 检查。最后的native smoke只确认本机刚生成的同一签名包能启动及正确显示窗口，自动保存实际显示比例；不重跑云端全套矩阵。若构建或公证失败，修正具体问题后重复受影响步骤；不要用旧 build 4 代替。
 
 ## 2. 只补尚未完成的真实 Apple Music 闭环
 

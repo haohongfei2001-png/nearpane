@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "temporaryPlaylist": "LyricTile Cloud Acceptance 45999817063",
+  "actualPlayerPosition": 1.567000031471,
+  "currentPersistentID": "38A873DE6316673E",
+  "sources": [
+    {
+      "actualTitle": "original-chimes",
+      "persistentID": "38A873DE6316673E",
+      "durationSeconds": 240.0,
+      "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes.wav",
+      "importedFileSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8",
+      "originalFileSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8",
+      "identicalOriginalAudio": true
+    },
+    {
+      "actualTitle": "original-chimes-reprise",
+      "persistentID": "CFBC445D66B38024",
+      "durationSeconds": 240.0,
+      "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes-reprise.wav",
+      "importedFileSHA256": "8b63f0dadae34c35495e2c0fd2be66efcd67f9f1fbae8ca16fb757d409ee9043",
+      "originalFileSHA256": "8b63f0dadae34c35495e2c0fd2be66efcd67f9f1fbae8ca16fb757d409ee9043",
+      "identicalOriginalAudio": true
+    }
+  ],
+  "metadataEdited": false,
+  "accountUsed": false
+}

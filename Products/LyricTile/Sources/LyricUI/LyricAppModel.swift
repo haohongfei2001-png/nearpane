@@ -21,7 +21,9 @@ public final class LyricAppModel: ObservableObject {
     @Published public private(set) var ownershipMessage: String?
     @Published public private(set) var artwork: NSImage?
     @Published public private(set) var advanceMS: Int64 = 0
-    @Published public private(set) var playbackPositionMS: Int64?
+    // Position is projected from the real anchor when read. A hidden progress
+    // label must not invalidate the entire lyric surface every second.
+    public var playbackPositionMS: Int64? { snapshot.selection == nil ? nil : projectedPosition() }
     @Published public var actionMessage: String?
     @Published public var lyricFailure: String?
     @Published public var presentation: LyricAuxiliaryPage?
@@ -68,6 +70,7 @@ public final class LyricAppModel: ObservableObject {
     private var lastArtworkData: Data?
     private var artworkToken = UUID()
     private var leadCueCache: [LyricDomain.Cue] = []
+    private var cueBoundaryCache: [Int64] = []
     // Keep controls under the pointer while a paused song receives its lyrics.
     // This is presentation-only: the repository result is still accepted normally.
     var pausedPanelContent: LyricPanelContent?
@@ -151,7 +154,7 @@ public final class LyricAppModel: ObservableObject {
             await playback.stop()
             snapshot = .empty; document = nil
             candidates = []; adjustment = nil; advanceMS = 0; seekPreviewMS = nil; seekSelection = nil
-            isResolving = false; isSearchingCandidates = false; playbackPositionMS = nil
+            isResolving = false; isSearchingCandidates = false
             controlsVisible = false; panelInteractionActive = false; songMenuIsOpen = false; isVisible = false; browsedCueIndex = nil
             refreshFrame()
             lease.release()
@@ -461,6 +464,10 @@ public final class LyricAppModel: ObservableObject {
     }
     private func rebuildLeadCues() {
         let cues = document?.lanes.filter { $0.kind == .lead }.flatMap(\.cues) ?? []
+        let timedCues = document?.lanes.filter { $0.kind == .lead || $0.kind == .background }.flatMap(\.cues) ?? []
+        cueBoundaryCache = Array(Set(timedCues.flatMap {
+            [$0.sourceStartMS, $0.sourceEndMS].compactMap { $0 }
+        })).sorted()
         leadCueCache = cues.enumerated().sorted { left, right in
             if let a = left.element.sourceStartMS, let b = right.element.sourceStartMS, a != b { return a < b }
             if left.element.sourceStartMS == nil && right.element.sourceStartMS != nil { return false }
@@ -481,7 +488,9 @@ public final class LyricAppModel: ObservableObject {
                 case .candidates(let candidates):
                     if self.candidateRequestID == candidateID { self.candidates = candidates }
                     self.isResolving = false; self.refreshFrame()
-                case .notFound: self.isResolving = false; self.document = nil; self.refreshFrame()
+                case .notFound:
+                    self.isResolving = false; self.document = nil
+                    self.refreshFrame(); self.restartTimeline()
                 }
             } catch { self?.finishFailure(error, for: selection, requestID: requestID) }
         }
@@ -522,11 +531,9 @@ public final class LyricAppModel: ObservableObject {
     }
     private func refreshFrame() {
         guard let selection = snapshot.selection else {
-            playbackPositionMS = nil
             frame = .init(selection: nil, phase: .noPlayback, playbackState: snapshot.state, lookupMS: nil, presentedCues: [])
             return
         }
-        playbackPositionMS = projectedPosition()
         if let anchor = snapshot.anchor, let projected = try? timeline.frame(anchor: anchor, at: PlaybackClock.now(), document: document, adjustment: adjustment) {
             if isResolving && document == nil {
                 frame = .init(selection: selection, phase: .resolving, playbackState: snapshot.state, lookupMS: projected.lookupMS, presentedCues: [])
@@ -538,14 +545,13 @@ public final class LyricAppModel: ObservableObject {
             frame = .init(selection: selection, phase: phase, playbackState: snapshot.state, lookupMS: nil, presentedCues: [])
         }
     }
-    public func projectedPosition() -> Int64? {
+    public func projectedPosition(at now: LyricDomain.MonotonicStamp = PlaybackClock.now()) -> Int64? {
         guard let anchor = snapshot.anchor, let position = anchor.positionMS,
               anchor.quality != .unavailable, anchor.quality != .stale else { return nil }
-        let now = PlaybackClock.now()
         guard now.clockDomainID == anchor.observedAt.clockDomainID, now.nanoseconds >= anchor.observedAt.nanoseconds else { return nil }
         let elapsed = Double(now.nanoseconds - anchor.observedAt.nanoseconds) / 1_000_000
         guard anchor.state != .unknown, anchor.playbackRate.isFinite,
-              anchor.state != .playing || elapsed <= 15_000 else { return nil }
+              anchor.state != .playing || elapsed <= Double(timeline.maximumPlayingAnchorAgeMS) else { return nil }
         let value = Double(position) + (anchor.state == .playing ? elapsed * max(0, anchor.playbackRate) : 0)
         guard value.isFinite, value >= 0, value < Double(Int64.max) else { return nil }
         return durationMS.map { min($0, Int64(value)) } ?? Int64(value)
@@ -563,12 +569,27 @@ public final class LyricAppModel: ObservableObject {
             }
         }
     }
-    private func nextRefreshDelay() -> Double {
+    func nextRefreshDelay(at now: LyricDomain.MonotonicStamp = PlaybackClock.now()) -> Double {
         if controlsVisible { return 0.25 }
-        guard let lookup = frame.lookupMS else { return 1 }
-        let boundary = leadCues.flatMap { [$0.sourceStartMS, $0.sourceEndMS].compactMap { $0 } }.filter { $0 > lookup }.min()
-        let delay = boundary.map { (Double($0) - Double(lookup)) / 1000 } ?? 1
-        return min(1, max(0.025, delay))
+        guard let anchor = snapshot.anchor, anchor.state == .playing,
+              let position = projectedPosition(at: now) else { return 1 }
+        let ageSeconds = Double(now.nanoseconds - anchor.observedAt.nanoseconds) / 1_000_000_000
+        // Wake when this exact source anchor expires even without lyrics. The
+        // extra millisecond crosses the timeline's inclusive freshness limit.
+        var delay = max(0.025, Double(timeline.maximumPlayingAnchorAgeMS + 1) / 1000 - ageSeconds)
+        if frame.phase == .syncedToken { delay = min(1, delay) }
+        if anchor.playbackRate > 0, durationMS.map({ position < $0 }) ?? true {
+            let lookup = Double(position) + Double(sourceAdvanceMS) + Double(advanceMS)
+            var low = 0, high = cueBoundaryCache.count
+            while low < high {
+                let middle = low + (high - low) / 2
+                if Double(cueBoundaryCache[middle]) <= lookup { low = middle + 1 } else { high = middle }
+            }
+            if low < cueBoundaryCache.count {
+                delay = min(delay, (Double(cueBoundaryCache[low]) - lookup) / (1000 * anchor.playbackRate))
+            }
+        }
+        return max(0.025, delay)
     }
     private func scheduleReturnToCurrent() {
         browseTask?.cancel()

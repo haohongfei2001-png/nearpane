@@ -74,6 +74,23 @@ public enum LyricNativePlayerVerification {
                   command["targetBundleID"] as? String == model.snapshot.selection?.playerBundleID else { return false }
             return seekMS == nil || (command["seekMS"] as? NSNumber)?.int64Value == seekMS
         }
+        func qqPausedSourceDoesNotReusePlayingClock() async -> Bool {
+            guard let data = try? await model.nativePlayerDiagnosticReport(),
+                  let report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                  let players = report["players"] as? [[String: Any]],
+                  let player = players.first(where: { $0["player"] as? String == "qqMusic" }) else { return false }
+            guard ["73284", "73285"].contains(player["build"] as? String ?? "") else { return true }
+            guard let payload = report["currentMediaRemotePayload"] as? [String: Any],
+                  payload["playing"] as? Bool == false else { return false }
+            // CI43's real pause retained the earlier seek timestamp/elapsed
+            // with a positive rate. A stable number alone was a false pass:
+            // this source must not be exposed as a current paused clock.
+            if ((payload["playbackRate"] as? NSNumber)?.doubleValue ?? 0) > 0 {
+                return model.playbackPositionMS == nil && player["positionMS"] == nil
+                    && player["quality"] as? String == "unavailable"
+            }
+            return true
+        }
         func finish(_ passed: Bool) -> Bool {
             write("native-player.json", ["status": passed ? "PASS" : "FAIL", "scope": "ordinary-native-app-real-player",
                 "player": expectedPlayer.rawValue, "audio": "authored local PCM recording played by the actual installed player",
@@ -212,6 +229,11 @@ public enum LyricNativePlayerVerification {
         }
         await record("pause-confirmed-and-interacted-panel-retained", pausePosted && paused && pauseConfirmed && panel.panel.isVisible
             && panel.panel.frame.height == LyricPanelLayout.lyricsHeight && retainsImportedLyrics())
+        if expectedPlayer == .qqMusic {
+            let sourceConsistent = await qqPausedSourceDoesNotReusePlayingClock()
+            await record("qq-paused-source-does-not-reuse-playing-anchor", sourceConsistent)
+        }
+        capture(capturePrefix + "-paused")
         let pausedPosition = model.playbackPositionMS
         try? await Task.sleep(for: .seconds(1))
         let pausedClockStable = pausedPosition == nil ? model.playbackPositionMS == nil
@@ -330,9 +352,32 @@ public enum LyricNativePlayerVerification {
         write("native-player-ready.json", ["pid": ProcessInfo.processInfo.processIdentifier, "mode": "line",
             "scope": "real-player-local-audio-local-lyrics", "player": expectedPlayer.rawValue, "observation": observation()])
         let hold = min(120, max(0, Double(argument("--verification-hold-seconds") ?? "0") ?? 0))
+        let cueBeforeHold = model.currentCueIndex
         if hold > 0 { try? await Task.sleep(for: .seconds(hold)) }
         await record("continued-playback", model.snapshot.state == .playing && panel.panel.isVisible && retainsImportedLyrics()
             && model.currentCueIndex != nil && panel.panel.frame.height == LyricPanelLayout.lyricsHeight)
+        if hold >= 16 {
+            // A lower CPU result is invalid if the visible lyric stopped
+            // advancing. Check the actually presented cue against the real
+            // source position after the quiet sample, without polling inside it.
+            var followsSource = false
+            if let previous = cueBeforeHold, let current = model.currentCueIndex,
+               let position = model.playbackPositionMS, model.leadCues.indices.contains(current),
+               let start = model.leadCues[current].sourceStartMS {
+                let sourceAdvance = model.document?.sourceTiming.interpretation == .normalizedKnownFormat
+                    ? (model.document?.sourceTiming.sourceAdvanceMS ?? 0) : 0
+                let lookup = position + sourceAdvance + model.advanceMS
+                let nextStart = model.leadCues.dropFirst(current + 1).compactMap(\.sourceStartMS).first
+                followsSource = current > previous && lookup >= start - 250
+                    && (nextStart == nil || lookup < nextStart! + 250)
+                write("native-line-progress.json", ["scope": "displayed original LRC cue versus the actual player source position",
+                    "passed": followsSource, "beforeCueIndex": previous, "afterCueIndex": current,
+                    "sourcePositionMS": position, "lookupMS": lookup, "currentCueStartMS": start,
+                    "nextCueStartMS": nextStart as Any? ?? NSNull(), "publicationToleranceMS": 250,
+                    "independentAcousticClockQualification": false])
+            }
+            await record("continued-lyric-cue-follows-real-source-position", followsSource)
+        }
         let passed = checks.allSatisfy { $0["passed"] as? Bool == true }
         return finish(passed)
     }

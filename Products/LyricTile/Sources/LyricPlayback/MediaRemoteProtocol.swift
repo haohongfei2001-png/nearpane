@@ -134,9 +134,10 @@ struct MediaRemotePayload: Sendable {
         }
         // QQ can flip the global playing flag before refreshing the playing
         // anchor. Presenting its old elapsed field would rewind on pause.
-        // Keep the independently observed paused-clock workaround scoped to
-        // its original build; identity normalization does not qualify clocks.
-        let awaitingPauseAnchor = process.player == .qqMusic && process.build == "73284"
+        // Both known builds have independently reproduced this stale pause
+        // payload. Identity normalization alone does not qualify other clocks.
+        let awaitingPauseAnchor = process.player == .qqMusic
+            && (process.build == "73284" || process.build == "73285")
             && state == .paused && (rawRate ?? 0) > 0
         var currentPosition: Int64? = awaitingPauseAnchor ? nil : elapsed
         if state == .playing {

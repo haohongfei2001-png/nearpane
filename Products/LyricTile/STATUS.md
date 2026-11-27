@@ -2,25 +2,25 @@
 
 2026-11-27，北京时间。独立 macOS 软件；分支 `codex/lyrictile-standalone-20261126`，PR #17。
 
-## 当前状态：CI42已证明两播放器身份修复，验收助手修正后复验
+## 当前状态：核心真实闭环已跑通，最后修复与性能回归中
 
-- **最新实际验收是 CI42 / build42 / `791d0917a92120f6e518ed11dcd6573eedcd9bee`，整体FAIL，不可发行**：[运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45997411802)。98项原生测试（83 Swift Testing＋15 XCTest）、编译、App启动、helper加载、ZIP与实际挂载DMG完整性通过。
-- 欢迎页从CI36的400×2157pt修复为400×360，设置页450×620；最新中英文×深浅色4组合及5个欢迎内容区域边界/重叠检查通过。CI41的12个原生布局PNG已逐图审核，无新的明确缺陷。它们是1×原创夹具，不代表真实鼠标或播放。
-- **QQ11.11.1/build73285的跳转丢词已被真实数据证明修好**：同曲UUID改变但元数据/PID不变，规范化后fingerprint、generation、本地文档hash和192pt面板保持，seek读回确认、歌词cue正确改变。原生指针enter/leave和Hover现已通过；pause中心实际位置正确且命中同App窗口，但助手额外要求SwiftUI AX代理祖先相同而拒发点击。已把此不稳定代理关系改为诊断，保留新鲜唯一按钮几何、同PID/窗口命中、真实点击及播放器读回要求；暂停仍需复验。
-- **网易云3.1.14/build3459已免登录播放原创WAV**；真实seek后同曲UUID变化导致generation1→2、歌词丢失。精确扩展到3459后，CI42实际UUID变化时fingerprint/generation/文档hash均保留，seek读回确认、cue3→8，修复已得到同源数据证明。保持canonical/alternate ID、实际元数据变化及未知build边界。
-- **Music1.7的脚本改名失败可远程解决**：实际Start Listening和系统Automation Allow已成功；-50准确出在给刚导入WAV写name，不是登录或权限。CI42已去除写元数据并执行两曲队列，但最终读回远程location时嵌套POSIX path产生-1700。现显式get location后在tell之外转换，保留实际标题/持久ID/文件hash核对；真实next/previous及返回原曲本地歌词恢复仍需完成。
-- 原始失败与修复因果证据在 `Documentation/Verification/2026-11-27-release-candidate/ci40-regression/` 、`ci41-regression/` 和 `ci42-harness/`；按字节保存源JSON/PNG与SHA，不把整体FAIL重标为通过。
+- 最新完成的 **CI43 / build43 / `1301b9b3731f6037307430ec61c0ee87104d85ad` workflow成功**：[运行](https://github.com/haohongfei2001-png/nearpane/actions/runs/45999817063)。98项原生测试、App/helper加载、ZIP及实际挂载DMG的源码/版本/校验一致。原始数据深入审核仍发现QQ暂停旧anchor，故本提交修正后再固定最终候选，不能仅凭绿色标记收尾。
+- **Music1.7真实免登录两曲核心PASS**：实际导入的两份不同原创WAV与输入hash相同；普通LyricTile首次欢迎→Get started→识别→本地LRC→seek→原生CGEvent hover/点击暂停/移出→隐藏→恢复通过。生产next切B后清旧词/收缩，导入B后扩容，previous回A自动恢复原绑定且未重新导入；23项原始检查通过。
+- **QQ11.11.1/73285、网易云3.1.14/3459的真实单曲核心PASS**：原创WAV/本地LRC、真实进度、seek/暂停/恢复命令读回、实际鼠标进入/点击/移出、显隐与文档保持。两者临时UUID变化不会再被误判为换曲；真实metadata/canonical ID及未知build边界保留。
+- **QQ暂停时钟缺陷本次修正**：CI43真实pause后raw playing=false但rate1，elapsed/timestamp仍是旧seek anchor，UI从64649回到64000ms。既有73284防护精确扩展73285，暂记进度不可用直至真实新anchor，不制造时间。新增单元及原生raw→normalized→UI检查；网易云rate0暂停读数正常。
+- 欢迎页400×2157pt缺陷已修为**400×360**；设置**450×620**。中英×深浅四组合、五个欢迎内容区域的边界/不重叠通过；12个1×原创原生布局夹具已逐图复核。真实Hover原图也已查看，无明确新视觉缺陷。
 
-## 资源、歌词与发行准备
+## 最后一轮必要回归
 
-- CI42空闲120.47秒：单核CPU均值0.14942%，RSS中位49.66MiB、峰54.92MiB。核心检查失败后没有进行逐行性能或壁纸采样。旧build4八小时基线不套用为新包结果。
-- 真实LRCLIB/生产repository已取得中英文同步文档、纯音乐与候选/未找到结果；CI38明确抽样中文3/3、英文3/3、249–606ms，7/7缓存和同进程离线repository重建hash相同、零新增请求。最终轮另归档；不是独立音频错配率或整个曲库覆盖率。
-- 官网六个中英页面已上线：[产品页](https://nearpane.com/lyrictile/)，main `7e0b2f8` / [Pages](https://github.com/haohongfei2001-png/nearpane/actions/runs/45985251945)。云浏览器逐页核对图片、导航和下载状态。当前宣传图为明确标注的CI38原生夹具，最终成功候选后更新同源截图和支持清单。
-- 云端代码签名身份数量为0；包是ad-hoc候选，**尚未正式签名、公证或公开发行**。工程Release草稿自动化、精确build命名、校验、隐私/第三方说明、专用Sparkle公钥/feed已备妥；manifest仍disabled，成功后才固定同一run/source/build。
+- CI43真实逐行60秒：Music单核CPU2.564%、RSS78.63MiB；QQ2.454%/95.38MiB；网易2.023%/95.19MiB，均确有歌词持续播放。空闲120.94秒0.207%/54.84MiB。逐行尚高于1%参考目标，不能称达标。
+- 已定位并移除隐藏控制区时每秒发布进度/整frame及同值isVisible的重复刷新；按真实主唱/伴唱边界和原anchor剩余寿命唤醒，seek/新文档/偏移后重算。Hover、token渲染、播放器健康轮询和同步资格不降。增加3项时序行为测试，原生静默采样结束还须证明当前句继续随真实源进度推进。实际收益由下一CI测量，不凭代码预判。
+- 三壁纸矩阵此前受QQ窗口hide返回false阻塞，仅已有一张真实桌面图；没有把它算成壁纸通过。现改为实际可见性读回及可恢复AX最小化，并用真实AX命中排除Dock透明全屏CG矩形误拦。仍保存原壁纸/窗口状态并恢复；下一轮看真实合成截图。
+- 真实网络与本地缓存探针已运行；CI38基线中文3/3、英文3/3返回同步文档、249–606ms，7/7缓存及同进程离线repository重建hash一致且零新请求。最终轮单列准确样本；不是独立音频错配率或全曲库覆盖承诺。
 
-## 历史边界与最后交接
+## 发行准备与边界
 
-- 已公证build4来自`3e83b5c`；它的8小时、Apple Music/QQ本地播放和2→4升级仅是历史。不能代替最新候选。
-- Spotify仍无已登录真实播放结果。首发只声明实际通过的路径；不要求四平台、完美逐字、全部显示器或重复八小时。
-- 只发现离线个人Mac，未操作个人设备；本机专属项是现有Developer ID、公证和Sparkle私钥，以及同一最新签名包的升级确认。
-- 后续覆盖本状态，固定最终候选，完成Release草稿与官网资料，填实 `Documentation/LOCAL_ONLY_HANDOFF.md`，不要把可远程修复的脚本/普通开发交给本机。
+- 官网六个中英页面已上线：[产品页](https://nearpane.com/lyrictile/)。首页导航/页脚已加入独立入口，main `6501f76` / [Pages](https://github.com/haohongfei2001-png/nearpane/actions/runs/46001978476)。最终候选后更新原生同源截图、支持清单并再验公开页面；正式下载未启用。
+- 签名身份数量为0，当前是ad-hoc候选，**尚未Developer ID签名、公证或正式公开发行**。6附件工程Release草稿自动化已用CI43真实制品离线逐字节校验；manifest仍disabled，最终成功run/source/build才启用。现有Sparkle公钥/feed沿用，不生成密钥。
+- 历史已公证build4来自`3e83b5c`；8小时、Apple Music/QQ与2→4升级仅属于该旧包。最新签名包仍需本机原有凭据、最终签名包启动及4→最终包升级确认，不重复云端完整矩阵或八小时。
+- Spotify未登录真实验证；商业曲库、独立声学逐字精度、物理鼠标、更多实际显示比例均未扩大声明。首发不要求四播放器或完美逐字。
+- 关键原件与归因在 `Documentation/Verification/2026-11-27-release-candidate/`，其中`ci43-native-baseline/`保留本次三播放器闭环、暂停缺陷和修正前性能。最终覆盖本状态并填实 `Documentation/LOCAL_ONLY_HANDOFF.md`。

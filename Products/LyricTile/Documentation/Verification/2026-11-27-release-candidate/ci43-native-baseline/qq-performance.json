@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "status": "MEASURED",
+  "mode": "line",
+  "rootPID": 27878,
+  "rootStart": "Fri Nov 27 12:46:50 2026",
+  "rootCommand": "/Users/runner/work/nearpane/nearpane/Products/LyricTile/dist/LyricTile.app/Contents/MacOS/LyricTile",
+  "durationSeconds": 60.70902100000001,
+  "samples": 54,
+  "cpuMeanPercentOneCore": 2.454346729793979,
+  "cpuMeasurementMethod": "aggregate CPU-time delta / actual monotonic observation interval; one core = 100%",
+  "cpuP95PercentOneCore": 4.630637938177754,
+  "rssMedianMiB": 95.375,
+  "rssPeakMiB": 115.65625,
+  "processesExitedBetweenSamples": 1,
+  "longestSampleIntervalSeconds": 1.2386118329999363,
+  "cpuBudgetPercentOneCore": 1,
+  "rssMedianBudgetMiB": 120,
+  "rssPeakBudgetMiB": 180,
+  "limitation": "ps CPU time has finite resolution; very short-lived helper CPU between samples can be missed. This is a process-tree estimate, not an acoustic or playback correctness qualification. Use Instruments for any borderline result."
+}

@@ -1,0 +1,44 @@
+{
+  "activeDisplayID": 1,
+  "applicationAppearance": "light",
+  "appPID": 27878,
+  "backingScaleFactor": 1,
+  "captures": [],
+  "displayModesChanged": false,
+  "elapsedSeconds": 1.0548462499999687,
+  "originalDesktopCapture": {
+    "appPID": 27878,
+    "captureKind": "WindowServer primary-display screenshot",
+    "file": "ordinary-app-desktop.png",
+    "pixelHeight": 768,
+    "pixelWidth": 1024,
+    "sha256": "a3612984cdd5fdc29f9342135e34b28e6f977e2cf4ebb26493da4d1bd6369fc4",
+    "windowNumber": 94
+  },
+  "permissionsRequested": false,
+  "physicalMouseTest": false,
+  "qualification": "Actual composed screenshots; contrast review is pending. No unexercised display scale, dark-app wallpaper matrix, mouse or commercial-catalog claim.",
+  "reason": "The temporary QQ window could not be hidden to expose the actual desktop backdrop.",
+  "restoration": {
+    "displayModesChanged": false,
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "scope": "same ordinary QQ-backed LyricTile process on actual desktop wallpapers",
+  "status": "BLOCKED",
+  "virtualDisplaysCreated": false,
+  "visualReview": "PENDING",
+  "windowNumber": 94,
+  "boundedExternalRestoration": {
+    "displayModesChanged": false,
+    "originalURLReadbackMatched": true,
+    "permissionsRequested": false,
+    "playerVisibilityRestored": true,
+    "restored": true,
+    "status": "RESTORED"
+  },
+  "productReleaseGate": false
+}

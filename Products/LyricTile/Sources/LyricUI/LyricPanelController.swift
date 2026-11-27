@@ -95,7 +95,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         guard !usesCoordinatedPlacement || contentHeight <= slotFrame.height else { return }
         resizeVisibleSurface()
         if !panel.isVisible { panel.orderFrontRegardless() }
-        model.isVisible = panel.occlusionState.contains(.visible)
+        updateModelVisibility(panel.occlusionState.contains(.visible))
     }
     public func hide(userInitiated: Bool = false) {
         if userInitiated { userHidden = true }
@@ -121,7 +121,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     public func withdraw() {
         dragging = false
         panel.orderOut(nil)
-        model.isVisible = false
+        updateModelVisibility(false)
         model.cancelSeek()
         if model.panelInteractionActive { model.panelInteractionActive = false }
         model.setControlsVisible(false)
@@ -156,7 +156,12 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         placementDidChange?(slotFrame, displayUUID, reset)
     }
     public func windowDidChangeOcclusionState(_ notification: Notification) {
-        model.isVisible = panel.isVisible && panel.occlusionState.contains(.visible) && !surrendered
+        updateModelVisibility(panel.isVisible && panel.occlusionState.contains(.visible) && !surrendered)
+    }
+    private func updateModelVisibility(_ visible: Bool) {
+        // @Published emits even for an unchanged Bool. A frame update already
+        // refreshed SwiftUI; do not trigger a second pass through show().
+        if model.isVisible != visible { model.isVisible = visible }
     }
     public func windowDidResignKey(_ notification: Notification) {
         (panel as? LyricNonactivatingPanel)?.permitsKeyInteraction = false

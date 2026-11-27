@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import CoreGraphics
 import CryptoKit
 import Darwin
@@ -18,6 +19,15 @@ struct CloudDesktopProbe {
         let optionsArchive: Data
         let playerPID: Int32?
         let playerWasHidden: Bool
+        let playerBundlePath: String?
+        var playerWindow: PlayerWindowState? = nil
+    }
+    struct PlayerWindowState: Codable {
+        let number: Int
+        let title: String
+        let bounds: [Double]
+        let wasMinimized: Bool
+        var rect: CGRect { CGRect(x: bounds[0], y: bounds[1], width: bounds[2], height: bounds[3]) }
     }
     static let files = FileManager.default
     static var clock: TimeInterval { ProcessInfo.processInfo.systemUptime }
@@ -91,19 +101,142 @@ struct CloudDesktopProbe {
         }
         throw ProbeError(message: "The requested ordinary LyricTile PID/window number has no visible native panel.")
     }
-    static func unobscuredPanel(_ pid: Int32, windowNumber: Int) throws -> CGRect {
+    static func unobscuredPanel(_ pid: Int32, windowNumber: Int, checks: inout [[String: Any]]) throws -> CGRect {
         let (rect, windows, _) = try windowInfo(pid, windowNumber: windowNumber)
         try require(CGDisplayBounds(CGMainDisplayID()).contains(CGPoint(x: rect.midX, y: rect.midY)),
                     "The active panel is not on the primary display; no other display is modified.")
+        var check: [String: Any] = ["appPID": pid, "windowNumber": windowNumber, "panelBounds": rectangle(rect),
+                                  "observedUptime": clock, "systemWideAXHit": true, "inputPosted": false]
+        var covering: [[String: Any]] = []
+        defer { check["coveringWindows"] = covering; checks.append(check) }
         for value in windows {
             guard let owner = (value[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, owner != pid,
                   ((value[kCGWindowLayer as String] as? NSNumber)?.intValue ?? -1) >= 0,
                   ((value[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1) > 0.01,
                   let bounds = value[kCGWindowBounds as String] as? [String: Any],
                   let other = CGRect(dictionaryRepresentation: bounds as CFDictionary), other.intersects(rect) else { continue }
-            throw ProbeError(message: "Another visible window covers the panel or its desktop backdrop: " + (value[kCGWindowOwnerName as String] as? String ?? "unknown"))
+            covering.append(["ownerPID": owner, "owner": value[kCGWindowOwnerName as String] as? String ?? "unknown",
+                "windowNumber": value[kCGWindowNumber as String] ?? NSNull(), "layer": value[kCGWindowLayer as String] ?? NSNull(),
+                "alpha": value[kCGWindowAlpha as String] ?? NSNull(), "bounds": rectangle(other)])
         }
+        // CG rectangles include transparent system surfaces, including Dock's
+        // full-display window. Record them; a genuine system-wide AX hit decides.
+        let target = try nativeAXWindow(pid, rect: rect)
+        let system = AXUIElementCreateSystemWide()
+        var hit: AXUIElement?
+        let status = AXUIElementCopyElementAtPosition(system, Float(rect.midX), Float(rect.midY), &hit)
+        check["AXHitResult"] = status.rawValue
+        check["point"] = ["x": Double(rect.midX), "y": Double(rect.midY)]
+        guard status == .success, let hit else { throw ProbeError(message: "The actual panel has no successful system-wide AX hit.") }
+        var hitPID: pid_t = 0
+        let pidReadback = AXUIElementGetPid(hit, &hitPID)
+        let belongs = pidReadback == .success && hitPID == pid && within(hit, ancestor: target)
+        check["hitPID"] = hitPID; check["hitWithinActualTargetWindow"] = belongs
+        try require(belongs, "The actual system-wide AX hit belongs to another window; no wallpaper capture was accepted.")
         return rect
+    }
+    static func playerWindows(_ pid: Int32) -> [(number: Int, rect: CGRect)] {
+        let rows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        return rows.compactMap { row in
+            guard (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid,
+                  (row[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
+                  ((row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1) > 0.01,
+                  let number = (row[kCGWindowNumber as String] as? NSNumber)?.intValue,
+                  let raw = row[kCGWindowBounds as String] as? [String: Any],
+                  let rect = CGRect(dictionaryRepresentation: raw as CFDictionary), rect.width >= 100, rect.height >= 80 else { return nil }
+            return (number, rect)
+        }
+    }
+    static func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
+    }
+    static func axBounds(_ element: AXUIElement) -> CGRect? {
+        guard let position = attribute(element, kAXPositionAttribute), CFGetTypeID(position) == AXValueGetTypeID(),
+              let size = attribute(element, kAXSizeAttribute), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
+        let p = unsafeBitCast(position, to: AXValue.self), s = unsafeBitCast(size, to: AXValue.self)
+        var point = CGPoint.zero, dimensions = CGSize.zero
+        guard AXValueGetType(p) == .cgPoint, AXValueGetType(s) == .cgSize,
+              AXValueGetValue(p, .cgPoint, &point), AXValueGetValue(s, .cgSize, &dimensions) else { return nil }
+        return CGRect(origin: point, size: dimensions)
+    }
+    static func elementAttribute(_ element: AXUIElement, _ name: String) -> AXUIElement? {
+        guard let value = attribute(element, name), CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return unsafeBitCast(value, to: AXUIElement.self)
+    }
+    static func within(_ element: AXUIElement, ancestor: AXUIElement) -> Bool {
+        if CFEqual(element, ancestor) { return true }
+        if let window = elementAttribute(element, kAXWindowAttribute), CFEqual(window, ancestor) { return true }
+        var current: AXUIElement? = element
+        for _ in 0..<12 {
+            guard let value = current else { return false }
+            if CFEqual(value, ancestor) { return true }
+            current = elementAttribute(value, kAXParentAttribute)
+        }
+        return false
+    }
+    static func sameBounds(_ a: CGRect, _ b: CGRect) -> Bool {
+        abs(a.minX - b.minX) <= 1 && abs(a.minY - b.minY) <= 1 && abs(a.width - b.width) <= 1 && abs(a.height - b.height) <= 1
+    }
+    static func nativeAXWindow(_ pid: Int32, rect: CGRect, title: String? = nil) throws -> AXUIElement {
+        try require(AXIsProcessTrusted(), "Existing Accessibility access is unavailable; no permission request was made.")
+        // This timeout affects only this helper process, including each window read.
+        _ = AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.15)
+        let app = AXUIElementCreateApplication(pid)
+        let windows = attribute(app, kAXWindowsAttribute) as? [AXUIElement] ?? []
+        try require(windows.count <= 8, "The target process has too many windows for bounded, unambiguous matching.")
+        let matches = windows.filter { window in
+            guard let bounds = axBounds(window), sameBounds(bounds, rect) else { return false }
+            return title == nil || (attribute(window, kAXTitleAttribute) as? String ?? "") == title
+        }
+        try require(matches.count == 1, "The actual native window has no unique Accessibility geometry/title match.")
+        return matches[0]
+    }
+    static func exposeDesktop(_ original: inout RestoreState, state: URL, deadline: TimeInterval, report: inout [String: Any]) throws {
+        var result: [String: Any] = ["method": "unchanged", "permissionsRequested": false]
+        defer { report["playerWindowExposure"] = result }
+        guard let pid = original.playerPID else { return }
+        guard let player = NSRunningApplication(processIdentifier: pid), !player.isTerminated,
+              player.bundleIdentifier == "com.tencent.QQMusicMac",
+              player.bundleURL?.resolvingSymlinksInPath().path == original.playerBundlePath else {
+            throw ProbeError(message: "The snapshotted temporary QQ process is no longer available.")
+        }
+        result["playerPID"] = pid; result["hiddenBefore"] = player.isHidden
+        if !player.isHidden { result["hideReturned"] = player.hide() }
+        let hideUntil = min(deadline, clock + 0.7)
+        while clock < hideUntil && (!player.isHidden || !playerWindows(pid).isEmpty) { pause(0.05) }
+        result["hiddenAfter"] = player.isHidden
+        result["visibleWindowNumbersAfterHide"] = playerWindows(pid).map { $0.number }
+        // hide()'s return value is diagnostic only; actual state and CG visibility decide.
+        if player.isHidden && playerWindows(pid).isEmpty { result["method"] = "hide-readback"; return }
+        let visible = playerWindows(pid)
+        try require(clock + 6 < deadline && !original.playerWasHidden && !player.isHidden && visible.count == 1,
+                    "No single visible QQ main window is available for bounded minimization.")
+        let target = visible[0]
+        let window = try nativeAXWindow(pid, rect: target.rect)
+        guard let minimized = attribute(window, kAXMinimizedAttribute) as? Bool else {
+            throw ProbeError(message: "The actual QQ window has no readable minimized state.")
+        }
+        try require(!minimized, "QQ reports its visible window already minimized; no ambiguous mutation was made.")
+        var settable = DarwinBoolean(false)
+        try require(AXUIElementIsAttributeSettable(window, kAXMinimizedAttribute as CFString, &settable) == .success && settable.boolValue,
+                    "The actual QQ window does not allow ordinary Accessibility minimization.")
+        original.playerWindow = PlayerWindowState(number: target.number, title: attribute(window, kAXTitleAttribute) as? String ?? "",
+            bounds: [Double(target.rect.minX), Double(target.rect.minY), Double(target.rect.width), Double(target.rect.height)], wasMinimized: minimized)
+        // Persist before changing the window so a bounded external restore can recover it.
+        try JSONEncoder().encode(original).write(to: state.appendingPathComponent("restore-state.json"), options: .atomic)
+        result["windowNumber"] = target.number; result["bounds"] = rectangle(target.rect); result["wasMinimized"] = minimized
+        let changed = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+        result["minimizeAXResult"] = changed.rawValue
+        let until = min(deadline, clock + 1)
+        func disappeared() -> Bool {
+            attribute(window, kAXMinimizedAttribute) as? Bool == true && !playerWindows(pid).contains { $0.number == target.number }
+        }
+        while clock < until && !disappeared() { pause(0.05) }
+        result["minimizedReadback"] = attribute(window, kAXMinimizedAttribute) as Any? ?? NSNull()
+        result["windowAbsentFromOnScreenList"] = !playerWindows(pid).contains { $0.number == target.number }
+        try require(changed == .success && disappeared(), "QQ minimization did not confirm both AX state and actual CG window disappearance.")
+        result["method"] = "accessibility-minimize"
     }
     static func prepare(config: URL, state: URL, evidence: URL) throws -> [String: Any] {
         let data = try Data(contentsOf: config)
@@ -158,7 +291,8 @@ struct CloudDesktopProbe {
             $0.bundleURL?.resolvingSymlinksInPath().path.hasPrefix(runner.path + "/") == true
         }
         let value = RestoreState(displayID: CGMainDisplayID(), originalURL: original.absoluteString, optionsArchive: archived,
-                                 playerPID: player?.processIdentifier, playerWasHidden: player?.isHidden ?? true)
+                                 playerPID: player?.processIdentifier, playerWasHidden: player?.isHidden ?? true,
+                                 playerBundlePath: player?.bundleURL?.resolvingSymlinksInPath().path)
         try JSONEncoder().encode(value).write(to: state.appendingPathComponent("restore-state.json"), options: .atomic)
         return value
     }
@@ -175,15 +309,42 @@ struct CloudDesktopProbe {
                 NSWorkspace.shared.desktopImageURL(for: screen)?.standardizedFileURL == original.standardizedFileURL
                     && NSDictionary(dictionary: rawOptions(NSWorkspace.shared.desktopImageOptions(for: screen) ?? [:])).isEqual(NSDictionary(dictionary: raw))
             }
-            if !same() { try NSWorkspace.shared.setDesktopImageURL(original, for: screen, options: options); pause(0.35) }
+            var failures: [String] = []
+            do { if !same() { try NSWorkspace.shared.setDesktopImageURL(original, for: screen, options: options); pause(0.35) } }
+            catch { failures.append(error.localizedDescription) }
             var playerRestored = true
-            if let pid = value.playerPID, let player = NSRunningApplication(processIdentifier: pid), !value.playerWasHidden {
-                if player.isHidden { _ = player.unhide(); pause(0.15) }
-                playerRestored = !player.isHidden
+            var windowRestored = value.playerWindow == nil
+            if let pid = value.playerPID {
+                do {
+                    guard let player = NSRunningApplication(processIdentifier: pid), !player.isTerminated,
+                          player.bundleIdentifier == "com.tencent.QQMusicMac",
+                          player.bundleURL?.resolvingSymlinksInPath().path == value.playerBundlePath else {
+                        throw ProbeError(message: "The saved QQ process identity is unavailable for restoration.")
+                    }
+                    if player.isHidden != value.playerWasHidden {
+                        if value.playerWasHidden { _ = player.hide() } else { _ = player.unhide() }
+                        pause(0.15)
+                    }
+                    playerRestored = player.isHidden == value.playerWasHidden
+                    if let saved = value.playerWindow {
+                        try require(saved.bounds.count == 4, "Invalid saved QQ window bounds.")
+                        let window = try nativeAXWindow(pid, rect: saved.rect, title: saved.title)
+                        if attribute(window, kAXMinimizedAttribute) as? Bool != saved.wasMinimized {
+                            try require(AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString,
+                                saved.wasMinimized ? kCFBooleanTrue : kCFBooleanFalse) == .success, "QQ minimized state could not be restored.")
+                        }
+                        let until = clock + 0.7
+                        while clock < until && (attribute(window, kAXMinimizedAttribute) as? Bool != saved.wasMinimized
+                            || (!saved.wasMinimized && !value.playerWasHidden && !playerWindows(pid).contains { $0.number == saved.number })) { pause(0.05) }
+                        windowRestored = attribute(window, kAXMinimizedAttribute) as? Bool == saved.wasMinimized
+                            && (saved.wasMinimized || value.playerWasHidden || playerWindows(pid).contains { $0.number == saved.number })
+                    }
+                } catch { playerRestored = false; failures.append(error.localizedDescription) }
             }
-            let restored = same() && playerRestored
+            let restored = same() && playerRestored && windowRestored
             return ["status": restored ? "RESTORED" : "BLOCKED", "restored": restored,
                     "originalURLReadbackMatched": same(), "playerVisibilityRestored": playerRestored,
+                    "playerWindowMinimizedStateRestored": windowRestored, "failures": failures,
                     "permissionsRequested": false, "displayModesChanged": false]
         } catch { return ["status": "BLOCKED", "restored": false, "reason": error.localizedDescription] }
     }
@@ -207,6 +368,7 @@ struct CloudDesktopProbe {
     }
     static func run(state: URL, evidence: URL, runner: URL, pid: Int32) -> [String: Any] {
         let start = clock, deadline = start + 15
+        var visibilityChecks: [[String: Any]] = []
         var captures: [[String: Any]] = [], report: [String: Any] = [
             "status": "BLOCKED", "scope": "same ordinary QQ-backed LyricTile process on actual desktop wallpapers",
             "appPID": pid, "applicationAppearance": "light", "visualReview": "PENDING",
@@ -217,16 +379,13 @@ struct CloudDesktopProbe {
             let screen = try mainScreen()
             report["backingScaleFactor"] = Double(screen.backingScaleFactor)
             report["activeDisplayID"] = CGMainDisplayID()
-            let original = try snapshot(state: state, runner: runner)
+            var original = try snapshot(state: state, runner: runner)
             var originalCapture = try capture(to: evidence.appendingPathComponent("ordinary-app-desktop.png"), deadline: deadline)
             _ = try windowInfo(pid, windowNumber: windowNumber)
             originalCapture["appPID"] = pid; originalCapture["windowNumber"] = windowNumber
             report["originalDesktopCapture"] = originalCapture
-            if let playerPID = original.playerPID, let player = NSRunningApplication(processIdentifier: playerPID), !original.playerWasHidden {
-                try require(player.hide(), "The temporary QQ window could not be hidden to expose the actual desktop backdrop.")
-                pause(0.35)
-            }
-            report["panelBounds"] = rectangle(try unobscuredPanel(pid, windowNumber: windowNumber))
+            try exposeDesktop(&original, state: state, deadline: deadline, report: &report)
+            report["panelBounds"] = rectangle(try unobscuredPanel(pid, windowNumber: windowNumber, checks: &visibilityChecks))
             guard let prepared = try JSONSerialization.jsonObject(with: Data(contentsOf: state.appendingPathComponent("prepared.json"))) as? [String: Any],
                   let patterns = prepared["patterns"] as? [[String: Any]] else { throw ProbeError(message: "Prepared original wall patterns are unavailable.") }
             report["fixtureSHA256"] = prepared["fixtureSHA256"]
@@ -239,7 +398,7 @@ struct CloudDesktopProbe {
                 pause(0.8)
                 let readback = NSWorkspace.shared.desktopImageURL(for: screen)?.standardizedFileURL == input.standardizedFileURL
                 try require(readback, "The public desktop API did not read back the requested wallpaper.")
-                let rect = try unobscuredPanel(pid, windowNumber: windowNumber)
+                let rect = try unobscuredPanel(pid, windowNumber: windowNumber, checks: &visibilityChecks)
                 var result = try capture(to: evidence.appendingPathComponent("desktop-wallpaper-" + name + ".png"), deadline: deadline)
                 _ = try windowInfo(pid, windowNumber: windowNumber)
                 result.merge(["name": name, "wallpaperURLReadbackMatched": readback, "inputSHA256": pattern["sha256"] ?? NSNull(),
@@ -251,7 +410,7 @@ struct CloudDesktopProbe {
         let restoration = restore(state: state)
         report["restoration"] = restoration
         if restoration["restored"] as? Bool != true { report["status"] = "BLOCKED" }
-        report["captures"] = captures; report["elapsedSeconds"] = clock - start
+        report["captures"] = captures; report["panelVisibilityChecks"] = visibilityChecks; report["elapsedSeconds"] = clock - start
         report["qualification"] = "Actual composed screenshots; contrast review is pending. No unexercised display scale, dark-app wallpaper matrix, mouse or commercial-catalog claim."
         return report
     }

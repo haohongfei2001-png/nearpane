@@ -246,7 +246,7 @@ def restore_desktop_probe(control, directory: Path):
         return {'status':'NOT_NEEDED','restored':True,'reason':'The helper never ran.'}
     try:
         result = command([str(control['helper']),'restore','--state',str(control['work']),
-            '--evidence',str(directory)], timeout=4,termination_grace=.25,
+            '--evidence',str(directory)], timeout=6,termination_grace=.25,
             log=directory/'desktop-helper-restore-command.json')
         report = json.loads(result['stdout']) if result['exitCode'] == 0 else {}
         return report or {'status':'BLOCKED','restored':False,'reason':'Bounded restoration returned no confirmation.'}

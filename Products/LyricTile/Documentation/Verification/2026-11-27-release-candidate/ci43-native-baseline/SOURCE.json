@@ -1,0 +1,59 @@
+{
+  "sourceCommit": "1301b9b3731f6037307430ec61c0ee87104d85ad",
+  "build": 43,
+  "runID": 45999817063,
+  "artifactID": 15197879808,
+  "artifactSHA256": "b1a0202951587f42a50b95a12b6c579578cd9ea42b6727bc1778fd5184aeb0c4",
+  "files": {
+    "music-core.json": {
+      "originalPath": "dist/evidence/real-music/cloud-music.json",
+      "sha256": "7c19ad028694635f1c368cc925bb74e06ae8d7ebf91fa928f4a4dc843162d8b1",
+      "bytes": 21975
+    },
+    "music-source-readback.json": {
+      "originalPath": "dist/evidence/real-music/music-source-readback.json",
+      "sha256": "8490e9720bb4f7611f824cd8f8f7a36eab8f8bdd354d29c0111ecf07dba85e5a",
+      "bytes": 1209
+    },
+    "music-performance.json": {
+      "originalPath": "dist/evidence/real-music/performance/summary.json",
+      "sha256": "952fc651d9157911cee1b35755d4c38d66f1cadc87e9359b56bbb044abba35f6",
+      "bytes": 988
+    },
+    "qq-core.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/native-player.json",
+      "sha256": "89cd20019df7ffeb7d0ce9c10d7aeae127f7a39de9a1abdc2bfa1254080388e0",
+      "bytes": 16544
+    },
+    "qq-performance.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/performance/summary.json",
+      "sha256": "cdc9477da20d464da9399a1e5d10b343b1e909186947921d9a773a283ec0d3cf",
+      "bytes": 986
+    },
+    "qq-seek-source.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/source-05-seek-command-readback.json",
+      "sha256": "8afbdeb587a55340d804463c08fcfc77f84c8fe34b4f26ff55a7d8b79bc1c3e5",
+      "bytes": 2911
+    },
+    "qq-pause-source.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/source-11-pause-confirmed-and-interacted-panel-retained.json",
+      "sha256": "899ec8bbf5a743efd5df777f6bd2f352a970511b6857732439231610104f27ed",
+      "bytes": 3481
+    },
+    "netease-core.json": {
+      "originalPath": "dist/evidence/cloud-clients/netease/native-player/native-player.json",
+      "sha256": "e18c9d2280382acae22d44db8e68e04410dba1c770918313ef7c83b1c33afe26",
+      "bytes": 16486
+    },
+    "netease-performance.json": {
+      "originalPath": "dist/evidence/cloud-clients/netease/native-player/performance/summary.json",
+      "sha256": "a6333ca87fb79a235e99f786cc482ef55fc7732dc924a874be35b001abd4fad4",
+      "bytes": 980
+    },
+    "wallpaper-report.json": {
+      "originalPath": "dist/evidence/cloud-clients/qqMusic/native-player/desktop-wallpaper-report.json",
+      "sha256": "7425460dba8354f1c962250fe09137ab564afbf8b31a3689fe03565c9f95518b",
+      "bytes": 1518
+    }
+  }
+}

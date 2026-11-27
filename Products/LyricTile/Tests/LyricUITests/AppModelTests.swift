@@ -91,6 +91,95 @@ struct AppModelTests {
         #expect(model.actionMessage == nil)
         #expect(model.lyricFailure == nil)
     }
+
+    @Test func quietLineRefreshFollowsBackgroundBoundariesAndFreshSeekPosition() async throws {
+        let fixture = try ModelFixture(onlineEnabled: false)
+        defer { fixture.remove() }
+        let repository = LyricRepository(storageURL: fixture.directory, onlineEnabled: false)
+        let text = """
+        <tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata">
+        <body><div><p begin="0s" end="8s">First authored line<span ttm:role="x-bg" begin="3s" end="4s">Authored echo</span></p>
+        <p begin="8s" end="20s">Second authored line</p></div></body></tt>
+        """
+        _ = try await repository.importLyrics(Data(text.utf8), format: .ttmlAppleAMLL, for: fixture.selection())
+        let model = LyricAppModel(repository: repository, defaults: fixture.defaults)
+        let stamp = PlaybackClock.now()
+        model.receive(fixture.anchoredSnapshot(positionMS: 1_000, observedAt: stamp))
+        await (try #require(model.lyricTask)).value
+        #expect(model.frame.phase == .syncedLine)
+        #expect(model.currentCue?.text == "First authored line")
+        #expect(abs(model.nextRefreshDelay(at: stamp) - 2) < 0.0001)
+        // No new published frame is needed to keep the clock current. Both the
+        // background entry and its real end must still receive timely wakes.
+        let insideEcho = LyricDomain.MonotonicStamp(nanoseconds: stamp.nanoseconds + 2_500_000_000,
+                                                   clockDomainID: stamp.clockDomainID)
+        #expect(model.projectedPosition(at: insideEcho) == 3_500)
+        #expect(abs(model.nextRefreshDelay(at: insideEcho) - 0.5) < 0.0001)
+        let afterEcho = LyricDomain.MonotonicStamp(nanoseconds: stamp.nanoseconds + 3_500_000_000,
+                                                  clockDomainID: stamp.clockDomainID)
+        #expect(abs(model.nextRefreshDelay(at: afterEcho) - 3.5) < 0.0001)
+
+        let seekStamp = PlaybackClock.now()
+        model.receive(fixture.anchoredSnapshot(positionMS: 8_000, observedAt: seekStamp))
+        #expect(model.currentCue?.text == "Second authored line")
+        #expect(model.backgroundText == nil)
+        #expect(abs(model.nextRefreshDelay(at: seekStamp) - 12) < 0.0001)
+        model.receive(fixture.anchoredSnapshot(positionMS: 1_000, observedAt: seekStamp, rate: 2))
+        #expect(abs(model.nextRefreshDelay(at: seekStamp) - 1) < 0.0001)
+        model.changeAdvance(to: 500)
+        await (try #require(model.adjustmentTask)).value
+        #expect(abs(model.nextRefreshDelay(at: seekStamp) - 0.75) < 0.0001)
+        model.importLyrics(from: try fixture.file("[00:00]Replacement authored line\n[00:30]Later replacement"),
+                           for: fixture.selection())
+        await (try #require(model.lyricTask)).value
+        #expect(model.currentCue?.text == "Replacement authored line")
+        #expect(model.advanceMS == 0)
+        #expect(abs(model.nextRefreshDelay(at: seekStamp) - 14.5) < 0.0001)
+    }
+
+    @Test func hiddenProgressExpiresTheOriginalAnchorEvenWithoutLyrics() async throws {
+        let fixture = try ModelFixture(onlineEnabled: false)
+        defer { fixture.remove() }
+        let model = LyricAppModel(repository: LyricRepository(storageURL: fixture.directory, onlineEnabled: false),
+                                  defaults: fixture.defaults)
+        let stamp = PlaybackClock.now()
+        model.receive(fixture.anchoredSnapshot(positionMS: 2_000, observedAt: stamp))
+        await (try #require(model.lyricTask)).value
+        #expect(model.document == nil)
+        #expect(model.panelContent == .compact)
+        #expect(abs(model.nextRefreshDelay(at: stamp) - 15.001) < 0.0001)
+        let later = LyricDomain.MonotonicStamp(nanoseconds: stamp.nanoseconds + 12_000_000_000,
+                                             clockDomainID: stamp.clockDomainID)
+        #expect(model.projectedPosition(at: later) == 14_000)
+        #expect(abs(model.nextRefreshDelay(at: later) - 3.001) < 0.0001)
+        let expired = LyricDomain.MonotonicStamp(nanoseconds: stamp.nanoseconds + 15_001_000_000,
+                                               clockDomainID: stamp.clockDomainID)
+        #expect(model.projectedPosition(at: expired) == nil)
+        model.receive(fixture.anchoredSnapshot(positionMS: nil, observedAt: stamp,
+                                              state: .paused, rate: 0, quality: .unavailable))
+        #expect(model.playbackPositionMS == nil)
+        model.receive(fixture.anchoredSnapshot(positionMS: 7_000, observedAt: stamp, state: .paused, rate: 0))
+        #expect(model.projectedPosition(at: expired) == 7_000)
+    }
+
+    @Test func hoverAndQualifiedTokenLyricsKeepTheirRefreshCadence() async throws {
+        let fixture = try ModelFixture(onlineEnabled: false)
+        defer { fixture.remove() }
+        let repository = LyricRepository(storageURL: fixture.directory, onlineEnabled: false)
+        _ = try await repository.importLyrics(Data("[00:00]<00:00>Authored <00:02>words<00:04>".utf8),
+                                              format: .lrc, for: fixture.selection())
+        let model = LyricAppModel(repository: repository, defaults: fixture.defaults)
+        let stamp = PlaybackClock.now()
+        model.receive(fixture.anchoredSnapshot(positionMS: 0, observedAt: stamp,
+                                              quality: .verifiedSourceAnchor, expectedErrorMS: 100))
+        await (try #require(model.lyricTask)).value
+        #expect(model.frame.phase == .syncedToken)
+        #expect(model.nextRefreshDelay(at: stamp) == 1)
+        model.setControlsVisible(true)
+        #expect(model.nextRefreshDelay(at: stamp) == 0.25)
+        model.setControlsVisible(false)
+        #expect(model.nextRefreshDelay(at: stamp) == 1)
+    }
 }
 
 @MainActor
@@ -118,6 +207,15 @@ private struct ModelFixture {
     }
     func snapshot(generation: UInt64 = 1) -> PlaybackSnapshot {
         .init(player: .appleMusic, selection: selection(generation: generation), anchor: nil, state: .paused)
+    }
+    func anchoredSnapshot(positionMS: Int64?, observedAt: LyricDomain.MonotonicStamp,
+                          state: LyricDomain.PlaybackState = .playing, rate: Double = 1,
+                          quality: LyricDomain.ClockQuality = .coarseSourceAnchor,
+                          expectedErrorMS: Int64? = nil) -> PlaybackSnapshot {
+        let current = selection()
+        return .init(player: .appleMusic, selection: current,
+            anchor: .init(selection: current, positionMS: positionMS, observedAt: observedAt,
+                          playbackRate: rate, state: state, quality: quality, expectedErrorMS: expectedErrorMS), state: state)
     }
     func file(_ text: String) throws -> URL {
         let url = directory.appendingPathComponent("authored-import.lrc")
