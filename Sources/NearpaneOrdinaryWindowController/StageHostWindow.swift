@@ -271,19 +271,47 @@ private struct StagePreparedHostWindow: Sendable {
     /// observer or process-binding state. The same original AX receiver is used
     /// for every read, including while its owner's AXWindows list is empty.
     package func observationAsync(home: OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation {
-        guard !Task.isCancelled, accessPhase == .idle, self.home == home, monitor.canListAgain else {
+        let began = ProcessInfo.processInfo.systemUptime
+        var phase = "entry", rejection: String?, checks = [String: Bool](), completed = false
+        func checked(_ value: Bool, _ name: String) -> Bool {
+            checks[phase + "/" + name] = value
+            if !value { rejection = name }
+            return value
+        }
+        defer {
+            if !completed, ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+                let ended = ProcessInfo.processInfo.systemUptime
+                var facts: [String: Any] = ["event": "stageHostObservationRejected", "phase": phase,
+                    "pid": id.pid, "window": id.number, "checks": checks,
+                    "beganUptime": began, "uptime": ended, "durationMS": (ended - began) * 1000]
+                if let rejection { facts["guardRejection"] = rejection }
+                if var data = try? JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys]) {
+                    data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+                }
+            }
+        }
+        guard checked(!Task.isCancelled, "not-cancelled"), checked(accessPhase == .idle, "idle"),
+              checked(self.home == home, "home"), checked(monitor.canListAgain, "can-list-again") else {
             throw StageSwitchError.interrupted
         }
+        phase = "access-before"
         try access.check()
+        phase = "owner-before"
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         accessPhase = .reading
         defer { accessPhase = .idle }
+        phase = "physical-await"
         let sample = try await physicalReader.read(id, home: home)
-        guard !Task.isCancelled, accessPhase == .reading, self.home == home, monitor.canListAgain else {
+        phase = "return"
+        guard checked(!Task.isCancelled, "not-cancelled"), checked(accessPhase == .reading, "reading"),
+              checked(self.home == home, "home"), checked(monitor.canListAgain, "can-list-again") else {
             throw StageSwitchError.interrupted
         }
+        phase = "access-after"
         try access.check()
+        phase = "owner-after"
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
+        completed = true
         return sample
     }
 

@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "log": "engine.log",
+  "status": "PASS",
+  "stderr": "engine.stderr.log"
+}

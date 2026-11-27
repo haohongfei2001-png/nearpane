@@ -12,21 +12,54 @@ import SwiftUI
     /// The separately identified workspace or PID-scoped acceptance candidate uses this catalogue.
     /// Ordinary window tiling stays off; starting its legacy supervisor is unnecessary.
     var independentStageSnapshot: (@MainActor () -> DesktopSnapshot?)?
-    func permitsStageEngine(on display: String) -> Bool {
+    func permitsStageEngine(on display: String,
+                            onRejection: (@MainActor (String, [String: Any]) -> Void)? = nil) -> Bool {
+        func checked(_ value: Bool, _ reason: String) -> Bool {
+            if !value { onRejection?(reason, [:]) }
+            return value
+        }
         if IndependentStagePolicy.candidateRequested {
-            guard IndependentStagePolicy.candidateHasScope, AXIsProcessTrusted(), !suspended,
-                  mode == "off", count == 0, !ordinary.blocksUpdateRelaunch,
-                  desktopTiling.scope == nil, !desktopTiling.starting,
-                  let snapshot = independentStageSnapshot?(), snapshot.topologyConsistent,
-                  snapshot.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime),
-                  snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
-                  let scope = snapshot.scopes.first(where: { $0.displayID == display }),
-                  scope.records.filter(\.isCurrent).count == 1,
-                  scope.records.first(where: \.isCurrent)?.ordinaryUUID != nil else { return false }
+            guard checked(IndependentStagePolicy.candidateHasScope, "candidate-scope"),
+                  checked(AXIsProcessTrusted(), "accessibility"), checked(!suspended, "suspended"),
+                  checked(mode == "off", "mode"), checked(count == 0, "managed-count"),
+                  checked(!ordinary.blocksUpdateRelaunch, "ordinary-relaunch"),
+                  checked(desktopTiling.scope == nil, "tiling-scope"),
+                  checked(!desktopTiling.starting, "tiling-starting") else { return false }
+            guard let snapshot = independentStageSnapshot?() else {
+                onRejection?("snapshot-missing", [:]); return false
+            }
+            guard checked(snapshot.topologyConsistent, "snapshot-topology") else { return false }
+            let now = Date.now, uptime = ProcessInfo.processInfo.systemUptime
+            guard snapshot.nativeIsFresh(now: now, uptime: uptime) else {
+                // Record the inputs to this actual check; do not repeat a native
+                // read or use diagnostic state to grant a later permission.
+                if let onRejection {
+                    var facts: [String: Any] = ["snapshotRevision": snapshot.revision,
+                        "snapshotSession": snapshot.sessionID.uuidString, "checkedUptime": uptime,
+                        "checkedWallTime": now.timeIntervalSince1970,
+                        "sampledFrom": snapshot.sampledFrom.timeIntervalSince1970,
+                        "sampledTo": snapshot.sampledTo.timeIntervalSince1970]
+                    if let native = snapshot.native {
+                        facts["nativeBeganUptime"] = native.beganUptime
+                        facts["nativeEndedUptime"] = native.endedUptime
+                    }
+                    onRejection("snapshot-freshness", facts)
+                }
+                return false
+            }
+            guard checked(snapshot.native?.stageManagerEnabled == false, "native-stage-manager"),
+                  checked(snapshot.native?.catalogComplete == true, "native-catalog") else { return false }
+            guard let scope = snapshot.scopes.first(where: { $0.displayID == display }) else {
+                onRejection?("display-scope", [:]); return false
+            }
+            guard checked(scope.records.filter(\.isCurrent).count == 1, "current-record-count"),
+                  checked(scope.records.first(where: \.isCurrent)?.ordinaryUUID != nil, "ordinary-record") else { return false }
             return true
         }
-        return !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && ordinary.stageWindowExclusions != nil &&
+        let allowed = !suspended && supervisorReady && !blocked && mode == "off" && count == 0 && ordinary.stageWindowExclusions != nil &&
             desktopTiling.scope == nil && !desktopTiling.starting && context(for:display) != nil
+        if !allowed { onRejection?("ordinary-management", [:]) }
+        return allowed
     }
     public func enrollDesktopTrial(_ owners: [AdmissionFixtureOwner], display: String) -> Bool {
         guard scopedDisplay == display, enrolledDesktopFeed == nil, desktopTiling.scope == nil,

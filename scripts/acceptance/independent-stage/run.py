@@ -341,6 +341,11 @@ def source_checks(out, env):
     out.mkdir()
     env = dict(env, NEARPANE_FOUNDATION_ONLY="1")
     checks = {}
+    identity_test = out / "r4-file-identity-selftest"
+    checks["r4FileIdentityBuild"] = execute(["xcrun", "clang", "-std=gnu11", "-O1", "-Wall", "-Wextra", "-Werror",
+        HERE / "r4-file-identity-selftest.c", "-o", identity_test], out, "r4-file-identity-build", env, 30)
+    if checks["r4FileIdentityBuild"]["status"] == "PASS":
+        checks["r4FileIdentity"] = execute([identity_test], out, "r4-file-identity", env, 30)
     checks["rust"] = execute(["cargo", "test", "--manifest-path", ROOT / "Engine/nearpane-window-engine/Cargo.toml",
         "--locked", "--offline", "--no-default-features", "--features", "corner,spaces,isolated-fixtures"], out, "rust", env)
     archive_build = execute(["bash", "scripts/build-window-engine.sh"], out, "build-engine", env)

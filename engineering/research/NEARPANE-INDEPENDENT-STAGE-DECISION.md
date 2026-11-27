@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through 34f37360, 2026-11-28
+#### R4 latency work through c64bf6d5, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -224,7 +224,7 @@ application has not been replaced or terminated.
 [Target candidate](../verification/independent-stage/target-34f-candidate/README.md),
 [separate target preconditions and restoration](../verification/independent-stage/target-34f-preconditions/README.md).
 
-The next scoped correction declares accepted explicit user work using
+`c64bf6d5` declares accepted explicit user work using
 `ProcessInfo.userInitiatedAllowingIdleSystemSleep`, retaining it across the actual
 navigation job and any existing asynchronous release it initiates. It ends when
 those operations finish, not when long-lived hidden-window ownership disappears.
@@ -238,8 +238,8 @@ the previously missed queue interval. It distinguishes a sampler still capturing
 from one only processing symbols, and can add at most one late capture. Native
 uptime, external observations, capture-completion-marker observation and process
 reaping remain separate. Existing samples do not prove complete queue coverage or
-identify a single blocking function. Native verification of these next changes
-is pending; no deadline or physical-proof requirement is relaxed.
+identify a single blocking function. No deadline or physical-proof requirement
+is relaxed.
 
 The complete release lane explicitly disables external Host stack sampling for
 its formal R4 acceptance, while the fast debug lane retains the bounded diagnostic
@@ -248,6 +248,50 @@ unmeasured perturbation must not be folded into a product timing claim. This
 separation is not a same-build A/B experiment and cannot establish that sampling
 or activity alone caused a timing difference. All real-input, identity, complete
 physical readback, exact-focus and cleanup requirements stay identical.
+
+Exact c64 cloud source passes180 Rust and225 Swift tests with one skip, including
+all five new activity-lifetime tests. Both product lanes actually begin and end
+their user activity. Fast's24 paired read tasks have a maximum queue175.466ms;
+full's11 started tasks peak176.548ms, with one additional task never starting.
+Neither record reproduces the earlier3s read-task queue, but neither completes R4.
+Fast completes six witnesses and reaches exact focus, then its second focus
+confirmation returns after the unchanged8s acceptance window has begun shutdown.
+Both sibling windows remain visible. Its first-witness-to-next-witness interval
+is2236.644ms; only394.112ms of recorded canary panel work is separately measurable,
+so the remaining interval is not attributed to one native call or scheduling cause.
+
+Full, with all four sampler reports explicitly disabled, instead rejects its
+first witness after3990.683ms in `physical-window-observation`. The worker has only
+READY/CLOSED; it has not begun canary, HIDE or target focus. Its later Dock-expiry
+and shutdown records do not establish the earlier guard failure. The relevant
+dynamic management predicate uses the existing12s catalogue age/3s sample-duration
+check, not a hidden750ms Dock check. Host physical cleanup is confirmed in both
+lanes. Full CI desktop cleanup is also confirmed; fast's separate created desktop
+is retained because it is not independently confirmed empty, so whole-workspace
+cleanup is UNKNOWN in that lane.
+[Exact c64 cloud evidence](../verification/independent-stage/cloud-c64bf6d5-latency/README.md).
+
+The c64 target Mac completes the full release/package/signature checks and all26
+selected navigation tests. A new ordinary-desktop trial, with native Stage Manager
+already off and no competing engine worker, passes the foreign-window engine.
+Formal R4 has three ready fixture groups but issues zero inputs: its external
+controller rejects `directAcceptanceParentUnconfirmed`. Cleanup confirms all
+fixture returns and exits, the original desktop/foreground/preferences are
+preserved, and hardware input is unchanged. A separate read-only self-process
+probe demonstrates the concrete path mismatch: `proc_pidpath` reports
+`/private/tmp/...` while Foundation reports `/tmp/...`, with identical device and
+inode. The old controller compares those raw strings before its signature check.
+[Target c64 results and the path probe](../verification/independent-stage/target-c64-runtime/README.md).
+
+The next correction carries the Host's already captured executable device/inode
+into the R4 request. The R4-only verifier compares both canonical paths and those
+fixed file identities; direct parent, process birth, live/disk signatures, the
+acceptance marker and single-press deadline remain required. Its actual C
+comparator passes13 filesystem cases on both the local executor and the target
+Mac, including path aliases, redirection and replaced-file rejection. This does
+not upgrade the old zero-input trial. Cached failure labels also distinguish the
+existing witness, original-window reader and management checks, preserving their
+short-circuit order and native query count. New full native validation is pending.
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state

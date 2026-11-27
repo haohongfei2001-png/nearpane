@@ -20,6 +20,7 @@ import NearpaneOrdinaryWindowRuntime
     let scope: StageGroupScope
     let generation = UUID()
     private let available: @MainActor () -> Bool, restoreAvailable: @MainActor () -> Bool
+    private let availabilityRejection: @MainActor (Bool) -> [String: Any]?
     private let authorizedLifetimes: [NativeSpaceWindow: UUID]
     private var leases: [NativeSpaceWindow: OrdinaryFileLease]
     private var bindings = [NativeSpaceWindow:Binding](), claims = [NativeSpaceWindow:VisibilityClaim]()
@@ -62,7 +63,8 @@ import NearpaneOrdinaryWindowRuntime
     private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
 
     init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot, authorized: [NativeSpaceWindow: UUID],
-          available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool) {
+          available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool,
+          availabilityRejection: @escaping @MainActor (Bool) -> [String: Any]? = { _ in nil }) {
         guard let physical = snapshot.displays.first(where: { UUID(uuidString:$0.id) == scope.display }),
               !authorized.isEmpty, authorized.count <= 64 else { return nil }
         var acquired = [NativeSpaceWindow: OrdinaryFileLease]()
@@ -74,6 +76,7 @@ import NearpaneOrdinaryWindowRuntime
         self.feed = feed; self.scope = scope; self.session = snapshot.sessionID; display = physical.id
         topology = snapshot.topologyFingerprint
         self.available = available; self.restoreAvailable = restoreAvailable
+        self.availabilityRejection = availabilityRejection
     }
 
     func matches(_ scope: StageGroupScope) -> Bool { self.scope == scope }
@@ -148,10 +151,33 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool {
-        owner.generation == generation && self.owner.map { $0 == owner.backend } != false &&
-            (restoring ? restoreAvailable() && releaseInput.map({ $0 == NativeSelectionPermit.inputCounters() }) != false : available()) && WindowContentPreview.sessionAvailable() &&
-            !StageManagerPreference.ownsWindowDispatch && AXIsProcessTrusted() &&
-            (restoring || owner.backend == .spaces || WindowVisibilityProvider.corner.requiredPermissions.isSubset(of: StageWindowEngineAttestation.currentPermissions()))
+        checkedPermit(owner, restoring: restoring).allowed
+    }
+
+    private func checkedPermit(_ owner: StageEngineOwner, restoring: Bool) -> (allowed: Bool, rejection: [String: Any]?) {
+        var rejection: [String: Any]?
+        func checked(_ value: Bool, _ reason: String) -> Bool {
+            if !value {
+                rejection = ["reason": reason]
+                if reason == "availability", let facts = availabilityRejection(restoring) {
+                    rejection?["availability"] = facts
+                }
+            }
+            return value
+        }
+        // Preserve the original short-circuit order. The rejection describes
+        // this invocation; none of these live checks are repeated for logging.
+        guard checked(owner.generation == generation, "generation"),
+              checked(self.owner.map { $0 == owner.backend } != false, "backend-owner") else { return (false, rejection) }
+        if restoring {
+            guard checked(restoreAvailable(), "availability"),
+                  checked(releaseInput.map({ $0 == NativeSelectionPermit.inputCounters() }) != false, "release-input") else { return (false, rejection) }
+        } else if !checked(available(), "availability") { return (false, rejection) }
+        let allowed = checked(WindowContentPreview.sessionAvailable(), "session") &&
+            checked(!StageManagerPreference.ownsWindowDispatch, "native-stage-manager") &&
+            checked(AXIsProcessTrusted(), "accessibility") &&
+            checked(restoring || owner.backend == .spaces || WindowVisibilityProvider.corner.requiredPermissions.isSubset(of: StageWindowEngineAttestation.currentPermissions()), "corner-permissions")
+        return (allowed, rejection)
     }
 
     static func homeCatalog(_ snapshot: DesktopSnapshot?, display: String, space: UUID, session: UUID,
@@ -246,12 +272,16 @@ import NearpaneOrdinaryWindowRuntime
                       candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
         let readStarted = ProcessInfo.processInfo.systemUptime
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
+        var guardRejection: [String: Any]?, observationPhase: String?
         defer {
             if !completed {
-                IndependentStageTrace.record("witness-read-rejected", ["step": step,
+                var facts: [String: Any] = ["step": step,
                     "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
                     "bindings": bindings.count, "claims": claims.count, "sequence": sequence,
-                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000])
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000]
+                if let guardRejection { facts["guardRejection"] = guardRejection }
+                if let observationPhase { facts["observationPhase"] = observationPhase }
+                IndependentStageTrace.record("witness-read-rejected", facts)
             }
         }
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
@@ -265,10 +295,23 @@ import NearpaneOrdinaryWindowRuntime
         var expectedHome = home, expectedOwner = self.owner
         let expectedReleaseInput = releaseInput
         func unchanged() -> Bool {
-            !Task.isCancelled && bindings == expectedBindings && claims == expectedClaims &&
-                Set(leases.keys) == expectedLeases && home == expectedHome && self.owner == expectedOwner &&
-                releaseInput == expectedReleaseInput &&
-                (permits(owner, restoring: false) || permits(owner, restoring: true))
+            guardRejection = nil
+            func checked(_ value: Bool, _ reason: String) -> Bool {
+                if !value { guardRejection = ["reason": reason] }
+                return value
+            }
+            guard checked(!Task.isCancelled, "cancelled"), checked(bindings == expectedBindings, "bindings"),
+                  checked(claims == expectedClaims, "claims"), checked(Set(leases.keys) == expectedLeases, "leases"),
+                  checked(home == expectedHome, "home"), checked(self.owner == expectedOwner, "owner"),
+                  checked(releaseInput == expectedReleaseInput, "release-input") else { return false }
+            let ordinary = checkedPermit(owner, restoring: false)
+            if ordinary.allowed { return true }
+            let restoring = checkedPermit(owner, restoring: true)
+            if restoring.allowed { return true }
+            guardRejection = ["reason": "permission"]
+            if let facts = ordinary.rejection { guardRejection?["ordinary"] = facts }
+            if let facts = restoring.rejection { guardRejection?["restoring"] = facts }
+            return false
         }
         step = "opening-roster"
         let (opening,keys) = try await roster(first, access: access, current: unchanged)
@@ -303,10 +346,17 @@ import NearpaneOrdinaryWindowRuntime
         var states = [NativeSpaceWindow:StageWindowState](), focuses = [NativeSpaceWindow?]()
         for (key,b) in observedBindings {
             step = "physical-window-observation"; reading = key
+            observationPhase = "before"
             guard unchanged() else { throw StageSwitchError.interrupted }
+            observationPhase = "await"
             let observed = try await b.monitor.observationAsync(home: desktop)
+            observationPhase = "after"
             let sameBinding = bindings[key] == b || (bindings[key] == nil && candidate?.0 == key && candidate?.1 == b)
-            guard unchanged(), sameBinding else { throw StageSwitchError.interrupted }
+            guard unchanged() else { throw StageSwitchError.interrupted }
+            guard sameBinding else {
+                guardRejection = ["reason": "same-binding"]; throw StageSwitchError.interrupted
+            }
+            observationPhase = nil
             step = "physical-window-classification"
             if let (target, landing) = measured, key == target {
                 let frame = CGRect(x: landing.x, y: landing.y, width: landing.width, height: landing.height)

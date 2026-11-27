@@ -1438,7 +1438,8 @@ import Security
         let resultURL = output.appendingPathComponent(stem + ".result.json")
         let request: [String: Any] = ["schema": 1, "nonce": config.nonce.uuidString.lowercased(),
             "configuration": configuration.resolvingSymlinksInPath().path, "result": resultURL.path,
-            "host": ["pid": getpid(), "birth": host.launch, "executable": host.executable.path, "number": number],
+            "host": ["pid": getpid(), "birth": host.launch, "executable": host.executable.path,
+                     "device": UInt64(truncatingIfNeeded: host.device), "inode": UInt64(host.inode), "number": number],
             "identifiers": ids.sorted()]
         let child = Process(); child.executableURL = binary; child.arguments = ["--press-r4", requestURL.path]
         let logURL = output.appendingPathComponent(stem + ".log"), errorURL = output.appendingPathComponent(stem + ".stderr.log")
