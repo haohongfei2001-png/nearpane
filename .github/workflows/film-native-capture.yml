@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: film-native-${{ github.ref }}
+  group: film-native-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
   capture:
@@ -38,6 +38,8 @@ jobs:
           export GIT_CONFIG_VALUE_1="AUTHORIZATION: basic $film_auth"
           swift package resolve
       - name: Render authored native production views at six times logical scale
+        env:
+          LYRICTILE_FILM_PROBE: ${{ contains(github.event.head_commit.message, '[probe]') && '1' || '0' }}
         run: |
           set -o pipefail
           cd "$RUNNER_TEMP/film-product"
@@ -51,6 +53,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Build real app with capture-only instrumentation
+        if: ${{ !contains(github.event.head_commit.message, '[native-only]') }}
         env:
           LYRICTILE_BUILD_NUMBER: 49
           FILM_SOURCE_SHA: ${{ github.sha }}
@@ -60,6 +63,7 @@ jobs:
           cd "$RUNNER_TEMP/film-product"
           bash Scripts/build-app.sh 2>&1 | tee "$RUNNER_TEMP/film-output/app-build.log"
       - name: Record actual Music playback and real OS pointer interactions
+        if: ${{ !contains(github.event.head_commit.message, '[native-only]') }}
         run: |
           python3 Marketing/FirstFilm/native/record_desktop.py "$RUNNER_TEMP/film-output" &
           film_recorder=$!
@@ -68,7 +72,7 @@ jobs:
           LYRICTILE_FILM_OUTPUT="$RUNNER_TEMP/film-output" python3 Scripts/check-cloud-music.py dist/LyricTile.app --output "$RUNNER_TEMP/film-output/real-music"
           wait "$film_recorder"
       - name: Capture an actual TextEdit work window
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && !contains(github.event.head_commit.message, '[native-only]') }}
         run: swift Marketing/FirstFilm/native/capture_textedit.swift "$RUNNER_TEMP/film-output/work-window"
       - name: Preserve only film assets and provenance
         if: ${{ !cancelled() }}

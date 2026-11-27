@@ -15,7 +15,8 @@ struct FilmCaptureTests {
         _ = NSApplication.shared
         let directory = URL(fileURLWithPath: output, isDirectory: true).appendingPathComponent("authored-native")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        for language in ["zh", "en"] {
+        let probe = ProcessInfo.processInfo.environment["LYRICTILE_FILM_PROBE"] == "1"
+        for language in (probe ? ["zh"] : ["zh", "en"]) {
             let suite = "FilmCapture." + UUID().uuidString
             let defaults = try #require(UserDefaults(suiteName: suite))
             let storage = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
@@ -38,17 +39,33 @@ struct FilmCaptureTests {
             try lines.enumerated().map { String(format:"[00:%02d.00]",$0.offset*4)+$0.element }.joined(separator:"\n").write(to:lrc,atomically:true,encoding:.utf8)
             model.importLyrics(from:lrc,for:selection)
             if let task = model.lyricTask { await task.value }
-            let size = NSSize(width:208,height:192)
-            let view = NSHostingView(rootView:LyricPanelView(model:model))
+            func content(scale: CGFloat) -> some View {
+                LyricPanelView(model: model)
+                    .frame(width: 208, height: 192)
+                    .scaleEffect(scale, anchor: .topLeading)
+                    .frame(width: 208 * scale, height: 192 * scale, alignment: .topLeading)
+                    .environment(\.displayScale, 1)
+            }
+            let size = NSSize(width:1248,height:1152)
+            let view = NSHostingView(rootView: content(scale: 6))
             view.frame = NSRect(origin:.zero,size:size)
-            let window = NSWindow(contentRect:NSRect(x:180,y:250,width:208,height:192),styleMask:[.borderless],backing:.buffered,defer:false)
+            let window = NSWindow(contentRect:NSRect(x:180,y:250,width:1248,height:1152),styleMask:[.borderless],backing:.buffered,defer:false)
             window.isReleasedWhenClosed = false; window.backgroundColor = .clear; window.isOpaque = false; window.hasShadow = false
             window.appearance = NSAppearance(named:.aqua); window.contentView = view; window.orderFrontRegardless()
-            for cue in 0..<8 {
+            for cue in (probe ? [2] : Array(0..<8)) {
                 update(Int64(cue*4_000+500))
                 try await Task.sleep(for:.milliseconds(240))
-                try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent("\(language)-cue-\(cue).png"))
+                try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent("\(language)-cue-\(cue).png"), scale: 1)
             }
+            if probe {
+                window.orderOut(nil); window.close()
+                defaults.removePersistentDomain(forName:suite)
+                try? FileManager.default.removeItem(at:storage)
+                continue
+            }
+            view.rootView = content(scale: 4)
+            view.frame = NSRect(x: 0, y: 0, width: 832, height: 768)
+            window.setContentSize(NSSize(width: 832, height: 768))
             let motionDirectory = directory.appendingPathComponent(language+"-native-motion")
             try FileManager.default.createDirectory(at: motionDirectory, withIntermediateDirectories: true)
             update(6_500)
@@ -63,21 +80,24 @@ struct FilmCaptureTests {
                 update(6_500 + Int64(elapsed * 1_000))
                 await Task.yield()
                 let name = String(format: "frame-%04d.png", index)
-                try FilmCaptureSupport.save(view: view, to: motionDirectory.appendingPathComponent(name), scale: 4)
+                try FilmCaptureSupport.save(view: view, to: motionDirectory.appendingPathComponent(name), scale: 1)
                 motionFrames.append(["file": name, "elapsed": elapsed, "positionMS": 6_500 + Int64(elapsed * 1_000), "cueIndex": model.currentCueIndex ?? -1])
             }
             let motionReport: [String: Any] = ["kind": "authored-native-view-motion", "realPlayer": false, "productionView": "LyricPanelView", "origin": "Original HOLDSNOW demo lyrics; fixture source positions follow host monotonic elapsed time.", "renderScale": 4, "targetFPS": 30, "frames": motionFrames, "limitations": "Native production SwiftUI cue transition rendered with authored input; not a player, transport or acoustic-sync qualification."]
             try JSONSerialization.data(withJSONObject: motionReport, options: [.prettyPrinted, .sortedKeys]).write(to: motionDirectory.appendingPathComponent("capture.json"))
+            view.rootView = content(scale: 6)
+            view.frame = NSRect(x: 0, y: 0, width: 1248, height: 1152)
+            window.setContentSize(NSSize(width: 1248, height: 1152))
             update(10_000)
             model.songMenuIsOpen = true
             model.setControlsVisible(true)
             try await Task.sleep(for:.milliseconds(240))
-            try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent(language+"-hover-layout-only.png"))
+            try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent(language+"-hover-layout-only.png"), scale: 1)
             window.orderOut(nil); window.close()
             defaults.removePersistentDomain(forName:suite)
             try? FileManager.default.removeItem(at:storage)
         }
-        let report:[String:Any] = ["kind":"authored-native-layout-fixture", "productionView":"LyricPanelView", "logicalSize":[208,192],"renderScale":6,"languages":["zh","en"],"cuesPerLanguage":8,"realPlayerTest":false,"transportEnabled":false,"limitations":"Original authored fixture states rendered by production AppKit/SwiftUI view. Hover layout only; actual enabled controls and interactions are in real-music captures."]
+        let report:[String:Any] = ["kind":"authored-native-layout-fixture", "productionView":"LyricPanelView", "logicalSize":[208,192],"renderScale":6,"languages":probe ? ["zh"] : ["zh","en"],"probeOnly":probe,"cuesPerLanguage":probe ? 1 : 8,"captureMethod":"Native view at unchanged 208x192 logical layout, scaled by SwiftUI into a larger actual hosting surface, then captured at 1x; no bitmap enlargement","realPlayerTest":false,"transportEnabled":false,"limitations":"Original authored fixture states rendered by production AppKit/SwiftUI view. Hover layout only; actual enabled controls and interactions are in real-music captures."]
         try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]).write(to:directory.appendingPathComponent("SOURCE.json"))
     }
 }
