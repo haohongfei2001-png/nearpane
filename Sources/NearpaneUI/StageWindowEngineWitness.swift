@@ -181,23 +181,42 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     static func homeCatalog(_ snapshot: DesktopSnapshot?, display: String, space: UUID, session: UUID,
-                            topology: String) -> NativeSpaceCatalog? {
-        guard let snapshot, snapshot.sessionID == session, snapshot.topologyFingerprint == topology,
-              snapshot.native?.stageManagerEnabled == false, snapshot.native?.catalogComplete == true,
-              let catalog = NativeSpaceCatalog(snapshot, displayID: display, now: .now, uptime: ProcessInfo.processInfo.systemUptime),
-              catalog.current.ordinaryUUID == space else { return nil }
+                            topology: String, rejected: (([String: Any]) -> Void)? = nil) -> NativeSpaceCatalog? {
+        var checkedAt: Date?, checkedUptime: TimeInterval?
+        func checked(_ value: Bool, _ reason: String) -> Bool {
+            if !value, let rejected {
+                var facts: [String: Any] = ["stage": "home-catalog", "reason": reason]
+                if let checkedAt { facts["catalogCheckDate"] = checkedAt.timeIntervalSince1970 }
+                if let checkedUptime { facts["catalogCheckUptime"] = checkedUptime }
+                rejected(facts)
+            }
+            return value
+        }
+        guard checked(snapshot != nil, "snapshot"), let snapshot,
+              checked(snapshot.sessionID == session, "session"),
+              checked(snapshot.topologyFingerprint == topology, "topology"),
+              checked(snapshot.native?.stageManagerEnabled == false, "stage-manager"),
+              checked(snapshot.native?.catalogComplete == true, "catalog-complete") else { return nil }
+        // Capture each original clock once, only when the original catalogue
+        // construction is reached. A rejection never reruns its live checks.
+        let now = Date(), uptime = ProcessInfo.processInfo.systemUptime
+        checkedAt = now; checkedUptime = uptime
+        let result = NativeSpaceCatalog(snapshot, displayID: display, now: now, uptime: uptime)
+        guard checked(result != nil, "native-catalog"), let catalog = result,
+              checked(catalog.current.ordinaryUUID == space, "current-space") else { return nil }
         return catalog
     }
 
-    func homeCatalog(_ snapshot: DesktopSnapshot?) -> NativeSpaceCatalog? {
-        Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology)
+    func homeCatalog(_ snapshot: DesktopSnapshot?, rejected: (([String: Any]) -> Void)? = nil) -> NativeSpaceCatalog? {
+        Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology, rejected: rejected)
     }
 
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess,
+                        rejected: (([String: Any]) -> Void)? = nil,
                         current: @MainActor () -> Bool) async throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
-        guard let catalog = homeCatalog(snapshot) else { throw StageSwitchError.incomplete }
+        guard let catalog = homeCatalog(snapshot, rejected: rejected) else { throw StageSwitchError.incomplete }
         let originalBindings = bindings, originalClaims = claims, originalHome = home, originalOwner = owner
-        let candidates = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id) { _ in true }
+        let candidates = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id, rejected: rejected) { _ in true }
         var keys = Set<NativeSpaceWindow>()
         for key in candidates {
             guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
@@ -214,17 +233,69 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     static func ordinaryRoster(_ windows: [WindowObservation], on display: String, current: String,
+                              rejected: (([String: Any]) -> Void)? = nil,
                               role: (NativeSpaceWindow) throws -> Bool) throws -> Set<NativeSpaceWindow> {
+        func incomplete(_ reason: String, _ window: WindowObservation) -> StageSwitchError {
+            if let rejected {
+                var facts: [String: Any] = ["stage": "ordinary-roster", "reason": reason,
+                    "pid": window.metadata?.pid ?? 0, "window": window.metadata?.number ?? 0,
+                    "currentRecord": String(current.prefix(80))]
+                switch window.membership {
+                case .unknown: facts["membership"] = "unknown"
+                case .known(let records):
+                    facts["membership"] = "known"
+                    facts["membershipCount"] = records.count
+                    facts["membershipRecords"] = records.prefix(8).map { String($0.prefix(80)) }
+                    facts["membershipRecordsTruncated"] = records.count > 8 || records.contains { $0.count > 80 }
+                }
+                rejected(facts)
+            }
+            return .incomplete
+        }
         var candidates = Set<NativeSpaceWindow>(), keys = Set<NativeSpaceWindow>()
         for w in windows where w.displayID == display {
-            guard case .known(let records) = w.membership else { throw StageSwitchError.incomplete }
+            guard case .known(let records) = w.membership else { throw incomplete("unknown-membership", w) }
             guard records.contains(current) else { continue }
-            guard records == [current], let k = DesktopWindowKey(w) else { throw StageSwitchError.incomplete }
+            guard records == [current] else { throw incomplete("nonexclusive-current-membership", w) }
+            guard let k = DesktopWindowKey(w) else { throw incomplete("window-identity", w) }
             let key = NativeSpaceWindow(pid: k.pid, birth: k.birth, number: k.number)
-            guard candidates.insert(key).inserted, candidates.count <= 64 else { throw StageSwitchError.incomplete }
+            guard candidates.insert(key).inserted else { throw incomplete("duplicate-window", w) }
+            guard candidates.count <= 64 else { throw incomplete("window-count", w) }
             if try role(key) { keys.insert(key) }
         }
         return keys
+    }
+
+    /// Bounded metadata from the exact rejected read, never a later feed snapshot
+    /// or a second native query. Window titles, frames and contents are omitted.
+    private static func rosterSnapshotFacts(_ snapshot: DesktopSnapshot, display: String) -> [String: Any] {
+        let scopes = snapshot.scopes.filter { $0.displayID == display }
+        var facts: [String: Any] = ["session": snapshot.sessionID.uuidString, "revision": snapshot.revision,
+            "sampledFrom": snapshot.sampledFrom.timeIntervalSince1970, "sampledTo": snapshot.sampledTo.timeIntervalSince1970,
+            "freshness": snapshot.freshness.rawValue, "topologyConsistent": snapshot.topologyConsistent,
+            "separateSpaces": snapshot.separateSpaces.map { $0 ? "true" : "false" } ?? "unavailable",
+            "displayCount": snapshot.displays.count, "displayPresent": snapshot.displays.contains { $0.id == display },
+            "scopeCount": snapshot.scopes.count, "matchingScopeCount": scopes.count, "windowCount": snapshot.windows.count,
+            "scopeFactsTruncated": scopes.count > 4 || scopes.contains { $0.records.count > 16 }]
+        facts["scopes"] = scopes.prefix(4).map { scope -> [String: Any] in
+            ["recordCount": scope.records.count, "records": scope.records.prefix(16).map { record -> [String: Any] in
+                ["id": String(record.id.prefix(80)), "current": record.isCurrent,
+                 "ordinaryUUID": record.ordinaryUUID?.uuidString ?? "unavailable",
+                 "fullscreenUUID": record.fullscreenUUID?.uuidString ?? "unavailable"]
+            }]
+        }
+        if let native = snapshot.native {
+            let issues = native.catalogIssues ?? []
+            facts["population"] = native.population.rawValue; facts["spaces"] = native.spaces.rawValue
+            facts["catalogComplete"] = native.catalogComplete.map { $0 ? "true" : "false" } ?? "unavailable"
+            facts["stageManagerEnabled"] = native.stageManagerEnabled.map { $0 ? "true" : "false" } ?? "unavailable"
+            facts["windowLimitReached"] = native.windowLimitReached
+            facts["nativeBeganUptime"] = native.beganUptime; facts["nativeEndedUptime"] = native.endedUptime
+            facts["catalogIssueCount"] = issues.count
+            facts["catalogIssues"] = issues.prefix(12).map { String($0.prefix(200)) }
+            facts["catalogIssuesTruncated"] = issues.count > 12 || issues.contains { $0.count > 200 }
+        }
+        return facts
     }
 
     /// A foreground app can be active on a second monitor while this display keeps its work set.
@@ -273,6 +344,7 @@ import NearpaneOrdinaryWindowRuntime
         let readStarted = ProcessInfo.processInfo.systemUptime
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
         var guardRejection: [String: Any]?, observationPhase: String?
+        var rosterRejection: [String: Any]?, rejectedRoster: DesktopSnapshot?
         defer {
             if !completed {
                 var facts: [String: Any] = ["step": step,
@@ -281,6 +353,13 @@ import NearpaneOrdinaryWindowRuntime
                     "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000]
                 if let guardRejection { facts["guardRejection"] = guardRejection }
                 if let observationPhase { facts["observationPhase"] = observationPhase }
+                if let rosterRejection { facts["rosterRejection"] = rosterRejection }
+                if let rejectedRoster {
+                    facts["rosterSnapshot"] = Self.rosterSnapshotFacts(rejectedRoster, display: display)
+                    facts["expectedSession"] = session.uuidString
+                    facts["expectedDisplay"] = display
+                    facts["expectedSpace"] = scope.nativeSpace.uuidString
+                }
                 IndependentStageTrace.record("witness-read-rejected", facts)
             }
         }
@@ -314,7 +393,9 @@ import NearpaneOrdinaryWindowRuntime
             return false
         }
         step = "opening-roster"
-        let (opening,keys) = try await roster(first, access: access, current: unchanged)
+        let (opening,keys) = try await roster(first, access: access, rejected: {
+            rosterRejection = $0; rejectedRoster = first
+        }, current: unchanged)
         step = "opening-scope"
         let initial = enrolledTopology ?? first.scopes
         guard unchanged(), first.scopes == initial else { throw StageSwitchError.interrupted }
@@ -383,7 +464,9 @@ import NearpaneOrdinaryWindowRuntime
         let physicalReady = ProcessInfo.processInfo.systemUptime
         step = "closing-roster"; reading = nil
         guard let last = await feed.readAfterAction(), unchanged(),
-              let closing = try? await roster(last, access: access, current: unchanged), unchanged(), closing.1 == keys,
+              let closing = try? await roster(last, access: access, rejected: {
+                  rosterRejection = $0; rejectedRoster = last
+              }, current: unchanged), unchanged(), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]

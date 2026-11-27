@@ -390,6 +390,7 @@ import OSLog
     @ObservationIgnored private var reportedCounts: [Int]?
     @ObservationIgnored weak var automaticTiling: DesktopAutomaticTiling?
     @ObservationIgnored var didSample: (() -> Void)?
+    @ObservationIgnored var didBeginAfterActionRead: ((Date, TimeInterval) -> Void)?
     private var panelRequested = false
     private var managementRequested = false
     private var stageOwnershipObserved = false
@@ -581,25 +582,58 @@ import OSLog
 
     /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
     func readAfterAction() async -> DesktopSnapshot? {
-        let boundary = revision, expected = epoch, started = ProcessInfo.processInfo.systemUptime
+        let boundary = revision, expected = epoch, afterDate = Date(), started = ProcessInfo.processInfo.systemUptime
         var priorMS: Double = 0, freshMS: Double = 0, receivedRevision: UInt64 = 0
-        var step = "waiting-prior", completed = false, hadPrior = false
+        var step = "waiting-prior", completed = false, hadPrior = false, reusedPrior = false
+        var priorResult: DesktopSnapshot?
         defer {
-            IndependentStageTrace.record("after-action-directory-read", ["step": step, "completed": completed,
+            var facts: [String: Any] = ["step": step, "completed": completed,
                 "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
                 "priorWaitMS": priorMS, "freshReadMS": freshMS, "hadPrior": hadPrior,
+                "reusedPrior": reusedPrior, "boundaryDate": afterDate.timeIntervalSince1970, "boundaryUptime": started,
                 "boundaryRevision": boundary, "receivedRevision": receivedRevision, "revision": revision,
-                "epochMatches": epoch == expected, "cancelled": Task.isCancelled, "pendingRead": pending != nil])
+                "epochMatches": epoch == expected, "cancelled": Task.isCancelled, "pendingRead": pending != nil]
+            if let priorResult {
+                facts["priorRevision"] = priorResult.revision
+                facts["priorSampledFrom"] = priorResult.sampledFrom.timeIntervalSince1970
+                if let native = priorResult.native { facts["priorNativeBeganUptime"] = native.beganUptime }
+            }
+            IndependentStageTrace.record("after-action-directory-read", facts)
         }
+        didBeginAfterActionRead?(afterDate, started)
         if let prior = pending {
             hadPrior = true
             let began = ProcessInfo.processInfo.systemUptime
-            _ = await prior.1.value
+            priorResult = await prior.1.value
             priorMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
             if pending?.0 == prior.0 { pending = nil }
         }
         step = "epoch-after-prior"
         guard epoch == expected else { return nil }
+        step = "observation-after-prior"
+        guard !Task.isCancelled, observationRequested, events != nil else { return nil }
+        // A queued request may not have begun its actual native sample until
+        // after this call. Reuse only that complete, still-fresh sample; retain
+        // its real revision so the next serial read must establish a later one.
+        if let priorResult, priorResult.sessionID == session, priorResult.revision == boundary,
+           priorResult.isStructurallyValid, let native = priorResult.native,
+           native.catalogComplete == true, !native.windowLimitReached,
+           priorResult.sampledFrom > afterDate, native.beganUptime > started {
+            step = "session-after-prior"
+            guard sessionAvailable() else {
+                departingPictures = nil
+                boundSidebarPair?.revoke(.feedInvalidated)
+                lifetimes.removeAll()
+                sidebarWindows = .init()
+                return nil
+            }
+            guard !Task.isCancelled else { return nil }
+            if priorResult.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) {
+                receivedRevision = priorResult.revision
+                reusedPrior = true; step = "complete"; completed = true
+                return priorResult
+            }
+        }
         step = "fresh-read"
         let began = ProcessInfo.processInfo.systemUptime
         let result = await readNow()

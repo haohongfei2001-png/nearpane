@@ -41,7 +41,7 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through 60cf3219, 2026-11-28
+#### R4 latency work through 6d058079, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact
@@ -328,10 +328,10 @@ from these R4 results.
 [Target60cf without sampling](../verification/independent-stage/target-60cf-runtime/README.md).
 [Separate target60cf diagnostic](../verification/independent-stage/target-60cf-diagnostic/README.md).
 
-The next narrow scheduling correction gives only the existing periodic Dock poll
+`6d058079` gives only the existing periodic Dock poll
 user-initiated priority while navigation is dispatching, preserving its idle
 priority, read cadence,750 ms bound and revocation semantics. Per-request timing
-will distinguish creation, actual task start and the same request's physical
+distinguishes creation, actual task start and the same request's physical
 return. The physical reader's final continuity checks also receive cached,
 short-circuit failure labels without additional native reads or weaker proofs.
 The60cf full release runtime, with sampling disabled, issues one real R4 input.
@@ -345,6 +345,47 @@ takes1,912.256 ms and the initial witness2,518.362 ms, while subsequent witnesse
 are much shorter. The direct engine passes26 requests, and Host double physical
 return and outer CI workspace cleanup both pass. The new source comparator's
 original stdout confirms13 PASS, zero failures and zero window writes.
+
+The6d05 native source gate passes180 Rust and227 Swift cases with one skip;
+both new test functions pass, including both priority arguments and the bounded
+in-memory inventory diagnostic. Its sampled fast lane issues two actual R4
+inputs and completes the first full switch in7,442.021 ms: target54 remains
+visible on home12 with exact focus, while siblings56/57 are independently
+confirmed hidden in Spaces33/34 with their original frames. Its34 periodic
+Dock polls created during navigation actually run at priority25, and neither
+action is revoked by Dock ownership. The second action fails in the next
+opening roster after the last successful witness sequence25; its current
+directory revision68 returns successfully and is rejected0.373 ms later.
+The full release, without sampling, fails at its first opening roster after
+only912.271 ms from the actual press. Preparation succeeds in234.217 ms and
+the directory read in517.407 ms, with no prior wait or ownership revocation.
+Thus neither particular rejection is an eight-second timeout or evidence of
+slow task admission. The failing snapshots' exact catalog/roster condition is
+not yet captured; a later good snapshot must not replace it. All three direct
+engines pass, and both products' physical cleanup and outer CI cleanup pass.
+[Exact6d05 cloud results](../verification/independent-stage/cloud-6d058079-latency/README.md).
+
+The target6d05 release build, package and signature pass, but both original
+context receipts explicitly say `screenLocked=true`. The wrapper incorrectly
+continued because its guard checked console/login and secure-input status
+without that lock flag. The engine and product then correctly refuse useful
+work: no engine window writes, no product directory snapshot and zero R4 input.
+All fixture cleanup and original context checks pass. This is a locked-session
+precondition failure, not a product scheduling regression. Subsequent target
+orchestration now refuses a locked session and will not request foreground
+restoration while locked. No unlock operation is attempted.
+[Target6d05 original locked-session evidence](../verification/independent-stage/target-6d05-runtime/README.md).
+
+The next implementation can reuse a pending directory result only when its
+actual native start and wall-clock sampling start are both strictly later than
+the current `readAfterAction` entry, with current session/epoch, complete uncapped
+data and fresh evidence. It retains the real revision and the subsequent
+independent reads. The60cf full trace contains a concrete candidate: revision3
+starts native sampling31.402 ms after entry but the current code still performs
+an additional861.340 ms fresh read. The old trace lacks its wall-clock start,
+so this is potential avoided work, not a demonstrated speedup. Additional
+cached roster-rejection facts will distinguish the actual opening-catalog and
+membership conditions without adding native queries or weakening them.
 
 Freshness limits are unchanged and distinct: Dock ownership 750 ms, catalogue
 maximum age 12 seconds and sampling duration 3 seconds, and actual R4 physical-state
