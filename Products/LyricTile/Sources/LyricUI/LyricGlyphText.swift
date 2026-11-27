@@ -3,6 +3,40 @@ import CoreText
 import LyricCore
 import SwiftUI
 
+/// One shared, bounded cache keeps viewport measurement and glyph shaping in
+/// agreement without re-typesetting on each playback or hover update.
+@MainActor
+enum LyricTextLayout {
+    static let contentHeight: CGFloat = 65_536
+    private struct Key: Equatable {
+        let text: String
+        let fontSize: CGFloat
+        let width: CGFloat
+    }
+    private static var cached: (key: Key, frame: CTFrame)?
+
+    static func frame(text: String, fontSize: CGFloat, width: CGFloat) -> CTFrame {
+        let key = Key(text: text, fontSize: fontSize, width: width)
+        if let cached, cached.key == key { return cached.frame }
+        let style = NSMutableParagraphStyle()
+        style.alignment = .natural
+        style.baseWritingDirection = .natural
+        let lineHeight = LyricPanelLayout.lineHeight(for: fontSize)
+        style.minimumLineHeight = lineHeight; style.maximumLineHeight = lineHeight
+        style.lineBreakMode = .byWordWrapping
+        let attributed = NSAttributedString(string: text, attributes: [
+            .font: NSFont.systemFont(ofSize: fontSize, weight: .medium),
+            .paragraphStyle: style,
+            NSAttributedString.Key(rawValue: kCTForegroundColorFromContextAttributeName as String): true
+        ])
+        let setter = CTFramesetterCreateWithAttributedString(attributed)
+        let path = CGPath(rect: CGRect(x: 0, y: 0, width: max(1, width - 5), height: contentHeight), transform: nil)
+        let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
+        cached = (key, frame)
+        return frame
+    }
+}
+
 /// Native shaping is cached by text, typography and width. Only the clip mask changes per frame.
 public struct LyricGlyphText: NSViewRepresentable {
     public let cue: LyricDomain.Cue
@@ -53,6 +87,7 @@ public final class LyricGlyphView: NSView {
     private var fontSize: CGFloat = 20
     private var dark = false
     private var cachedWidth: CGFloat = -1
+    private var cachedHeight: CGFloat = -1
     private var rows: [Row] = []
     private var boxes: [GlyphBox] = []
     private var tokenBoxes: [String: [GlyphBox]] = [:]
@@ -95,7 +130,13 @@ public final class LyricGlyphView: NSView {
     public override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); scheduleClock() }
     public override func layout() {
         super.layout()
-        if abs(cachedWidth - bounds.width) > 0.5 { rebuildLayout(); needsDisplay = true }
+        let widthChanged = abs(cachedWidth - bounds.width) > 0.5
+        if widthChanged { rebuildLayout() }
+        if widthChanged || abs(cachedHeight - bounds.height) > 0.5 {
+            cachedHeight = bounds.height
+            verticalOffset = min(verticalOffset, max(0, totalHeight - viewportHeight))
+            needsDisplay = true
+        }
         toolTip = totalHeight > viewportHeight + 0.5 ? cue?.text : nil
     }
     public func stopClock() { timer?.invalidate(); timer = nil }
@@ -111,20 +152,8 @@ public final class LyricGlyphView: NSView {
         cachedWidth = bounds.width
         rows = []; boxes = []; tokenBoxes = [:]; totalHeight = 0; maskLayoutValid = true
         guard let cue, bounds.width > 1, !cue.text.isEmpty else { return }
-        let style = NSMutableParagraphStyle()
-        style.alignment = .natural
-        style.baseWritingDirection = .natural
-        style.minimumLineHeight = lineHeight; style.maximumLineHeight = lineHeight
-        style.lineBreakMode = .byWordWrapping
-        let attributed = NSAttributedString(string: cue.text, attributes: [
-            .font: NSFont.systemFont(ofSize: fontSize, weight: .medium),
-            .paragraphStyle: style,
-            NSAttributedString.Key(rawValue: kCTForegroundColorFromContextAttributeName as String): true
-        ])
-        let setter = CTFramesetterCreateWithAttributedString(attributed)
-        let contentHeight: CGFloat = 65_536
-        let path = CGPath(rect: CGRect(x: 0, y: 0, width: max(1, bounds.width - 5), height: contentHeight), transform: nil)
-        let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0), path, nil)
+        let contentHeight = LyricTextLayout.contentHeight
+        let frame = LyricTextLayout.frame(text: cue.text, fontSize: fontSize, width: bounds.width)
         let lines = CTFrameGetLines(frame) as! [CTLine]
         var origins = Array(repeating: CGPoint.zero, count: lines.count)
         if !origins.isEmpty { CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins) }

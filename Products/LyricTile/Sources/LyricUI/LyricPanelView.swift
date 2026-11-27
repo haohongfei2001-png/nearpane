@@ -105,15 +105,14 @@ public struct LyricPanelView: View {
             ?? (model.document?.timingLevel == .some(.none) ? "未同步歌词" : nil)
         let hasSupplement = supplement != nil
         let font: CGFloat = model.settings.largeText ? 22 : width <= 184 ? 18 : 20
-        let rowHeight = LyricPanelLayout.lineHeight(for: font)
-        let viewport = LyricPanelLayout.lyricViewportHeight(for: model.currentCue?.text,
-            fontSize: font, availableWidth: width - 28)
-        let gap: CGFloat = viewport > rowHeight ? 5 : (hasSupplement ? 9 : 11)
-        return VStack(alignment: .leading, spacing: gap) {
-            contextLine(at: -2)
+        let layout = LyricPanelLayout.readingLayout(for: model.currentCue?.text,
+            fontSize: font, availableWidth: width - 28, hasSupplement: hasSupplement,
+            controlsVisible: model.controlsVisible)
+        return VStack(alignment: .leading, spacing: layout.spacing) {
+            if layout.contextRadius == 2 { contextLine(at: -2) }
             contextLine(at: -1)
             VStack(alignment: .leading, spacing: 3) {
-                currentLine(fontSize: font).frame(height: viewport)
+                currentLine(fontSize: font).frame(height: layout.viewportHeight)
                 if let supplement {
                     Text(supplement).font(.system(size: 11)).foregroundStyle(secondary)
                         .lineLimit(1).frame(height: 13).help(supplement)
@@ -122,7 +121,7 @@ public struct LyricPanelView: View {
                 }
             }
             contextLine(at: 1)
-            contextLine(at: 2)
+            if layout.contextRadius == 2 { contextLine(at: 2) }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

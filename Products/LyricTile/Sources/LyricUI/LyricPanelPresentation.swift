@@ -1,4 +1,5 @@
 import AppKit
+import CoreText
 import LyricCore
 import LyricPlayback
 
@@ -15,18 +16,34 @@ public enum LyricPanelLayout {
         fontSize >= 22 ? 29 : fontSize <= 18 ? 25 : 27
     }
 
-    /// A single short cue does not reserve an unused second row. The outer
-    /// tile is stable; the native glyph viewport uses one or two whole rows.
-    @MainActor static func lyricViewportHeight(for text: String?, fontSize: CGFloat,
-                                               availableWidth: CGFloat) -> CGFloat {
+    struct ReadingLayout {
+        let contextRadius: Int
+        let viewportHeight: CGFloat
+        let spacing: CGFloat
+    }
+
+    /// Spend the fixed surface on the current cue before distant context.
+    /// Measuring the same CoreText frame used by the native view also handles
+    /// explicit line breaks, word wrapping and composed/RTL text consistently.
+    @MainActor static func readingLayout(for text: String?, fontSize: CGFloat,
+                                         availableWidth: CGFloat, hasSupplement: Bool,
+                                         controlsVisible: Bool) -> ReadingLayout {
         let row = lineHeight(for: fontSize)
-        guard let text, !text.isEmpty else { return row }
-        let singleWidth = (text as NSString).size(withAttributes: [
-            .font: NSFont.systemFont(ofSize: fontSize, weight: .medium)
-        ]).width
-        let fits = text.rangeOfCharacter(from: .newlines) == nil
-            && singleWidth <= max(0, availableWidth - 8)
-        return row * (fits ? 1 : 2)
+        let requiredRows: Int
+        if let text, !text.isEmpty {
+            let frame = LyricTextLayout.frame(text: text, fontSize: fontSize, width: availableWidth)
+            requiredRows = max(1, CFArrayGetCount(CTFrameGetLines(frame)))
+        } else { requiredRows = 1 }
+        let longCue = requiredRows > 2
+        let spacing: CGFloat = longCue ? 6 : requiredRows > 1 ? 5 : hasSupplement ? 9 : 11
+        // Two nearby cues use 40 pt; translations keep their own 16 pt band.
+        let availableHeight = lyricsHeight - 24 - 40 - spacing * 2 - (hasSupplement ? 16 : 0)
+        let readingRows = longCue ? min(4, Int(availableHeight / row)) : 2
+        // Hover keeps complete rows between the existing header and controls.
+        // The cue's centre stays fixed; the window never expands on hover.
+        let visibleRows = min(requiredRows, controlsVisible ? 2 : readingRows)
+        return ReadingLayout(contextRadius: longCue ? 1 : 2,
+                             viewportHeight: row * CGFloat(visibleRows), spacing: spacing)
     }
 }
 

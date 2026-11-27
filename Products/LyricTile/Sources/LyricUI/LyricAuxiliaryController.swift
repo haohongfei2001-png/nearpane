@@ -21,7 +21,13 @@ public final class LyricAuxiliaryController: NSObject, NSWindowDelegate {
         if let existing = windows[page] {
             existing.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return
         }
-        let size: NSSize = page == .fullLyrics ? NSSize(width: 360, height: 520) : page == .settings ? NSSize(width: 450, height: 620) : NSSize(width: 400, height: 450)
+        let size: NSSize
+        switch page {
+        case .fullLyrics: size = NSSize(width: 360, height: 520)
+        case .settings: size = NSSize(width: 450, height: 620)
+        case .welcome: size = NSSize(width: 400, height: 360)
+        default: size = NSSize(width: 400, height: 450)
+        }
         var style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
         if page == .fullLyrics || page == .candidates { style.insert(.resizable) }
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: style, backing: .buffered, defer: false)
@@ -63,6 +69,7 @@ private struct LyricAuxiliaryView: View {
     @State private var loginStatus = SMAppService.mainApp.status
     @State private var loginBusy = false
     @State private var sourceExpanded = false
+    @State private var positionExpanded = false
     @State private var followsCurrentLine = true
 
     var body: some View {
@@ -96,18 +103,25 @@ private struct LyricAuxiliaryView: View {
     }
 
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable().interpolation(.high).scaledToFit()
-                .frame(width: 64, height: 64)
-            Text("歌词，自然在旁。").font(.system(size: 25, weight: .medium))
-            Text("播放音乐时，歌词会自动出现在桌面右侧；停止播放后自动收起。鼠标移到歌词板上即可控制播放。")
-                .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(5)
-            Text("首次连接 Apple Music 或 Spotify 时，macOS 可能请求自动化权限，用于读取歌曲与控制播放。")
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(4)
-            Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics).toggleStyle(.checkbox).font(.system(size: 12))
-            Text("在线查找会向歌词服务发送歌曲、歌手、专辑和时长，用于匹配歌词。")
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(4)
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                        .resizable().interpolation(.high).scaledToFit()
+                        .frame(width: 52, height: 52)
+                    Text("歌词，自然在旁。").font(.system(size: 24, weight: .medium))
+                }
+                Text("播放时自动出现，不播放时自动收起。\n移到歌词板上，即可查看歌曲和控制播放。")
+                    .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(4)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
+                    .toggleStyle(.checkbox).font(.system(size: 12))
+                Text("查找时会向歌词服务发送歌名、歌手、专辑和时长。也可关闭，在菜单栏导入本地歌词。")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
+            }
+            Text("Apple Music 与 Spotify 首次连接时可能请求自动化权限，用于读取歌曲与控制播放。")
+                .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(3)
             Spacer(minLength: 0)
             HStack {
                 Button("开始使用") {
@@ -116,32 +130,22 @@ private struct LyricAuxiliaryView: View {
                     model.requestShowPanel?()
                 }.buttonStyle(.borderedProminent).tint(Color(red: 0.188, green: 0.196, blue: 0.227))
                     .keyboardShortcut(.defaultAction)
-                Button("先看看设置") { model.show(.settings) }.buttonStyle(.plain)
+                Button("打开设置") { model.show(.settings) }.buttonStyle(.plain)
             }
-        }.padding(30)
+        }.padding(28)
     }
 
     private var settings: some View {
         Form {
-            Section("显示") {
-                Picker("外观", selection: $model.settings.appearance) {
+            Section("外观") {
+                Picker("配色", selection: $model.settings.appearance) {
                     Text("跟随系统").tag(LyricSettings.Appearance.automatic)
                     Text("浅色").tag(LyricSettings.Appearance.light)
                     Text("深色").tag(LyricSettings.Appearance.dark)
                 }
                 Toggle("大号歌词", isOn: $model.settings.largeText)
-                Picker("显示器", selection: Binding(get: { model.settings.preferredDisplayUUID ?? "" }, set: {
-                    model.settings.preferredDisplayUUID = $0.isEmpty ? nil : $0
-                    model.requestReposition?()
-                })) {
-                    Text("当前显示器").tag("")
-                    ForEach(LyricScreenIdentity.screens, id: \.id) { screen in Text(screen.name).tag(screen.id) }
-                }
-                Button("恢复右上角位置") { model.requestReposition?() }
-                Toggle("与其他 HOLDSNOW 工具自动排列", isOn: $model.settings.coordinateTiles)
-                    .help("与支持自动排列的 HOLDSNOW 工具共享右侧空间")
                 Toggle("在全屏时显示", isOn: $model.settings.showInFullScreen)
-                Text("播放时自动显示，停止后自动收起。")
+                Text("播放时自动显示，不播放时自动收起。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("播放与歌词") {
@@ -172,13 +176,25 @@ private struct LyricAuxiliaryView: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Button("在系统设置中允许登录启动") { SMAppService.openSystemSettingsLoginItems() }
                 }
+                DisclosureGroup("桌面位置", isExpanded: $positionExpanded) {
+                    Picker("显示器", selection: Binding(get: { model.settings.preferredDisplayUUID ?? "" }, set: {
+                        model.settings.preferredDisplayUUID = $0.isEmpty ? nil : $0
+                        model.requestReposition?()
+                    })) {
+                        Text("当前显示器").tag("")
+                        ForEach(LyricScreenIdentity.screens, id: \.id) { screen in Text(screen.name).tag(screen.id) }
+                    }
+                    Toggle("与其他 HOLDSNOW 工具自动排列", isOn: $model.settings.coordinateTiles)
+                        .help("与支持自动排列的 HOLDSNOW 工具共享右侧空间")
+                    Button("恢复右上角位置") { model.requestReposition?() }
+                }
                 HStack {
                     Text("LyricTile").foregroundStyle(.secondary)
-                    Spacer()
                     Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版本")
                         .foregroundStyle(.secondary)
+                    Spacer(minLength: 12)
+                    Button("检查更新…") { model.requestUpdateCheck?() }
                 }
-                Button("检查更新…") { model.requestUpdateCheck?() }
             }
         }.formStyle(.grouped)
     }

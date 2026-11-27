@@ -68,12 +68,22 @@ struct PanelLayoutTests {
                 #expect(frame.height <= 30)
             }
             if scenario == .narrowDarkLongLyrics {
-                #expect(frame.height >= 58)
+                #expect(frame.height == 87)
                 #expect(glyph.toolTip == scenario.currentLine)
+            }
+            if scenario == .lightLongLyrics {
+                #expect(frame.height >= 81 && frame.height <= 108)
+                #expect(glyph.toolTip == nil)
+            }
+            if scenario.hover {
+                let top = hosting.isFlipped ? frame.minY : size.height - frame.maxY
+                let bottom = hosting.isFlipped ? frame.maxY : size.height - frame.minY
+                #expect(top >= 46 && bottom <= 131)
+                #expect(frame.height <= 58)
             }
             #expect(frame.minX >= -0.5 && frame.maxX <= size.width + 0.5)
             #expect(frame.minY >= -0.5 && frame.maxY <= size.height + 0.5)
-            if scenario == .narrowDarkLongLyrics {
+            if scenario.dark {
                 #expect(model.translationText == PanelLayoutFixture.translation)
             }
         } else {
@@ -101,6 +111,27 @@ struct PanelLayoutTests {
         }
         try saveEvidenceIfRequested(window: window, scenario: scenario,
                                     glyphCount: glyphs.count, maximumAlpha: alpha)
+
+        if scenario == .lightLongLyrics || scenario == .narrowDarkLongLyrics {
+            let glyph = try #require(glyphs.first)
+            let original = hosting.convert(glyph.bounds, from: glyph)
+            // A still cue has no animation clock to repair a stale clip. Change
+            // only hover/height, retaining the very same native glyph view.
+            model.songMenuIsOpen = true
+            model.setControlsVisible(true)
+            try await Task.sleep(for: .milliseconds(80))
+            hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
+            let hovered = hosting.convert(glyph.bounds, from: glyph)
+            #expect(hovered.height < original.height)
+            #expect(abs(hovered.midY - original.midY) < 0.5)
+            #expect(glyph.toolTip == scenario.currentLine)
+            model.songMenuIsOpen = false
+            model.setControlsVisible(false)
+            try await Task.sleep(for: .milliseconds(80))
+            hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
+            #expect(hosting.convert(glyph.bounds, from: glyph) == original)
+            #expect(scenario == .narrowDarkLongLyrics || glyph.toolTip == nil)
+        }
     }
 
     private func nativeGlyphs(in view: NSView) -> [LyricGlyphView] {
@@ -151,21 +182,34 @@ struct PanelLayoutTests {
 enum PanelLayoutScenario: String, CaseIterable, Sendable {
     case lightLyrics = "light-lyrics"
     case lightLyricsHover = "light-lyrics-hover"
+    case lightLongLyrics = "light-long-lyrics"
+    case lightLongLyricsHover = "light-long-lyrics-hover"
     case compact = "compact"
     case compactHover = "compact-hover"
     case narrowDarkLongLyrics = "narrow-dark-long-lyrics"
+    case narrowDarkLongLyricsHover = "narrow-dark-long-lyrics-hover"
     case missingMetadata = "missing-metadata"
     case noSong = "no-song-transparent"
 
-    var width: CGFloat { self == .narrowDarkLongLyrics ? 176 : 208 }
+    var width: CGFloat { dark ? 176 : 208 }
     var height: CGFloat { hasLyrics || self == .noSong ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight }
-    var dark: Bool { self == .narrowDarkLongLyrics }
-    var hover: Bool { self == .lightLyricsHover || self == .compactHover || self == .missingMetadata }
-    var hasLyrics: Bool { self == .lightLyrics || self == .lightLyricsHover || self == .narrowDarkLongLyrics }
+    var dark: Bool { self == .narrowDarkLongLyrics || self == .narrowDarkLongLyricsHover }
+    var hover: Bool {
+        [.lightLyricsHover, .lightLongLyricsHover, .compactHover,
+         .narrowDarkLongLyricsHover, .missingMetadata].contains(self)
+    }
+    var hasLyrics: Bool {
+        [.lightLyrics, .lightLyricsHover, .lightLongLyrics, .lightLongLyricsHover,
+         .narrowDarkLongLyrics, .narrowDarkLongLyricsHover].contains(self)
+    }
     var currentLine: String {
-        self == .narrowDarkLongLyrics
-            ? "我把窗边缓缓经过的风写进一张还没有寄出的信里，等街角的灯再次亮起"
-            : "让这一刻慢下来"
+        switch self {
+        case .narrowDarkLongLyrics, .narrowDarkLongLyricsHover:
+            "我把窗边缓缓经过的风写进一张还没有寄出的信里，等街角的灯再次亮起"
+        case .lightLongLyrics, .lightLongLyricsHover:
+            "沿着安静的街道，慢慢走向那一盏还没有熄灭的灯"
+        default: "让这一刻慢下来"
+        }
     }
 }
 
@@ -188,8 +232,8 @@ private struct PanelLayoutFixture {
         var settings = LyricSettings()
         settings.onlineLyrics = false
         settings.appearance = scenario.dark ? .dark : .light
-        settings.largeText = scenario == .narrowDarkLongLyrics
-        settings.showTranslation = scenario == .narrowDarkLongLyrics
+        settings.largeText = scenario.dark
+        settings.showTranslation = scenario.dark
         settings.save(to: defaults)
     }
 
