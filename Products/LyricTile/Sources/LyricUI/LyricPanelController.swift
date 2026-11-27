@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import LyricCore
 import SwiftUI
 import TileKit
 
@@ -50,7 +51,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         panel.isFloatingPanel = true; panel.becomesKeyOnlyIfNeeded = true
         panel.level = .floating; panel.isMovableByWindowBackground = false
         panel.title = "LyricTile"
-        panel.setAccessibilityLabel("LyricTile 歌词板")
+        panel.setAccessibilityLabel(LyricLocalization.text("LyricTile 歌词板", "LyricTile lyrics"))
         let hosting = NSHostingView(rootView: LyricPanelView(model: model))
         let container = LyricPanelContainer(hosting: hosting, onDragBegin: { [weak self] in
             self?.dragging = true
@@ -141,7 +142,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
         let visible = selected.screen.visibleFrame
         let width = TileGeometry.standaloneWidth(visibleWidth: visible.width)
         guard visible.width >= width + 32, visible.height >= LyricPanelLayout.maximumHeight + 32 else {
-            withdraw(); model.actionMessage = "这个显示器的可用空间不足，请在设置中选择其他显示器。"; return
+            withdraw(); model.actionMessage = LyricLocalization.text("这个显示器的可用空间不足，请在设置中选择其他显示器。", "There is not enough room on this display. Choose another display in Settings."); return
         }
         let stored = reset ? nil : saved[selected.id]
         let x = stored.map { visible.minX + 16 + (visible.width - width - 32) * min(1, max(0, $0.horizontalFraction)) }
@@ -281,7 +282,7 @@ private final class LyricDragStrip: NSView {
     init(onBegin: @escaping @MainActor () -> Void, onEnd: @escaping @MainActor (NSPoint) -> Void) {
         self.onBegin = onBegin; self.onEnd = onEnd
         super.init(frame: .zero)
-        toolTip = "拖动以调整右侧列顺序，或移到另一显示器"
+        toolTip = LyricLocalization.text("拖动以调整右侧列顺序，或移到另一显示器", "Drag to reorder the right column or move to another display")
     }
     required init?(coder: NSCoder) { return nil }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

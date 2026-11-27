@@ -1,3 +1,4 @@
+import LyricCore
 import AppKit
 import Foundation
 import LyricPlayback
@@ -33,12 +34,12 @@ public enum LyricAuxiliaryPage: String, Identifiable, Sendable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .welcome: "欢迎使用 LyricTile"
-        case .settings: "LyricTile 设置"
-        case .candidates: "选择歌词版本"
-        case .adjustment: "歌词时间校准"
-        case .source: "歌词来源"
-        case .fullLyrics: "完整歌词"
+        case .welcome: LyricLocalization.text("欢迎使用 LyricTile", "Welcome to LyricTile")
+        case .settings: LyricLocalization.text("LyricTile 设置", "LyricTile Settings")
+        case .candidates: LyricLocalization.text("选择歌词版本", "Choose lyric version")
+        case .adjustment: LyricLocalization.text("歌词时间校准", "Adjust lyric timing")
+        case .source: LyricLocalization.text("歌词来源", "Lyric source")
+        case .fullLyrics: LyricLocalization.text("完整歌词", "Full lyrics")
         }
     }
 }

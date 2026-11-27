@@ -1,3 +1,4 @@
+import LyricCore
 import Foundation
 import Sparkle
 
@@ -11,7 +12,7 @@ final class LyricUpdateController {
               let url = URL(string: feed), url.scheme == "https", url.host != nil,
               let key = bundle.object(forInfoDictionaryKey: "SUPublicEDKey") as? String,
               Data(base64Encoded: key)?.count == 32 else {
-            configurationMessage = "这是独立候选构建，尚未连接正式更新频道。安装与歌词功能可以正常使用。"
+            configurationMessage = LyricLocalization.text("这是独立候选构建，尚未连接正式更新频道。安装与歌词功能可以正常使用。", "This candidate build is not connected to a release update channel. Installation and lyrics remain available.")
             return
         }
         let controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
@@ -19,13 +20,13 @@ final class LyricUpdateController {
             try controller.updater.start()
             self.controller = controller
         } catch {
-            configurationMessage = "更新服务未能启动：\(error.localizedDescription)"
+            configurationMessage = LyricLocalization.text("更新服务未能启动：\(error.localizedDescription)", "The update service could not start: \(error.localizedDescription)")
         }
     }
     /// nil means Sparkle opened its real update flow; never report "up to date"
     /// when no signed feed has been configured.
     func checkForUpdates() -> String? {
-        guard let controller else { return configurationMessage ?? "尚未配置更新频道。" }
+        guard let controller else { return configurationMessage ?? LyricLocalization.text("尚未配置更新频道。", "No update channel is configured.") }
         controller.checkForUpdates(nil)
         return nil
     }

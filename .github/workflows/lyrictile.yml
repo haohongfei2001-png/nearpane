@@ -8,6 +8,7 @@ on:
       - 'Products/LyricTile/Package.resolved'
       - 'Products/LyricTile/Sources/**'
       - 'Products/LyricTile/Tests/**'
+      - 'Products/LyricTile/Tools/**'
       - 'Products/LyricTile/Scripts/**'
       - 'Products/LyricTile/Packaging/**'
       - 'Products/LyricTile/Resources/**'
@@ -36,6 +37,7 @@ jobs:
         run: |
           mkdir -p dist/evidence
           { sw_vers; uname -m; xcodebuild -version; swift --version; git rev-parse HEAD; } | tee dist/evidence/host.txt
+          security find-identity -v -p codesigning > dist/evidence/signing-identities.txt
           echo "LYRICTILE_ARCH=$(uname -m)" >> "$GITHUB_ENV"
           echo "LYRICTILE_BUILD_NUMBER=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
       - name: Resolve the pinned public packages
@@ -85,12 +87,26 @@ jobs:
       - name: Load the production native panel without fabricated playback
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/run-native-smoke.py dist/LyricTile.app --output dist/evidence
+      - name: Verify candidate ZIP, mounted DMG, versions and checksums
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        run: |
+          python3 Scripts/verify-release.py --app dist/LyricTile.app \
+            --archive "dist/LyricTile-1.0.0-${LYRICTILE_BUILD_NUMBER}-candidate-${LYRICTILE_ARCH}.zip" \
+            --dmg "dist/LyricTile-1.0.0-${LYRICTILE_BUILD_NUMBER}-candidate-${LYRICTILE_ARCH}.dmg" \
+            --checksums dist/SHA256SUMS --expected-commit "$GITHUB_SHA" --minimum-build 36 \
+            --mode candidate --output dist/evidence/release-integrity.json
       - name: Verify the actual private framework and packaged helper load
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/verify-media-helper.py dist/LyricTile.app/Contents/Resources/MediaRemote --output dist/evidence/media-helper-load.json
       - name: Measure the ordinary candidate at idle on this host
         if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
         run: python3 Scripts/check-idle-runtime.py dist/LyricTile.app --output dist/evidence/idle --seconds 120
+      - name: Verify real Music local playback without an account
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        run: python3 Scripts/check-cloud-music.py dist/LyricTile.app --output dist/evidence/real-music
+      - name: Probe the live lyric service with the production repository
+        if: ${{ !cancelled() && steps.bundle.outcome == 'success' }}
+        run: swift run --configuration release LyricServiceProbe --output dist/evidence/live-lyrics.json
       - name: Preserve candidate and verification evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

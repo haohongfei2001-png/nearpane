@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import Darwin
 import Foundation
+import LyricCore
 import LyricPlayback
 import LyricUI
 import TileKit
@@ -35,6 +36,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     private var terminateReady = false
     private let nativeLoadCheck = CommandLine.arguments.contains("--smoke-test")
     private var nativeLoadFailed = false
+    private var nativePlayerVerificationFailed = false
     private var tileCoordinator: TileDesktopCoordinator!
     private var placementTask: Task<Void, Never>?
     private var updateController: LyricUpdateController?
@@ -78,14 +80,15 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "text.alignleft", accessibilityDescription: "LyricTile")
             button.image?.isTemplate = true
-            button.toolTip = "LyricTile · 歌词，自然在旁。"
+            button.toolTip = LyricLocalization.text("LyricTile · 歌词，自然在旁。", "LyricTile · Lyrics, naturally alongside.")
         }
         let menu = NSMenu(); menu.autoenablesItems = false; menu.delegate = self; statusItem.menu = menu
         rebuildMenu(menu)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(handoffRequested), name: LyricHandoff.request, object: nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(ownerReleased), name: LyricHandoff.released, object: nil)
         model.$snapshot.sink { [weak self] snapshot in
-            self?.statusItem.button?.toolTip = snapshot.selection?.recording.title.map { "LyricTile · \($0)" } ?? "LyricTile · 歌词，自然在旁。"
+            self?.statusItem.button?.toolTip = snapshot.selection?.recording.title.map { "LyricTile · \($0)" }
+                ?? LyricLocalization.text("LyricTile · 歌词，自然在旁。", "LyricTile · Lyrics, naturally alongside.")
         }.store(in: &subscriptions)
         model.$settings.sink { [weak self] settings in
             guard let self else { return }
@@ -99,12 +102,21 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         if nativeLoadCheck { runNativeLoadCheck() }
         else if model.settings.completedWelcome { activate(userInitiated: false) }
         else { model.show(.welcome) }
+        if LyricNativePlayerVerification.requested && !nativeLoadCheck {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                nativePlayerVerificationFailed = !(await LyricNativePlayerVerification.run(model: model, panel: panelController))
+                RunLoop.main.perform(inModes: [.default]) {
+                    MainActor.assumeIsolated { NSApp.terminate(nil) }
+                }
+            }
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationWillTerminate(_ notification: Notification) {
         nativeShutdownTrace("application-will-terminate")
-        if nativeLoadCheck && nativeLoadFailed { Darwin.exit(EXIT_FAILURE) }
+        if (nativeLoadCheck && nativeLoadFailed) || nativePlayerVerificationFailed { Darwin.exit(EXIT_FAILURE) }
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if nativeLoadCheck { return false }
@@ -136,25 +148,28 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     private func rebuildMenu(_ menu: NSMenu) {
         menu.removeAllItems()
         if suspendedForHost {
-            add(menu, "歌词正在 Nearpane 中显示", nil, enabled: false)
+            add(menu, LyricLocalization.text("歌词正在 Nearpane 中显示", "Lyrics are showing in Nearpane"), nil, enabled: false)
         } else if model.snapshot.state == .playing, model.snapshot.selection != nil {
-            add(menu, panelController.wantsPresentation ? "隐藏歌词板" : "显示歌词板", #selector(togglePanel))
+            add(menu, panelController.wantsPresentation ? LyricLocalization.text("隐藏歌词板", "Hide lyric tile")
+                : LyricLocalization.text("显示歌词板", "Show lyric tile"), #selector(togglePanel))
         } else {
-            add(menu, model.snapshot.state == .paused ? "已暂停 · 播放后显示歌词" : "播放音乐时自动显示", nil, enabled: false)
+            add(menu, model.snapshot.state == .paused ? LyricLocalization.text("已暂停 · 播放后显示歌词", "Paused · lyrics return when music plays")
+                : LyricLocalization.text("播放音乐时自动显示", "Appears when music plays"), nil, enabled: false)
             if model.snapshot.selection != nil, model.snapshot.capabilities.canPlay {
-                add(menu, "继续播放", #selector(resumePlayback), enabled: model.ownsSession)
+                add(menu, LyricLocalization.text("继续播放", "Resume playback"), #selector(resumePlayback), enabled: model.ownsSession)
             }
         }
         if model.snapshot.requiresAuthorization {
-            add(menu, "连接\(model.snapshot.player?.displayName ?? "播放器")", #selector(reconnect), enabled: model.ownsSession)
-            add(menu, "允许访问播放器…", #selector(automationSettings))
+            add(menu, LyricLocalization.text("连接\(model.snapshot.player?.displayName ?? "播放器")",
+                "Connect to \(model.snapshot.player?.displayName ?? "player")"), #selector(reconnect), enabled: model.ownsSession)
+            add(menu, LyricLocalization.text("允许访问播放器…", "Allow player access…"), #selector(automationSettings))
         } else if let status = model.snapshot.statusMessage {
             add(menu, status, nil, enabled: false)
-            add(menu, "重新连接", #selector(reconnect), enabled: model.ownsSession)
+            add(menu, LyricLocalization.text("重新连接", "Reconnect"), #selector(reconnect), enabled: model.ownsSession)
         }
-        let source = NSMenuItem(title: "跟随的播放器", action: nil, keyEquivalent: "")
+        let source = NSMenuItem(title: LyricLocalization.text("跟随的播放器", "Follow player"), action: nil, keyEquivalent: "")
         let sourceMenu = NSMenu(); sourceMenu.autoenablesItems = false
-        let automatic = add(sourceMenu, "自动", #selector(selectPlayer(_:)))
+        let automatic = add(sourceMenu, LyricLocalization.text("自动", "Automatic"), #selector(selectPlayer(_:)))
         automatic.representedObject = ""; automatic.state = model.settings.player == nil ? .on : .off
         for player in PlayerID.allCases {
             let item = add(sourceMenu, player.displayName, #selector(selectPlayer(_:)))
@@ -162,16 +177,16 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         }
         source.submenu = sourceMenu; source.isEnabled = !suspendedForHost; menu.addItem(source)
         if model.snapshot.selection != nil {
-            add(menu, "为当前歌曲导入歌词…", #selector(importLyrics), enabled: model.ownsSession)
-            add(menu, "选择歌词版本…", #selector(chooseLyrics), enabled: model.ownsSession)
+            add(menu, LyricLocalization.text("为当前歌曲导入歌词…", "Import lyrics for this track…"), #selector(importLyrics), enabled: model.ownsSession)
+            add(menu, LyricLocalization.text("选择歌词版本…", "Choose lyric version…"), #selector(chooseLyrics), enabled: model.ownsSession)
         }
-        if model.document != nil { add(menu, "完整歌词", #selector(fullLyrics)) }
+        if model.document != nil { add(menu, LyricLocalization.text("完整歌词", "Full lyrics"), #selector(fullLyrics)) }
         menu.addItem(.separator())
-        add(menu, "设置…", #selector(settings), key: ",")
-        add(menu, "检查更新…", #selector(update))
-        add(menu, "关于 LyricTile", #selector(about))
+        add(menu, LyricLocalization.text("设置…", "Settings…"), #selector(settings), key: ",")
+        add(menu, LyricLocalization.text("检查更新…", "Check for updates…"), #selector(update))
+        add(menu, LyricLocalization.text("关于 LyricTile", "About LyricTile"), #selector(about))
         menu.addItem(.separator())
-        add(menu, "退出 LyricTile", #selector(quit), key: "q")
+        add(menu, LyricLocalization.text("退出 LyricTile", "Quit LyricTile"), #selector(quit), key: "q")
     }
     @discardableResult private func add(_ menu: NSMenu, _ title: String, _ action: Selector?, key: String = "", enabled: Bool = true) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
@@ -192,7 +207,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
                 }
             }
             guard !Task.isCancelled, acquired else {
-                statusItem.button?.toolTip = model.ownershipMessage ?? "歌词会话暂不可用"
+                statusItem.button?.toolTip = model.ownershipMessage ?? LyricLocalization.text("歌词会话暂不可用", "Lyric session unavailable")
                 return
             }
             suspendedForHost = false
@@ -222,7 +237,7 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             }
             guard await tileCoordinator.stop() else {
                 LyricHandoff.acknowledge(requestID, succeeded: false)
-                model.actionMessage = "旧桌面占位尚未释放，歌词会话交接仍在等待。"
+                model.actionMessage = LyricLocalization.text("旧桌面占位尚未释放，歌词会话交接仍在等待。", "Waiting for the previous desktop position to be released before handing over lyrics.")
                 return
             }
             guard !Task.isCancelled, !terminating else {
@@ -258,7 +273,8 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     @objc private func quit() { NSApp.terminate(nil) }
     @objc private func about() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "LyricTile", .credits: NSAttributedString(string: "HOLDSNOW · 歌词，自然在旁。")])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "LyricTile", .credits: NSAttributedString(string:
+            LyricLocalization.text("HOLDSNOW · 歌词，自然在旁。", "HOLDSNOW · Lyrics, naturally alongside."))])
     }
     private func checkForUpdates() {
         if let message = updateController?.checkForUpdates() {
@@ -299,6 +315,10 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
     private func runNativeLoadCheck() {
         Task { @MainActor [weak self] in
             guard let self else { return }
+            if let index = CommandLine.arguments.firstIndex(of: "--smoke-appearance"),
+               CommandLine.arguments.indices.contains(index + 1) {
+                NSApp.appearance = NSAppearance(named: CommandLine.arguments[index + 1] == "dark" ? .darkAqua : .aqua)
+            }
             // Allow initial production subscriptions to settle. No PlaybackController.start,
             // repository lookup, fabricated recording or permission request.
             try? await Task.sleep(for: .milliseconds(150))
@@ -313,6 +333,9 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             }
             var report: [String: Any] = ["check": "native-ui-load",
                                          "width": panel.frame.width, "height": panel.frame.height,
+                                         "language": LyricLocalization.language.rawValue,
+                                         "appearance": NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua])?.rawValue ?? "unknown",
+                                         "backingScale": panel.backingScaleFactor,
                                          "realPlayerTest": false, "networkStarted": false,
                                          "screenshotRequested": screenshotIndex != nil]
             let panelPassed = !panel.isVisible && !panelController.wantsPresentation
@@ -360,6 +383,9 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
         var observation: [String: Any] = ["exists": window != nil, "visible": visible,
                                            "contentMounted": mounted,
                                            "width": bounds.width, "height": bounds.height]
+        if let window {
+            observation.merge(LyricNativeSmoke.auxiliaryLayout(window: window, page: page)) { _, new in new }
+        }
         if let window, let directory, visible, mounted {
             do {
                 try LyricNativeSmoke.capture(window: window, to: directory.appendingPathComponent("native-\(page.rawValue).png"))
@@ -367,7 +393,8 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             } catch { observation["screenshotError"] = error.localizedDescription }
         }
         observation["screenshotSaved"] = directory != nil && screenshotPassed
-        observation["passed"] = window != nil && visible && mounted && bounds.width > 0 && bounds.height > 0 && screenshotPassed
+        observation["passed"] = window != nil && visible && mounted
+            && observation["layoutPassed"] as? Bool == true && screenshotPassed
         auxiliary.closeAll()
         return observation
     }

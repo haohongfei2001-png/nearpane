@@ -133,7 +133,7 @@ public struct LyricPanelView: View {
 
     private func lyrics(width: CGFloat) -> some View {
         let supplement = model.translationText ?? model.backgroundText
-            ?? (model.document?.timingLevel == .some(.none) ? "未同步歌词" : nil)
+            ?? (model.document?.timingLevel == .some(.none) ? LyricLocalization.text("未同步歌词", "Unsynced lyrics") : nil)
         let hasSupplement = supplement != nil
         let font: CGFloat = model.settings.largeText ? 22 : width <= 184 ? 18 : 20
         let layout = LyricPanelLayout.readingLayout(for: model.currentCue?.text,
@@ -195,7 +195,7 @@ public struct LyricPanelView: View {
                            browse: { model.browse(by: $0) })
                 .id(cue.id).transition(cueTransition)
         } else {
-            Text(model.frame.phase == .interlude ? "间奏" : "歌词暂不可用")
+            Text(model.frame.phase == .interlude ? LyricLocalization.text("间奏", "Interlude") : LyricLocalization.text("歌词暂不可用", "Lyrics unavailable"))
                 .font(.system(size: 16, weight: .medium)).foregroundStyle(secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
@@ -221,17 +221,17 @@ public struct LyricPanelView: View {
     }
 
     private var compactCaption: String {
-        if model.snapshot.state == .paused { return "已暂停" }
+        if model.snapshot.state == .paused { return LyricLocalization.text("已暂停", "Paused") }
         return switch model.frame.phase {
-        case .resolving: "正在查找歌词"
-        case .instrumental: "纯音乐"
-        case .sourceUnavailable: "暂时无法取得歌词"
+        case .resolving: LyricLocalization.text("正在查找歌词", "Finding lyrics…")
+        case .instrumental: LyricLocalization.text("纯音乐", "Instrumental")
+        case .sourceUnavailable: LyricLocalization.text("暂时无法取得歌词", "Lyrics unavailable")
         case .positionUnavailable:
-            model.document == nil ? (model.lyricFailure == nil ? "暂无歌词" : "暂时无法取得歌词") : "歌词暂未同步"
-        case .notFound: "暂无歌词"
+            model.document == nil ? (model.lyricFailure == nil ? LyricLocalization.text("暂无歌词", "No lyrics") : LyricLocalization.text("暂时无法取得歌词", "Lyrics unavailable")) : LyricLocalization.text("歌词暂未同步", "Lyrics are not synced")
+        case .notFound: LyricLocalization.text("暂无歌词", "No lyrics")
         case .noPlayback: ""
-        case .interlude: "间奏"
-        case .syncedLine, .syncedToken, .plainText: "暂无歌词"
+        case .interlude: LyricLocalization.text("间奏", "Interlude")
+        case .syncedLine, .syncedToken, .plainText: LyricLocalization.text("暂无歌词", "No lyrics")
         }
     }
 
@@ -250,8 +250,8 @@ public struct LyricPanelView: View {
             if interactive, model.snapshot.player != nil {
                 Button { model.openPlayer() } label: { artwork(size: artworkSize) }
                     .buttonStyle(.plain)
-                    .help("打开\(model.snapshot.player?.displayName ?? "播放器")")
-                    .accessibilityLabel("打开\(model.snapshot.player?.displayName ?? "播放器")")
+                    .help(LyricLocalization.text("打开\(model.snapshot.player?.displayName ?? "播放器")", "Open \(model.snapshot.player?.displayName ?? "player")"))
+                    .accessibilityLabel(LyricLocalization.text("打开\(model.snapshot.player?.displayName ?? "播放器")", "Open \(model.snapshot.player?.displayName ?? "player")"))
                     .focused($controlsFocused)
             } else { artwork(size: artworkSize) }
             VStack(alignment: .leading, spacing: 2) {
@@ -273,7 +273,7 @@ public struct LyricPanelView: View {
                         .frame(width: 22, height: 26)
                 }
                 .buttonStyle(.plain).foregroundStyle(secondary)
-                .help("回到当前句").accessibilityLabel("回到当前句")
+                .help(LyricLocalization.text("回到当前句", "Return to current line")).accessibilityLabel(LyricLocalization.text("回到当前句", "Return to current line"))
                 .focused($controlsFocused)
             }
         }
@@ -294,15 +294,15 @@ public struct LyricPanelView: View {
 
     private var transport: some View {
         HStack(spacing: compact ? 14 : 18) {
-            transportButton("backward.end.fill", label: "上一首", enabled: model.snapshot.capabilities.canPrevious) { model.perform(.previous) }
+            transportButton("backward.end.fill", label: LyricLocalization.text("上一首", "Previous track"), enabled: model.snapshot.capabilities.canPrevious) { model.perform(.previous) }
             transportButton(model.snapshot.state == .playing ? "pause.fill" : "play.fill",
-                            label: model.snapshot.state == .playing ? "暂停" : "播放",
+                            label: model.snapshot.state == .playing ? LyricLocalization.text("暂停", "Pause") : LyricLocalization.text("播放", "Play"),
                             enabled: model.snapshot.state == .playing ? model.snapshot.capabilities.canPause : model.snapshot.capabilities.canPlay,
                             primaryButton: true) { model.togglePlayback() }
-            transportButton("forward.end.fill", label: "下一首", enabled: model.snapshot.capabilities.canNext) { model.perform(.next) }
+            transportButton("forward.end.fill", label: LyricLocalization.text("下一首", "Next track"), enabled: model.snapshot.capabilities.canNext) { model.perform(.next) }
         }
         .frame(maxWidth: .infinity)
-        .help(model.actionMessage ?? "控制\(model.snapshot.player?.displayName ?? "当前播放器")")
+        .help(model.actionMessage ?? LyricLocalization.text("控制\(model.snapshot.player?.displayName ?? "当前播放器")", "Control \(model.snapshot.player?.displayName ?? "current player")"))
     }
     private func transportButton(_ symbol: String, label: String, enabled: Bool,
                                  primaryButton: Bool = false, action: @escaping () -> Void) -> some View {
@@ -333,7 +333,7 @@ public struct LyricPanelView: View {
                         }
                     })
                     .controlSize(.mini).tint(primary).disabled(!model.canSeek)
-                    .accessibilityLabel("歌曲进度").focused($controlsFocused)
+                    .accessibilityLabel(LyricLocalization.text("歌曲进度", "Track position")).focused($controlsFocused)
                 } else {
                     GeometryReader { geometry in
                         Capsule().fill(secondary.opacity(0.18)).overlay(alignment: .leading) {
@@ -343,7 +343,7 @@ public struct LyricPanelView: View {
                         }
                     }
                     .frame(height: 3)
-                    .accessibilityLabel(model.playbackPositionMS == nil ? "当前播放器未提供进度" : "当前播放器不支持拖动进度")
+                    .accessibilityLabel(model.playbackPositionMS == nil ? LyricLocalization.text("当前播放器未提供进度", "This player does not report playback position") : LyricLocalization.text("当前播放器不支持拖动进度", "This player does not support seeking"))
                 }
             }.frame(maxWidth: .infinity)
             Text(Self.time(model.durationMS))

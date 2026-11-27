@@ -15,8 +15,8 @@ public enum PlayerID: String, CaseIterable, Codable, Sendable {
         switch self {
         case .appleMusic: "Apple Music"
         case .spotify: "Spotify"
-        case .qqMusic: "QQ 音乐"
-        case .netease: "网易云音乐"
+        case .qqMusic: LyricLocalization.text("QQ 音乐", "QQ Music")
+        case .netease: LyricLocalization.text("网易云音乐", "NetEase Cloud Music")
         }
     }
     var usesAppleEvents: Bool { self == .appleMusic || self == .spotify }
@@ -84,17 +84,17 @@ public enum PlaybackError: Error, LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .unavailable(let message): message
-        case .authorizationDenied: "请在系统设置的“隐私与安全性 → 自动化”允许 LyricTile 连接播放器。"
-        case .playerExited: "播放器已退出。"
-        case .selectionChanged: "歌曲或播放来源已改变，请重试。"
-        case .unsupported: "当前播放器或歌曲不提供此项控制。"
-        case .ambiguousSession: "播放器存在多个媒体会话，暂时无法确认控制目标。"
-        case .sourceNotCurrent: "系统当前媒体来源已改变，请返回原播放器操作。"
-        case .commandInProgress: "正在确认上一个播放操作。"
-        case .malformedPayload: "播放器返回的数据无法识别。"
-        case .outputLimit: "播放器数据超过安全大小限制。"
-        case .timeout: "播放器没有及时响应。"
-        case .notConfirmed(let reason): "尚未确认操作结果：\(reason)"
+        case .authorizationDenied: LyricLocalization.text("请在系统设置的“隐私与安全性 → 自动化”允许 LyricTile 连接播放器。", "Allow LyricTile to connect to your player in System Settings → Privacy & Security → Automation.")
+        case .playerExited: LyricLocalization.text("播放器已退出。", "The player has quit.")
+        case .selectionChanged: LyricLocalization.text("歌曲或播放来源已改变，请重试。", "The track or playback source has changed. Try again.")
+        case .unsupported: LyricLocalization.text("当前播放器或歌曲不提供此项控制。", "This control is unavailable for the current player or track.")
+        case .ambiguousSession: LyricLocalization.text("播放器存在多个媒体会话，暂时无法确认控制目标。", "The player has multiple media sessions. The control target could not be confirmed.")
+        case .sourceNotCurrent: LyricLocalization.text("系统当前媒体来源已改变，请返回原播放器操作。", "The system media source has changed. Use the original player to continue.")
+        case .commandInProgress: LyricLocalization.text("正在确认上一个播放操作。", "Confirming the previous playback action.")
+        case .malformedPayload: LyricLocalization.text("播放器返回的数据无法识别。", "The player returned unreadable data.")
+        case .outputLimit: LyricLocalization.text("播放器数据超过安全大小限制。", "The player returned too much data.")
+        case .timeout: LyricLocalization.text("播放器没有及时响应。", "The player did not respond in time.")
+        case .notConfirmed(let reason): LyricLocalization.text("尚未确认操作结果：\(reason)", "The action could not be confirmed: \(reason)")
         }
     }
 }

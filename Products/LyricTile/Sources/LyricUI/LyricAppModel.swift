@@ -96,11 +96,11 @@ public final class LyricAppModel: ObservableObject {
         if ownsSession { return true }
         do {
             guard try lease.acquire() else {
-                ownershipMessage = "歌词正在另一个 HOLDSNOW 窗口中显示"
+                ownershipMessage = LyricLocalization.text("歌词正在另一个 HOLDSNOW 窗口中显示", "Lyrics are showing in another HOLDSNOW window")
                 return false
             }
         } catch {
-            ownershipMessage = "暂时无法取得歌词会话：\(error.localizedDescription)"
+            ownershipMessage = LyricLocalization.text("暂时无法取得歌词会话：\(error.localizedDescription)", "Unable to start the lyric session: \(error.localizedDescription)")
             return false
         }
         ownsSession = true
@@ -162,11 +162,11 @@ public final class LyricAppModel: ObservableObject {
     }
 
     public var title: String {
-        guard let selection = snapshot.selection else { return "尚未播放音乐" }
+        guard let selection = snapshot.selection else { return LyricLocalization.text("尚未播放音乐", "No music playing") }
         let title = selection.recording.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return title?.isEmpty == false ? title! : "未提供曲名"
+        return title?.isEmpty == false ? title! : LyricLocalization.text("未提供曲名", "Untitled track")
     }
-    public var artist: String { snapshot.selection?.recording.artists.joined(separator: "、") ?? "" }
+    public var artist: String { snapshot.selection?.recording.artists.joined(separator: LyricLocalization.text("、", ", ")) ?? "" }
     public var durationMS: Int64? { snapshot.selection?.recording.durationMS.flatMap { $0 > 0 ? $0 : nil } }
     public var leadCues: [LyricDomain.Cue] { leadCueCache }
     public var currentCue: LyricDomain.Cue? {
@@ -215,9 +215,9 @@ public final class LyricAppModel: ObservableObject {
         return true
     }
     public var sourceCaption: String {
-        if browsedCueIndex != nil { return "正在浏览歌词" }
-        if snapshot.state == .paused { return "已暂停" }
-        if document?.timingLevel == .some(.none) { return "未同步 · 可手动阅读" }
+        if browsedCueIndex != nil { return LyricLocalization.text("正在浏览歌词", "Browsing lyrics") }
+        if snapshot.state == .paused { return LyricLocalization.text("已暂停", "Paused") }
+        if document?.timingLevel == .some(.none) { return LyricLocalization.text("未同步 · 可手动阅读", "Unsynced · scroll to read") }
         return snapshot.player?.displayName ?? "LyricTile"
     }
     public var sourceAdvanceMS: Int64 {
@@ -352,8 +352,8 @@ public final class LyricAppModel: ObservableObject {
         importPanel?.cancel(nil)
         let panel = NSOpenPanel()
         importPanel = panel
-        panel.title = "为当前歌曲导入歌词"
-        panel.prompt = "导入歌词"
+        panel.title = LyricLocalization.text("为当前歌曲导入歌词", "Import lyrics for this track")
+        panel.prompt = LyricLocalization.text("导入歌词", "Import lyrics")
         panel.allowedContentTypes = [.plainText, .xml, .data]
         panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
         Task { [weak self] in
@@ -375,9 +375,9 @@ public final class LyricAppModel: ObservableObject {
                     let scope = url.startAccessingSecurityScopedResource()
                     defer { if scope { url.stopAccessingSecurityScopedResource() } }
                     let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                    guard size <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: "歌词文件超过 2 MiB") }
+                    guard size <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: LyricLocalization.text("歌词文件超过 2 MiB", "The lyric file exceeds 2 MiB")) }
                     let data = try Data(contentsOf: url, options: .mappedIfSafe)
-                    guard data.count <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: "歌词文件超过 2 MiB") }
+                    guard data.count <= 2 * 1024 * 1024 else { throw LyricDomain.SourceFailure.invalidDocument(reason: LyricLocalization.text("歌词文件超过 2 MiB", "The lyric file exceeds 2 MiB")) }
                     return data
                 }.value
                 guard let self, self.isCurrent(selection, lyricRequest: requestID) else { return }
@@ -388,7 +388,7 @@ public final class LyricAppModel: ObservableObject {
     }
     public func clearCache() {
         Task { [weak self, repository] in
-            do { try await repository.clearCache(); self?.actionMessage = "自动缓存已清理，已绑定的歌词文件仍保留。" }
+            do { try await repository.clearCache(); self?.actionMessage = LyricLocalization.text("自动缓存已清理，已绑定的歌词文件仍保留。", "The automatic cache is cleared. Your saved lyric files are kept.") }
             catch { self?.actionMessage = Self.message(for: error) }
         }
     }
@@ -619,14 +619,14 @@ public final class LyricAppModel: ObservableObject {
     private static func message(for error: Error) -> String {
         guard let failure = error as? LyricDomain.SourceFailure else { return error.localizedDescription }
         return switch failure {
-        case .notFound: "还没有找到歌词"
-        case .rateLimited(let seconds): "歌词服务暂时繁忙，请在约 \(max(1, seconds)) 秒后再试。"
-        case .transportUnavailable: "暂时连接不到歌词服务，稍后可以重试。"
-        case .invalidDocument(let reason): "歌词文件无法读取：\(reason)"
-        case .unsupportedFormat: "暂不支持这个歌词格式。"
-        case .unsupportedTimingProfile: "歌词使用了暂不支持的时间格式。"
-        case .staleGeneration: "歌曲已经切换，请为当前歌曲重试。"
-        case .accessUnavailable: "此歌词来源暂不可用，可以导入本地歌词。"
+        case .notFound: LyricLocalization.text("还没有找到歌词", "No lyrics found")
+        case .rateLimited(let seconds): LyricLocalization.text("歌词服务暂时繁忙，请在约 \(max(1, seconds)) 秒后再试。", "The lyric service is busy. Try again in about \(max(1, seconds)) seconds.")
+        case .transportUnavailable: LyricLocalization.text("暂时连接不到歌词服务，稍后可以重试。", "Unable to reach the lyric service. Try again later.")
+        case .invalidDocument(let reason): LyricLocalization.text("歌词文件无法读取：\(reason)", "Unable to read the lyric file: \(reason)")
+        case .unsupportedFormat: LyricLocalization.text("暂不支持这个歌词格式。", "This lyric format is not supported yet.")
+        case .unsupportedTimingProfile: LyricLocalization.text("歌词使用了暂不支持的时间格式。", "This lyric timing format is not supported yet.")
+        case .staleGeneration: LyricLocalization.text("歌曲已经切换，请为当前歌曲重试。", "The track has changed. Try again for the current track.")
+        case .accessUnavailable: LyricLocalization.text("此歌词来源暂不可用，可以导入本地歌词。", "This lyric source is unavailable. You can import a local lyric file.")
         }
     }
 }

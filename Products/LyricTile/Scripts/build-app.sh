@@ -51,6 +51,11 @@ commit="$(git rev-parse HEAD)"
 python3 Scripts/write-bundle-info.py "$app/Contents/Info.plist" \
   --version "${LYRICTILE_VERSION:-1.0.0}" --build "${LYRICTILE_BUILD_NUMBER:-1}" --commit "$commit"
 cp Documentation/THIRD_PARTY_NOTICES.md "$app/Contents/Resources/Notices/"
+cp Documentation/PRIVACY.md "$app/Contents/Resources/Notices/"
+for language in en zh-Hans; do
+  mkdir -p "$app/Contents/Resources/$language.lproj"
+  cp "Resources/$language.lproj/InfoPlist.strings" "$app/Contents/Resources/$language.lproj/"
+done
 if [[ -d Packaging/Notices ]]; then cp Packaging/Notices/* "$app/Contents/Resources/Notices/"; fi
 cp Vendor/mediaremote-adapter/LICENSE "$app/Contents/Resources/Notices/mediaremote-adapter-LICENSE"
 for name in Yams Sparkle; do
@@ -98,7 +103,7 @@ codesign "${signing_args[@]}" "$app/Contents/Resources/MediaRemote/MediaRemoteAd
 codesign "${signing_args[@]}" --entitlements Packaging/LyricTile.entitlements "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 python3 Scripts/verify-bundle.py "$app" --architecture "$architecture" --output "$destination/bundle-verification.json"
-archive="$destination/LyricTile-${LYRICTILE_VERSION:-1.0.0}-candidate-$architecture.zip"
+archive="$destination/LyricTile-${LYRICTILE_VERSION:-1.0.0}-${LYRICTILE_BUILD_NUMBER:-1}-candidate-$architecture.zip"
 ditto -c -k --sequesterRsrc --keepParent "$app" "$archive"
 if [[ "${LYRICTILE_CREATE_DMG:-1}" == 1 ]]; then
   stage="$(mktemp -d "$lyrictile_root/.build/dmg-stage.XXXXXX")"
@@ -106,13 +111,14 @@ if [[ "${LYRICTILE_CREATE_DMG:-1}" == 1 ]]; then
   ditto "$app" "$stage/LyricTile.app"
   ln -s /Applications "$stage/Applications"
   hdiutil create -ov -volname LyricTile -srcfolder "$stage" -format UDZO \
-    "$destination/LyricTile-${LYRICTILE_VERSION:-1.0.0}-candidate-$architecture.dmg"
+    "$destination/LyricTile-${LYRICTILE_VERSION:-1.0.0}-${LYRICTILE_BUILD_NUMBER:-1}-candidate-$architecture.dmg"
 fi
-python3 - "$destination" <<'PY'
+python3 - "$destination" "$archive" "${LYRICTILE_CREATE_DMG:-1}" <<'PY'
 import hashlib,sys
 from pathlib import Path
 root=Path(sys.argv[1])
-files=sorted([*root.glob('*.zip'),*root.glob('*.dmg')])
+archive=Path(sys.argv[2]); files=[archive]
+if sys.argv[3] == '1': files.append(archive.with_suffix('.dmg'))
 (root/'SHA256SUMS').write_text(''.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in files))
 PY
 echo "Independent candidate: $app"

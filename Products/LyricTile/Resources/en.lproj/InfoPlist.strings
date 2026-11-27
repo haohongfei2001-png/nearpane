@@ -1,0 +1,2 @@
+"CFBundleDisplayName" = "LyricTile";
+"NSAppleEventsUsageDescription" = "LyricTile reads the current song and playback position from your chosen music player, and controls playback only when you use its controls.";

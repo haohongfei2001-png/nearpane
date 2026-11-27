@@ -1,0 +1,2 @@
+"CFBundleDisplayName" = "LyricTile";
+"NSAppleEventsUsageDescription" = "LyricTile 需要读取你选择的音乐播放器的当前歌曲、播放进度，并在你操作控制按钮时控制播放。";

@@ -43,7 +43,7 @@ final class AppleEventClient: @unchecked Sendable {
             artworkURL: response.artworkURL.flatMap { URL(string: $0) }, sourceIsCurrent: false,
             quality: position == nil ? .unavailable : .coarseSourceAnchor, restricted: restricted)
         #else
-        throw PlaybackError.unavailable("Apple Events 需要 macOS。")
+        throw PlaybackError.unavailable(LyricLocalization.text("Apple Events 需要 macOS。", "Apple Events requires macOS."))
         #endif
     }
     func send(_ command: TransportCommand, to process: PlayerProcess) async throws {
@@ -58,9 +58,9 @@ final class AppleEventClient: @unchecked Sendable {
         }
         let response = try JSONDecoder().decode(BridgeResponse.self, from: data)
         try response.checkError()
-        guard response.accepted == true else { throw PlaybackError.notConfirmed("播放器没有确认接收") }
+        guard response.accepted == true else { throw PlaybackError.notConfirmed(LyricLocalization.text("播放器没有确认接收", "The player did not confirm the command.")) }
         #else
-        throw PlaybackError.unavailable("Apple Events 需要 macOS。")
+        throw PlaybackError.unavailable(LyricLocalization.text("Apple Events 需要 macOS。", "Apple Events requires macOS."))
         #endif
     }
     func release() async {

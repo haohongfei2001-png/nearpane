@@ -1,3 +1,4 @@
+import LyricCore
 import Foundation
 #if canImport(Darwin)
 import Darwin
@@ -91,7 +92,7 @@ final class BoundedProcess: @unchecked Sendable {
                     if !fits { fail(.outputLimit) }
                 }
             }
-        } catch { fail(.unavailable("媒体助手输出读取失败")) }
+        } catch { fail(.unavailable(LyricLocalization.text("媒体助手输出读取失败", "Unable to read the media helper output."))) }
         try? handle.close()
     }
     private func execute(_ continuation: CheckedContinuation<ProcessOutput, any Error>) {
@@ -99,7 +100,7 @@ final class BoundedProcess: @unchecked Sendable {
         lock.lock(); let shouldCancel = cancelled; lock.unlock()
         guard !shouldCancel else { continuation.resume(throwing: CancellationError()); return }
         do { try process.run() }
-        catch { continuation.resume(throwing: PlaybackError.unavailable("媒体助手无法启动：\(error.localizedDescription)")); return }
+        catch { continuation.resume(throwing: PlaybackError.unavailable(LyricLocalization.text("媒体助手无法启动：\(error.localizedDescription)", "The media helper could not start: \(error.localizedDescription)"))); return }
         lock.lock(); launched = true; let cancelledAfterLaunch = cancelled; lock.unlock()
         // Parent must not retain a write end and prevent EOF after child exit.
         try? stdout.fileHandleForWriting.close(); try? stderr.fileHandleForWriting.close()

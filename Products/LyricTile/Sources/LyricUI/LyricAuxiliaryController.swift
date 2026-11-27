@@ -35,9 +35,21 @@ public final class LyricAuxiliaryController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: min(360, size.width), height: 330)
         window.delegate = self
-        window.contentView = NSHostingView(rootView: LyricAuxiliaryView(model: model, page: page, close: { [weak self, weak window] in
+        let hosting = NSHostingView(rootView: LyricAuxiliaryView(model: model, page: page, close: { [weak self, weak window] in
             window?.close(); self?.model.presentation = nil
         }))
+        // AppKit owns these window sizes. The default hosting sizing options
+        // propagate SwiftUI's unconstrained minimum-size measurement back to
+        // NSWindow. The wrapped welcome text can then enlarge a 360 pt window
+        // to more than 2,000 pt before its actual 400 pt width is proposed.
+        hosting.sizingOptions = []
+        hosting.frame = NSRect(origin: .zero, size: size)
+        window.contentView = hosting
+        if !style.contains(.resizable) {
+            window.contentMinSize = size
+            window.contentMaxSize = size
+        }
+        window.setContentSize(size)
         if let anchor = anchorFrame?(), let screen = NSScreen.screens.first(where: { $0.frame.intersects(anchor) }) {
             let available = screen.visibleFrame
             let x = max(available.minX + 12, min(anchor.minX - size.width - 12, available.maxX - size.width - 12))
@@ -87,7 +99,7 @@ private struct LyricAuxiliaryView: View {
                     Text(message).font(.system(size: 11)).textSelection(.enabled)
                     Spacer(minLength: 8)
                     Button { model.actionMessage = nil } label: { Image(systemName: "xmark") }
-                        .buttonStyle(.plain).accessibilityLabel("关闭提示")
+                        .buttonStyle(.plain).accessibilityLabel(localized("关闭提示", "Dismiss message"))
                 }
                 .padding(12).background(Color.secondary.opacity(0.08))
             }
@@ -108,110 +120,115 @@ private struct LyricAuxiliaryView: View {
                 Image(nsImage: NSApplication.shared.applicationIconImage)
                     .resizable().interpolation(.high).scaledToFit()
                     .frame(width: 44, height: 44)
-                Text("歌词，自然在旁。").font(.system(size: 23, weight: .medium))
+                Text(localized("歌词，自然在旁。", "Lyrics, right beside you.")).font(.system(size: 23, weight: .medium))
             }
+            .background(LyricAuxiliaryLayoutMarker(id: "welcome-heading"))
             HStack(alignment: .center, spacing: 16) {
                 // A labelled static design preview, never a fabricated player or lyric session.
                 VStack(spacing: 5) {
                     VStack(spacing: 7) {
-                        Text("风经过长街").font(.system(size: 10)).foregroundStyle(.secondary)
-                        Text("让这一刻慢下来").font(.system(size: 14, weight: .semibold))
-                        Text("灯在街角亮起").font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text(localized("风经过长街", "Wind along the street")).font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text(localized("让这一刻慢下来", "A moment, held")).font(.system(size: 14, weight: .semibold))
+                        Text(localized("灯在街角亮起", "The corner lights up")).font(.system(size: 10)).foregroundStyle(.secondary)
                     }
                     .frame(width: 136, height: 80)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12).strokeBorder(.primary.opacity(0.08), lineWidth: 1)
                     }
-                    Text("界面示意").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text(localized("界面示意", "Interface preview")).font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 .accessibilityHidden(true)
-                Text("播放时自动出现，停止时自动收起。鼠标移入即可查看歌曲和控制播放。")
+                Text(localized("播放时自动出现，停止时自动收起。鼠标移入即可查看歌曲和控制播放。", "Appears while music plays. Hover for song details and playback controls."))
                     .font(.system(size: 13)).foregroundStyle(.secondary).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .background(LyricAuxiliaryLayoutMarker(id: "welcome-preview"))
             VStack(alignment: .leading, spacing: 5) {
-                Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
+                Toggle(localized("在线查找歌词", "Find lyrics online"), isOn: $model.settings.onlineLyrics)
                     .toggleStyle(.checkbox).font(.system(size: 12))
-                Text("查找时会向歌词服务发送歌名、歌手、专辑和时长。关闭后仍可在菜单栏导入本地歌词。")
+                Text(localized("查找时会向歌词服务发送歌名、歌手、专辑和时长。关闭后仍可在菜单栏导入本地歌词。", "Sends title, artist, album and duration to the lyrics service. You can also import local lyrics."))
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Apple Music 与 Spotify 首次连接时可能请求自动化权限，用于读取歌曲与控制播放。")
+            .background(LyricAuxiliaryLayoutMarker(id: "welcome-privacy"))
+            Text(localized("Apple Music 与 Spotify 首次连接时可能请求自动化权限，用于读取歌曲与控制播放。", "Apple Music and Spotify may ask for Automation access to read and control playback."))
                 .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .background(LyricAuxiliaryLayoutMarker(id: "welcome-permission"))
             Spacer(minLength: 0)
             HStack(spacing: 12) {
-                Button("开始使用") {
+                Button(localized("开始使用", "Get started")) {
                     model.settings.completedWelcome = true
                     close()
                     model.requestShowPanel?()
                 }.buttonStyle(.borderedProminent).tint(Color(red: 0.188, green: 0.196, blue: 0.227))
                     .keyboardShortcut(.defaultAction)
-                Button("打开设置") { model.show(.settings) }.buttonStyle(.plain)
+                Button(localized("打开设置", "Open Settings")) { model.show(.settings) }.buttonStyle(.plain)
             }
+            .background(LyricAuxiliaryLayoutMarker(id: "welcome-actions"))
         }.padding(24)
     }
 
     private var settings: some View {
         Form {
-            Section("外观") {
-                Picker("配色", selection: $model.settings.appearance) {
-                    Text("跟随系统").tag(LyricSettings.Appearance.automatic)
-                    Text("浅色").tag(LyricSettings.Appearance.light)
-                    Text("深色").tag(LyricSettings.Appearance.dark)
+            Section(localized("外观", "Appearance")) {
+                Picker(localized("配色", "Theme"), selection: $model.settings.appearance) {
+                    Text(localized("跟随系统", "System")).tag(LyricSettings.Appearance.automatic)
+                    Text(localized("浅色", "Light")).tag(LyricSettings.Appearance.light)
+                    Text(localized("深色", "Dark")).tag(LyricSettings.Appearance.dark)
                 }
-                Toggle("大号歌词", isOn: $model.settings.largeText)
-                Toggle("在全屏时显示", isOn: $model.settings.showInFullScreen)
-                Text("播放时自动显示，不播放时自动收起。")
+                Toggle(localized("大号歌词", "Larger lyrics"), isOn: $model.settings.largeText)
+                Toggle(localized("在全屏时显示", "Show over full-screen apps"), isOn: $model.settings.showInFullScreen)
+                Text(localized("播放时自动显示，不播放时自动收起。", "Appears during playback and hides when playback stops."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Section("播放与歌词") {
-                Picker("跟随播放器", selection: Binding(get: { model.settings.preferredPlayer ?? "" }, set: {
+            Section(localized("播放与歌词", "Playback and lyrics")) {
+                Picker(localized("跟随播放器", "Player"), selection: Binding(get: { model.settings.preferredPlayer ?? "" }, set: {
                     model.selectPlayer($0.isEmpty ? nil : PlayerID(rawValue: $0))
                 })) {
-                    Text("自动").tag("")
+                    Text(localized("自动", "Automatic")).tag("")
                     ForEach(PlayerID.allCases, id: \.rawValue) { Text($0.displayName).tag($0.rawValue) }
                 }
-                Toggle("显示歌词翻译（如有）", isOn: $model.settings.showTranslation)
-                Toggle("在线查找歌词", isOn: $model.settings.onlineLyrics)
-                Text("在线查找会发送歌曲、歌手、专辑与时长；关闭后仍可使用本地歌词。")
+                Toggle(localized("显示歌词翻译（如有）", "Show translations when available"), isOn: $model.settings.showTranslation)
+                Toggle(localized("在线查找歌词", "Find lyrics online"), isOn: $model.settings.onlineLyrics)
+                Text(localized("在线查找会发送歌曲、歌手、专辑与时长；关闭后仍可使用本地歌词。", "Online lookup sends title, artist, album and duration. Local lyrics remain available when disabled."))
                     .font(.caption).foregroundStyle(.secondary)
-                DisclosureGroup("来源与缓存", isExpanded: $sourceExpanded) {
+                DisclosureGroup(localized("来源与缓存", "Source and cache"), isExpanded: $sourceExpanded) {
                     HStack {
-                        Button("查看当前来源") { model.show(.source) }.disabled(model.document == nil)
-                        Button("清理自动缓存") { model.clearCache() }
+                        Button(localized("查看当前来源", "View current source")) { model.show(.source) }.disabled(model.document == nil)
+                        Button(localized("清理自动缓存", "Clear online cache")) { model.clearCache() }
                     }
                 }
             }
-            Section("通用") {
-                Toggle("登录时启动", isOn: Binding(get: {
+            Section(localized("通用", "General")) {
+                Toggle(localized("登录时启动", "Open at login"), isOn: Binding(get: {
                     loginStatus == .enabled || loginStatus == .requiresApproval
                 }, set: updateLogin))
                     .disabled(loginBusy || !canManageLoginItem)
                 if canManageLoginItem && loginStatus == .requiresApproval {
-                    Text("等待系统允许，尚未启用。也可以关闭上方开关取消登录启动。")
+                    Text(localized("等待系统允许，尚未启用。也可以关闭上方开关取消登录启动。", "Waiting for system approval. Turn the switch off to cancel."))
                         .font(.caption).foregroundStyle(.secondary)
-                    Button("在系统设置中允许登录启动") { SMAppService.openSystemSettingsLoginItems() }
+                    Button(localized("在系统设置中允许登录启动", "Allow in System Settings")) { SMAppService.openSystemSettingsLoginItems() }
                 }
-                DisclosureGroup("桌面位置", isExpanded: $positionExpanded) {
-                    Picker("显示器", selection: Binding(get: { model.settings.preferredDisplayUUID ?? "" }, set: {
+                DisclosureGroup(localized("桌面位置", "Desktop position"), isExpanded: $positionExpanded) {
+                    Picker(localized("显示器", "Display"), selection: Binding(get: { model.settings.preferredDisplayUUID ?? "" }, set: {
                         model.settings.preferredDisplayUUID = $0.isEmpty ? nil : $0
                         model.requestReposition?()
                     })) {
-                        Text("当前显示器").tag("")
+                        Text(localized("当前显示器", "Current display")).tag("")
                         ForEach(LyricScreenIdentity.screens, id: \.id) { screen in Text(screen.name).tag(screen.id) }
                     }
-                    Toggle("与其他 HOLDSNOW 工具自动排列", isOn: $model.settings.coordinateTiles)
-                        .help("与支持自动排列的 HOLDSNOW 工具共享右侧空间")
-                    Button("恢复右上角位置") { model.requestReposition?() }
+                    Toggle(localized("与其他 HOLDSNOW 工具自动排列", "Arrange with other HOLDSNOW tools"), isOn: $model.settings.coordinateTiles)
+                        .help(localized("与支持自动排列的 HOLDSNOW 工具共享右侧空间", "Share the right edge with compatible HOLDSNOW tools"))
+                    Button(localized("恢复右上角位置", "Reset to top right")) { model.requestReposition?() }
                 }
                 HStack {
                     Text("LyricTile").foregroundStyle(.secondary)
-                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版本")
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? localized("开发版本", "Development build"))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 12)
-                    Button("检查更新…") { model.requestUpdateCheck?() }
+                    Button(localized("检查更新…", "Check for Updates…")) { model.requestUpdateCheck?() }
                 }
             }
         }.formStyle(.grouped)
@@ -220,17 +237,17 @@ private struct LyricAuxiliaryView: View {
     @ViewBuilder private var candidates: some View {
         VStack(alignment: .leading, spacing: 14) {
             songHeading
-            Text("选择与当前录音一致的版本；现场、重录与伴奏版本的时间可能不同。")
+            Text(localized("选择与当前录音一致的版本；现场、重录与伴奏版本的时间可能不同。", "Choose the same recording. Live, re-recorded and instrumental versions may have different timing."))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             if model.isSearchingCandidates {
-                HStack { ProgressView().controlSize(.small); Text("正在查找版本…").font(.system(size: 12)) }
+                HStack { ProgressView().controlSize(.small); Text(localized("正在查找版本…", "Finding versions…")).font(.system(size: 12)) }
             } else if model.candidates.isEmpty {
-                ContentUnavailableView("没有找到其他版本", systemImage: "text.magnifyingglass", description: Text("可以重试，或为当前歌曲导入歌词文件。"))
+                ContentUnavailableView(localized("没有找到其他版本", "No other versions found"), systemImage: "text.magnifyingglass", description: Text(localized("可以重试，或为当前歌曲导入歌词文件。", "Try again or import a lyric file for this song.")))
             } else {
                 List(model.candidates, id: \.providerRecordID) { candidate in
                     Button { model.choose(candidate) } label: {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(candidate.recording.title ?? "未命名歌曲").font(.system(size: 13, weight: .medium))
+                            Text(candidate.recording.title ?? localized("未命名歌曲", "Untitled track")).font(.system(size: 13, weight: .medium))
                             Text(candidate.recording.artists.joined(separator: "、")).font(.system(size: 11)).foregroundStyle(.secondary)
                             HStack {
                                 Text(candidate.recording.album ?? candidate.providerID)
@@ -238,7 +255,7 @@ private struct LyricAuxiliaryView: View {
                                 Text(LyricPanelView.time(candidate.recording.durationMS))
                             }.font(.system(size: 10)).foregroundStyle(.secondary)
                             if candidate.evidence.versionConflict || candidate.evidence.mainArtistConflict {
-                                Text("与当前录音信息不同，请核对版本").font(.system(size: 10)).foregroundStyle(.orange)
+                                Text(localized("与当前录音信息不同，请核对版本", "Recording details differ. Check this version.")).font(.system(size: 10)).foregroundStyle(.orange)
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 4)
                     }.buttonStyle(.plain).disabled(model.isResolving)
@@ -246,28 +263,28 @@ private struct LyricAuxiliaryView: View {
             }
             Spacer(minLength: 0)
             HStack {
-                Button("重新查找") { model.searchCandidates() }.disabled(model.isSearchingCandidates)
-                Button("导入歌词…") { model.importLyrics() }
+                Button(localized("重新查找", "Search again")) { model.searchCandidates() }.disabled(model.isSearchingCandidates)
+                Button(localized("导入歌词…", "Import lyrics…")) { model.importLyrics() }
             }
         }.padding(22)
     }
     private var adjustment: some View {
         VStack(alignment: .leading, spacing: 20) {
             songHeading
-            Text("只调整当前录音与当前歌词版本。歌词落后时选择提前，歌词过早时选择延后。")
+            Text(localized("只调整当前录音与当前歌词版本。歌词落后时选择提前，歌词过早时选择延后。", "Adjust this recording and lyric version only. Move late lyrics earlier, or early lyrics later."))
                 .font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(4)
             VStack(spacing: 18) {
-                Text(model.advanceMS == 0 ? "未调整" : "\(model.advanceMS > 0 ? "提前" : "延后") \(String(format: "%.1f", abs(Double(model.advanceMS)) / 1000)) 秒")
+                Text(adjustmentDescription)
                     .font(.system(size: 22, weight: .medium, design: .rounded)).monospacedDigit()
                 HStack(spacing: 15) {
-                    Button("延后 0.1 秒") { model.changeAdvance(to: model.advanceMS - 100) }
-                    Button("提前 0.1 秒") { model.changeAdvance(to: model.advanceMS + 100) }
+                    Button(localized("延后 0.1 秒", "Later by 0.1 s")) { model.changeAdvance(to: model.advanceMS - 100) }
+                    Button(localized("提前 0.1 秒", "Earlier by 0.1 s")) { model.changeAdvance(to: model.advanceMS + 100) }
                 }.disabled(model.document == nil || model.isSavingAdjustment)
-                Button("恢复原始时间") { model.changeAdvance(to: 0) }
+                Button(localized("恢复原始时间", "Reset timing")) { model.changeAdvance(to: 0) }
                     .disabled(model.advanceMS == 0 || model.isSavingAdjustment)
             }.frame(maxWidth: .infinity).padding(.vertical, 20)
             Spacer()
-            Text("播放器的播放位置不会改变。").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text(localized("播放器的播放位置不会改变。", "The player’s playback position stays unchanged.")).font(.system(size: 11)).foregroundStyle(.secondary)
         }.padding(25)
     }
     @ViewBuilder private var source: some View {
@@ -275,25 +292,25 @@ private struct LyricAuxiliaryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 17) {
                     songHeading
-                    LabeledContent("来源", value: document.source.providerID)
-                    LabeledContent("歌词格式", value: document.originalFormat.rawValue)
-                    LabeledContent("时间信息", value: document.timingLevel == .token ? "逐字时间" : document.timingLevel == .line ? "逐行时间" : "纯文本")
-                    if let credit = document.source.contributorCredit, !credit.isEmpty { LabeledContent("提供者", value: credit) }
+                    LabeledContent(localized("来源", "Source"), value: document.source.providerID)
+                    LabeledContent(localized("歌词格式", "Format"), value: document.originalFormat.rawValue)
+                    LabeledContent(localized("时间信息", "Timing"), value: document.timingLevel == .token ? localized("逐字时间", "Word timing") : document.timingLevel == .line ? localized("逐行时间", "Line timing") : localized("纯文本", "Plain text"))
+                    if let credit = document.source.contributorCredit, !credit.isEmpty { LabeledContent(localized("提供者", "Contributor"), value: credit) }
                     if let attribution = document.source.rights.attributionText, !attribution.isEmpty { Text(attribution).font(.system(size: 12)) }
-                    if let url = document.source.sourceURL { Link("打开来源页面", destination: url) }
-                    if let url = document.source.rights.apiEvidenceURL { Link("接口使用条件", destination: url) }
-                    if let url = document.source.rights.contentEvidenceURL { Link("内容使用条件", destination: url) }
-                    Text("本地绑定与时间调整只应用于当前录音和歌词版本。").font(.system(size: 11)).foregroundStyle(.secondary)
+                    if let url = document.source.sourceURL { Link(localized("打开来源页面", "Open source page"), destination: url) }
+                    if let url = document.source.rights.apiEvidenceURL { Link(localized("接口使用条件", "API terms"), destination: url) }
+                    if let url = document.source.rights.contentEvidenceURL { Link(localized("内容使用条件", "Content terms"), destination: url) }
+                    Text(localized("本地绑定与时间调整只应用于当前录音和歌词版本。", "Local bindings and timing adjustments apply only to this recording and lyric version.")).font(.system(size: 11)).foregroundStyle(.secondary)
                 }.font(.system(size: 12)).padding(24).frame(maxWidth: .infinity, alignment: .leading)
             }.textSelection(.enabled)
-        } else { ContentUnavailableView("还没有歌词来源", systemImage: "text.badge.questionmark") }
+        } else { ContentUnavailableView(localized("还没有歌词来源", "No lyric source yet"), systemImage: "text.badge.questionmark") }
     }
     private var fullLyrics: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 songHeading
                 Spacer()
-                Button("回到当前句") { followsCurrentLine = true; model.returnToCurrent() }
+                Button(localized("回到当前句", "Current line")) { followsCurrentLine = true; model.returnToCurrent() }
                     .font(.system(size: 11)).disabled(model.document?.timingLevel == .some(.none))
             }.padding(18)
             Divider()
@@ -306,7 +323,7 @@ private struct LyricAuxiliaryView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .textSelection(.enabled).id(cue.id)
                                 .contextMenu {
-                                    Button("从这一句播放") { model.seek(to: cue) }
+                                    Button(localized("从这一句播放", "Play from this line")) { model.seek(to: cue) }
                                         .disabled(!model.canSeek || cue.sourceStartMS == nil)
                                 }
                         }
@@ -328,6 +345,13 @@ private struct LyricAuxiliaryView: View {
             Text(model.title).font(.system(size: 17, weight: .medium)).lineLimit(2)
             if !model.artist.isEmpty { Text(model.artist).font(.system(size: 11)).foregroundStyle(.secondary) }
         }
+    }
+    private var adjustmentDescription: String {
+        guard model.advanceMS != 0 else { return localized("未调整", "No adjustment") }
+        let seconds = String(format: "%.1f", abs(Double(model.advanceMS)) / 1000)
+        return model.advanceMS > 0
+            ? localized("提前 \(seconds) 秒", "Earlier by \(seconds) s")
+            : localized("延后 \(seconds) 秒", "Later by \(seconds) s")
     }
     private var canManageLoginItem: Bool {
         // The reusable lyrics UI must never register its Nearpane host as LyricTile.
@@ -353,7 +377,7 @@ private struct LyricAuxiliaryView: View {
                         }
                     }
                 }
-            } catch { model.actionMessage = "登录启动未能更新：\(error.localizedDescription)" }
+            } catch { model.actionMessage = localized("登录启动未能更新：\(error.localizedDescription)", "Could not update Open at Login: \(error.localizedDescription)") }
             loginStatus = SMAppService.mainApp.status
             loginBusy = false
         }
@@ -397,3 +421,7 @@ public enum LyricScreenIdentity {
     public static func id(for screen: NSScreen) -> String? { screens.first { $0.screen === screen }?.id }
 }
 
+
+private func localized(_ chinese: String, _ english: String) -> String {
+    LyricLocalization.text(chinese, english)
+}

@@ -54,10 +54,10 @@ struct PanelLayoutTests {
         if scenario.hasLyrics {
             #expect(model.panelContent == .lyrics)
             #expect(model.currentCue?.text == scenario.currentLine)
-            #expect(model.contextText(at: -2) == "把微光留在纸上")
-            #expect(model.contextText(at: -1) == "窗外的风经过长街")
-            #expect(model.contextText(at: 1) == "脚步跟着雨停下来")
-            #expect(model.contextText(at: 2) == "灯在街角慢慢亮起")
+            #expect(model.contextText(at: -2) == scenario.contextLines[0])
+            #expect(model.contextText(at: -1) == scenario.contextLines[1])
+            #expect(model.contextText(at: 1) == scenario.contextLines[2])
+            #expect(model.contextText(at: 2) == scenario.contextLines[3])
             #expect(glyphs.count == 1)
             let glyph = try #require(glyphs.first)
             let frame = hosting.convert(glyph.bounds, from: glyph)
@@ -93,7 +93,7 @@ struct PanelLayoutTests {
             if scenario != .noSong { #expect(model.panelContent == .compact) }
         }
         if scenario == .missingMetadata {
-            #expect(model.title == "未提供曲名")
+            #expect(model.title == LyricLocalization.text("未提供曲名", "Untitled track"))
             #expect(model.artist.isEmpty)
             #expect(model.artwork == nil)
             #expect(model.durationMS == nil)
@@ -239,6 +239,8 @@ enum PanelLayoutScenario: String, CaseIterable, Sendable {
     case lightLyricsHover = "light-lyrics-hover"
     case lightLongLyrics = "light-long-lyrics"
     case lightLongLyricsHover = "light-long-lyrics-hover"
+    case englishLyrics = "english-lyrics"
+    case englishLyricsHover = "english-lyrics-hover"
     case compact = "compact"
     case compactHover = "compact-hover"
     case narrowDarkLongLyrics = "narrow-dark-long-lyrics"
@@ -251,11 +253,17 @@ enum PanelLayoutScenario: String, CaseIterable, Sendable {
     var dark: Bool { self == .narrowDarkLongLyrics || self == .narrowDarkLongLyricsHover }
     var hover: Bool {
         [.lightLyricsHover, .lightLongLyricsHover, .compactHover,
-         .narrowDarkLongLyricsHover, .missingMetadata].contains(self)
+         .narrowDarkLongLyricsHover, .missingMetadata, .englishLyricsHover].contains(self)
     }
     var hasLyrics: Bool {
         [.lightLyrics, .lightLyricsHover, .lightLongLyrics, .lightLongLyricsHover,
-         .narrowDarkLongLyrics, .narrowDarkLongLyricsHover].contains(self)
+         .narrowDarkLongLyrics, .narrowDarkLongLyricsHover, .englishLyrics, .englishLyricsHover].contains(self)
+    }
+    var isEnglish: Bool { self == .englishLyrics || self == .englishLyricsHover }
+    var contextLines: [String] {
+        isEnglish
+            ? ["A light upon the paper", "The wind along the street", "We pause until the rain is gone", "The corner slowly fills with light"]
+            : ["把微光留在纸上", "窗外的风经过长街", "脚步跟着雨停下来", "灯在街角慢慢亮起"]
     }
     var currentLine: String {
         switch self {
@@ -263,6 +271,8 @@ enum PanelLayoutScenario: String, CaseIterable, Sendable {
             "我把窗边缓缓经过的风写进一张还没有寄出的信里，等街角的灯再次亮起"
         case .lightLongLyrics, .lightLongLyricsHover:
             "沿着安静的街道，慢慢走向那一盏还没有熄灭的灯"
+        case .englishLyrics, .englishLyricsHover:
+            "Every quiet moment has a place to stay"
         default: "让这一刻慢下来"
         }
     }
@@ -299,8 +309,10 @@ private struct PanelLayoutFixture {
         let selection = LyricDomain.Selection(playerBundleID: "test.lyrictile.layout",
             sessionID: sessionID, generation: 1,
             recording: .init(fingerprint: "authored-layout-\(scenario.rawValue)", platformIDs: [], isrc: nil,
-                title: scenario == .missingMetadata ? nil : "一盏灯的距离", artists: scenario == .missingMetadata ? [] : ["原创界面夹具"],
-                album: "仅供布局验证", durationMS: scenario == .missingMetadata ? nil : 40_000, versionTags: []))
+                title: scenario == .missingMetadata ? nil : scenario.isEnglish ? "A Place to Stay" : "一盏灯的距离",
+                artists: scenario == .missingMetadata ? [] : [scenario.isEnglish ? "Original layout fixture" : "原创界面夹具"],
+                album: scenario.isEnglish ? "Layout verification only" : "仅供布局验证",
+                durationMS: scenario == .missingMetadata ? nil : 40_000, versionTags: []))
         let anchor: LyricDomain.PlaybackAnchor? = scenario == .missingMetadata ? nil : .init(
             selection: selection, positionMS: 12_000, observedAt: PlaybackClock.now(),
             playbackRate: 1, state: .playing, quality: .coarseSourceAnchor, expectedErrorMS: nil)
@@ -324,11 +336,11 @@ private struct PanelLayoutFixture {
                 """
             } else {
                 text = """
-                [00:00]把微光留在纸上
-                [00:05]窗外的风经过长街
+                [00:00]\(scenario.contextLines[0])
+                [00:05]\(scenario.contextLines[1])
                 [00:10]\(scenario.currentLine)
-                [00:15]脚步跟着雨停下来
-                [00:20]灯在街角慢慢亮起
+                [00:15]\(scenario.contextLines[2])
+                [00:20]\(scenario.contextLines[3])
                 """
             }
             try Data(text.utf8).write(to: file, options: .atomic)

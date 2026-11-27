@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)], // Reusable source floor; distribution qualification is macOS 27.
     products: [
         .executable(name: "LyricTile", targets: ["LyricTileApp"]),
+        .executable(name: "LyricServiceProbe", targets: ["LyricServiceProbe"]),
         .library(name: "LyricCore", targets: ["LyricCore"]),
         .library(name: "LyricServices", targets: ["LyricServices"]),
         .library(name: "LyricPlayback", targets: ["LyricPlayback"]),
@@ -28,7 +29,8 @@ let package = Package(
         .target(name: "TileKit", dependencies: ["CTileLock"]),
         .target(name: "LyricUI", dependencies: ["LyricCore", "LyricServices", "LyricPlayback", "TileKit"]),
         .target(name: "NearpaneLyricsModule", dependencies: ["LyricUI", "TileKit"]),
-        .executableTarget(name: "LyricTileApp", dependencies: ["LyricUI", "LyricPlayback", "TileKit", .product(name: "Sparkle", package: "Sparkle")]),
+        .executableTarget(name: "LyricTileApp", dependencies: ["LyricCore", "LyricUI", "LyricPlayback", "TileKit", .product(name: "Sparkle", package: "Sparkle")]),
+        .executableTarget(name: "LyricServiceProbe", dependencies: ["LyricCore", "LyricServices"], path: "Tools/LyricServiceProbe"),
         .testTarget(name: "LyricCoreTests", dependencies: ["LyricCore"]),
         .testTarget(name: "LyricServicesTests", dependencies: ["LyricCore", "LyricServices"]),
         .testTarget(name: "LyricPlaybackTests", dependencies: ["LyricCore", "LyricPlayback"]),

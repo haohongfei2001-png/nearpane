@@ -30,14 +30,14 @@ if feed:
     except Exception:
         p.error("Sparkle public key must be a base64-encoded 32-byte Ed25519 key.")
 info = {
-    "CFBundleDevelopmentRegion": "zh-Hans", "CFBundleExecutable": "LyricTile",
+    "CFBundleDevelopmentRegion": "en", "CFBundleLocalizations": ["en", "zh-Hans"], "CFBundleExecutable": "LyricTile",
     "CFBundleIdentifier": "com.holdsnow.lyrictile", "CFBundleName": "LyricTile",
     "CFBundleDisplayName": "LyricTile", "CFBundlePackageType": "APPL",
     "CFBundleShortVersionString": args.version, "CFBundleVersion": args.build,
     "CFBundleIconFile": "LyricTile", "LSMinimumSystemVersion": "27.0",
     "LSApplicationCategoryType": "public.app-category.music", "LSUIElement": True,
     "NSHighResolutionCapable": True, "NSPrincipalClass": "NSApplication",
-    "NSAppleEventsUsageDescription": "LyricTile 需要读取你选择的音乐播放器的当前歌曲、播放进度，并在你操作控制按钮时控制播放。",
+    "NSAppleEventsUsageDescription": "LyricTile reads the current song and playback position from your chosen music player, and controls playback only when you use its controls.",
     "NSHumanReadableCopyright": "© 2026 HOLDSNOW",
     "LyricTileBuildCommit": args.commit, "LyricTileDistributionChannel": "candidate",
     "SUEnableAutomaticChecks": False, "SUAutomaticallyUpdate": False,

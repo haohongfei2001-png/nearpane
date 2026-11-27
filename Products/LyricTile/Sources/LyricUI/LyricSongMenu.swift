@@ -1,3 +1,4 @@
+import LyricCore
 import AppKit
 import SwiftUI
 
@@ -26,8 +27,8 @@ struct LyricSongMenu: NSViewRepresentable {
         button.title = model.title
         button.isEnabled = model.snapshot.selection != nil
         button.contentTintColor = LyricPalette.primary(dark: dark)
-        button.setAccessibilityLabel("歌曲菜单，\(model.title)")
-        button.toolTip = "选择歌词版本、调整时间或导入歌词"
+        button.setAccessibilityLabel(LyricLocalization.text("歌曲菜单，\(model.title)", "Song menu, \(model.title)"))
+        button.toolTip = LyricLocalization.text("选择歌词版本、调整时间或导入歌词", "Choose a lyric version, adjust timing, or import lyrics")
     }
     @MainActor
     final class Coordinator: NSObject, NSMenuDelegate {
@@ -37,13 +38,13 @@ struct LyricSongMenu: NSViewRepresentable {
             let menu = NSMenu()
             menu.delegate = self
             menu.autoenablesItems = false
-            add("打开播放器", "player", to: menu, enabled: model.snapshot.player != nil)
-            add("完整歌词", "full", to: menu, enabled: model.document != nil)
+            add(LyricLocalization.text("打开播放器", "Open player"), "player", to: menu, enabled: model.snapshot.player != nil)
+            add(LyricLocalization.text("完整歌词", "Full lyrics"), "full", to: menu, enabled: model.document != nil)
             menu.addItem(.separator())
-            add("选择歌词版本…", "versions", to: menu)
-            add("时间校准…", "timing", to: menu, enabled: model.document != nil)
-            add("导入歌词…", "import", to: menu)
-            add("查看来源…", "source", to: menu, enabled: model.document != nil)
+            add(LyricLocalization.text("选择歌词版本…", "Choose lyric version…"), "versions", to: menu)
+            add(LyricLocalization.text("时间校准…", "Adjust timing…"), "timing", to: menu, enabled: model.document != nil)
+            add(LyricLocalization.text("导入歌词…", "Import lyrics…"), "import", to: menu)
+            add(LyricLocalization.text("查看来源…", "View source…"), "source", to: menu, enabled: model.document != nil)
             menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.maxY + 3), in: sender)
         }
         private func add(_ title: String, _ key: String, to menu: NSMenu, enabled: Bool = true) {

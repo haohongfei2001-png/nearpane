@@ -1,3 +1,4 @@
+import LyricCore
 import Foundation
 
 actor MediaRemoteClient {
@@ -16,13 +17,13 @@ actor MediaRemoteClient {
     private func job(_ arguments: [String], artwork: Bool = false, stream: Bool = false,
                      chunk: (@Sendable (Data) -> Bool)? = nil) throws -> BoundedProcess {
         #if !os(macOS)
-        throw PlaybackError.unavailable("MediaRemote 需要 macOS。")
+        throw PlaybackError.unavailable(LyricLocalization.text("MediaRemote 需要 macOS。", "MediaRemote requires macOS."))
         #else
         let script = directory.appendingPathComponent("mediaremote-adapter.pl")
         let framework = directory.appendingPathComponent("MediaRemoteAdapter.framework", isDirectory: true)
         guard FileManager.default.fileExists(atPath: script.path),
               FileManager.default.fileExists(atPath: framework.appendingPathComponent("MediaRemoteAdapter").path) else {
-            throw PlaybackError.unavailable("安装包未包含媒体助手；请重新安装完整版本。")
+            throw PlaybackError.unavailable(LyricLocalization.text("安装包未包含媒体助手；请重新安装完整版本。", "The media helper is missing. Reinstall the complete app."))
         }
         return BoundedProcess(executable: URL(fileURLWithPath: "/usr/bin/perl"),
             arguments: [script.path, framework.path] + arguments,
@@ -37,7 +38,7 @@ actor MediaRemoteClient {
         guard result.status == 0 else {
             // Keep bounded helper diagnostics available without pretending exit=0
             // proves transport success. Caller still performs actual readback.
-            let message = String(data: result.stderr.prefix(2048), encoding: .utf8) ?? "媒体助手退出"
+            let message = String(data: result.stderr.prefix(2048), encoding: .utf8) ?? LyricLocalization.text("媒体助手退出", "The media helper exited.")
             throw PlaybackError.unavailable(message)
         }
         return result.data
@@ -62,7 +63,7 @@ actor MediaRemoteClient {
         let task = Task {
             do {
                 _ = try await process.run()
-                continuation.finish(throwing: PlaybackError.unavailable("媒体助手连接已结束"))
+                continuation.finish(throwing: PlaybackError.unavailable(LyricLocalization.text("媒体助手连接已结束", "The media helper connection has ended.")))
             } catch { continuation.finish(throwing: error) }
             self.jobs.removeValue(forKey: id)
         }

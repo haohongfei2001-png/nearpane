@@ -232,7 +232,7 @@ public actor PlaybackController {
             payload = exact
         } else if matches.count > 1 { throw PlaybackError.ambiguousSession }
         else if forceCurrent { throw PlaybackError.sourceNotCurrent }
-        else { throw PlaybackError.unavailable("播放器暂未提供媒体信息") }
+        else { throw PlaybackError.unavailable(LyricLocalization.text("播放器暂未提供媒体信息", "The player has not reported media information yet.")) }
         if forceCurrent { await acceptCurrent(payload) }
         guard let pid = payload.pid else { throw PlaybackError.malformedPayload }
         let start = await PlayerEnvironment.processStart(pid)
@@ -345,9 +345,9 @@ public actor PlaybackController {
             let message: String
             if errors[chosen] == .timeout && chosen.usesAppleEvents {
                 // The first Apple Event can time out while the system consent sheet is open.
-                message = "正在连接 \(chosen.displayName)。若系统询问自动化权限，请选择“允许”。"
+                message = LyricLocalization.text("正在连接 \(chosen.displayName)。若系统询问自动化权限，请选择“允许”。", "Connecting to \(chosen.displayName). Choose Allow if macOS requests Automation access.")
             } else {
-                message = errors[chosen]?.localizedDescription ?? (processes[chosen] == nil ? "打开 \(chosen.displayName) 开始播放" : "正在连接播放器")
+                message = errors[chosen]?.localizedDescription ?? (processes[chosen] == nil ? LyricLocalization.text("打开 \(chosen.displayName) 开始播放", "Open \(chosen.displayName) and start playing music.") : LyricLocalization.text("正在连接播放器", "Connecting to player…"))
             }
             publish(PlaybackSnapshot(player: chosen, selection: nil, anchor: nil, state: .unknown,
                 statusMessage: message,
@@ -373,9 +373,9 @@ public actor PlaybackController {
         // Reentrancy: a newer selection may have arrived while reading the cache.
         guard running, lifecycle == epoch, tracker.selection?.sessionID == selection?.sessionID, tracker.selection?.generation == selection?.generation else { return }
         let message: String?
-        if observation.quality == .stale || sleeping { message = "重新连接播放器" }
-        else if observation.clockNeedsReanchor { message = "正在重新同步播放进度" }
-        else if observation.positionMS == nil && selection != nil { message = "播放器不提供进度" }
+        if observation.quality == .stale || sleeping { message = LyricLocalization.text("重新连接播放器", "Reconnecting to player…") }
+        else if observation.clockNeedsReanchor { message = LyricLocalization.text("正在重新同步播放进度", "Resyncing playback position…") }
+        else if observation.positionMS == nil && selection != nil { message = LyricLocalization.text("播放器不提供进度", "This player does not report playback position.") }
         else { message = nil }
         publish(PlaybackSnapshot(player: chosen, selection: selection, anchor: anchor, state: observation.state,
             capabilities: capabilities, artwork: cover ?? observation.artwork, statusMessage: message,
@@ -438,7 +438,7 @@ public actor PlaybackController {
                 observedSystemPIDAfter: currentSource?.pid, outcome: traceOutcome))
             if commandTrace.count > 64 { commandTrace.removeFirst(commandTrace.count - 64) }
         }
-        guard running, !sleeping else { throw PlaybackError.unavailable("播放器连接未运行") }
+        guard running, !sleeping else { throw PlaybackError.unavailable(LyricLocalization.text("播放器连接未运行", "The player connection is not running.")) }
         guard !commandBusy else { throw PlaybackError.commandInProgress }
         guard PlaybackSelectionTracker.matches(snapshot.selection, expected), let id = snapshot.player,
               let process = processes[id] else { throw PlaybackError.selectionChanged }
@@ -460,7 +460,7 @@ public actor PlaybackController {
         traceOutcome = "dispatch_attempted_unconfirmed"
         if id.usesAppleEvents { try await apple.send(command, to: process) }
         else { try await remote.send(command) }
-        var lastFailure: PlaybackError = .notConfirmed("尚未读到目标状态")
+        var lastFailure: PlaybackError = .notConfirmed(LyricLocalization.text("尚未读到目标状态", "The expected playback state has not been reported yet."))
         // Commands are sent once. Repeated reads are safe; previous/next retries are not.
         // QQ may publish its resumed play state more than two seconds after dispatch.
         let delays = id == .qqMusic ? [120, 250, 400, 650, 850, 1_100] : [120, 250, 400, 650]
@@ -477,7 +477,7 @@ public actor PlaybackController {
                     traceOutcome = "readback_confirmed"; return
                 }
                 if before.state == .paused && after.state == .playing, case .seek = command {
-                    lastFailure = .notConfirmed("跳转使播放器恢复播放；暂停中跳转已停用")
+                    lastFailure = .notConfirmed(LyricLocalization.text("跳转使播放器恢复播放；暂停中跳转已停用", "Seeking resumed playback. Seeking while paused has been disabled."))
                     break
                 }
             } catch let error as PlaybackError {
