@@ -43,7 +43,72 @@ passing qualification or overwrites `/Applications/Nearpane.app`.
 
 ### Current verification checkpoint
 
-#### R4 latency work through 6d058079, 2026-11-28
+#### Current verification checkpoint: f4934582, 2026-11-28
+
+`f4934582` reuses a pending directory result only when both its actual wall-clock
+and native sampling starts are strictly later than the new action boundary. It
+retains the real revision, all freshness/completeness limits, session revocation
+and the subsequent independent proof. Its new async test runs all 16 parameter
+cases successfully. Source reports 180 Rust and 228 Swift passes with one skip.
+The original XML confirms229 function entries (228 passes/one skip), while the
+new function has16 actual parameter executions in stdout. C identity checks
+pass13 cases with zero window writes.
+The target Mac separately completes the full release build (265.445 seconds),
+package and strict deep signature. It remains a build-only result: the most recent
+target context was locked, and no new candidate GUI or R4 input was launched.
+[Target f493 native build originals](../verification/independent-stage/target-f493-build/README.md).
+
+Fast issues one real R4 input and confirms no complete switch. Its sole initial
+witness succeeds in818.329 ms, after222.763 ms preparation. There is no roster
+rejection. All three explicit after-action reads finish with `reusedPrior=false`;
+the sole prior revision3 sample began74.135 ms before both entry clocks, so the
+new branch correctly refuses it and returns the fresh revision4. This lane has
+not exercised a positive reuse hit and supplies no measured speedup.
+
+The subsequent canary Open fails its existing300 ms budget. The label
+`main-queue-timeout` covers queue wait plus the complete AppKit call: measured
+queue wait is0.683 ms and panel-call work747.248 ms. The original guard prevents
+late `orderFront` after construction. No fixture HIDE/SHOW follows. In parallel,
+a Dock read runs1903.447 ms and arrives1096.859 ms after its native end; Host
+revokes ownership. The worker has no absolute event timestamps in this revision,
+so those two failures cannot be ordered against each other. Host main-thread
+sampling does not identify the worker's slow AppKit subcall.
+
+Fast's final status is UNKNOWN/productionRestoreIncomplete. Host shutdown reports
+`released=false` and cleanup remains false. Two independent physical reads confirm
+the three fixture windows at home and visible, while the worker separately retains
+a `release-pending` receipt with status2/detail225/flags128/owned1. Outer CI cleanup
+is successful. These three cleanup boundaries remain distinct. Fast's direct
+engine passes26 requests; the separate diagnostics engine is BLOCKED before writes
+by its canary, with only a platform fallback pass. A green diagnostics job does
+not establish the direct engine result.
+The unsampled full release also issues one input and confirms no switch, but
+has a different early failure. Preparation succeeds in2860.695 ms; its first
+directory waits1914.895 ms for prior revision4 and then843.606 ms for fresh
+revision5. That prior begins46.973 ms before the actual read entry on both clocks
+and is correctly not reused. The old native sample itself takes1914.856 ms;
+its task queue takes only0.604 ms, so this is not a demonstrated actor-admission
+stall. At roughly2955 ms after input, group choice exits at `current-intent`
+with the generic busy error, before any witness, roster check or worker creation.
+The four short-circuit checks at that point are wallpaper state, exact member
+lifetime, current selection/session/input, and current environment. No action-time
+Dock revocation or new-selection event selects one of them from the old trace.
+Full's Host release, physical return double-read and outer CI cleanup all pass;
+its direct engine passes26 requests.
+[Exact f493 source and runtime evidence](../verification/independent-stage/cloud-f4934582-latency/README.md).
+
+The next scoped patch explicitly carries the calling Swift task priority through
+the existing worker SUBMIT/POLL/wait bridge, and measures actual task priority and
+request timing. The old bridge omits that argument and samples execute on a
+default-QoS queue; this does not measure their Swift task priority or explain the
+747 ms panel body. Separate opt-in worker timing will locate time within the
+original Open steps and correlate late callbacks using an absolute clock and call
+ID. It adds no window/focus queries, moves no native operation and extends no
+deadline. The same patch also caches the first failed current-intent guard and
+its already-read environment rejection; it does not repeat these queries at exit.
+No catalogue exception or cleanup-success override is justified here.
+
+#### Earlier R4 latency work through 6d058079, 2026-11-28
 
 Continue on the existing PR #16. The immediate deliverable is the formal R4 path from
 the actual thumbnail press through real sibling hiding, target restoration and exact

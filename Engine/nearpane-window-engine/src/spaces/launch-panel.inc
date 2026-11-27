@@ -3,6 +3,7 @@
 #import <AppKit/AppKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Security/Security.h>
+#import <pthread/qos.h>
 #import <stdatomic.h>
 #import <stdio.h>
 #import <stdlib.h>
@@ -28,25 +29,62 @@
 - (void)dealloc { if(originalDesktopFocus)CFRelease(originalDesktopFocus); }
 @end
 
-static int launchTrace(NPSpacesLaunchToken *t,unsigned op,int result,const char *phase) {
+static int launchTrace(NPSpacesLaunchToken *t,unsigned op,int result,const char *phase,uint64_t callID) {
     if (getenv("NP_SPACES_LAUNCH_TRACE")) {
         BOOL main=NSThread.isMainThread;
-        fprintf(stderr,"{\"event\":\"spacesLaunchPlatform\",\"phase\":\"%s\",\"operation\":%u,\"result\":%d,\"mainThread\":%d,\"appRunning\":%d,\"prepared\":%d,\"opened\":%d,\"window\":%u,\"closeIssued\":%d}\n",
-            phase,op,result,main,main?NSApp.isRunning:-1,main?t->prepared:-1,main?t->opened:-1,main?t->window:0,main?t->closeIssued:-1);
+        fprintf(stderr,"{\"event\":\"spacesLaunchPlatform\",\"phase\":\"%s\",\"callID\":%llu,\"operation\":%u,\"result\":%d,\"uptime\":%.9f,\"threadQoS\":%u,\"mainThread\":%d,\"appRunning\":%d,\"prepared\":%d,\"opened\":%d,\"window\":%u,\"closeIssued\":%d}\n",
+            phase,(unsigned long long)callID,op,result,CACurrentMediaTime(),(unsigned)qos_class_self(),main,
+            main?NSApp.isRunning:-1,main?t->prepared:-1,main?t->opened:-1,main?t->window:0,main?t->closeIssued:-1);
         fflush(stderr);
     }
     return result;
 }
 
+// Diagnostic identity only. Immutable before dispatch; a timed-out caller never
+// reads the mutable timing slots that the main thread still owns.
+static atomic_uint_fast64_t launchTraceSequence=0;
+enum { NPSpacesOpenStepLimit=9 };
+typedef struct { const char *name; double began,ended; } NPSpacesOpenStep;
 @interface NPSpacesMainCall : NSObject {
 @public
     atomic_bool expired;
     NPStageCanary read;
     int result;
+    uint64_t traceID;
+    unsigned stepCount;
+    NPSpacesOpenStep steps[NPSpacesOpenStepLimit];
 }
 @end
 @implementation NPSpacesMainCall
 @end
+
+static inline void launchOpenStep(NPSpacesMainCall *call,const char *name) {
+    if(!call->traceID)return;
+    double now=CACurrentMediaTime();
+    if(call->stepCount)call->steps[call->stepCount-1].ended=now;
+    if(call->stepCount<NPSpacesOpenStepLimit)
+        call->steps[call->stepCount++]=(NPSpacesOpenStep){.name=name,.began=now};
+}
+static void launchSchedulingExit(NPSpacesMainCall *call,unsigned op,double enqueued,double entered,
+                                 unsigned enqueuedQoS,unsigned enteredQoS) {
+    if(!call->traceID)return;
+    double exited=CACurrentMediaTime();unsigned exitedQoS=(unsigned)qos_class_self();
+    if(call->stepCount)call->steps[call->stepCount-1].ended=exited;
+    // Buffer the bounded step list, then emit one line so a concurrent timeout
+    // cannot interleave half of its JSON with this main-thread completion.
+    char steps[3072]={0};size_t used=0;
+    for(unsigned i=0;i<call->stepCount;i++) {
+        NPSpacesOpenStep step=call->steps[i];char item[320];
+        int length=snprintf(item,sizeof(item),"%s{\"phase\":\"%s\",\"beganUptime\":%.9f,\"endedUptime\":%.9f,\"durationMS\":%.3f}",
+            i?",":"",step.name,step.began,step.ended,(step.ended-step.began)*1000);
+        if(length<0 || (size_t)length>=sizeof(item) || used+(size_t)length>=sizeof(steps))break;
+        memcpy(steps+used,item,(size_t)length);used+=(size_t)length;
+    }
+    fprintf(stderr,"{\"event\":\"spacesLaunchScheduling\",\"phase\":\"exit\",\"callID\":%llu,\"operation\":%u,\"result\":%d,\"enqueuedUptime\":%.9f,\"enteredUptime\":%.9f,\"exitedUptime\":%.9f,\"enqueuedThreadQoS\":%u,\"enteredThreadQoS\":%u,\"exitedThreadQoS\":%u,\"mainQueueMS\":%.3f,\"panelCallMS\":%.3f,\"openSteps\":[%s]}\n",
+        (unsigned long long)call->traceID,op,call->result,enqueued,entered,exited,enqueuedQoS,enteredQoS,exitedQoS,
+        (entered-enqueued)*1000,(exited-entered)*1000,steps);
+    fflush(stderr);
+}
 
 static BOOL signedInstalledHost(void) {
     char path[PROC_PIDPATHINFO_MAXSIZE]={0};
@@ -241,39 +279,48 @@ static BOOL noRegisteredProbe(void) {
 }
 static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,void *authorization,NPStageGuard guard) {
     BOOL (^allowed)(void)=^BOOL{ return !atomic_load(&call->expired) && guard && guard(authorization); };
-    if (!NSApp || !NSThread.isMainThread || atomic_load(&call->expired))return launchTrace(t,op,0,"entry");
+    if (!NSApp || !NSThread.isMainThread || atomic_load(&call->expired))return launchTrace(t,op,0,"entry",call->traceID);
     if(op==0 && !t->prepared) {
-        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus,&t->originalDesktopFocus))return launchTrace(t,op,0,"prepare-focus");
+        if(!noRegisteredProbe() || !readFocus(&t->foreground,&t->foregroundBirth,&t->originalFocus,&t->originalDesktopFocus))return launchTrace(t,op,0,"prepare-focus",call->traceID);
         t->prepared=YES;
     }
     if(op==1) {
-        if(!t->prepared || t->opened || t->closed || !noRegisteredProbe() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-precondition");
+        launchOpenStep(call,"precondition");
+        if(!t->prepared || t->opened || t->closed || !noRegisteredProbe() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-precondition",call->traceID);
+        launchOpenStep(call,"screen");
         NSScreen *screen=NSApp.mainWindow.screen ?: NSScreen.mainScreen;
-        if(!screen)return launchTrace(t,op,0,"open-screen");
+        if(!screen)return launchTrace(t,op,0,"open-screen",call->traceID);
         // Transparent but inside a physical display so the original desktop is well defined.
         NSRect frame=NSMakeRect(NSMidX(screen.frame),NSMidY(screen.frame),4,4);
+        launchOpenStep(call,"panel-init");
         t->panel=[[NPSpacesLaunchPanel alloc] initWithContentRect:frame
             styleMask:NSWindowStyleMaskBorderless|NSWindowStyleMaskNonactivatingPanel backing:NSBackingStoreBuffered defer:NO];
         t->opened=YES;
+        launchOpenStep(call,"configure-first-number");
         NPSpacesLaunchPanel *p=t->panel;
         p.releasedWhenClosed=NO;p.opaque=NO;p.backgroundColor=NSColor.clearColor;p.alphaValue=0;p.hasShadow=NO;
         p.ignoresMouseEvents=YES;p.hidesOnDeactivate=NO;p.excludedFromWindowsMenu=YES;p.level=NSNormalWindowLevel;
         p.animationBehavior=NSWindowAnimationBehaviorNone;p.collectionBehavior=NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorFullScreenNone;
         if(p.windowNumber>0 && p.windowNumber<=UINT32_MAX)t->window=(uint32_t)p.windowNumber;
-        if(!allowed() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-before-order");
+        launchOpenStep(call,"before-order");
+        if(!allowed() || !originalFocus(t) || !allowed())return launchTrace(t,op,0,"open-before-order",call->traceID);
+        launchOpenStep(call,"order-front");
         [p orderFront:nil];
         // Commit the own probe's pending order-in before Rust reads its Space.
         // Upstream's launch probe explicitly flushes here; a registered AppKit
         // number alone does not establish WindowServer membership.
+        launchOpenStep(call,"flush");
         [CATransaction flush];
-        if(p.windowNumber<=0 || p.windowNumber>UINT32_MAX)return launchTrace(t,op,0,"open-window-number");
+        launchOpenStep(call,"ordered-window-number");
+        if(p.windowNumber<=0 || p.windowNumber>UINT32_MAX)return launchTrace(t,op,0,"open-window-number",call->traceID);
         t->window=(uint32_t)p.windowNumber;
     } else if(op==3 && t->panel) {
         NSWindow *p=t->panel;
         if(![p isMemberOfClass:NPSpacesLaunchPanel.class] || p.isKeyWindow || p.isMainWindow ||
-           (t->window && p.windowNumber!=t->window) || !allowed())return launchTrace(t,op,0,"close-precondition");
+           (t->window && p.windowNumber!=t->window) || !allowed())return launchTrace(t,op,0,"close-precondition",call->traceID);
         t->closeIssued=YES;[p close];t->panel=nil;t->closed=YES;
     }
+    if(op==1)launchOpenStep(call,"readback");
     BOOL absent=!t->panel && noRegisteredProbe();
     int32_t focusReadError=0;
     call->read=(NPStageCanary){.number=t->window,.pid=getpid(),.birth=birth(getpid()),
@@ -281,7 +328,7 @@ static int panelCall(NPSpacesLaunchToken *t,unsigned op,NPSpacesMainCall *call,v
     call->read.focus_same=op==2?originalFocusRead(t,&focusReadError):originalFocus(t);
     call->read.close_issued=t->closeIssued;
     call->read.focus_read_error=focusReadError;
-    return launchTrace(t,op,1,"complete");
+    return launchTrace(t,op,1,"complete",call->traceID);
 }
 int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard guard,NPStageFree release,NPStageCanary *out) {
     if(!handle || !out || op>3 || ((op==1 || op==3) && (!guard || !ctx || !release))) {
@@ -289,26 +336,35 @@ int32_t np_stage_launch_call(void *handle,uint32_t op,void *ctx,NPStageGuard gua
     }
     NPSpacesLaunchToken *token=(__bridge NPSpacesLaunchToken *)handle;
     NPSpacesMainCall *call=[NPSpacesMainCall new];atomic_init(&call->expired,false);
+    if(getenv("NP_SPACES_LAUNCH_TRACE"))call->traceID=atomic_fetch_add_explicit(&launchTraceSequence,1,memory_order_relaxed)+1;
     dispatch_semaphore_t done=dispatch_semaphore_create(0);
     double enqueued=CACurrentMediaTime();
+    unsigned enqueuedQoS=call->traceID?(unsigned)qos_class_self():0;
+    if(call->traceID) {
+        fprintf(stderr,"{\"event\":\"spacesLaunchScheduling\",\"phase\":\"enqueue\",\"callID\":%llu,\"operation\":%u,\"uptime\":%.9f,\"threadQoS\":%u}\n",
+            (unsigned long long)call->traceID,op,enqueued,enqueuedQoS);
+        fflush(stderr);
+    }
     void (^perform)(void)=^{
         @autoreleasepool {
             double entered=CACurrentMediaTime();
+            unsigned enteredQoS=call->traceID?(unsigned)qos_class_self():0;
+            if(call->traceID) {
+                fprintf(stderr,"{\"event\":\"spacesLaunchScheduling\",\"phase\":\"main-entry\",\"callID\":%llu,\"operation\":%u,\"uptime\":%.9f,\"threadQoS\":%u}\n",
+                    (unsigned long long)call->traceID,op,entered,enteredQoS);
+                fflush(stderr);
+            }
             @try {call->result=panelCall(token,op,call,ctx,guard);}
-            @catch(NSException *e) {call->result=launchTrace(token,op,0,"exception");}
+            @catch(NSException *e) {call->result=launchTrace(token,op,0,"exception",call->traceID);}
             @finally {
-                if(getenv("NP_SPACES_LAUNCH_TRACE")) {
-                    fprintf(stderr,"{\"event\":\"spacesLaunchScheduling\",\"operation\":%u,\"result\":%d,\"mainQueueMS\":%.3f,\"panelCallMS\":%.3f}\n",
-                        op,call->result,(entered-enqueued)*1000,(CACurrentMediaTime()-entered)*1000);
-                    fflush(stderr);
-                }
+                launchSchedulingExit(call,op,enqueued,entered,enqueuedQoS,enteredQoS);
                 if(ctx && release)release(ctx);dispatch_semaphore_signal(done);
             }
         }
     };
     if(NSThread.isMainThread)perform();else dispatch_async(dispatch_get_main_queue(),perform);
     if(dispatch_semaphore_wait(done,dispatch_time(DISPATCH_TIME_NOW,300*NSEC_PER_MSEC))!=0) {
-        atomic_store(&call->expired,true);return launchTrace(token,op,0,"main-queue-timeout");
+        atomic_store(&call->expired,true);return launchTrace(token,op,0,"main-queue-timeout",call->traceID);
     }
     if(call->result)*out=call->read;
     return call->result;

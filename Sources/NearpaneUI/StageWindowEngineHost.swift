@@ -642,10 +642,15 @@ import NearpaneOrdinaryWindowRuntime
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
                      successor: @escaping @MainActor () -> UUID? = { nil }) async throws -> Bool {
         var phase = "entry", completed = false
+        var permittedRejection: [String: Any]?
         SpacesWorkerLifecycle.trace("group-choice-entry", ["candidate": candidateMode, "routes": routesGroupChoice,
             "wallpaperPaused": wallpaperPaused, "unreadableLedger": unreadableLedger, "releasing": releasing,
             "terminating": terminationOwnsLane, "hasController": engine != nil])
-        defer { SpacesWorkerLifecycle.trace("group-choice-exit", ["lastPhase": phase, "completed": completed]) }
+        defer {
+            var facts: [String: Any] = ["lastPhase": phase, "completed": completed]
+            if !completed, let permittedRejection { facts["permittedRejection"] = permittedRejection }
+            SpacesWorkerLifecycle.trace("group-choice-exit", facts)
+        }
         heldSuccessor = nil
         guard !wallpaperPaused else { throw StageSwitchError.busy }
         guard routesGroupChoice else { return false }
@@ -688,7 +693,40 @@ import NearpaneOrdinaryWindowRuntime
             }
         }
         let permitted: @MainActor () -> Bool = { [weak self,weak feed] in
-            self?.wallpaperPaused == false && feed?.groupLifetime(of:member.key) == window.lifetime && current() && environmentCurrent()
+            permittedRejection = nil
+            func rejected(_ reason: String, _ facts: [String: Any] = [:]) -> Bool {
+                var recorded = facts
+                recorded["reason"] = reason
+                recorded["phase"] = phase
+                recorded["snapshotSession"] = snapshot.sessionID.uuidString
+                recorded["snapshotRevision"] = snapshot.revision
+                recorded["expectedHostRevision"] = token
+                recorded["window"] = member.key.number
+                permittedRejection = recorded
+                return false
+            }
+            // Preserve the original short circuit. Record only the values this
+            // permission attempt actually read, including its own environment
+            // rejection before another availability check can replace it.
+            let paused = self?.wallpaperPaused
+            guard paused == false else {
+                var facts: [String: Any] = ["hostPresent": paused != nil]
+                if let paused { facts["wallpaperPaused"] = paused }
+                return rejected("wallpaper-state", facts)
+            }
+            let lifetime = feed?.groupLifetime(of: member.key)
+            guard lifetime == window.lifetime else {
+                var facts: [String: Any] = ["expectedLifetime": window.lifetime.uuidString]
+                if let lifetime { facts["observedLifetime"] = lifetime.uuidString }
+                return rejected("member-lifetime", facts)
+            }
+            guard current() else { return rejected("current") }
+            guard environmentCurrent() else {
+                var facts: [String: Any] = [:]
+                if let environmentRejection { facts["environmentRejection"] = environmentRejection }
+                return rejected("environment", facts)
+            }
+            return true
         }
         phase = "current-intent"
         guard permitted() else { throw StageSwitchError.busy }
