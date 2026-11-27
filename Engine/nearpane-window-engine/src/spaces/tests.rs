@@ -283,7 +283,7 @@ impl Platform for Fake {
             focus_read_error,
         };
         if op == launch::PanelOp::Read {
-            if let changed = self.probe_read_window {
+            if let Some(changed) = self.probe_read_window {
                 panel.number = changed.number; panel.pid = changed.pid; panel.birth = changed.birth;
             }
         }

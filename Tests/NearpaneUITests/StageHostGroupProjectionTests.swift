@@ -221,13 +221,18 @@ private final class ProjectionReadProbe: @unchecked Sendable {
         #expect(result == nil && probe.requested == [8])
     }
 
-    @Test func aPhysicalDirectoryReadAllowsMainActorProgressBeforeReturning() async throws {
+    @Test(.timeLimit(.minutes(1))) func aPhysicalDirectoryReadAllowsMainActorProgressBeforeReturning() async throws {
         let raw = snapshot([window(8)]), observation = seen(8), probe = ProjectionReadProbe()
         let delivered = DispatchSemaphore(value: 0)
         let result = await StageWindowEngineHost.projectGroups(raw) { _, _ in
+            // An on-main regression fails without blocking input delivery.
+            guard !Thread.isMainThread else {
+                probe.finishRead(mainActorProgress: false, onMainThread: true)
+                return observation
+            }
             Task { @MainActor in delivered.signal() }
-            let progressed = delivered.wait(timeout: .now() + 2) == .success
-            probe.finishRead(mainActorProgress: progressed, onMainThread: Thread.isMainThread)
+            delivered.wait()
+            probe.finishRead(mainActorProgress: true, onMainThread: false)
             return observation
         }
         #expect(probe.mainActorProgress && !probe.readOnMainThread)
@@ -235,14 +240,29 @@ private final class ProjectionReadProbe: @unchecked Sendable {
         #expect(projection.isCurrentDesktopWindow(projection.windows[0]))
     }
 
-    @Test func inputChangedDuringTheFinalPhysicalReadCannotPublishItsResult() async {
+    @Test(.timeLimit(.minutes(1))) func inputChangedDuringTheFinalPhysicalReadCannotPublishItsResult() async throws {
         let raw = snapshot([window(8)]), observation = seen(8), intent = ProjectionReadIntent()
-        let delivered = DispatchSemaphore(value: 0)
-        let result = await StageWindowEngineHost.projectGroups(raw, current: { intent.current }) { _, _ in
-            Task { @MainActor in intent.current = false; delivered.signal() }
-            #expect(delivered.wait(timeout: .now() + 2) == .success)
-            return observation
+        let (reads, entered) = AsyncStream<Bool>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal(); entered.finish() }
+        let task = Task {
+            await StageWindowEngineHost.projectGroups(raw, current: { intent.current }) { _, _ in
+                let onMain = Thread.isMainThread
+                entered.yield(onMain)
+                // Never block the actor that must deliver the changed input.
+                guard !onMain else { return observation }
+                release.wait()
+                return observation
+            }
         }
+        var begin = reads.makeAsyncIterator()
+        let onMain = try #require(await begin.next())
+        #expect(!onMain)
+        // The final synchronous read has entered and cannot return until this
+        // actor turn changes the input. Parallel suites impose no latency limit.
+        intent.current = false
+        release.signal()
+        let result = await task.value
         #expect(!intent.current && result == nil)
     }
 
