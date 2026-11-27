@@ -3,22 +3,27 @@
   "title": "Nearpane — 让音乐，留在手边。",
   "snapshot_date": "2026-11-28",
   "timezone": "Asia/Shanghai",
-  "manifest_state": "PROVISIONAL_BEFORE_FINAL_MEDIA_INGEST",
+  "manifest_state": "FROZEN_PRODUCT_PREVIEW_DELIVERY",
   "publication_class": "PRODUCT_PREVIEW_ONLY",
   "publication_claims": {
     "verified_destination": "https://nearpane.com/",
     "call_to_action_zh": "了解 Nearpane · 产品预览",
     "call_to_action_en": "Discover Nearpane · Product preview",
     "integrated_nearpane_available_for_download": false,
-    "lyric_module_preinstalled_default_enabled_in_integrated_host": "NOT_VERIFIED_AS_SHIPPED",
-    "riftlet_install_remove_readd_in_integrated_host": "NOT_IMPLEMENTED_OR_NOT_VERIFIED_AS_SHIPPED",
+    "lyric_module_preinstalled_default_enabled_in_integrated_host": "NOT_IMPLEMENTED_AS_THIS_RELEASE_PRESET; reviewed Host default is disabled",
+    "riftlet_install_remove_readd_in_integrated_host": "NOT_IMPLEMENTED_IN_REVIEWED_SOURCE; static embedded adapter with enable/disable is present",
     "evidence_file": "docs/release-gaps.json",
     "do_not_claim": [
-      "立即下载已集成的Nearpane",
-      "歌词板已随Nearpane正式预装",
-      "可在Nearpane中下载安装/移除/重加Riftlet",
-      "本片证明所有播放器或全部交互已经验收通过"
-    ]
+      "立即下载已公开发行的统一Nearpane",
+      "歌词板已随已发布Nearpane默认启用",
+      "可在Nearpane中真正下载安装/卸载/重新下载模块",
+      "暂停后退场是新R4 Host行为",
+      "本片是整套新Host界面的逐像素连续实录",
+      "本片证明所有播放器或完整Host发行验收通过"
+    ],
+    "integrated_host_source_exists": true,
+    "riftlet_caption_zh": "截图助手",
+    "riftlet_caption_en": "Screenshot assistant"
   },
   "source_baseline": {
     "repository": "https://github.com/haohongfei2001-png/nearpane",
@@ -27,10 +32,73 @@
     "production_view": "LyricPanelView",
     "film_capture_modifications": "Filming instrumentation and authored fixture inputs were applied to an isolated copy. This is not a signed integrated Nearpane release.",
     "instrumentation_manifest": {
-      "source_archive_path": "product-evidence/native-capture-3/film-instrumentation.json",
+      "path": "assets/native/evidence-run5/film-instrumentation.json",
+      "bytes": 684,
       "sha256": "22dd9b88d0cc335ff78a181f4e725172693507c411fc1a9d9d67098f60c1c45d"
     },
-    "final_capture_run": null
+    "verified_control_capture_run": {
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46044337410",
+      "commit": "d8de9069e796fdc83bb80094b8da925a0ca487ca",
+      "checks_passed": 25,
+      "checks_total": 25
+    },
+    "scope": "Historical isolated production lyric-view filming baseline; current Host integration is separately recorded in currentProductState.",
+    "current_host_reference": {
+      "branch": "pro/r4-integrated-lyrics-20261128",
+      "commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
+      "verified_at_utc": "2026-11-27T19:21:50.088019+00:00",
+      "is_final_shipping_release": false,
+      "refresh_record": "docs/final-product-refresh.json"
+    },
+    "view_compatibility_with_current_host": {
+      "comparison_before": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+      "comparison_after": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+      "root": "Products/LyricTile/Sources/",
+      "files": [
+        {
+          "repository_path": "LyricUI/LyricGlyphText.swift",
+          "byte_identical": true,
+          "sha256_before": "3fb9d38e8afaa9f06e0cae1b4d65cd67fba889a7c8179e97ae6111c7d1d4ed50",
+          "sha256_after": "3fb9d38e8afaa9f06e0cae1b4d65cd67fba889a7c8179e97ae6111c7d1d4ed50"
+        },
+        {
+          "repository_path": "TileKit/TileGeometry.swift",
+          "byte_identical": true,
+          "sha256_before": "883d650d8131538b448ff25a7732e467d95a4f9b1dfde486e1e2687e607deea1",
+          "sha256_after": "883d650d8131538b448ff25a7732e467d95a4f9b1dfde486e1e2687e607deea1"
+        },
+        {
+          "repository_path": "LyricUI/LyricPanelView.swift",
+          "byte_identical": false,
+          "sha256_before": "2e6855818ee70baecdf85f98b5fa23739ac8300e3269aa8bb951e835c684908e",
+          "sha256_after": "71038ad0d99596439926c518e710f888f8e7a4bda06e3d037c3bda523d657c93",
+          "changes": "Host appearance inheritance option, accessibility container/identifiers and comment; lyric typography/layout, controls, material values and native cue/hover motion code unchanged."
+        },
+        {
+          "repository_path": "LyricUI/LyricPanelPresentation.swift",
+          "byte_identical": false,
+          "sha256_before": "82751997a777e469384bcb04d91266228b75efdcad25d93afa92caac4f529553",
+          "sha256_after": "ab70e2966a1c9f2e02deda0f5ab40b5907958427abf9787591004902e4bf7751",
+          "changes": "Layout/presentation constants unchanged; visibility policy now retains any valid player+selection session, including pause."
+        }
+      ],
+      "reuse_scope_zh": "原生歌词排版、控制布局及动效素材可作为同一生产视图的预览；须使用相符的浅色环境。不能据此声称是整个新Host逐像素截图或新Host生命周期验收。",
+      "latest_refresh": "Four lyric rendering files unchanged from 8eb649 to f8d91b; see docs/final-product-refresh.json."
+    },
+    "final_capture_runs": [
+      {
+        "language": "zh",
+        "run": 46053480437,
+        "commit": "46fd9031026e9c44e2c1f580fa1eb278a932f164",
+        "scope": "Selected usable native footage and controls; whole run not PASS because complete process quit/relaunch checks failed."
+      },
+      {
+        "language": "en",
+        "run": 46054747620,
+        "commit": "da2451cff1de3724eaca21f82ddf6e85aacc3c4d",
+        "scope": "16/16 bounded source/input checks; actual unavailable selection and native withdrawal, not full Music process termination."
+      }
+    ]
   },
   "asset_groups": {
     "production_view_stills": {
@@ -224,11 +292,11 @@
       ]
     },
     "authored_cue_sequences": {
-      "classification": "AUTHORED_CUE_FIXTURE_SEQUENCE",
-      "description_zh": "生产歌词视图随编排时间推进的连续原生帧。非真实Music时钟、非声学同步验收，也非整段桌面屏幕录制。",
+      "classification": "HISTORICAL_CACHE_DISPLAY_FIXTURE_SEQUENCE",
+      "description_zh": "早期由生产视图cacheDisplay取得的6秒编排状态序列，仅用于构图研究。缺少真实WindowServer呈现层动画；不进入终片及正式素材包。下列哈希仅保留历史核查依据。",
       "sequences": [
         {
-          "status": "SOURCE_FILES_PRESENT_REVIEW_SCOPE_LIMITED",
+          "status": "EXCLUDED_DIAGNOSTIC_ONLY",
           "path": "assets/native/authored-motion-zh",
           "source_run": null,
           "manifest": {
@@ -270,7 +338,7 @@
           ]
         },
         {
-          "status": "SOURCE_FILES_PRESENT_REVIEW_SCOPE_LIMITED",
+          "status": "EXCLUDED_DIAGNOSTIC_ONLY",
           "path": "assets/native/authored-motion-en",
           "source_run": null,
           "manifest": {
@@ -313,30 +381,274 @@
         }
       ],
       "motion_review_at_snapshot": {
-        "status": "NEEDS_RECHECK",
-        "finding": "First seven-second edit changes the lyric stack between 1.833s and 1.867s with no visible intermediate states; do not label smooth native animation as passed.",
-        "evidence": "qa/independent-cue-transition.jpg"
-      }
+        "status": "REJECTED_FOR_FINAL_USE",
+        "finding": "The early seven-second edit changes the lyric stack between 1.833s and 1.867s without visible intermediate states. The cacheDisplay sequence is now excluded, not marked repaired or passed.",
+        "evidence": "qa/independent-cue-transition.jpg",
+        "replacement": "Replaced in final output by run10/run11 normal-motion WindowServer footage; no production animation defect or patch established."
+      },
+      "status": "EXCLUDED_FROM_FINAL_FILM_AND_DELIVERY_ASSETS",
+      "selected_for_final_film": false
     },
     "real_music_and_cgevent_capture": {
-      "status": "PENDING_FINAL_RUN_INGEST_AND_REVIEW",
-      "source_run": null,
-      "source_commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
-      "capture_manifests": [],
+      "status": "HISTORICAL_BASELINE_SOURCE_EVIDENCE_VERIFIED_25_OF_25_PASS",
+      "source_run": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46044337410",
+      "source_commit": "d8de9069e796fdc83bb80094b8da925a0ca487ca",
+      "capture_manifests": [
+        {
+          "path": "assets/native/evidence-run5/SOURCE.json",
+          "bytes": 409,
+          "sha256": "7124247e4152dae828e749552c3856f53555c3ae7af367d9b3b9dd3314b444ca"
+        },
+        {
+          "path": "assets/native/evidence-run5/desktop-video.json",
+          "bytes": 313,
+          "sha256": "063c27330fd8a3b7a12eed8bf9ef1cf287449dc5837a4b8318abe1da8440afba"
+        },
+        {
+          "path": "assets/native/evidence-run5/film-instrumentation.json",
+          "bytes": 684,
+          "sha256": "22dd9b88d0cc335ff78a181f4e725172693507c411fc1a9d9d67098f60c1c45d"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/native-player.json",
+          "bytes": 23974,
+          "sha256": "d77db757b277344a0fc7d34445ec58e36f26fdafd35f8ad7b8093802c5063962"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/native-pointer.json",
+          "bytes": 11270,
+          "sha256": "1c779e9c4f6fcafee2f3267bb40a7e608f237482c825a5e4c923c106f52578b7"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/media-provenance.json",
+          "bytes": 758,
+          "sha256": "676cf8f33997d3f009a255769d5d7f191f2d3c90a7945fed9d76142fbfa0df8c"
+        }
+      ],
       "selected_clip_ranges": [],
-      "command_receipts": [],
-      "input_method": "Must be backed by actual Music playback, CGEvent input and native capture receipts; not inferred from fixture images.",
-      "verified_at_this_snapshot": false,
+      "command_receipts": [
+        {
+          "path": "assets/native/evidence-run5/real-music/source-07-seek-command-readback.json",
+          "bytes": 1453,
+          "sha256": "3772f713d5724769f7d32dca55a9b68961868a130c176c945bfb94191430c1a5"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-12-native-pointer-clicks-pause.json",
+          "bytes": 1810,
+          "sha256": "45ec7d670c64ca5a5b98e527de4c6fdb5a7d6e9192977c8c73faaed5341d7682"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-16-paused-without-interaction-withdraws-panel.json",
+          "bytes": 1810,
+          "sha256": "95beff8919657acb16a4f3643aa7ac7bbb2d3e5ad31ba183df3e83e7ffc9e8f6"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-18-next-selects-second-track-with-new-generation.json",
+          "bytes": 2528,
+          "sha256": "bcaf1a06cbb6d0f7a8e7a5f61d296c1b4c1d274079824efbd9dce97d83608194"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-22-previous-returns-original-track-with-new-generation.json",
+          "bytes": 3261,
+          "sha256": "df43c3f31204b2907c0d1b0f8afe8e46491fd9dfe74d54fa7d158d4074fdfc38"
+        }
+      ],
+      "input_method": "CGEvent mouse movement and left-button events at freshly observed native geometry; actual installed Apple Music playback. No state-driven hover fallback.",
+      "verified_at_this_snapshot": true,
       "earlier_run_not_a_pass": {
         "run": 46041890766,
         "summary": "Earlier run completed real lyric import, cue advance, seek and hover observations, but full result was FAIL after delayed pause readback; next/previous were not established by that run. It is not used as a final pass."
-      }
+      },
+      "product_source_commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+      "files": [
+        {
+          "path": "assets/native/evidence-run5/SOURCE.json",
+          "bytes": 409,
+          "sha256": "7124247e4152dae828e749552c3856f53555c3ae7af367d9b3b9dd3314b444ca"
+        },
+        {
+          "path": "assets/native/evidence-run5/desktop-video.json",
+          "bytes": 313,
+          "sha256": "063c27330fd8a3b7a12eed8bf9ef1cf287449dc5837a4b8318abe1da8440afba"
+        },
+        {
+          "path": "assets/native/evidence-run5/film-instrumentation.json",
+          "bytes": 684,
+          "sha256": "22dd9b88d0cc335ff78a181f4e725172693507c411fc1a9d9d67098f60c1c45d"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-desktop.mov",
+          "bytes": 1638516,
+          "sha256": "5b4d4d0deaf13ad6f03eaa5bab4dcbbefe09ac1672580bbfbf28ce57defead5a"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/media-provenance.json",
+          "bytes": 758,
+          "sha256": "676cf8f33997d3f009a255769d5d7f191f2d3c90a7945fed9d76142fbfa0df8c"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/native-player.json",
+          "bytes": 23974,
+          "sha256": "d77db757b277344a0fc7d34445ec58e36f26fdafd35f8ad7b8093802c5063962"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/native-pointer.json",
+          "bytes": 11270,
+          "sha256": "1c779e9c4f6fcafee2f3267bb40a7e608f237482c825a5e4c923c106f52578b7"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/real-music-hover.png",
+          "bytes": 92989,
+          "sha256": "a441da7a30a896cd07784bd46db7391dbab3a741993b4c0baa7536d74f408e47",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/real-music-hover.png.json",
+          "bytes": 826,
+          "sha256": "6d68a15e96be7eba3f2460fc04bae618073ef7b1ace60184ad2a213aae98d288"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/real-music-next-hover.png",
+          "bytes": 95048,
+          "sha256": "fd5e6788f1d0a0d3e60bfca857da32aca0caa243416e8feecd12f690b6fcc08f",
+          "width": 1248,
+          "height": 1152,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/real-music-next-hover.png.json",
+          "bytes": 834,
+          "sha256": "8e5db3a6a2bd02f95707a35a11cddf0ee00047ccf2b19a1728f8d3c4628a1c5b"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-07-seek-command-readback.json",
+          "bytes": 1453,
+          "sha256": "3772f713d5724769f7d32dca55a9b68961868a130c176c945bfb94191430c1a5"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-12-native-pointer-clicks-pause.json",
+          "bytes": 1810,
+          "sha256": "45ec7d670c64ca5a5b98e527de4c6fdb5a7d6e9192977c8c73faaed5341d7682"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-16-paused-without-interaction-withdraws-panel.json",
+          "bytes": 1810,
+          "sha256": "95beff8919657acb16a4f3643aa7ac7bbb2d3e5ad31ba183df3e83e7ffc9e8f6"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-18-next-selects-second-track-with-new-generation.json",
+          "bytes": 2528,
+          "sha256": "bcaf1a06cbb6d0f7a8e7a5f61d296c1b4c1d274079824efbd9dce97d83608194"
+        },
+        {
+          "path": "assets/native/evidence-run5/real-music/source-22-previous-returns-original-track-with-new-generation.json",
+          "bytes": 3261,
+          "sha256": "df43c3f31204b2907c0d1b0f8afe8e46491fd9dfe74d54fa7d158d4074fdfc38"
+        }
+      ],
+      "verification": {
+        "native_player": "PASS",
+        "checks_passed": 25,
+        "checks_total": 25,
+        "native_pointer_event_test": "PASS",
+        "native_track_switch_test": "PASS",
+        "physical_mouse_test": false,
+        "commercial_catalog_test": false,
+        "independent_clock_accuracy_test": false,
+        "word_sync_qualification": "NOT_RUN"
+      },
+      "scope_zh": "第五轮历史制作基线上的普通LyricTile窗口、实际Apple Music、CGEvent及原创本地PCM/LRC：25项回读通过。此报告保留原始结论；其中暂停后撤下属于旧显隐策略，不代表新R4 Host。其余操作结果也不等于完整Host、商业目录或逐词声学同步验收。",
+      "raw_desktop_video_role": "Low-resolution WindowServer recording retained as evidence only; not selected for final hero motion.",
+      "final_film_motion_source": "run10/run11 continuous WindowServer; run5 retained only as historical operation evidence.",
+      "historical_lifecycle_receipt": {
+        "path": "assets/native/evidence-run5/real-music/source-16-paused-without-interaction-withdraws-panel.json",
+        "scope": "Observed historical baseline behavior only; excluded as a claim of current Host pause policy.",
+        "current_host_behavior": "Pause keeps a valid session visible; player exit or module disable removes it.",
+        "receipt_retained_unchanged": true
+      },
+      "current_host_qualification": false
     },
     "desktop_workspace": {
-      "status": "PENDING_REPLACEMENT_WITH_FINAL_CAPTURE",
+      "status": "BILINGUAL_NATIVE_SOURCES_VERIFIED_AND_SELECTED",
       "classification": "ACTUAL_MACOS_TEXTEDIT_WINDOW_CAPTURE",
-      "description_zh": "真实TextEdit窗口与本片原创文稿的截图；放置于后期桌面合成中。当前在盘文件是待替换版本，未将工具栏整理后的新图算作已收到。",
-      "current_file": {
+      "description_zh": "第五轮真实TextEdit WindowServer截图；中英文内容为本片原创文稿。实际截图保留原始739×789像素与原生阴影，合成使用原比例缩小工作窗相对画面的占比；未重绘界面。",
+      "source_run": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46044337410",
+      "source_commit": "d8de9069e796fdc83bb80094b8da925a0ca487ca",
+      "selected_files": [
+        {
+          "path": "assets/workspace/textedit-zh-native.png",
+          "bytes": 123106,
+          "sha256": "9248bf427a5b822c7621b2e16082edf2d8ed85e7c18f62ef36142ac70609f224",
+          "width": 739,
+          "height": 789,
+          "mode": "RGBA"
+        },
+        {
+          "path": "assets/workspace/textedit-en-native.png",
+          "bytes": 121047,
+          "sha256": "ca7aa765580344e272c31a3e2d6a47b3ee3fd66927486c60366880398f5cfae8",
+          "width": 739,
+          "height": 789,
+          "mode": "RGBA"
+        }
+      ],
+      "source_manifests": [
+        {
+          "path": "assets/workspace/textedit-zh-source.json",
+          "bytes": 580,
+          "sha256": "9ebe04412f0086377897e68f31b4d75e3efe58193568b9f0ecda005a90902cfb"
+        },
+        {
+          "path": "assets/workspace/textedit-en-source.json",
+          "bytes": 580,
+          "sha256": "ac3af121d0a84ed4f857e1409f02b9a723c1b3807c9fe169dd82f5ed0e1ba48e"
+        }
+      ],
+      "capture_results": {
+        "zh": {
+          "appleScriptExitCode": 1,
+          "appleScriptResponse": "119:167: execution error: TextEdit got an error: AppleEvent timed out. (-1712)\n",
+          "captureExitCode": 0,
+          "requestedBounds": [
+            40,
+            80,
+            984,
+            728
+          ],
+          "observedWindowBounds": {
+            "Height": 677,
+            "Width": 627,
+            "X": 108,
+            "Y": 31
+          },
+          "windowID": 61
+        },
+        "en": {
+          "appleScriptExitCode": 1,
+          "appleScriptResponse": "131:179: execution error: TextEdit got an error: AppleEvent timed out. (-1712)\n",
+          "captureExitCode": 0,
+          "requestedBounds": [
+            40,
+            80,
+            984,
+            728
+          ],
+          "observedWindowBounds": {
+            "Height": 677,
+            "Width": 627,
+            "X": 137,
+            "Y": 31
+          },
+          "windowID": 70
+        }
+      },
+      "requested_bounds_achieved": false,
+      "bounds_note_zh": "AppleScript请求的窗口bounds超时（-1712，exit 1）；WindowServer截图独立成功（exit 0）。记录实测窗口627×677及含阴影PNG739×789，不宣称取得请求尺寸。",
+      "composition_geometry": "Uniform aspect-preserving scaling only; no TextEdit UI redraw.",
+      "private_user_data_review": "Both selected images visually inspected: authored HOLDSNOW film text, no private working document content observed.",
+      "superseded_file": {
         "path": "assets/workspace/textedit-native-window.png",
         "bytes": 111905,
         "sha256": "b12e9ca51dd9ab8b33f86d8aad6a5c4cb8b59635d7b7bccf00f93fd8b8ec17eb",
@@ -344,9 +656,7 @@
         "height": 789,
         "mode": "RGBA"
       },
-      "final_source_run": null,
-      "final_file": null,
-      "private_user_data": "No personal working document is intended for this asset. Final chosen capture still requires review."
+      "superseded_file_selected": false
     },
     "generated_environment": {
       "status": "FILE_AND_ORIGIN_VERIFIED",
@@ -376,7 +686,7 @@
     "riftlet_icon": {
       "status": "VERIFIED_CURRENT_RELEASE_SOURCE_ICON",
       "classification": "OFFICIAL_APPLICATION_BRAND_ASSET",
-      "description_zh": "从当前官方ICNS逐字节提取PNG；与1.0.11发布源码图标一致。用于“规划接入”编辑图形，不能当作已安装模块截图。",
+      "description_zh": "从官方ICNS逐字节提取PNG，与1.0.11发布源码一致。用于“截图助手 / Screenshot assistant”编辑图形；现有Host已有该领域的静态集成，但此图标不能代替Host截图或真实下载管理界面。",
       "provenance": {
         "repository": "haohongfei2001-png/Riftlet",
         "retrieved_main_commit": "2b270aec5cf57d2b4165acd52bcc730fa1052a02",
@@ -411,17 +721,26 @@
           }
         ],
         "extraction": "PNG chunks ic09 (512px) and ic10 (1024px) extracted byte-for-byte from official ICNS, no drawing, upscaling, recoloring, or image editing.",
-        "scope": "Official current brand/app icon. Not a screenshot and not evidence of Nearpane module integration. Suitable for brief planned-integration title alongside actual lyric panel.",
+        "scope": "Official current brand/app icon. Editorial screenshot-assistant label only; not a screenshot, module-download UI or proof of integrated runtime qualification. Current Host already statically embeds the screenshot domain.",
         "rights": "User-authorized use of own Riftlet brand assets in Nearpane product film.",
         "excluded": "Older 1.0.4/1.0.5 native tray screenshots have insufficient resolution and are not current version evidence. Official 1.0.11 verification says private native screenshots are retained privately; not retrieved or reused.",
-        "approved_caption_zh": "Riftlet 截图助手 · 规划接入",
-        "approved_caption_en": "Riftlet screenshots · Planned integration"
+        "approved_caption_zh": "截图助手",
+        "approved_caption_en": "Screenshot assistant",
+        "historical_acquisition_caption": {
+          "zh": "Riftlet 截图助手 · 规划接入",
+          "en": "Riftlet screenshots · Planned integration"
+        },
+        "editorial_status_review": {
+          "host_commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+          "verified_at_utc": "2026-11-27T18:55:22Z",
+          "note": "Earlier planned-integration wording superseded by verified embedded-domain source; true package download/removal remains incomplete."
+        }
       },
       "files": [
         {
           "path": "assets/riftlet/PROVENANCE.json",
-          "bytes": 1912,
-          "sha256": "f942fac39a72ee0ab82e4b112b0e372ebd654df35b2cacf3df1241eeb6549ba1"
+          "bytes": 2355,
+          "sha256": "1a42ca5e52fb9dd9d0f1b33498a5a68a37853da04c8741d221bf41d76c58f9de"
         },
         {
           "path": "assets/riftlet/Riftlet-current.icns",
@@ -468,11 +787,11 @@
         "sha256": "8b8edd81ee2110a62169b48e3233e1556c0f9de10003b21f41a28e5b4bcbfe14"
       },
       "edit": {
-        "path": "assets/audio/origami-32s.wav",
-        "bytes": 9216208,
-        "sha256": "6ef62a072bf6ada3f08db3f5e0040598a3cd3e5f7c58a8995914667efea4f1c4"
+        "path": "assets/audio/origami-34s.wav",
+        "bytes": 9792208,
+        "sha256": "9c6d567b99978aa1cb5c24373f4e0c230922b2649037f2b0ddcb9baaa69d39b1"
       },
-      "edit_description": "Opening 32-second excerpt, fades and loudness normalization; final mixed-file parameters still require final-output verification.",
+      "edit_description": "Continuous original 0–34 seconds; 18 ms fade-in and 31.6–34.0 second fade-out; no speed or pitch change. Two-pass loudness normalization to a 48 kHz stereo 24-bit PCM master. Final encoded-film audio still requires final-output verification.",
       "lyrics_relationship_zh": "配乐是纯音乐。画面里的歌词为本片原创演示文案，不是Scott Buckley作品的歌词，不把两者写成同一首带歌词歌曲。",
       "attribution_to_publish": "Music: 'Origami' by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au",
       "publication_requirements": [
@@ -497,7 +816,34 @@
           "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411"
         }
       ],
-      "perceptual_listening_review": "NOT_PERFORMED_AT_THIS_SNAPSHOT"
+      "perceptual_listening_review": "NOT_PERFORMED_AT_THIS_SNAPSHOT",
+      "source_excerpt_seconds": [
+        0,
+        34
+      ],
+      "duration_seconds": 34,
+      "fade_in_seconds": [
+        0,
+        0.018
+      ],
+      "fade_out_seconds": [
+        31.6,
+        34
+      ],
+      "audio_master_measurement": {
+        "integrated_lufs": -15.99,
+        "true_peak_dbtp": -1.5,
+        "loudness_range_lu": 5.1,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "pcm_bits": 24,
+        "measurement_basis": "One FFmpeg loudnorm analysis of the newly rendered 34-second master; input_i/input_tp/input_lra report actual master loudness. This is technical verification, not listening review.",
+        "record": {
+          "path": "assets/audio/origami-34s.analysis.json",
+          "bytes": 1301,
+          "sha256": "241fe30780dffd690512e177648bb8c39efee61f4123a1bf8890791e8e2caebe"
+        }
+      }
     },
     "fonts": {
       "status": "FILES_AND_BUNDLED_LICENSES_VERIFIED",
@@ -564,56 +910,544 @@
         }
       ],
       "rights_basis": "Created at the user’s request for the HOLDSNOW/Nearpane production; no third-party song lyrics were supplied as this text."
+    },
+    "windowserver_motion": {
+      "status": "FINAL_NATIVE_SOURCES_INGESTED_AND_VISUALLY_CHECKED",
+      "classification": "CONTINUOUS_WINDOWSERVER_CAPTURE_OF_PRODUCTION_NATIVE_VIEW",
+      "source_index": "docs/NATIVE-SOURCES.json",
+      "source_runs": [
+        {
+          "language": "zh",
+          "run": 46053480437,
+          "commit": "46fd9031026e9c44e2c1f580fa1eb278a932f164",
+          "scope": "Selected usable native footage and controls; whole run not PASS because complete process quit/relaunch checks failed."
+        },
+        {
+          "language": "en",
+          "run": 46054747620,
+          "commit": "da2451cff1de3724eaca21f82ddf6e85aacc3c4d",
+          "scope": "16/16 bounded source/input checks; actual unavailable selection and native withdrawal, not full Music process termination."
+        }
+      ],
+      "files": [
+        {
+          "path": "assets/native/windowserver-source/run10/a-zh-lyrics-fullscreen.mov",
+          "bytes": 1272277,
+          "sha256": "7791d86761deb20b585ea6fd5ec150a21b688faa809af1e22a61849477bbd1ad"
+        },
+        {
+          "path": "assets/native/windowserver-source/run10/a-zh-lyrics.json",
+          "bytes": 341692,
+          "sha256": "6e1880827471de528cdb403793193a3fc6d448f8516e518bc48499fab29ef776"
+        },
+        {
+          "path": "assets/native/windowserver-source/run10/zh-controls-fullscreen.mov",
+          "bytes": 674701,
+          "sha256": "10359ffb4a0b49e7e7eadfe3398ee38a41ba2a4ca2d9276d5b5cf109756a0e73"
+        },
+        {
+          "path": "assets/native/windowserver-source/run10/zh-controls.json",
+          "bytes": 293259,
+          "sha256": "c014f8ae5be0791c97fb03fd4c98a30e26bdd19ac0733047d22bce9f350bfc61"
+        },
+        {
+          "path": "assets/native/windowserver-source/run11/a-en-lyrics-fullscreen.mov",
+          "bytes": 1208544,
+          "sha256": "8ef4240b30c704a5b0910cee3c0edd00f2c6343b771864d3e7b4bf8678bf2a3e"
+        },
+        {
+          "path": "assets/native/windowserver-source/run11/a-en-lyrics.json",
+          "bytes": 286264,
+          "sha256": "49e128d76686c9f8f5bc6d38c723e065bc452be43a3fed8295b1b4aecd382ef8"
+        },
+        {
+          "path": "assets/native/windowserver-source/run11/en-controls-fullscreen.mov",
+          "bytes": 525104,
+          "sha256": "6030b7ee5262c954c2f22313c94a79e4ca9f186b9baef4f43e99f28ba2bbfb82"
+        },
+        {
+          "path": "assets/native/windowserver-source/run11/en-controls.json",
+          "bytes": 289288,
+          "sha256": "68d048ee25a4bef2ab36fb4cd0b17a181578af44f4dfffd9e93ce9614a395f52"
+        },
+        {
+          "path": "assets/native/windowserver-lyrics-zh/capture.json",
+          "bytes": 170400,
+          "sha256": "484be77ccb0b27052bef648683bb0ea754ba82d5a94b6540525b24356bba0d18"
+        },
+        {
+          "path": "assets/native/windowserver-controls-zh/capture.json",
+          "bytes": 158121,
+          "sha256": "d2ab2f4433211dee2ca217d1cb885376f570d1843a0906c935c59465b4e69a73"
+        },
+        {
+          "path": "assets/native/windowserver-lyrics-en/capture.json",
+          "bytes": 177274,
+          "sha256": "c66f34735331221ebaa42bc88e4ea40390a2f64672e9de8aceaae9af9972a0d1"
+        },
+        {
+          "path": "assets/native/windowserver-controls-en/capture.json",
+          "bytes": 128117,
+          "sha256": "ce27abb7acb6007c602cc5e98e9cf4d47238214ed60e16dcc8dba3d663cb10ce"
+        }
+      ],
+      "selected_clip_ranges": [
+        {
+          "language": "zh",
+          "kind": "lyrics",
+          "film_start": 0.35,
+          "film_end": 14.4,
+          "source_start": 0,
+          "source_sequence_duration": 17.3,
+          "fps": 30,
+          "unique_native_pixel_frames": 429,
+          "tail_policy": "The final recorded frame is held through the requested end, which cannot exceed the original recorded stream duration. No new intermediate motion is generated.",
+          "real_withdrawal_film_time": null
+        },
+        {
+          "language": "zh",
+          "kind": "controls",
+          "film_start": 14.4,
+          "film_end": 30.4,
+          "source_start": 0,
+          "source_sequence_duration": 16.0,
+          "fps": 30,
+          "unique_native_pixel_frames": 360,
+          "tail_policy": "The final recorded frame is held through the requested end, which cannot exceed the original recorded stream duration. No new intermediate motion is generated.",
+          "real_withdrawal_film_time": 27.5
+        },
+        {
+          "language": "en",
+          "kind": "lyrics",
+          "film_start": 0.35,
+          "film_end": 17.0,
+          "source_start": 0,
+          "source_sequence_duration": 18.0,
+          "fps": 30,
+          "unique_native_pixel_frames": 437,
+          "tail_policy": "The final recorded frame is held through the requested end, which cannot exceed the original recorded stream duration. No new intermediate motion is generated.",
+          "real_withdrawal_film_time": null
+        },
+        {
+          "language": "en",
+          "kind": "controls",
+          "film_start": 17.0,
+          "film_end": 30.4,
+          "source_start": 0,
+          "source_sequence_duration": 12.966666666666667,
+          "fps": 30,
+          "unique_native_pixel_frames": 321,
+          "tail_policy": "The final recorded frame is held through the requested end, which cannot exceed the original recorded stream duration. No new intermediate motion is generated.",
+          "real_withdrawal_film_time": 29.6666666667
+        }
+      ],
+      "native_logical_size": [
+        208,
+        192
+      ],
+      "native_pixel_crop": [
+        64,
+        96,
+        416,
+        384
+      ],
+      "source_scale": 2,
+      "final_video_canvas_is_not_native_capture_resolution": true,
+      "normal_motion_system_and_swiftui": true,
+      "reduce_motion_input_override_used": false,
+      "production_animation_patch": false,
+      "cursor": "Actual OS cursor already included; no synthetic pointer overlay in final films.",
+      "recorded_interactions": [
+        "hover",
+        "actual slider seek",
+        "pause",
+        "resume",
+        "pointer departure",
+        "source unavailable then native withdrawal"
+      ],
+      "not_recorded_in_final_controls": [
+        "next/previous button click"
+      ],
+      "lifecycle_ending_observed": "Ordinary Music quit request -> source stopped/unavailable -> native window withdrawn. Music PID remains alive; full process termination not verified.",
+      "render_gate": "Requires real native moving passages. After at least ten seconds of controls and a sustained final absent window, an editorial hold of the empty desktop is allowed. No snapshot substitute or generated animation.",
+      "alpha_policy": "Only sustained final uniform backdrop becomes transparent. Earlier short native blank-text frames retain the card.",
+      "sampling": "30fps at original speed using media PTS. A 1e-8s bisect tolerance prevents floating-point boundaries from repeating/skipping source frames.",
+      "state_samples": "Runtime sample elapsed is approximate; source pixels and media PTS govern visible timing.",
+      "metadata_qualification": "Raw run10 withdrawalTrigger describes requested process exit; observed evidence is unavailable selection and withdrawal, not process termination.",
+      "quality_status": "ACCEPTED_FOR_THIS_PRODUCT_PREVIEW; native motion, source controls and withdrawal reviewed within documented scope."
+    },
+    "cover_art": {
+      "status": "CURRENT_FOUR_COVERS_VISUALLY_RECHECKED",
+      "classification": "EDITORIAL_COMPOSITE_OF_ORIGINAL_BACKGROUND_AND_NATIVE_VIEW_STILL",
+      "files": [
+        {
+          "path": "renders/Nearpane-Cover-ZH-4K.png",
+          "bytes": 2245428,
+          "sha256": "468ab4510dbe0af8bc26432397d5f9d60f6b269cdeb17eff29c3c125a20674bf",
+          "width": 3840,
+          "height": 2160,
+          "mode": "RGB"
+        },
+        {
+          "path": "renders/Nearpane-Cover-EN-4K.png",
+          "bytes": 2267131,
+          "sha256": "76c534d13a4996aac6302147c0044038e33eae266d347d29f5d28baf8ec2153a",
+          "width": 3840,
+          "height": 2160,
+          "mode": "RGB"
+        },
+        {
+          "path": "renders/Nearpane-Cover-ZH-Mobile.png",
+          "bytes": 1057436,
+          "sha256": "01e496f08517891cac2687b26f4d879dd4dc4e055829c61670c10a16adc253cd",
+          "width": 1080,
+          "height": 1440,
+          "mode": "RGB"
+        },
+        {
+          "path": "renders/Nearpane-Cover-EN-Mobile.png",
+          "bytes": 1065854,
+          "sha256": "41bbe5d51a84921cff8790ecd3809aca238ebb5e2adf01b1ca3bc1c807140aeb",
+          "width": 1080,
+          "height": 1440,
+          "mode": "RGB"
+        }
+      ],
+      "review_zh": "已实际查看四张当前封面：横屏底部网址及预览字改深色，竖屏副标题移至浅色天空；基本对比与文字裁切检查通过。该结论仅涵盖这四个哈希对应的封面，不代替最终视频审核。",
+      "review_evidence": "qa/latest-covers-provenance-review.jpg",
+      "final_package_freeze": true
     }
   },
   "editorial_compositing": {
-    "description_zh": "最终画面是原生软件素材、真实TextEdit窗口、生成环境背景及编辑文字的合成；镜头推拉、淡入淡出和部分鼠标显示由制作工程组织，不是未经剪辑的完整桌面实录。",
+    "description_zh": "画面由实际原生歌词视图、真实TextEdit窗口、生成环境背景及编辑文字合成。歌词视图主体与当前Host共享，Host外壳和显隐生命周期须另行区分；本片不是整套新Host逐像素截图，也不是未经剪辑的完整桌面实录。",
     "product_ui_redrawn_by_image_generation": false,
     "integrated_module_install_ui_shown": false,
-    "cursor_overlay": "Final compositor must use measured pointer coordinates when available and identify editorial overlay separately; do not infer input success from the drawn cursor.",
-    "renderer_source_final_sha256": null
+    "cursor_overlay": "None in final films; real OS pointer pixels are included in source MOV.",
+    "renderer_source_final_sha256": "afb259b973404165cc12ee28d778105ac5fa6edc9ed4aee393cfcdf6f7be8296",
+    "target_duration_seconds": 34,
+    "riftlet_insert": {
+      "caption_zh": "截图助手",
+      "caption_en": "Screenshot assistant",
+      "meaning": "Official icon and editorial label for an already embedded screenshot domain; not a module installer or a full Host screenshot."
+    }
   },
   "exclusions": {
     "reference_films": "Official Apple Music, Linear and Things videos were inspected for research only. Their images, audio and video must not enter the delivery assets or final film.",
     "placeholders": "assets/native/placeholder-*.png and WIP/old failed capture files are not approved production or final delivery assets.",
-    "unlicensed_music_or_lyrics": "None intentionally included; no popular commercial song was used as footage or soundtrack."
+    "unlicensed_music_or_lyrics": "None intentionally included; no popular commercial song was used as footage or soundtrack.",
+    "cache_display_sequences": "assets/native/authored-motion-{zh,en}: retained only as diagnostic history; excluded from final film and production asset ZIP.",
+    "raw_run5_desktop": "assets/native/evidence-run5/real-desktop.mov: chosen evidence, not final hero motion."
   },
   "packaging": {
     "github": "Editable text source, brand/editorial records, license records and provenance manifests. Exclude videos, native frame sequences, source audio, font binaries and unrelated reference films from ordinary Git history.",
     "asset_archive": "Separate asset ZIP containing chosen original/processed materials, fonts with licenses, and capture receipts. Source music is for this editing handoff, not a standalone public music release.",
-    "delivery_links": [],
-    "github_branch_url": null,
-    "github_commit": null,
-    "asset_zip_file": null,
-    "asset_zip_sha256": null
+    "github_branch_url": "https://github.com/haohongfei2001-png/nearpane/tree/creative/nearpane-first-film-20261128/Marketing/FirstFilm",
+    "asset_zip_file": "Nearpane-Film-Media-Assets.zip",
+    "asset_zip_sha256": "17278ee96e1f80d1cb128ac7c68cc7fd4da53f08377cfc11e4e075405d979f06",
+    "git_revision": "The commit containing this manifest; resolve with git rev-parse HEAD. Exact delivery commit is supplied with the final handoff.",
+    "private_delivery_links_policy": "Media download links are delivered privately; no private Library identifiers or URLs are committed to this public source repository.",
+    "asset_zip_bytes": 126285351,
+    "zip_integrity": "Both delivery ZIPs passed a complete CRC check; the media archive contains no placeholder or cacheDisplay motion folders."
   },
   "final_delivery": {
-    "status": "PENDING_RENDER_FREEZE",
-    "files": [],
-    "bilingual_video_versions": null,
-    "landscape_resolution": null,
-    "portrait_resolution": null,
-    "duration_seconds": null,
-    "cover_files": [],
-    "core_sample_file": null
+    "status": "COMPLETE_FILES_VERIFIED",
+    "files": [
+      {
+        "file": "Nearpane-ZH-4K.mp4",
+        "sha256": "8dd3b53717d252f64ca15ede8c0f7a51a0e218defca10ca9cf9ff19f32bd5ae0",
+        "bytes": 12179942,
+        "duration": 34.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 3840,
+          "height": 2160,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "1020",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "257108"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.0,
+        "true_peak_dbtp": -1.5,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      },
+      {
+        "file": "Nearpane-EN-4K.mp4",
+        "sha256": "ac93b0f79f59042ad9462d34f452e530dd25cd809f8290ada9edd4455aba3757",
+        "bytes": 12388993,
+        "duration": 34.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 3840,
+          "height": 2160,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "1020",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "257108"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.0,
+        "true_peak_dbtp": -1.5,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      },
+      {
+        "file": "Nearpane-ZH-Vertical.mp4",
+        "sha256": "b41521863f316e2d0d8015d8d70ad498b5f58ec2d4e140b9dff68b49588bf169",
+        "bytes": 3463182,
+        "duration": 34.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 1080,
+          "height": 1920,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "1020",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "257108"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.0,
+        "true_peak_dbtp": -1.5,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      },
+      {
+        "file": "Nearpane-EN-Vertical.mp4",
+        "sha256": "6b60a3c07ad17d0915f806ab612caaf1bbde207dd9c29a4674bce78e89c0b1c5",
+        "bytes": 3585605,
+        "duration": 34.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 1080,
+          "height": 1920,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "1020",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "257108"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.0,
+        "true_peak_dbtp": -1.5,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      },
+      {
+        "file": "Nearpane-ZH-1080p.mp4",
+        "sha256": "ba9a814620f07771e7b0ffa145bde59e0c51e8a5684cee23eb6b2cafea86d090",
+        "bytes": 4993078,
+        "duration": 34.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "1020",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "257108"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.0,
+        "true_peak_dbtp": -1.5,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      },
+      {
+        "file": "Nearpane-Core-7s-ZH.mp4",
+        "sha256": "f5a09d1d1c4ee2ad8b3d5c941dcb366e06faf771b0d9ea3ded87a269870403a2",
+        "bytes": 1372292,
+        "duration": 7.0,
+        "video": {
+          "codec_name": "h264",
+          "width": 1920,
+          "height": 1080,
+          "pix_fmt": "yuv420p",
+          "r_frame_rate": "30/1",
+          "nb_frames": "210",
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709"
+        },
+        "audio": {
+          "codec_name": "aac",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bit_rate": "249551"
+        },
+        "decoded_without_errors": true,
+        "loudness_lufs": -16.3,
+        "true_peak_dbtp": -5.3,
+        "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+        "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+      }
+    ],
+    "bilingual_video_versions": [
+      "zh",
+      "en"
+    ],
+    "landscape_resolution": [
+      3840,
+      2160
+    ],
+    "portrait_resolution": [
+      1080,
+      1920
+    ],
+    "duration_seconds": 34,
+    "cover_files": [
+      {
+        "file": "Nearpane-Cover-EN-4K.png",
+        "bytes": 2267131,
+        "sha256": "76c534d13a4996aac6302147c0044038e33eae266d347d29f5d28baf8ec2153a"
+      },
+      {
+        "file": "Nearpane-Cover-EN-Mobile.png",
+        "bytes": 1065854,
+        "sha256": "41bbe5d51a84921cff8790ecd3809aca238ebb5e2adf01b1ca3bc1c807140aeb"
+      },
+      {
+        "file": "Nearpane-Cover-ZH-4K.png",
+        "bytes": 2245428,
+        "sha256": "468ab4510dbe0af8bc26432397d5f9d60f6b269cdeb17eff29c3c125a20674bf"
+      },
+      {
+        "file": "Nearpane-Cover-ZH-Mobile.png",
+        "bytes": 1057436,
+        "sha256": "01e496f08517891cac2687b26f4d879dd4dc4e055829c61670c10a16adc253cd"
+      }
+    ],
+    "core_sample_file": "Nearpane-Core-7s-ZH.mp4",
+    "key_visuals": {
+      "count": 12,
+      "scope": "Six source-authentic designed key visuals per language, not literal final-timeline frame grabs.",
+      "bundle": {
+        "file": "Nearpane-Key-Visuals-and-Covers.zip",
+        "bytes": 29515992,
+        "sha256": "f79095397c511f288cf3ab26d4651a150b167e9f44c4e7d07229c4fd57e9effb"
+      },
+      "board": {
+        "file": "Nearpane-Key-Visuals-Board.jpg",
+        "bytes": 342674,
+        "sha256": "6ee82fca5705b44214bf8556ccf9667dcd72d1802ff58fd46434856d8277c41a"
+      }
+    }
   },
   "final_quality": {
-    "full_film_visual_review": "PENDING",
-    "native_cue_motion_recheck": "PENDING",
-    "real_music_control_claims_review": "PENDING_FINAL_CAPTURE",
-    "audio_technical_check": "PENDING_FINAL_MUX",
-    "audio_perceptual_review": "NOT_PERFORMED_AT_THIS_SNAPSHOT",
-    "final_cover_contrast_recheck": "PENDING_LATEST_COVERS",
-    "all_output_decode_and_hash_check": "PENDING"
+    "acceptance_record": "docs/quality-acceptance.json",
+    "full_film_visual_review": "PASS_WITHIN_RECORDED_SCOPE; actual encoded frames and dense critical sequences checked",
+    "native_cue_motion_recheck": "REAL_NATIVE_CONTINUOUS_TRANSITION_CONFIRMED; no product animation patch",
+    "real_music_control_claims_review": "Scoped run10/run11 evidence; no full process-exit claim, no next-click shown in final movie",
+    "audio_technical_check": "PASS_FINAL_MUX; AAC payload identity and per-file loudness/decode verified",
+    "audio_perceptual_review": "NOT_AVAILABLE_IN_THIS_RUNTIME; not falsely claimed",
+    "final_cover_contrast_recheck": "PASS_CURRENT_FOUR_COVER_HASHES",
+    "all_output_decode_and_hash_check": "PASS_SIX_DELIVERED_MP4S",
+    "launch_product_readiness": "PREVIEW_ONLY; source, preset, module lifecycle and public installer gaps remain"
   },
-  "pending_fields": [
-    "source_baseline.final_capture_run",
-    "asset_groups.real_music_and_cgevent_capture.source_run/capture_manifests/selected_clip_ranges/command_receipts/verified_at_this_snapshot",
-    "asset_groups.desktop_workspace.final_source_run/final_file/status",
-    "asset_groups.authored_cue_sequences.motion_review_at_snapshot",
-    "editorial_compositing.renderer_source_final_sha256",
-    "final_delivery.*",
-    "final_quality.*",
-    "packaging.github_branch_url/github_commit/asset_zip_file/asset_zip_sha256/delivery_links"
-  ]
+  "pending_fields": [],
+  "currentProductState": {
+    "status": "REAL_HOST_INTEGRATION_CANDIDATE_NOT_A_PUBLIC_RELEASE",
+    "verified_at_utc": "2026-11-27T19:21:50.088019+00:00",
+    "repository": "https://github.com/haohongfei2001-png/nearpane",
+    "branch": "pro/r4-integrated-lyrics-20261128",
+    "commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
+    "lyric_domain_embedded_in_host": true,
+    "lyric_default_enabled_for_new_install": false,
+    "lyric_default_reason": "LyricTile manifest is .builtin; ModuleRegistry register/restore defaults only .core to enabled; empty HostConfiguration.modules does not override this.",
+    "riftlet_embedded_in_host": true,
+    "riftlet_default_enabled_for_new_install": true,
+    "riftlet_integration_kind": "Statically compiled .core adapter; current UI exposes enable/disable and order, not actual network module installation or binary removal.",
+    "real_module_download_install_remove_readd": "NOT_IMPLEMENTED_IN_REVIEWED_SOURCE",
+    "release_preset_for_this_lyric_led_launch": "REQUIRED_NOT_IMPLEMENTED_OR_QUALIFIED",
+    "public_integrated_nearpane_installer": "NOT_FOUND_AT_CHECK",
+    "public_release_observation": "Only standalone LyricTile 1.0.0 build49 was listed; Nearpane website still said no public download date.",
+    "host_pause_policy": "Keep a valid player/selection session visible while paused. Player exit or module disable removes the surface. Historical pause-withdraw evidence is not this policy.",
+    "host_native_acceptance": "NOT_VERIFIED_FOR_LATEST_COMMIT; earlier workflow results apply only to their recorded older commits.",
+    "workflow_observations": [
+      {
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46050825219",
+        "commit": "b2112280d79007b243b5ef72d525f0abe78f3b7e",
+        "observed_status": "in_progress",
+        "observed_conclusion": null,
+        "compile_package": "success",
+        "failed_steps": [
+          "Test Host, module lifecycle and existing integration",
+          "Exercise and capture the native main window and sidebar"
+        ],
+        "active_step": "Compare existing Spaces tests with the original PR 16 baseline"
+      },
+      {
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46051390438",
+        "commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+        "observed_status": "in_progress",
+        "observed_conclusion": null,
+        "compile_package": "in_progress",
+        "failed_steps": [
+          "Test Host, module lifecycle and existing integration"
+        ],
+        "active_step": "Compile and package integrated Nearpane"
+      }
+    ],
+    "sources": {
+      "compiled_domains": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Package.swift",
+      "host_integration_record": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/HOST-INTEGRATION.md",
+      "host_lyrics_module": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/Sources/NearpaneLyricsModule/NearpaneLyricsModule.swift",
+      "host_lifecycle": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/HostLyrics.swift",
+      "module_defaults": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneCore/Modules.swift",
+      "module_management": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/ModuleManagementView.swift",
+      "product_constitution": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/PRODUCT_CONSTITUTION.md",
+      "candidate_verification": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/docs/verification/2026-11-28-unified-workbench.md",
+      "website": "https://nearpane.com/",
+      "public_releases": "https://github.com/haohongfei2001-png/nearpane/releases"
+    },
+    "scope_zh": "这是已核查提交的源码与当时CI/公开页面快照，不把进行中的任务记成最终结果；不以新的产品目标倒改旧取材证据。",
+    "latest_refresh_record": "docs/final-product-refresh.json",
+    "workflow_observation_scope": "Historical, not a result for the final f8d91b source review."
+  },
+  "known_limits_record": "docs/quality-acceptance.json"
 }

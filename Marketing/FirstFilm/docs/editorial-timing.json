@@ -1,28 +1,47 @@
 {
   "fps": 30,
-  "durationSeconds": 32,
+  "durationSeconds": 34,
   "audio": "Scott Buckley / Origami, opening excerpt",
   "soundReference": "origami_timing.json",
   "majorVisualArrivalsSeconds": [
     5.5667,
     11.5667,
-    16.4,
-    22.7667,
+    14.4,
     25.9667,
-    28.7667
+    30.7667
   ],
   "musicOnsetQualification": "Acoustic onset analysis; not claimed downbeats or subjective listening",
-  "coreNativePassagesSeconds": [
-    [
-      0.35,
-      16.4
+  "coreNativePassagesSeconds": {
+    "zh": [
+      [
+        0.35,
+        14.4
+      ],
+      [
+        14.4,
+        30.4
+      ]
     ],
-    [
-      16.4,
-      23.8
+    "en": [
+      [
+        0.35,
+        17.0
+      ],
+      [
+        17.0,
+        30.4
+      ]
     ]
-  ],
+  },
   "copyPolicy": "Opening and ending carry the tagline; no oversized feature headings in the core interaction",
   "releaseStage": "Product preview; no download-now claim",
-  "nativeMotionRequirement": "Continuous WindowServer capture, preserving source presentation-layer animation. Static view snapshots cannot qualify."
+  "nativeMotionRequirement": "Continuous WindowServer capture, preserving source presentation-layer animation. Static view snapshots cannot qualify.",
+  "retirement": "Observed native window withdrawal determines visibility; no invented pause-to-hide timing.",
+  "runtime_change": "34s accommodates the actual control actions and withdrawal at original speed.",
+  "realWindowWithdrawalFilmSeconds": {
+    "zh": 27.5,
+    "en": 29.666667
+  },
+  "nativeBlankTransitionPolicy": "Only final sustained uniform source frames become transparent; earlier blank lyric-transition frames retain their native card.",
+  "retiredDesktopHold": "A source passage may end after sustained actual withdrawal; the compositor continues the empty desktop, without extending or inventing source motion."
 }

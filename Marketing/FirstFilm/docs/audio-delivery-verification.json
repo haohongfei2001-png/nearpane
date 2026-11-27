@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "scope": "Final encoded audio in the Chinese 1920x1080 delivery only. Other language/resolution files are not covered by this record.",
+  "checked_at_utc": "2026-11-27T19:23:46.604637+00:00",
+  "file": {
+    "path": "film-delivery/Nearpane-ZH-1080p.mp4",
+    "bytes": 4993078,
+    "sha256": "ba9a814620f07771e7b0ffa145bde59e0c51e8a5684cee23eb6b2cafea86d090"
+  },
+  "status": "PASS_TECHNICAL",
+  "audio_stream": {
+    "index": 1,
+    "codec_name": "aac",
+    "profile": "LC",
+    "codec_type": "audio",
+    "sample_rate": "48000",
+    "channels": 2,
+    "channel_layout": "stereo",
+    "start_time": "0.000000",
+    "duration": "34.000000",
+    "bit_rate": "257108",
+    "nb_frames": "1595"
+  },
+  "container_duration_seconds": 34.0,
+  "measured": {
+    "integrated_lufs": -16.0,
+    "true_peak_dbtp": -1.5,
+    "loudness_range_lu": 5.1,
+    "decoded_sample_peak_dbfs": -1.548
+  },
+  "measurement_method": "Initial delivered AAC track was measured with FFmpeg loudnorm; input_i/input_tp/input_lra report actual encoded audio. Following a visual-only rerender, these figures are retained with the exact numerical fingerprint matches documented in file_refresh; no repeat loudnorm was run in this refresh. No source, master or delivery was modified by this verifier.",
+  "boundaries": {
+    "method": "Decoded float PCM, content trimmed for analysis to the declared 34.000-second audio timeline; assess endpoints, 5 ms sample differences and fade-window RMS. These are signal checks, not listening judgments.",
+    "decoded_raw_sample_frames": 1632256,
+    "timeline_sample_frames": 1632000,
+    "decoder_padding_frames_beyond_timeline": 256,
+    "first_sample_boundary_dbfs": -116.936,
+    "last_sample_boundary_dbfs": -108.447,
+    "first_5ms_max_sample_step_dbfs": -95.964,
+    "last_5ms_max_sample_step_dbfs": -71.467,
+    "opening_windows": [
+      {
+        "seconds": [
+          0,
+          0.005
+        ],
+        "rms_dbfs": -109.784,
+        "sample_peak_dbfs": -97.422
+      },
+      {
+        "seconds": [
+          0.005,
+          0.018
+        ],
+        "rms_dbfs": -99.259,
+        "sample_peak_dbfs": -87.857
+      },
+      {
+        "seconds": [
+          0.018,
+          0.05
+        ],
+        "rms_dbfs": -95.989,
+        "sample_peak_dbfs": -86.572
+      }
+    ],
+    "ending_windows": [
+      {
+        "seconds": [
+          31.6,
+          32.2
+        ],
+        "rms_dbfs": -18.892,
+        "sample_peak_dbfs": -3.97
+      },
+      {
+        "seconds": [
+          32.2,
+          32.8
+        ],
+        "rms_dbfs": -22.437,
+        "sample_peak_dbfs": -7.861
+      },
+      {
+        "seconds": [
+          32.8,
+          33.4
+        ],
+        "rms_dbfs": -22.523,
+        "sample_peak_dbfs": -9.234
+      },
+      {
+        "seconds": [
+          33.4,
+          33.8
+        ],
+        "rms_dbfs": -34.3,
+        "sample_peak_dbfs": -19.873
+      },
+      {
+        "seconds": [
+          33.8,
+          33.95
+        ],
+        "rms_dbfs": -43.25,
+        "sample_peak_dbfs": -29.34
+      },
+      {
+        "seconds": [
+          33.95,
+          34
+        ],
+        "rms_dbfs": -55.919,
+        "sample_peak_dbfs": -45.465
+      }
+    ],
+    "first_packet": {
+      "pts_time": "-0.021333",
+      "dts_time": "-0.021333",
+      "duration_time": "0.021333",
+      "side_data_list": [
+        {
+          "side_data_type": "Skip Samples",
+          "skip_samples": 1024,
+          "discard_padding": 0,
+          "skip_reason": 0,
+          "discard_reason": 0
+        }
+      ]
+    },
+    "last_packet": {
+      "pts_time": "33.984000",
+      "dts_time": "33.984000",
+      "duration_time": "0.016000"
+    },
+    "packet_timing_note": "The first AAC packet carries 1024 priming samples marked Skip Samples. The final packet presents 16 ms to finish at 34.000 s. Raw PCM decoding exposes 256 extra codec-padding frames (5.333 ms) beyond the declared presentation timeline; this is frame padding, not an extension or truncation of the delivery timeline."
+  },
+  "master_alignment": {
+    "source": "assets/audio/origami-34s.wav",
+    "source_sha256": "9c6d567b99978aa1cb5c24373f4e0c230922b2649037f2b0ddcb9baaa69d39b1",
+    "zero_lag_pearson_correlation": 0.99989381,
+    "relative_linear_gain_db": -0.01,
+    "compared_sample_frames": 1632000,
+    "note": "Near-unity gain and high zero-lag correlation support a continuous, unshifted encode of the supplied master; AAC coding changes individual samples."
+  },
+  "checks": {
+    "codec_aac_lc": true,
+    "sample_rate_48000_hz": true,
+    "stereo_two_channels": true,
+    "duration_34s": true,
+    "integrated_loudness_within_0_25_lu_of_minus16": true,
+    "true_peak_at_or_below_minus1_dbtp": true,
+    "no_decoded_fullscale_samples": true,
+    "first_sample_boundary_below_minus60_dbfs": true,
+    "last_sample_boundary_below_minus60_dbfs": true,
+    "last_50ms_quieter_than_first_600ms_of_fade_by_20db": true,
+    "sample_aligned_with_unchanged_master": true,
+    "all_numeric_samples_finite": true
+  },
+  "subjective_listening_review": "NOT_PERFORMED. This record does not claim listening approval or absence of perceptual AAC artifacts.",
+  "mutation": "No audio source, master or delivered video was modified.",
+  "conclusion": "PASS: AAC-LC, 48 kHz stereo, 34.000-second presentation timeline, -16.00 LUFS and -1.50 dBTP. No technical clipping, abrupt start/end boundary or missing tail is indicated. No audio change is required on the evidence measured.",
+  "file_refresh": {
+    "checked_at_utc": "2026-11-27T19:23:46.604637+00:00",
+    "reason": "The director rerendered one compositing frame to correct its transparency mask and added Rec.709 tags. Audio source and AAC encoding parameters were unchanged.",
+    "previous_file": {
+      "path": "film-delivery/Nearpane-ZH-1080p.mp4",
+      "bytes": 4985391,
+      "sha256": "7d1cf3f330655374c23552ce0f1e366f5dbf2132fe54314684831221761df3e0"
+    },
+    "prior_full_audio_analysis_at_utc": "2026-11-27T19:16:52.134494+00:00",
+    "refresh_method": "One decode of the new AAC track; compare stream parameters, sample counts, endpoint/fade-window numeric fingerprints, decoded sample peak, and zero-lag correlation/gain against the unchanged master and previous recorded values. No repeat loudness analysis was performed.",
+    "comparison": {
+      "audio_stream_parameters_match_prior": true,
+      "declared_container_duration_matches_prior": true,
+      "boundary_and_fade_window_fingerprints_match_prior": true,
+      "zero_lag_master_correlation_matches_prior": true,
+      "relative_gain_matches_prior": true,
+      "decoded_sample_peak_matches_prior": true,
+      "master_sha256_unchanged": true
+    },
+    "aac_packet_payload_sha256": "85cbbb7a88292352f90d9856c55903ee01a7c1eb935ba53ec99def499ac47572",
+    "aac_hash_method": "FFmpeg -map 0:a:0 -c copy -f hash -hash sha256; hash of stream-copied encoded packet data, excluding container and video.",
+    "decoded_pcm_f32le_sha256": "e077361fd0b5060933606b11f6d6e6f1d365a7e2d43004365c2671d30f88b931",
+    "declared_timeline_pcm_f32le_sha256": "75813322ba57fa8b41741e18902840dc2f7dbd5cc858fda93ffb4c12e77aa26d",
+    "direct_prior_payload_identity": "Not established byte-for-byte: the superseded MP4/AAC payload hash was not retained. All previously recorded audio stream and signal fingerprints match exactly at recorded precision. New encoded/decoded hashes are saved for future comparisons.",
+    "loudness_reuse": "The prior measured -16.00 LUFS, -1.50 dBTP and 5.10 LU LRA are retained on matching-source, parameters and numerical-fingerprint evidence; final all-delivery analysis by the director remains the independent final-file confirmation."
+  },
+  "final_cfr_export_refresh": {
+    "reason": "CFR source-boundary rounding correction changes visual frames only; audio mastering and encoding settings unchanged.",
+    "new_mp4_sha256": "ba9a814620f07771e7b0ffa145bde59e0c51e8a5684cee23eb6b2cafea86d090",
+    "new_mp4_bytes": 4993078,
+    "aac_packet_payload_sha256": "85cbbb7a88292352f90d9856c55903ee01a7c1eb935ba53ec99def499ac47572",
+    "payload_matches_prior_saved_hash": true,
+    "subjective_listening_performed": false
+  }
+}

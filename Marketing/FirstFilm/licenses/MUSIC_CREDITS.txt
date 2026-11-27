@@ -4,7 +4,7 @@ Music: “Origami” by Scott Buckley — released under CC-BY 4.0.
 Artist: https://www.scottbuckley.com.au
 Source: https://www.scottbuckley.com.au/library/origami/
 License: https://creativecommons.org/licenses/by/4.0/
-Edited for this film: continuous opening 32 seconds, fades and loudness mastering.
+Edited for this film: continuous opening 34 seconds, fades and loudness mastering.
 
 Publication requirements
 - Put this credit with every published film. On YouTube it must be in the video description, not only the end frame.
@@ -14,10 +14,13 @@ Publication requirements
 - No separate attribution-free license was purchased.
 
 Edit details
-Original excerpt: 0.000–32.000 seconds, continuous.
-Fade-in: 0.000–0.018 seconds. Fade-out: 29.600–32.000 seconds.
-Master: 48 kHz, stereo, 24-bit PCM. Measured -16.00 LUFS, -1.71 dBTP, LRA 3.70 LU.
-These measurements are reused from the previously verified master; the final file is byte-identical.
+Original excerpt: 0.000–34.000 seconds, continuous.
+Fade-in: 0.000–0.018 seconds. Fade-out: 31.600–34.000 seconds.
+Master: 48 kHz, stereo, 24-bit PCM. Measured -15.99 LUFS, -1.50 dBTP, LRA 5.10 LU.
+Master file: assets/audio/origami-34s.wav
+SHA-256: 9c6d567b99978aa1cb5c24373f4e0c230922b2649037f2b0ddcb9baaa69d39b1
+Measured once from the new 34-second master. Complete first-pass and measurement data: assets/audio/origami-34s.analysis.json.
+The original MP3 is preserved as assets/audio/Origami-original.mp3. No speed or pitch change.
 Subjective listening review is not verified. Technical measurements do not establish perceived quality.
 
 The on-screen original demonstration lyrics are separate from this instrumental recording.

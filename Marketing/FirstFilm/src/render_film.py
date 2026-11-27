@@ -92,6 +92,8 @@ class Film:
         self.bw,self.bh=(1080,1920) if self.portrait else (1920,1080)
         self.s=width/self.bw
         self.draft=draft
+        # The two real takes have different timings. Keep both at original speed.
+        self.controls_start=14.4 if lang=='zh' else 17.0
         self.photo=read_image(str(ASSETS/'backgrounds/morning-water.png'))
         self.native=ASSETS/'native/authored-native'
         self.has_native=(self.native/f'{lang}-cue-0.png').exists()
@@ -125,8 +127,8 @@ class Film:
 
     def camera(self,t):
         return interpolate(t,[(0,(1.7,1340,390)),(4.7,(1.7,1340,390)),(5.5667,(1,960,540)),
-            (10.5,(1,960,540)),(11.5667,(1.85,1595,340)),(21.6,(1.85,1595,340)),
-            (22.7667,(1,960,540)),(28.2,(1,960,540)),(29.2,(.985,960,540))])
+            (10.5,(1,960,540)),(11.5667,(1.85,1595,340)),(24.8,(1.85,1595,340)),
+            (25.9667,(1,960,540)),(30.2,(1,960,540)),(31.2,(.985,960,540))])
 
     def background(self,t):
         if self.portrait:
@@ -158,12 +160,14 @@ class Film:
         if not self.portrait: return self.world_box(t,(1540,195,260,240))
         box=interpolate(t,[(0,(250,650,580,535.38)),(4.7,(250,650,580,535.38)),
            (5.5667,(640,430,330,304.62)),(10.5,(640,430,330,304.62)),
-           (11.5667,(240,620,600,553.85)),(21.6,(240,620,600,553.85)),
-           (22.7667,(640,430,330,304.62)),(25.5,(640,430,330,304.62)),
-           (26.5,(260,480,560,516.92)),(28.2,(260,480,560,516.92))])
+           (11.5667,(240,620,600,553.85)),(24.8,(240,620,600,553.85)),
+           (25.9667,(260,480,560,516.92)),(30.2,(260,480,560,516.92))])
         return self.p(box)
 
     def cue(self,n,hover=False):
+        if hover:
+            actual=ASSETS/'native/evidence-run5/real-music'/('real-music-next-hover.png' if self.lang=='en' else 'real-music-hover.png')
+            if actual.exists(): return read_image(str(actual))
         if self.has_native:
             file=self.native/(f'{self.lang}-hover-layout-only.png' if hover else f'{self.lang}-cue-{max(0,min(7,n))}.png')
         else: file=ASSETS/'native'/f'placeholder-{self.lang}-{"controls" if hover else "lyrics"}.png'
@@ -172,7 +176,9 @@ class Film:
     def sequence(self,key,t):
         if key not in self.sequences: return None
         folder,rows,times=self.sequences[key]
-        i=max(0,min(len(rows)-1,bisect.bisect_right(times,t)-1))
+        # Floating subtraction at CFR boundaries must not repeat the previous
+        # frame and then skip a native animation/pointer frame on the next tick.
+        i=max(0,min(len(rows)-1,bisect.bisect_right(times,t+1e-8)-1))
         im=read_image(str(folder/rows[i]['file']))
         if 'windowVisible' in rows[i]: im.info['film_visible']=rows[i]['windowVisible']
         im.info['film_frame_metadata']=rows[i]
@@ -181,11 +187,11 @@ class Film:
     def panel(self,t):
         # Final masters use WindowServer video, which includes the presentation-layer
         # animation. cacheDisplay state sequences are useful only for composition drafts.
-        if .35<=t<16.4:
+        if .35<=t<self.controls_start:
             seq=self.sequence(f'windowserver-lyrics-{self.lang}',t-.35)
             if seq is not None: return seq
-        if 16.4<=t<23.8:
-            seq=self.sequence(f'windowserver-controls-{self.lang}',t-16.4)
+        if t>=self.controls_start:
+            seq=self.sequence(f'windowserver-controls-{self.lang}',t-self.controls_start)
             if seq is not None: return seq
         # Retained to reproduce early documented studies, never allowed in final video.
         if .35<=t<6.35:
@@ -231,7 +237,7 @@ class Film:
 
     def frame(self,t):
         im=self.background(t)
-        wide=envelope(t,5.2,28.2,.65)
+        wide=envelope(t,5.2,25.5 if self.portrait else 30.2,.65)
         wide=min(1,wide)
         if self.work is not None and wide>.001:
             ratio=self.work.height/self.work.width
@@ -246,9 +252,9 @@ class Film:
                 self.scene_base=im.copy()
 
         visible=ease((t-.35)/.48)
-        visible*=1-ease((t-23.2)/.55)
-        if t>=25.7: visible=ease((t-25.7)/.45)
-        visible*=1-ease((t-28.1)/.6)
+        # The actual recorded window visibility supplies retirement; the final
+        # editorial fade is only the transition onto the brand end frame.
+        visible*=1-ease((t-30.1)/.6)
         box=self.panel_box(t)
         if visible>.001:
             panel=self.panel(t)
@@ -261,7 +267,7 @@ class Film:
 
         # The primary brand is present from the first shot. The small stage label
         # prevents this preview from claiming an available integrated download.
-        brandalpha=1-ease((t-28.1)/.6)
+        brandalpha=1-ease((t-30.1)/.6)
         if self.portrait:
             self.txt(im,'Nearpane',80,86,32,opacity=brandalpha,weight='bold')
             self.txt(im,'产品预览' if self.lang=='zh' else 'PRODUCT PREVIEW',1000,94,16,opacity=.7*brandalpha,anchor='ra')
@@ -271,28 +277,28 @@ class Film:
 
         intro=envelope(t,1.35,4.9,.5)
         if self.portrait:
-            self.txt(im,'让音乐，留在手边。' if self.lang=='zh' else 'Keep the music close.',540,1390,43,opacity=intro,anchor='ma')
+            self.txt(im,'让音乐，留在手边。' if self.lang=='zh' else 'Keep the music close.',540,1390,43,opacity=intro,anchor='ma',color=INK)
         else:
             self.txt(im,'让音乐，留在手边。' if self.lang=='zh' else 'Keep the music close.',155,855,49,opacity=intro)
 
-        extra=envelope(t,25.9,28.55,.35)
+        extra=envelope(t,25.9,30.55,.35)
         if extra>.001:
             if self.portrait:
                 self.txt(im,'更多可能，正在靠近。' if self.lang=='zh' else 'More, coming closer.',540,315,32,opacity=extra,anchor='ma')
                 if self.riftlet: paste(im,self.riftlet,self.p((445,1150,190,190)),extra)
-                self.txt(im,'Riftlet',540,1382,33,opacity=extra,anchor='ma',weight='bold')
-                self.txt(im,'截图助手 · 规划接入' if self.lang=='zh' else 'Screenshots · planned integration',540,1440,23,opacity=extra,anchor='ma')
+                self.txt(im,'Riftlet',540,1382,33,opacity=extra,anchor='ma',weight='bold',color=INK)
+                self.txt(im,'截图助手' if self.lang=='zh' else 'Screenshot assistant',540,1440,28,opacity=extra,anchor='ma',color=INK)
             else:
                 
                 if self.riftlet: paste(im,self.riftlet,self.p((1540,493,64,64)),extra)
                 self.txt(im,'Riftlet',1628,490,25,opacity=extra,weight='bold')
-                self.txt(im,'截图助手 · 规划接入' if self.lang=='zh' else 'Planned integration',1628,532,16,opacity=extra)
+                self.txt(im,'截图助手' if self.lang=='zh' else 'Screenshot assistant',1628,532,16,opacity=extra)
 
-        outro=ease((t-28.4)/.3667)
+        outro=ease((t-30.4)/.3667)
         if outro>.001:
             veil=Image.new('RGBA',im.size,(*PAPER,round(255*outro)))
             im.alpha_composite(veil)
-            a=ease((t-28.3667)/.4)
+            a=ease((t-30.3667)/.4)
             if self.portrait:
                 self.txt(im,'HOLDSNOW',540,560,19,opacity=a*.7,anchor='ma')
                 self.txt(im,'Nearpane',540,665,108,opacity=a,anchor='ma',weight='bold')
@@ -315,20 +321,29 @@ class Film:
 
 def video(film, dest, start, duration, fps=30, crf=18):
     dest.parent.mkdir(parents=True,exist_ok=True)
+    working=dest.with_name(dest.stem+'.rendering'+dest.suffix)
     if not film.draft:
-        for kind,a,b in [('lyrics',.35,16.4),('controls',16.4,23.75)]:
+        for kind,a,b in [('lyrics',.35,film.controls_start),('controls',film.controls_start,30.4)]:
             if start>=b or start+duration<=a: continue
             seconds=max(0,min(start+duration,b)-a)
             key=f'windowserver-{kind}-{film.lang}'
-            if key not in film.sequences or film.sequences[key][2][-1]<seconds-.05:
+            if key not in film.sequences:
                 raise RuntimeError(f'Final video requires continuous native WindowServer {kind} footage ({seconds}s), not state snapshots.')
-    audio=ASSETS/'audio/origami-32s.wav'
+            rows,times=film.sequences[key][1:]
+            # Once the recorded OS window is absent, the desktop can remain empty
+            # editorially. This does not extend or fabricate the source recording.
+            retired=(kind=='controls' and times[-1]>=min(10,seconds) and
+                     len(rows)>=6 and all(r.get('windowVisible') is False for r in rows[-6:]))
+            if times[-1]<seconds-.05 and not retired:
+                raise RuntimeError(f'Native {kind} passage ends before its required action or verified window withdrawal.')
+    audio=ASSETS/'audio/origami-34s.wav'
     cmd=['ffmpeg','-y','-hide_banner','-loglevel','warning','-f','rawvideo','-pix_fmt','rgb24','-s',f'{film.w}x{film.h}','-r',str(fps),'-i','pipe:0',
          '-ss',str(start),'-i',str(audio),'-t',str(duration),'-map','0:v','-map','1:a',
          '-c:v','libx264','-threads','3','-preset','fast','-crf',str(crf),'-vf','scale=out_color_matrix=bt709:out_range=tv,format=yuv420p','-profile:v','high',
          '-color_range','tv','-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-c:a','aac','-b:a','256k','-ar','48000',
-         '-movflags','+faststart','-metadata','title=Nearpane — Keep the music close (Product preview)',
-         '-metadata','comment=Music: Origami by Scott Buckley, CC BY 4.0, https://www.scottbuckley.com.au/library/origami/; edited 32-second excerpt. Product footage provenance supplied separately.',str(dest)]
+         '-bsf:v','h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0',
+         '-movflags','+faststart+write_colr','-metadata','title=Nearpane — Keep the music close (Product preview)',
+         '-metadata','comment=Music: Origami by Scott Buckley, CC BY 4.0, https://www.scottbuckley.com.au/library/origami/; edited 34-second excerpt. Product footage provenance supplied separately.',str(working)]
     p=subprocess.Popen(cmd,stdin=subprocess.PIPE)
     total=round(duration*fps);clock=time.monotonic()
     try:
@@ -337,6 +352,7 @@ def video(film, dest, start, duration, fps=30, crf=18):
             if i%90==0: print(json.dumps({'frame':i,'total':total,'elapsed':round(time.monotonic()-clock,1)}),flush=True)
     finally: p.stdin.close()
     if p.wait()!=0: raise RuntimeError('FFmpeg encode failed')
+    working.replace(dest)
     print(json.dumps({'output':str(dest),'bytes':dest.stat().st_size,'seconds':round(time.monotonic()-clock,2)}),flush=True)
 
 def main():
@@ -344,13 +360,13 @@ def main():
     p.add_argument('--lang',choices=['zh','en'],default='zh')
     p.add_argument('--width',type=int,default=1920);p.add_argument('--height',type=int,default=1080)
     p.add_argument('--draft',action='store_true');p.add_argument('--frames',action='store_true')
-    p.add_argument('--start',type=float,default=0);p.add_argument('--duration',type=float,default=32)
+    p.add_argument('--start',type=float,default=0);p.add_argument('--duration',type=float,default=34)
     p.add_argument('--fps',type=int,default=30);p.add_argument('--output',type=Path)
     a=p.parse_args();f=Film(a.width,a.height,a.lang,a.draft)
     if a.frames:
         directory=a.output or ROOT/'keyframes'/f'{a.lang}-{a.width}x{a.height}'
         directory.mkdir(parents=True,exist_ok=True)
-        for n,t in enumerate([2.4,8.5,14.2,18.6,27.0,30.1],1):
+        for n,t in enumerate([2.4,8.5,12.4,18.6,26.7,32.1],1):
             file=directory/f'{n:02d}-{t:04.1f}s.png';f.frame(t).save(file);print(str(file),flush=True)
     else:
         dest=a.output or ROOT/'renders'/f'Nearpane-Preview-{a.lang}-{a.width}x{a.height}.mp4'

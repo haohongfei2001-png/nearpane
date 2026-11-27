@@ -1,0 +1,107 @@
+{
+  "status": "ACCEPTED_NATIVE_COMPONENT_FOOTAGE",
+  "componentSourceCommit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+  "captureBranch": "creative/nearpane-first-film-20261128",
+  "latestCaptureCommit": "da2451cff1de3724eaca21f82ddf6e85aacc3c4d",
+  "sourceSeparation": "Frozen standalone production component photographed with real Music on disposable macOS27.0.1; this is not a verified new Nearpane Host build. R4 view layout/material/controls/animation match this component, while Host pause visibility semantics differ; final takes withdraw only after real source selection becomes unavailable.",
+  "productionAnimationPatch": false,
+  "productionSourceModifiedInRepository": false,
+  "postProductionUIAnimation": false,
+  "normalMotion": "Actual system and SwiftUI reducedMotion are false in both accepted runs; no input override was used.",
+  "records": [
+    {
+      "language": "zh",
+      "kind": "lyrics",
+      "movie": "assets/native/windowserver-source/run10/a-zh-lyrics-fullscreen.mov",
+      "sourceManifest": "assets/native/windowserver-source/run10/a-zh-lyrics.json",
+      "review": "assets/native/windowserver-source/run10/REVIEW.json",
+      "bytes": 1272277,
+      "sha256": "7791d86761deb20b585ea6fd5ec150a21b688faa809af1e22a61849477bbd1ad",
+      "cropTopLeftPixels": [
+        64,
+        96,
+        416,
+        384
+      ],
+      "cursorIncluded": true,
+      "nativeScale": 2,
+      "nativeLogicalSize": [
+        208,
+        192
+      ]
+    },
+    {
+      "language": "zh",
+      "kind": "controls",
+      "movie": "assets/native/windowserver-source/run10/zh-controls-fullscreen.mov",
+      "sourceManifest": "assets/native/windowserver-source/run10/zh-controls.json",
+      "review": "assets/native/windowserver-source/run10/REVIEW.json",
+      "bytes": 674701,
+      "sha256": "10359ffb4a0b49e7e7eadfe3398ee38a41ba2a4ca2d9276d5b5cf109756a0e73",
+      "cropTopLeftPixels": [
+        64,
+        96,
+        416,
+        384
+      ],
+      "cursorIncluded": true,
+      "nativeScale": 2,
+      "nativeLogicalSize": [
+        208,
+        192
+      ]
+    },
+    {
+      "language": "en",
+      "kind": "lyrics",
+      "movie": "assets/native/windowserver-source/run11/a-en-lyrics-fullscreen.mov",
+      "sourceManifest": "assets/native/windowserver-source/run11/a-en-lyrics.json",
+      "review": "assets/native/windowserver-source/run11/REVIEW.json",
+      "bytes": 1208544,
+      "sha256": "8ef4240b30c704a5b0910cee3c0edd00f2c6343b771864d3e7b4bf8678bf2a3e",
+      "cropTopLeftPixels": [
+        64,
+        96,
+        416,
+        384
+      ],
+      "cursorIncluded": true,
+      "nativeScale": 2,
+      "nativeLogicalSize": [
+        208,
+        192
+      ]
+    },
+    {
+      "language": "en",
+      "kind": "controls",
+      "movie": "assets/native/windowserver-source/run11/en-controls-fullscreen.mov",
+      "sourceManifest": "assets/native/windowserver-source/run11/en-controls.json",
+      "review": "assets/native/windowserver-source/run11/REVIEW.json",
+      "bytes": 525104,
+      "sha256": "6030b7ee5262c954c2f22313c94a79e4ca9f186b9baef4f43e99f28ba2bbfb82",
+      "cropTopLeftPixels": [
+        64,
+        96,
+        416,
+        384
+      ],
+      "cursorIncluded": true,
+      "nativeScale": 2,
+      "nativeLogicalSize": [
+        208,
+        192
+      ]
+    }
+  ],
+  "rights": "All Music playback media and LRC are original task-authored fixtures; no commercial catalog audio/lyrics used. Production source belongs to user repository. Final soundtrack/background rights tracked by parent film project.",
+  "limitations": [
+    "Actual native crop is416x384 pixels, not4K-native product screen pixels.",
+    "Movie timestamps, not sampled host elapsed, govern edit timing.",
+    "CN whole run10 failed full process-exit/relaunch checks despite accepted footage; EN run11 passed16 bounded checks with true source-unavailable-withdrawal criterion.",
+    "Neither final controls movie shows a next/previous click.",
+    "Complete newHost release, default-enabled lyrics, downloadable module lifecycle and public Nearpane download are separately unverified."
+  ],
+  "highResolutionStills": "assets/native/authored-native",
+  "nativeSourceTooling": "native/"
+}

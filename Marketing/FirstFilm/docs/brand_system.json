@@ -4,15 +4,23 @@
   "film": "Keep the music close",
   "tagline_zh": "让音乐，留在手边。",
   "tagline_en": "Keep the music close.",
-  "format": "32-second product preview; 16:9 and recomposed 9:16",
+  "format": "34-second product preview; 16:9 and recomposed 9:16",
   "language": "Chinese and English; no narration",
-  "colors": {"paper": "#F6F6F2", "ink": "#222D2D", "muted": "#5C6A69"},
-  "type": {"latin": "Inter", "chinese": "Noto Sans CJK SC", "product": "Unmodified native source rendering"},
+  "colors": {
+    "paper": "#F6F6F2",
+    "ink": "#222D2D",
+    "muted": "#5C6A69"
+  },
+  "type": {
+    "latin": "Inter",
+    "chinese": "Noto Sans CJK SC",
+    "product": "Unmodified native source rendering"
+  },
   "material": "Native lyric panel; quiet lake photography; restrained soft shadows; no decorative particles",
   "camera": "One continuous desktop space, full context to readable lyric detail; quintic easing; hold while lyric or pointer changes",
   "attention": "Let the product perform. Opening and ending carry the principal copy; middle is native motion.",
   "logo": "Typographic Nearpane wordmark; parent brand appears quietly on the end frame",
-  "extension": "Riftlet official icon only, explicitly planned integration; no fictional install manager",
+  "extension": "Riftlet official icon and factual Screenshot assistant label only. Current Host has a core integration candidate; optional network install/remove lifecycle remains unshipped and is not simulated.",
   "audio": "Scott Buckley Origami, licensed instrumental, -16 LUFS target, true peak below -1 dBTP",
   "assets": "All product images must retain source capture provenance; illustrative environment is separately labeled",
   "release_stage": "PREVIEW: public integrated Nearpane package not verified available"

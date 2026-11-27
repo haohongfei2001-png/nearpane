@@ -13,13 +13,13 @@
     "checked_date": "2026-11-28 Asia/Shanghai",
     "sha256": "8b8edd81ee2110a62169b48e3233e1556c0f9de10003b21f41a28e5b4bcbfe14",
     "source_audio_in_asset_package": "assets/audio/Origami-original.mp3",
-    "master_audio_in_asset_package": "assets/audio/origami-32s.wav",
-    "master_sha256": "6ef62a072bf6ada3f08db3f5e0040598a3cd3e5f7c58a8995914667efea4f1c4",
+    "master_audio_in_asset_package": "assets/audio/origami-34s.wav",
+    "master_sha256": "9c6d567b99978aa1cb5c24373f4e0c230922b2649037f2b0ddcb9baaa69d39b1",
     "source_usage": "Production working material delivered with the authorized asset package only; not a standalone public music release.",
     "edit": {
       "source_excerpt_seconds": [
         0,
-        32
+        34
       ],
       "continuity": "Continuous original opening; no speed or pitch change.",
       "fade_in_seconds": [
@@ -27,19 +27,19 @@
         0.018
       ],
       "fade_out_seconds": [
-        29.6,
-        32
+        31.6,
+        34
       ],
       "mastering": "Two-pass loudness normalization; 48 kHz stereo 24-bit PCM output.",
-      "duration_seconds": 32,
-      "measured_integrated_lufs": -16.0,
-      "measured_true_peak_dbtp": -1.71,
-      "measured_loudness_range_lu": 3.7,
-      "measurement_basis": "Previously measured Origami master; final packaged master verified byte-identical by SHA-256. No redundant audio measurement performed."
+      "duration_seconds": 34,
+      "measured_integrated_lufs": -15.99,
+      "measured_true_peak_dbtp": -1.5,
+      "measured_loudness_range_lu": 5.1,
+      "measurement_basis": "Measured once from the newly rendered 34-second, 48 kHz stereo 24-bit PCM master using FFmpeg loudnorm. Read input_i/input_tp/input_lra from assets/audio/origami-34s.analysis.json; these describe the existing master, not the hypothetical normalized analysis output."
     },
     "required_publication_practice": [
       "Credit Origami by Scott Buckley, CC BY 4.0, with artist, source and license URLs.",
-      "Indicate the 32-second excerpt, fades and loudness mastering.",
+      "Indicate the 34-second excerpt, fades and loudness mastering.",
       "YouTube: attribution must be included in the video description; end-frame credit alone is insufficient under the creator's published guidance.",
       "Do not submit the music to Content ID or other audio-fingerprinting registration services.",
       "Do not resell the music in isolation or redistribute/reupload it as a standalone track to music streaming platforms.",

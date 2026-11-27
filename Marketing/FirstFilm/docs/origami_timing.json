@@ -8,12 +8,12 @@
   "analysis_file": "origami_opening_32s_master.wav",
   "sample_rate": 48000,
   "duration_seconds": 32.0,
-  "method": "Stereo average; 24kHz analysis; 1024-sample STFT, hop256; positive log spectral flux. Weighted low(35\u2013250Hz) 0.4, mid(250\u20132000Hz) 0.4, high(2\u201310kHz) 0.2. Local peak selection \u00b10.55s around proposed edit points.",
+  "method": "Stereo average; 24kHz analysis; 1024-sample STFT, hop256; positive log spectral flux. Weighted low(35–250Hz) 0.4, mid(250–2000Hz) 0.4, high(2–10kHz) 0.2. Local peak selection ±0.55s around proposed edit points.",
   "perceptual_review": "NOT PERFORMED; runtime does not support audio input.",
   "limitations": [
     "These are measured acoustic onsets, not certified strong beats or phrase boundaries.",
     "No 90 BPM assumption is made; 90 BPM belongs only to the separate original backup score.",
-    "Fades are already present at 0\u20130.018s and 29.6\u201332s.",
+    "Fades are already present at 0–0.018s and 29.6–32s.",
     "Use cut times as nearby editorial options; musical fit still needs listening."
   ],
   "scene_cues": [
@@ -1085,5 +1085,6 @@
     ],
     "reason": "Keep the control and brand timing close to plan, but allow the 11s and 22s changes to follow the two strongest nearby acoustic accents.",
     "status": "Signal-based editorial recommendation; subjective music fit unverified."
-  }
+  },
+  "scope_note": "Original 0–32s analysis retained for early editorial accents. Current film is34s; see origami_34s_brand_onsets.json for final brand window."
 }

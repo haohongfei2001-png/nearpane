@@ -1,0 +1,33 @@
+{
+  "visual_review": "Four files have no clipped text or UI. Horizontal footer contrast corrected to dark ink; mobile secondary line moved into pale sky. Covers are recomposed; native UI aspect retained.",
+  "files": [
+    {
+      "file": "Nearpane-Cover-ZH-4K.png",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 2245428,
+      "sha256": "468ab4510dbe0af8bc26432397d5f9d60f6b269cdeb17eff29c3c125a20674bf"
+    },
+    {
+      "file": "Nearpane-Cover-EN-Mobile.png",
+      "width": 1080,
+      "height": 1440,
+      "bytes": 1065854,
+      "sha256": "41bbe5d51a84921cff8790ecd3809aca238ebb5e2adf01b1ca3bc1c807140aeb"
+    },
+    {
+      "file": "Nearpane-Cover-ZH-Mobile.png",
+      "width": 1080,
+      "height": 1440,
+      "bytes": 1057436,
+      "sha256": "01e496f08517891cac2687b26f4d879dd4dc4e055829c61670c10a16adc253cd"
+    },
+    {
+      "file": "Nearpane-Cover-EN-4K.png",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 2267131,
+      "sha256": "76c534d13a4996aac6302147c0044038e33eae266d347d29f5d28baf8ec2153a"
+    }
+  ]
+}

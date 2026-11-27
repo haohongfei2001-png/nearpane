@@ -1,0 +1,336 @@
+{
+  "reviewed_at_utc": "2026-11-27T19:31:06.666815+00:00",
+  "review_state": "PASS_WITHIN_STATED_VISUAL_SCOPE",
+  "publication_class": "PRODUCT_PREVIEW_ONLY",
+  "conclusion_zh": "最终CFR容差修正版两份1080p影片通过限定复查：25–30秒没有合成卡片闪失，中文27.5秒、英文29.6667秒各仅退场一次；2.5秒附近原生画面正常。此前全片构图、控制状态和技术检查保留为历史过程。本结论不等于实时视听审片、完整Host发行验收或其他画幅逐文件通过。",
+  "files": [
+    {
+      "language": "zh",
+      "workspace_relative_path": "film-delivery/Nearpane-ZH-1080p.mp4",
+      "bytes": 4993078,
+      "sha256": "ba9a814620f07771e7b0ffa145bde59e0c51e8a5684cee23eb6b2cafea86d090",
+      "duration_seconds": 34.0,
+      "video": {
+        "codec": "h264",
+        "width": 1920,
+        "height": 1080,
+        "fps": "30/1",
+        "frames": 1020,
+        "pixel_format": "yuv420p"
+      },
+      "audio_stream": {
+        "codec": "aac",
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "duration_seconds": 34.0
+      },
+      "complete_decode": {
+        "status": "NOT_REPEATED_THIS_REVISION",
+        "previous_revision_status": "PASS",
+        "previous_revision_sha256": "d57bf20a74215c6c2057c31b3487d6103a9323c577e27f22b1090038d7488cc0",
+        "current_revision_check": "本次成功解码限定关键帧及25–30秒全部151帧；此前完整解码记录见review_history。"
+      },
+      "card_continuity_25_to_30_seconds": {
+        "method": "Read-only renderer panel-box geometry; decoded grayscale pixels at 1/4 resolution, small blank top-center interior patch, threshold >235. Dense encoded-frame crop contacts visually checked.",
+        "frames": 151,
+        "initial_frame": 750,
+        "last_frame": 900,
+        "state_changes": [
+          {
+            "frame": 750,
+            "seconds": 25.0,
+            "present": true,
+            "gray_mean": 245.0
+          },
+          {
+            "frame": 825,
+            "seconds": 27.5,
+            "present": false,
+            "gray_mean": 209.91666666666666
+          }
+        ],
+        "presence_rebounds": 0
+      },
+      "metadata_scope": "时长、尺寸、帧率及音频参数沿用上一轮已实测的相同渲染时间线；本轮仅修改取样容差，未追加完整媒体参数检查。"
+    },
+    {
+      "language": "en",
+      "workspace_relative_path": "film-project/qa/Nearpane-EN-1080p-review.mp4",
+      "bytes": 5035776,
+      "sha256": "7df031befcb428716a53ff8a6da4fe5d4722cc02a8f2787aa0f5870fd55e2fb2",
+      "duration_seconds": 34.0,
+      "video": {
+        "codec": "h264",
+        "width": 1920,
+        "height": 1080,
+        "fps": "30/1",
+        "frames": 1020,
+        "pixel_format": "yuv420p"
+      },
+      "audio_stream": {
+        "codec": "aac",
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "duration_seconds": 34.0
+      },
+      "complete_decode": {
+        "status": "NOT_REPEATED_THIS_REVISION",
+        "previous_revision_status": "PASS",
+        "previous_revision_sha256": "c804b3b572effcee316f098e9d03cd401d38bb9b5df6408430ce72b5e132b52d",
+        "current_revision_check": "本次成功解码限定关键帧及25–30秒全部151帧；此前完整解码记录见review_history。"
+      },
+      "card_continuity_25_to_30_seconds": {
+        "method": "Read-only renderer panel-box geometry; decoded grayscale pixels at 1/4 resolution, small blank top-center interior patch, threshold >235. Dense encoded-frame crop contacts visually checked.",
+        "frames": 151,
+        "initial_frame": 750,
+        "last_frame": 900,
+        "state_changes": [
+          {
+            "frame": 750,
+            "seconds": 25.0,
+            "present": true,
+            "gray_mean": 245.0
+          },
+          {
+            "frame": 890,
+            "seconds": 29.666666666666668,
+            "present": false,
+            "gray_mean": 210.0
+          }
+        ],
+        "presence_rebounds": 0
+      },
+      "metadata_scope": "时长、尺寸、帧率及音频参数沿用上一轮已实测的相同渲染时间线；本轮仅修改取样容差，未追加完整媒体参数检查。"
+    }
+  ],
+  "method": {
+    "what_was_done": [
+      "计算最终两份1080p文件的SHA-256与字节数。",
+      "解码并逐帧测量两片25.0–30.0秒各151帧卡片空白内区；确认只发生一次存在→退场状态变化，之后无重现。",
+      "实际查看新编码文件密集裁切联系图：中文26.0667–26.3333秒和27.3333–27.7333秒；英文29.0333–29.3000秒和29.5000–29.9000秒。",
+      "实际查看中文、英文2.4000–2.7333秒各11帧：中文保留多帧真实文字过渡，英文该时段已是稳定新句，两者框体与文字排版正常。",
+      "未重做全片构图、完整解码或参考研究；前一版本的完整核查连同其哈希保留在review_history。"
+    ],
+    "real_time_playback_review": false,
+    "audio_listening_review": false,
+    "audio_quality_claim": "本轮没有听审或音频重测；此前AAC参数和完整解码记录仅属于历史哈希版本。",
+    "native_source_or_renderer_modified_for_review": false
+  },
+  "specific_fix_verification": {
+    "zh_26_2_seconds": {
+      "status": "PASS",
+      "finding": "原生文字在26.2秒短暂空白，但完整白色卡片和圆角持续可见，未被透明化。"
+    },
+    "en_29_1667_and_29_2_seconds": {
+      "status": "PASS",
+      "finding": "最终编码的29.1667秒和29.2秒保留实际原生空文字状态，白色卡片与圆角持续可见；后续歌词恢复。"
+    },
+    "zh_withdrawal": {
+      "frame": 825,
+      "seconds": 27.5,
+      "finding": "只发生一次卡片退场，之后未重现。"
+    },
+    "en_withdrawal": {
+      "frame": 890,
+      "seconds": 29.666666666666668,
+      "finding": "只发生一次卡片退场，之后未重现。"
+    },
+    "remaining_native_transient": "中文26.2秒及英文29.1667/29.2秒的短暂空文字/过渡帧属于原生源，卡片框体持续保留；未作合成遮掩，也不称为产品修复。",
+    "cause_evidence_boundary": "本视觉检查证明卡片连续性和最终退场时序；播放器退出/源失效的原因依据独立原生捕获回读，不能仅由静帧反推。",
+    "around_2_5_seconds": {
+      "status": "PASS",
+      "frame_range": [
+        72,
+        82
+      ],
+      "zh": "2.4000–2.7333秒逐帧包含旧句、真实淡出/淡入中间态和清晰新句，卡片稳定。",
+      "en": "同一时段已为稳定新句；没有声称英文在2.5秒也发生换句。"
+    }
+  },
+  "visual_findings_zh": [
+    "歌词主体清晰，稳定帧无截字；英文换行合理，控制按钮与进度可读。",
+    "原生换句存在连续中间状态，背景镜头推拉保持克制。现有转场未发现需要返工的几何跳变。",
+    "真实TextEdit文稿保持原始比例，作为工作语境；缩小后不再以放大工具栏抢占主体。",
+    "实际控制段可辨认悬停、进度调整、暂停与恢复的状态；本片没有成功切歌动作，不能写成已演示下一首。",
+    "Riftlet只作图标与截图助手标签的辅助出现，没有虚构下载安装管理器。",
+    "Nearpane品牌、官网和产品预览CTA清楚；不存在暗示已开放统一产品下载的片尾文案。"
+  ],
+  "blocking_visual_issues_remaining": [],
+  "not_covered_by_this_pass": [
+    "其他4K、竖屏及最终封包文件逐一检查由主制作流程完成；不自动从本次1080p哈希继承。",
+    "音乐主观听感、实时音画节奏没有在本次审查中验证。",
+    "完整Host、新发行预设、模块真实安装删除和公开安装包资格不在本视觉审核范围。"
+  ],
+  "evidence_files": [
+    "qa/independent-cfr-final/cfr-final-measurements.json",
+    "qa/independent-cfr-final/zh-2_5-transition.jpg",
+    "qa/independent-cfr-final/en-2_5-transition.jpg",
+    "qa/independent-cfr-final/zh-blank-and-exit.jpg",
+    "qa/independent-cfr-final/en-blank-and-exit.jpg"
+  ],
+  "review_history": [
+    {
+      "reviewed_at_utc": "2026-11-27T19:26:28.334596+00:00",
+      "review_state": "PASS_WITHIN_STATED_VISUAL_SCOPE",
+      "files": [
+        {
+          "language": "zh",
+          "workspace_relative_path": "film-delivery/Nearpane-ZH-1080p.mp4",
+          "bytes": 4985410,
+          "sha256": "d57bf20a74215c6c2057c31b3487d6103a9323c577e27f22b1090038d7488cc0",
+          "duration_seconds": 34.0,
+          "video": {
+            "codec": "h264",
+            "width": 1920,
+            "height": 1080,
+            "fps": "30/1",
+            "frames": 1020,
+            "pixel_format": "yuv420p"
+          },
+          "audio_stream": {
+            "codec": "aac",
+            "sample_rate_hz": 48000,
+            "channels": 2,
+            "duration_seconds": 34.0
+          },
+          "complete_decode": {
+            "status": "PASS",
+            "exit_code": 0,
+            "error_output": ""
+          },
+          "card_continuity_25_to_30_seconds": {
+            "method": "Read-only renderer panel-box geometry, decoded grayscale pixels at 1/4 resolution, small blank top-center interior patch; threshold >235 separates observed pale card from darker lake background. Cross-checked against full-resolution dense contacts.",
+            "frames": 151,
+            "initial_frame": 750,
+            "last_frame": 900,
+            "state_changes": [
+              {
+                "frame": 750,
+                "seconds": 25.0,
+                "present": true,
+                "gray_mean": 245.0
+              },
+              {
+                "frame": 825,
+                "seconds": 27.5,
+                "present": false,
+                "gray_mean": 209.83333333333334
+              }
+            ],
+            "presence_rebounds": 0
+          }
+        },
+        {
+          "language": "en",
+          "workspace_relative_path": "film-project/qa/Nearpane-EN-1080p-review.mp4",
+          "bytes": 5036777,
+          "sha256": "c804b3b572effcee316f098e9d03cd401d38bb9b5df6408430ce72b5e132b52d",
+          "duration_seconds": 34.0,
+          "video": {
+            "codec": "h264",
+            "width": 1920,
+            "height": 1080,
+            "fps": "30/1",
+            "frames": 1020,
+            "pixel_format": "yuv420p"
+          },
+          "audio_stream": {
+            "codec": "aac",
+            "sample_rate_hz": 48000,
+            "channels": 2,
+            "duration_seconds": 34.0
+          },
+          "complete_decode": {
+            "status": "PASS",
+            "exit_code": 0,
+            "error_output": ""
+          },
+          "card_continuity_25_to_30_seconds": {
+            "method": "Read-only renderer panel-box geometry, decoded grayscale pixels at 1/4 resolution, small blank top-center interior patch; threshold >235 separates observed pale card from darker lake background. Cross-checked against full-resolution dense contacts.",
+            "frames": 151,
+            "initial_frame": 750,
+            "last_frame": 900,
+            "state_changes": [
+              {
+                "frame": 750,
+                "seconds": 25.0,
+                "present": true,
+                "gray_mean": 245.0
+              },
+              {
+                "frame": 890,
+                "seconds": 29.666666666666668,
+                "present": false,
+                "gray_mean": 209.91666666666666
+              }
+            ],
+            "presence_rebounds": 0
+          }
+        }
+      ],
+      "method": {
+        "what_was_done": [
+          "完整解码两份最终MP4，均无错误输出；核查尺寸、帧率、帧数及容器/音视频时长。",
+          "按时间顺序查看来自最终编码文件的全片联系表：中文16个关键时点，英文28个关键时点；同时参考此前中文28时点构图和原生动态密集帧检查。",
+          "以原始像素裁切逐帧检查中文26.0667–26.3333s及27.3333–27.7333s、英文29.0333–29.3000s及29.5000–29.9000s的卡片与退场。",
+          "对两片25–30s各151帧读取随镜头跟踪的卡片空白内区，复核没有先消失再出现；测量与原始尺寸联系图一致。",
+          "核心7秒样片及原始native-transition-full证据已先行检查，确认存在真实多帧换句过渡。"
+        ],
+        "real_time_playback_review": false,
+        "audio_listening_review": false,
+        "audio_quality_claim": "只确认AAC轨存在并完整解码、技术参数及长度；没有进行主观听审。",
+        "native_source_or_renderer_modified_for_review": false
+      },
+      "specific_fix_verification": {
+        "zh_26_2_seconds": {
+          "status": "PASS",
+          "finding": "原生文字过渡期间白色卡片框体保持，没有被错误透明化。"
+        },
+        "en_29_1667_and_29_2_seconds": {
+          "status": "PASS",
+          "finding": "两帧原生文字空白被保留，白色卡片与圆角仍完整可见。后续歌词恢复，未发生卡片闪失。"
+        },
+        "zh_withdrawal": {
+          "frame": 825,
+          "seconds": 27.5,
+          "finding": "只发生一次卡片退场，之后未重现。"
+        },
+        "en_withdrawal": {
+          "frame": 890,
+          "seconds": 29.666666666666668,
+          "finding": "只发生一次卡片退场，之后未重现。"
+        },
+        "remaining_native_transient": "EN换句仍有短暂空文字/文字过渡帧；这是实际原生源画面，不以合成方式擦除，也不宣称产品已修复它。",
+        "cause_evidence_boundary": "本视觉检查证明卡片连续性和最终退场时序；播放器退出/源失效的原因依据独立原生捕获回读，不能仅由静帧反推。"
+      },
+      "visual_findings_zh": [
+        "歌词主体清晰，稳定帧无截字；英文换行合理，控制按钮与进度可读。",
+        "原生换句存在连续中间状态，背景镜头推拉保持克制。现有转场未发现需要返工的几何跳变。",
+        "真实TextEdit文稿保持原始比例，作为工作语境；缩小后不再以放大工具栏抢占主体。",
+        "实际控制段可辨认悬停、进度调整、暂停与恢复的状态；本片没有成功切歌动作，不能写成已演示下一首。",
+        "Riftlet只作图标与截图助手标签的辅助出现，没有虚构下载安装管理器。",
+        "Nearpane品牌、官网和产品预览CTA清楚；不存在暗示已开放统一产品下载的片尾文案。"
+      ],
+      "evidence_files": [
+        "qa/independent-corrected-review/encoded-zh-contact.jpg",
+        "qa/independent-corrected-review/encoded-en-contact.jpg",
+        "qa/independent-corrected-review/zh-blank-and-exit.jpg",
+        "qa/independent-corrected-review/en-blank-and-exit.jpg",
+        "qa/independent-corrected-review/file-and-patch-measurements.json",
+        "qa/independent-final-core/encoded-core-contact.jpg"
+      ],
+      "revision_scope": "CFR浮点边界容差修正前的完整构图、密集帧与完整解码检查；旧哈希仅标识该历史版本。"
+    }
+  ],
+  "cfr_sampling_correction": {
+    "change": "bisect(t + 1e-8): 为恰好位于CFR边界的时间加数值容差，避免浮点误差选到上一源帧并随后跳过下一帧。",
+    "scope_from_producer": "只有取样边界容差变化，时间线、构图、alpha规则与原生源像素未改。",
+    "previous_boundary_misselections_reported_by_producer": {
+      "zh": 206,
+      "en": 143
+    },
+    "count_validation": "206/143为主制作流程给出的排查计数，本独立复查未重新统计。",
+    "review_reason": "对最后重渲染文件更新哈希并确认关键原生过渡、空文字卡片及唯一退场仍正确。"
+  },
+  "visual_findings_scope": "以下全片构图与叙事判断源自CFR修正前的完整视觉检查；本轮时间线、布局及源像素未改，新增检查仅覆盖method列明范围。"
+}

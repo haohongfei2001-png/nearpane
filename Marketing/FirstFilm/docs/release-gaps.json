@@ -1,44 +1,176 @@
 {
   "checked_on": "2026-11-28 Asia/Shanghai",
-  "state": "INTEGRATED-RELEASE FILM BLOCKED; PREVIEW EDIT CAN BE PRODUCED",
-  "source_branch": "codex/lyrictile-standalone-20261126",
-  "source_commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+  "state": "REAL INTEGRATED HOST CANDIDATE EXISTS; RELEASE LOGIC AND QUALIFICATION INCOMPLETE; PREVIEW EDIT CAN BE PRODUCED",
+  "source_branch": "pro/r4-integrated-lyrics-20261128",
+  "source_commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
   "verified_existing": [
-    "LyricTile production native lyric view and music controls",
-    "Standalone LyricTile 1.0.0 build49 release evidence",
-    "NearpaneLyricsModule host facade exists",
-    "Current Riftlet 1.0.11 official brand icon"
+    "Production LyricPanelView and real music control evidence exist at the historical filming baseline.",
+    "R4 now actually compiles and embeds NearpaneLyricsModule/LyricUI in Nearpane Host; Host owns lifecycle and one management-window navigation.",
+    "Current Riftlet adapter is statically embedded in the Host and defaults enabled as .core.",
+    "A prior R4 integrated candidate compiled and packaged; this does not qualify native UI acceptance or public distribution.",
+    "Official Riftlet icon matches the reviewed 1.0.11 release source."
   ],
   "not_verified_as_shipped": [
-    "Nearpane host consumes the lyrics module and ships it preinstalled/default enabled",
-    "Nearpane offers install/remove/re-add for Riftlet",
-    "Both modules can be independently closed, removed, and re-added in the integrated host",
-    "Public integrated Nearpane installer and matching website download endpoint"
+    "The lyric-led Nearpane release preset: lyrics bundled and enabled for new users. Reviewed LyricTile default is disabled.",
+    "Actual on-demand module download, installation, binary removal and re-download; toggling embedded code is not that lifecycle.",
+    "Complete native Host integration acceptance and signed/notarized public distribution.",
+    "Public integrated Nearpane installer and matching official website download endpoint."
   ],
   "minimal_product_handoff": [
-    "Wire the existing lyrics-module facade into the first integrated host distribution and verify default activation",
-    "Complete the existing or minimal module-management lifecycle for lyrics and screenshots without exposing unshipped modules",
-    "Publish and verify one actual Nearpane installer and official download link",
-    "Provide one continuous integrated-host recording of lyrics enabled and Riftlet being added/removed/re-added"
+    "Finish and verify the lyric-led new-install preset in the existing Host integration without overwriting existing user preferences.",
+    "Implement and qualify actual module package download/install/remove/re-download, keeping user data separate; do not relabel the current switches as downloads.",
+    "Resolve and qualify the Host/native UI acceptance gates, then publish one signed integrated Nearpane installer and official download entry.",
+    "Capture the completed integrated Host release: default lyric startup, true module lifecycle, and pause-preserved/player-exit withdrawal behavior."
   ],
   "film_replacement_after_handoff": [
-    "Replace the 2-second planned Riftlet integration insert with actual integrated-host material",
-    "Replace the preview end caption with verified Download Nearpane / Lyrics included CTA",
-    "Keep the visual system, licensed music, bilingual timing and edit"
+    "Replace selected isolated-view/editorial-composite shots only where full Host or actual download-management evidence is needed.",
+    "Replace preview CTA with verified Download Nearpane / Lyrics included wording after the matching release exists.",
+    "Retain the visual system, licensed music, bilingual timing and editable film project."
   ],
   "site_check": {
     "url": "https://nearpane.com/",
     "observed_http_status": 200,
     "observed_copy": "当前还没有公开下载日期。工程进展可以通过 GitHub 项目查看。",
-    "standalone_path_probe": "https://nearpane.com/lyrictile/ returned HTTP404 in the current execution environment; not used as a CTA"
+    "standalone_path_probe": "https://nearpane.com/lyrictile/ returned HTTP404 in the current execution environment; not used as a CTA",
+    "observed_at_utc": "2026-11-27T19:15:57.589536+00:00",
+    "final_observation_reference": "qa/official-site-final-check.txt"
   },
   "observed_host_architecture": {
-    "path": "Sources/NearpaneCore/Modules.swift",
+    "commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
     "facts": [
-      "Riftlet is currently kind.core in BuiltinCatalog",
-      "Core registration defaults to enabled",
-      "Lyrics module is not present in the host built-in catalog",
-      "EmbeddedModules bundles adapters at compile time; install/remove/re-add download lifecycle has not been implemented"
-    ]
+      "LyricTile is registered as .builtin and defaults disabled; it is not absent from the current Host catalog.",
+      "Riftlet remains .core and defaults enabled.",
+      "EmbeddedModules provides the actual HostLyrics and TrayModule factories; Package.swift statically links these domains.",
+      "Host module management implements enable/disable and ordering, not actual downloadable package installation/deletion.",
+      "Lyric glyph/geometry rendering is shared; Host appearance and pause lifetime differ from the historical standalone filming baseline."
+    ],
+    "sources": {
+      "compiled_domains": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Package.swift",
+      "host_integration_record": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/HOST-INTEGRATION.md",
+      "host_lyrics_module": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/Sources/NearpaneLyricsModule/NearpaneLyricsModule.swift",
+      "host_lifecycle": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/HostLyrics.swift",
+      "module_defaults": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneCore/Modules.swift",
+      "module_management": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/ModuleManagementView.swift",
+      "product_constitution": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/PRODUCT_CONSTITUTION.md",
+      "candidate_verification": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/docs/verification/2026-11-28-unified-workbench.md",
+      "website": "https://nearpane.com/",
+      "public_releases": "https://github.com/haohongfei2001-png/nearpane/releases"
+    },
+    "previous_review_commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+    "latest_diff_record": "docs/final-product-refresh.json"
+  },
+  "checked_at_utc": "2026-11-27T19:21:50.088019+00:00",
+  "filming_baseline": {
+    "branch": "codex/lyrictile-standalone-20261126",
+    "commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+    "scope": "Historical production native lyric-view filming baseline, not current Host lifecycle or a shipping integration."
+  },
+  "currentProductState": {
+    "status": "REAL_HOST_INTEGRATION_CANDIDATE_NOT_A_PUBLIC_RELEASE",
+    "verified_at_utc": "2026-11-27T19:21:50.088019+00:00",
+    "repository": "https://github.com/haohongfei2001-png/nearpane",
+    "branch": "pro/r4-integrated-lyrics-20261128",
+    "commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
+    "lyric_domain_embedded_in_host": true,
+    "lyric_default_enabled_for_new_install": false,
+    "lyric_default_reason": "LyricTile manifest is .builtin; ModuleRegistry register/restore defaults only .core to enabled; empty HostConfiguration.modules does not override this.",
+    "riftlet_embedded_in_host": true,
+    "riftlet_default_enabled_for_new_install": true,
+    "riftlet_integration_kind": "Statically compiled .core adapter; current UI exposes enable/disable and order, not actual network module installation or binary removal.",
+    "real_module_download_install_remove_readd": "NOT_IMPLEMENTED_IN_REVIEWED_SOURCE",
+    "release_preset_for_this_lyric_led_launch": "REQUIRED_NOT_IMPLEMENTED_OR_QUALIFIED",
+    "public_integrated_nearpane_installer": "NOT_FOUND_AT_CHECK",
+    "public_release_observation": "Only standalone LyricTile 1.0.0 build49 was listed; Nearpane website still said no public download date.",
+    "host_pause_policy": "Keep a valid player/selection session visible while paused. Player exit or module disable removes the surface. Historical pause-withdraw evidence is not this policy.",
+    "host_native_acceptance": "NO_FINAL_PASS_ESTABLISHED_FOR_LATEST_HEAD_BY_THIS_SOURCE_REVIEW",
+    "workflow_observations": [
+      {
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46050825219",
+        "commit": "b2112280d79007b243b5ef72d525f0abe78f3b7e",
+        "observed_status": "in_progress",
+        "observed_conclusion": null,
+        "compile_package": "success",
+        "failed_steps": [
+          "Test Host, module lifecycle and existing integration",
+          "Exercise and capture the native main window and sidebar"
+        ],
+        "active_step": "Compare existing Spaces tests with the original PR 16 baseline",
+        "observed_at_utc": "2026-11-27T18:55:22Z"
+      },
+      {
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46051390438",
+        "commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+        "observed_status": "in_progress",
+        "observed_conclusion": null,
+        "compile_package": "in_progress",
+        "failed_steps": [
+          "Test Host, module lifecycle and existing integration"
+        ],
+        "active_step": "Compile and package integrated Nearpane",
+        "observed_at_utc": "2026-11-27T18:55:22Z"
+      }
+    ],
+    "sources": {
+      "compiled_domains": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Package.swift",
+      "host_integration_record": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/HOST-INTEGRATION.md",
+      "host_lyrics_module": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Products/LyricTile/Sources/NearpaneLyricsModule/NearpaneLyricsModule.swift",
+      "host_lifecycle": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/HostLyrics.swift",
+      "module_defaults": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneCore/Modules.swift",
+      "module_management": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/Sources/NearpaneUI/ModuleManagementView.swift",
+      "product_constitution": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/PRODUCT_CONSTITUTION.md",
+      "candidate_verification": "https://github.com/haohongfei2001-png/nearpane/blob/8eb64972f8bd4a4bcfa5b82688ca900552147a1e/docs/verification/2026-11-28-unified-workbench.md",
+      "website": "https://nearpane.com/",
+      "public_releases": "https://github.com/haohongfei2001-png/nearpane/releases",
+      "latest_comparison": "https://github.com/haohongfei2001-png/nearpane/compare/8eb64972f8bd4a4bcfa5b82688ca900552147a1e...f8d91b50187787af827d7e1a9f8dd9d927a3e95f"
+    },
+    "scope_zh": "当前提交已窄查至f8d91b；歌词渲染与暂停规则未变，Host排序、外观与全屏表面已更新。较早工作流保留各自提交和核查时间，不当作最新提交的原生验收结果。",
+    "previous_review_commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+    "latest_head_observed_at_utc": "2026-11-27T19:15:57.589536+00:00",
+    "source_diff_review_record": "docs/final-product-refresh.json",
+    "workflow_observation_scope": "Historical observations of the explicitly recorded b2112280/8eb64972 commits at 2026-11-27T18:55:22Z, not latest-head results.",
+    "latest_host_changes": [
+      "Whole-module saved ordering now includes Spaces and clock without core-order locking.",
+      "Host default accent is system; supported visual settings converge through WorkbenchVisualPolicy while retired values are preserved.",
+      "HostLyrics counts mounted surfaces by UUID to share exposure with fullscreen tools.",
+      "Embedded lyric management pages receive Host language and content insets."
+    ],
+    "core_lyric_rendering_blobs_unchanged": true
+  },
+  "film_current_claims": {
+    "target_duration_seconds": 34,
+    "publication_class": "PRODUCT_PREVIEW_ONLY",
+    "riftlet_caption_zh": "截图助手",
+    "riftlet_caption_en": "Screenshot assistant",
+    "riftlet_installation_ui_shown": false,
+    "host_pixel_exact_screen_recording_claim": false,
+    "lifecycle_exit": "Latest capture requests actual Apple Music exit before withdrawal; final footage and receipts pending."
+  },
+  "historical_architecture_snapshot": {
+    "commit": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6",
+    "status": "SUPERSEDED_FOR_CURRENT_HOST_STATE",
+    "observations": {
+      "path": "Sources/NearpaneCore/Modules.swift",
+      "facts": [
+        "Riftlet is currently kind.core in BuiltinCatalog",
+        "Core registration defaults to enabled",
+        "Lyrics module is not present in the host built-in catalog",
+        "EmbeddedModules bundles adapters at compile time; install/remove/re-add download lifecycle has not been implemented"
+      ]
+    }
+  },
+  "latest_product_refresh_record": "docs/final-product-refresh.json",
+  "public_release_check": {
+    "observed_at_utc": "2026-11-27T19:15:57.589536+00:00",
+    "reference": "qa/final-release-refresh.json",
+    "release_tags": [
+      "lyrictile-v1.0.0-build49"
+    ],
+    "integrated_nearpane_installer_found": false
+  },
+  "launch_landing_page_alignment": {
+    "observed": "The verified public homepage still leads with Spaces/window workflow and voice tools; the inspected copy did not present the lyric-led release shown in this film.",
+    "needed_for_launch": "Align the official landing page with Nearpane plus preinstalled LyricTile, optional Riftlet and the verified unified download.",
+    "evidence": "https://nearpane.com/; final official-site observation recorded in docs/final-product-refresh.json",
+    "film_action": "Uses the real domain with Product preview CTA; no invented download path."
   }
 }

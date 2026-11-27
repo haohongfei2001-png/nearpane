@@ -7,14 +7,14 @@ Nearpane · 产品预览
 让音乐，留在手边。
 
 在工作、阅读和浏览之间，给喜欢的歌词留一个位置。
-本片展示歌词板体验，以及规划中的 Riftlet 接入。Nearpane 整合版本尚未开放公开下载。
+本片展示歌词板体验，并简短介绍 Riftlet 截图助手。Nearpane 已有集成候选，整合版本尚未开放公开下载。
 了解产品进展：https://nearpane.com/
 
 Music: “Origami” by Scott Buckley — released under CC-BY 4.0.
 https://www.scottbuckley.com.au
 Source: https://www.scottbuckley.com.au/library/origami/
 License: https://creativecommons.org/licenses/by/4.0/
-本片截取原曲连续前 32 秒，加入淡入淡出并进行响度母带处理。
+本片截取原曲连续前 34 秒，加入淡入淡出并进行响度母带处理。
 画面中的歌词为原创演示文字，并非这首纯音乐的歌词。
 
 ENGLISH PUBLICATION COPY
@@ -23,7 +23,7 @@ Nearpane — Product preview
 Keep the music close.
 
 A little space for the words you love, alongside the work you do.
-This preview shows the lyric-panel experience and planned Riftlet integration.
+This preview shows the lyric-panel experience and briefly introduces the Riftlet screenshot assistant.
 The integrated Nearpane download is not yet available.
 Follow the product: https://nearpane.com/
 
@@ -31,7 +31,7 @@ Music: “Origami” by Scott Buckley — released under CC-BY 4.0.
 https://www.scottbuckley.com.au
 Source: https://www.scottbuckley.com.au/library/origami/
 License: https://creativecommons.org/licenses/by/4.0/
-Edited for this film: continuous opening 32 seconds, fades and loudness mastering.
+Edited for this film: continuous opening 34 seconds, fades and loudness mastering.
 The on-screen text is original demonstration lyric content, not lyrics to this instrumental recording.
 
 PUBLISHER NOTES — not part of the promotional paragraph
@@ -40,6 +40,6 @@ PUBLISHER NOTES — not part of the promotional paragraph
 2. Include the applicable complete music credit above with every published version. For YouTube, it MUST be in the video description; end-frame credit alone is insufficient under the creator’s published guidance. For a website, place the credit with the video; for a social post, retain it in the caption or accompanying credits.
 3. Do not register the soundtrack in Content ID or another audio-fingerprinting service. Do not resell the music in isolation or publish the source/edited track as a standalone music release. Source audio is supplied only in the authorized production asset package.
 4. If a placement cannot supply attribution, obtain the creator’s separate license before that placement. No attribution-free license has been purchased.
-5. The audio master’s recorded measurements are -16.00 LUFS integrated, -1.71 dBTP and 3.70 LU LRA. These are technical measurements; subjective listening review has not been verified.
+5. The 34-second audio master (assets/audio/origami-34s.wav) uses the continuous original 0–34 seconds, with an 18 ms fade-in, a 31.6–34.0 second fade-out and two-pass loudness mastering, without speed or pitch change. Its recorded measurements are -15.99 LUFS integrated, -1.50 dBTP and 5.10 LU LRA. These are technical measurements; subjective listening review has not been verified.
 
 Detailed provenance and archived licenses: licenses/README.txt and licenses/sources.json.

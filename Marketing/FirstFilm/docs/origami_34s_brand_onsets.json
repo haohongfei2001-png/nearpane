@@ -1,0 +1,67 @@
+{
+  "track": "Origami by Scott Buckley",
+  "analysis_file": "film-project/assets/audio/origami-34s.wav",
+  "window_seconds": [
+    30,
+    31.2
+  ],
+  "planned_brand_seconds": 30.7667,
+  "method": "24kHz stereo-mean analysis; STFT1024 hop256; positive log spectral flux; normalized bands35-250Hz/250-2000Hz/2-10kHz weighted0.4/0.4/0.2; smoothing5frames.",
+  "events": [
+    {
+      "seconds": 30.1867,
+      "frame_30": 906,
+      "frame_60": 1811,
+      "strength": 0.6158,
+      "low": 0.7842,
+      "mid": 0.7512,
+      "high": 0.4599
+    },
+    {
+      "seconds": 30.3893,
+      "frame_30": 912,
+      "frame_60": 1823,
+      "strength": 1.3395,
+      "low": 0.3394,
+      "mid": 0.3592,
+      "high": 3.6602
+    },
+    {
+      "seconds": 30.5813,
+      "frame_30": 917,
+      "frame_60": 1835,
+      "strength": 1.0393,
+      "low": 0.4396,
+      "mid": 1.1671,
+      "high": 1.687
+    },
+    {
+      "seconds": 30.784,
+      "frame_30": 924,
+      "frame_60": 1847,
+      "strength": 1.9864,
+      "low": 3.7978,
+      "mid": 1.1782,
+      "high": 2.56
+    },
+    {
+      "seconds": 30.976,
+      "frame_30": 929,
+      "frame_60": 1859,
+      "strength": 1.6629,
+      "low": 0.7992,
+      "mid": 1.4657,
+      "high": 7.2923
+    },
+    {
+      "seconds": 31.1893,
+      "frame_30": 936,
+      "frame_60": 1871,
+      "strength": 1.712,
+      "low": 0.9383,
+      "mid": 2.1689,
+      "high": 4.2159
+    }
+  ],
+  "limitations": "Signal-derived acoustic peaks only; not a listening review, certified downbeat or phrase analysis."
+}

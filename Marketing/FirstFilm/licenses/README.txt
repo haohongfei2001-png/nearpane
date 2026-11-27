@@ -2,7 +2,7 @@ FINAL DELIVERABLE — SOURCES AND LICENSES
 Nearpane / HOLDSNOW product preview / 2026-11-28
 
 Selected audio
-Only Origami by Scott Buckley is used in the final film. See MUSIC_CREDITS.txt, sources.json, the two archived artist pages and CC-BY-4.0.txt. Other auditioned music is not used and is not credited in this deliverable. Its original working records remain outside the film-project directory.
+Only Origami by Scott Buckley is used in the final film. The final master is assets/audio/origami-34s.wav: continuous original 0–34 seconds, 18 ms fade-in and a 31.6–34.0 second fade-out, two-pass loudness mastering, 48 kHz stereo 24-bit PCM. The complete original MP3 remains in the authorized production asset package; the superseded 32-second edit is archived outside this project. See MUSIC_CREDITS.txt, sources.json, the two archived artist pages and CC-BY-4.0.txt. Other auditioned music is not used and is not credited in this deliverable. Its original working records remain outside the film-project directory.
 
 Typography
 Inter: assets/fonts/InterVariable.ttf; SIL Open Font License 1.1. The complete notice is preserved in Inter-LICENSE.txt. Upstream: https://github.com/rsms/inter
@@ -22,4 +22,4 @@ Current publication scope
 This is a product preview. The integrated Nearpane release and Riftlet module installation are still subject to the gaps in docs/release-gaps.json. Publishing copy in docs/PUBLISHING-CREDITS.txt preserves that status in Chinese and English.
 
 Review status
-Audio technical measurements are recorded in sources.json and reused from the identical measured master. No new claim of listening review is made. Visual-source descriptions here record provenance and do not constitute an end-to-end product acceptance result.
+Audio technical measurements are recorded in sources.json and assets/audio/origami-34s.analysis.json: -15.99 LUFS integrated, -1.50 dBTP and 5.10 LU LRA, measured once from the newly rendered 34-second master. No new claim of listening review is made. Visual-source descriptions here record provenance and do not constitute an end-to-end product acceptance result.

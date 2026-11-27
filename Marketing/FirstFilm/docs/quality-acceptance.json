@@ -1,0 +1,60 @@
+{
+  "updated_at_utc": "2026-11-27T19:32:20.869342+00:00",
+  "publication_decision": "COMPLETED_PRODUCT_PREVIEW_FILM",
+  "scope": "Bilingual 34-second cinematic product preview; not a public integrated-product download launch.",
+  "files": [
+    {
+      "file": "Nearpane-ZH-4K.mp4",
+      "sha256": "8dd3b53717d252f64ca15ede8c0f7a51a0e218defca10ca9cf9ff19f32bd5ae0"
+    },
+    {
+      "file": "Nearpane-EN-4K.mp4",
+      "sha256": "ac93b0f79f59042ad9462d34f452e530dd25cd809f8290ada9edd4455aba3757"
+    },
+    {
+      "file": "Nearpane-ZH-Vertical.mp4",
+      "sha256": "b41521863f316e2d0d8015d8d70ad498b5f58ec2d4e140b9dff68b49588bf169"
+    },
+    {
+      "file": "Nearpane-EN-Vertical.mp4",
+      "sha256": "6b60a3c07ad17d0915f806ab612caaf1bbde207dd9c29a4674bce78e89c0b1c5"
+    },
+    {
+      "file": "Nearpane-ZH-1080p.mp4",
+      "sha256": "ba9a814620f07771e7b0ffa145bde59e0c51e8a5684cee23eb6b2cafea86d090"
+    },
+    {
+      "file": "Nearpane-Core-7s-ZH.mp4",
+      "sha256": "f5a09d1d1c4ee2ad8b3d5c941dcb366e06faf771b0d9ea3ded87a269870403a2"
+    }
+  ],
+  "visual_review": "docs/visual-review.json",
+  "source_review": "docs/NATIVE-SOURCES.json",
+  "technical_review": "docs/video-verification.json",
+  "audio_review": "docs/audio-delivery-verification.json",
+  "director_findings_zh": [
+    "开场直接进入音乐与歌词板，Nearpane名称从首镜存在，品牌关系连续。",
+    "核心来自真实原生连续录屏；自动换句、悬停、真实进度拖动、暂停与恢复均清楚可见。",
+    "歌词板占主要体验时间；Riftlet以官方图标与短标识作辅助出场，没有伪造安装或完整Riftlet工作流。",
+    "中文与英文按各自真实录屏节奏剪辑；竖屏重新布局，未作中心裁切。",
+    "原生空文字过渡保留卡片，只有源中最终持续撤下后才留空；修复了透明判定与帧边界舍入问题。",
+    "片尾Nearpane、真实官网与产品预览行动指引明确。"
+  ],
+  "director_export_review": {
+    "method": "Actual encoded contact frames inspected for both 4K and portrait outputs, plus dense independent temporal review of both 1080p edits; final CFR correction frames extracted from all four masters and visually checked.",
+    "evidence": "qa/final-encoded/Final-CFR-Correction-Review.jpg",
+    "scope_note": "This is frame-based visual review and complete technical decode, not real-time subjective audio/video playback."
+  },
+  "technical_result": "All six delivered MP4s fully decode; full films are exactly 34s/30fps, H.264 yuv420p Rec709 limited range with AAC 48kHz stereo; -16.00 LUFS and -1.50 dBTP for all full films.",
+  "resolution_limit": "4K output canvas; native product recording crop is genuine Retina 416x384, not a claim of 4K native UI pixels.",
+  "not_verified": [
+    "Subjective listening review in this runtime.",
+    "Final current Nearpane Host release acceptance and signed public installer.",
+    "Actual optional module network download/remove/re-add."
+  ],
+  "not_shown": [
+    "Successful next/previous button click in the final control movies; buttons are visible and capability has separate source tests.",
+    "An actual integrated module marketplace or install interaction."
+  ],
+  "release_gate": "Use Product preview language and music attribution. A Download Nearpane launch cut requires the exact release changes recorded in release-gaps.json."
+}

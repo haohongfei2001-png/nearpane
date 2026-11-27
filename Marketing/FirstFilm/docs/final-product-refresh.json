@@ -1,0 +1,73 @@
+{
+  "reviewed_at_utc": "2026-11-27T19:21:50.088019+00:00",
+  "latest_head_observed_at_utc": "2026-11-27T19:15:57.589536+00:00",
+  "repository": "https://github.com/haohongfei2001-png/nearpane",
+  "branch": "pro/r4-integrated-lyrics-20261128",
+  "previous_review_commit": "8eb64972f8bd4a4bcfa5b82688ca900552147a1e",
+  "latest_observed_commit": "f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
+  "comparison_url": "https://github.com/haohongfei2001-png/nearpane/compare/8eb64972f8bd4a4bcfa5b82688ca900552147a1e...f8d91b50187787af827d7e1a9f8dd9d927a3e95f",
+  "comparison_ahead_commits": 8,
+  "review_scope": "Narrow source-diff and exact Git-blob comparison, plus referenced final website/releases observation. Not a fresh native acceptance or signed-release test.",
+  "same_lyric_rendering_blobs": [
+    {
+      "repository_path": "Products/LyricTile/Sources/LyricUI/LyricPanelView.swift",
+      "before": "6d46ab2c72e385315dbb023c382dc71e91840ba9",
+      "after": "6d46ab2c72e385315dbb023c382dc71e91840ba9",
+      "identical": true
+    },
+    {
+      "repository_path": "Products/LyricTile/Sources/LyricUI/LyricGlyphText.swift",
+      "before": "2a4702544d4ba4a1b57d664446488e7d47ddc29f",
+      "after": "2a4702544d4ba4a1b57d664446488e7d47ddc29f",
+      "identical": true
+    },
+    {
+      "repository_path": "Products/LyricTile/Sources/LyricUI/LyricPanelPresentation.swift",
+      "before": "1a074ed5e6dee0510a61787aa074e256e39848bb",
+      "after": "1a074ed5e6dee0510a61787aa074e256e39848bb",
+      "identical": true
+    },
+    {
+      "repository_path": "Products/LyricTile/Sources/TileKit/TileGeometry.swift",
+      "before": "242309dcea43dda1783aa6c4650b64bfbd4e67fe",
+      "after": "242309dcea43dda1783aa6c4650b64bfbd4e67fe",
+      "identical": true
+    }
+  ],
+  "substantive_host_changes": [
+    "Whole-module saved ordering now includes Spaces and clock without core-order locking.",
+    "Host default accent is system; supported visual settings converge through WorkbenchVisualPolicy while retired values are preserved.",
+    "HostLyrics counts mounted surfaces by UUID to share exposure with fullscreen tools.",
+    "Embedded lyric management pages receive Host language and content insets."
+  ],
+  "unchanged_release_gaps": [
+    "LyricTile is statically embedded but still defaults disabled for a new configuration; the lyric-led release preset remains unfinished.",
+    "Riftlet remains a statically linked .core module and defaults enabled.",
+    "Actual module download/install/binary removal/re-download is not supplied by the current enable/disable/order UI.",
+    "No public integrated Nearpane installer was found in the final referenced release/website observation.",
+    "This source comparison does not establish a final native Host or signed-distribution PASS for the latest commit."
+  ],
+  "unchanged_lifecycle": "LyricPanelVisibilityPolicy is byte-identical to the previously reviewed R4 commit: a valid paused player/selection remains visible; prior standalone pause-withdraw receipts remain historical only.",
+  "film_asset_scope": "The same native lyric-card rendering may be reused in this product preview with a matching appearance. This is not a pixel-exact recording of the latest whole Host, its management pages or fullscreen workspace.",
+  "public_observations": {
+    "website_url": "https://nearpane.com/",
+    "website_http_status": 200,
+    "website_copy": "当前还没有公开下载日期。工程进展可以通过 GitHub 项目查看。",
+    "website_observation_reference": "qa/official-site-final-check.txt",
+    "release_observation_reference": "qa/final-release-refresh.json",
+    "observed_release_tags": [
+      "lyrictile-v1.0.0-build49"
+    ],
+    "observed_release_assets": [
+      "appcast.xml",
+      "LyricTile-1.0.0-49-arm64.dmg",
+      "LyricTile-1.0.0-49-arm64.zip",
+      "LyricTile-1.0.0-49-local-verification.zip",
+      "LyricTile-1.0.0-49-verification.zip",
+      "release-verification.json",
+      "SHA256SUMS"
+    ]
+  },
+  "historical_workflow_scope": "The earlier 46050825219/46051390438 observations belong to their recorded commits and observation time; they are not a fresh result for f8d91b.",
+  "publication_class": "PRODUCT_PREVIEW_ONLY"
+}

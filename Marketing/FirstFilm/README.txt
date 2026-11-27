@@ -1,19 +1,22 @@
 NEARPANE — KEEP THE MUSIC CLOSE
 HOLDSNOW first product film / 2026-11-28
 
-CURRENT EDIT: PRODUCT PREVIEW, 32 seconds, Chinese and English.
+CURRENT EDIT: PRODUCT PREVIEW, 34 seconds, Chinese and English.
 This is not an assertion that the integrated Nearpane download is available.
 
 The production SwiftUI lyric panel is captured on a cloud Mac. No product UI is
 recreated in the compositor. High-resolution native stills use authored data.
 Final moving passages require continuous WindowServer recordings of the same
 production view, with actual Music playback and OS pointer input. The visible
-photography window preserves the 208 x 192 logical layout at three times size.
+photography window preserves the 208 x 192 logical layout on a genuine 2x
+Retina display (416 x 384 recorded pixels); 4K describes the output canvas, not
+a claim of a 4K native UI capture.
 The native recording includes the mouse. Editorial camera, fades, wallpaper and
 screen placement are postproduction, not new app capabilities.
 
-The earlier cacheDisplay frame sequences did not capture SwiftUI presentation
-animation. They are excluded from final masters. The renderer deliberately
+The earlier state sequences showed no continuous lyric transition and are
+excluded from final masters. Later runtime evidence found Reduce Motion enabled
+on the cloud Mac, so a product animation defect was not established. The renderer deliberately
 refuses final video output without the continuous WindowServer source passages.
 
 Run (Python 3, Pillow, FFmpeg; assets folder from the companion asset package):
@@ -24,6 +27,7 @@ Run (Python 3, Pillow, FFmpeg; assets folder from the companion asset package):
   python3 src/render_film.py --lang zh --frames
   python3 src/make_covers.py
   python3 src/verify_video.py renders/*.mp4 --output docs/video-verification.json
+  python3 src/prepare_audio.py --duration 34 --output /tmp/origami-34s-rerender.wav
 
 Extract the companion Nearpane-Film-Media-Assets.zip into this directory so that
 assets/backgrounds, assets/audio, assets/fonts and assets/native exist. Install
@@ -49,5 +53,14 @@ publishing credits. Do not claim HOLDSNOW composed this track. The screen's
 lyrics are original demonstration lyrics, not lyrics to the instrumental score.
 
 The supplied film preview links to https://nearpane.com/ and says Product preview.
-An integrated download CTA must wait for the product integration listed in
+An integrated download CTA must wait for the release preset, validation and public installer listed in
 docs/release-gaps.json. Do not simply relabel this preview as a launched product.
+
+Both language takes retain original playback speed. Chinese controls start at
+14.4 seconds, English controls at 17.0 seconds. After the actual source window
+withdraws, an empty desktop can hold editorially. The English source recording
+is 12.967 seconds, never represented as a 16-second continuous recording.
+
+Color is explicitly tagged Rec.709 / limited range in H.264 VUI and MP4 colr.
+See docs/quality-acceptance.json for review scope, technical measurements and
+the unavailable subjective audio listening check.
