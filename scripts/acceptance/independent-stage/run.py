@@ -57,33 +57,47 @@ def atomic(path, value):
 
 def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=None):
     with ExitStack() as sampling_files, (out / (name + ".log")).open("x") as stdout, (out / (name + ".stderr.log")).open("x") as stderr:
-        sampler = None
-        sample_report = {"status": "NOT_RUN", "reason": "firstR4RequestNotObserved", "diagnosticOnly": True}
+        samplers = {}
+        sample_reports = {
+            "host-startup-main-thread": {"status": "NOT_RUN", "reason": "hostExitedBeforeStartupSample", "diagnosticOnly": True},
+            "host-main-thread": {"status": "NOT_RUN", "reason": "firstR4RequestNotObserved", "diagnosticOnly": True},
+        }
         try:
             if reap_children or sample_host is not None:
                 # The lifecycle Host must observe a positively exited fixture
                 # generation. Reap only these direct children so a zombie cannot
                 # masquerade as a still-live AX owner while the Host is running.
                 with subprocess.Popen([str(x) for x in command], cwd=ROOT, env=env, stdout=stdout, stderr=stderr) as running:
-                    deadline = time.monotonic() + timeout
+                    host_started = time.monotonic()
+                    deadline = host_started + timeout
                     while running.poll() is None and time.monotonic() < deadline:
                         for child in reap_children:
                             child.poll()
-                        if sample_host is not None and sample_report["status"] == "NOT_RUN" and next(sample_host.glob("r4-press-*.request.json"), None):
-                            # Observe only this directly launched acceptance Host at
-                            # its first real R4 interaction. The Host never waits for
-                            # this separate, bounded, read-only sampling process.
-                            sample_report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
-                                             "durationSeconds": 3, "intervalMilliseconds": 10,
-                                             "startedMonotonic": time.monotonic()}
-                            try:
-                                sample_log = sampling_files.enter_context((sample_host / "host-main-thread-sample.log").open("x"))
-                                sample_error = sampling_files.enter_context((sample_host / "host-main-thread-sample.stderr.log").open("x"))
-                                sampler = subprocess.Popen(["/usr/bin/sample", str(running.pid), "3", "10", "-file",
-                                                            str(sample_host / "host-main-thread.sample.txt")],
-                                                           stdout=sample_log, stderr=sample_error)
-                            except OSError as error:
-                                sample_report.update(status="BLOCKED", reason=type(error).__name__ + ": " + str(error))
+                        if sample_host is not None:
+                            # A startup stall can prevent the first R4 request. Keep
+                            # a separate one-second sample beginning after 0.5 s,
+                            # as well as the existing first-real-input sample.
+                            # Neither diagnostic gates or delays the Host.
+                            triggers = (
+                                ("host-startup-main-thread", "startup", 1, time.monotonic() - host_started >= .5),
+                                ("host-main-thread", "firstR4Request", 3, next(sample_host.glob("r4-press-*.request.json"), None) is not None),
+                            )
+                            for stem, trigger, duration, ready in triggers:
+                                if not ready or sample_reports[stem]["status"] != "NOT_RUN":
+                                    continue
+                                started = time.monotonic()
+                                sample_report = {"status": "STARTED", "pid": running.pid, "diagnosticOnly": True,
+                                                 "durationSeconds": duration, "intervalMilliseconds": 10, "trigger": trigger,
+                                                 "startedMonotonic": started, "startedAfterHostSeconds": started - host_started}
+                                sample_reports[stem] = sample_report
+                                try:
+                                    sample_log = sampling_files.enter_context((sample_host / (stem + "-sample.log")).open("x"))
+                                    sample_error = sampling_files.enter_context((sample_host / (stem + "-sample.stderr.log")).open("x"))
+                                    samplers[stem] = subprocess.Popen(["/usr/bin/sample", str(running.pid), str(duration), "10", "-file",
+                                                                      str(sample_host / (stem + ".sample.txt"))],
+                                                                     stdout=sample_log, stderr=sample_error)
+                                except OSError as error:
+                                    sample_report.update(status="BLOCKED", reason=type(error).__name__ + ": " + str(error))
                         time.sleep(.05)
                     if running.poll() is None:
                         running.kill()
@@ -100,7 +114,8 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
             stderr.write(str(error) + "\n")
             report = {"status": "BLOCKED", "reason": "requiredExecutableUnavailable", "executable": str(command[0])}
         finally:
-            if sampler is not None:
+            for stem, sampler in samplers.items():
+                sample_report = sample_reports[stem]
                 try:
                     sampler.wait(timeout=4)
                 except subprocess.TimeoutExpired:
@@ -117,7 +132,8 @@ def execute(command, out, name, env, timeout=900, reap_children=(), sample_host=
                 sample_report.update(status="COMPLETE" if sampler.returncode == 0 else "INCOMPLETE", exit=sampler.returncode,
                                      finishedMonotonic=time.monotonic())
             if sample_host is not None:
-                atomic(sample_host / "host-main-thread-sample.json", sample_report)
+                for stem, sample_report in sample_reports.items():
+                    atomic(sample_host / (stem + "-sample.json"), sample_report)
     report.update(log=name + ".log", stderr=name + ".stderr.log")
     atomic(out / (name + ".json"), report)
     print(name, report["status"], flush=True)

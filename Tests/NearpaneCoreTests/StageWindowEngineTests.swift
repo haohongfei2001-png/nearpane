@@ -247,6 +247,98 @@ import Testing
         try await engine.activate(group.id,member:group.members[0].id,in:f.scope,consent:true,current:{true})
     }
 
+    private func focusPreflight() async throws -> (StageEngineSession, EngineFixture, StageWindowSample, StageWindowCommand) {
+        let fixture = EngineFixture()
+        let keys = (1...2).map { NativeSpaceWindow(pid: 10, birth: 200, number: UInt32($0)) }
+        for key in keys {
+            fixture.windows[key] = .init(window: key, lifetime: UUID(),
+                frame: .init(x: Double(key.number) * 10, y: 30, width: 120, height: 80), visibility: .visible)
+        }
+        fixture.focus = keys[0]
+        let session = StageEngineSession(owner: .init(spacesCandidate: environment, generation: fixture.epoch, evidence: UUID()),
+                                         witness: fixture, transport: fixture)
+        session.intentIsCurrent = { true }
+        let pre = try await session.read(fixture.scope)
+        let command = StageWindowCommand(intent: UUID(), group: UUID(), member: UUID(), generation: fixture.epoch,
+            scope: fixture.scope, nativeID: pre.nativeID, action: .focus, before: try #require(pre.windows[keys[1]]),
+            restoring: false, restoreFrame: nil)
+        return (session, fixture, pre, command)
+    }
+
+    @Test(arguments: [false, true])
+    func coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth(_ coordinated: Bool) async throws {
+        let (session, fixture, pre, command) = try await focusPreflight()
+        var readsAtHealth: UInt64?
+        fixture.onPrimitiveHealth = { [unowned fixture] _ in readsAtHealth = fixture.sequence - pre.sequence }
+        if coordinated { try await session.dispatch(command, coordinatedPreflight: pre) }
+        else { try await session.dispatch(command) }
+        #expect(readsAtHealth == (coordinated ? 0 : 1))
+        #expect(fixture.sequence - pre.sequence == (coordinated ? 1 : 2))
+        #expect(fixture.ordinaryEffects == [.focus] && fixture.focus == command.before.window)
+        #expect(fixture.effects.isEmpty && fixture.prepared.isEmpty)
+    }
+
+    @Test(arguments: ["bystanderDuringHealth", "focusDuringHealth", "scope", "generation", "nativeID", "targetState"])
+    func coordinatedPreflightCannotWriteAfterItsBaselineChanges(_ change: String) async throws {
+        let (session, fixture, pre, command) = try await focusPreflight()
+        let other = try #require(pre.windows.keys.first { $0 != command.before.window })
+        var windows = pre.windows, healthChecks = 0
+        if change == "targetState" { windows[command.before.window]?.frame.x += 10 }
+        let supplied = StageWindowSample(
+            scope: change == "scope" ? .init(display: pre.scope.display, nativeSpace: UUID()) : pre.scope,
+            generation: change == "generation" ? UUID() : pre.generation, sequence: pre.sequence,
+            workArea: pre.workArea, windows: windows, focus: pre.focus,
+            nativeID: change == "nativeID" ? 23 : pre.nativeID, foreignFocusScope: pre.foreignFocusScope,
+            frontToBack: pre.frontToBack)
+        fixture.onPrimitiveHealth = { [unowned fixture] _ in
+            healthChecks += 1
+            if change == "bystanderDuringHealth" { fixture.windows[other]?.frame.x += 10 }
+            if change == "focusDuringHealth" { fixture.focus = command.before.window }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await session.dispatch(command, coordinatedPreflight: supplied)
+        }
+        let changedDuringHealth = change.hasSuffix("DuringHealth")
+        #expect(healthChecks == (changedDuringHealth ? 1 : 0))
+        #expect(fixture.sequence - pre.sequence == (changedDuringHealth ? 1 : 0))
+        #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty && fixture.prepared.isEmpty)
+    }
+
+    @Test func newInputDuringCoordinatedHealthStopsBeforeAnyWindowWrite() async throws {
+        let (session, fixture, pre, command) = try await focusPreflight()
+        var current = true, healthChecks = 0
+        session.intentIsCurrent = { current }
+        fixture.onPrimitiveHealth = { _ in current = false; healthChecks += 1 }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await session.dispatch(command, coordinatedPreflight: pre)
+        }
+        #expect(healthChecks == 1 && !current && fixture.sequence == pre.sequence)
+        #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty && fixture.prepared.isEmpty)
+    }
+
+    @Test func spacesCoordinatorHandsItsCompletePreflightToTheSameSession() async throws {
+        let (profile, store, _, fixture, groups) = try setup()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = StageWindowEngineController(coordinator: try StageGroupCoordinator(store: store, profile: profile))
+        _ = try await controller.configureSpacesCandidate(for: environment, exclusive: { true }) { env in
+            StageEngineSession(owner: .init(spacesCandidate: env, generation: fixture.epoch, evidence: UUID()),
+                               witness: fixture, transport: fixture)
+        }
+        var firstPrimitiveReadCount: UInt64?
+        fixture.onPrimitiveHealth = { [unowned fixture] command in
+            if firstPrimitiveReadCount == nil {
+                #expect(command.action == .focus)
+                firstPrimitiveReadCount = fixture.sequence
+            }
+        }
+        try await activate(groups[1], controller, fixture)
+        // Initial enrollment, post-launch read, and the coordinator's preflight.
+        // Worker health is followed by its own fresh read before exact focus.
+        #expect(firstPrimitiveReadCount == 3)
+        #expect(store.activeGroup(in: fixture.scope) == groups[1].id)
+        try await controller.release()
+    }
+
     @Test func independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() async throws {
         let (profile, store, _, fixture, groups) = try setup()
         defer { try? FileManager.default.removeItem(at: profile) }

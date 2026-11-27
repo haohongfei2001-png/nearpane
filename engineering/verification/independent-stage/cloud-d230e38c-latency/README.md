@@ -4,9 +4,10 @@ Exact tested source: `d230e38c0cc384b820c4ed2cdb5223f777eef7d4`, on the existing
 PR #16 branch `pro/independent-stage-engine-20261126`.
 
 This folder preserves original results from [run 46010109426](https://github.com/haohongfei2001-png/nearpane/actions/runs/46010109426).
-The fast runtime and full source step have finished. **The complete release
-build/runtime was still running when this record was written.** No full-product
-or subsequent-fix pass is claimed. The separate diagnostic job passed.
+The fast and full runtimes and source step have finished. **Both formal R4
+product paths fail.** The full release build and signature pass, while source
+tests fail as recorded below. No subsequent-fix pass is claimed. The separate
+diagnostic job passed.
 
 ## Current result
 
@@ -101,5 +102,39 @@ from the input actor, retaining current identity and freshness checks. Run the
 same exact-commit full and fast product paths. Require actual sibling hiding,
 restoration and focus with confirmed cleanup before proceeding through the
 existing broader interaction/stability scenarios and release qualification.
-The complete d230 full runtime is pending in this record and must be appended
-from its own final artifact, without replacing these original failures.
+The complete d230 full runtime is appended below without replacing the original
+fast-lane and source failures.
+
+
+## Completed full release runtime
+
+The [full artifact 15203674146](https://github.com/haohongfei2001-png/nearpane/actions/runs/46010109426/artifacts/15203674146)
+is 52,695,623 bytes; independently verified outer SHA-256:
+`dc72b22cce114545815e38991fea785905cedbe88b38c6190503c53de2f09049`.
+The inner complete candidate ZIP is 25,419,936 bytes, independently verified
+SHA-256 `7bbeea0558eecd9364f51e3f293774ba6015a359c34996bf02c77e2c2e040776`.
+Its original build receipt correctly retains `sourceChecks=FAIL`, alongside
+`fullBuild=PASS` and `bundleSignature=PASS`.
+
+The full lane passes all engine checks and 26 hide/restore request attempts with
+confirmed cleanup. Its one actual R4 press fails at the opening-roster witness,
+before backend activation. Group entry is at uptime 1329.280775500, fresh group
+at 1331.583306667, worker configured at 1331.767361875, opening-roster rejection
+at 1333.522519375 and activation error `incomplete` at 1333.545830208.
+The failure snapshot reports incomplete catalogue, approximately 980.621 ms
+sample duration and 1,575.620 ms sample age. These timings do not establish
+which individual catalogue operation exhausted the budget.
+
+The full main-thread sample is mostly idle (109 of 134 samples in the run loop).
+Among the remaining samples, witness and current-intent checks repeatedly reach
+`WindowContentPreview.sessionAvailable`. This complements the fast lane's stream
+construction sample; it does not replace either observation. Product, fixture
+and CI-owned desktop cleanup are confirmed. Later product scenarios remain
+`NOT_RUN`.
+
+Original full receipts: [runtime](full/runtime-summary.json),
+[engine](full/engine-result.json), [product](full/product-result.json),
+[R4 press](full/r4-press-result.json), [phase log](full/product.stderr.log),
+[Host sample](full/host-main-thread.sample.txt), [candidate](full/candidate.json),
+[fixture cleanup](full/fixture-cleanup.json),
+[CI-owned desktop cleanup](full/ci-workspace-cleanup-receipt.json).

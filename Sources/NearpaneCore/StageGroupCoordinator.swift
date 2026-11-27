@@ -728,7 +728,13 @@ public enum StageSwitchError: LocalizedError, Equatable {
             guard epoch == token else { throw StageSwitchError.interrupted }
             let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
-            do { try await session.dispatch(command) }
+            do {
+                if let engine = session as? StageEngineSession, engine.owner.backend == .spaces, !command.restoring {
+                    try await engine.dispatch(command, coordinatedPreflight: pre)
+                } else {
+                    try await session.dispatch(command)
+                }
+            }
             catch let proof as SupersededBeforeStageWrite {
                 func canWithdraw() -> Bool {
                     guard session is StageEngineSession, proof.owner == owner, proof.command == command,

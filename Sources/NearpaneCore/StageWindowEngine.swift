@@ -222,6 +222,16 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func dispatch(_ c: StageWindowCommand) async throws {
+        try await dispatch(c, coordinatedPreflight: nil)
+    }
+
+    /// The coordinator has just read the complete baseline before recording this
+    /// primitive. Only normal Spaces operations can reuse it; the fresh read after
+    /// worker health must still match before any window writer is entered.
+    func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?) async throws {
+        if coordinatedPreflight != nil {
+            guard owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
+        }
         func eligible(settling: Bool = false) -> Bool {
             let ownsIntent = intentIsCurrent() || (settling && newerSelectionWaiting())
             return !closed && mayManage(c.before) &&
@@ -241,8 +251,10 @@ struct UnsubmittedCornerHide: Error {
             guard c.action == .show, c.restoreFrame != nil, c.before.visibility == (owner.backend == .spaces ? .stageSpace : .parked)
             else { throw StageSwitchError.ownership }
         }
-        let pre = try await read(c.scope)
-        guard pre.generation == c.generation, pre.nativeID == c.nativeID,
+        let pre: StageWindowSample
+        if let coordinatedPreflight { pre = coordinatedPreflight }
+        else { pre = try await read(c.scope) }
+        guard pre.scope == c.scope, pre.generation == c.generation, pre.nativeID == c.nativeID,
               pre.windows[c.before.window] == c.before else { throw StageSwitchError.interrupted }
         try requireUnsentIntent()
         var lastReadSequence = pre.sequence
