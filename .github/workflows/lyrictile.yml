@@ -61,6 +61,7 @@ jobs:
           swift package resolve
           git diff --exit-code -- Package.resolved
       - name: Compile the independent app and native host facade
+        id: compile
         run: |
           set -o pipefail
           swift build --product LyricTile 2>&1 | tee dist/evidence/swift-build.log
@@ -81,6 +82,7 @@ jobs:
           retention-days: 30
       - name: Build independent candidate with real media helper
         id: bundle
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
         run: |
           set -o pipefail
           bash Scripts/build-app.sh 2>&1 | tee dist/evidence/build-app.log

@@ -34,8 +34,13 @@ struct AuxiliaryLayoutTests {
             window.contentView?.layoutSubtreeIfNeeded()
             let expected = page == .welcome ? NSSize(width: 400, height: 360) : NSSize(width: 450, height: 620)
             #expect(window.contentView?.bounds.size == expected)
-            #expect(window.contentMinSize == expected)
-            #expect(window.contentMaxSize == expected)
+            #expect(!window.styleMask.contains(.resizable))
+            // Hosting is free to clear its own sizing hints. The contract is the
+            // actual settled content, including when an existing page is shown.
+            controller.show(page)
+            try await Task.sleep(for: .milliseconds(120))
+            window.contentView?.layoutSubtreeIfNeeded()
+            #expect(window.contentView?.bounds.size == expected)
             let layout = LyricNativeSmoke.auxiliaryLayout(window: window, page: page)
             #expect(layout["layoutPassed"] as? Bool == true)
             if page == .welcome {
