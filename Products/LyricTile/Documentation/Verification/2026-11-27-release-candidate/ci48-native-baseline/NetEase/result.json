@@ -1,0 +1,1033 @@
+{
+  "player": "netease",
+  "status": "PASS_LOCAL_CORE",
+  "scope": "official client and production-adapter observation",
+  "metadataEndpoint": "https://music.163.com/api/mac/package/download/latest?arch=arm64&productName=music",
+  "expectedBundleID": "com.netease.163music",
+  "accountUsed": false,
+  "TCCDatabaseModified": false,
+  "protocolsAccepted": false,
+  "completePlayerQualification": false,
+  "nativeLyricUIQualification": "PASS",
+  "transportQualification": "PASS",
+  "stage": "completed",
+  "downloadURL": "https://d1.music.126.net/dmusic/NeteaseCloudMusic_Music_official_3.1.14.3459_arm64.dmg",
+  "advertisedVersion": "3.1.14",
+  "advertisedBuild": "3459",
+  "metadataSHA256": "5cd4558573b70c2b39533954fae015bc084b9dd3f549e2c8c191901af4927607",
+  "download": {
+    "bytes": 180434687,
+    "sha256": "fb4c990c7c92451600945441c9a8ecd8b456427b33f93000f5fb21e6fc7d4df5",
+    "finalURL": "https://d1.music.126.net/dmusic/NeteaseCloudMusic_Music_official_3.1.14.3459_arm64.dmg"
+  },
+  "dmgVerified": true,
+  "actualBundleID": "com.netease.163music",
+  "appVersion": "3.1.14",
+  "appBuild": "3459",
+  "architecture": "arm64",
+  "signatureVerified": true,
+  "gatekeeperAccepted": true,
+  "signatureTeam": [
+    "43B53CMF9D"
+  ],
+  "launchRequestAccepted": true,
+  "runningProcessIDs": [
+    22592,
+    22632,
+    22636,
+    22637,
+    22638
+  ],
+  "desktop": {
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "",
+    "timedOut": false,
+    "elapsedSeconds": 0.418,
+    "file": "native-desktop.png",
+    "pixelWidth": 1024,
+    "pixelHeight": 768,
+    "saved": true,
+    "captureKind": "WindowServer desktop screenshot",
+    "wallpaperChanged": false,
+    "permissionsChanged": false,
+    "visualInspection": "PENDING"
+  },
+  "permissionUI": {
+    "accessibilityAlreadyTrusted": true,
+    "accessibilityRequested": false,
+    "accountUsed": false,
+    "actions": [],
+    "coordinateClicks": false,
+    "inputMethod": "AXPress on a freshly inspected native accessibility element",
+    "mode": "inspect",
+    "protocolsAccepted": false,
+    "status": "NO_ALLOWED_CONTROL_OBSERVED",
+    "TCCDatabaseModified": false,
+    "windows": [
+      {
+        "application": "MenuBarAgent",
+        "bundleID": "com.apple.MenuBarAgent",
+        "buttons": [
+          {
+            "enabled": true,
+            "labels": [
+              "Spotlight",
+              "Search"
+            ]
+          }
+        ],
+        "pid": 357,
+        "text": "Control Center\nClock\nFri Nov 27  3:01 PM\nSpotlight\nSearch"
+      },
+      {
+        "application": "Finder",
+        "bundleID": "com.apple.finder",
+        "buttons": [],
+        "pid": 408,
+        "text": "desktop\ndesktop"
+      },
+      {
+        "application": "NetEaseMusic",
+        "bundleID": "com.netease.163music",
+        "buttons": [
+          {
+            "enabled": true,
+            "labels": []
+          },
+          {
+            "enabled": true,
+            "labels": [
+              "this button also has an action to zoom the window"
+            ]
+          },
+          {
+            "enabled": true,
+            "labels": []
+          }
+        ],
+        "pid": 22592,
+        "text": "this button also has an action to zoom the window"
+      },
+      {
+        "application": "NetEaseMusic",
+        "bundleID": "com.netease.163music",
+        "buttons": [],
+        "pid": 22592,
+        "text": ""
+      },
+      {
+        "application": "MenuBarAgent",
+        "bundleID": "com.apple.MenuBarAgent",
+        "buttons": [
+          {
+            "enabled": true,
+            "labels": [
+              "Spotlight",
+              "Search"
+            ]
+          }
+        ],
+        "pid": 357,
+        "text": "Control Center\nClock\nFri Nov 27  3:02 PM\nSpotlight\nSearch"
+      }
+    ],
+    "helperExitCode": -15
+  },
+  "diagnosticExitCode": 0,
+  "diagnosticTimedOut": false,
+  "observation": {
+    "eventCount": 24,
+    "matchedOriginalAudioSnapshots": 23,
+    "matchedPlayingPositions": 23,
+    "positionAdvanced": true,
+    "distinctSourceAnchors": 4,
+    "minimumPositionMS": 880,
+    "maximumPositionMS": 20310,
+    "positionAssessment": "Only source anchors are compared; no time is added by this verifier.",
+    "observedTitles": [
+      "original-chimes"
+    ],
+    "requiredControlCapabilities": [
+      "canPlay",
+      "canPause",
+      "canSeek"
+    ],
+    "allMatchedControlCapabilitiesAvailable": true,
+    "latestMatchedState": "playing",
+    "requiresAuthorization": false,
+    "source": "production adapter events.ndjson"
+  },
+  "initialObservation": {
+    "eventCount": 23,
+    "matchedOriginalAudioSnapshots": 0,
+    "matchedPlayingPositions": 0,
+    "positionAdvanced": false,
+    "distinctSourceAnchors": 0,
+    "minimumPositionMS": null,
+    "maximumPositionMS": null,
+    "positionAssessment": "Only source anchors are compared; no time is added by this verifier.",
+    "observedTitles": [],
+    "requiredControlCapabilities": [
+      "canPlay",
+      "canPause",
+      "canSeek"
+    ],
+    "allMatchedControlCapabilitiesAvailable": false,
+    "latestMatchedState": null,
+    "requiresAuthorization": false,
+    "source": "production adapter events.ndjson"
+  },
+  "selectedObservation": "adapter-retry-open-file",
+  "openFileRetry": {
+    "attempts": 1,
+    "method": "ordinary open -a with the same original WAV",
+    "launchExitCode": 0,
+    "UIInteraction": false,
+    "agreementsAccepted": false,
+    "credentialsUsed": false,
+    "diagnosticExitCode": 0,
+    "diagnosticTimedOut": false,
+    "observation": {
+      "eventCount": 24,
+      "matchedOriginalAudioSnapshots": 23,
+      "matchedPlayingPositions": 23,
+      "positionAdvanced": true,
+      "distinctSourceAnchors": 4,
+      "minimumPositionMS": 880,
+      "maximumPositionMS": 20310,
+      "positionAssessment": "Only source anchors are compared; no time is added by this verifier.",
+      "observedTitles": [
+        "original-chimes"
+      ],
+      "requiredControlCapabilities": [
+        "canPlay",
+        "canPause",
+        "canSeek"
+      ],
+      "allMatchedControlCapabilitiesAvailable": true,
+      "latestMatchedState": "playing",
+      "requiresAuthorization": false,
+      "source": "production adapter events.ndjson"
+    },
+    "desktop": {
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "",
+      "timedOut": false,
+      "elapsedSeconds": 0.415,
+      "file": "native-desktop-after-retry.png",
+      "pixelWidth": 1024,
+      "pixelHeight": 768,
+      "saved": true,
+      "captureKind": "WindowServer desktop screenshot",
+      "wallpaperChanged": false,
+      "permissionsChanged": false,
+      "visualInspection": "PENDING"
+    }
+  },
+  "reason": "The ordinary app passed real local audio detection, local LRC import, panel visibility, seek, pause and resume. Physical mouse and wallpaper results are recorded separately. No account, commercial-catalog or independent word accuracy qualification.",
+  "ordinaryAppVerification": {
+    "audio": "authored local PCM recording played by the actual installed player",
+    "checks": [
+      {
+        "check": "production-adapter-real-local-track",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "",
+          "documentHash": "",
+          "documentSource": "",
+          "height": 104,
+          "lyricFailure": null,
+          "nativePanelVisible": false,
+          "ownsSession": true,
+          "positionMS": 27000,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-01-production-adapter-real-local-track.json"
+      },
+      {
+        "check": "playing-without-lyrics-shows-compact-summary",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "",
+          "documentHash": "",
+          "documentSource": "",
+          "height": 104,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 27121,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-02-playing-without-lyrics-shows-compact-summary.json"
+      },
+      {
+        "check": "real-player-position-advances",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "",
+          "documentHash": "",
+          "documentSource": "",
+          "height": 104,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 28190,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-03-real-player-position-advances.json"
+      },
+      {
+        "check": "local-import-expands-real-panel",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 3,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 28295,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-04-local-import-expands-real-panel.json"
+      },
+      {
+        "check": "seek-command-readback",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 64109,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-05-seek-command-readback.json"
+      },
+      {
+        "check": "seek-retains-imported-lyrics-and-recording-identity",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 64131,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-06-seek-retains-imported-lyrics-and-recording-identity.json"
+      },
+      {
+        "check": "seek-updates-current-lyric",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 64138,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-07-seek-updates-current-lyric.json"
+      },
+      {
+        "check": "native-pointer-enters-hover",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 64326,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-08-native-pointer-enters-hover.json"
+      },
+      {
+        "check": "hover-keeps-outer-frame",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 64707,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-09-hover-keeps-outer-frame.json"
+      },
+      {
+        "check": "native-pointer-clicks-pause",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-10-native-pointer-clicks-pause.json"
+      },
+      {
+        "check": "pause-confirmed-and-interacted-panel-retained",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-11-pause-confirmed-and-interacted-panel-retained.json"
+      },
+      {
+        "check": "mediaremote-paused-source-does-not-reuse-playing-anchor",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-12-mediaremote-paused-source-does-not-reuse-playing-anchor.json"
+      },
+      {
+        "check": "paused-position-does-not-advance-or-invent-a-clock",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-13-paused-position-does-not-advance-or-invent-a-clock.json"
+      },
+      {
+        "check": "native-pointer-leaves-hover",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": false,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-14-native-pointer-leaves-hover.json"
+      },
+      {
+        "check": "paused-without-interaction-withdraws-panel",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": "Resyncing playback position…",
+          "cueIndex": null,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": false,
+          "ownsSession": true,
+          "positionMS": null,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "paused",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-15-paused-without-interaction-withdraws-panel.json"
+      },
+      {
+        "check": "resume-automatically-restores-lyrics",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 8,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 65390,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-16-resume-automatically-restores-lyrics.json"
+      },
+      {
+        "check": "continued-playback",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 20,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 166232,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-17-continued-playback.json"
+      },
+      {
+        "check": "continued-lyric-cue-follows-real-source-position",
+        "observation": {
+          "actionMessage": null,
+          "adapterStatus": null,
+          "cueIndex": 20,
+          "detectedPlayer": "netease",
+          "documentFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "documentHash": "de4a703952419e1806ff31ffc16bdd87253cc6de22bf56cb213f25dd42e975fd",
+          "documentSource": "local",
+          "height": 192,
+          "lyricFailure": null,
+          "nativePanelVisible": true,
+          "ownsSession": true,
+          "positionMS": 166253,
+          "recordingFingerprint": "com.netease.163music:metadata:15:original-chimes|0:|0:|6:240000",
+          "requiresAuthorization": false,
+          "selectionGeneration": 1,
+          "selectionSessionID": "2FC24886-527E-4A35-A805-F8A59E7151D4",
+          "state": "playing",
+          "title": "original-chimes"
+        },
+        "passed": true,
+        "sourceEvidenceFile": "source-18-continued-lyric-cue-follows-real-source-position.json"
+      }
+    ],
+    "commercialCatalogTest": false,
+    "independentClockAccuracyTest": false,
+    "lyrics": "caller-supplied original local LRC imported by the production repository",
+    "nativePointerEventTest": "PASS",
+    "nativeTrackSwitchTest": "NOT_RUN",
+    "physicalMouseTest": false,
+    "player": "netease",
+    "scope": "ordinary-native-app-real-player",
+    "stateDrivenHoverFallback": false,
+    "status": "PASS",
+    "wordSyncQualification": "NOT_RUN",
+    "runtimeMeasurementStarted": true,
+    "desktopVisualVerification": {
+      "status": "NOT_RUN",
+      "reason": "Wallpaper coverage is scoped to QQ Music."
+    },
+    "physicalPointerVerification": {
+      "accessibilityAlreadyTrusted": true,
+      "accessibilityRequested": false,
+      "accountUsed": false,
+      "actions": [
+        {
+          "action": "enter",
+          "displayBounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "eventsPosted": [
+            "mouseMoved"
+          ],
+          "finishedAt": "2026-11-27T15:02:50Z",
+          "hitTests": [
+            {
+              "AXHitBounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "AXHitLabels": [
+                "把这一刻轻轻留下"
+              ],
+              "AXHitOwner": "com.holdsnow.lyrictile",
+              "AXHitPID": 24773,
+              "AXHitResult": 0,
+              "AXHitRole": "AXStaticText",
+              "AXHitWindowBounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "coveringWindowsFrontToBack": [
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 768,
+                    "width": 1024,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "layer": 20,
+                  "owner": "Dock",
+                  "pid": 405,
+                  "windowNumber": 17
+                },
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 192,
+                    "width": 176,
+                    "x": 832,
+                    "y": 47
+                  },
+                  "layer": 3,
+                  "owner": "LyricTile",
+                  "pid": 24773,
+                  "windowNumber": 115
+                },
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 637,
+                    "width": 1056,
+                    "x": 0,
+                    "y": 51
+                  },
+                  "layer": 0,
+                  "owner": "NetEaseMusic",
+                  "pid": 22592,
+                  "windowNumber": 107
+                }
+              ],
+              "matchedRequestedTarget": true,
+              "point": {
+                "x": 920,
+                "y": 143
+              },
+              "target": {
+                "alpha": 1,
+                "bounds": {
+                  "height": 192,
+                  "width": 176,
+                  "x": 832,
+                  "y": 47
+                },
+                "layer": 3,
+                "owner": "LyricTile",
+                "pid": 24773,
+                "windowNumber": 115
+              }
+            }
+          ],
+          "outcome": "posted",
+          "pid": 24773,
+          "point": {
+            "x": 920,
+            "y": 143
+          },
+          "posted": true,
+          "requestID": "561EACDC-887C-4330-A548-37482B7B8A9B",
+          "sequence": 1,
+          "targetWindow": {
+            "alpha": 1,
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "layer": 3,
+            "owner": "LyricTile",
+            "pid": 24773,
+            "windowNumber": 115
+          },
+          "timestamp": "2026-11-27T15:02:50Z",
+          "windowBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "windowNumber": 115
+        },
+        {
+          "action": "pause",
+          "buttonBounds": {
+            "height": 30,
+            "width": 30,
+            "x": 905,
+            "y": 178
+          },
+          "displayBounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "eventsPosted": [
+            "mouseMoved",
+            "leftMouseDown",
+            "leftMouseUp"
+          ],
+          "finishedAt": "2026-11-27T15:02:50Z",
+          "hitTests": [
+            {
+              "AXHitBounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "AXHitLabels": [
+                "把这一刻轻轻留下"
+              ],
+              "AXHitMatchesButtonOrDescendant": false,
+              "AXHitOwner": "com.holdsnow.lyrictile",
+              "AXHitPID": 24773,
+              "AXHitResult": 0,
+              "AXHitRole": "AXStaticText",
+              "AXHitWindowBounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "coveringWindowsFrontToBack": [
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 768,
+                    "width": 1024,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "layer": 20,
+                  "owner": "Dock",
+                  "pid": 405,
+                  "windowNumber": 17
+                },
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 192,
+                    "width": 176,
+                    "x": 832,
+                    "y": 47
+                  },
+                  "layer": 3,
+                  "owner": "LyricTile",
+                  "pid": 24773,
+                  "windowNumber": 115
+                },
+                {
+                  "alpha": 1,
+                  "bounds": {
+                    "height": 637,
+                    "width": 1056,
+                    "x": 0,
+                    "y": 51
+                  },
+                  "layer": 0,
+                  "owner": "NetEaseMusic",
+                  "pid": 22592,
+                  "windowNumber": 107
+                }
+              ],
+              "matchedRequestedTarget": true,
+              "point": {
+                "x": 920,
+                "y": 193
+              },
+              "target": {
+                "alpha": 1,
+                "bounds": {
+                  "height": 192,
+                  "width": 176,
+                  "x": 832,
+                  "y": 47
+                },
+                "layer": 3,
+                "owner": "LyricTile",
+                "pid": 24773,
+                "windowNumber": 115
+              }
+            }
+          ],
+          "outcome": "posted",
+          "pid": 24773,
+          "point": {
+            "x": 920,
+            "y": 193
+          },
+          "posted": true,
+          "requestID": "DEC79009-A0E7-4D15-8AA4-BD4293EBE7A2",
+          "sequence": 2,
+          "targetWindow": {
+            "alpha": 1,
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "layer": 3,
+            "owner": "LyricTile",
+            "pid": 24773,
+            "windowNumber": 115
+          },
+          "timestamp": "2026-11-27T15:02:50Z",
+          "windowBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "windowNumber": 115
+        },
+        {
+          "action": "leave",
+          "displayBounds": {
+            "height": 768,
+            "width": 1024,
+            "x": 0,
+            "y": 0
+          },
+          "eventsPosted": [
+            "mouseMoved"
+          ],
+          "finishedAt": "2026-11-27T15:02:52Z",
+          "outcome": "posted",
+          "pid": 24773,
+          "point": {
+            "x": 1020,
+            "y": 143
+          },
+          "posted": true,
+          "requestID": "67C169E3-87EE-4C61-BBBD-401802CBBAAC",
+          "sequence": 3,
+          "targetWindow": {
+            "alpha": 1,
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "layer": 3,
+            "owner": "LyricTile",
+            "pid": 24773,
+            "windowNumber": 115
+          },
+          "timestamp": "2026-11-27T15:02:52Z",
+          "windowBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "windowNumber": 115
+        }
+      ],
+      "available": true,
+      "inputMethod": "CGEvent mouse movement and left-button events at freshly observed native geometry",
+      "postEventAccessAlreadyGranted": true,
+      "postEventAccessRequested": false,
+      "scope": "disposable CI ordinary LyricTile window only",
+      "status": "COMPLETED",
+      "stoppedByCaller": true,
+      "TCCDatabaseModified": false,
+      "helperExitCode": 0
+    },
+    "runtimeMeasurementExitCode": 0
+  },
+  "localPlaybackQualification": "PASS",
+  "cleanup": {
+    "termPIDs": [
+      22592,
+      22632,
+      22636,
+      22637,
+      22638
+    ],
+    "killPIDs": [],
+    "remainingPIDs": [],
+    "unmounted": true
+  }
+}

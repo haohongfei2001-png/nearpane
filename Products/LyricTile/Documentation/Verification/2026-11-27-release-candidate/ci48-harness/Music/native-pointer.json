@@ -1,0 +1,318 @@
+{
+  "accessibilityAlreadyTrusted": true,
+  "accessibilityRequested": false,
+  "accountUsed": false,
+  "actions": [
+    {
+      "action": "enter",
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [
+        "mouseMoved"
+      ],
+      "finishedAt": "2026-11-27T14:59:23Z",
+      "hitTests": [
+        {
+          "AXHitBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "AXHitLabels": [
+            "把这一刻轻轻留下"
+          ],
+          "AXHitOwner": "com.holdsnow.lyrictile",
+          "AXHitPID": 17232,
+          "AXHitResult": 0,
+          "AXHitRole": "AXStaticText",
+          "AXHitWindowBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "coveringWindowsFrontToBack": [
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 768,
+                "width": 1024,
+                "x": 0,
+                "y": 0
+              },
+              "layer": 20,
+              "owner": "Dock",
+              "pid": 405,
+              "windowNumber": 17
+            },
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "layer": 3,
+              "owner": "LyricTile",
+              "pid": 17232,
+              "windowNumber": 77
+            },
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 600,
+                "width": 980,
+                "x": 22,
+                "y": 53
+              },
+              "layer": 0,
+              "owner": "Music",
+              "pid": 16379,
+              "windowNumber": 72
+            }
+          ],
+          "matchedRequestedTarget": true,
+          "point": {
+            "x": 920,
+            "y": 143
+          },
+          "target": {
+            "alpha": 1,
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "layer": 3,
+            "owner": "LyricTile",
+            "pid": 17232,
+            "windowNumber": 77
+          }
+        }
+      ],
+      "outcome": "posted",
+      "pid": 17232,
+      "point": {
+        "x": 920,
+        "y": 143
+      },
+      "posted": true,
+      "requestID": "341AFD0A-7441-409B-85DA-43C50819FC24",
+      "sequence": 1,
+      "targetWindow": {
+        "alpha": 1,
+        "bounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "layer": 3,
+        "owner": "LyricTile",
+        "pid": 17232,
+        "windowNumber": 77
+      },
+      "timestamp": "2026-11-27T14:59:23Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 77
+    },
+    {
+      "action": "pause",
+      "buttonBounds": {
+        "height": 30,
+        "width": 30,
+        "x": 905,
+        "y": 178
+      },
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [
+        "mouseMoved",
+        "leftMouseDown",
+        "leftMouseUp"
+      ],
+      "finishedAt": "2026-11-27T14:59:24Z",
+      "hitTests": [
+        {
+          "AXHitBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "AXHitLabels": [
+            "把这一刻轻轻留下"
+          ],
+          "AXHitMatchesButtonOrDescendant": false,
+          "AXHitOwner": "com.holdsnow.lyrictile",
+          "AXHitPID": 17232,
+          "AXHitResult": 0,
+          "AXHitRole": "AXStaticText",
+          "AXHitWindowBounds": {
+            "height": 192,
+            "width": 176,
+            "x": 832,
+            "y": 47
+          },
+          "coveringWindowsFrontToBack": [
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 768,
+                "width": 1024,
+                "x": 0,
+                "y": 0
+              },
+              "layer": 20,
+              "owner": "Dock",
+              "pid": 405,
+              "windowNumber": 17
+            },
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 192,
+                "width": 176,
+                "x": 832,
+                "y": 47
+              },
+              "layer": 3,
+              "owner": "LyricTile",
+              "pid": 17232,
+              "windowNumber": 77
+            },
+            {
+              "alpha": 1,
+              "bounds": {
+                "height": 600,
+                "width": 980,
+                "x": 22,
+                "y": 53
+              },
+              "layer": 0,
+              "owner": "Music",
+              "pid": 16379,
+              "windowNumber": 72
+            }
+          ],
+          "matchedRequestedTarget": true,
+          "point": {
+            "x": 920,
+            "y": 193
+          },
+          "target": {
+            "alpha": 1,
+            "bounds": {
+              "height": 192,
+              "width": 176,
+              "x": 832,
+              "y": 47
+            },
+            "layer": 3,
+            "owner": "LyricTile",
+            "pid": 17232,
+            "windowNumber": 77
+          }
+        }
+      ],
+      "outcome": "posted",
+      "pid": 17232,
+      "point": {
+        "x": 920,
+        "y": 193
+      },
+      "posted": true,
+      "requestID": "7FBD4008-047B-41F8-966F-E139B1752C4B",
+      "sequence": 2,
+      "targetWindow": {
+        "alpha": 1,
+        "bounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "layer": 3,
+        "owner": "LyricTile",
+        "pid": 17232,
+        "windowNumber": 77
+      },
+      "timestamp": "2026-11-27T14:59:24Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 77
+    },
+    {
+      "action": "leave",
+      "displayBounds": {
+        "height": 768,
+        "width": 1024,
+        "x": 0,
+        "y": 0
+      },
+      "eventsPosted": [
+        "mouseMoved"
+      ],
+      "finishedAt": "2026-11-27T14:59:25Z",
+      "outcome": "posted",
+      "pid": 17232,
+      "point": {
+        "x": 1020,
+        "y": 143
+      },
+      "posted": true,
+      "requestID": "764E332B-F6E5-4AD8-9AFF-53A81FD39B16",
+      "sequence": 3,
+      "targetWindow": {
+        "alpha": 1,
+        "bounds": {
+          "height": 192,
+          "width": 176,
+          "x": 832,
+          "y": 47
+        },
+        "layer": 3,
+        "owner": "LyricTile",
+        "pid": 17232,
+        "windowNumber": 77
+      },
+      "timestamp": "2026-11-27T14:59:25Z",
+      "windowBounds": {
+        "height": 192,
+        "width": 176,
+        "x": 832,
+        "y": 47
+      },
+      "windowNumber": 77
+    }
+  ],
+  "available": true,
+  "inputMethod": "CGEvent mouse movement and left-button events at freshly observed native geometry",
+  "postEventAccessAlreadyGranted": true,
+  "postEventAccessRequested": false,
+  "scope": "disposable CI ordinary LyricTile window only",
+  "status": "COMPLETED",
+  "stoppedByCaller": true,
+  "TCCDatabaseModified": false,
+  "helperExitCode": 0
+}

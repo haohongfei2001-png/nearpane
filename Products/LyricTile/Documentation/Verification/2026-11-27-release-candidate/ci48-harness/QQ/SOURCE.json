@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "Unmodified real CI48 QQ failure showing a new source anchor after an initially unavailable paused clock.",
+  "repository": "haohongfei2001-png/nearpane",
+  "sourceCommit": "89892d3605bcaa2a323422b2acd5aa64c626f65a",
+  "sourceTree": "f9fdab96fa86f1bf76aed1638d866aa3cec56222",
+  "build": 48,
+  "runID": 46019565695,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46019565695",
+  "originalWorkflowConclusion": "failure",
+  "artifactID": 15207798927,
+  "artifactName": "LyricTile-candidate-48",
+  "artifactBytes": 28432383,
+  "artifactSHA256": "74500dcd53fc113ed01b36d93766759b7192bc30b244a01cb2751a2fda70a67e",
+  "originalFiles": {
+    "native-player.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/native-player.json",
+      "bytes": 16706,
+      "sha256": "996840c9e8642309a18288f78a5dcf5a611592474c03f8a8c0f2931be7587900"
+    },
+    "source-09-hover-keeps-outer-frame.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-09-hover-keeps-outer-frame.json",
+      "bytes": 2911,
+      "sha256": "eba4aa7451b5dce117b72508a46fb7ca68dcaec3b9a60f3aa44c51e9e69b12d1"
+    },
+    "source-11-pause-confirmed-and-interacted-panel-retained.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-11-pause-confirmed-and-interacted-panel-retained.json",
+      "bytes": 3446,
+      "sha256": "67795c50223dbbcfaa946875c679fb7407ac60017029b9fd239ee03447569c5d"
+    },
+    "source-12-mediaremote-paused-source-does-not-reuse-playing-anchor.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-12-mediaremote-paused-source-does-not-reuse-playing-anchor.json",
+      "bytes": 3446,
+      "sha256": "67795c50223dbbcfaa946875c679fb7407ac60017029b9fd239ee03447569c5d"
+    },
+    "source-13-paused-position-does-not-advance-or-invent-a-clock.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-13-paused-position-does-not-advance-or-invent-a-clock.json",
+      "bytes": 3457,
+      "sha256": "3273c178d2b245bcad1c84f8019d09463b16390c8b7d456040ced1734bb2f35f"
+    },
+    "source-14-native-pointer-leaves-hover.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-14-native-pointer-leaves-hover.json",
+      "bytes": 3457,
+      "sha256": "19211d887bf3ddbba979425e7faff82564cca6427ed53d22051ea36381e0355e"
+    },
+    "source-15-paused-without-interaction-withdraws-panel.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-15-paused-without-interaction-withdraws-panel.json",
+      "bytes": 3457,
+      "sha256": "19211d887bf3ddbba979425e7faff82564cca6427ed53d22051ea36381e0355e"
+    }
+  },
+  "derivedFiles": {
+    "README.md": {
+      "bytes": 2178,
+      "sha256": "beb433a7ea3affaf484a978dfb5640075b2fe383dd501657a09b2e157dc3fe30"
+    }
+  }
+}

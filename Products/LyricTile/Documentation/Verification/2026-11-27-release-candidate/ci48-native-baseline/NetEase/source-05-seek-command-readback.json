@@ -1,0 +1,102 @@
+{
+  "appleEventsRevision" : "holdsnow-appleevents-v1",
+  "commands" : [
+    {
+      "finishedUptimeNanoseconds" : 813870120125,
+      "generation" : 1,
+      "id" : "7EB18DD7-EC56-4EBD-B16A-878268A32C03",
+      "intent" : "seek",
+      "observedSystemOwnerAfter" : "com.netease.163music",
+      "observedSystemOwnerBefore" : "com.netease.163music",
+      "observedSystemPIDAfter" : 22592,
+      "observedSystemPIDBefore" : 22592,
+      "outcome" : "readback_confirmed",
+      "seekMS" : 64000,
+      "sessionID" : "2FC24886-527E-4A35-A805-F8A59E7151D4",
+      "startedUptimeNanoseconds" : 813473947833,
+      "targetBundleID" : "com.netease.163music"
+    }
+  ],
+  "currentMediaRemotePayload" : {
+    "album" : "",
+    "artist" : "",
+    "bundleIdentifier" : "com.netease.163music",
+    "contentItemIdentifier" : "0A71DDBD-B49D-4BDA-9E32-809842045737",
+    "durationMicros" : 240000000,
+    "elapsedTimeMicros" : 64000000,
+    "playbackRate" : 1,
+    "playing" : true,
+    "processIdentifier" : 22592,
+    "supportedCommands" : [
+      {
+        "enabled" : true,
+        "id" : 0,
+        "name" : "Play"
+      },
+      {
+        "enabled" : true,
+        "id" : 1,
+        "name" : "Pause"
+      },
+      {
+        "enabled" : true,
+        "id" : 2,
+        "name" : "TogglePlayPause"
+      },
+      {
+        "enabled" : true,
+        "id" : 4,
+        "name" : "NextTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 5,
+        "name" : "PreviousTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 24,
+        "name" : "SeekToPlaybackPosition",
+        "options" : {
+          "kMRMediaRemoteCommandInfoCanBeControlledByScrubbingKey" : false,
+          "kMRMediaRemoteCommandInfoSupportsReferencePosition" : false
+        }
+      }
+    ],
+    "timestampEpochMicros" : 1795791769921626,
+    "title" : "original-chimes"
+  },
+  "dataOrigin" : "real_player",
+  "exportedAt" : "2026-11-27T15:02:50Z",
+  "mediaRemoteRevision" : "2ef957c736256cee7905c9f3f1c7e279087bf195",
+  "players" : [
+    {
+      "album" : "",
+      "artist" : "",
+      "build" : "3459",
+      "bundleID" : "com.netease.163music",
+      "capabilities" : {
+        "canNext" : true,
+        "canPause" : true,
+        "canPlay" : true,
+        "canPrevious" : true,
+        "canSeek" : true
+      },
+      "durationMS" : 240000,
+      "isCurrentSystemSource" : true,
+      "mediaPID" : 22592,
+      "mediaProcessStartMicros" : 1795791707880750,
+      "observedUptimeNanoseconds" : 813870053083,
+      "pid" : 22592,
+      "player" : "netease",
+      "positionMS" : 64064,
+      "processStartMicros" : 1795791707880750,
+      "quality" : "coarseSourceAnchor",
+      "state" : "playing",
+      "title" : "original-chimes",
+      "version" : "3.1.14"
+    }
+  ],
+  "selectedPlayer" : "netease",
+  "systemBuild" : "26A434"
+}

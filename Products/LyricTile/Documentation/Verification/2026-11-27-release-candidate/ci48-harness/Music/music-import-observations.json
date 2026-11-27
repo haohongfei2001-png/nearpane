@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "temporaryPlaylist": "LyricTile Cloud Acceptance 46019565695",
+  "scope": "only this newly created playlist; no other library tracks are inspected",
+  "attempts": [
+    {
+      "phase": "wait for first original",
+      "observedUptime": 597.089804166,
+      "trackCount": 1,
+      "tracks": [
+        {
+          "index": 1,
+          "kind": "file track",
+          "actualTitle": "original-chimes",
+          "persistentID": "53B88318126A508A",
+          "durationSeconds": 240.0,
+          "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes.wav",
+          "importedFileSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8"
+        }
+      ],
+      "trackErrors": [],
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "phase": "wait for both originals",
+      "observedUptime": 597.756785666,
+      "trackCount": 2,
+      "tracks": [
+        {
+          "index": 1,
+          "kind": "file track",
+          "actualTitle": "original-chimes",
+          "persistentID": "53B88318126A508A",
+          "durationSeconds": 240.0,
+          "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes.wav",
+          "importedFileSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8"
+        },
+        {
+          "index": 2,
+          "kind": "file track",
+          "actualTitle": "original-chimes-reprise",
+          "persistentID": "11A966C64B454CC7",
+          "durationSeconds": 240.0,
+          "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes-reprise.wav",
+          "importedFileSHA256": "8b63f0dadae34c35495e2c0fd2be66efcd67f9f1fbae8ca16fb757d409ee9043"
+        }
+      ],
+      "trackErrors": [],
+      "exitCode": 0,
+      "stderr": ""
+    }
+  ],
+  "selectedSources": [
+    {
+      "index": 1,
+      "kind": "file track",
+      "actualTitle": "original-chimes",
+      "persistentID": "53B88318126A508A",
+      "durationSeconds": 240.0,
+      "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes.wav",
+      "importedFileSHA256": "926b4054f10d04e67377ec89e06485c4412515fb285efc2d8a1c21e0cd398ab8"
+    },
+    {
+      "index": 2,
+      "kind": "file track",
+      "actualTitle": "original-chimes-reprise",
+      "persistentID": "11A966C64B454CC7",
+      "durationSeconds": 240.0,
+      "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes-reprise.wav",
+      "importedFileSHA256": "8b63f0dadae34c35495e2c0fd2be66efcd67f9f1fbae8ca16fb757d409ee9043"
+    }
+  ],
+  "currentTrackReadbacks": [
+    {
+      "exitCode": 0,
+      "stderr": "",
+      "observedUptime": 599.4142545,
+      "state": "playing",
+      "positionSeconds": 0.291000008583,
+      "persistentID": "53B88318126A508A",
+      "actualTitle": "original-chimes",
+      "location": "/Users/runner/Music/Music/Media.localized/Music/Unknown Artist/Unknown Album/original-chimes.wav"
+    }
+  ]
+}

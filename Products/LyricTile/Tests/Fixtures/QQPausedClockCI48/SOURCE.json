@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "89892d3605bcaa2a323422b2acd5aa64c626f65a",
+  "build": 48,
+  "runID": 46019565695,
+  "artifactID": 15207798927,
+  "artifactSHA256": "74500dcd53fc113ed01b36d93766759b7192bc30b244a01cb2751a2fda70a67e",
+  "kind": "Unmodified real QQ client diagnostics for a verification-predicate regression only; never bundled or injected into production playback.",
+  "files": {
+    "before.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-12-mediaremote-paused-source-does-not-reuse-playing-anchor.json",
+      "sha256": "67795c50223dbbcfaa946875c679fb7407ac60017029b9fd239ee03447569c5d"
+    },
+    "after.json": {
+      "sourcePath": "dist/evidence/cloud-clients/qqMusic/native-player/source-13-paused-position-does-not-advance-or-invent-a-clock.json",
+      "sha256": "3273c178d2b245bcad1c84f8019d09463b16390c8b7d456040ced1734bb2f35f"
+    }
+  }
+}

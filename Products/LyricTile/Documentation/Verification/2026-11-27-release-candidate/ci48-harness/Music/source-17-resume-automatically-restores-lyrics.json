@@ -1,0 +1,70 @@
+{
+  "appleEventsRevision" : "holdsnow-appleevents-v1",
+  "commands" : [
+    {
+      "finishedUptimeNanoseconds" : 607120489875,
+      "generation" : 1,
+      "id" : "E613794E-9DB4-4391-A6B9-6E74F5BD0E54",
+      "intent" : "seek",
+      "outcome" : "readback_confirmed",
+      "seekMS" : 64000,
+      "sessionID" : "9DB62DF9-5F01-40E1-B58F-785C75509A1B",
+      "startedUptimeNanoseconds" : 606840761291,
+      "targetBundleID" : "com.apple.Music"
+    },
+    {
+      "finishedUptimeNanoseconds" : 608234879541,
+      "generation" : 1,
+      "id" : "DF9E273B-CE87-4AFE-9A44-9EFD2BFA77C3",
+      "intent" : "pause",
+      "outcome" : "readback_confirmed",
+      "sessionID" : "9DB62DF9-5F01-40E1-B58F-785C75509A1B",
+      "startedUptimeNanoseconds" : 607989415041,
+      "targetBundleID" : "com.apple.Music"
+    },
+    {
+      "finishedUptimeNanoseconds" : 609935357833,
+      "generation" : 1,
+      "id" : "6C388E9A-EF76-44FB-AD27-1C64039F4044",
+      "intent" : "play",
+      "outcome" : "readback_confirmed",
+      "sessionID" : "9DB62DF9-5F01-40E1-B58F-785C75509A1B",
+      "startedUptimeNanoseconds" : 609589204416,
+      "targetBundleID" : "com.apple.Music"
+    }
+  ],
+  "dataOrigin" : "real_player",
+  "exportedAt" : "2026-11-27T14:59:26Z",
+  "mediaRemoteRevision" : "2ef957c736256cee7905c9f3f1c7e279087bf195",
+  "players" : [
+    {
+      "album" : "",
+      "artist" : "",
+      "build" : "1.7.0",
+      "bundleID" : "com.apple.Music",
+      "capabilities" : {
+        "canNext" : true,
+        "canPause" : true,
+        "canPlay" : true,
+        "canPrevious" : true,
+        "canSeek" : true
+      },
+      "durationMS" : 240000,
+      "isCurrentSystemSource" : false,
+      "mediaPID" : 16379,
+      "mediaProcessStartMicros" : 1795791523719423,
+      "observedUptimeNanoseconds" : 609934947208,
+      "pid" : 16379,
+      "platformID" : "53B88318126A508A",
+      "player" : "appleMusic",
+      "positionMS" : 65224,
+      "processStartMicros" : 1795791523719423,
+      "quality" : "coarseSourceAnchor",
+      "state" : "playing",
+      "title" : "original-chimes",
+      "version" : "1.7"
+    }
+  ],
+  "selectedPlayer" : "appleMusic",
+  "systemBuild" : "26A434"
+}

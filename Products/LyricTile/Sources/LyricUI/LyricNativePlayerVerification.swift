@@ -74,10 +74,8 @@ public enum LyricNativePlayerVerification {
                   command["targetBundleID"] as? String == model.snapshot.selection?.playerBundleID else { return false }
             return seekMS == nil || (command["seekMS"] as? NSNumber)?.int64Value == seekMS
         }
-        func pausedMediaRemoteSourceDoesNotReusePlayingClock() async -> Bool {
-            guard let data = try? await model.nativePlayerDiagnosticReport(),
-                  let report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-                  let players = report["players"] as? [[String: Any]],
+        func pausedMediaRemoteSourceDoesNotReusePlayingClock(_ report: [String: Any], positionMS: Int64?) -> Bool {
+            guard let players = report["players"] as? [[String: Any]],
                   let player = players.first(where: { $0["player"] as? String == expectedPlayer.rawValue }) else { return false }
             let build = player["build"] as? String ?? ""
             let knownStalePause = (expectedPlayer == .qqMusic && ["73284", "73285"].contains(build))
@@ -89,10 +87,16 @@ public enum LyricNativePlayerVerification {
             // timestamp/elapsed with a positive rate. A stable number alone
             // was a false pass; it is not a current paused clock.
             if ((payload["playbackRate"] as? NSNumber)?.doubleValue ?? 0) > 0 {
-                return model.playbackPositionMS == nil && player["positionMS"] == nil
+                return positionMS == nil && player["positionMS"] == nil
                     && player["quality"] as? String == "unavailable"
             }
             return true
+        }
+        func pausedClockSource(_ filename: String) async -> [String: Any]? {
+            guard let data = try? await model.nativePlayerDiagnosticReport(),
+                  let report = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
+            try? data.write(to: directory.appendingPathComponent(filename), options: .atomic)
+            return report
         }
         func finish(_ passed: Bool) -> Bool {
             write("native-player.json", ["status": passed ? "PASS" : "FAIL", "scope": "ordinary-native-app-real-player",
@@ -232,15 +236,51 @@ public enum LyricNativePlayerVerification {
         }
         await record("pause-confirmed-and-interacted-panel-retained", pausePosted && paused && pauseConfirmed && panel.panel.isVisible
             && panel.panel.frame.height == LyricPanelLayout.lyricsHeight && retainsImportedLyrics())
+        func consistentPausedClock(_ name: String) async -> (report: [String: Any], position: Int64?)? {
+            let deadline = ProcessInfo.processInfo.systemUptime + 1
+            var attempt = 0
+            repeat {
+                attempt += 1
+                let report = await pausedClockSource(name + "-source-\(attempt).json")
+                let position = model.playbackPositionMS
+                let coherent = model.snapshot.state == .paused && retainsImportedLyrics()
+                    && report.map { Self.pausedClockBaselineIsConsistent($0, player: expectedPlayer, modelPositionMS: position) } == true
+                write(name + "-observation-\(attempt).json", ["consistent": coherent,
+                    "positionMS": position as Any? ?? NSNull(), "observation": observation()])
+                if coherent, let report { return (report, position) }
+                try? await Task.sleep(for: .milliseconds(100))
+            } while ProcessInfo.processInfo.systemUptime < deadline && !Task.isCancelled
+            return nil
+        }
+        let baseline = await consistentPausedClock("paused-clock-baseline")
         if expectedPlayer == .qqMusic || expectedPlayer == .netease {
-            let sourceConsistent = await pausedMediaRemoteSourceDoesNotReusePlayingClock()
+            let sourceConsistent = baseline.map { pausedMediaRemoteSourceDoesNotReusePlayingClock($0.report, positionMS: $0.position) } == true
             await record("mediaremote-paused-source-does-not-reuse-playing-anchor", sourceConsistent)
         }
         capture(capturePrefix + "-paused")
-        let pausedPosition = model.playbackPositionMS
         try? await Task.sleep(for: .seconds(1))
-        let pausedClockStable = pausedPosition == nil ? model.playbackPositionMS == nil
-            : model.playbackPositionMS != nil && abs((model.playbackPositionMS ?? 0) - (pausedPosition ?? 0)) < 300
+        let comparison = await consistentPausedClock("paused-clock-comparison")
+        var pausedClockStable = false
+        if let baseline, let comparison {
+            pausedClockStable = baseline.position == nil ? comparison.position == nil
+                : comparison.position != nil && abs((comparison.position ?? 0) - (baseline.position ?? 0)) < 300
+        }
+        if let baseline, baseline.position == nil, let comparison, let recoveredPosition = comparison.position {
+            let recoveredFromSource = Self.pausedClockRecoveryIsBackedBySource(before: baseline.report,
+                after: comparison.report, player: expectedPlayer, modelPositionMS: recoveredPosition)
+            await record("paused-clock-reacquired-from-new-real-source", recoveredFromSource)
+            pausedClockStable = false
+            if recoveredFromSource {
+                // CI48 supplied a new paused anchor after initially withholding
+                // a stale playing anchor. Verify a full further second at rest.
+                try? await Task.sleep(for: .seconds(1))
+                if let stable = await consistentPausedClock("paused-clock-after-recovery"), let position = stable.position {
+                    pausedClockStable = abs(position - recoveredPosition) < 300
+                        && Self.pausedClockMatchesSource(stable.report, player: expectedPlayer, modelPositionMS: position)
+                }
+            }
+        }
+        pausedClockStable = pausedClockStable && model.snapshot.state == .paused && retainsImportedLyrics()
         await record("paused-position-does-not-advance-or-invent-a-clock", pausedClockStable)
         if pointerAttempted {
             let posted = await pointerAction(3, "leave")
@@ -383,5 +423,93 @@ public enum LyricNativePlayerVerification {
         }
         let passed = checks.allSatisfy { $0["passed"] as? Bool == true }
         return finish(passed)
+    }
+
+    /// Verification-only predicate: a paused UI value must be the actual
+    /// source's elapsed value, with no positive playing rate reused on pause.
+    static func pausedClockBaselineIsConsistent(_ report: [String: Any], player: PlayerID, modelPositionMS: Int64?) -> Bool {
+        guard report["dataOrigin"] as? String == "real_player", report["selectedPlayer"] as? String == player.rawValue,
+              let rows = report["players"] as? [[String: Any]],
+              let normalized = rows.first(where: { $0["player"] as? String == player.rawValue }),
+              normalized["bundleID"] as? String == player.bundleID, normalized["state"] as? String == "paused",
+              (normalized["positionMS"] as? NSNumber)?.int64Value == modelPositionMS else { return false }
+        if let position = modelPositionMS {
+            if player == .appleMusic || player == .spotify {
+                return ["coarseSourceAnchor", "verifiedSourceAnchor"].contains(normalized["quality"] as? String ?? "")
+            }
+            return pausedClockMatchesSource(report, player: player, modelPositionMS: position)
+        }
+        guard normalized["quality"] as? String == "unavailable" else { return false }
+        if player == .appleMusic || player == .spotify { return true }
+        guard let raw = report["currentMediaRemotePayload"] as? [String: Any],
+              raw["playing"] as? Bool == false, raw["bundleIdentifier"] as? String == player.bundleID,
+              (raw["processIdentifier"] as? NSNumber)?.int64Value == (normalized["mediaPID"] as? NSNumber)?.int64Value else { return false }
+        let build = normalized["build"] as? String ?? ""
+        let withheld = ((player == .qqMusic && ["73284", "73285"].contains(build)) || (player == .netease && build == "3459"))
+            && ((raw["playbackRate"] as? NSNumber)?.doubleValue ?? 0) > 0
+        let rawElapsed = (raw["elapsedTimeMicros"] as? NSNumber)?.int64Value
+        return withheld || rawElapsed == nil || (rawElapsed ?? 0) < 0
+    }
+
+    static func pausedClockMatchesSource(_ report: [String: Any], player: PlayerID, modelPositionMS: Int64) -> Bool {
+        guard report["dataOrigin"] as? String == "real_player",
+              report["selectedPlayer"] as? String == player.rawValue,
+              let rows = report["players"] as? [[String: Any]],
+              let normalized = rows.first(where: { $0["player"] as? String == player.rawValue }),
+              normalized["bundleID"] as? String == player.bundleID,
+              normalized["state"] as? String == "paused",
+              normalized["quality"] as? String == "coarseSourceAnchor",
+              let position = (normalized["positionMS"] as? NSNumber)?.int64Value,
+              let pid = (normalized["mediaPID"] as? NSNumber)?.int64Value, pid > 0,
+              let payload = report["currentMediaRemotePayload"] as? [String: Any],
+              payload["playing"] as? Bool == false,
+              payload["bundleIdentifier"] as? String == normalized["bundleID"] as? String,
+              (payload["processIdentifier"] as? NSNumber)?.int64Value == pid,
+              payload["playbackRate"] == nil || (payload["playbackRate"] as? NSNumber)?.doubleValue == 0,
+              let elapsed = (payload["elapsedTimeMicros"] as? NSNumber)?.int64Value, elapsed >= 0,
+              let timestamp = (payload["timestampEpochMicros"] as? NSNumber)?.int64Value, timestamp > 0 else { return false }
+        return position == elapsed / 1_000 && modelPositionMS == position
+    }
+
+    /// A real source may replace its withheld stale anchor while still paused.
+    /// Only this observed transition is accepted; the caller must subsequently
+    /// verify another second of actual paused-source/UI stability.
+    static func pausedClockRecoveryIsBackedBySource(before: [String: Any], after: [String: Any],
+                                                    player: PlayerID, modelPositionMS: Int64) -> Bool {
+        guard pausedClockMatchesSource(after, player: player, modelPositionMS: modelPositionMS),
+              before["dataOrigin"] as? String == "real_player",
+              before["selectedPlayer"] as? String == player.rawValue,
+              let oldPlayers = before["players"] as? [[String: Any]],
+              let old = oldPlayers.first(where: { $0["player"] as? String == player.rawValue }),
+              let newPlayers = after["players"] as? [[String: Any]],
+              let new = newPlayers.first(where: { $0["player"] as? String == player.rawValue }),
+              old["bundleID"] as? String == player.bundleID,
+              old["state"] as? String == "paused", old["quality"] as? String == "unavailable", old["positionMS"] == nil,
+              let build = old["build"] as? String, build == new["build"] as? String,
+              (player == .qqMusic && ["73284", "73285"].contains(build)) || (player == .netease && build == "3459"),
+              let oldPID = (old["mediaPID"] as? NSNumber)?.int64Value,
+              oldPID == (new["mediaPID"] as? NSNumber)?.int64Value,
+              let oldStart = (old["mediaProcessStartMicros"] as? NSNumber)?.uint64Value,
+              oldStart == (new["mediaProcessStartMicros"] as? NSNumber)?.uint64Value,
+              let oldObserved = (old["observedUptimeNanoseconds"] as? NSNumber)?.uint64Value,
+              let newObserved = (new["observedUptimeNanoseconds"] as? NSNumber)?.uint64Value, newObserved > oldObserved,
+              let oldRaw = before["currentMediaRemotePayload"] as? [String: Any],
+              let newRaw = after["currentMediaRemotePayload"] as? [String: Any],
+              oldRaw["playing"] as? Bool == false,
+              ((oldRaw["playbackRate"] as? NSNumber)?.doubleValue ?? 0) > 0,
+              oldRaw["bundleIdentifier"] as? String == newRaw["bundleIdentifier"] as? String,
+              (oldRaw["processIdentifier"] as? NSNumber)?.int64Value == oldPID,
+              let oldTimestamp = (oldRaw["timestampEpochMicros"] as? NSNumber)?.int64Value,
+              let newTimestamp = (newRaw["timestampEpochMicros"] as? NSNumber)?.int64Value, newTimestamp > oldTimestamp,
+              let oldCommand = (before["commands"] as? [[String: Any]])?.last,
+              let newCommand = (after["commands"] as? [[String: Any]])?.last,
+              oldCommand["intent"] as? String == "pause", newCommand["intent"] as? String == "pause",
+              oldCommand["outcome"] as? String == "readback_confirmed", newCommand["outcome"] as? String == "readback_confirmed",
+              let commandID = oldCommand["id"] as? String, commandID == newCommand["id"] as? String,
+              let session = oldCommand["sessionID"] as? String, session == newCommand["sessionID"] as? String,
+              let generation = (oldCommand["generation"] as? NSNumber)?.uint64Value,
+              generation == (newCommand["generation"] as? NSNumber)?.uint64Value,
+              newCommand["targetBundleID"] as? String == new["bundleID"] as? String else { return false }
+        return true
     }
 }

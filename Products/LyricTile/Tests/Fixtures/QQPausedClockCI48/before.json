@@ -1,0 +1,120 @@
+{
+  "appleEventsRevision" : "holdsnow-appleevents-v1",
+  "commands" : [
+    {
+      "finishedUptimeNanoseconds" : 725392743375,
+      "generation" : 1,
+      "id" : "3F8DB438-328B-4CB2-9C8B-807A95233994",
+      "intent" : "seek",
+      "observedSystemOwnerAfter" : "com.tencent.QQMusicMac",
+      "observedSystemOwnerBefore" : "com.tencent.QQMusicMac",
+      "observedSystemPIDAfter" : 19891,
+      "observedSystemPIDBefore" : 19891,
+      "outcome" : "readback_confirmed",
+      "seekMS" : 64000,
+      "sessionID" : "018DDF33-7EF6-416C-ADAB-9CCECACF4AB0",
+      "startedUptimeNanoseconds" : 724894029125,
+      "targetBundleID" : "com.tencent.QQMusicMac"
+    },
+    {
+      "finishedUptimeNanoseconds" : 726660605083,
+      "generation" : 1,
+      "id" : "12AF71F0-3882-48B9-BCF1-61502893B41C",
+      "intent" : "pause",
+      "observedSystemOwnerAfter" : "com.tencent.QQMusicMac",
+      "observedSystemOwnerBefore" : "com.tencent.QQMusicMac",
+      "observedSystemPIDAfter" : 19891,
+      "observedSystemPIDBefore" : 19891,
+      "outcome" : "readback_confirmed",
+      "sessionID" : "018DDF33-7EF6-416C-ADAB-9CCECACF4AB0",
+      "startedUptimeNanoseconds" : 726277552916,
+      "targetBundleID" : "com.tencent.QQMusicMac"
+    }
+  ],
+  "currentMediaRemotePayload" : {
+    "album" : "",
+    "artist" : "",
+    "bundleIdentifier" : "com.tencent.QQMusicMac",
+    "contentItemIdentifier" : "D37D4B3A-66A0-41FB-8033-31C1DA88B0BF",
+    "durationMicros" : 240000000,
+    "elapsedTimeMicros" : 63000000,
+    "playbackRate" : 1,
+    "playing" : false,
+    "processIdentifier" : 19891,
+    "supportedCommands" : [
+      {
+        "enabled" : true,
+        "id" : 0,
+        "name" : "Play"
+      },
+      {
+        "enabled" : true,
+        "id" : 1,
+        "name" : "Pause"
+      },
+      {
+        "enabled" : true,
+        "id" : 2,
+        "name" : "TogglePlayPause"
+      },
+      {
+        "enabled" : true,
+        "id" : 3,
+        "name" : "Stop"
+      },
+      {
+        "enabled" : true,
+        "id" : 4,
+        "name" : "NextTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 5,
+        "name" : "PreviousTrack"
+      },
+      {
+        "enabled" : true,
+        "id" : 24,
+        "name" : "SeekToPlaybackPosition",
+        "options" : {
+          "kMRMediaRemoteCommandInfoCanBeControlledByScrubbingKey" : false,
+          "kMRMediaRemoteCommandInfoSupportsReferencePosition" : false
+        }
+      }
+    ],
+    "timestampEpochMicros" : 1795791681853306,
+    "title" : "original-chimes"
+  },
+  "dataOrigin" : "real_player",
+  "exportedAt" : "2026-11-27T15:01:22Z",
+  "mediaRemoteRevision" : "2ef957c736256cee7905c9f3f1c7e279087bf195",
+  "players" : [
+    {
+      "album" : "",
+      "artist" : "",
+      "build" : "73285",
+      "bundleID" : "com.tencent.QQMusicMac",
+      "capabilities" : {
+        "canNext" : true,
+        "canPause" : true,
+        "canPlay" : true,
+        "canPrevious" : true,
+        "canSeek" : false
+      },
+      "durationMS" : 240000,
+      "isCurrentSystemSource" : true,
+      "mediaPID" : 19891,
+      "mediaProcessStartMicros" : 1795791630287997,
+      "observedUptimeNanoseconds" : 726660537041,
+      "pid" : 19891,
+      "player" : "qqMusic",
+      "processStartMicros" : 1795791630287997,
+      "quality" : "unavailable",
+      "state" : "paused",
+      "title" : "original-chimes",
+      "version" : "11.11.1"
+    }
+  ],
+  "selectedPlayer" : "qqMusic",
+  "systemBuild" : "26A434"
+}

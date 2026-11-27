@@ -295,13 +295,13 @@ try:
     first, second = imported['first'], imported['second']
     import_report['selectedSources'] = [first,second]
     save('music-import-observations.json',import_report)
-    # Resolve and play this playlist's concrete first source. Keep its playlist
-    # context for the production next/previous checks, never a library queue.
+    # Both files are verified before starting the actual playlist. Keep the
+    # current-source readback and production next/previous checks independent.
     play_script = '''tell application "Music"
         set testPlaylist to first user playlist whose name is ''' + apple_string(playlist_name) + '''
         set shuffle enabled to false
         set song repeat to off
-        play (first track of testPlaylist whose persistent ID is ''' + apple_string(first['persistentID']) + ''')
+        play testPlaylist
     end tell'''
     (out/'music-select-first.applescript').write_text(play_script)
     checked_setup_command('select verified original in this playlist',play_script)
@@ -342,6 +342,21 @@ try:
         time.sleep(.25)
     if current is None:
         setup_failure('Music did not confirm the verified first source as its actual playing track within 12 seconds.',last_play_error)
+    # Optional context evidence only. An unavailable playlist property cannot
+    # replace, relax or add a gate to the actual source/transport checks.
+    playlist_context = {'status':'UNAVAILABLE','qualificationGate':False}
+    try:
+        observed = apple('''tell application "Music"
+            set observedPlaylist to current playlist
+            return (name of observedPlaylist as string) & tab & (persistent ID of observedPlaylist as string)
+        end tell''',timeout=3)
+        values = observed.stdout.strip().split('\t')
+        playlist_context.update(exitCode=observed.returncode,stdout=observed.stdout,stderr=observed.stderr)
+        if observed.returncode==0 and len(values)==2:
+            playlist_context.update(status='OBSERVED',name=values[0],persistentID=values[1])
+    except subprocess.TimeoutExpired:
+        playlist_context.update(timedOut=True,timeoutSeconds=3)
+    save('music-current-playlist.json',playlist_context)
     fields = [first['actualTitle'],first['persistentID'],str(first['durationSeconds']),first['location'],
               second['actualTitle'],second['persistentID'],str(second['durationSeconds']),second['location'],
               current['state'],str(current['positionSeconds']),current['persistentID']]

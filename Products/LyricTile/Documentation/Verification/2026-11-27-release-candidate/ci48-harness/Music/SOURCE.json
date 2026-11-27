@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "Original immediately uploaded CI48 Music verification JSON; result remains FAIL.",
+  "repository": "haohongfei2001-png/nearpane",
+  "branch": "codex/lyrictile-standalone-20261126",
+  "sourceCommit": "89892d3605bcaa2a323422b2acd5aa64c626f65a",
+  "sourceTree": "f9fdab96fa86f1bf76aed1638d866aa3cec56222",
+  "version": "1.0.0",
+  "build": 48,
+  "runID": 46019565695,
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46019565695",
+  "musicStepConclusion": "failure",
+  "artifactName": "LyricTile-music-48",
+  "artifactID": 15207793018,
+  "artifactBytes": 28566,
+  "artifactSHA256": "b04311fbcd65b7514ac282f9e062cdcc1f1e229840bc2736d904f576889b24e1",
+  "originalFiles": {
+    "cloud-music.json": {
+      "sourcePath": "dist/evidence/real-music/cloud-music.json",
+      "bytes": 17452,
+      "sha256": "e2cd595c589ece3ef75deb2d561942c6e93569c0f654e19982d3de70a52edc3b"
+    },
+    "music-import-observations.json": {
+      "sourcePath": "dist/evidence/real-music/music-import-observations.json",
+      "bytes": 3099,
+      "sha256": "aeeee86cb7173ff1f3519e4f483bf2c3b541468f4abcc15f656fb1b66645ee94"
+    },
+    "music-source-readback.json": {
+      "sourcePath": "dist/evidence/real-music/music-source-readback.json",
+      "bytes": 1209,
+      "sha256": "2e7fb624d3cf57fb83b9c8e77fda31f0e08c20f964d88638d01864ea41354d74"
+    },
+    "native-player.json": {
+      "sourcePath": "dist/evidence/real-music/native-player.json",
+      "bytes": 17429,
+      "sha256": "b9276b1404f8827b3a07e0e1d0442e90fe54fa28bff351baf6a9014ed003d43e"
+    },
+    "source-18-next-selects-second-track-with-new-generation.json": {
+      "sourcePath": "dist/evidence/real-music/source-18-next-selects-second-track-with-new-generation.json",
+      "bytes": 2542,
+      "sha256": "15af29d2faf80480c18b8aca83791c7ae97b0c29754528c57a675d0a8ec2ffa2"
+    },
+    "source-17-resume-automatically-restores-lyrics.json": {
+      "sourcePath": "dist/evidence/real-music/source-17-resume-automatically-restores-lyrics.json",
+      "bytes": 2173,
+      "sha256": "6993da2d5437a410d2e2b51eeb56929afe6a62447a45134ba6571a79700d125e"
+    },
+    "first-use-ready.json": {
+      "sourcePath": "dist/evidence/real-music/first-use-ready.json",
+      "bytes": 47,
+      "sha256": "66220ca4920f654bdadd3ae44722736d81de16dd08b75636a47242aaa0e7fabb"
+    },
+    "native-pointer.json": {
+      "sourcePath": "dist/evidence/real-music/native-pointer.json",
+      "bytes": 7461,
+      "sha256": "3797d7b0bff31231726b63e3f3285d0ebed4c71fd0edbe86ec9ca6effe43a943"
+    }
+  },
+  "derivedFiles": {
+    "README.md": {
+      "bytes": 1995,
+      "sha256": "d4174c25c3e54f3a261ba92ad017254749f04973e633c2398f6b570e3f205b80"
+    }
+  },
+  "fullCandidateArtifact": {
+    "artifactID": 15207798927,
+    "artifactName": "LyricTile-candidate-48",
+    "bytes": 28432383,
+    "sha256": "74500dcd53fc113ed01b36d93766759b7192bc30b244a01cb2751a2fda70a67e",
+    "allArchivedOriginalBytesMatch": true
+  }
+}
