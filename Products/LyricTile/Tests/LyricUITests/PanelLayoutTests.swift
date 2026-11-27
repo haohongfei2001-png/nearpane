@@ -123,7 +123,8 @@ struct PanelLayoutTests {
             hosting.layoutSubtreeIfNeeded(); hosting.displayIfNeeded()
             let hovered = hosting.convert(glyph.bounds, from: glyph)
             #expect(hovered.height < original.height)
-            #expect(abs(hovered.midY - original.midY) < 0.5)
+            // An odd row height can snap to the adjacent half point on a 1x host.
+            #expect(abs(hovered.midY - original.midY) <= 0.5)
             #expect(glyph.toolTip == scenario.currentLine)
             model.songMenuIsOpen = false
             model.setControlsVisible(false)
@@ -132,6 +133,32 @@ struct PanelLayoutTests {
             #expect(hosting.convert(glyph.bounds, from: glyph) == original)
             #expect(scenario == .narrowDarkLongLyrics || glyph.toolTip == nil)
         }
+    }
+
+    @Test func pausedInteractionKeepsItsSurfaceWhenLyricsArrive() async throws {
+        let fixture = try PanelLayoutFixture(scenario: .compact)
+        defer { fixture.remove() }
+        let model = try await fixture.model()
+        let playing = model.snapshot
+        let selection = try #require(playing.selection)
+        model.isVisible = true
+        model.panelInteractionActive = true
+        model.receive(.init(player: playing.player, selection: selection,
+            anchor: .init(selection: selection, positionMS: 12_000, observedAt: PlaybackClock.now(),
+                          playbackRate: 0, state: .paused, quality: .coarseSourceAnchor, expectedErrorMS: nil),
+            state: .paused, capabilities: playing.capabilities))
+        let file = fixture.directory.appendingPathComponent("paused-arrival.lrc")
+        try Data("[00:00]把微光留在纸上".utf8).write(to: file)
+        model.importLyrics(from: file, for: selection)
+        await (try #require(model.lyricTask)).value
+        #expect(model.document?.source.providerID == "local")
+        #expect(model.currentCue != nil)
+        #expect(model.panelContent == .compact)
+        model.panelInteractionActive = false
+        #expect(model.panelContent == .lyrics)
+        model.receive(playing)
+        #expect(model.panelContent == .lyrics)
+        #expect(model.pausedPanelContent == nil)
     }
 
     private func nativeGlyphs(in view: NSView) -> [LyricGlyphView] {
@@ -157,6 +184,13 @@ struct PanelLayoutTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let image = directory.appendingPathComponent("fixture-\(scenario.rawValue).png")
         try LyricNativeSmoke.capture(window: window, to: image)
+        let glyphFrames: [[String: Double]] = window.contentView.map { view in
+            nativeGlyphs(in: view).map { glyph in
+                let rect = view.convert(glyph.bounds, from: glyph)
+                return ["x": Double(rect.minX), "y": Double(rect.minY),
+                        "width": Double(rect.width), "height": Double(rect.height)]
+            }
+        } ?? []
         let report: [String: Any] = [
             "kind": "authored-native-layout-fixture",
             "scenario": scenario.rawValue,
@@ -166,6 +200,7 @@ struct PanelLayoutTests {
             "darkAppearance": scenario.dark,
             "controlsPresented": scenario.hover,
             "nativeGlyphViews": glyphCount,
+            "glyphViewports": glyphFrames,
             "maximumAlpha": Double(maximumAlpha),
             "realPlayerTest": false,
             "transportCommandsTested": false,

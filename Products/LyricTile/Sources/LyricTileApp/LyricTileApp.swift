@@ -49,9 +49,9 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             place: { [weak self] frame, display in self?.panelController.placeHidden(slot: frame, displayUUID: display) },
             show: { [weak self] in self?.panelController.show() },
             status: { [weak self] message in if let message { self?.model.actionMessage = message } })
-        panelController.contentHeightDidChange = { [weak self] height in
+        panelController.contentHeightDidChange = { [weak self] height, deferred in
             guard let self, !nativeLoadCheck, !terminating else { return }
-            tileCoordinator.setReservedHeight(Double(height))
+            tileCoordinator.setReservedHeight(Double(height), deferContraction: deferred)
         }
         panelController.visibilityIntentDidChange = { [weak self] _ in
             guard let self, !nativeLoadCheck, !terminating else { return }
@@ -275,7 +275,8 @@ final class LyricTileApplicationDelegate: NSObject, NSApplicationDelegate, NSMen
             return
         }
         if model.settings.coordinateTiles {
-            tileCoordinator.setReservedHeight(Double(panelController.contentHeight))
+            tileCoordinator.setReservedHeight(Double(panelController.contentHeight),
+                                               deferContraction: model.isRetainingPausedSurface)
             await tileCoordinator.start(preferredDisplayID: model.settings.preferredDisplayUUID)
         } else {
             guard await tileCoordinator.stop() else { return }

@@ -18,7 +18,7 @@ The standalone app integrates TileDesktopCoordinator through these public PanelC
 ```swift
 var slotFrame: NSRect { get }       // Current authorized reservation: 104 or 192 pt.
 var contentHeight: CGFloat { get }
-var contentHeightDidChange: ((CGFloat) -> Void)?
+var contentHeightDidChange: ((CGFloat, Bool) -> Void)? // Height and paused-interaction deferral.
 var wantsPresentation: Bool { get }
 var visibilityIntentDidChange: ((Bool) -> Void)?
 var displayUUID: String? { get }
@@ -35,6 +35,8 @@ func show(userInitiated: Bool = false)
 The app sets placement permission false before an ordinary startup becomes visible. False withdraws immediately and also gates snapshot-driven visibility, so an asynchronous player update cannot bypass the layout barrier. The coordinator applies a committed frame while hidden, then permits/shows only while the registry still grants that generation authority. With coordinated placement enabled, display changes withdraw and invalidate the plan instead of independently restoring/showing the panel. The drag strip proposes a new right-column order/display; it does not make another product move. `surrender()` also disables input for ownership handoff.
 
 Content height changes use `TileDesktopCoordinator.setReservedHeight` without changing user order or replacing the registry algorithm. Hidden/stopped coordinators remember the requested height without registering a slot. Both the panel and coordinator reject a larger surface under an older compact grant; affected neighbours acknowledge their existing withdrawal transaction before expansion can show. Free placement still uses the 192pt envelope for saved-position clamping, without reserving shared column space.
+
+A same-recording pause during actual interaction retains its current surface kind. Incoming lyrics still enter the real document, but do not move the controls under the pointer. Any pending contraction waits until playback resumes or interaction ends; normal no-playback hiding remains in force.
 
 ## Session handoff
 

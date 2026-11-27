@@ -130,6 +130,34 @@ final class TileKitTests: XCTestCase {
         XCTAssertFalse(try registry.withPresentationAuthority(id: lyric.id, instanceID: lyric.instanceID,
             epoch: compact.epoch, generation: compact.generation, placement: compactSlot) {})
     }
+    @MainActor func testPendingContractionWaitsForPausedInteractionAndStopsCleanly() async throws {
+        let registry = TileRegistry(directory: try temporary())
+        let coordinator = TileDesktopCoordinator(id: "fixture-resize", reservedHeight: 192,
+            registry: registry, windowIDs: { [] }, permit: { _ in }, place: { _, _ in },
+            show: {}, status: { _ in })
+        await coordinator.start()
+        // The real coordinator writes only this temporary registry; no windows
+        // or player are started. Let its first asynchronous reconciliation finish.
+        for _ in 0..<40 {
+            if try registry.snapshot().members["fixture-resize"] != nil { break }
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 192)
+        coordinator.setReservedHeight(104)
+        coordinator.setReservedHeight(104, deferContraction: true)
+        try await Task.sleep(for: .milliseconds(1100))
+        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 192)
+        coordinator.setReservedHeight(104)
+        for _ in 0..<80 {
+            if try registry.snapshot().members["fixture-resize"]?.reservedHeight == 104 { break }
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 104)
+        let stopped = await coordinator.stop()
+        XCTAssertTrue(stopped)
+        coordinator.setReservedHeight(192)
+        XCTAssertNil(try registry.snapshot().members["fixture-resize"])
+    }
     func testLeaseAgeAloneNeverReclaimsVisibleMember() throws {
         let registry = TileRegistry(directory: try temporary()), screen = TileDisplay(id: "main", width: 1470, height: 900)
         let old = TileMember(id: "saytile", reservedHeight: 62, windowIDs: [99])

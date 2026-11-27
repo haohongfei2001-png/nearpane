@@ -24,6 +24,7 @@ public final class TileDesktopCoordinator {
     private var presentationGranted = false
     private var requestedHeight: Double
     private var heightChangeTask: Task<Void, Never>?
+    private var contractionDeferred = false
 
     public init(id: String, reservedHeight: Double,
                 registry: TileRegistry = TileRegistry(),
@@ -55,15 +56,18 @@ public final class TileDesktopCoordinator {
     /// revokes the old permission immediately; neighbours still acknowledge the
     /// registry's normal withdrawal plan before any larger surface is presented.
     /// A short contraction delay absorbs lyrics arriving during a track change.
-    public func setReservedHeight(_ height: Double) {
-        guard height.isFinite, (1...4096).contains(height), height != requestedHeight else { return }
+    public func setReservedHeight(_ height: Double, deferContraction: Bool = false) {
+        guard height.isFinite, (1...4096).contains(height),
+              height != requestedHeight || deferContraction != contractionDeferred else { return }
         requestedHeight = height
+        contractionDeferred = deferContraction
         heightChangeTask?.cancel(); heightChangeTask = nil
         guard height != member.reservedHeight else { return }
         if active && desiredActive && height < member.reservedHeight {
+            guard !deferContraction else { return }
             heightChangeTask = Task { [weak self] in
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
-                guard let self, requestedHeight == height else { return }
+                guard let self, !Task.isCancelled, requestedHeight == height else { return }
                 applyReservedHeight(height)
                 heightChangeTask = nil
             }

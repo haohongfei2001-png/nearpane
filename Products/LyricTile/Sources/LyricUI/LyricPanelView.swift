@@ -151,7 +151,8 @@ public struct LyricPanelView: View {
                 .id(cue.id).transition(.opacity)
                 .animation(.easeOut(duration: reduceMotion ? 0 : 0.16), value: cue.id)
         } else {
-            Text("间奏").font(.system(size: 16, weight: .medium)).foregroundStyle(secondary)
+            Text(model.frame.phase == .interlude ? "间奏" : "歌词暂不可用")
+                .font(.system(size: 16, weight: .medium)).foregroundStyle(secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
     }
@@ -176,7 +177,8 @@ public struct LyricPanelView: View {
     }
 
     private var compactCaption: String {
-        switch model.frame.phase {
+        if model.snapshot.state == .paused { return "已暂停" }
+        return switch model.frame.phase {
         case .resolving: "正在查找歌词"
         case .instrumental: "纯音乐"
         case .sourceUnavailable: "暂时无法取得歌词"

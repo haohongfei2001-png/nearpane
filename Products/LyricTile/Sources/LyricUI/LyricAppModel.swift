@@ -68,6 +68,9 @@ public final class LyricAppModel: ObservableObject {
     private var lastArtworkData: Data?
     private var artworkToken = UUID()
     private var leadCueCache: [LyricDomain.Cue] = []
+    // Keep controls under the pointer while a paused song receives its lyrics.
+    // This is presentation-only: the repository result is still accepted normally.
+    var pausedPanelContent: LyricPanelContent?
 
     public convenience init(storageURL: URL? = nil, defaults: UserDefaults = .standard) {
         let settings = LyricSettings.load(from: defaults)
@@ -399,6 +402,12 @@ public final class LyricAppModel: ObservableObject {
     func receive(_ update: PlaybackSnapshot) {
         let metadataChanged = snapshot.selection != update.selection
         let changed = !Self.sameSession(snapshot.selection, update.selection)
+        if changed || update.state != .paused {
+            pausedPanelContent = nil
+        } else if snapshot.state == .playing, isVisible,
+                  panelInteractionActive || songMenuIsOpen || seekPreviewMS != nil {
+            pausedPanelContent = panelContent
+        }
         snapshot = update
         refreshArtwork(from: update, sessionChanged: changed)
         if changed {

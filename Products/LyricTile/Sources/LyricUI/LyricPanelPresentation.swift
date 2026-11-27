@@ -49,7 +49,13 @@ public enum LyricPanelLayout {
 
 @MainActor
 extension LyricAppModel {
+    public var isRetainingPausedSurface: Bool {
+        snapshot.state == .paused && pausedPanelContent != nil
+            && (panelInteractionActive || songMenuIsOpen || seekPreviewMS != nil)
+    }
+
     public var panelContent: LyricPanelContent {
+        if isRetainingPausedSurface, let pausedPanelContent { return pausedPanelContent }
         if frame.phase == .interlude { return .lyrics }
         if currentCue != nil,
            browsedCueIndex != nil || [.syncedLine, .syncedToken, .plainText].contains(frame.phase) {

@@ -16,7 +16,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     /// Playback intent is separate from registry permission and window occlusion.
     public private(set) var wantsPresentation = false
     public var visibilityIntentDidChange: (@MainActor (Bool) -> Void)?
-    public var contentHeightDidChange: (@MainActor (CGFloat) -> Void)?
+    public var contentHeightDidChange: (@MainActor (CGFloat, Bool) -> Void)?
     public var contentHeight: CGFloat {
         model.panelContent == .lyrics ? LyricPanelLayout.lyricsHeight : LyricPanelLayout.compactHeight
     }
@@ -29,6 +29,7 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private var surrendered = false
     private var saved: [String: SavedPlacement]
     private var lastRequestedHeight: CGFloat = LyricPanelLayout.compactHeight
+    private var lastContractionDeferred = false
 
     private struct SavedPlacement: Codable {
         var horizontalFraction: Double
@@ -162,9 +163,11 @@ public final class LyricPanelController: NSObject, NSWindowDelegate {
     private func refreshForPlayback() {
         updateVisibilityIntent()
         let height = contentHeight
-        if height != lastRequestedHeight {
+        let deferred = model.isRetainingPausedSurface
+        if height != lastRequestedHeight || deferred != lastContractionDeferred {
             lastRequestedHeight = height
-            contentHeightDidChange?(height)
+            lastContractionDeferred = deferred
+            contentHeightDidChange?(height, deferred)
         }
         guard wantsPresentation, placementPermitted else { withdraw(); return }
         show()
