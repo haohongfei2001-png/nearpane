@@ -26,7 +26,7 @@ struct FilmCaptureTests {
             let lines = language == "zh" ? ["把微光留在纸上", "窗外的风经过长街", "让这一刻慢下来", "脚步跟着雨停下来", "灯在街角慢慢亮起", "喜欢的旋律还在身边", "把这一刻轻轻留下", "让下一句自然到来"] : ["A light upon the paper", "The wind along the street", "Every quiet moment", "Has a place to stay", "The corner fills with light", "A melody stays close", "Let this moment linger", "Let the next line arrive"]
             let selection = LyricDomain.Selection(playerBundleID: "test.lyrictile.film", sessionID: UUID(), generation: 1,
                 recording: .init(fingerprint: "authored-film-"+language, platformIDs: [], isrc: nil,
-                title: language == "zh" ? "一盏灯的距离" : "A Place to Stay", artists: ["HOLDSNOW"], album:"Original film study", durationMS:40_000, versionTags:[]))
+                title: language == "zh" ? "留在此刻" : "Here, for a while", artists: ["HOLDSNOW"], album:"Original film study", durationMS:40_000, versionTags:[]))
             func update(_ milliseconds: Int64, state: LyricDomain.PlaybackState = .playing) {
                 model.receive(.init(player:.appleMusic, selection:selection,
                     anchor:.init(selection:selection, positionMS:milliseconds, observedAt:PlaybackClock.now(), playbackRate:state == .playing ? 1 : 0, state:state, quality:.coarseSourceAnchor, expectedErrorMS:nil),
@@ -49,6 +49,25 @@ struct FilmCaptureTests {
                 try await Task.sleep(for:.milliseconds(240))
                 try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent("\(language)-cue-\(cue).png"))
             }
+            let motionDirectory = directory.appendingPathComponent(language+"-native-motion")
+            try FileManager.default.createDirectory(at: motionDirectory, withIntermediateDirectories: true)
+            update(6_500)
+            try await Task.sleep(for: .milliseconds(250))
+            let clockStart = ProcessInfo.processInfo.systemUptime
+            var motionFrames: [[String: Any]] = []
+            for index in 0..<180 {
+                let goal = clockStart + Double(index) / 30
+                let delay = goal - ProcessInfo.processInfo.systemUptime
+                if delay > 0 { try await Task.sleep(for: .seconds(delay)) }
+                let elapsed = ProcessInfo.processInfo.systemUptime - clockStart
+                update(6_500 + Int64(elapsed * 1_000))
+                await Task.yield()
+                let name = String(format: "frame-%04d.png", index)
+                try FilmCaptureSupport.save(view: view, to: motionDirectory.appendingPathComponent(name), scale: 4)
+                motionFrames.append(["file": name, "elapsed": elapsed, "positionMS": 6_500 + Int64(elapsed * 1_000), "cueIndex": model.currentCueIndex ?? -1])
+            }
+            let motionReport: [String: Any] = ["kind": "authored-native-view-motion", "realPlayer": false, "productionView": "LyricPanelView", "origin": "Original HOLDSNOW demo lyrics; fixture source positions follow host monotonic elapsed time.", "renderScale": 4, "targetFPS": 30, "frames": motionFrames, "limitations": "Native production SwiftUI cue transition rendered with authored input; not a player, transport or acoustic-sync qualification."]
+            try JSONSerialization.data(withJSONObject: motionReport, options: [.prettyPrinted, .sortedKeys]).write(to: motionDirectory.appendingPathComponent("capture.json"))
             update(10_000)
             model.songMenuIsOpen = true
             model.setControlsVisible(true)

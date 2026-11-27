@@ -39,18 +39,31 @@ jobs:
           swift package resolve
       - name: Render authored native production views at six times logical scale
         run: |
+          set -o pipefail
           cd "$RUNNER_TEMP/film-product"
           LYRICTILE_FILM_OUTPUT="$RUNNER_TEMP/film-output" swift test --filter FilmCaptureTests 2>&1 | tee "$RUNNER_TEMP/film-output/fixture-build.log"
+      - name: Preserve native visual assets before player setup
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-film-native-views-${{ github.run_number }}
+          path: ${{ runner.temp }}/film-output/authored-native
+          if-no-files-found: warn
+          retention-days: 30
       - name: Build real app with capture-only instrumentation
         env:
           LYRICTILE_BUILD_NUMBER: 49
+          FILM_SOURCE_SHA: ${{ github.sha }}
+          LYRICTILE_CREATE_DMG: 0
         run: |
+          set -o pipefail
           cd "$RUNNER_TEMP/film-product"
           bash Scripts/build-app.sh 2>&1 | tee "$RUNNER_TEMP/film-output/app-build.log"
       - name: Record actual Music playback and real OS pointer interactions
         run: |
           python3 Marketing/FirstFilm/native/record_desktop.py "$RUNNER_TEMP/film-output" &
           film_recorder=$!
+          set -o pipefail
           cd "$RUNNER_TEMP/film-product"
           LYRICTILE_FILM_OUTPUT="$RUNNER_TEMP/film-output" python3 Scripts/check-cloud-music.py dist/LyricTile.app --output "$RUNNER_TEMP/film-output/real-music"
           wait "$film_recorder"
