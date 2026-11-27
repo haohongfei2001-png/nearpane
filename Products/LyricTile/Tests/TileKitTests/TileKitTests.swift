@@ -139,24 +139,39 @@ final class TileKitTests: XCTestCase {
         // The real coordinator writes only this temporary registry; no windows
         // or player are started. Let its first asynchronous reconciliation finish.
         for _ in 0..<40 {
-            if try registry.snapshot().members["fixture-resize"] != nil { break }
+            if try await snapshotWhenUnlocked(registry).members["fixture-resize"] != nil { break }
             try await Task.sleep(for: .milliseconds(25))
         }
-        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 192)
+        let initial = try await snapshotWhenUnlocked(registry)
+        XCTAssertEqual(initial.members["fixture-resize"]?.reservedHeight, 192)
         coordinator.setReservedHeight(104)
         coordinator.setReservedHeight(104, deferContraction: true)
         try await Task.sleep(for: .milliseconds(1100))
-        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 192)
+        let paused = try await snapshotWhenUnlocked(registry)
+        XCTAssertEqual(paused.members["fixture-resize"]?.reservedHeight, 192)
         coordinator.setReservedHeight(104)
         for _ in 0..<80 {
-            if try registry.snapshot().members["fixture-resize"]?.reservedHeight == 104 { break }
+            if try await snapshotWhenUnlocked(registry).members["fixture-resize"]?.reservedHeight == 104 { break }
             try await Task.sleep(for: .milliseconds(25))
         }
-        XCTAssertEqual(try registry.snapshot().members["fixture-resize"]?.reservedHeight, 104)
+        let compact = try await snapshotWhenUnlocked(registry)
+        XCTAssertEqual(compact.members["fixture-resize"]?.reservedHeight, 104)
         let stopped = await coordinator.stop()
         XCTAssertTrue(stopped)
         coordinator.setReservedHeight(192)
-        XCTAssertNil(try registry.snapshot().members["fixture-resize"])
+        let inactive = try await snapshotWhenUnlocked(registry)
+        XCTAssertNil(inactive.members["fixture-resize"])
+    }
+
+    @MainActor private func snapshotWhenUnlocked(_ registry: TileRegistry) async throws -> TileRegistryState {
+        // Registry reads deliberately use a nonblocking lock. The native worker
+        // may be writing in parallel; an expected busy response is not a failure
+        // of the size/withdrawal behavior this test is observing.
+        for _ in 0..<80 {
+            do { return try registry.snapshot() }
+            catch TileCoordinationError.busy { try await Task.sleep(for: .milliseconds(25)) }
+        }
+        throw TileCoordinationError.busy
     }
     func testLeaseAgeAloneNeverReclaimsVisibleMember() throws {
         let registry = TileRegistry(directory: try temporary()), screen = TileDisplay(id: "main", width: 1470, height: 900)

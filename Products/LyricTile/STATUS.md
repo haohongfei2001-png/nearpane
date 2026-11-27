@@ -13,7 +13,7 @@
 
 ## 验证状态
 
-CI33 原生编译通过，十种布局已生成；hover 中心断言已容纳原生半点取整，并补充暂停时歌词返回、待收缩取消/恢复的风险测试，等待复跑。上轮 `ca361e9` 的 [CI31](https://github.com/haohongfei2001-png/nearpane/actions/runs/45881886204) 已通过，证据仅覆盖当时的一/两行当前句及旧欢迎/设置布局：[上轮截图与证据](Documentation/Verification/2026-11-27-ui-refinement/README.md)。
+CI34 原生编译与全部 Swift Testing 通过，十种布局、半点取整、暂停时歌词返回均通过。新增协调器测试读取快照时遇到预期的非阻塞锁 busy，测试已改为有界等待锁释放，生产锁与授权机制不变；等待完整复跑。上轮证据仅覆盖当时的一/两行当前句及旧欢迎/设置布局：[上轮截图与证据](Documentation/Verification/2026-11-27-ui-refinement/README.md)。
 
 本轮不扩展播放器、歌词服务、Nearpane 架构，不发布新版本。实际歌曲、鼠标交互、壁纸玻璃观感、侧栏联排及签名安装包仍待专项实机验收；已有安装基线 1.0.0（4）不变。详见[本机报告](Documentation/Verification/local-2026-11-26.md)与[界面实现](Documentation/UI_IMPLEMENTATION.md)。
 
