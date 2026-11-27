@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import QuartzCore
 import LyricCore
 import LyricPlayback
 import LyricServices
@@ -44,7 +45,7 @@ struct FilmCaptureTests {
                     .frame(width: 208, height: 192)
                     .scaleEffect(scale, anchor: .topLeading)
                     .frame(width: 208 * scale, height: 192 * scale, alignment: .topLeading)
-                    .environment(\.displayScale, 1)
+                    .environment(\.displayScale, scale)
             }
             let size = NSSize(width:1248,height:1152)
             let view = NSHostingView(rootView: content(scale: 6))
@@ -55,6 +56,7 @@ struct FilmCaptureTests {
             for cue in (probe ? [2] : Array(0..<8)) {
                 update(Int64(cue*4_000+500))
                 try await Task.sleep(for:.milliseconds(240))
+                prepareLayers(view, scale: 6)
                 try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent("\(language)-cue-\(cue).png"), scale: 1)
             }
             if probe {
@@ -80,6 +82,7 @@ struct FilmCaptureTests {
                 update(6_500 + Int64(elapsed * 1_000))
                 await Task.yield()
                 let name = String(format: "frame-%04d.png", index)
+                prepareLayers(view, scale: 4)
                 try FilmCaptureSupport.save(view: view, to: motionDirectory.appendingPathComponent(name), scale: 1)
                 motionFrames.append(["file": name, "elapsed": elapsed, "positionMS": 6_500 + Int64(elapsed * 1_000), "cueIndex": model.currentCueIndex ?? -1])
             }
@@ -92,6 +95,7 @@ struct FilmCaptureTests {
             model.songMenuIsOpen = true
             model.setControlsVisible(true)
             try await Task.sleep(for:.milliseconds(240))
+            prepareLayers(view, scale: 6)
             try FilmCaptureSupport.save(view:view,to:directory.appendingPathComponent(language+"-hover-layout-only.png"), scale: 1)
             window.orderOut(nil); window.close()
             defaults.removePersistentDomain(forName:suite)
@@ -100,4 +104,19 @@ struct FilmCaptureTests {
         let report:[String:Any] = ["kind":"authored-native-layout-fixture", "productionView":"LyricPanelView", "logicalSize":[208,192],"renderScale":6,"languages":probe ? ["zh"] : ["zh","en"],"probeOnly":probe,"cuesPerLanguage":probe ? 1 : 8,"captureMethod":"Native view at unchanged 208x192 logical layout, scaled by SwiftUI into a larger actual hosting surface, then captured at 1x; no bitmap enlargement","realPlayerTest":false,"transportEnabled":false,"limitations":"Original authored fixture states rendered by production AppKit/SwiftUI view. Hover layout only; actual enabled controls and interactions are in real-music captures."]
         try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]).write(to:directory.appendingPathComponent("SOURCE.json"))
     }
+    private func prepareLayers(_ view: NSView, scale: CGFloat) {
+        view.wantsLayer = true
+        view.layerContentsRedrawPolicy = .onSetNeedsDisplay
+        func prepare(_ layer: CALayer) {
+            layer.contentsScale = scale
+            layer.rasterizationScale = scale
+            layer.shouldRasterize = false
+            layer.setNeedsDisplay()
+            layer.sublayers?.forEach(prepare)
+        }
+        if let layer = view.layer { prepare(layer) }
+        view.needsDisplay = true
+        view.subviews.forEach { prepareLayers($0, scale: scale) }
+    }
+
 }
