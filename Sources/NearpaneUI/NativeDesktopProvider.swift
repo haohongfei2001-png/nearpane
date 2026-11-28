@@ -39,8 +39,12 @@ import WindowGeometryCore
     static func packagedReader(overview: Bool = false) -> Read? {
         guard Bundle.main.bundleURL.pathExtension == "app", let expected = Bundle.main.object(forInfoDictionaryKey: "NearpaneDesktopReaderSHA256") as? String,
               expected.count == 64, let executable = readerURL(in: Bundle.main.bundleURL) else { return nil }
+        if overview {
+            let reader = DesktopOverviewReader(executable: executable, expectedHash: expected)
+            return { request in try await reader.read(request) }
+        }
         return { request in
-            try await Task.detached(priority: .utility) {
+            try await Task.detached(priority: Task.currentPriority) {
                 let bytes = try Data(contentsOf: executable, options: .mappedIfSafe)
                 guard SHA256.hash(data: bytes).map({ String(format: "%02x", $0) }).joined() == expected else { throw ReaderFailure.unavailable }
             }.value

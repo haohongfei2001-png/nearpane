@@ -246,7 +246,7 @@ import Security
             guard groupIDs.count == 3, Set(groupIDs.values).count == 3 else { throw Failure(reason: "fixtureGroupsNotReady") }
             guard candidateReady else { throw Failure(reason: "candidateDispatchUnavailable") }
             @MainActor func selectR4(_ index: Int, group: UUID, visible: Set<UInt32>, phase: String,
-                                    exactMember: Bool = false) async throws {
+                                    exactMember: Bool = false, requireSettlement: Bool = false) async throws {
                 let target = targets[index]
                 let windowID = "current-desktop-window:\(target.fixture.pid):\(target.window.number)"
                 var ids: Set<String> = exactMember ? [windowID] : Set(["native-held-group:" + group.uuidString,
@@ -269,6 +269,8 @@ import Security
                     }
                     button = nil
                 } else { button = await waitButton(ids, panel: controller.window) { report["lastR4ButtonSearch"] = $0 } }
+                let navigation = NativeSidebarNavigation.shared
+                let inputEpoch = navigation.ownershipEpoch, priorGeneration = navigation.generation
                 var pressedAt = ProcessInfo.processInfo.systemUptime
                 var route = "inProcessAccessibilityButton"
                 if let button {
@@ -292,6 +294,7 @@ import Security
                        inputUptime >= pressedAt, inputUptime <= ProcessInfo.processInfo.systemUptime { pressedAt = inputUptime }
                     route = "externalAXPress"
                 }
+                let selectionGeneration = navigation.generation
                 record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
                     "step": phase, "exactMember": exactMember, "route": route])
                 let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8,
@@ -307,6 +310,33 @@ import Security
                 savePanel(controller.window, to: output.appendingPathComponent("r4-\(actualInputs).png"))
                 feed.changed()
                 try await Task.sleep(for: .milliseconds(120))
+                if requireSettlement {
+                    // Keep rapid-cycle input unchanged. Only a phase that consumes
+                    // the resulting group directory waits for the actual job end.
+                    // Its deadline still starts at this same physical input.
+                    let until = pressedAt + 8
+                    while navigation.idleGeneration == nil, navigation.ownershipEpoch == inputEpoch,
+                          navigation.generation == selectionGeneration, selectionGeneration != priorGeneration,
+                          navigation.issue == nil, !Task.isCancelled, ProcessInfo.processInfo.systemUptime < until {
+                        try await Task.sleep(for: .milliseconds(20))
+                    }
+                    let settledAt = ProcessInfo.processInfo.systemUptime
+                    let committed = feed.groups.directory.displays.flatMap(\.groups).first { $0.id == group }
+                    let selected = committed?.members.first { $0.id == committed?.selectedMember }
+                    let settled = !Task.isCancelled && settledAt < until && navigation.ownershipEpoch == inputEpoch &&
+                        selectionGeneration != priorGeneration && navigation.idleGeneration == selectionGeneration &&
+                        navigation.issue == nil && committed?.verifiedActive == true &&
+                        committed?.needsReorganization != true && selected?.windowHint == target.key
+                    record(settled ? "R4SelectionSettled" : "R4SelectionUnsettled", [
+                        "window": target.window.number, "group": group.uuidString, "step": phase,
+                        "selection": selectionGeneration.uuidString, "sameOwnershipEpoch": navigation.ownershipEpoch == inputEpoch,
+                        "newSelection": selectionGeneration != priorGeneration, "sameSelection": navigation.generation == selectionGeneration,
+                        "navigationIdle": navigation.idleGeneration == selectionGeneration, "navigationIssue": navigation.issue ?? "none",
+                        "verifiedActive": committed?.verifiedActive == true, "selectedMember": selected?.id.uuidString ?? "none",
+                        "exactMember": selected?.windowHint == target.key, "pressToSettlementMS": (settledAt - pressedAt) * 1000,
+                        "originalDeadlineUptime": until])
+                    guard settled else { throw Failure(reason: "R4SelectionNotSettled") }
+                }
             }
             let cycles = min(50, max(1, config.iterations))
             if config.purpose == "hostCrash" {
@@ -550,7 +580,8 @@ import Security
             let cyclePath = [0] + (0..<cycles).flatMap { _ in [1, 2, 0] }
             for (step, index) in cyclePath.enumerated() {
                 guard let group = groupIDs[targets[index].window.number] else { throw Failure(reason: "groupIdentityLost") }
-                try await selectR4(index, group: group, visible: [targets[index].window.number], phase: "singletonCycle/\(step)")
+                try await selectR4(index, group: group, visible: [targets[index].window.number], phase: "singletonCycle/\(step)",
+                                   requireSettlement: step == cyclePath.count - 1)
             }
             report["foreignWindowReadback"] = true
 
@@ -563,7 +594,8 @@ import Security
             let scope = heldB.scope
             let live: @MainActor () -> Bool = { IndependentStagePolicy.candidateRequested && IndependentStagePolicy.candidatePIDs == pids }
             report["groupMergeSplit"] = "FAIL"
-            try await IndependentStageGroupEditing.perform(.joinCurrent, held: heldB, in: feed, current: live)
+            let join = IndependentStageGroupEditing.enqueue(.joinCurrent, held: heldB, in: feed, current: live)
+            try await join.value()
             let combinedKeys: Set<NativeSpaceWindow> = [targets[0].key, targets[2].key]
             guard let combined = feed.groups.groups(in: scope).first(where: { Set($0.members.map(\.windowHint)) == combinedKeys }),
                   let paired = await waitForState(targets, visible: [targets[0].window.number, targets[2].window.number],
@@ -571,19 +603,21 @@ import Security
                   let siblingGroup = groupIDs[targets[1].window.number] else {
                 throw Failure(reason: "crossAppJoinReadbackFailed")
             }
-            record("crossAppJoin", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+            record("crossAppJoin", ["entry": "IndependentStageGroupEditing.enqueue: production context-menu handler and navigation queue",
                 "group": combined.id.uuidString, "observations": paired, "pointerGestureClaimed": false])
             try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "leaveCombinedGroup")
             try await selectR4(0, group: combined.id, visible: [targets[0].window.number, targets[2].window.number], phase: "restoreCombinedGroup")
             try await selectR4(2, group: combined.id, visible: [targets[0].window.number, targets[2].window.number],
                                phase: "exactMemberWithinCombinedGroup", exactMember: true)
-            try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "holdCombinedForSplit")
+            try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "holdCombinedForSplit",
+                               requireSettlement: true)
             guard let heldCombined = feed.stageEngine.heldGroups.first(where: { $0.id == combined.id }),
                   let detached = feed.groups.groups(in: scope).first(where: { $0.id == combined.id })?.members
                     .first(where: { $0.windowHint == targets[2].key }) else {
                 throw Failure(reason: "combinedGroupNotHeldForSplit")
             }
-            try await IndependentStageGroupEditing.perform(.detach(detached.id), held: heldCombined, in: feed, current: live)
+            let detach = IndependentStageGroupEditing.enqueue(.detach(detached.id), held: heldCombined, in: feed, current: live)
+            try await detach.value()
             guard let split = await waitForState(targets, visible: [targets[2].window.number], focus: targets[2], seconds: 8) else {
                 throw Failure(reason: "groupSplitReadbackFailed")
             }
@@ -595,7 +629,7 @@ import Security
                 }
                 groupIDs[target.window.number] = group.id
             }
-            record("groupSplit", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+            record("groupSplit", ["entry": "IndependentStageGroupEditing.enqueue: production context-menu handler and navigation queue",
                 "member": detached.id.uuidString, "observations": split, "pointerGestureClaimed": false])
             guard let firstGroup = groupIDs[targets[0].window.number] else { throw Failure(reason: "splitFirstGroupMissing") }
             try await selectR4(0, group: firstGroup, visible: [targets[0].window.number], phase: "returnAfterSplit")

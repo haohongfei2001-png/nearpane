@@ -10,6 +10,10 @@ on:
         description: 'Explicitly repeat the already rejected native renderer settings after confirmed cleanup'
         type: boolean
         default: false
+      sample_fast_host:
+        description: 'Collect external Host stacks in r4-fast for diagnosis; sampling can perturb dispatch timing'
+        type: boolean
+        default: false
   push:
     branches: ['pro/independent-stage-engine-20261126']
 permissions:
@@ -102,11 +106,16 @@ jobs:
           if [[ '${{ steps.candidate.outcome }}' == success ]]; then
             arguments+=(--product-host '${{ steps.candidate.outputs.app }}')
             # Formal release acceptance runs without external stack sampling.
-            # The fast lane keeps bounded diagnostics for outstanding latency;
-            # debug/release results are not a same-build causal comparison.
+            # Native phase traces remain available without suspending the Host.
             arguments+=(--no-host-sampling)
           elif [[ '${{ steps.fast_candidate.outcome }}' == success ]]; then
             arguments+=(--product-host '${{ steps.fast_candidate.outputs.app }}')
+            # External sampling overlaps multi-second callback/queue delays in
+            # the fast lane. Keep it an explicit diagnostic request, so ordinary
+            # feedback measures the same R4 path without that extra variable.
+            if [[ '${{ inputs.sample_fast_host }}' != true ]]; then
+              arguments+=(--no-host-sampling)
+            fi
           fi
           python3 -B scripts/acceptance/independent-stage/run.py "${arguments[@]}"
       - name: Compile native rendering-decoupling diagnostic

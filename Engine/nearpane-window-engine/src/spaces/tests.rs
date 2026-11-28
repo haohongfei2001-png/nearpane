@@ -1,6 +1,7 @@
 // Synthetic system implementing the same single-window reverse and forward membership reads as Darwin.
 use super::*;
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 struct Guard {
     ok: Cell<bool>,
@@ -28,6 +29,37 @@ impl Authority for Guard {
         } else {
             Err(Fault(CANCELLED, Why::Stale))
         }
+    }
+}
+
+// Configured only after enrollment, then armed by the single actual move. These
+// costs advance the existing virtual clock, never an OS thread or test deadline.
+#[derive(Default)]
+struct MoveReadProbe {
+    began: Cell<Option<Instant>>,
+    window: Cell<u32>,
+    target: Cell<u64>,
+    ack_forward_cost: Duration,
+    ack_target_cost: Duration,
+    ack_other_cost: Duration,
+    missing_forward_for: Duration,
+    missing_reverse: bool,
+    present_in_other: bool,
+    see_costs: RefCell<VecDeque<Duration>>,
+    see_calls: Cell<u32>,
+    fault_on_see: Option<(u32, Why)>,
+    changed_frame_on_see: Option<u32>,
+    desktop_costs: BTreeMap<u32, Duration>,
+    desktop_calls: Cell<u32>,
+    revoke_on_see: Option<(u32, Rc<Cell<bool>>)>,
+    revoke_on_desktop: Option<(u32, Rc<Cell<bool>>)>,
+    changed_scope_on_desktop: Option<u32>,
+}
+struct MoveAuthority(Rc<Cell<bool>>);
+impl Authority for MoveAuthority {
+    fn active(&self) -> Check<()> { self.observation() }
+    fn observation(&self) -> Check<()> {
+        if self.0.get() { Ok(()) } else { Err(Fault(CANCELLED, Why::Stale)) }
     }
 }
 #[derive(Default)]
@@ -87,6 +119,7 @@ struct Fake {
     unminimize_extra_space: Option<(u64, Duration)>,
     unminimize_read_cost: Duration,
     unminimize_animated_reads: Cell<u32>,
+    move_read_probe: Option<MoveReadProbe>,
 }
 impl Fake {
     fn new() -> Self {
@@ -117,6 +150,9 @@ impl Fake {
         let (space, duration) = self.unminimize_extra_space?;
         (window == number && self.now().saturating_duration_since(started) < duration).then_some(space)
     }
+    fn moved_reads(&self) -> Option<&MoveReadProbe> {
+        self.move_read_probe.as_ref().filter(|probe| probe.began.get().is_some())
+    }
 }
 impl Platform for Fake {
     type Witness = u64;
@@ -140,6 +176,16 @@ impl Platform for Fake {
         Ok(self.connection)
     }
     fn desktops(&self, _: i32) -> Check<Vec<Desktop>> {
+        let mut changed_scope = false;
+        if let Some(probe) = self.moved_reads() {
+            let call = probe.desktop_calls.get() + 1;
+            probe.desktop_calls.set(call);
+            self.wait(probe.desktop_costs.get(&call).copied().unwrap_or_default());
+            if let Some((at, allowed)) = &probe.revoke_on_desktop {
+                if call == *at { allowed.set(false); }
+            }
+            changed_scope = probe.changed_scope_on_desktop.is_some_and(|at| call >= at);
+        }
         if !self.managed_roster.is_empty() {
             let mut roster = self.managed_roster.clone();
             if self.reverse_managed_after_hide && !self.moved.is_empty() {
@@ -151,7 +197,7 @@ impl Platform for Fake {
             display: [5; 16],
             uuid: [6; 16],
             id: 10,
-            kind: if self.switch_topology { 4 } else { 0 },
+            kind: if self.switch_topology || changed_scope { 4 } else { 0 },
             current: 1,
         }])
     }
@@ -172,6 +218,12 @@ impl Platform for Fake {
             .iter()
             .filter_map(|(&w, v)| (v.1 == s).then_some(u64::from(w)))
             .collect();
+        if let Some(probe) = self.moved_reads().filter(|probe| probe.see_calls.get() == 0) {
+            let target = s == probe.target.get();
+            self.wait(if target { probe.ack_target_cost } else { probe.ack_other_cost });
+            if target && probe.missing_reverse { set.remove(&u64::from(probe.window.get())); }
+            if !target && probe.present_in_other { set.insert(u64::from(probe.window.get())); }
+        }
         if self.bystander && s != 10 {
             set.insert(999);
         }
@@ -181,6 +233,13 @@ impl Platform for Fake {
         Ok(set)
     }
     fn spaces(&self, _: i32, w: u32) -> Check<Rows> {
+        if let Some(probe) = self.moved_reads()
+            .filter(|probe| probe.window.get() == w && probe.see_calls.get() == 0) {
+            self.wait(probe.ack_forward_cost);
+            if self.now().duration_since(probe.began.get().unwrap()) < probe.missing_forward_for {
+                return Ok(Rows::new());
+            }
+        }
         if w == 77 && self.opened_probe {
             if self.ambiguous_panel_membership {
                 return Ok(Rows::from([10, 11]));
@@ -325,7 +384,7 @@ impl Platform for Fake {
         }
     }
     fn see(&self, w: Window, lease: &u64) -> Check<Seen> {
-        let surface = self.surface(w)?;
+        let mut surface = self.surface(w)?;
         let t = self.windows[&w.number];
         self.return_binding_observations.set(self.return_binding_observations.get() + 1);
         if !((t.2 == *lease && !t.3) || (*lease as u32 == w.number && *lease >> 32 == t.2)) {
@@ -336,6 +395,18 @@ impl Platform for Fake {
             self.pending_cannot_complete_return_reads.set(unavailable - 1);
             self.wait(self.return_binding_read_cost);
             return Err(unknown(Why::AXCannotComplete));
+        }
+        if let Some(probe) = self.moved_reads().filter(|probe| probe.window.get() == w.number) {
+            let call = probe.see_calls.get() + 1;
+            probe.see_calls.set(call);
+            self.wait(probe.see_costs.borrow_mut().pop_front().unwrap_or_default());
+            if let Some((at, allowed)) = &probe.revoke_on_see {
+                if call == *at { allowed.set(false); }
+            }
+            if let Some((at, fault)) = probe.fault_on_see {
+                if call == at { return Err(unknown(fault)); }
+            }
+            if probe.changed_frame_on_see.is_some_and(|at| call >= at) { surface.rect[0] += 1.; }
         }
         Ok(surface)
     }
@@ -354,6 +425,11 @@ impl Platform for Fake {
         Delivery::Accepted
     }
     fn move_window(&mut self, _: i32, route: Route, w: Window, s: u64, mask: u32) -> Delivery {
+        if let Some(probe) = &self.move_read_probe {
+            probe.began.set(Some(self.now()));
+            probe.window.set(w.number);
+            probe.target.set(s);
+        }
         if self.moved.is_empty() {
             self.probe_reads_before_first_move = Some(self.probe_operations.iter()
                 .filter(|op| **op == launch::PanelOp::Read).count());
@@ -1058,6 +1134,205 @@ fn return_ax_transport_exhaustion_keeps_the_lease_and_original_deadline() {
         assert_eq!(state.sys.destroyed.len(), destroyed);
         assert!(state.failed && !state.slots.is_empty());
     }
+}
+
+fn move_probe_fixture(hidden: bool, probe: MoveReadProbe) -> (State<Fake>, Guard) {
+    let (mut state, guard) = setup();
+    assert_eq!(state.run(&request(1, TRIAL, 1), &guard).status, PASS);
+    if !hidden { assert_eq!(state.run(&request(1, HIDE, 2), &guard).status, PASS); }
+    state.sys.move_read_probe = Some(probe);
+    (state, guard)
+}
+
+fn assert_pending_return(state: &State<Fake>, original: (Lease, u64), writes: usize, destroyed: usize) {
+    let bound = &state.owned[&original.0.window];
+    assert_eq!(bound.lease, original.0);
+    assert_eq!(bound.witness, original.1);
+    assert_eq!(bound.pending_target.get(), Some(10));
+    assert_eq!(state.sys.moved.len(), writes + 1, "confirmation never resends the move");
+    assert_eq!(state.sys.destroyed.len(), destroyed, "uncertain proof cannot destroy the retained Space");
+    assert!(state.failed && !state.slots.is_empty());
+}
+
+#[test]
+fn timely_move_ack_allows_two_slow_complete_positive_views() {
+    for hidden in [false, true] {
+        for ack_ms in [0, 100] {
+            let (mut state, guard) = move_probe_fixture(hidden, MoveReadProbe {
+                ack_forward_cost: Duration::from_millis(ack_ms),
+                see_costs: RefCell::new(VecDeque::from([Duration::from_millis(84); 4])),
+                ..Default::default()
+            });
+            let writes = state.sys.moved.len();
+            let result = state.run(&request(1, if hidden { HIDE } else { SHOW }, 3), &guard);
+            let probe = state.sys.move_read_probe.as_ref().unwrap();
+            assert_eq!(result.status, PASS, "a timely membership ACK is followed by both full original-AX views");
+            assert_eq!(probe.see_calls.get(), 4);
+            assert_eq!(state.sys.now() - probe.began.get().unwrap(), Duration::from_millis(ack_ms + 340),
+                "the first view starts immediately after ACK; only the original inter-view wait remains");
+            assert_eq!(state.sys.moved.len(), writes + 1);
+            assert!(state.strikes.is_empty(), "slow all-positive observations are not membership/AX misses");
+            assert!(!state.failed);
+            assert_eq!(state.owned.is_empty(), !hidden);
+        }
+    }
+}
+
+#[test]
+fn late_or_incomplete_move_ack_never_starts_full_confirmation() {
+    for failure in 0..7 {
+        let mut probe = MoveReadProbe::default();
+        match failure {
+            0 => probe.ack_forward_cost = DEADLINE,
+            1 => probe.ack_target_cost = DEADLINE,
+            2 => probe.ack_other_cost = DEADLINE,
+            // Desktop call 2 is the scope read after a positive ACK, not its
+            // preceding scope read. Its own latency must count toward 120 ms.
+            3 => { probe.desktop_costs.insert(2, DEADLINE); }
+            4 => probe.missing_forward_for = Duration::from_millis(121),
+            5 => probe.missing_reverse = true,
+            _ => probe.present_in_other = true,
+        }
+        let (mut state, guard) = move_probe_fixture(false, probe);
+        let window = state.sys.windows[&1].0;
+        let original = (state.owned[&window].lease, state.owned[&window].witness);
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let result = state.run(&request(1, SHOW, 3), &guard);
+        let probe = state.sys.move_read_probe.as_ref().unwrap();
+        assert_eq!((result.status, result.detail), (TIMEOUT, Why::Uncertain as u32), "ACK case {failure}");
+        assert_eq!(state.sys.now() - probe.began.get().unwrap(), DEADLINE);
+        assert_eq!(probe.see_calls.get(), 0, "no timely placement, no confirmation-budget read");
+        assert_pending_return(&state, original, writes, destroyed);
+    }
+}
+
+#[test]
+fn first_and_second_positive_views_share_the_original_move_confirmation_deadline() {
+    for (ack_ms, costs, expected_reads, elapsed_ms) in [
+        (0, [325, 325, 0, 0], 2, 650),
+        (0, [0, 0, 323, 323], 4, 650),
+        (100, [140, 140, 140, 140], 4, 664),
+    ] {
+        let (mut state, guard) = move_probe_fixture(false, MoveReadProbe {
+            ack_forward_cost: Duration::from_millis(ack_ms),
+            see_costs: RefCell::new(costs.into_iter().map(Duration::from_millis).collect()),
+            ..Default::default()
+        });
+        let window = state.sys.windows[&1].0;
+        let original = (state.owned[&window].lease, state.owned[&window].witness);
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let result = state.run(&request(1, SHOW, 3), &guard);
+        let probe = state.sys.move_read_probe.as_ref().unwrap();
+        assert_eq!((result.status, result.detail), (TIMEOUT, Why::Uncertain as u32));
+        assert_eq!(probe.see_calls.get(), expected_reads);
+        assert_eq!(state.sys.now() - probe.began.get().unwrap(), Duration::from_millis(elapsed_ms));
+        assert_pending_return(&state, original, writes, destroyed);
+    }
+}
+
+#[test]
+fn post_view_scope_latency_and_authority_revocation_cannot_seal_a_move() {
+    // Post-move Desktop reads: ACK before/after (1/2), view 1 before/inside/after
+    // (3/4/5), view 2 before/inside/after (6/7/8). Probe cost/revocation happens
+    // inside that native read, after scope has checked Authority on entry.
+    for failure in 0..7 {
+        let allowed = Rc::new(Cell::new(true));
+        let mut probe = MoveReadProbe::default();
+        let expected = match failure {
+            0 => { probe.desktop_costs.insert(5, MOVE_CONFIRMATION_BUDGET); (TIMEOUT, Why::Uncertain) }
+            1 => { probe.desktop_costs.insert(8, Duration::from_millis(646)); (TIMEOUT, Why::Uncertain) }
+            2 => { probe.revoke_on_desktop = Some((2, allowed.clone())); (CANCELLED, Why::Stale) }
+            3 => { probe.revoke_on_see = Some((2, allowed.clone())); (CANCELLED, Why::Stale) }
+            4 => { probe.revoke_on_see = Some((4, allowed.clone())); (CANCELLED, Why::Stale) }
+            5 => { probe.revoke_on_desktop = Some((8, allowed.clone())); (CANCELLED, Why::Stale) }
+            _ => { probe.changed_scope_on_desktop = Some(8); (UNKNOWN, Why::Scope) }
+        };
+        let (mut state, _) = move_probe_fixture(false, probe);
+        let window = state.sys.windows[&1].0;
+        let original = (state.owned[&window].lease, state.owned[&window].witness);
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let result = state.run(&request(1, SHOW, 3), &MoveAuthority(allowed));
+        assert_eq!((result.status, result.detail), (expected.0, expected.1 as u32), "post-read case {failure}");
+        assert_pending_return(&state, original, writes, destroyed);
+    }
+}
+
+#[test]
+fn positive_identity_or_geometry_conflicts_never_use_confirmation_grace() {
+    for geometry in [false, true] {
+        let (mut state, guard) = move_probe_fixture(false, MoveReadProbe {
+            see_costs: RefCell::new(VecDeque::from([Duration::from_millis(80); 2])),
+            fault_on_see: (!geometry).then_some((3, Why::Identity)),
+            changed_frame_on_see: geometry.then_some(3),
+            ..Default::default()
+        });
+        let window = state.sys.windows[&1].0;
+        let original = (state.owned[&window].lease, state.owned[&window].witness);
+        let writes = state.sys.moved.len();
+        let destroyed = state.sys.destroyed.len();
+        let result = state.run(&request(1, SHOW, 3), &guard);
+        assert_eq!((result.status, result.detail), (UNKNOWN, Why::Identity as u32));
+        assert_eq!(state.sys.move_read_probe.as_ref().unwrap().see_calls.get(), if geometry { 4 } else { 3 });
+        assert_pending_return(&state, original, writes, destroyed);
+    }
+}
+
+#[test]
+fn transient_full_view_errors_cannot_borrow_the_positive_confirmation_budget() {
+    for fault in [Why::Membership, Why::Readback, Why::AXCannotComplete] {
+        for scenario in 0..3 {
+            let (costs, fault_at, reads, elapsed_ms) = match scenario {
+                0 => (vec![0, 60, 60], 1, 3, 124),
+                1 => (vec![80, 80], 3, 3, 164),
+                _ => (vec![116], 1, 1, 120),
+            };
+            let (mut state, guard) = move_probe_fixture(false, MoveReadProbe {
+                see_costs: RefCell::new(costs.into_iter().map(Duration::from_millis).collect()),
+                fault_on_see: Some((fault_at, fault)),
+                ..Default::default()
+            });
+            let window = state.sys.windows[&1].0;
+            let original = (state.owned[&window].lease, state.owned[&window].witness);
+            let writes = state.sys.moved.len();
+            let destroyed = state.sys.destroyed.len();
+            let result = state.run(&request(1, SHOW, 3), &guard);
+            let probe = state.sys.move_read_probe.as_ref().unwrap();
+            assert_eq!((result.status, result.detail), (TIMEOUT, Why::Uncertain as u32));
+            assert_eq!(probe.see_calls.get(), reads, "no new read follows an expired transient-error deadline, even after the poll wait");
+            assert_eq!(state.sys.now() - probe.began.get().unwrap(), Duration::from_millis(elapsed_ms));
+            assert_pending_return(&state, original, writes, destroyed);
+        }
+    }
+}
+
+#[test]
+fn recovered_full_view_must_return_before_the_original_retry_deadline() {
+    let (mut state, guard) = move_probe_fixture(false, MoveReadProbe {
+        see_costs: RefCell::new([0, 50, 50, 80, 80].into_iter().map(Duration::from_millis).collect()),
+        fault_on_see: Some((1, Why::AXCannotComplete)),
+        ..Default::default()
+    });
+    let writes = state.sys.moved.len();
+    assert_eq!(state.run(&request(1, SHOW, 3), &guard).status, PASS);
+    let probe = state.sys.move_read_probe.as_ref().unwrap();
+    assert_eq!(probe.see_calls.get(), 5, "the recovered view and its consecutive successor are both complete");
+    assert_eq!(state.sys.now() - probe.began.get().unwrap(), Duration::from_millis(268));
+    assert_eq!(state.sys.moved.len(), writes + 1);
+    assert!(state.owned.is_empty() && state.slots.is_empty() && !state.failed);
+}
+
+#[test]
+fn acknowledgement_misses_keep_the_original_late_health_strike() {
+    let (mut state, guard) = move_probe_fixture(false, MoveReadProbe {
+        missing_forward_for: Duration::from_millis(8),
+        ..Default::default()
+    });
+    assert_eq!(state.run(&request(1, SHOW, 3), &guard).status, PASS);
+    assert_eq!(state.strikes.len(), 1, "the miss at test GRACE still records the original health strike");
+    assert_eq!(state.sys.move_read_probe.as_ref().unwrap().see_calls.get(), 4);
 }
 
 fn launch_request(op: u32) -> Request {

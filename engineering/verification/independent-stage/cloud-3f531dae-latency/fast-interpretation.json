@@ -1,0 +1,3983 @@
+{
+  "schema": 1,
+  "head": "3f531dae67108f94d2d56629799c08f347004a4d",
+  "workflowRunID": 46132883604,
+  "jobID": 140941734682,
+  "artifactID": 15258289754,
+  "providerDigest": "sha256:1f14a8e20953584c68fca2fbea41446d804194ae64d61c4144bc11ce50727f22",
+  "rawFileCount": 150,
+  "outcome": {
+    "status": "FAIL",
+    "terminalReason": "realExternalR4ButtonNotAccepted",
+    "pressReceipts": 13,
+    "issuedRealR4Inputs": 12,
+    "physicalDoubleConfirmations": 12,
+    "explicitSelectionSettlements": 1,
+    "sharedQueuedJoinsConfirmed": 1,
+    "splitReached": false,
+    "qualificationGranted": false,
+    "firstTerminalEntryBlock": "The next exact-member AX request was not issued; the matching member button extended outside the retained R4 panel."
+  },
+  "terminalEntryBlock": {
+    "receipt": {
+      "attributeTimeoutMS": 250,
+      "axError": -25200,
+      "directEngineInvocation": false,
+      "discoveryBudgetMS": 6000,
+      "issued": false,
+      "nonce": "fff7a11a-f804-4949-8f6b-77861ebe725e",
+      "panelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "panelFrameRead": -25204,
+      "physicalPointerGesture": false,
+      "prePressRediscoveries": 0,
+      "qualificationGranted": false,
+      "reason": "buttonMissingOrAmbiguous",
+      "schema": 1,
+      "status": "BLOCKED",
+      "tree": {
+        "complete": true,
+        "matchingButtons": 0,
+        "nodes": [
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXWindow",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": 0,
+            "role": "AXScrollArea",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:39396:57",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": 0,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "native-space-window:2109FE05-700B-4D86-963C-08B091DE5E60:12:39396:55",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "actionRead": 0,
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "enabled": true,
+            "enabledRead": 0,
+            "frame": [
+              980,
+              141,
+              67,
+              54
+            ],
+            "frameRead": 0,
+            "identifier": "native-space-window:2109FE05-700B-4D86-963C-08B091DE5E60:12:39399:58",
+            "identifierRead": 0,
+            "insidePanel": false,
+            "ownerMatches": true,
+            "ownerRead": 0,
+            "positionRead": 0,
+            "pressSupported": true,
+            "role": "AXButton",
+            "roleRead": 0,
+            "sameRetainedPanel": true,
+            "sizeRead": 0,
+            "windowMatches": true,
+            "windowRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "stage-group-select:C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          }
+        ],
+        "visited": 9
+      },
+      "uptime": 1470.57523775,
+      "windowListRead": 0,
+      "sourcePath": "independent-runtime/runtime/product/r4-press-f86d2e5f-ed9f-435d-b514-87f04d2f6ed4.result.json"
+    },
+    "requestedIdentifiers": [
+      "current-desktop-window:39399:58",
+      "native-space-window:2109FE05-700B-4D86-963C-08B091DE5E60:12:39399:58"
+    ],
+    "targetButton": {
+      "actionRead": 0,
+      "batchFieldCount": 6,
+      "batchRead": 0,
+      "enabled": true,
+      "enabledRead": 0,
+      "frame": [
+        980,
+        141,
+        67,
+        54
+      ],
+      "frameRead": 0,
+      "identifier": "native-space-window:2109FE05-700B-4D86-963C-08B091DE5E60:12:39399:58",
+      "identifierRead": 0,
+      "insidePanel": false,
+      "ownerMatches": true,
+      "ownerRead": 0,
+      "positionRead": 0,
+      "pressSupported": true,
+      "role": "AXButton",
+      "roleRead": 0,
+      "sameRetainedPanel": true,
+      "sizeRead": 0,
+      "windowMatches": true,
+      "windowRead": 0
+    },
+    "panelRight": 1024,
+    "targetRight": 1047,
+    "overflowPixels": 23,
+    "sourceScreenshot": "independent-runtime/runtime/product/r4-12.png",
+    "visualObservation": "The second member preview in the top combined-group card is clipped at the right edge.",
+    "limit": "The retained tree and rectangle explain the discovery rejection; the final panelFrameRead also reports -25204. No press was issued and no native member-selection failure can be inferred."
+  },
+  "milestones": {
+    "lastSingletonSettlement": {
+      "exactMember": true,
+      "group": "C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+      "navigationIdle": true,
+      "navigationIssue": "none",
+      "newSelection": true,
+      "originalDeadlineUptime": 1451.0243123333335,
+      "phase": "R4SelectionSettled",
+      "pressToSettlementMS": 2749.4427083333903,
+      "sameOwnershipEpoch": true,
+      "sameSelection": true,
+      "selectedMember": "41932C9F-1484-4067-B668-5030E7DF4C67",
+      "selection": "21FEC52C-4ACB-40E1-A5A8-E6957F9F1E93",
+      "step": "singletonCycle/9",
+      "uptime": 1445.7738683333334,
+      "verifiedActive": true,
+      "window": 55
+    },
+    "sharedJoin": {
+      "entry": "IndependentStageGroupEditing.enqueue: production context-menu handler and navigation queue",
+      "group": "C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+      "observations": [
+        {
+          "readEnd": 1448.4331752083335,
+          "readStart": 1448.4306594166667,
+          "received": 1448.4564715833335,
+          "uptime": 1448.4564715833335,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": false,
+              "number": 57,
+              "onScreen": false,
+              "pid": 39396,
+              "space": 46,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1448.69790575,
+          "readStart": 1448.681721375,
+          "received": 1448.7308760833334,
+          "uptime": 1448.7308760833334,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": false,
+              "number": 57,
+              "onScreen": false,
+              "pid": 39396,
+              "space": 46,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ],
+      "phase": "crossAppJoin",
+      "pointerGestureClaimed": false,
+      "uptime": 1448.73123925
+    },
+    "lastPhysicalConfirmation": {
+      "observations": [
+        {
+          "readEnd": 1463.4333425416667,
+          "readStart": 1463.428879625,
+          "received": 1463.433410375,
+          "uptime": 1463.433410375,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": false,
+              "number": 57,
+              "onScreen": false,
+              "pid": 39396,
+              "space": 49,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1463.5484471250002,
+          "readStart": 1463.5439999166667,
+          "received": 1463.6167757916667,
+          "uptime": 1463.6167757916667,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": false,
+              "number": 57,
+              "onScreen": false,
+              "pid": 39396,
+              "space": 49,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ],
+      "phase": "R4SwitchConfirmed",
+      "pressToDoubleReadMS": 6108.213666666643,
+      "step": "restoreCombinedGroup",
+      "uptime": 1463.6171249166669,
+      "window": 55
+    },
+    "lastUserSelectionActivityEnd": {
+      "completionHolds": 0,
+      "event": "independentStageProduct",
+      "job": "587F61E6-D8C9-47B0-AB73-57F20962163A",
+      "phase": "navigation-user-activity-end",
+      "uptime": 1465.8599067083335,
+      "sourceLine": 4440,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "persistedGroupsAfterCleanup": {
+      "displays": [
+        {
+          "groups": [
+            {
+              "id": "C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+              "members": [
+                {
+                  "id": "41932C9F-1484-4067-B668-5030E7DF4C67",
+                  "windowHint": {
+                    "birth": 1795860089923854,
+                    "number": 55,
+                    "pid": 39396
+                  },
+                  "layout": {
+                    "x": 0.1171875,
+                    "height": 0.2974963181148748,
+                    "width": 0.244140625,
+                    "y": 0.5228276877761414
+                  }
+                },
+                {
+                  "id": "6BFD44B8-EA9D-4C12-AC67-62EB578556A3",
+                  "windowHint": {
+                    "birth": 1795860090954063,
+                    "number": 58,
+                    "pid": 39399
+                  },
+                  "layout": {
+                    "x": 0.6640625,
+                    "height": 0.2974963181148748,
+                    "width": 0.244140625,
+                    "y": 0.5228276877761414
+                  }
+                }
+              ],
+              "nativeSpace": "07919495-4770-2F69-8F5C-78A8CE9B87C4",
+              "selectedMember": "41932C9F-1484-4067-B668-5030E7DF4C67"
+            },
+            {
+              "id": "59AD7AE3-1846-4CA9-81BD-42220CDED110",
+              "members": [
+                {
+                  "id": "880C1DAC-C742-484D-BAD3-E87FBA540592",
+                  "windowHint": {
+                    "birth": 1795860089923854,
+                    "number": 57,
+                    "pid": 39396
+                  },
+                  "layout": {
+                    "x": 0.390625,
+                    "height": 0.2974963181148748,
+                    "width": 0.244140625,
+                    "y": 0.5228276877761414
+                  }
+                }
+              ],
+              "nativeSpace": "07919495-4770-2F69-8F5C-78A8CE9B87C4"
+            }
+          ],
+          "id": "2109FE05-700B-4D86-963C-08B091DE5E60"
+        }
+      ],
+      "version": 2
+    },
+    "limit": "Physical confirmation may precede the remaining full post-reads and transaction completion. RestoreCombinedGroup has no explicit R4SelectionSettled receipt."
+  },
+  "sharedEdit": {
+    "submit": {
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "needsInitialObservation": false,
+      "pending": 0,
+      "phase": "navigation-submit",
+      "running": false,
+      "selection": false,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "uptime": 1445.7740426666667,
+      "sourceLine": 3199,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "dequeue": {
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "epoch": "23D662DC-578A-4ACE-9737-ECF60F56464B",
+      "event": "independentStageProduct",
+      "job": "6A3F5660-467C-4E21-8BA6-FD3559CFEC93",
+      "needsInitialObservation": false,
+      "phase": "navigation-dequeue",
+      "sameEpoch": true,
+      "stage": true,
+      "stageOwnsDispatch": true,
+      "taskPriority": 25,
+      "uptime": 1445.7753579166667,
+      "userActivity": true,
+      "sourceLine": 3202,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "systemConfirmation": {
+      "confirmed": true,
+      "currentSelection": true,
+      "dispatchAvailable": true,
+      "event": "independentStageProduct",
+      "phase": "navigation-system-confirmation",
+      "sameEpoch": true,
+      "uptime": 1445.819193125,
+      "sourceLine": 3235,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "activityEnd": {
+      "completionHolds": 1,
+      "event": "independentStageProduct",
+      "job": "6A3F5660-467C-4E21-8BA6-FD3559CFEC93",
+      "phase": "navigation-user-activity-end",
+      "uptime": 1448.3474605000001,
+      "sourceLine": 3506,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "job": "6A3F5660-467C-4E21-8BA6-FD3559CFEC93",
+    "inputType": "production handler, pointerGestureClaimed=false",
+    "wholeNavigationLaneHeldForEdit": false,
+    "initialObservationOptIn": false,
+    "submitToActivityEndMS": 2573.417833333451,
+    "submitToExternalJoinConfirmationMS": 2957.1965833333707,
+    "proof": "Acceptance calls the same enqueue helper as the UI and awaits ticket.value before its unchanged directory guard and eight-second external readback; the successful crossAppJoin event and both physical reads occur afterward.",
+    "limit": "There is no new unconditional timestamp for ticket completion. Activity end is a measured boundary; ticket cancellation is not native recovery completion."
+  },
+  "dock": {
+    "pairedConsumedAndCompleted": 156,
+    "timerPathCount": 2,
+    "callbackPathCount": 154,
+    "allConsumedCurrent": true,
+    "expiryEvents": [],
+    "timerCases": [
+      {
+        "requestID": "344FDC41-198A-4C7E-AFE5-A8BAC0D26F28",
+        "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+        "consumed": {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1417.891982375,
+          "readStart": 1417.8832557916667,
+          "requestID": "344FDC41-198A-4C7E-AFE5-A8BAC0D26F28",
+          "uptime": 1418.4671952083334,
+          "visibility": "ordinary",
+          "sourceLine": 128,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        "callbackCompleted": {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1417.891982375,
+          "readStart": 1417.8832557916667,
+          "requestID": "344FDC41-198A-4C7E-AFE5-A8BAC0D26F28",
+          "requestStart": 1417.881466125,
+          "sameGeneration": true,
+          "taskPriority": 25,
+          "uptime": 1418.503872125,
+          "visibility": "ordinary",
+          "sourceLine": 129,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        "nativeBeginToConsumeMS": 583.9394166666807,
+        "nativeEndToCallbackMS": 611.8897500000458,
+        "interpretation": "Only the timer path consumes before the callback completion trace; the later callback sees currentRequest=false and does not reapply the exact slot."
+      },
+      {
+        "requestID": "9771ADC4-2242-42C3-8615-82786DC61246",
+        "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+        "consumed": {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1471.6694874583334,
+          "readStart": 1471.6686430833333,
+          "requestID": "9771ADC4-2242-42C3-8615-82786DC61246",
+          "uptime": 1471.7660967083334,
+          "visibility": "ordinary",
+          "sourceLine": 4648,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        "callbackCompleted": {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "F591177D-CB64-449B-80E4-A1002464C217",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1471.6694874583334,
+          "readStart": 1471.6686430833333,
+          "requestID": "9771ADC4-2242-42C3-8615-82786DC61246",
+          "requestStart": 1471.4966001666667,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1471.7874604583335,
+          "visibility": "ordinary",
+          "sourceLine": 4650,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        "nativeBeginToConsumeMS": 97.45362500007104,
+        "nativeEndToCallbackMS": 117.97300000012001,
+        "interpretation": "Only the timer path consumes before the callback completion trace; the later callback sees currentRequest=false and does not reapply the exact slot."
+      }
+    ],
+    "limit": "The consumed current field precedes the callback's ownership preference read and is not by itself a final acceptance receipt. Timer ordering, exact request identity, native-begin age, and late currentRequest=false are checked separately."
+  },
+  "inputTimelines": [
+    {
+      "step": "singletonCycle/0",
+      "window": 55,
+      "inputUptime": 1416.71844,
+      "receipt": "independent-runtime/runtime/product/r4-press-893b7284-38d9-4d97-87e9-ac3a09b1235c.result.json",
+      "selectedIdentifier": "current-desktop-window:39396:55",
+      "job": "28C2FBC0-4AAA-4B7F-9A59-058FCF027D07",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 67,
+        "uptime": 1416.7335758333334,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 68,
+        "uptime": 1416.7340328333335,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 15.592833333357703,
+      "physicalConfirmationUptime": 1423.7783490416668,
+      "pressToPhysicalDoubleReadMS": 7059.903416666657,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 472,
+        "uptime": 1424.571060125,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 7852.62012499993,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "completed": false,
+          "event": "spacesHostLifecycle",
+          "lastPhase": "activate",
+          "permittedRejection": {
+            "expectedHostRevision": 0,
+            "phase": "activate",
+            "reason": "current",
+            "snapshotRevision": 4,
+            "snapshotSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+            "window": 55
+          },
+          "phase": "group-choice-exit",
+          "uptime": 1424.57052025,
+          "sourceLine": 470,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1424.570871375,
+          "sourceLine": 471,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/1",
+      "window": 57,
+      "inputUptime": 1424.2368557083335,
+      "receipt": "independent-runtime/runtime/product/r4-press-c2072257-83d6-4fbf-9453-dfe8688dfad4.result.json",
+      "selectedIdentifier": "current-desktop-window:39396:57",
+      "job": "91A99D81-D82D-425E-BF68-D41771ACAAE2",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 429,
+        "uptime": 1424.23938975,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 473,
+        "uptime": 1424.57118325,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 334.3275416666529,
+      "physicalConfirmationUptime": 1426.1843815833333,
+      "pressToPhysicalDoubleReadMS": 1947.5242083333342,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 763,
+        "uptime": 1426.7611610416668,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2524.305333333359,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "completed": false,
+          "event": "independentStageProduct",
+          "member": "880C1DAC-C742-484D-BAD3-E87FBA540592",
+          "phase": "owned-member-selection-exit",
+          "uptime": 1426.760858375,
+          "window": 57,
+          "sourceLine": 761,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1426.76105,
+          "sourceLine": 762,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/2",
+      "window": 58,
+      "inputUptime": 1426.5645605833333,
+      "receipt": "independent-runtime/runtime/product/r4-press-c19310a2-5ca7-441f-92ea-db9fcbcd4276.result.json",
+      "selectedIdentifier": "native-held-group:D71CE38B-E039-451E-8628-FB6F2AE231F0",
+      "job": "86791459-878C-49FD-9ED2-6FBCF0B6B39E",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 724,
+        "uptime": 1426.56578125,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 764,
+        "uptime": 1426.76132275,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 196.76216666675828,
+      "physicalConfirmationUptime": 1428.593908,
+      "pressToPhysicalDoubleReadMS": 2029.334958333493,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1069,
+        "uptime": 1429.231294375,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2666.7337916667293,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1429.2308792083334,
+          "sourceLine": 1068,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/3",
+      "window": 55,
+      "inputUptime": 1428.9458361666668,
+      "receipt": "independent-runtime/runtime/product/r4-press-4f596b87-8645-4434-8785-2d74a4b6ecbc.result.json",
+      "selectedIdentifier": "native-held-group:C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+      "job": "8724D48B-FF29-4CD9-AE36-54390F7A5820",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1031,
+        "uptime": 1428.9466209166667,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1070,
+        "uptime": 1429.231643,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 285.80683333325396,
+      "physicalConfirmationUptime": 1430.9637440000001,
+      "pressToPhysicalDoubleReadMS": 2017.9060833331732,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1383,
+        "uptime": 1431.6634123333333,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2717.576166666504,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1431.663125125,
+          "sourceLine": 1382,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/4",
+      "window": 57,
+      "inputUptime": 1431.3475613750002,
+      "receipt": "independent-runtime/runtime/product/r4-press-62d7007f-ff2e-4798-ad97-29a3ef821e28.result.json",
+      "selectedIdentifier": "native-held-group:59AD7AE3-1846-4CA9-81BD-42220CDED110",
+      "job": "4E8E4739-DC50-4DA4-B82E-9E5C6CA00E6F",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1339,
+        "uptime": 1431.3484466666669,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1384,
+        "uptime": 1431.6635961250001,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 316.0347499999716,
+      "physicalConfirmationUptime": 1433.2260448333334,
+      "pressToPhysicalDoubleReadMS": 1878.4799166664925,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1686,
+        "uptime": 1433.879694875,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2532.1334999998726,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1433.8795233750002,
+          "sourceLine": 1685,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/5",
+      "window": 58,
+      "inputUptime": 1433.6133009583334,
+      "receipt": "independent-runtime/runtime/product/r4-press-58f02116-ffae-48b8-ab0f-0a9e3d01f43f.result.json",
+      "selectedIdentifier": "native-held-group:D71CE38B-E039-451E-8628-FB6F2AE231F0",
+      "job": "1078F6D3-039D-44C7-A385-3DD735702F02",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1643,
+        "uptime": 1433.6149959583333,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1687,
+        "uptime": 1433.8798538333335,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 266.5528750001158,
+      "physicalConfirmationUptime": 1435.4684717500002,
+      "pressToPhysicalDoubleReadMS": 1855.1652500000273,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1995,
+        "uptime": 1436.088737625,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2475.43666666661,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1436.0884360416667,
+          "sourceLine": 1994,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/6",
+      "window": 55,
+      "inputUptime": 1435.7973007916667,
+      "receipt": "independent-runtime/runtime/product/r4-press-53c29432-bcb2-4eaa-ba95-8c9f361cc567.result.json",
+      "selectedIdentifier": "native-held-group:C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+      "job": "FE507BB2-9D1F-471C-BDED-3F0D21813299",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1951,
+        "uptime": 1435.7980544583334,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1996,
+        "uptime": 1436.0890319166667,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 291.73112500006937,
+      "physicalConfirmationUptime": 1437.8877540416668,
+      "pressToPhysicalDoubleReadMS": 2090.4464166667367,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2298,
+        "uptime": 1438.5138718750002,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2716.5710833335197,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1438.5136688750001,
+          "sourceLine": 2297,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/7",
+      "window": 57,
+      "inputUptime": 1438.2455489166668,
+      "receipt": "independent-runtime/runtime/product/r4-press-8f2ee2ac-d105-4c2f-8918-4803b917f796.result.json",
+      "selectedIdentifier": "native-held-group:59AD7AE3-1846-4CA9-81BD-42220CDED110",
+      "job": "8042D19F-177C-403B-925A-D5CCFD42BF56",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2255,
+        "uptime": 1438.2466825416668,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2299,
+        "uptime": 1438.5140525000002,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 268.50358333331314,
+      "physicalConfirmationUptime": 1440.1961698750001,
+      "pressToPhysicalDoubleReadMS": 1950.618083333211,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2596,
+        "uptime": 1440.8322221666667,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2586.673249999876,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1440.8318760416666,
+          "sourceLine": 2595,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/8",
+      "window": 58,
+      "inputUptime": 1440.5665976666667,
+      "receipt": "independent-runtime/runtime/product/r4-press-2a605751-6d32-410c-aeec-d1c3bc5e9dfa.result.json",
+      "selectedIdentifier": "native-held-group:D71CE38B-E039-451E-8628-FB6F2AE231F0",
+      "job": "A94CF486-9566-42CA-BC96-96F4DAF7F817",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2557,
+        "uptime": 1440.5676135,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2597,
+        "uptime": 1440.8324760833334,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 265.8784166667374,
+      "physicalConfirmationUptime": 1442.608207125,
+      "pressToPhysicalDoubleReadMS": 2041.6070416667935,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2914,
+        "uptime": 1443.3818877916667,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2815.290125000047,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1443.381711875,
+          "sourceLine": 2913,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "singletonCycle/9",
+      "window": 55,
+      "inputUptime": 1443.0243123333335,
+      "receipt": "independent-runtime/runtime/product/r4-press-e6e33dd3-5f65-4b36-b414-71b420654d6e.result.json",
+      "selectedIdentifier": "native-held-group:C1C5A706-BE9D-4B2C-918C-734337DE7A92",
+      "job": "21FEC52C-4ACB-40E1-A5A8-E6957F9F1E93",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2869,
+        "uptime": 1443.0249159583334,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2915,
+        "uptime": 1443.3820391250001,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 357.7267916666642,
+      "physicalConfirmationUptime": 1445.1250134166667,
+      "pressToPhysicalDoubleReadMS": 2100.698833333354,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3196,
+        "uptime": 1445.7457478333333,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 2721.4354999998704,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [],
+      "supersededPrefix": false
+    },
+    {
+      "step": "leaveCombinedGroup",
+      "window": 57,
+      "inputUptime": 1450.9122804166668,
+      "receipt": "independent-runtime/runtime/product/r4-press-f7a168f5-d16e-4ad3-b944-4665e9d53c44.result.json",
+      "selectedIdentifier": "current-desktop-window:39396:57",
+      "job": "1609B689-08EE-4A57-B8F0-DB2FBF58FB0A",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3611,
+        "uptime": 1450.9439659583334,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3614,
+        "uptime": 1450.9451680833333,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 32.887666666510995,
+      "physicalConfirmationUptime": 1456.1289559166667,
+      "pressToPhysicalDoubleReadMS": 5216.669249999995,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4021,
+        "uptime": 1458.1811290416667,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 7268.848624999919,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "completed": false,
+          "event": "spacesHostLifecycle",
+          "lastPhase": "activate",
+          "permittedRejection": {
+            "expectedHostRevision": 2,
+            "phase": "activate",
+            "reason": "current",
+            "snapshotRevision": 385,
+            "snapshotSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+            "window": 57
+          },
+          "phase": "group-choice-exit",
+          "uptime": 1458.1807790833334,
+          "sourceLine": 4019,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        },
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1458.1810065833333,
+          "sourceLine": 4020,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": true
+    },
+    {
+      "step": "restoreCombinedGroup",
+      "window": 55,
+      "inputUptime": 1457.5089077083335,
+      "receipt": "independent-runtime/runtime/product/r4-press-a135d0c5-f8f9-4484-b4cb-aca7405dc8b0.result.json",
+      "selectedIdentifier": "current-desktop-window:39396:55",
+      "job": "587F61E6-D8C9-47B0-AB73-57F20962163A",
+      "activityBegin": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3976,
+        "uptime": 1457.51072075,
+        "phase": "navigation-user-activity-begin"
+      },
+      "dequeue": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4022,
+        "uptime": 1458.1812880833334,
+        "phase": "navigation-dequeue"
+      },
+      "taskPriority": 25,
+      "inputToDequeueMS": 672.3803749998751,
+      "physicalConfirmationUptime": 1463.6171249166669,
+      "pressToPhysicalDoubleReadMS": 6108.213666666643,
+      "activityEnd": {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4440,
+        "uptime": 1465.8599067083335,
+        "phase": "navigation-user-activity-end"
+      },
+      "pressToActivityEndMS": 8350.999000000002,
+      "activityEndIsNotAnIndependentCommitReceipt": true,
+      "productTerminalTraces": [
+        {
+          "completed": true,
+          "event": "independentStageProduct",
+          "member": "41932C9F-1484-4067-B668-5030E7DF4C67",
+          "phase": "owned-member-selection-exit",
+          "uptime": 1465.859653875,
+          "window": 55,
+          "sourceLine": 4439,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log"
+        }
+      ],
+      "supersededPrefix": false
+    }
+  ],
+  "latency": {
+    "firstSingletonMS": 7059.903416666657,
+    "continuingSingletons1Through9": {
+      "count": 9,
+      "medianMS": 2017.9060833331732,
+      "minMS": 1855.1652500000273,
+      "maxMS": 2100.698833333354
+    },
+    "postJoinLeaveMS": 5216.669249999995,
+    "postJoinRestoreMS": 6108.213666666643,
+    "productReportedAllTwelve": {
+      "max": 7059.903416666657,
+      "measurement": "R4 press to two matching physical readbacks",
+      "p50": 2029.334958333493,
+      "p95": 7059.903416666657,
+      "samples": 12
+    },
+    "preTask": {
+      "sessionAvailabilityMS": {
+        "maxMS": 144.3168749999586,
+        "medianMS": 0.18585416660243936,
+        "requestRevision": 2,
+        "creatorKind": "observer",
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 45,
+          "uptime": 1416.1584542083335,
+          "phase": "desktop-read-task-created"
+        }
+      },
+      "auditCreationMS": {
+        "maxMS": 0.008499999921696144,
+        "medianMS": 0.0010416667919344036,
+        "requestRevision": 45,
+        "creatorKind": "metadata-owner",
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 579,
+          "uptime": 1425.1771465416668,
+          "phase": "desktop-read-task-created"
+        }
+      },
+      "requestConstructionMS": {
+        "maxMS": 0.042291666659366456,
+        "medianMS": 0.0010000001111620804,
+        "requestRevision": 356,
+        "creatorKind": "observer",
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3236,
+          "uptime": 1445.8261993333335,
+          "phase": "desktop-read-task-created"
+        }
+      },
+      "preTaskCreationMS": {
+        "maxMS": 144.34591666667984,
+        "medianMS": 0.2028750000135915,
+        "requestRevision": 2,
+        "creatorKind": "observer",
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 45,
+          "uptime": 1416.1584542083335,
+          "phase": "desktop-read-task-created"
+        }
+      }
+    },
+    "read": {
+      "durationMS": {
+        "maxMS": 1134.8233749999963,
+        "medianMS": 27.15508333312755,
+        "requestRevision": 4,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 83,
+          "uptime": 1417.881094375,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "taskQueueMS": {
+        "maxMS": 243.77591666666376,
+        "medianMS": 0.3229166666187666,
+        "requestRevision": 467,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 4649,
+          "uptime": 1471.7872079583335,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "readerAwaitMS": {
+        "maxMS": 850.0239583333951,
+        "medianMS": 24.78008333332582,
+        "requestRevision": 4,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 83,
+          "uptime": 1417.881094375,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "nativeDurationMS": {
+        "maxMS": 834.1365416667941,
+        "medianMS": 22.944958333255272,
+        "requestRevision": 4,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 83,
+          "uptime": 1417.881094375,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "nativeEndToReturnMS": {
+        "maxMS": 165.49091666661297,
+        "medianMS": 0.8394999999836728,
+        "requestRevision": 467,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 4649,
+          "uptime": 1471.7872079583335,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "groupProjectionMS": {
+        "maxMS": 501.4859583334328,
+        "medianMS": 0.246291666826437,
+        "requestRevision": 382,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3555,
+          "uptime": 1449.6188119166668,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "observeDirectoryMS": {
+        "maxMS": 2.1516249998967396,
+        "medianMS": 0.02670833328011213,
+        "requestRevision": 1,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 14,
+          "uptime": 1415.21002225,
+          "phase": "desktop-read-task-exit"
+        }
+      },
+      "remainingProcessingMS": {
+        "maxMS": 268.7170416666049,
+        "medianMS": 1.6487083335050556,
+        "requestRevision": 4,
+        "creatorKind": null,
+        "source": {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 83,
+          "uptime": 1417.881094375,
+          "phase": "desktop-read-task-exit"
+        }
+      }
+    },
+    "longCompleteWitnesses": [
+      {
+        "bindingMS": 951.4988333332894,
+        "closingDirectoryMS": 365.74208333331626,
+        "closingRosterMetrics": {
+          "candidateCount": 5,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 40.580125000133194,
+          "roleReadTotalMS": 58.59033333354091,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 2253.3181666667588,
+        "event": "independentStageProduct",
+        "focusLocal": false,
+        "focusPID": 0,
+        "focusWindow": 0,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 597.2487500000625,
+        "openingRosterMetrics": {
+          "candidateCount": 5,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 0,
+          "roleReadCount": 5,
+          "roleReadMaxMS": 90.0982916666635,
+          "roleReadTotalMS": 348.94074999988334,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 338.8324166667189,
+        "roster": 3,
+        "sequence": 1,
+        "unchangedPermitTiming": {
+          "count": 32,
+          "maxMS": 55.49008333332495,
+          "nestedInPhaseDurations": true,
+          "totalMS": 260.00779166565735
+        },
+        "uptime": 1420.716471375,
+        "windows": 3,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 173
+      },
+      {
+        "bindingMS": 11.19491666668182,
+        "closingDirectoryMS": 57.14791666673591,
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 1116.6487916666483,
+        "event": "independentStageProduct",
+        "focusLocal": true,
+        "focusPID": 39396,
+        "focusWindow": 57,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 120.70650000009664,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 927.6044166665542,
+        "roster": 1,
+        "sequence": 11,
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 10.388375000047745,
+          "nestedInPhaseDurations": true,
+          "totalMS": 33.91133333343532
+        },
+        "uptime": 1457.56417125,
+        "windows": 3,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3979
+      },
+      {
+        "bindingMS": 517.4537499999587,
+        "closingDirectoryMS": 234.98387499989803,
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 21.56295833333388,
+          "roleReadTotalMS": 40.0107499999649,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 1103.0082083334491,
+        "event": "independentStageProduct",
+        "focusLocal": true,
+        "focusPID": 39396,
+        "focusWindow": 55,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 150.61270833348317,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 198.4875833334172,
+          "roleReadTotalMS": 333.8176250001652,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 199.96820833330275,
+        "roster": 2,
+        "sequence": 27,
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 91.0159999998541,
+          "nestedInPhaseDurations": true,
+          "totalMS": 244.60366666630762
+        },
+        "uptime": 1464.5676841666668,
+        "windows": 3,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4370
+      }
+    ],
+    "jobLayerBreakdowns": [
+      {
+        "step": "singletonCycle/0",
+        "job": "28C2FBC0-4AAA-4B7F-9A59-058FCF027D07",
+        "inputToDequeueMS": 15.592833333357703,
+        "throughPhysicalConfirmation": {
+          "startUptime": 1416.7340328333335,
+          "endUptime": 1423.7783490416668,
+          "durationMS": 7044.316208333385,
+          "intersectingWitnessCount": 10,
+          "witnessUnionMS": 3317.649583333605,
+          "intersectingWorkerRequests": 15,
+          "workerUnionMS": 1610.3454583339953,
+          "workerOutsideWitnessMS": 1610.3454583339953,
+          "metadataReservedToDrainedUnionMS": 11.292333333130955,
+          "metadataDrainOutsideOtherLayersMS": 11.292333333130955,
+          "remainingUnattributedMS": 2105.0288333326534,
+          "witnessSources": [
+            {
+              "sourceLine": 173,
+              "uptime": 1420.716471375,
+              "sequence": 1,
+              "durationMS": 2253.3181666667588,
+              "bindingMS": 951.4988333332894,
+              "openingDirectoryMS": 597.2487500000625,
+              "physicalWindowsMS": 338.8324166667189,
+              "closingDirectoryMS": 365.74208333331626
+            },
+            {
+              "sourceLine": 215,
+              "uptime": 1422.2668183750002,
+              "sequence": 2,
+              "durationMS": 222.16054166665344,
+              "bindingMS": 3.104833333281931,
+              "openingDirectoryMS": 68.55441666675688,
+              "physicalWindowsMS": 98.3848333332844,
+              "closingDirectoryMS": 52.12170833328855
+            },
+            {
+              "sourceLine": 269,
+              "uptime": 1422.6899109583335,
+              "sequence": 3,
+              "durationMS": 261.3823333333585,
+              "bindingMS": 1.6554583332890616,
+              "openingDirectoryMS": 98.56366666667782,
+              "physicalWindowsMS": 87.63695833340535,
+              "closingDirectoryMS": 73.53162499998689
+            },
+            {
+              "sourceLine": 287,
+              "uptime": 1423.0532784166667,
+              "sequence": 4,
+              "durationMS": 107.84591666674714,
+              "bindingMS": 1.294458333404691,
+              "openingDirectoryMS": 31.820041666605903,
+              "physicalWindowsMS": 37.053750000040964,
+              "closingDirectoryMS": 37.685000000010405
+            },
+            {
+              "sourceLine": 299,
+              "uptime": 1423.1540497083333,
+              "sequence": 5,
+              "durationMS": 96.590416666686,
+              "bindingMS": 4.179541666644582,
+              "openingDirectoryMS": 31.564125000159038,
+              "physicalWindowsMS": 34.01612499988005,
+              "closingDirectoryMS": 26.834333333454197
+            },
+            {
+              "sourceLine": 315,
+              "uptime": 1423.2369422083334,
+              "sequence": 6,
+              "durationMS": 71.14350000006198,
+              "bindingMS": 1.242625000031694,
+              "openingDirectoryMS": 20.77424999993127,
+              "physicalWindowsMS": 26.87895833332732,
+              "closingDirectoryMS": 22.250333333431627
+            },
+            {
+              "sourceLine": 336,
+              "uptime": 1423.4569996666667,
+              "sequence": 7,
+              "durationMS": 113.043208333238,
+              "bindingMS": 9.35854166664285,
+              "openingDirectoryMS": 49.77770833329487,
+              "physicalWindowsMS": 32.375708333347575,
+              "closingDirectoryMS": 21.53366666675538
+            },
+            {
+              "sourceLine": 345,
+              "uptime": 1423.5400086666668,
+              "sequence": 8,
+              "durationMS": 81.13737500002571,
+              "bindingMS": 2.437124999914886,
+              "openingDirectoryMS": 19.82420833337528,
+              "physicalWindowsMS": 34.835708333503135,
+              "closingDirectoryMS": 24.043624999876556
+            },
+            {
+              "sourceLine": 361,
+              "uptime": 1423.6678430000002,
+              "sequence": 9,
+              "durationMS": 93.87987499985684,
+              "bindingMS": 1.1308333334909548,
+              "openingDirectoryMS": 21.594124999865016,
+              "physicalWindowsMS": 41.52354166649275,
+              "closingDirectoryMS": 29.63391666685311
+            },
+            {
+              "sourceLine": 382,
+              "uptime": 1423.866138,
+              "sequence": 10,
+              "durationMS": 104.93720833346742,
+              "bindingMS": 7.1134583333787305,
+              "openingDirectoryMS": 49.08262499998273,
+              "physicalWindowsMS": 26.787416666593344,
+              "closingDirectoryMS": 21.956166666768695
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 194,
+              "operation": 8,
+              "requestStartUptime": 1420.7530259583334,
+              "uptime": 1422.035073125,
+              "durationMS": 1281.7439166667555,
+              "maxPollQueueMS": 0.08316666662722128
+            },
+            {
+              "sourceLine": 198,
+              "operation": 6,
+              "requestStartUptime": 1422.0401132916668,
+              "uptime": 1422.0414734583335,
+              "durationMS": 1.265916666625344,
+              "maxPollQueueMS": 0.00425000007453491
+            },
+            {
+              "sourceLine": 224,
+              "operation": 2,
+              "requestStartUptime": 1422.2749154583335,
+              "uptime": 1422.2850447916667,
+              "durationMS": 10.01220833336447,
+              "maxPollQueueMS": 0.008458333468297496
+            },
+            {
+              "sourceLine": 228,
+              "operation": 2,
+              "requestStartUptime": 1422.2907665416667,
+              "uptime": 1422.3030170833333,
+              "durationMS": 12.104458333396906,
+              "maxPollQueueMS": 0.012374999869280146
+            },
+            {
+              "sourceLine": 232,
+              "operation": 2,
+              "requestStartUptime": 1422.310974,
+              "uptime": 1422.3271899166668,
+              "durationMS": 16.10683333342422,
+              "maxPollQueueMS": 0.05420833326752472
+            },
+            {
+              "sourceLine": 236,
+              "operation": 2,
+              "requestStartUptime": 1422.328597125,
+              "uptime": 1422.351801625,
+              "durationMS": 23.074583333482224,
+              "maxPollQueueMS": 0.00991666661320778
+            },
+            {
+              "sourceLine": 240,
+              "operation": 2,
+              "requestStartUptime": 1422.3586147916667,
+              "uptime": 1422.3859666666667,
+              "durationMS": 27.191291666667894,
+              "maxPollQueueMS": 0.03674999993563688
+            },
+            {
+              "sourceLine": 244,
+              "operation": 2,
+              "requestStartUptime": 1422.3914784166668,
+              "uptime": 1422.4092264166668,
+              "durationMS": 17.449749999968844,
+              "maxPollQueueMS": 0.021166666783756227
+            },
+            {
+              "sourceLine": 248,
+              "operation": 6,
+              "requestStartUptime": 1422.4134310833333,
+              "uptime": 1422.4195852500002,
+              "durationMS": 6.044500000143671,
+              "maxPollQueueMS": 0.009958333293980104
+            },
+            {
+              "sourceLine": 306,
+              "operation": 6,
+              "requestStartUptime": 1423.1597465,
+              "uptime": 1423.16484975,
+              "durationMS": 4.997125000045344,
+              "maxPollQueueMS": 0.015333333294620388
+            },
+            {
+              "sourceLine": 319,
+              "operation": 3,
+              "requestStartUptime": 1423.242033875,
+              "uptime": 1423.3121948750002,
+              "durationMS": 69.8922083333855,
+              "maxPollQueueMS": 0.025708333396323724
+            },
+            {
+              "sourceLine": 327,
+              "operation": 2,
+              "requestStartUptime": 1423.313754,
+              "uptime": 1423.342424125,
+              "durationMS": 28.350166666768928,
+              "maxPollQueueMS": 0.016041666640376206
+            },
+            {
+              "sourceLine": 352,
+              "operation": 6,
+              "requestStartUptime": 1423.5488614583335,
+              "uptime": 1423.5726880000002,
+              "durationMS": 23.681666666561796,
+              "maxPollQueueMS": 0.02129166659869952
+            },
+            {
+              "sourceLine": 369,
+              "operation": 3,
+              "requestStartUptime": 1423.6723088333333,
+              "uptime": 1423.7525017083335,
+              "durationMS": 79.90812500020184,
+              "maxPollQueueMS": 0.02504166673134023
+            },
+            {
+              "sourceLine": 373,
+              "operation": 2,
+              "requestStartUptime": 1423.7542274583334,
+              "uptime": 1423.7601574583334,
+              "durationMS": 5.8028749999721185,
+              "maxPollQueueMS": 0.02033333339568344
+            }
+          ]
+        },
+        "throughActivityEnd": {
+          "startUptime": 1416.7340328333335,
+          "endUptime": 1424.571060125,
+          "durationMS": 7837.027291666573,
+          "intersectingWitnessCount": 16,
+          "witnessUnionMS": 4064.5001250004498,
+          "intersectingWorkerRequests": 16,
+          "workerUnionMS": 1624.323500000628,
+          "workerOutsideWitnessMS": 1624.323500000628,
+          "metadataReservedToDrainedUnionMS": 15.777749999642765,
+          "metadataDrainOutsideOtherLayersMS": 15.777749999642765,
+          "remainingUnattributedMS": 2132.425916665852,
+          "witnessSources": [
+            {
+              "sourceLine": 173,
+              "uptime": 1420.716471375,
+              "sequence": 1,
+              "durationMS": 2253.3181666667588,
+              "bindingMS": 951.4988333332894,
+              "openingDirectoryMS": 597.2487500000625,
+              "physicalWindowsMS": 338.8324166667189,
+              "closingDirectoryMS": 365.74208333331626
+            },
+            {
+              "sourceLine": 215,
+              "uptime": 1422.2668183750002,
+              "sequence": 2,
+              "durationMS": 222.16054166665344,
+              "bindingMS": 3.104833333281931,
+              "openingDirectoryMS": 68.55441666675688,
+              "physicalWindowsMS": 98.3848333332844,
+              "closingDirectoryMS": 52.12170833328855
+            },
+            {
+              "sourceLine": 269,
+              "uptime": 1422.6899109583335,
+              "sequence": 3,
+              "durationMS": 261.3823333333585,
+              "bindingMS": 1.6554583332890616,
+              "openingDirectoryMS": 98.56366666667782,
+              "physicalWindowsMS": 87.63695833340535,
+              "closingDirectoryMS": 73.53162499998689
+            },
+            {
+              "sourceLine": 287,
+              "uptime": 1423.0532784166667,
+              "sequence": 4,
+              "durationMS": 107.84591666674714,
+              "bindingMS": 1.294458333404691,
+              "openingDirectoryMS": 31.820041666605903,
+              "physicalWindowsMS": 37.053750000040964,
+              "closingDirectoryMS": 37.685000000010405
+            },
+            {
+              "sourceLine": 299,
+              "uptime": 1423.1540497083333,
+              "sequence": 5,
+              "durationMS": 96.590416666686,
+              "bindingMS": 4.179541666644582,
+              "openingDirectoryMS": 31.564125000159038,
+              "physicalWindowsMS": 34.01612499988005,
+              "closingDirectoryMS": 26.834333333454197
+            },
+            {
+              "sourceLine": 315,
+              "uptime": 1423.2369422083334,
+              "sequence": 6,
+              "durationMS": 71.14350000006198,
+              "bindingMS": 1.242625000031694,
+              "openingDirectoryMS": 20.77424999993127,
+              "physicalWindowsMS": 26.87895833332732,
+              "closingDirectoryMS": 22.250333333431627
+            },
+            {
+              "sourceLine": 336,
+              "uptime": 1423.4569996666667,
+              "sequence": 7,
+              "durationMS": 113.043208333238,
+              "bindingMS": 9.35854166664285,
+              "openingDirectoryMS": 49.77770833329487,
+              "physicalWindowsMS": 32.375708333347575,
+              "closingDirectoryMS": 21.53366666675538
+            },
+            {
+              "sourceLine": 345,
+              "uptime": 1423.5400086666668,
+              "sequence": 8,
+              "durationMS": 81.13737500002571,
+              "bindingMS": 2.437124999914886,
+              "openingDirectoryMS": 19.82420833337528,
+              "physicalWindowsMS": 34.835708333503135,
+              "closingDirectoryMS": 24.043624999876556
+            },
+            {
+              "sourceLine": 361,
+              "uptime": 1423.6678430000002,
+              "sequence": 9,
+              "durationMS": 93.87987499985684,
+              "bindingMS": 1.1308333334909548,
+              "openingDirectoryMS": 21.594124999865016,
+              "physicalWindowsMS": 41.52354166649275,
+              "closingDirectoryMS": 29.63391666685311
+            },
+            {
+              "sourceLine": 382,
+              "uptime": 1423.866138,
+              "sequence": 10,
+              "durationMS": 104.93720833346742,
+              "bindingMS": 7.1134583333787305,
+              "openingDirectoryMS": 49.08262499998273,
+              "physicalWindowsMS": 26.787416666593344,
+              "closingDirectoryMS": 21.956166666768695
+            },
+            {
+              "sourceLine": 391,
+              "uptime": 1423.9586866250002,
+              "sequence": 11,
+              "durationMS": 90.6369583333344,
+              "bindingMS": 2.357749999873704,
+              "openingDirectoryMS": 27.178625000033207,
+              "physicalWindowsMS": 32.208041666763165,
+              "closingDirectoryMS": 28.89620833320805
+            },
+            {
+              "sourceLine": 407,
+              "uptime": 1424.0775164166666,
+              "sequence": 12,
+              "durationMS": 113.22279166688531,
+              "bindingMS": 0.8883333332505572,
+              "openingDirectoryMS": 40.24091666678942,
+              "physicalWindowsMS": 40.5258750001849,
+              "closingDirectoryMS": 31.571791666465288
+            },
+            {
+              "sourceLine": 419,
+              "uptime": 1424.2294674583334,
+              "sequence": 13,
+              "durationMS": 143.3881250000013,
+              "bindingMS": 3.308249999918189,
+              "openingDirectoryMS": 45.075291666762496,
+              "physicalWindowsMS": 59.14195833338454,
+              "closingDirectoryMS": 35.87100000004284
+            },
+            {
+              "sourceLine": 436,
+              "uptime": 1424.336705875,
+              "sequence": 14,
+              "durationMS": 102.36108333333505,
+              "bindingMS": 0.8209583331790782,
+              "openingDirectoryMS": 37.61983333333774,
+              "physicalWindowsMS": 38.63858333352255,
+              "closingDirectoryMS": 25.284749999855194
+            },
+            {
+              "sourceLine": 452,
+              "uptime": 1424.4554400833333,
+              "sequence": 15,
+              "durationMS": 116.54733333330114,
+              "bindingMS": 1.9469583332920593,
+              "openingDirectoryMS": 39.02091666668639,
+              "physicalWindowsMS": 43.243500000016866,
+              "closingDirectoryMS": 32.33862499996576
+            },
+            {
+              "sourceLine": 464,
+              "uptime": 1424.5507600416668,
+              "sequence": 16,
+              "durationMS": 92.90529166673878,
+              "bindingMS": 1.2910000000374566,
+              "openingDirectoryMS": 26.962958333342613,
+              "physicalWindowsMS": 44.9604166667541,
+              "closingDirectoryMS": 19.69395833316412
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 194,
+              "operation": 8,
+              "requestStartUptime": 1420.7530259583334,
+              "uptime": 1422.035073125,
+              "durationMS": 1281.7439166667555,
+              "maxPollQueueMS": 0.08316666662722128
+            },
+            {
+              "sourceLine": 198,
+              "operation": 6,
+              "requestStartUptime": 1422.0401132916668,
+              "uptime": 1422.0414734583335,
+              "durationMS": 1.265916666625344,
+              "maxPollQueueMS": 0.00425000007453491
+            },
+            {
+              "sourceLine": 224,
+              "operation": 2,
+              "requestStartUptime": 1422.2749154583335,
+              "uptime": 1422.2850447916667,
+              "durationMS": 10.01220833336447,
+              "maxPollQueueMS": 0.008458333468297496
+            },
+            {
+              "sourceLine": 228,
+              "operation": 2,
+              "requestStartUptime": 1422.2907665416667,
+              "uptime": 1422.3030170833333,
+              "durationMS": 12.104458333396906,
+              "maxPollQueueMS": 0.012374999869280146
+            },
+            {
+              "sourceLine": 232,
+              "operation": 2,
+              "requestStartUptime": 1422.310974,
+              "uptime": 1422.3271899166668,
+              "durationMS": 16.10683333342422,
+              "maxPollQueueMS": 0.05420833326752472
+            },
+            {
+              "sourceLine": 236,
+              "operation": 2,
+              "requestStartUptime": 1422.328597125,
+              "uptime": 1422.351801625,
+              "durationMS": 23.074583333482224,
+              "maxPollQueueMS": 0.00991666661320778
+            },
+            {
+              "sourceLine": 240,
+              "operation": 2,
+              "requestStartUptime": 1422.3586147916667,
+              "uptime": 1422.3859666666667,
+              "durationMS": 27.191291666667894,
+              "maxPollQueueMS": 0.03674999993563688
+            },
+            {
+              "sourceLine": 244,
+              "operation": 2,
+              "requestStartUptime": 1422.3914784166668,
+              "uptime": 1422.4092264166668,
+              "durationMS": 17.449749999968844,
+              "maxPollQueueMS": 0.021166666783756227
+            },
+            {
+              "sourceLine": 248,
+              "operation": 6,
+              "requestStartUptime": 1422.4134310833333,
+              "uptime": 1422.4195852500002,
+              "durationMS": 6.044500000143671,
+              "maxPollQueueMS": 0.009958333293980104
+            },
+            {
+              "sourceLine": 306,
+              "operation": 6,
+              "requestStartUptime": 1423.1597465,
+              "uptime": 1423.16484975,
+              "durationMS": 4.997125000045344,
+              "maxPollQueueMS": 0.015333333294620388
+            },
+            {
+              "sourceLine": 319,
+              "operation": 3,
+              "requestStartUptime": 1423.242033875,
+              "uptime": 1423.3121948750002,
+              "durationMS": 69.8922083333855,
+              "maxPollQueueMS": 0.025708333396323724
+            },
+            {
+              "sourceLine": 327,
+              "operation": 2,
+              "requestStartUptime": 1423.313754,
+              "uptime": 1423.342424125,
+              "durationMS": 28.350166666768928,
+              "maxPollQueueMS": 0.016041666640376206
+            },
+            {
+              "sourceLine": 352,
+              "operation": 6,
+              "requestStartUptime": 1423.5488614583335,
+              "uptime": 1423.5726880000002,
+              "durationMS": 23.681666666561796,
+              "maxPollQueueMS": 0.02129166659869952
+            },
+            {
+              "sourceLine": 369,
+              "operation": 3,
+              "requestStartUptime": 1423.6723088333333,
+              "uptime": 1423.7525017083335,
+              "durationMS": 79.90812500020184,
+              "maxPollQueueMS": 0.02504166673134023
+            },
+            {
+              "sourceLine": 373,
+              "operation": 2,
+              "requestStartUptime": 1423.7542274583334,
+              "uptime": 1423.7601574583334,
+              "durationMS": 5.8028749999721185,
+              "maxPollQueueMS": 0.02033333339568344
+            },
+            {
+              "sourceLine": 469,
+              "operation": 6,
+              "requestStartUptime": 1424.5521463333334,
+              "uptime": 1424.566124375,
+              "durationMS": 13.83079166657808,
+              "maxPollQueueMS": 0.016749999986132025
+            }
+          ]
+        },
+        "method": "Intervals are clipped to the indicated boundary and unioned, with overlap removed between layers. Witness start is reconstructed from its monotonic duration. Reserve-to-drain is used directly, not the entire scope duration, which can include queue time. Remaining time is not assigned to CPU or scheduler without evidence."
+      },
+      {
+        "step": "leaveCombinedGroup",
+        "job": "1609B689-08EE-4A57-B8F0-DB2FBF58FB0A",
+        "inputToDequeueMS": 32.887666666510995,
+        "throughPhysicalConfirmation": {
+          "startUptime": 1450.9451680833333,
+          "endUptime": 1456.1289559166667,
+          "durationMS": 5183.7878333333265,
+          "intersectingWitnessCount": 10,
+          "witnessUnionMS": 3363.950583333235,
+          "intersectingWorkerRequests": 15,
+          "workerUnionMS": 1117.0064583336625,
+          "workerOutsideWitnessMS": 1117.0064583336625,
+          "metadataReservedToDrainedUnionMS": 106.72891666717987,
+          "metadataDrainOutsideOtherLayersMS": 106.72891666717987,
+          "remainingUnattributedMS": 596.101874999249,
+          "witnessSources": [
+            {
+              "sourceLine": 3686,
+              "uptime": 1451.9136981666668,
+              "sequence": 1,
+              "durationMS": 748.2223749998411,
+              "bindingMS": 317.54124999997657,
+              "openingDirectoryMS": 182.8080416667035,
+              "physicalWindowsMS": 113.03883333334852,
+              "closingDirectoryMS": 134.83741666664173
+            },
+            {
+              "sourceLine": 3762,
+              "uptime": 1452.8444798333335,
+              "sequence": 2,
+              "durationMS": 314.63125000004766,
+              "bindingMS": 48.718458333269155,
+              "openingDirectoryMS": 86.71133333336911,
+              "physicalWindowsMS": 82.74429166658592,
+              "closingDirectoryMS": 96.46083333336719
+            },
+            {
+              "sourceLine": 3822,
+              "uptime": 1453.4820110416667,
+              "sequence": 3,
+              "durationMS": 319.4739999999001,
+              "bindingMS": 32.68483333340555,
+              "openingDirectoryMS": 55.217624999841064,
+              "physicalWindowsMS": 79.73741666660317,
+              "closingDirectoryMS": 151.83745833337525
+            },
+            {
+              "sourceLine": 3838,
+              "uptime": 1454.1340440000001,
+              "sequence": 4,
+              "durationMS": 401.07704166666736,
+              "bindingMS": 62.76083333341376,
+              "openingDirectoryMS": 101.54799999986608,
+              "physicalWindowsMS": 102.0093749998523,
+              "closingDirectoryMS": 134.76166666669087
+            },
+            {
+              "sourceLine": 3854,
+              "uptime": 1454.4488296666668,
+              "sequence": 5,
+              "durationMS": 299.7370000000501,
+              "bindingMS": 42.05579166659845,
+              "openingDirectoryMS": 87.31775000001107,
+              "physicalWindowsMS": 55.2359166667884,
+              "closingDirectoryMS": 115.12983333318516
+            },
+            {
+              "sourceLine": 3874,
+              "uptime": 1454.7301645,
+              "sequence": 6,
+              "durationMS": 249.32287500018901,
+              "bindingMS": 34.5660416667215,
+              "openingDirectoryMS": 51.48937500007378,
+              "physicalWindowsMS": 66.51037500000712,
+              "closingDirectoryMS": 96.76116666673806
+            },
+            {
+              "sourceLine": 3899,
+              "uptime": 1455.4485459166667,
+              "sequence": 7,
+              "durationMS": 571.8475833332377,
+              "bindingMS": 67.31095833333711,
+              "openingDirectoryMS": 333.07395833321607,
+              "physicalWindowsMS": 58.87008333343147,
+              "closingDirectoryMS": 112.59520833323222
+            },
+            {
+              "sourceLine": 3912,
+              "uptime": 1455.6804586666667,
+              "sequence": 8,
+              "durationMS": 230.0324999998793,
+              "bindingMS": 16.822541666670077,
+              "openingDirectoryMS": 62.672958333223505,
+              "physicalWindowsMS": 65.13045833344222,
+              "closingDirectoryMS": 85.40895833334616
+            },
+            {
+              "sourceLine": 3932,
+              "uptime": 1455.945741875,
+              "sequence": 9,
+              "durationMS": 218.8592500001505,
+              "bindingMS": 17.401833333451577,
+              "openingDirectoryMS": 68.88466666669046,
+              "physicalWindowsMS": 52.57883333320024,
+              "closingDirectoryMS": 79.99695833336773
+            },
+            {
+              "sourceLine": 3953,
+              "uptime": 1456.4442343750002,
+              "sequence": 10,
+              "durationMS": 326.0251666667955,
+              "bindingMS": 1.3225000000147702,
+              "openingDirectoryMS": 96.85545833349352,
+              "physicalWindowsMS": 110.38104166664198,
+              "closingDirectoryMS": 117.47579166649302
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 3743,
+              "operation": 8,
+              "requestStartUptime": 1451.9162956666667,
+              "uptime": 1452.515766,
+              "durationMS": 599.3619166667941,
+              "maxPollQueueMS": 0.09087500006899063
+            },
+            {
+              "sourceLine": 3747,
+              "operation": 6,
+              "requestStartUptime": 1452.5164979166668,
+              "uptime": 1452.5177403333334,
+              "durationMS": 1.1215416666345845,
+              "maxPollQueueMS": 0.0035833334095514147
+            },
+            {
+              "sourceLine": 3769,
+              "operation": 2,
+              "requestStartUptime": 1452.8464375833335,
+              "uptime": 1452.8712200416667,
+              "durationMS": 24.538375000020096,
+              "maxPollQueueMS": 0.015083333437360125
+            },
+            {
+              "sourceLine": 3773,
+              "operation": 2,
+              "requestStartUptime": 1452.8768232500001,
+              "uptime": 1452.8958849583335,
+              "durationMS": 18.954958333324612,
+              "maxPollQueueMS": 0.007416666676363093
+            },
+            {
+              "sourceLine": 3779,
+              "operation": 2,
+              "requestStartUptime": 1452.899122625,
+              "uptime": 1452.9441067083335,
+              "durationMS": 44.579833333500574,
+              "maxPollQueueMS": 0.030708333497386775
+            },
+            {
+              "sourceLine": 3785,
+              "operation": 2,
+              "requestStartUptime": 1452.9506804583334,
+              "uptime": 1452.983339375,
+              "durationMS": 32.39466666673252,
+              "maxPollQueueMS": 0.022833333332528127
+            },
+            {
+              "sourceLine": 3791,
+              "operation": 2,
+              "requestStartUptime": 1452.9936318750001,
+              "uptime": 1453.0159465000002,
+              "durationMS": 22.20749999992222,
+              "maxPollQueueMS": 0.029625000024680048
+            },
+            {
+              "sourceLine": 3795,
+              "operation": 2,
+              "requestStartUptime": 1453.0168727083335,
+              "uptime": 1453.0349455,
+              "durationMS": 17.95279166663022,
+              "maxPollQueueMS": 0.016749999986132025
+            },
+            {
+              "sourceLine": 3801,
+              "operation": 6,
+              "requestStartUptime": 1453.0461012083333,
+              "uptime": 1453.0589693333334,
+              "durationMS": 12.595458333407805,
+              "maxPollQueueMS": 0.00870833332555776
+            },
+            {
+              "sourceLine": 3862,
+              "operation": 6,
+              "requestStartUptime": 1454.4619254166666,
+              "uptime": 1454.4788398333335,
+              "durationMS": 16.60562500001106,
+              "maxPollQueueMS": 0.017500000012660166
+            },
+            {
+              "sourceLine": 3882,
+              "operation": 3,
+              "requestStartUptime": 1454.7350397500002,
+              "uptime": 1454.857999625,
+              "durationMS": 122.7333333331444,
+              "maxPollQueueMS": 0.10825000003933383
+            },
+            {
+              "sourceLine": 3886,
+              "operation": 2,
+              "requestStartUptime": 1454.8594811666667,
+              "uptime": 1454.8744680833333,
+              "durationMS": 14.674624999997832,
+              "maxPollQueueMS": 0.014375000091604306
+            },
+            {
+              "sourceLine": 3919,
+              "operation": 6,
+              "requestStartUptime": 1455.69461125,
+              "uptime": 1455.7178249166668,
+              "durationMS": 22.925333333432718,
+              "maxPollQueueMS": 0.02066666661448835
+            },
+            {
+              "sourceLine": 3936,
+              "operation": 3,
+              "requestStartUptime": 1455.9504834583333,
+              "uptime": 1456.0933348333335,
+              "durationMS": 141.9319166668629,
+              "maxPollQueueMS": 0.03208333328075241
+            },
+            {
+              "sourceLine": 3940,
+              "operation": 2,
+              "requestStartUptime": 1456.09515575,
+              "uptime": 1456.1157805,
+              "durationMS": 20.384250000006432,
+              "maxPollQueueMS": 0.011208333489776123
+            }
+          ]
+        },
+        "throughActivityEnd": {
+          "startUptime": 1450.9451680833333,
+          "endUptime": 1458.1811290416667,
+          "durationMS": 7235.960958333408,
+          "intersectingWitnessCount": 13,
+          "witnessUnionMS": 5343.783541666653,
+          "intersectingWorkerRequests": 16,
+          "workerUnionMS": 1159.6155416668807,
+          "workerOutsideWitnessMS": 1159.6155416668807,
+          "metadataReservedToDrainedUnionMS": 107.81395833350871,
+          "metadataDrainOutsideOtherLayersMS": 107.81395833350871,
+          "remainingUnattributedMS": 624.7479166663652,
+          "witnessSources": [
+            {
+              "sourceLine": 3686,
+              "uptime": 1451.9136981666668,
+              "sequence": 1,
+              "durationMS": 748.2223749998411,
+              "bindingMS": 317.54124999997657,
+              "openingDirectoryMS": 182.8080416667035,
+              "physicalWindowsMS": 113.03883333334852,
+              "closingDirectoryMS": 134.83741666664173
+            },
+            {
+              "sourceLine": 3762,
+              "uptime": 1452.8444798333335,
+              "sequence": 2,
+              "durationMS": 314.63125000004766,
+              "bindingMS": 48.718458333269155,
+              "openingDirectoryMS": 86.71133333336911,
+              "physicalWindowsMS": 82.74429166658592,
+              "closingDirectoryMS": 96.46083333336719
+            },
+            {
+              "sourceLine": 3822,
+              "uptime": 1453.4820110416667,
+              "sequence": 3,
+              "durationMS": 319.4739999999001,
+              "bindingMS": 32.68483333340555,
+              "openingDirectoryMS": 55.217624999841064,
+              "physicalWindowsMS": 79.73741666660317,
+              "closingDirectoryMS": 151.83745833337525
+            },
+            {
+              "sourceLine": 3838,
+              "uptime": 1454.1340440000001,
+              "sequence": 4,
+              "durationMS": 401.07704166666736,
+              "bindingMS": 62.76083333341376,
+              "openingDirectoryMS": 101.54799999986608,
+              "physicalWindowsMS": 102.0093749998523,
+              "closingDirectoryMS": 134.76166666669087
+            },
+            {
+              "sourceLine": 3854,
+              "uptime": 1454.4488296666668,
+              "sequence": 5,
+              "durationMS": 299.7370000000501,
+              "bindingMS": 42.05579166659845,
+              "openingDirectoryMS": 87.31775000001107,
+              "physicalWindowsMS": 55.2359166667884,
+              "closingDirectoryMS": 115.12983333318516
+            },
+            {
+              "sourceLine": 3874,
+              "uptime": 1454.7301645,
+              "sequence": 6,
+              "durationMS": 249.32287500018901,
+              "bindingMS": 34.5660416667215,
+              "openingDirectoryMS": 51.48937500007378,
+              "physicalWindowsMS": 66.51037500000712,
+              "closingDirectoryMS": 96.76116666673806
+            },
+            {
+              "sourceLine": 3899,
+              "uptime": 1455.4485459166667,
+              "sequence": 7,
+              "durationMS": 571.8475833332377,
+              "bindingMS": 67.31095833333711,
+              "openingDirectoryMS": 333.07395833321607,
+              "physicalWindowsMS": 58.87008333343147,
+              "closingDirectoryMS": 112.59520833323222
+            },
+            {
+              "sourceLine": 3912,
+              "uptime": 1455.6804586666667,
+              "sequence": 8,
+              "durationMS": 230.0324999998793,
+              "bindingMS": 16.822541666670077,
+              "openingDirectoryMS": 62.672958333223505,
+              "physicalWindowsMS": 65.13045833344222,
+              "closingDirectoryMS": 85.40895833334616
+            },
+            {
+              "sourceLine": 3932,
+              "uptime": 1455.945741875,
+              "sequence": 9,
+              "durationMS": 218.8592500001505,
+              "bindingMS": 17.401833333451577,
+              "openingDirectoryMS": 68.88466666669046,
+              "physicalWindowsMS": 52.57883333320024,
+              "closingDirectoryMS": 79.99695833336773
+            },
+            {
+              "sourceLine": 3953,
+              "uptime": 1456.4442343750002,
+              "sequence": 10,
+              "durationMS": 326.0251666667955,
+              "bindingMS": 1.3225000000147702,
+              "openingDirectoryMS": 96.85545833349352,
+              "physicalWindowsMS": 110.38104166664198,
+              "closingDirectoryMS": 117.47579166649302
+            },
+            {
+              "sourceLine": 3979,
+              "uptime": 1457.56417125,
+              "sequence": 11,
+              "durationMS": 1116.6487916666483,
+              "bindingMS": 11.19491666668182,
+              "openingDirectoryMS": 120.70650000009664,
+              "physicalWindowsMS": 927.6044166665542,
+              "closingDirectoryMS": 57.14791666673591
+            },
+            {
+              "sourceLine": 3995,
+              "uptime": 1457.961364,
+              "sequence": 12,
+              "durationMS": 380.85754166650077,
+              "bindingMS": 17.586416666517835,
+              "openingDirectoryMS": 89.72279166664521,
+              "physicalWindowsMS": 143.52979166687874,
+              "closingDirectoryMS": 130.02629166658153
+            },
+            {
+              "sourceLine": 4011,
+              "uptime": 1458.1321639166667,
+              "sequence": 13,
+              "durationMS": 167.0481666667456,
+              "bindingMS": 1.391874999853826,
+              "openingDirectoryMS": 49.00687500003187,
+              "physicalWindowsMS": 64.27212500011592,
+              "closingDirectoryMS": 52.38020833326118
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 3743,
+              "operation": 8,
+              "requestStartUptime": 1451.9162956666667,
+              "uptime": 1452.515766,
+              "durationMS": 599.3619166667941,
+              "maxPollQueueMS": 0.09087500006899063
+            },
+            {
+              "sourceLine": 3747,
+              "operation": 6,
+              "requestStartUptime": 1452.5164979166668,
+              "uptime": 1452.5177403333334,
+              "durationMS": 1.1215416666345845,
+              "maxPollQueueMS": 0.0035833334095514147
+            },
+            {
+              "sourceLine": 3769,
+              "operation": 2,
+              "requestStartUptime": 1452.8464375833335,
+              "uptime": 1452.8712200416667,
+              "durationMS": 24.538375000020096,
+              "maxPollQueueMS": 0.015083333437360125
+            },
+            {
+              "sourceLine": 3773,
+              "operation": 2,
+              "requestStartUptime": 1452.8768232500001,
+              "uptime": 1452.8958849583335,
+              "durationMS": 18.954958333324612,
+              "maxPollQueueMS": 0.007416666676363093
+            },
+            {
+              "sourceLine": 3779,
+              "operation": 2,
+              "requestStartUptime": 1452.899122625,
+              "uptime": 1452.9441067083335,
+              "durationMS": 44.579833333500574,
+              "maxPollQueueMS": 0.030708333497386775
+            },
+            {
+              "sourceLine": 3785,
+              "operation": 2,
+              "requestStartUptime": 1452.9506804583334,
+              "uptime": 1452.983339375,
+              "durationMS": 32.39466666673252,
+              "maxPollQueueMS": 0.022833333332528127
+            },
+            {
+              "sourceLine": 3791,
+              "operation": 2,
+              "requestStartUptime": 1452.9936318750001,
+              "uptime": 1453.0159465000002,
+              "durationMS": 22.20749999992222,
+              "maxPollQueueMS": 0.029625000024680048
+            },
+            {
+              "sourceLine": 3795,
+              "operation": 2,
+              "requestStartUptime": 1453.0168727083335,
+              "uptime": 1453.0349455,
+              "durationMS": 17.95279166663022,
+              "maxPollQueueMS": 0.016749999986132025
+            },
+            {
+              "sourceLine": 3801,
+              "operation": 6,
+              "requestStartUptime": 1453.0461012083333,
+              "uptime": 1453.0589693333334,
+              "durationMS": 12.595458333407805,
+              "maxPollQueueMS": 0.00870833332555776
+            },
+            {
+              "sourceLine": 3862,
+              "operation": 6,
+              "requestStartUptime": 1454.4619254166666,
+              "uptime": 1454.4788398333335,
+              "durationMS": 16.60562500001106,
+              "maxPollQueueMS": 0.017500000012660166
+            },
+            {
+              "sourceLine": 3882,
+              "operation": 3,
+              "requestStartUptime": 1454.7350397500002,
+              "uptime": 1454.857999625,
+              "durationMS": 122.7333333331444,
+              "maxPollQueueMS": 0.10825000003933383
+            },
+            {
+              "sourceLine": 3886,
+              "operation": 2,
+              "requestStartUptime": 1454.8594811666667,
+              "uptime": 1454.8744680833333,
+              "durationMS": 14.674624999997832,
+              "maxPollQueueMS": 0.014375000091604306
+            },
+            {
+              "sourceLine": 3919,
+              "operation": 6,
+              "requestStartUptime": 1455.69461125,
+              "uptime": 1455.7178249166668,
+              "durationMS": 22.925333333432718,
+              "maxPollQueueMS": 0.02066666661448835
+            },
+            {
+              "sourceLine": 3936,
+              "operation": 3,
+              "requestStartUptime": 1455.9504834583333,
+              "uptime": 1456.0933348333335,
+              "durationMS": 141.9319166668629,
+              "maxPollQueueMS": 0.03208333328075241
+            },
+            {
+              "sourceLine": 3940,
+              "operation": 2,
+              "requestStartUptime": 1456.09515575,
+              "uptime": 1456.1157805,
+              "durationMS": 20.384250000006432,
+              "maxPollQueueMS": 0.011208333489776123
+            },
+            {
+              "sourceLine": 4018,
+              "operation": 6,
+              "requestStartUptime": 1458.1335871666668,
+              "uptime": 1458.17619625,
+              "durationMS": 42.32445833326892,
+              "maxPollQueueMS": 0.02333333327442233
+            }
+          ]
+        },
+        "method": "Intervals are clipped to the indicated boundary and unioned, with overlap removed between layers. Witness start is reconstructed from its monotonic duration. Reserve-to-drain is used directly, not the entire scope duration, which can include queue time. Remaining time is not assigned to CPU or scheduler without evidence."
+      },
+      {
+        "step": "restoreCombinedGroup",
+        "job": "587F61E6-D8C9-47B0-AB73-57F20962163A",
+        "inputToDequeueMS": 672.3803749998751,
+        "throughPhysicalConfirmation": {
+          "startUptime": 1458.1812880833334,
+          "endUptime": 1463.6171249166669,
+          "durationMS": 5435.8368333334965,
+          "intersectingWitnessCount": 14,
+          "witnessUnionMS": 3976.997749999782,
+          "intersectingWorkerRequests": 13,
+          "workerUnionMS": 671.8752083336312,
+          "workerOutsideWitnessMS": 671.8752083336312,
+          "metadataReservedToDrainedUnionMS": 308.7514166661549,
+          "metadataDrainOutsideOtherLayersMS": 308.7514166661549,
+          "remainingUnattributedMS": 478.2124583339282,
+          "witnessSources": [
+            {
+              "sourceLine": 4071,
+              "uptime": 1458.629131375,
+              "sequence": 14,
+              "durationMS": 266.7463749999115,
+              "bindingMS": 1.0722500001065782,
+              "openingDirectoryMS": 132.53283333324362,
+              "physicalWindowsMS": 50.85395833316397,
+              "closingDirectoryMS": 82.29095833348765
+            },
+            {
+              "sourceLine": 4089,
+              "uptime": 1458.9324537916668,
+              "sequence": 15,
+              "durationMS": 300.1214583332512,
+              "bindingMS": 2.2863333331315516,
+              "openingDirectoryMS": 64.88862500009418,
+              "physicalWindowsMS": 163.37183333348548,
+              "closingDirectoryMS": 69.58012499990218
+            },
+            {
+              "sourceLine": 4113,
+              "uptime": 1459.2184992916668,
+              "sequence": 16,
+              "durationMS": 205.38108333335003,
+              "bindingMS": 1.0254583335154166,
+              "openingDirectoryMS": 66.04608333327633,
+              "physicalWindowsMS": 63.79029166646433,
+              "closingDirectoryMS": 74.5286250000845
+            },
+            {
+              "sourceLine": 4141,
+              "uptime": 1459.6440605,
+              "sequence": 17,
+              "durationMS": 331.74066666651925,
+              "bindingMS": 12.707208333267772,
+              "openingDirectoryMS": 55.91979166661076,
+              "physicalWindowsMS": 178.95229166674653,
+              "closingDirectoryMS": 84.16524999984176
+            },
+            {
+              "sourceLine": 4162,
+              "uptime": 1460.0793185,
+              "sequence": 18,
+              "durationMS": 184.3762500000139,
+              "bindingMS": 15.923250000014377,
+              "openingDirectoryMS": 52.58733333334931,
+              "physicalWindowsMS": 36.956916666667894,
+              "closingDirectoryMS": 78.91162499981874
+            },
+            {
+              "sourceLine": 4175,
+              "uptime": 1460.2786928333335,
+              "sequence": 19,
+              "durationMS": 197.89929166677211,
+              "bindingMS": 16.265416666783494,
+              "openingDirectoryMS": 48.55058333328088,
+              "physicalWindowsMS": 54.29162499990525,
+              "closingDirectoryMS": 78.7953333333462
+            },
+            {
+              "sourceLine": 4195,
+              "uptime": 1460.6157735416668,
+              "sequence": 20,
+              "durationMS": 285.0722916666655,
+              "bindingMS": 33.787749999873995,
+              "openingDirectoryMS": 65.11370833345609,
+              "physicalWindowsMS": 117.30375000001914,
+              "closingDirectoryMS": 68.87099999994462
+            },
+            {
+              "sourceLine": 4216,
+              "uptime": 1460.9973580416668,
+              "sequence": 21,
+              "durationMS": 238.35204166653057,
+              "bindingMS": 44.923541666776146,
+              "openingDirectoryMS": 57.295083333201546,
+              "physicalWindowsMS": 49.97149999985595,
+              "closingDirectoryMS": 86.16458333335686
+            },
+            {
+              "sourceLine": 4229,
+              "uptime": 1461.283281125,
+              "sequence": 22,
+              "durationMS": 284.3535416668601,
+              "bindingMS": 30.0211250000757,
+              "openingDirectoryMS": 49.90683333335255,
+              "physicalWindowsMS": 71.12449999999626,
+              "closingDirectoryMS": 133.3042916667182
+            },
+            {
+              "sourceLine": 4285,
+              "uptime": 1461.9821664166668,
+              "sequence": 23,
+              "durationMS": 452.58354166662684,
+              "bindingMS": 72.90170833334741,
+              "openingDirectoryMS": 151.784458333168,
+              "physicalWindowsMS": 123.48158333338688,
+              "closingDirectoryMS": 104.41879166660328
+            },
+            {
+              "sourceLine": 4305,
+              "uptime": 1462.73076575,
+              "sequence": 24,
+              "durationMS": 530.8677916666511,
+              "bindingMS": 97.77129166673149,
+              "openingDirectoryMS": 118.63308333317946,
+              "physicalWindowsMS": 181.63833333346702,
+              "closingDirectoryMS": 132.8274166664869
+            },
+            {
+              "sourceLine": 4321,
+              "uptime": 1462.9786624583335,
+              "sequence": 25,
+              "durationMS": 246.05433333317706,
+              "bindingMS": 35.297583333203875,
+              "openingDirectoryMS": 47.41274999992129,
+              "physicalWindowsMS": 79.76812500010055,
+              "closingDirectoryMS": 83.578958333419
+            },
+            {
+              "sourceLine": 4341,
+              "uptime": 1463.3142507916668,
+              "sequence": 26,
+              "durationMS": 301.0001249999732,
+              "bindingMS": 63.12324999998964,
+              "openingDirectoryMS": 55.5309583332928,
+              "physicalWindowsMS": 79.08208333333278,
+              "closingDirectoryMS": 103.26733333340599
+            },
+            {
+              "sourceLine": 4370,
+              "uptime": 1464.5676841666668,
+              "sequence": 27,
+              "durationMS": 1103.0082083334491,
+              "bindingMS": 517.4537499999587,
+              "openingDirectoryMS": 150.61270833348317,
+              "physicalWindowsMS": 199.96820833330275,
+              "closingDirectoryMS": 234.98387499989803
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 4096,
+              "operation": 6,
+              "requestStartUptime": 1458.9432235416668,
+              "uptime": 1458.9754204583335,
+              "durationMS": 32.07933333328583,
+              "maxPollQueueMS": 0.05608333322015824
+            },
+            {
+              "sourceLine": 4118,
+              "operation": 2,
+              "requestStartUptime": 1459.22906725,
+              "uptime": 1459.2587405833335,
+              "durationMS": 29.54162500009261,
+              "maxPollQueueMS": 0.012333333415881498
+            },
+            {
+              "sourceLine": 4122,
+              "operation": 2,
+              "requestStartUptime": 1459.259722125,
+              "uptime": 1459.2753185000001,
+              "durationMS": 15.473583333459828,
+              "maxPollQueueMS": 0.008083333341346588
+            },
+            {
+              "sourceLine": 4128,
+              "operation": 6,
+              "requestStartUptime": 1459.2795980416668,
+              "uptime": 1459.309441625,
+              "durationMS": 29.71037499992235,
+              "maxPollQueueMS": 0.025625000034779077
+            },
+            {
+              "sourceLine": 4149,
+              "operation": 4,
+              "requestStartUptime": 1459.6482948333335,
+              "uptime": 1459.8482084583334,
+              "durationMS": 199.76233333318305,
+              "maxPollQueueMS": 0.024875000008250936
+            },
+            {
+              "sourceLine": 4153,
+              "operation": 2,
+              "requestStartUptime": 1459.8494065416667,
+              "uptime": 1459.8850462500002,
+              "durationMS": 35.51733333347329,
+              "maxPollQueueMS": 0.00858333328324079
+            },
+            {
+              "sourceLine": 4182,
+              "operation": 6,
+              "requestStartUptime": 1460.2968065416667,
+              "uptime": 1460.3272267916668,
+              "durationMS": 30.23512499999015,
+              "maxPollQueueMS": 0.042749999920488335
+            },
+            {
+              "sourceLine": 4199,
+              "operation": 4,
+              "requestStartUptime": 1460.6269152500001,
+              "uptime": 1460.7360057916667,
+              "durationMS": 108.96837499990397,
+              "maxPollQueueMS": 0.15812500009815267
+            },
+            {
+              "sourceLine": 4203,
+              "operation": 2,
+              "requestStartUptime": 1460.7447554583334,
+              "uptime": 1460.7511982083333,
+              "durationMS": 6.325041666741527,
+              "maxPollQueueMS": 0.009250000175597961
+            },
+            {
+              "sourceLine": 4236,
+              "operation": 6,
+              "requestStartUptime": 1461.2992833750002,
+              "uptime": 1461.3311170416669,
+              "durationMS": 31.502874999887354,
+              "maxPollQueueMS": 0.013500000022759195
+            },
+            {
+              "sourceLine": 4328,
+              "operation": 6,
+              "requestStartUptime": 1462.9831793750002,
+              "uptime": 1463.0118742083334,
+              "durationMS": 28.47991666658345,
+              "maxPollQueueMS": 0.014666666629636893
+            },
+            {
+              "sourceLine": 4345,
+              "operation": 3,
+              "requestStartUptime": 1463.331342875,
+              "uptime": 1463.4343263750002,
+              "durationMS": 102.72699999995893,
+              "maxPollQueueMS": 0.030208333328118897
+            },
+            {
+              "sourceLine": 4349,
+              "operation": 2,
+              "requestStartUptime": 1463.4438051666668,
+              "uptime": 1463.4633512916669,
+              "durationMS": 19.429124999987835,
+              "maxPollQueueMS": 0.009333333309768932
+            }
+          ]
+        },
+        "throughActivityEnd": {
+          "startUptime": 1458.1812880833334,
+          "endUptime": 1465.8599067083335,
+          "durationMS": 7678.6186250001265,
+          "intersectingWitnessCount": 18,
+          "witnessUnionMS": 6066.046374999587,
+          "intersectingWorkerRequests": 14,
+          "workerUnionMS": 691.4722916669689,
+          "workerOutsideWitnessMS": 691.4722916669689,
+          "metadataReservedToDrainedUnionMS": 312.40883333271086,
+          "metadataDrainOutsideOtherLayersMS": 312.40883333271086,
+          "remainingUnattributedMS": 608.6911250008598,
+          "witnessSources": [
+            {
+              "sourceLine": 4071,
+              "uptime": 1458.629131375,
+              "sequence": 14,
+              "durationMS": 266.7463749999115,
+              "bindingMS": 1.0722500001065782,
+              "openingDirectoryMS": 132.53283333324362,
+              "physicalWindowsMS": 50.85395833316397,
+              "closingDirectoryMS": 82.29095833348765
+            },
+            {
+              "sourceLine": 4089,
+              "uptime": 1458.9324537916668,
+              "sequence": 15,
+              "durationMS": 300.1214583332512,
+              "bindingMS": 2.2863333331315516,
+              "openingDirectoryMS": 64.88862500009418,
+              "physicalWindowsMS": 163.37183333348548,
+              "closingDirectoryMS": 69.58012499990218
+            },
+            {
+              "sourceLine": 4113,
+              "uptime": 1459.2184992916668,
+              "sequence": 16,
+              "durationMS": 205.38108333335003,
+              "bindingMS": 1.0254583335154166,
+              "openingDirectoryMS": 66.04608333327633,
+              "physicalWindowsMS": 63.79029166646433,
+              "closingDirectoryMS": 74.5286250000845
+            },
+            {
+              "sourceLine": 4141,
+              "uptime": 1459.6440605,
+              "sequence": 17,
+              "durationMS": 331.74066666651925,
+              "bindingMS": 12.707208333267772,
+              "openingDirectoryMS": 55.91979166661076,
+              "physicalWindowsMS": 178.95229166674653,
+              "closingDirectoryMS": 84.16524999984176
+            },
+            {
+              "sourceLine": 4162,
+              "uptime": 1460.0793185,
+              "sequence": 18,
+              "durationMS": 184.3762500000139,
+              "bindingMS": 15.923250000014377,
+              "openingDirectoryMS": 52.58733333334931,
+              "physicalWindowsMS": 36.956916666667894,
+              "closingDirectoryMS": 78.91162499981874
+            },
+            {
+              "sourceLine": 4175,
+              "uptime": 1460.2786928333335,
+              "sequence": 19,
+              "durationMS": 197.89929166677211,
+              "bindingMS": 16.265416666783494,
+              "openingDirectoryMS": 48.55058333328088,
+              "physicalWindowsMS": 54.29162499990525,
+              "closingDirectoryMS": 78.7953333333462
+            },
+            {
+              "sourceLine": 4195,
+              "uptime": 1460.6157735416668,
+              "sequence": 20,
+              "durationMS": 285.0722916666655,
+              "bindingMS": 33.787749999873995,
+              "openingDirectoryMS": 65.11370833345609,
+              "physicalWindowsMS": 117.30375000001914,
+              "closingDirectoryMS": 68.87099999994462
+            },
+            {
+              "sourceLine": 4216,
+              "uptime": 1460.9973580416668,
+              "sequence": 21,
+              "durationMS": 238.35204166653057,
+              "bindingMS": 44.923541666776146,
+              "openingDirectoryMS": 57.295083333201546,
+              "physicalWindowsMS": 49.97149999985595,
+              "closingDirectoryMS": 86.16458333335686
+            },
+            {
+              "sourceLine": 4229,
+              "uptime": 1461.283281125,
+              "sequence": 22,
+              "durationMS": 284.3535416668601,
+              "bindingMS": 30.0211250000757,
+              "openingDirectoryMS": 49.90683333335255,
+              "physicalWindowsMS": 71.12449999999626,
+              "closingDirectoryMS": 133.3042916667182
+            },
+            {
+              "sourceLine": 4285,
+              "uptime": 1461.9821664166668,
+              "sequence": 23,
+              "durationMS": 452.58354166662684,
+              "bindingMS": 72.90170833334741,
+              "openingDirectoryMS": 151.784458333168,
+              "physicalWindowsMS": 123.48158333338688,
+              "closingDirectoryMS": 104.41879166660328
+            },
+            {
+              "sourceLine": 4305,
+              "uptime": 1462.73076575,
+              "sequence": 24,
+              "durationMS": 530.8677916666511,
+              "bindingMS": 97.77129166673149,
+              "openingDirectoryMS": 118.63308333317946,
+              "physicalWindowsMS": 181.63833333346702,
+              "closingDirectoryMS": 132.8274166664869
+            },
+            {
+              "sourceLine": 4321,
+              "uptime": 1462.9786624583335,
+              "sequence": 25,
+              "durationMS": 246.05433333317706,
+              "bindingMS": 35.297583333203875,
+              "openingDirectoryMS": 47.41274999992129,
+              "physicalWindowsMS": 79.76812500010055,
+              "closingDirectoryMS": 83.578958333419
+            },
+            {
+              "sourceLine": 4341,
+              "uptime": 1463.3142507916668,
+              "sequence": 26,
+              "durationMS": 301.0001249999732,
+              "bindingMS": 63.12324999998964,
+              "openingDirectoryMS": 55.5309583332928,
+              "physicalWindowsMS": 79.08208333333278,
+              "closingDirectoryMS": 103.26733333340599
+            },
+            {
+              "sourceLine": 4370,
+              "uptime": 1464.5676841666668,
+              "sequence": 27,
+              "durationMS": 1103.0082083334491,
+              "bindingMS": 517.4537499999587,
+              "openingDirectoryMS": 150.61270833348317,
+              "physicalWindowsMS": 199.96820833330275,
+              "closingDirectoryMS": 234.98387499989803
+            },
+            {
+              "sourceLine": 4383,
+              "uptime": 1464.9151904583334,
+              "sequence": 28,
+              "durationMS": 331.8497083332659,
+              "bindingMS": 34.18712500001675,
+              "openingDirectoryMS": 82.50012500002413,
+              "physicalWindowsMS": 80.81208333328505,
+              "closingDirectoryMS": 134.35866666668517
+            },
+            {
+              "sourceLine": 4399,
+              "uptime": 1465.2491462500002,
+              "sequence": 29,
+              "durationMS": 315.7236249999187,
+              "bindingMS": 33.572374999948806,
+              "openingDirectoryMS": 62.184458333376824,
+              "physicalWindowsMS": 69.0442916666143,
+              "closingDirectoryMS": 150.92566666658058
+            },
+            {
+              "sourceLine": 4415,
+              "uptime": 1465.4997635000002,
+              "sequence": 30,
+              "durationMS": 234.62133333327984,
+              "bindingMS": 29.75591666654509,
+              "openingDirectoryMS": 65.9650000000056,
+              "physicalWindowsMS": 70.56366666665781,
+              "closingDirectoryMS": 68.33895833347015
+            },
+            {
+              "sourceLine": 4431,
+              "uptime": 1465.7661832916667,
+              "sequence": 31,
+              "durationMS": 256.2947083333711,
+              "bindingMS": 31.120458333361967,
+              "openingDirectoryMS": 37.57416666667268,
+              "physicalWindowsMS": 82.24904166672786,
+              "closingDirectoryMS": 105.35416666652964
+            }
+          ],
+          "workerSources": [
+            {
+              "sourceLine": 4096,
+              "operation": 6,
+              "requestStartUptime": 1458.9432235416668,
+              "uptime": 1458.9754204583335,
+              "durationMS": 32.07933333328583,
+              "maxPollQueueMS": 0.05608333322015824
+            },
+            {
+              "sourceLine": 4118,
+              "operation": 2,
+              "requestStartUptime": 1459.22906725,
+              "uptime": 1459.2587405833335,
+              "durationMS": 29.54162500009261,
+              "maxPollQueueMS": 0.012333333415881498
+            },
+            {
+              "sourceLine": 4122,
+              "operation": 2,
+              "requestStartUptime": 1459.259722125,
+              "uptime": 1459.2753185000001,
+              "durationMS": 15.473583333459828,
+              "maxPollQueueMS": 0.008083333341346588
+            },
+            {
+              "sourceLine": 4128,
+              "operation": 6,
+              "requestStartUptime": 1459.2795980416668,
+              "uptime": 1459.309441625,
+              "durationMS": 29.71037499992235,
+              "maxPollQueueMS": 0.025625000034779077
+            },
+            {
+              "sourceLine": 4149,
+              "operation": 4,
+              "requestStartUptime": 1459.6482948333335,
+              "uptime": 1459.8482084583334,
+              "durationMS": 199.76233333318305,
+              "maxPollQueueMS": 0.024875000008250936
+            },
+            {
+              "sourceLine": 4153,
+              "operation": 2,
+              "requestStartUptime": 1459.8494065416667,
+              "uptime": 1459.8850462500002,
+              "durationMS": 35.51733333347329,
+              "maxPollQueueMS": 0.00858333328324079
+            },
+            {
+              "sourceLine": 4182,
+              "operation": 6,
+              "requestStartUptime": 1460.2968065416667,
+              "uptime": 1460.3272267916668,
+              "durationMS": 30.23512499999015,
+              "maxPollQueueMS": 0.042749999920488335
+            },
+            {
+              "sourceLine": 4199,
+              "operation": 4,
+              "requestStartUptime": 1460.6269152500001,
+              "uptime": 1460.7360057916667,
+              "durationMS": 108.96837499990397,
+              "maxPollQueueMS": 0.15812500009815267
+            },
+            {
+              "sourceLine": 4203,
+              "operation": 2,
+              "requestStartUptime": 1460.7447554583334,
+              "uptime": 1460.7511982083333,
+              "durationMS": 6.325041666741527,
+              "maxPollQueueMS": 0.009250000175597961
+            },
+            {
+              "sourceLine": 4236,
+              "operation": 6,
+              "requestStartUptime": 1461.2992833750002,
+              "uptime": 1461.3311170416669,
+              "durationMS": 31.502874999887354,
+              "maxPollQueueMS": 0.013500000022759195
+            },
+            {
+              "sourceLine": 4328,
+              "operation": 6,
+              "requestStartUptime": 1462.9831793750002,
+              "uptime": 1463.0118742083334,
+              "durationMS": 28.47991666658345,
+              "maxPollQueueMS": 0.014666666629636893
+            },
+            {
+              "sourceLine": 4345,
+              "operation": 3,
+              "requestStartUptime": 1463.331342875,
+              "uptime": 1463.4343263750002,
+              "durationMS": 102.72699999995893,
+              "maxPollQueueMS": 0.030208333328118897
+            },
+            {
+              "sourceLine": 4349,
+              "operation": 2,
+              "requestStartUptime": 1463.4438051666668,
+              "uptime": 1463.4633512916669,
+              "durationMS": 19.429124999987835,
+              "maxPollQueueMS": 0.009333333309768932
+            },
+            {
+              "sourceLine": 4438,
+              "operation": 6,
+              "requestStartUptime": 1465.7751614583335,
+              "uptime": 1465.7947585416669,
+              "durationMS": 19.427749999977095,
+              "maxPollQueueMS": 0.008999999863590347
+            }
+          ]
+        },
+        "method": "Intervals are clipped to the indicated boundary and unioned, with overlap removed between layers. Witness start is reconstructed from its monotonic duration. Reserve-to-drain is used directly, not the entire scope duration, which can include queue time. Remaining time is not assigned to CPU or scheduler without evidence."
+      }
+    ],
+    "limits": [
+      "Role and permit measurements are nested inside witness phase envelopes and cannot be added again.",
+      "groupProjectionMS includes awaited work and actor resumption; it does not measure synchronous main-thread occupancy.",
+      "The earlier 670ms pre-task gap was not reproduced and cannot be retroactively attributed to this head's sessionAvailability measurement."
+    ]
+  },
+  "native": {
+    "hostRequestCount": 161,
+    "allHostRequestsStatusZero": true,
+    "operationCounts": {
+      "8": 3,
+      "6": 64,
+      "2": 64,
+      "3": 15,
+      "4": 11,
+      "13": 4
+    },
+    "moveCount": 36,
+    "allMovesCompletedWithTwoPositiveFullViews": true,
+    "acknowledgementMaxMS": 59.419,
+    "confirmationMaxMS": 229.243,
+    "positiveConfirmationAbove120MS": [
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 87,
+        "pid": 40210,
+        "target": 33,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 8.387,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 229.243,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-05675f91-8abd-4eee-b62c-f228d3d74e37.jsonl",
+        "sourceLine": 123
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 55,
+        "pid": 39396,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 59.419,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 163.102,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-622ca10c-b88b-4446-8ca3-39e03160c21b.jsonl",
+        "sourceLine": 464
+      }
+    ],
+    "faults": [],
+    "limits": [
+      "Move acknowledgement remains bounded at 120ms; full positive confirmation uses 650ms from the same move-return origin.",
+      "Two complete view observations are still required; no late first view is treated as timely membership acknowledgement."
+    ]
+  },
+  "metadata": {
+    "scopes": 149,
+    "allScopesHaveReservedDrainedEnded": true,
+    "completeWitnesses": 200,
+    "publications": 60,
+    "completePublications": 57,
+    "incompletePublications": 3,
+    "creatorKinds": {
+      "observer": 57,
+      "direct": 9,
+      "metadata-owner": 402
+    },
+    "maximumPriorNativeBeginAgeAtNextPublicationMS": 8601.215749999938,
+    "maximumPublishedSampleAgeMS": 851.2529583333617,
+    "partialSamples": [
+      {
+        "requestRevision": 4,
+        "sample": {
+          "completed": true,
+          "durationMS": 1134.8233749999963,
+          "event": "independentStageProduct",
+          "groupProjectionMS": 15.836625000019922,
+          "incompleteCatalog": {
+            "catalogComplete": false,
+            "catalogIssueCount": 2,
+            "catalogIssues": [
+              "windowRosterChanged",
+              "windowIdentityOrBounds:pid=39396,window=81"
+            ],
+            "catalogIssuesTruncated": false,
+            "catalogIssueWindows": [
+              {
+                "issueIndex": 1,
+                "left": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "number": 81,
+                "right": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "role": {
+                  "ownerRead": false,
+                  "source": "notRequested",
+                  "windowRead": false
+                },
+                "second": {
+                  "active": true,
+                  "birth": 1795860089923854,
+                  "frame": {
+                    "height": 20,
+                    "width": 66,
+                    "x": 126,
+                    "y": 392
+                  },
+                  "frameValid": true,
+                  "observedOnscreen": true,
+                  "ordered": true,
+                  "ownerUnhidden": true,
+                  "pid": 39396,
+                  "reportedOnscreen": true
+                }
+              }
+            ]
+          },
+          "nativeAgeOnReturnMS": 848.7942083334019,
+          "nativeBeganUptime": 1416.7484035833334,
+          "nativeBeginAfterRequestMS": 1.229749999993146,
+          "nativeDurationMS": 834.1365416667941,
+          "nativeEndedUptime": 1417.5825401250002,
+          "nativeEndToReturnMS": 14.657666666607838,
+          "observeDirectoryMS": 0.2457499999763968,
+          "phase": "desktop-read-task-exit",
+          "readerAwaitMS": 850.0239583333951,
+          "readerAwaitStartedUptime": 1416.7471738333334,
+          "readerReturnedUptime": 1417.5971977916668,
+          "readSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "receivedReply": true,
+          "remainingProcessingMS": 268.7170416666049,
+          "requestRevision": 4,
+          "sidebarHistoryMS": 0,
+          "step": "complete",
+          "taskCreatedUptime": 1416.7458097916667,
+          "taskPriority": 25,
+          "taskQueueMS": 0.36066666666556557,
+          "taskStartedUptime": 1416.7461704583334,
+          "uptime": 1417.881094375,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 83
+        },
+        "publication": null
+      },
+      {
+        "requestRevision": 356,
+        "sample": {
+          "completed": true,
+          "durationMS": 73.27670833342381,
+          "event": "independentStageProduct",
+          "groupProjectionMS": 0.12870833347733424,
+          "incompleteCatalog": {
+            "catalogComplete": false,
+            "catalogIssueCount": 1,
+            "catalogIssues": [
+              "membershipChanged:pid=39396,window=57"
+            ],
+            "catalogIssuesTruncated": false,
+            "catalogIssueWindows": [
+              {
+                "first": {
+                  "active": false,
+                  "birth": 1795860089923854,
+                  "frame": {
+                    "height": 202,
+                    "width": 250,
+                    "x": 400,
+                    "y": 386
+                  },
+                  "frameValid": true,
+                  "observedOnscreen": false,
+                  "ordered": false,
+                  "ownerUnhidden": true,
+                  "pid": 39396
+                },
+                "issueIndex": 0,
+                "left": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unknown",
+                  "truncated": false
+                },
+                "number": 57,
+                "right": {
+                  "recordCount": 1,
+                  "recordIDs": [
+                    "12"
+                  ],
+                  "state": "known",
+                  "truncated": false
+                },
+                "role": {
+                  "firstPID": 39396,
+                  "ownerRead": false,
+                  "source": "notRequested",
+                  "windowRead": false
+                },
+                "second": {
+                  "active": true,
+                  "birth": 1795860089923854,
+                  "frame": {
+                    "height": 202,
+                    "width": 250,
+                    "x": 400,
+                    "y": 386
+                  },
+                  "frameValid": true,
+                  "observedOnscreen": false,
+                  "ordered": false,
+                  "ownerUnhidden": true,
+                  "pid": 39396
+                }
+              }
+            ]
+          },
+          "nativeAgeOnReturnMS": 64.05541666663339,
+          "nativeBeganUptime": 1445.8570663333335,
+          "nativeBeginAfterRequestMS": 7.325000000037107,
+          "nativeDurationMS": 62.18100000000959,
+          "nativeEndedUptime": 1445.9192473333335,
+          "nativeEndToReturnMS": 1.8744166666238016,
+          "observeDirectoryMS": 0.022791666651755804,
+          "phase": "desktop-read-task-exit",
+          "readerAwaitMS": 71.3804166666705,
+          "readerAwaitStartedUptime": 1445.8497413333334,
+          "readerReturnedUptime": 1445.92112175,
+          "readSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "receivedReply": true,
+          "remainingProcessingMS": 1.7447916666242236,
+          "requestRevision": 356,
+          "sidebarHistoryMS": 0,
+          "step": "complete",
+          "taskCreatedUptime": 1445.8259802083335,
+          "taskPriority": 17,
+          "taskQueueMS": 23.01687499993932,
+          "taskStartedUptime": 1445.8489970833334,
+          "uptime": 1445.9223820833333,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3241
+        },
+        "publication": {
+          "catalogComplete": false,
+          "dispatching": true,
+          "epoch": "608CF8DA-6DBA-4621-9194-5DC432811787",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1445.8570663333335,
+          "nativeEndedUptime": 1445.9192473333335,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "23D662DC-578A-4ACE-9737-ECF60F56464B",
+          "observer": "4F5064BC-2377-4E83-8FA2-E925BA70CBFB",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1445.9229979166666,
+          "snapshotPresent": true,
+          "snapshotRevision": 356,
+          "snapshotSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "uptime": 1445.9232504583333,
+          "wallSampledToAgeMS": 4.2160749435424805,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3242
+        }
+      },
+      {
+        "requestRevision": 381,
+        "sample": {
+          "completed": true,
+          "durationMS": 316.64550000004965,
+          "event": "independentStageProduct",
+          "groupProjectionMS": 0.45583333326248976,
+          "incompleteCatalog": {
+            "catalogComplete": false,
+            "catalogIssueCount": 2,
+            "catalogIssues": [
+              "windowRosterChanged",
+              "windowIdentityOrBounds:pid=39396,window=99"
+            ],
+            "catalogIssuesTruncated": false,
+            "catalogIssueWindows": [
+              {
+                "issueIndex": 1,
+                "left": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "number": 99,
+                "right": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "role": {
+                  "ownerRead": false,
+                  "source": "notRequested",
+                  "windowRead": false
+                },
+                "second": {
+                  "active": true,
+                  "birth": 1795860089923854,
+                  "frame": {
+                    "height": 20,
+                    "width": 66,
+                    "x": 126,
+                    "y": 392
+                  },
+                  "frameValid": true,
+                  "observedOnscreen": true,
+                  "ordered": true,
+                  "ownerUnhidden": true,
+                  "pid": 39396,
+                  "reportedOnscreen": true
+                }
+              }
+            ]
+          },
+          "nativeAgeOnReturnMS": 297.24450000003344,
+          "nativeBeganUptime": 1448.5058403333335,
+          "nativeBeginAfterRequestMS": 3.727708333371993,
+          "nativeDurationMS": 224.90445833318518,
+          "nativeEndedUptime": 1448.7307447916667,
+          "nativeEndToReturnMS": 72.34004166684826,
+          "observeDirectoryMS": 0.04929166652800632,
+          "phase": "desktop-read-task-exit",
+          "readerAwaitMS": 300.97220833340543,
+          "readerAwaitStartedUptime": 1448.502112625,
+          "readerReturnedUptime": 1448.8030848333335,
+          "readSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "receivedReply": true,
+          "remainingProcessingMS": 15.168166666853722,
+          "requestRevision": 381,
+          "sidebarHistoryMS": 0,
+          "step": "complete",
+          "taskCreatedUptime": 1448.4661044166667,
+          "taskPriority": 25,
+          "taskQueueMS": 35.12883333337413,
+          "taskStartedUptime": 1448.50123325,
+          "uptime": 1448.8180830416668,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3543
+        },
+        "publication": {
+          "catalogComplete": false,
+          "dispatching": false,
+          "epoch": "608CF8DA-6DBA-4621-9194-5DC432811787",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1448.5058403333335,
+          "nativeEndedUptime": 1448.7307447916667,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "23D662DC-578A-4ACE-9737-ECF60F56464B",
+          "observer": "749127FE-B287-4C6B-B045-05C600E2B6C7",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1448.8336942916667,
+          "snapshotPresent": true,
+          "snapshotRevision": 381,
+          "snapshotSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "uptime": 1448.8338131666667,
+          "wallSampledToAgeMS": 103.08301448822021,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 3544
+        }
+      },
+      {
+        "requestRevision": 460,
+        "sample": {
+          "completed": true,
+          "durationMS": 462.1382499999527,
+          "event": "independentStageProduct",
+          "groupProjectionMS": 0.3829166664672812,
+          "incompleteCatalog": {
+            "catalogComplete": false,
+            "catalogIssueCount": 2,
+            "catalogIssues": [
+              "windowRosterChanged",
+              "windowIdentityOrBounds:pid=39399,window=114"
+            ],
+            "catalogIssuesTruncated": false,
+            "catalogIssueWindows": [
+              {
+                "issueIndex": 1,
+                "left": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "number": 114,
+                "right": {
+                  "recordCount": 0,
+                  "recordIDs": [],
+                  "state": "unavailable",
+                  "truncated": false
+                },
+                "role": {
+                  "ownerRead": false,
+                  "source": "notRequested",
+                  "windowRead": false
+                },
+                "second": {
+                  "active": true,
+                  "birth": 1795860090954063,
+                  "frame": {
+                    "height": 20,
+                    "width": 66,
+                    "x": 686,
+                    "y": 392
+                  },
+                  "frameValid": true,
+                  "observedOnscreen": true,
+                  "ordered": true,
+                  "ownerUnhidden": true,
+                  "pid": 39399,
+                  "reportedOnscreen": true
+                }
+              }
+            ]
+          },
+          "nativeAgeOnReturnMS": 432.95483333326956,
+          "nativeBeganUptime": 1466.65184225,
+          "nativeBeginAfterRequestMS": 6.406208333373797,
+          "nativeDurationMS": 348.0412916667319,
+          "nativeEndedUptime": 1466.9998835416668,
+          "nativeEndToReturnMS": 84.91354166653764,
+          "observeDirectoryMS": 0.028499999871201,
+          "phase": "desktop-read-task-exit",
+          "readerAwaitMS": 439.36104166664336,
+          "readerAwaitStartedUptime": 1466.6454360416667,
+          "readerReturnedUptime": 1467.0847970833333,
+          "readSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "receivedReply": true,
+          "remainingProcessingMS": 22.365791666970836,
+          "requestRevision": 460,
+          "sidebarHistoryMS": 0,
+          "step": "complete",
+          "taskCreatedUptime": 1466.63614125,
+          "taskPriority": 17,
+          "taskQueueMS": 1.5643333333628107,
+          "taskStartedUptime": 1466.6377055833334,
+          "uptime": 1467.0999238333334,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 4486
+        },
+        "publication": {
+          "catalogComplete": false,
+          "dispatching": false,
+          "epoch": "608CF8DA-6DBA-4621-9194-5DC432811787",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1466.65184225,
+          "nativeEndedUptime": 1466.9998835416668,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "23D662DC-578A-4ACE-9737-ECF60F56464B",
+          "observer": "A58C9092-A463-4350-B61C-792EF7AFECB3",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1467.2289890833333,
+          "snapshotPresent": true,
+          "snapshotRevision": 460,
+          "snapshotSession": "9E210D30-E7F2-4991-B9F6-53CD7BB5934D",
+          "uptime": 1467.2290978333335,
+          "wallSampledToAgeMS": 229.28595542907715,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 4488
+        }
+      }
+    ],
+    "interpretation": [
+      "Revision4 was an incomplete pre-binding directory; it did not terminate the later successful first selection.",
+      "Revision356 observed window57 changing unknown to known(home12) during the queued edit's normal RELEASE; the original release and subsequent full fresh reads succeeded.",
+      "Revisions381 and460 were incomplete idle observer publications after the join and restored-group job respectively; the original lifecycle invalidation/release path remained effective.",
+      "Window99 and window114 are observed new CG rows with unavailable membership/role facts. Their 66x20 size does not establish their UI purpose.",
+      "The 12s snapshot age limit was not extended. No catalogue partial was promoted to a successful full witness."
+    ]
+  },
+  "cleanup": {
+    "host": {
+      "end": 1471.7877074583334,
+      "milliseconds": 1197.0042499999636,
+      "released": true,
+      "start": 1470.5907032083335
+    },
+    "allHomeExternalDoubleRead": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1471.8848447083335,
+          "readStart": 1471.7912457083335,
+          "received": 1472.0456631250001,
+          "uptime": 1472.0456631250001,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1472.217114125,
+          "readStart": 1472.1871905833334,
+          "received": 1472.3331647916668,
+          "uptime": 1472.3331647916668,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 39396,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 58,
+              "onScreen": true,
+              "pid": 39399,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "finalOwned": [],
+    "lateWitnessRejection": {
+      "bindings": 3,
+      "claims": 0,
+      "closingRosterMetrics": {
+        "candidateCount": 6,
+        "candidateEnumerationCompleted": true,
+        "nestedInPhaseDurations": true,
+        "retainedCount": 2,
+        "roleReadCount": 2,
+        "roleReadMaxMS": 161.71875000009095,
+        "roleReadTotalMS": 266.05270833351824,
+        "roleTimingIncludesTaskQueueAndActorResume": true
+      },
+      "durationMS": 1578.731583333365,
+      "event": "independentStageProduct",
+      "guardRejection": {
+        "reason": "metadata-scope"
+      },
+      "openingRosterMetrics": {
+        "candidateCount": 6,
+        "candidateEnumerationCompleted": true,
+        "nestedInPhaseDurations": true,
+        "retainedCount": 0,
+        "roleReadCount": 6,
+        "roleReadMaxMS": 33.339833333457136,
+        "roleReadTotalMS": 118.35041666699908,
+        "roleTimingIncludesTaskQueueAndActorResume": true
+      },
+      "phase": "witness-read-rejected",
+      "physicalBeforeClosing": {
+        "capturedBeforeClosingValidation": true,
+        "changedStateCount": 3,
+        "changedStates": [
+          {
+            "current": {
+              "frame": [
+                120,
+                386,
+                250,
+                202
+              ],
+              "frameValid": true,
+              "hiddenSpaceID": null,
+              "lifetime": "ACA45DB0-2424-48FE-883B-B5DAC2C04B37",
+              "visibility": "visible"
+            },
+            "key": {
+              "birth": 1795860089923854,
+              "pid": 39396,
+              "window": 55
+            },
+            "previous": null
+          },
+          {
+            "current": {
+              "frame": [
+                400,
+                386,
+                250,
+                202
+              ],
+              "frameValid": true,
+              "hiddenSpaceID": null,
+              "lifetime": "9EEDF695-7C44-4962-8692-CA86685216F9",
+              "visibility": "visible"
+            },
+            "key": {
+              "birth": 1795860089923854,
+              "pid": 39396,
+              "window": 57
+            },
+            "previous": null
+          },
+          {
+            "current": {
+              "frame": [
+                680,
+                386,
+                250,
+                202
+              ],
+              "frameValid": true,
+              "hiddenSpaceID": null,
+              "lifetime": "3E71D7E9-C5CA-490A-B455-19D6874AD014",
+              "visibility": "visible"
+            },
+            "key": {
+              "birth": 1795860090954063,
+              "pid": 39399,
+              "window": 58
+            },
+            "previous": null
+          }
+        ],
+        "changedStatesTruncated": false,
+        "coordinatorValidated": false,
+        "distinctFocusCount": 1,
+        "focuses": [
+          {
+            "birth": 1795860089923854,
+            "pid": 39396,
+            "window": 55
+          },
+          {
+            "birth": 1795860089923854,
+            "pid": 39396,
+            "window": 55
+          },
+          {
+            "birth": 1795860089923854,
+            "pid": 39396,
+            "window": 55
+          }
+        ],
+        "focusesTruncated": false,
+        "lastStateCount": 0,
+        "matchingStateCount": 0,
+        "physicalKeys": [
+          {
+            "birth": 1795860089923854,
+            "pid": 39396,
+            "window": 55
+          },
+          {
+            "birth": 1795860089923854,
+            "pid": 39396,
+            "window": 57
+          },
+          {
+            "birth": 1795860090954063,
+            "pid": 39399,
+            "window": 58
+          }
+        ],
+        "physicalKeysTruncated": false,
+        "physicalObservationCount": 3,
+        "stateCount": 3,
+        "statesEqualLastStates": false
+      },
+      "pid": 0,
+      "sequence": 0,
+      "step": "closing-roster",
+      "unchangedPermitTiming": {
+        "count": 31,
+        "maxMS": 39.10804166662274,
+        "nestedInPhaseDurations": true,
+        "totalMS": 205.96274999957132
+      },
+      "uptime": 1470.9072655833334,
+      "window": 0,
+      "sourceLine": 4635,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "lateNavigationFailure": {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "窗口或焦点已变化，本次切换已停止。",
+      "uptime": 1470.9081225,
+      "sourceLine": 4639,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "releaseReceipts": [
+      {
+        "cancelled": false,
+        "completedPollCount": 15,
+        "detail": 225,
+        "durationMS": 150.95083333335424,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "935C0A8C-3E2C-4336-82B9-82AE11DC3946",
+        "maxPollQueueMS": 0.017374999970343197,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 15,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1445.8496504166667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1446.0007422916667,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3243
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 18,
+        "detail": 225,
+        "durationMS": 208.74566666657302,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "6486D124-C02E-4646-93CF-CA4CBC53523E",
+        "maxPollQueueMS": 0.04270833346708969,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 18,
+        "pollPriorities": [
+          21
+        ],
+        "requestedPriority": 21,
+        "requestStartUptime": 1448.9142588333334,
+        "returnPriority": 21,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1449.1231315416667,
+        "waitPriorities": [
+          21
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 3554
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 9,
+        "detail": 225,
+        "durationMS": 105.87445833334641,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "997EDDC8-9061-4C05-B751-13F50EAFC9BA",
+        "maxPollQueueMS": 0.01695833338999364,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 9,
+        "pollPriorities": [
+          21
+        ],
+        "requestedPriority": 21,
+        "requestStartUptime": 1467.44497675,
+        "returnPriority": 21,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1467.5511059583334,
+        "waitPriorities": [
+          21
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4496
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 225,
+        "durationMS": 4.941041666597812,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "E9456ADD-114B-462E-B6C9-2126F2391DCA",
+        "maxPollQueueMS": 0.014958333395043155,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          21
+        ],
+        "requestedPriority": 21,
+        "requestStartUptime": 1471.3062936666668,
+        "returnPriority": 21,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1471.3114509166667,
+        "waitPriorities": [
+          21
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 4644
+      }
+    ],
+    "interpretation": "The only rejected witness and failed navigation job occur after cleanup starts while a later automatic resume is being stopped; neither is the earlier unissued-member-input cause."
+  },
+  "verificationLimits": [
+    "FAST source test lane was skipped; no FULL/source/context artifact was downloaded by this agent.",
+    "Host sampling is disabled; there is no external profiler evidence of App Nap or synchronous occupancy.",
+    "All 150 raw files match the single provider ZIP byte for byte. The evidence analysis owner did not modify the tested source or raw evidence; the artifact and exact 3f531 head are unchanged. Shared-worktree edits for the next patch are not part of this run."
+  ]
+}

@@ -71,21 +71,31 @@ extension Reader {
     }
 
     /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.
-    func windowOverview() throws -> DesktopSnapshot {
+    func windowOverview(diagnostic: ((String) -> Void)? = nil) throws -> DesktopSnapshot {
+        diagnostic?("session-and-request")
         guard WindowServerSession.available, request.fixtureWindows == nil, request.anchors.isEmpty else {
             throw DesktopActionError.unsupported
         }
+        diagnostic?("opening-topology")
         let start = clock.systemUptime, from = Date(), topology = try Topology()
+        diagnostic?("catalog-availability")
         let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
+        diagnostic?("opening-stage-preference")
         let stageBefore = StageManagerPreference.read()
+        diagnostic?("accessibility-permission")
         let trusted = AXIsProcessTrusted()
+        diagnostic?("background-inventory")
         let backgroundInventory = canRead && trusted ? NPReadInventory().flatMap { SpaceInventory($0 as [AnyObject], displays:topology.displays) } : nil
+        diagnostic?("first-window-list")
         let first = try windowList(overview: true, backgroundInventory:backgroundInventory)
+        diagnostic?("first-active-and-logical")
         let activeBeforeRead = observedActiveNumbers()
         let activeBefore = activeBeforeRead ?? []
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
+        diagnostic?("first-boundary")
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
+        diagnostic?("background-inventory-agreement")
         if let backgroundInventory, backgroundInventory != firstBoundary?.inventory { throw DesktopActionError.unsupported }
         let currentIDs = firstBoundary?.inventory.map { inventory in
             Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.nativeKind != nil }.map(\.id))
@@ -100,29 +110,38 @@ extension Reader {
         let currentNumbers = Set(targets.flatMap(\.numbers))
         let sharedSpaces = topology.displays.count > 1 && !topology.separateSpaces
         let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
+        diagnostic?("current-window-roles")
         let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8,
                                                      frameNumbers: sharedSpaces ? currentNumbers : fullscreenNumbers) : [:]
         // Preserve the entire current-desktop budget. Spend a separate bounded slice
         // on known background members for the other Space cards.
+        diagnostic?("background-window-roles")
         let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
                                                            deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
+        diagnostic?("last-logical")
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
+        diagnostic?("second-window-list")
         let second = try windowList(overview: true, backgroundInventory:backgroundInventory)
+        diagnostic?("second-active")
         let activeAfterRead = observedActiveNumbers()
         let activeAfter = activeAfterRead ?? []
         let active = activeBefore.intersection(activeAfter)
         let observedActive = activeBefore.union(activeAfter)
+        diagnostic?("last-boundary")
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
+        diagnostic?("closing-topology-session-and-limits")
         guard topology == (try Topology()), WindowServerSession.available, !first.limited, !second.limited else {
             throw DesktopActionError.unsupported
         }
         let inventory = firstBoundary?.inventory == lastBoundary?.inventory ? lastBoundary?.inventory : nil
+        diagnostic?("boundary-inventory-agreement")
         if firstBoundary?.inventory != lastBoundary?.inventory { throw DesktopActionError.unsupported }
         let lastFullMembers = inventory?.fullscreenMembers() ?? [:]
         let previous = Dictionary(uniqueKeysWithValues: first.windows.map { ($0.windowID, $0) })
         let currentByDisplay = Dictionary(uniqueKeysWithValues: (inventory?.scopes ?? []).map { scope in
             (scope.displayID, scope.records.first(where: \.isCurrent))
         }).compactMapValues { $0 }
+        diagnostic?("closing-stage-preference")
         let stageAfter = StageManagerPreference.read()
         let stageManager = stageBefore == stageAfter ? stageAfter : nil
         var windows = [WindowObservation]()
@@ -130,10 +149,34 @@ extension Reader {
         let hasBackground = inventory?.scopes.flatMap(\.records).contains { !$0.isCurrent && $0.ordinaryUUID != nil } == true
         var complete = true
         var catalogIssues = [String]()
+        var catalogIssueWindows = [CatalogIssueWindowFacts]()
         func incomplete(_ reason: String, window: CGWindowMetadata? = nil) {
             complete = false
             guard catalogIssues.count < 32 else { return }
             catalogIssues.append(window.map { "\(reason):pid=\($0.process.pid),window=\($0.windowID)" } ?? reason)
+            guard let window, catalogIssueWindows.count < CatalogIssueWindowFacts.limit else { return }
+            let number = window.windowID, before = previous[number]
+            func sample(_ row: CGWindowMetadata, list: List, active: Set<UInt32>?) -> CatalogIssueWindowFacts.Sample {
+                .init(pid: row.process.pid, birth: row.process.launchEpochMicroseconds, frame: SurfaceRect(row.frame),
+                      reportedOnscreen: row.isOnscreen, observedOnscreen: list.observedOnscreen.map { $0.contains(number) },
+                      active: active.map { $0.contains(number) }, ordered: list.observedAcrossSpaces.map { $0.contains(number) },
+                      ownerUnhidden: list.unhiddenOwners.contains(row.process.pid))
+            }
+            // The roles were read between CG inventories for the first PID.
+            // Keep that identity explicit if this failed row changed owners.
+            let source: CatalogIssueWindowFacts.Role.Source = currentNumbers.contains(number) ? .current :
+                (otherNumbers.contains(number) ? .background : .notRequested)
+            let owner = before.flatMap { row in
+                source == .current ? roles[row.process.pid] : (source == .background ? otherRoles[row.process.pid] : nil)
+            }
+            let role = owner?.windows[number]
+            catalogIssueWindows.append(.init(issueIndex: catalogIssues.count - 1, number: number,
+                first: before.map { sample($0, list: first, active: activeBeforeRead) },
+                second: sample(window, list: second, active: activeAfterRead),
+                left: firstBoundary?.membership[number], right: lastBoundary?.membership[number],
+                role: .init(firstPID: before?.process.pid, source: source, ownerRead: owner != nil, windowRead: role != nil,
+                            everyNumberKnown: owner?.everyNumberKnown, allRolesRead: owner?.allRolesRead,
+                            ordinary: role?.ordinary, minimized: role?.minimized, fullscreen: role?.fullscreen)))
         }
         if inventory == nil { incomplete("nativeInventoryUnavailable") }
         if hasBackground && (!first.backgroundCollectionComplete || !second.backgroundCollectionComplete ||
@@ -141,6 +184,7 @@ extension Reader {
         if Set(first.windows.map(\.windowID)) != Set(second.windows.map(\.windowID)) { incomplete("windowRosterChanged") }
         let admitted = inventory?.scopes.flatMap(\.records).filter { $0.ordinaryUUID != nil || $0.fullscreenUUID != nil } ?? []
         let supported = Set(admitted.map(\.id))
+        diagnostic?("window-classification")
         for entry in second.windows {
             guard let before = previous[entry.windowID], let birth = entry.process.launchEpochMicroseconds, birth > 0,
                   before.process == entry.process,
@@ -241,6 +285,7 @@ extension Reader {
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
+        diagnostic?("snapshot-construction")
         var result = DesktopSnapshot.observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,
@@ -249,6 +294,10 @@ extension Reader {
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
         result.native?.catalogIssues = catalogIssues.isEmpty ? nil : catalogIssues
+        result.native?.catalogIssueWindows = catalogIssueWindows.isEmpty ? nil : catalogIssueWindows
+        if !complete, let firstCensus = first.census, let secondCensus = second.census {
+            result.native?.catalogCensus = .init(first: firstCensus, second: secondCensus)
+        }
         if let targets = request.sidebarAuditWindows {
             result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
                 var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,

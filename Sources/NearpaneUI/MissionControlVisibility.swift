@@ -20,20 +20,58 @@ enum MissionControlVisibility: String, Sendable {
 
 /// Only the fixed "mc" identifier and the ordinary Dock list role are used. Never
 /// descend into that list or fetch names, titles, documents, geometry, or content.
-actor MissionControlVisibilityReader {
+final class MissionControlVisibilityReader: @unchecked Sendable {
+    // Dock AX is synchronous IPC. A private queue keeps it off both AppKit and
+    // Swift's cooperative pool, where blocking desktop-reader work used to delay
+    // this ownership observation long enough to revoke an otherwise valid click.
+    // All mutable state below is confined to this one serial queue.
+    private let queue = DispatchQueue(label: "com.holdsnow.nearpane.dock-observation", qos: .userInitiated)
     private var verifiedDock: OrdinaryProcessImage?
+    private let injectedSample: (@Sendable () -> (MissionControlVisibility, String))?
     private static let executable = "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
     private static let identifier = "com.apple.dock"
 
     typealias Reading = (visibility: MissionControlVisibility, evidence: String, startUptime: TimeInterval, endUptime: TimeInterval)
 
-    func read() -> Reading {
-        let start = ProcessInfo.processInfo.systemUptime
-        let result = sampleDock()
-        return (result.visibility, result.evidence, start, ProcessInfo.processInfo.systemUptime)
+    /// One in-flight poll's result, available before its awaiting actor resumes.
+    /// It cannot replace a consumed result or retain a last-good observation.
+    final class PollCompletion: @unchecked Sendable {
+        private enum State { case waiting, ready(Reading), consumed }
+        private let lock = NSLock()
+        private var state: State = .waiting
+
+        func store(_ reading: Reading) {
+            lock.lock(); defer { lock.unlock() }
+            guard case .waiting = state else { return }
+            state = .ready(reading)
+        }
+
+        func take() -> Reading? {
+            lock.lock(); defer { lock.unlock() }
+            guard case let .ready(reading) = state else { return nil }
+            state = .consumed
+            return reading
+        }
+    }
+
+    init(sample: (@Sendable () -> (MissionControlVisibility, String))? = nil) {
+        injectedSample = sample
+    }
+
+    func read(completion: PollCompletion? = nil) async -> Reading {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                let start = ProcessInfo.processInfo.systemUptime
+                let result = injectedSample.map { $0() } ?? sampleDock()
+                let reading: Reading = (result.0, result.1, start, ProcessInfo.processInfo.systemUptime)
+                completion?.store(reading)
+                continuation.resume(returning: reading)
+            }
+        }
     }
 
     private func sampleDock() -> (visibility: MissionControlVisibility, evidence: String) {
+        dispatchPrecondition(condition: .onQueue(queue))
         guard AXIsProcessTrusted() else { return (.unknown, "accessibilityUnavailable") }
         let matches = NSRunningApplication.runningApplications(withBundleIdentifier: Self.identifier)
         guard matches.count == 1, let pid = matches.first?.processIdentifier,

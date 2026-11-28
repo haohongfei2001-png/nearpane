@@ -23,8 +23,12 @@ import NearpaneCore
     private var occlusionMonitor: NSObjectProtocol?
     private var spaceMonitor: NSObjectProtocol?
     private var sampleGeneration = UUID()
-    private var sampleBegan: TimeInterval?
-    private var sampleRequestID: UUID?
+    struct MissionControlPoll {
+        let id: UUID, generation: UUID
+        let requestedAt: TimeInterval
+        let completion: MissionControlVisibilityReader.PollCompletion
+    }
+    private var pendingMissionControlPoll: MissionControlPoll?
     private var stopped = false
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
@@ -257,28 +261,64 @@ import NearpaneCore
         Task(priority: duringUserAction ? .userInitiated : nil, operation: operation)
     }
 
+    func beginMissionControlPoll(at requestedAt: TimeInterval) -> MissionControlPoll? {
+        guard pendingMissionControlPoll == nil, !stopped, !suspended else { return nil }
+        let request = MissionControlPoll(id: UUID(), generation: sampleGeneration, requestedAt: requestedAt, completion: .init())
+        pendingMissionControlPoll = request
+        return request
+    }
+
+    /// Both consumers remove only this exact completed poll. An older callback
+    /// cannot clear a newer request or reapply a result already consumed by a tick.
+    @discardableResult
+    func consumeMissionControlPoll(_ request: MissionControlPoll, now: TimeInterval? = nil,
+                                   beforeAccept: () -> Void = {}) -> Bool {
+        guard let pending = pendingMissionControlPoll, pending.id == request.id,
+              pending.generation == request.generation, pending.completion === request.completion,
+              let reading = request.completion.take() else { return false }
+        pendingMissionControlPoll = nil
+        let current = request.generation == sampleGeneration && !stopped && !suspended
+        IndependentStageTrace.record("dispatch-dock-poll-consumed", ["requestID": request.id.uuidString,
+            "generation": request.generation.uuidString, "current": current,
+            "readStart": reading.startUptime, "readEnd": reading.endUptime,
+            "visibility": reading.visibility.rawValue, "evidence": reading.evidence])
+        guard current else { return true }
+        beforeAccept()
+        guard request.generation == sampleGeneration, !stopped, !suspended else { return true }
+        // Production measures acceptance after the callback's original preference
+        // read. The optional clock is only for deterministic deadline tests.
+        acceptMissionControl(reading, requestedAt: request.requestedAt,
+                             now: now ?? ProcessInfo.processInfo.systemUptime)
+        return true
+    }
+
+    /// Called after the tick's existing ownership preference read. Only a result
+    /// already completed by this pending native request can supersede the old age.
+    @discardableResult
+    func servicePendingMissionControlPoll(now: TimeInterval? = nil) -> Bool {
+        guard let pending = pendingMissionControlPoll else { return false }
+        if consumeMissionControlPoll(pending, now: now) { return true }
+        let now = now ?? ProcessInfo.processInfo.systemUptime
+        if let interval = missionControlReadInterval,
+           !Self.missionControlReadIsFresh(start: interval.start, end: interval.end, now: now) {
+            IndependentStageTrace.record("dispatch-dock-observation-expired", [
+                "requestID": pending.id.uuidString,
+                "pendingRequestStart": pending.requestedAt, "readStart": interval.start, "readEnd": interval.end,
+                "readTotalMilliseconds": (now - interval.start) * 1000])
+            setMissionControl(.unknown, evidence: "sampleExpired")
+        }
+        return true
+    }
+
     private func pollSystemOwnership() {
         guard !stopped, let missionControlReader else { return }
         setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
         guard !suspended else { return }
         wallpaperMonitor?.poll()
-        if let sampleBegan {
-            let now = ProcessInfo.processInfo.systemUptime
-            if let interval = missionControlReadInterval,
-               !Self.missionControlReadIsFresh(start: interval.start, end: interval.end, now: now) {
-                IndependentStageTrace.record("dispatch-dock-observation-expired", [
-                    "requestID": sampleRequestID?.uuidString ?? "unknown",
-                    "pendingRequestStart": sampleBegan, "readStart": interval.start, "readEnd": interval.end,
-                    "readTotalMilliseconds": (now - interval.start) * 1000])
-                setMissionControl(.unknown, evidence: "sampleExpired")
-            }
-            return
-        }
-        let generation = sampleGeneration
-        let requestID = UUID(), requestStarted = ProcessInfo.processInfo.systemUptime
+        if servicePendingMissionControlPoll() { return }
+        guard let request = beginMissionControlPoll(at: ProcessInfo.processInfo.systemUptime) else { return }
+        let generation = request.generation, requestID = request.id, requestStarted = request.requestedAt
         let duringUserAction = navigation.isDispatching
-        sampleBegan = requestStarted
-        sampleRequestID = requestID
         IndependentStageTrace.record("dispatch-dock-poll-created", ["requestID": requestID.uuidString,
             "requestStart": requestStarted, "generation": generation.uuidString,
             "dispatching": duringUserAction, "creatorPriority": Task.currentPriority.rawValue])
@@ -286,7 +326,7 @@ import NearpaneCore
             IndependentStageTrace.record("dispatch-dock-poll-started", ["requestID": requestID.uuidString,
                 "requestStart": requestStarted, "generation": generation.uuidString,
                 "dispatching": duringUserAction, "taskPriority": Task.currentPriority.rawValue])
-            let value = await missionControlReader.read()
+            let value = await missionControlReader.read(completion: request.completion)
             var facts: [String: Any] = ["requestID": requestID.uuidString, "requestStart": requestStarted,
                 "generation": generation.uuidString, "taskPriority": Task.currentPriority.rawValue,
                 "readStart": value.startUptime, "readEnd": value.endUptime,
@@ -296,16 +336,14 @@ import NearpaneCore
                 IndependentStageTrace.record("dispatch-dock-poll-completed", facts)
                 return
             }
-            let started = sampleBegan
-            sampleBegan = nil
-            sampleRequestID = nil
             let sameGeneration = generation == sampleGeneration
             facts["hostPresent"] = true
             facts["sameGeneration"] = sameGeneration
+            facts["currentRequest"] = pendingMissionControlPoll?.id == requestID
             IndependentStageTrace.record("dispatch-dock-poll-completed", facts)
-            guard sameGeneration, !stopped else { return }
-            setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
-            if let started { acceptMissionControl(value, requestedAt: started) }
+            consumeMissionControlPoll(request) {
+                self.setSystemManagesWindows(StageManagerPreference.ownsWindowDispatch)
+            }
         }
     }
 

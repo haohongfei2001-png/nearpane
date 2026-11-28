@@ -1,0 +1,54 @@
+{
+  "revision": "ef5c91c41020398443573db065f0f6fd2b8d9558",
+  "runID": 46130289030,
+  "jobID": 140933708136,
+  "artifactID": 15258366309,
+  "rawUnchangedFileCount": 435,
+  "frozenAtUTC": "2026-11-28T09:44:50.398751+00:00",
+  "frozen": {
+    "full-analysis.json": {
+      "bytes": 123211,
+      "sha256": "f3a2b12258ea4418bb34b922c276b49c9847c6c8eefa0757ffac018f881d631d"
+    },
+    "full-interpretation.json": {
+      "bytes": 37688,
+      "sha256": "0a6a87c03dd3b76e5c9e29ff643d91ee925a40815dd250c9c546c749243ffc6f"
+    },
+    "full-publication-audit.json": {
+      "bytes": 27111,
+      "sha256": "cdb2b2c4cf8bb2ba6fa252e6d8bda2702ec541b5a3b35db5c998f599820b4e5c"
+    },
+    "full-raw-manifest.json": {
+      "bytes": 109802,
+      "sha256": "8cc6709ebd5833dc44719cdd6d8920361e3be0104ceb5865072e6fa0f795fdad"
+    },
+    "full-download-receipt.json": {
+      "bytes": 586,
+      "sha256": "eb753410d60752cb4aa0873838b1ed9ff6109ead83404845623c5bf79eea5012"
+    },
+    "full-artifact-api-metadata.json": {
+      "bytes": 823,
+      "sha256": "3cb6d42041b2c83ada9edd847917b35b9cc8a067789f225ed0587787c88e207f"
+    },
+    "full-job.json": {
+      "bytes": 2014,
+      "sha256": "b461563457bbce11bd05681483d47be82a7f933b9cda02ac8db2a3f884e21826"
+    },
+    "analyze_full.py": {
+      "bytes": 11565,
+      "sha256": "bd2a995e540db70773d53b5ea3225d25fef8d882a30a77612c70ec14d8c1b5dd"
+    },
+    "audit_timeline.py": {
+      "bytes": 8576,
+      "sha256": "d1e2ba1972a6289f084782ffbe1f0ef8e5c2b2aa207fcdaac6b8e2e5b1ca2001"
+    },
+    "audit_publication.py": {
+      "bytes": 9351,
+      "sha256": "be01c150f198df87593616863ec09726d774d1daf1396c525b5dd5d5f4b9d06f"
+    },
+    "interpret_full.py": {
+      "bytes": 8129,
+      "sha256": "37eee7424a9f96113e472d0be38caef6a839d3d3d973d14584a37607f1370920"
+    }
+  }
+}

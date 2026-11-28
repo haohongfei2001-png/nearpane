@@ -1,0 +1,3037 @@
+{
+  "schema": 1,
+  "revision": "3f531dae67108f94d2d56629799c08f347004a4d",
+  "runID": 46132883604,
+  "jobID": 140941734504,
+  "lane": "full",
+  "sourceSampling": "disabledByRequest",
+  "outcome": {
+    "overall": "INCOMPLETE",
+    "sourceGate": "PASS",
+    "candidate": {
+      "schema": 1,
+      "revision": "3f531dae67108f94d2d56629799c08f347004a4d",
+      "sourceChecks": "PASS",
+      "fullBuild": "PASS",
+      "bundleSignature": "PASS",
+      "qualificationGranted": false
+    },
+    "candidateZIPLocalSHA256": "e3b8efd47e6e5428729ef2ad43e4db74572184c66699adf15a43eebda62a16fe",
+    "candidateZIPMatchesSuppliedSHA256": true,
+    "directEngine": "PASS",
+    "directEngineChecks": {
+      "cleanup": {
+        "scope": "all enrolled foreign windows on their original desktop; no owned Space remains",
+        "status": "PASS"
+      },
+      "crossAppGroup": {
+        "scope": "two foreign apps visible, same-app sibling hidden; engine calls, not R4 input",
+        "status": "PASS"
+      },
+      "focusRestore": {
+        "scope": "fixture-owned focus witness after exact window restoration",
+        "status": "PASS"
+      },
+      "foreignRoundTrip": {
+        "scope": "foreign window, same-app sibling and other-app bystander",
+        "status": "PASS"
+      },
+      "initialVisibleBindings": {
+        "scope": "two existing NP_READBACK receipts per initial visible foreign window; retained standard AX identity, original home and frame; no Space write",
+        "status": "PASS"
+      },
+      "initialYellowButton": {
+        "scope": "first yellow minimize before any ordinary HIDE/SHOW, using the initially retained standard AX window; independent bystanders and return",
+        "status": "PASS"
+      },
+      "launchCanary": {
+        "scope": "controller-owned panel only",
+        "status": "PASS"
+      },
+      "repeatedSwitch": {
+        "scope": "A→B→C→A through candidate ABI with independent readback",
+        "status": "PASS"
+      },
+      "sameAppIndependent": {
+        "scope": "only one of two windows from the same foreign app left the ordinary desktop",
+        "status": "PASS"
+      },
+      "yellowButton": {
+        "scope": "real title-bar action after repeated switching → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately",
+        "status": "PASS"
+      }
+    },
+    "directEngineWriteAttempts": 26,
+    "formalR4": "FAIL",
+    "formalR4ReceiptReason": "R4SwitchReadbackFailed",
+    "actualExternalAXInputs": 4,
+    "physicalDoubleConfirmations": 3,
+    "physicalLatenciesMS": [
+      1508.5794999999962,
+      1086.6732083334227,
+      2567.1577916666593
+    ],
+    "selectionSettledEvents": 0,
+    "hostCompletedSelectionExits": 1,
+    "qualificationGranted": false,
+    "scope": "The three physical confirmations are independent readbacks, not three completed selections. Only the second owned-member selection reports completed=true at Host; the fixture never reaches final R4SelectionSettled. Direct engine coverage is separate from formal R4."
+  },
+  "launch": {
+    "terminalReceipt": {
+      "cancelled": false,
+      "completedPollCount": 36,
+      "detail": 227,
+      "durationMS": 302.624625000135,
+      "epoch": 1,
+      "event": "spacesHostLifecycle",
+      "flags": 1896,
+      "intent": "317D149A-8B06-4C5A-B83A-286A22554006",
+      "maxPollQueueMS": 0.008458333240923821,
+      "operation": 8,
+      "owned": 0,
+      "phase": "worker-request-exit",
+      "pollCount": 36,
+      "pollPriorities": [
+        25
+      ],
+      "requestedPriority": 25,
+      "requestStartUptime": 1238.8509686666666,
+      "returnPriority": 25,
+      "status": 0,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1239.1537349583334,
+      "waitPriorities": [
+        25
+      ],
+      "sourceLine": 150
+    },
+    "result": "PASS; the ef5 launch ProbeFocus/229 failure is not present in this FULL run."
+  },
+  "firstBlockingFailure": {
+    "classification": "Foreground witness fresh directory revision105 rejected as catalog incomplete",
+    "sourceTrace": "/workspace/scratch/519883d1dfd8/r4-audit/3f531/full/independent-runtime/runtime/product.stderr.log",
+    "taskCreated": {
+      "auditCreationMS": 0.0007500000265281415,
+      "creatorKind": "metadata-owner",
+      "creatorPriority": 25,
+      "dispatching": true,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 1244.8142715000001,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 0.12216666664244258,
+      "readCallStartedUptime": 1244.8142709166668,
+      "readSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+      "requestConstructionMS": 0.0005833333034388488,
+      "requestRevision": 105,
+      "sessionAvailabilityMS": 0.11129166659884504,
+      "taskCreatedUptime": 1244.8143930833335,
+      "uptime": 1244.8144694166667,
+      "sourceLine": 972
+    },
+    "taskExit": {
+      "completed": true,
+      "durationMS": 36.27599999981612,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0.19066666664002696,
+      "incompleteCatalog": {
+        "catalogComplete": false,
+        "catalogIssueCount": 21,
+        "catalogIssues": [
+          "windowRosterChanged",
+          "windowIdentityOrBounds:pid=43533,window=88",
+          "windowIdentityOrBounds:pid=43528,window=70",
+          "windowIdentityOrBounds:pid=43533,window=57",
+          "windowIdentityOrBounds:pid=43528,window=56",
+          "windowIdentityOrBounds:pid=43528,window=55",
+          "windowIdentityOrBounds:pid=43528,window=54",
+          "windowIdentityOrBounds:pid=363,window=32",
+          "windowIdentityOrBounds:pid=363,window=26",
+          "windowIdentityOrBounds:pid=43533,window=69",
+          "windowIdentityOrBounds:pid=363,window=22",
+          "windowIdentityOrBounds:pid=43533,window=68"
+        ],
+        "catalogIssuesTruncated": true,
+        "catalogIssueWindows": [
+          {
+            "issueIndex": 1,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 88,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795860462090845,
+              "frame": {
+                "height": 20,
+                "width": 66,
+                "x": 686,
+                "y": 392
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 43533,
+              "reportedOnscreen": true
+            }
+          },
+          {
+            "issueIndex": 2,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 70,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 30,
+                "width": 1024,
+                "x": 0,
+                "y": 0
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 3,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 57,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795860462090845,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 680,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 43533,
+              "reportedOnscreen": true
+            }
+          },
+          {
+            "issueIndex": 4,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 56,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 400,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 5,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 55,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 500,
+                "width": 500,
+                "x": 0,
+                "y": 268
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 6,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 54,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 120,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 7,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 32,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795859262624826,
+              "frame": {
+                "height": 436,
+                "width": 920,
+                "x": 52,
+                "y": 91
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 363
+            }
+          },
+          {
+            "issueIndex": 8,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 26,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795859262624826,
+              "frame": {
+                "height": 64,
+                "width": 64,
+                "x": 0,
+                "y": 268
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 363
+            }
+          }
+        ]
+      },
+      "nativeAgeOnReturnMS": 24.444041666811245,
+      "nativeBeganUptime": 1244.82337575,
+      "nativeBeginAfterRequestMS": 7.7704166665171215,
+      "nativeDurationMS": 23.56291666683319,
+      "nativeEndedUptime": 1244.8469386666668,
+      "nativeEndToReturnMS": 0.8811249999780557,
+      "observeDirectoryMS": 0.012041666650475236,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 32.214458333328366,
+      "readerAwaitStartedUptime": 1244.8156053333335,
+      "readerReturnedUptime": 1244.8478197916668,
+      "readSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+      "receivedReply": true,
+      "remainingProcessingMS": 3.8588333331972535,
+      "requestRevision": 105,
+      "sidebarHistoryMS": 0,
+      "step": "complete",
+      "taskCreatedUptime": 1244.8143930833335,
+      "taskPriority": 25,
+      "taskQueueMS": 0.32383333336838405,
+      "taskStartedUptime": 1244.8147169166668,
+      "uptime": 1244.8511998333333,
+      "sourceLine": 980
+    },
+    "afterActionReturned": {
+      "boundaryDate": 1795860494.13082,
+      "boundaryRevision": 104,
+      "boundaryUptime": 1244.8142674166668,
+      "cancelled": false,
+      "completed": true,
+      "durationMS": 54.672708333328046,
+      "epochMatches": true,
+      "event": "independentStageProduct",
+      "freshReadMS": 54.66837500011934,
+      "freshRequestedUptime": 1244.8142698333334,
+      "hadPrior": false,
+      "pendingRead": false,
+      "phase": "after-action-directory-read",
+      "priorWaitMS": 0,
+      "receivedRevision": 105,
+      "reusedPrior": false,
+      "revision": 105,
+      "step": "complete",
+      "uptime": 1244.8693461666667,
+      "sourceLine": 981
+    },
+    "witnessRejection": {
+      "bindings": 3,
+      "claims": 2,
+      "durationMS": 55.67820833334736,
+      "event": "independentStageProduct",
+      "expectedDisplay": "2109FE05-700B-4D86-963C-08B091DE5E60",
+      "expectedSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+      "expectedSpace": "E85B0966-220C-C7EC-2731-FF0F2D1658B2",
+      "openingRosterMetrics": {
+        "candidateCount": 0,
+        "candidateEnumerationCompleted": false,
+        "nestedInPhaseDurations": true,
+        "retainedCount": 0,
+        "roleReadCount": 0,
+        "roleReadMaxMS": 0,
+        "roleReadTotalMS": 0,
+        "roleTimingIncludesTaskQueueAndActorResume": true
+      },
+      "phase": "witness-read-rejected",
+      "pid": 0,
+      "rosterRejection": {
+        "reason": "catalog-complete",
+        "stage": "home-catalog"
+      },
+      "rosterSnapshot": {
+        "catalogComplete": "false",
+        "catalogIssueCount": 21,
+        "catalogIssues": [
+          "windowRosterChanged",
+          "windowIdentityOrBounds:pid=43533,window=88",
+          "windowIdentityOrBounds:pid=43528,window=70",
+          "windowIdentityOrBounds:pid=43533,window=57",
+          "windowIdentityOrBounds:pid=43528,window=56",
+          "windowIdentityOrBounds:pid=43528,window=55",
+          "windowIdentityOrBounds:pid=43528,window=54",
+          "windowIdentityOrBounds:pid=363,window=32",
+          "windowIdentityOrBounds:pid=363,window=26",
+          "windowIdentityOrBounds:pid=43533,window=69",
+          "windowIdentityOrBounds:pid=363,window=22",
+          "windowIdentityOrBounds:pid=43533,window=68"
+        ],
+        "catalogIssuesTruncated": true,
+        "catalogIssueWindows": [
+          {
+            "issueIndex": 1,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 88,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795860462090845,
+              "frame": {
+                "height": 20,
+                "width": 66,
+                "x": 686,
+                "y": 392
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 43533,
+              "reportedOnscreen": true
+            }
+          },
+          {
+            "issueIndex": 2,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 70,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 30,
+                "width": 1024,
+                "x": 0,
+                "y": 0
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 3,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 57,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795860462090845,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 680,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 43533,
+              "reportedOnscreen": true
+            }
+          },
+          {
+            "issueIndex": 4,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 56,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 400,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 5,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 55,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 500,
+                "width": 500,
+                "x": 0,
+                "y": 268
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 6,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 54,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795860460871127,
+              "frame": {
+                "height": 202,
+                "width": 250,
+                "x": 120,
+                "y": 386
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 43528
+            }
+          },
+          {
+            "issueIndex": 7,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 32,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795859262624826,
+              "frame": {
+                "height": 436,
+                "width": 920,
+                "x": 52,
+                "y": 91
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 363
+            }
+          },
+          {
+            "issueIndex": 8,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 26,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": false,
+              "birth": 1795859262624826,
+              "frame": {
+                "height": 64,
+                "width": 64,
+                "x": 0,
+                "y": 268
+              },
+              "frameValid": true,
+              "observedOnscreen": false,
+              "ordered": false,
+              "ownerUnhidden": true,
+              "pid": 363
+            }
+          }
+        ],
+        "displayCount": 1,
+        "displayPresent": true,
+        "freshness": "fresh",
+        "matchingScopeCount": 1,
+        "nativeBeganUptime": 1244.82337575,
+        "nativeEndedUptime": 1244.8469386666668,
+        "population": "workWindows",
+        "revision": 105,
+        "sampledFrom": 1795860494.13993,
+        "sampledTo": 1795860494.163388,
+        "scopeCount": 1,
+        "scopeFactsTruncated": false,
+        "scopes": [
+          {
+            "recordCount": 2,
+            "records": [
+              {
+                "current": false,
+                "fullscreenUUID": "unavailable",
+                "id": "1",
+                "ordinaryUUID": "unavailable"
+              },
+              {
+                "current": true,
+                "fullscreenUUID": "unavailable",
+                "id": "12",
+                "ordinaryUUID": "E85B0966-220C-C7EC-2731-FF0F2D1658B2"
+              }
+            ]
+          }
+        ],
+        "separateSpaces": "true",
+        "session": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+        "spaces": "observed",
+        "stageManagerEnabled": "false",
+        "topologyConsistent": true,
+        "windowCount": 0,
+        "windowLimitReached": false
+      },
+      "sequence": 43,
+      "step": "opening-roster",
+      "unchangedPermitTiming": {
+        "count": 0,
+        "maxMS": 0,
+        "nestedInPhaseDurations": true,
+        "totalMS": 0
+      },
+      "uptime": 1244.8701082500002,
+      "window": 0,
+      "sourceLine": 982
+    },
+    "nativeScan": {
+      "beganUptime": 1244.82337575,
+      "endedUptime": 1244.8469386666668,
+      "wholeNativeDurationMS": 23.56291666683319,
+      "catalogIssueCount": 21,
+      "loggedIssueStrings": 12,
+      "loggedWindowFacts": 8,
+      "retainedFactWindowNumbers": [
+        88,
+        70,
+        57,
+        56,
+        55,
+        54,
+        32,
+        26
+      ],
+      "allRetainedFactsHaveNoFirstAndHaveSecond": true,
+      "managedWindowNumbersRepresented": [
+        54,
+        56,
+        57
+      ],
+      "firstWholeScanCountAvailable": false,
+      "inferenceLimit": "No whole-scan first/second raw or accepted counts exist in this head's trace. Absence of first rows for these eight retained keys does not prove the whole first scan was empty. snapshot.windowCount=0 is the final admitted DesktopSnapshot count. Nine issue strings were truncated, so the data do not establish that all twenty non-roster issues had the same category. Window88 is a second-only 66x20 CG surface owned by FixtureB; its function is unknown."
+    },
+    "previousPrimitive": {
+      "hideEntry": {
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "intent": "10F9D143-C087-439A-A86C-9DFB044118B8",
+        "operation": 3,
+        "phase": "worker-request-enter",
+        "requestedPriority": 25,
+        "requestStartUptime": 1244.2596445416668,
+        "timeoutMilliseconds": 2000,
+        "uptime": 1244.25982675,
+        "sourceLine": 939
+      },
+      "hideReceipt": {
+        "cancelled": false,
+        "completedPollCount": 6,
+        "detail": 224,
+        "durationMS": 59.42858333332879,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "10F9D143-C087-439A-A86C-9DFB044118B8",
+        "maxPollQueueMS": 0.00737499999559077,
+        "operation": 3,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 6,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1244.2596445416668,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1244.3192005416668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 942
+      },
+      "postWitnesses": [
+        {
+          "bindingMS": 48.43979166662393,
+          "closingDirectoryMS": 54.72912499999438,
+          "closingRosterMetrics": {
+            "candidateCount": 2,
+            "candidateEnumerationCompleted": true,
+            "nestedInPhaseDurations": true,
+            "retainedCount": 1,
+            "roleReadCount": 1,
+            "roleReadMaxMS": 8.5423749999336,
+            "roleReadTotalMS": 8.5423749999336,
+            "roleTimingIncludesTaskQueueAndActorResume": true
+          },
+          "durationMS": 190.44516666667732,
+          "event": "independentStageProduct",
+          "focusLocal": true,
+          "focusPID": 43533,
+          "focusWindow": 57,
+          "foreignFocus": false,
+          "managed": 3,
+          "openingDirectoryMS": 39.44495833343353,
+          "openingRosterMetrics": {
+            "candidateCount": 2,
+            "candidateEnumerationCompleted": true,
+            "nestedInPhaseDurations": true,
+            "retainedCount": 1,
+            "roleReadCount": 1,
+            "roleReadMaxMS": 44.93187499997475,
+            "roleReadTotalMS": 44.93187499997475,
+            "roleTimingIncludesTaskQueueAndActorResume": true
+          },
+          "phase": "witness-read-completed",
+          "physicalWindowsMS": 47.83220833337509,
+          "roster": 1,
+          "sequence": 42,
+          "unchangedPermitTiming": {
+            "count": 15,
+            "maxMS": 4.190041666561228,
+            "nestedInPhaseDurations": true,
+            "totalMS": 14.940958333454546
+          },
+          "uptime": 1244.5338442500001,
+          "windows": 3,
+          "sourceLine": 959
+        },
+        {
+          "bindingMS": 17.183208333335642,
+          "closingDirectoryMS": 121.54841666665561,
+          "closingRosterMetrics": {
+            "candidateCount": 2,
+            "candidateEnumerationCompleted": true,
+            "nestedInPhaseDurations": true,
+            "retainedCount": 1,
+            "roleReadCount": 1,
+            "roleReadMaxMS": 15.383916666678488,
+            "roleReadTotalMS": 15.383916666678488,
+            "roleTimingIncludesTaskQueueAndActorResume": true
+          },
+          "durationMS": 241.78145833343478,
+          "event": "independentStageProduct",
+          "focusLocal": true,
+          "focusPID": 43533,
+          "focusWindow": 57,
+          "foreignFocus": false,
+          "managed": 3,
+          "openingDirectoryMS": 39.635541666712015,
+          "openingRosterMetrics": {
+            "candidateCount": 2,
+            "candidateEnumerationCompleted": true,
+            "nestedInPhaseDurations": true,
+            "retainedCount": 1,
+            "roleReadCount": 1,
+            "roleReadMaxMS": 13.799833333223432,
+            "roleReadTotalMS": 13.799833333223432,
+            "roleTimingIncludesTaskQueueAndActorResume": true
+          },
+          "phase": "witness-read-completed",
+          "physicalWindowsMS": 63.416125000003376,
+          "roster": 1,
+          "sequence": 43,
+          "unchangedPermitTiming": {
+            "count": 15,
+            "maxMS": 11.741458333290211,
+            "nestedInPhaseDurations": true,
+            "totalMS": 22.970666665969475
+          },
+          "uptime": 1244.781679125,
+          "windows": 3,
+          "sourceLine": 968
+        }
+      ],
+      "scopeEnded": {
+        "drained": true,
+        "durationMS": 681.7131249999875,
+        "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+        "event": "independentStageProduct",
+        "phase": "metadata-scope-ended",
+        "purpose": "hide",
+        "scope": "9E7C7CD0-C812-49C8-97DE-082FC944936E",
+        "uptime": 1244.7972107083333,
+        "sourceLine": 969
+      }
+    },
+    "fourthInput": {
+      "attributeTimeoutMS": 250,
+      "axError": 0,
+      "directEngineInvocation": false,
+      "discoveryBudgetMS": 6000,
+      "inputUptime": 1244.8255475416668,
+      "issued": true,
+      "nonce": "2ac810bb-5f32-40ca-b936-bb046b6378e1",
+      "panelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "physicalPointerGesture": false,
+      "prePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          451,
+          208,
+          18
+        ],
+        "frameRead": 0,
+        "identifier": "native-held-group:0264751E-FC63-499F-910B-971BA35CDED7",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "prePressContext": {
+        "configurationBytes": true,
+        "onScreenCGPanel": true,
+        "panelFrameChanged": 0,
+        "parentSignatureAndIdentity": true,
+        "retainedAXPanelIdentity": true
+      },
+      "prePressPanelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "prePressPanelIdentity": {
+        "canonicalNumber": 80,
+        "canonicalNumberRead": 0,
+        "expectedNumber": 80,
+        "ownerMatches": true,
+        "ownerRead": 0
+      },
+      "prePressRediscoveries": 0,
+      "processExit": 0,
+      "qualificationGranted": false,
+      "reason": "realAccessibilityPressIssued",
+      "receipt": "r4-press-fe14c05c-412b-403e-b07a-76c3deadd801.result.json",
+      "schema": 1,
+      "selectedIdentifier": "native-held-group:0264751E-FC63-499F-910B-971BA35CDED7",
+      "status": "ISSUED",
+      "tree": {
+        "complete": true,
+        "matchingButtons": 1,
+        "nodes": [
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXWindow",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": 0,
+            "role": "AXScrollArea",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "native-held-group:9802D5A7-395B-45CD-BEE3-6E320D8EB170",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "actionRead": 0,
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "enabled": true,
+            "enabledRead": 0,
+            "frame": [
+              800,
+              451,
+              208,
+              18
+            ],
+            "frameRead": 0,
+            "identifier": "native-held-group:0264751E-FC63-499F-910B-971BA35CDED7",
+            "identifierRead": 0,
+            "insidePanel": true,
+            "ownerMatches": true,
+            "ownerRead": 0,
+            "positionRead": 0,
+            "pressSupported": true,
+            "role": "AXButton",
+            "roleRead": 0,
+            "sameRetainedPanel": true,
+            "sizeRead": 0,
+            "windowMatches": true,
+            "windowRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:43533:57",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:43528:56",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          }
+        ],
+        "visited": 8
+      },
+      "uptime": 1244.8285768750002,
+      "windowListRead": 0
+    },
+    "followingHostEvents": [
+      {
+        "drained": true,
+        "durationMS": 67.21583333342096,
+        "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+        "event": "independentStageProduct",
+        "phase": "metadata-scope-ended",
+        "purpose": "witness",
+        "scope": "A89F3852-6282-4905-AA65-3958657097B0",
+        "uptime": 1244.8705754166667,
+        "sourceLine": 983
+      },
+      {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-superseded",
+        "reason": "尚未核对完整的窗口组状态。",
+        "uptime": 1244.878585125,
+        "sourceLine": 984
+      },
+      {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+        "event": "independentStageProduct",
+        "job": "99259166-B782-438E-A170-FF0E5D582C2D",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1244.878784,
+        "userActivity": true,
+        "sourceLine": 985
+      },
+      {
+        "confirmed": true,
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "event": "independentStageProduct",
+        "phase": "navigation-system-confirmation",
+        "sameEpoch": true,
+        "uptime": 1244.8828765,
+        "sourceLine": 988
+      },
+      {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-failed",
+        "reason": "窗口或焦点已变化，本次切换已停止。",
+        "uptime": 1244.8829833333334,
+        "sourceLine": 989
+      },
+      {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "99259166-B782-438E-A170-FF0E5D582C2D",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1244.883102,
+        "sourceLine": 990
+      }
+    ],
+    "sequence": "The third selection's last HIDE and its two complete post-witnesses passed. A separate witness scope then created and returned fresh rev105 with catalogComplete=false. The fourth real held-card press arrived during that native read. The third job then reported an incomplete-state supersession and the fourth failed before issuing SHOW54; recovery RELEASE returned all original windows home.",
+    "schedulingBoundary": "Revision105 was explicitly created by metadata-owner after reserve/drain, not by the observer. The later incomplete observer rev106 was published during recovery and is not the first failure. No whole-lane observer barrier or post-binding retry is claimed as a fix for this direct foreground refusal.",
+    "authorizationBoundary": "The bad directory was not used to authorize a move. The original catalog-complete gate refused it with three bindings and two claims; the initial unbound one-shot retry does not apply."
+  },
+  "selectionCompletion": {
+    "physicalConfirmations": [
+      {
+        "observations": [
+          {
+            "readEnd": 1240.0958820833334,
+            "readStart": 1240.0925778333335,
+            "received": 1240.095941,
+            "uptime": 1240.095941,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 54,
+                "onScreen": true,
+                "pid": 43528,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 56,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 57,
+                "onScreen": false,
+                "pid": 43533,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1240.1720574166668,
+            "readStart": 1240.1704300416668,
+            "received": 1240.1720854166667,
+            "uptime": 1240.1720854166667,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 54,
+                "onScreen": true,
+                "pid": 43528,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 56,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 57,
+                "onScreen": false,
+                "pid": 43533,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1508.5794999999962,
+        "step": "singletonCycle/0",
+        "uptime": 1240.1721559166667,
+        "window": 54
+      },
+      {
+        "observations": [
+          {
+            "readEnd": 1241.4692230416667,
+            "readStart": 1241.4661815000002,
+            "received": 1241.4692642083335,
+            "uptime": 1241.4692642083335,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 56,
+                "onScreen": true,
+                "pid": 43528,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 57,
+                "onScreen": false,
+                "pid": 43533,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1241.5401755,
+            "readStart": 1241.538595375,
+            "received": 1241.541418125,
+            "uptime": 1241.541418125,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 56,
+                "onScreen": true,
+                "pid": 43528,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 57,
+                "onScreen": false,
+                "pid": 43533,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1086.6732083334227,
+        "step": "singletonCycle/1",
+        "uptime": 1241.541543625,
+        "window": 56
+      },
+      {
+        "observations": [
+          {
+            "readEnd": 1244.3304808750001,
+            "readStart": 1244.3284095416668,
+            "received": 1244.330504,
+            "uptime": 1244.330504,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 56,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 37,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 57,
+                "onScreen": true,
+                "pid": 43533,
+                "space": 12,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1244.4154047083334,
+            "readStart": 1244.3953535416667,
+            "received": 1244.415434625,
+            "uptime": 1244.415434625,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 56,
+                "onScreen": false,
+                "pid": 43528,
+                "space": 37,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 57,
+                "onScreen": true,
+                "pid": 43533,
+                "space": 12,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 2567.1577916666593,
+        "step": "singletonCycle/2",
+        "uptime": 1244.41566775,
+        "window": 57
+      }
+    ],
+    "ownedMemberHandoff": {
+      "queued": [
+        {
+          "event": "independentStageProduct",
+          "group": "BC54D933-963C-471E-A66F-B8C5D5D12118",
+          "hostRevision": 0,
+          "member": "C59709DB-14A7-410F-A1B6-F1FE0D9F2489",
+          "phase": "owned-member-selection-queued",
+          "uptime": 1240.456082125,
+          "window": 56,
+          "sourceLine": 388
+        }
+      ],
+      "entered": [
+        {
+          "event": "independentStageProduct",
+          "group": "BC54D933-963C-471E-A66F-B8C5D5D12118",
+          "hostRevision": 0,
+          "member": "C59709DB-14A7-410F-A1B6-F1FE0D9F2489",
+          "phase": "owned-member-selection-enter",
+          "uptime": 1240.6679993333335,
+          "window": 56,
+          "sourceLine": 462
+        }
+      ],
+      "exited": [
+        {
+          "completed": true,
+          "event": "independentStageProduct",
+          "member": "C59709DB-14A7-410F-A1B6-F1FE0D9F2489",
+          "phase": "owned-member-selection-exit",
+          "uptime": 1241.7473464166667,
+          "window": 56,
+          "sourceLine": 707
+        }
+      ]
+    },
+    "completedHostSelectionExits": [
+      {
+        "completed": true,
+        "event": "independentStageProduct",
+        "member": "C59709DB-14A7-410F-A1B6-F1FE0D9F2489",
+        "phase": "owned-member-selection-exit",
+        "uptime": 1241.7473464166667,
+        "window": 56,
+        "sourceLine": 707
+      }
+    ],
+    "supersededJobs": [
+      {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-superseded",
+        "reason": "已收到新的工作集合选择。",
+        "uptime": 1240.6019092916667,
+        "sourceLine": 457
+      },
+      {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-superseded",
+        "reason": "尚未核对完整的窗口组状态。",
+        "uptime": 1244.878585125,
+        "sourceLine": 984
+      }
+    ],
+    "interpretation": "The first selection was normally superseded by the second; the second owned-member selection completed. The third produced physical confirmation and finished its last HIDE double post, but no completed=true selection exit is recorded before the incomplete next witness. Its later superseded label must not be counted as a successfully sealed completed transaction."
+  },
+  "nativeMoveConfirmation": {
+    "count": 10,
+    "completedCount": 10,
+    "statisticsMS": {
+      "acknowledgementMS": {
+        "count": 10,
+        "minimum": 1.142,
+        "median": 10.475000000000001,
+        "p95NearestRank": 34.778,
+        "maximum": 34.778
+      },
+      "durationMS": {
+        "count": 10,
+        "minimum": 21.843,
+        "median": 51.007999999999996,
+        "p95NearestRank": 277.747,
+        "maximum": 277.747
+      }
+    },
+    "positive120to650Branch": [
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 57,
+        "pid": 43533,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 34.778,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 277.747,
+        "sourceLine": 626,
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/3f531/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-0f44dcb6-4564-4373-b9aa-3ff76f9b8d0b.jsonl"
+      }
+    ],
+    "scope": "Ten records include canary and cleanup moves. One foreground SHOW57 returned a timely 34.778ms ACK and two positive complete views in 277.747ms, exercising the separate confirmation budget. No failed worker terminal request occurred. This finite run does not establish a latency or reliability distribution."
+  },
+  "metadataAndPublication": {
+    "scopeCount": 32,
+    "allReservedDrainedAndEnded": true,
+    "completeWitnesses": 43,
+    "rejectedWitnesses": 1,
+    "preparationCompletions": [
+      {
+        "completion": {
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+          "phase": "navigation-initial-observation-complete",
+          "uptime": 1238.6876492916667,
+          "sourceLine": 73
+        },
+        "dequeue": {
+          "currentSelection": true,
+          "dispatchAvailable": true,
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+          "needsInitialObservation": true,
+          "phase": "navigation-dequeue",
+          "sameEpoch": true,
+          "stage": true,
+          "stageOwnsDispatch": false,
+          "taskPriority": 25,
+          "uptime": 1238.6695144583334,
+          "userActivity": true,
+          "sourceLine": 64
+        },
+        "activityEnd": {
+          "completionHolds": 0,
+          "event": "independentStageProduct",
+          "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+          "phase": "navigation-user-activity-end",
+          "uptime": 1240.6020536666667,
+          "sourceLine": 458
+        },
+        "dequeueToPreparationMS": 18.134833333306233,
+        "firstActualPublicationAfterCompletion": {
+          "catalogComplete": true,
+          "dispatching": true,
+          "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1239.0050301666668,
+          "nativeEndedUptime": 1239.0181665833334,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "observer": "813AFF9C-3FE7-414D-BD2D-046BBF731774",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1239.0205880833335,
+          "snapshotPresent": true,
+          "snapshotRevision": 8,
+          "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+          "uptime": 1239.0206818333334,
+          "wallSampledToAgeMS": 2.5260448455810547,
+          "sourceLine": 145,
+          "nativeAgeFromBeginMS": 15.557916666693927,
+          "nativeEndToPublicationMS": 2.421500000082233
+        },
+        "completionToNextPublicationMS": 332.93879166672014,
+        "nextPublicationBeforeThisActivityEnded": true
+      },
+      {
+        "completion": {
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+          "phase": "navigation-initial-observation-complete",
+          "uptime": 1240.7215109166668,
+          "sourceLine": 478
+        },
+        "dequeue": {
+          "currentSelection": true,
+          "dispatchAvailable": true,
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+          "needsInitialObservation": true,
+          "phase": "navigation-dequeue",
+          "sameEpoch": true,
+          "stage": true,
+          "stageOwnsDispatch": true,
+          "taskPriority": 25,
+          "uptime": 1240.6022061666667,
+          "userActivity": true,
+          "sourceLine": 459
+        },
+        "activityEnd": {
+          "completionHolds": 0,
+          "event": "independentStageProduct",
+          "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+          "phase": "navigation-user-activity-end",
+          "uptime": 1241.7474610416668,
+          "sourceLine": 708
+        },
+        "dequeueToPreparationMS": 119.304750000083,
+        "firstActualPublicationAfterCompletion": {
+          "catalogComplete": true,
+          "dispatching": true,
+          "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1240.7652770416666,
+          "nativeEndedUptime": 1240.7767073333334,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "observer": "FF4379A1-DF36-4C2E-9E08-762FD4259C19",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1240.7777705833334,
+          "snapshotPresent": true,
+          "snapshotRevision": 46,
+          "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+          "uptime": 1240.777833,
+          "wallSampledToAgeMS": 1.1359453201293945,
+          "sourceLine": 500,
+          "nativeAgeFromBeginMS": 12.493541666799501,
+          "nativeEndToPublicationMS": 1.0632500000156142
+        },
+        "completionToNextPublicationMS": 56.25966666661952,
+        "nextPublicationBeforeThisActivityEnded": true
+      },
+      {
+        "completion": {
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+          "phase": "navigation-initial-observation-complete",
+          "uptime": 1241.9375951666668,
+          "sourceLine": 736
+        },
+        "dequeue": {
+          "currentSelection": true,
+          "dispatchAvailable": true,
+          "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "event": "independentStageProduct",
+          "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+          "needsInitialObservation": true,
+          "phase": "navigation-dequeue",
+          "sameEpoch": true,
+          "stage": true,
+          "stageOwnsDispatch": true,
+          "taskPriority": 25,
+          "uptime": 1241.8534094166666,
+          "userActivity": true,
+          "sourceLine": 716
+        },
+        "activityEnd": {
+          "completionHolds": 1,
+          "event": "independentStageProduct",
+          "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+          "phase": "navigation-user-activity-end",
+          "uptime": 1245.2025732916668,
+          "sourceLine": 1007
+        },
+        "dequeueToPreparationMS": 84.18575000018791,
+        "firstActualPublicationAfterCompletion": {
+          "catalogComplete": true,
+          "dispatching": true,
+          "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1242.14111075,
+          "nativeEndedUptime": 1242.1627814166668,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+          "observer": "5EBEBE8B-25A9-46FE-9638-98F992E63268",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1242.1653364166668,
+          "snapshotPresent": true,
+          "snapshotRevision": 81,
+          "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+          "uptime": 1242.1654133333334,
+          "wallSampledToAgeMS": 2.6450157165527344,
+          "sourceLine": 758,
+          "nativeAgeFromBeginMS": 24.225666666779944,
+          "nativeEndToPublicationMS": 2.555000000029395
+        },
+        "completionToNextPublicationMS": 227.74125000000822,
+        "nextPublicationBeforeThisActivityEnded": true
+      }
+    ],
+    "actualPublicationCount": 26,
+    "allPublishedSamplesNativeFreshAtPublication": true,
+    "publishedPartialSamples": [
+      {
+        "catalogComplete": false,
+        "dispatching": false,
+        "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+        "event": "independentStageProduct",
+        "nativeBeganUptime": 1244.9418222916668,
+        "nativeEndedUptime": 1245.0266422916668,
+        "nativeFreshAtPublication": true,
+        "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+        "observer": "CB87003E-FC9F-4DD7-9989-87BF4BAFD547",
+        "phase": "desktop-observer-published",
+        "publicationUptime": 1245.0434123333334,
+        "snapshotPresent": true,
+        "snapshotRevision": 106,
+        "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+        "uptime": 1245.0436291666667,
+        "wallSampledToAgeMS": 16.90495014190674,
+        "sourceLine": 998,
+        "nativeAgeFromBeginMS": 101.59004166666818,
+        "nativeEndToPublicationMS": 16.770041666632096
+      }
+    ],
+    "publicationAgeStatisticsMS": {
+      "nativeAgeFromBeginMS": {
+        "count": 26,
+        "minimum": 12.493541666799501,
+        "median": 35.19210416664009,
+        "p95NearestRank": 164.5682083333213,
+        "maximum": 359.2695833333437
+      },
+      "nativeEndToPublicationMS": {
+        "count": 26,
+        "minimum": 1.0632500000156142,
+        "median": 7.825020833251983,
+        "p95NearestRank": 136.40683333346715,
+        "maximum": 335.093416666723
+      },
+      "wallSampledToAgeMS": {
+        "count": 26,
+        "minimum": 1.1359453201293945,
+        "median": 8.03154706954956,
+        "p95NearestRank": 136.50798797607422,
+        "maximum": 335.2210521697998
+      }
+    },
+    "continuousExplicitActivityEnvelopes": [
+      {
+        "from": 1238.6692598333334,
+        "to": 1241.7474610416668,
+        "jobs": [
+          {
+            "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+            "from": 1238.6692598333334,
+            "to": 1240.6020536666667,
+            "beginLine": 63,
+            "endLine": 458
+          },
+          {
+            "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+            "from": 1240.4574775,
+            "to": 1241.7474610416668,
+            "beginLine": 390,
+            "endLine": 708
+          }
+        ],
+        "durationMS": 3078.2012083334394,
+        "actualPublications": [
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1239.0050301666668,
+            "nativeEndedUptime": 1239.0181665833334,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "813AFF9C-3FE7-414D-BD2D-046BBF731774",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1239.0205880833335,
+            "snapshotPresent": true,
+            "snapshotRevision": 8,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1239.0206818333334,
+            "wallSampledToAgeMS": 2.5260448455810547,
+            "sourceLine": 145,
+            "nativeAgeFromBeginMS": 15.557916666693927,
+            "nativeEndToPublicationMS": 2.421500000082233
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1239.2296606666666,
+            "nativeEndedUptime": 1239.2512174166668,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "1D44DE51-519A-4D43-9435-32DC11E0336D",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1239.263311125,
+            "snapshotPresent": true,
+            "snapshotRevision": 11,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1239.2635815416668,
+            "wallSampledToAgeMS": 12.178897857666016,
+            "sourceLine": 187,
+            "nativeAgeFromBeginMS": 33.650458333340794,
+            "nativeEndToPublicationMS": 12.093708333168252
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1240.441518,
+            "nativeEndedUptime": 1240.4602724166668,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "0C7C1C30-B21C-42DB-822D-685E35900BF6",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1240.463250875,
+            "snapshotPresent": true,
+            "snapshotRevision": 36,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1240.463318375,
+            "wallSampledToAgeMS": 3.0759572982788086,
+            "sourceLine": 394,
+            "nativeAgeFromBeginMS": 21.732874999997875,
+            "nativeEndToPublicationMS": 2.978458333245726
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1240.5916300416668,
+            "nativeEndedUptime": 1240.6040830416669,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "4671DE0A-DF22-49A9-8E25-83C869D8A4A1",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1240.6744304583335,
+            "snapshotPresent": true,
+            "snapshotRevision": 41,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1240.674508625,
+            "wallSampledToAgeMS": 70.45400142669678,
+            "sourceLine": 465,
+            "nativeAgeFromBeginMS": 82.80041666671423,
+            "nativeEndToPublicationMS": 70.34741666666378
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1240.7652770416666,
+            "nativeEndedUptime": 1240.7767073333334,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "FF4379A1-DF36-4C2E-9E08-762FD4259C19",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1240.7777705833334,
+            "snapshotPresent": true,
+            "snapshotRevision": 46,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1240.777833,
+            "wallSampledToAgeMS": 1.1359453201293945,
+            "sourceLine": 500,
+            "nativeAgeFromBeginMS": 12.493541666799501,
+            "nativeEndToPublicationMS": 1.0632500000156142
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1240.8339509166667,
+            "nativeEndedUptime": 1240.8457751666667,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "6A68C6C3-B16A-49AF-8219-4586A852FEA8",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1240.8490775833334,
+            "snapshotPresent": true,
+            "snapshotRevision": 49,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1240.8491390000002,
+            "wallSampledToAgeMS": 3.3910274505615234,
+            "sourceLine": 524,
+            "nativeAgeFromBeginMS": 15.126666666674282,
+            "nativeEndToPublicationMS": 3.302416666656427
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1241.1048587083335,
+            "nativeEndedUptime": 1241.1157848750001,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "8504747F-BCBA-42C7-A1BB-300D0E070F0C",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1241.1178937916668,
+            "snapshotPresent": true,
+            "snapshotRevision": 56,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1241.1179537916667,
+            "wallSampledToAgeMS": 2.1851062774658203,
+            "sourceLine": 578,
+            "nativeAgeFromBeginMS": 13.03508333330683,
+            "nativeEndToPublicationMS": 2.1089166666570236
+          }
+        ],
+        "retainedSnapshotIntervals": [
+          {
+            "sourceLine": 59,
+            "revision": 4,
+            "from": 1238.6692598333334,
+            "to": 1239.0205880833335,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 385.00904166676264,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 145,
+            "revision": 8,
+            "from": 1239.0205880833335,
+            "to": 1239.263311125,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 258.2809583332164,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 187,
+            "revision": 11,
+            "from": 1239.263311125,
+            "to": 1240.463250875,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 1233.5902083334531,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 394,
+            "revision": 36,
+            "from": 1240.463250875,
+            "to": 1240.6744304583335,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 232.91245833343055,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 465,
+            "revision": 41,
+            "from": 1240.6744304583335,
+            "to": 1240.7777705833334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 186.14054166664573,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 500,
+            "revision": 46,
+            "from": 1240.7777705833334,
+            "to": 1240.8490775833334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 83.8005416667329,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 524,
+            "revision": 49,
+            "from": 1240.8490775833334,
+            "to": 1241.1178937916668,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 283.9428750000934,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 578,
+            "revision": 56,
+            "from": 1241.1178937916668,
+            "to": 1241.7474610416668,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 642.6023333333433,
+            "nativeFreshWhenPublished": true
+          }
+        ],
+        "preparationCompletions": [
+          {
+            "completion": {
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+              "phase": "navigation-initial-observation-complete",
+              "uptime": 1238.6876492916667,
+              "sourceLine": 73
+            },
+            "dequeue": {
+              "currentSelection": true,
+              "dispatchAvailable": true,
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+              "needsInitialObservation": true,
+              "phase": "navigation-dequeue",
+              "sameEpoch": true,
+              "stage": true,
+              "stageOwnsDispatch": false,
+              "taskPriority": 25,
+              "uptime": 1238.6695144583334,
+              "userActivity": true,
+              "sourceLine": 64
+            },
+            "activityEnd": {
+              "completionHolds": 0,
+              "event": "independentStageProduct",
+              "job": "223A555F-5D88-4FE2-BBE8-DF0EB994ACBF",
+              "phase": "navigation-user-activity-end",
+              "uptime": 1240.6020536666667,
+              "sourceLine": 458
+            },
+            "dequeueToPreparationMS": 18.134833333306233,
+            "firstActualPublicationAfterCompletion": {
+              "catalogComplete": true,
+              "dispatching": true,
+              "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+              "event": "independentStageProduct",
+              "nativeBeganUptime": 1239.0050301666668,
+              "nativeEndedUptime": 1239.0181665833334,
+              "nativeFreshAtPublication": true,
+              "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "observer": "813AFF9C-3FE7-414D-BD2D-046BBF731774",
+              "phase": "desktop-observer-published",
+              "publicationUptime": 1239.0205880833335,
+              "snapshotPresent": true,
+              "snapshotRevision": 8,
+              "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+              "uptime": 1239.0206818333334,
+              "wallSampledToAgeMS": 2.5260448455810547,
+              "sourceLine": 145,
+              "nativeAgeFromBeginMS": 15.557916666693927,
+              "nativeEndToPublicationMS": 2.421500000082233
+            },
+            "completionToNextPublicationMS": 332.93879166672014,
+            "nextPublicationBeforeThisActivityEnded": true
+          },
+          {
+            "completion": {
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+              "phase": "navigation-initial-observation-complete",
+              "uptime": 1240.7215109166668,
+              "sourceLine": 478
+            },
+            "dequeue": {
+              "currentSelection": true,
+              "dispatchAvailable": true,
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+              "needsInitialObservation": true,
+              "phase": "navigation-dequeue",
+              "sameEpoch": true,
+              "stage": true,
+              "stageOwnsDispatch": true,
+              "taskPriority": 25,
+              "uptime": 1240.6022061666667,
+              "userActivity": true,
+              "sourceLine": 459
+            },
+            "activityEnd": {
+              "completionHolds": 0,
+              "event": "independentStageProduct",
+              "job": "DB19A0D6-ED50-40BD-A119-5820A66D5B40",
+              "phase": "navigation-user-activity-end",
+              "uptime": 1241.7474610416668,
+              "sourceLine": 708
+            },
+            "dequeueToPreparationMS": 119.304750000083,
+            "firstActualPublicationAfterCompletion": {
+              "catalogComplete": true,
+              "dispatching": true,
+              "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+              "event": "independentStageProduct",
+              "nativeBeganUptime": 1240.7652770416666,
+              "nativeEndedUptime": 1240.7767073333334,
+              "nativeFreshAtPublication": true,
+              "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "observer": "FF4379A1-DF36-4C2E-9E08-762FD4259C19",
+              "phase": "desktop-observer-published",
+              "publicationUptime": 1240.7777705833334,
+              "snapshotPresent": true,
+              "snapshotRevision": 46,
+              "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+              "uptime": 1240.777833,
+              "wallSampledToAgeMS": 1.1359453201293945,
+              "sourceLine": 500,
+              "nativeAgeFromBeginMS": 12.493541666799501,
+              "nativeEndToPublicationMS": 1.0632500000156142
+            },
+            "completionToNextPublicationMS": 56.25966666661952,
+            "nextPublicationBeforeThisActivityEnded": true
+          }
+        ],
+        "nativeAgeAtIntervalEndStatisticsMS": {
+          "count": 8,
+          "minimum": 83.8005416667329,
+          "median": 271.1119166666549,
+          "p95NearestRank": 1233.5902083334531,
+          "maximum": 1233.5902083334531
+        },
+        "intervalsBeyondNative12s": []
+      },
+      {
+        "from": 1241.8531740416668,
+        "to": 1245.2025732916668,
+        "jobs": [
+          {
+            "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+            "from": 1241.8531740416668,
+            "to": 1245.2025732916668,
+            "beginLine": 715,
+            "endLine": 1007
+          },
+          {
+            "job": "99259166-B782-438E-A170-FF0E5D582C2D",
+            "from": 1244.828288875,
+            "to": 1244.883102,
+            "beginLine": 979,
+            "endLine": 990
+          }
+        ],
+        "durationMS": 3349.399250000033,
+        "actualPublications": [
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1242.14111075,
+            "nativeEndedUptime": 1242.1627814166668,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "5EBEBE8B-25A9-46FE-9638-98F992E63268",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1242.1653364166668,
+            "snapshotPresent": true,
+            "snapshotRevision": 81,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1242.1654133333334,
+            "wallSampledToAgeMS": 2.6450157165527344,
+            "sourceLine": 758,
+            "nativeAgeFromBeginMS": 24.225666666779944,
+            "nativeEndToPublicationMS": 2.555000000029395
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1242.8437765416668,
+            "nativeEndedUptime": 1242.8629941666668,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "3504DDE2-33A8-4B6D-AC67-50FD2111D940",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1242.8642122083334,
+            "snapshotPresent": true,
+            "snapshotRevision": 84,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1242.864289,
+            "wallSampledToAgeMS": 1.3060569763183594,
+            "sourceLine": 788,
+            "nativeAgeFromBeginMS": 20.435666666571706,
+            "nativeEndToPublicationMS": 1.2180416665614757
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1242.8815409583335,
+            "nativeEndedUptime": 1242.8989356250001,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "FABB0A76-BC60-4E12-93D0-6744F69BCFDC",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1242.9001470833334,
+            "snapshotPresent": true,
+            "snapshotRevision": 85,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1242.90020925,
+            "wallSampledToAgeMS": 1.289963722229004,
+            "sourceLine": 822,
+            "nativeAgeFromBeginMS": 18.60612499990566,
+            "nativeEndToPublicationMS": 1.2114583332731854
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1243.5603117916667,
+            "nativeEndedUptime": 1243.5826568333334,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "2A99C095-736B-4CD6-A2D4-66C1B824A0E4",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1243.5840138333333,
+            "snapshotPresent": true,
+            "snapshotRevision": 92,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1243.5841353333335,
+            "wallSampledToAgeMS": 1.4810562133789062,
+            "sourceLine": 880,
+            "nativeAgeFromBeginMS": 23.70204166663825,
+            "nativeEndToPublicationMS": 1.3569999998708226
+          },
+          {
+            "catalogComplete": false,
+            "dispatching": false,
+            "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1244.9418222916668,
+            "nativeEndedUptime": 1245.0266422916668,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+            "observer": "CB87003E-FC9F-4DD7-9989-87BF4BAFD547",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1245.0434123333334,
+            "snapshotPresent": true,
+            "snapshotRevision": 106,
+            "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+            "uptime": 1245.0436291666667,
+            "wallSampledToAgeMS": 16.90495014190674,
+            "sourceLine": 998,
+            "nativeAgeFromBeginMS": 101.59004166666818,
+            "nativeEndToPublicationMS": 16.770041666632096
+          }
+        ],
+        "retainedSnapshotIntervals": [
+          {
+            "sourceLine": 713,
+            "revision": 76,
+            "from": 1241.8531740416668,
+            "to": 1242.1653364166668,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 369.20341666677814,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 758,
+            "revision": 81,
+            "from": 1242.1653364166668,
+            "to": 1242.8642122083334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 723.1014583333035,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 788,
+            "revision": 84,
+            "from": 1242.8642122083334,
+            "to": 1242.9001470833334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 56.37054166663802,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 822,
+            "revision": 85,
+            "from": 1242.9001470833334,
+            "to": 1243.5840138333333,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 702.4728749997848,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 880,
+            "revision": 92,
+            "from": 1243.5840138333333,
+            "to": 1245.0434123333334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 1483.1005416667722,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 998,
+            "revision": 106,
+            "from": 1245.0434123333334,
+            "to": 1245.2025732916668,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": false,
+            "nativeAgeAtIntervalEndMS": 260.7510000000275,
+            "nativeFreshWhenPublished": true
+          }
+        ],
+        "preparationCompletions": [
+          {
+            "completion": {
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+              "phase": "navigation-initial-observation-complete",
+              "uptime": 1241.9375951666668,
+              "sourceLine": 736
+            },
+            "dequeue": {
+              "currentSelection": true,
+              "dispatchAvailable": true,
+              "epoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "event": "independentStageProduct",
+              "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+              "needsInitialObservation": true,
+              "phase": "navigation-dequeue",
+              "sameEpoch": true,
+              "stage": true,
+              "stageOwnsDispatch": true,
+              "taskPriority": 25,
+              "uptime": 1241.8534094166666,
+              "userActivity": true,
+              "sourceLine": 716
+            },
+            "activityEnd": {
+              "completionHolds": 1,
+              "event": "independentStageProduct",
+              "job": "6B204819-B2F9-4265-BBA3-A1ADE4BEB611",
+              "phase": "navigation-user-activity-end",
+              "uptime": 1245.2025732916668,
+              "sourceLine": 1007
+            },
+            "dequeueToPreparationMS": 84.18575000018791,
+            "firstActualPublicationAfterCompletion": {
+              "catalogComplete": true,
+              "dispatching": true,
+              "epoch": "FA787CC8-C06E-4D8A-BC13-CCCE1B0EE4D6",
+              "event": "independentStageProduct",
+              "nativeBeganUptime": 1242.14111075,
+              "nativeEndedUptime": 1242.1627814166668,
+              "nativeFreshAtPublication": true,
+              "navigationEpoch": "F4990B91-3CC7-4946-82C5-DA1BBB424170",
+              "observer": "5EBEBE8B-25A9-46FE-9638-98F992E63268",
+              "phase": "desktop-observer-published",
+              "publicationUptime": 1242.1653364166668,
+              "snapshotPresent": true,
+              "snapshotRevision": 81,
+              "snapshotSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+              "uptime": 1242.1654133333334,
+              "wallSampledToAgeMS": 2.6450157165527344,
+              "sourceLine": 758,
+              "nativeAgeFromBeginMS": 24.225666666779944,
+              "nativeEndToPublicationMS": 2.555000000029395
+            },
+            "completionToNextPublicationMS": 227.74125000000822,
+            "nextPublicationBeforeThisActivityEnded": true
+          }
+        ],
+        "nativeAgeAtIntervalEndStatisticsMS": {
+          "count": 6,
+          "minimum": 56.37054166663802,
+          "median": 535.8381458332815,
+          "p95NearestRank": 1483.1005416667722,
+          "maximum": 1483.1005416667722
+        },
+        "intervalsBeyondNative12s": []
+      }
+    ],
+    "maxSameEpochRetainedSnapshotAgeBetweenActualPublications": {
+      "fromSourceLine": 1072,
+      "toSourceLine": 1112,
+      "fromUptime": 1246.7802032916668,
+      "toUptime": 1249.9291714166668,
+      "intervalMS": 3148.9681250000103,
+      "beforeRevision": 112,
+      "afterRevision": 113,
+      "sameFeedEpoch": true,
+      "sameSnapshotSession": true,
+      "beforeSnapshotPresent": true,
+      "beforeCatalogComplete": true,
+      "nativeAgeBeforeNextPublicationMS": 3287.4220833334675,
+      "native12sExpiredBeforeNextPublication": false,
+      "wallAgeBeforeNextPublicationMSAssumingNoWallClockJump": 3257.573152198802,
+      "dispatchingAtBothPublications": false,
+      "sameNavigationEpoch": true
+    },
+    "longLaneOver12sExercised": false,
+    "scope": "Actual snapshot assignments are traced with native-begin age and wall sampledTo age. The two connected explicit activity envelopes last 3078.201ms and 3349.399ms; neither exercises a lane over12s. Their maximum retained-snapshot native-begin ages are 1233.590ms and1483.101ms. Epoch invalidation clears the snapshot, so gaps across epochs are not treated as continued snapshot retention. FAST remains independent."
+  },
+  "dockAndEditing": {
+    "requestCount": 45,
+    "consumedCount": 45,
+    "duplicateConsumption": [],
+    "consumedBeforeActorCallback": [],
+    "stalePeriodConsumptions": [],
+    "expiredOldObservations": [],
+    "nonSelectionNavigationSubmissions": [],
+    "scope": "45 completed polls were consumed exactly once. No timer-before-actor-callback consumption occurred, so FULL does not exercise that specific handoff race. Shared join/detach editing was not reached in this FULL run."
+  },
+  "latency": {
+    "clickWallTimePartitions": [
+      {
+        "step": "singletonCycle/0",
+        "inputUptime": 1238.6635764166667,
+        "doubleReadUptime": 1240.1721559166667,
+        "pressToDoubleReadMS": 1508.5794999999962,
+        "nonOverlappingWallTimeMS": {
+          "external-input-delivery-and-navigation-queue": 5.938041666695426,
+          "unattributed-host-bookkeeping-scheduling-or-fixture-polling": 102.25333333278286,
+          "worker-process-start-and-durable-owner": 8.18641666660369,
+          "witness-opening-directory": 156.46208333328104,
+          "directory-task-exit-to-caller-resumption": 20.88312500018219,
+          "witness-binding-and-roster": 91.3523750002696,
+          "witness-original-AX-and-physical": 218.47420833296383,
+          "witness-closing-directory-and-finalization": 160.26316666693674,
+          "worker-launch-canary": 302.76629166678504,
+          "worker-health": 26.13895833337665,
+          "worker-readback": 72.32645833323659,
+          "ordinary-focus-and-WAL-envelope-inferred": 219.2566666667517,
+          "worker-hide": 124.27837500013084
+        },
+        "sumMatchesMeasurement": true
+      },
+      {
+        "step": "singletonCycle/1",
+        "inputUptime": 1240.4548704166666,
+        "doubleReadUptime": 1241.541543625,
+        "pressToDoubleReadMS": 1086.6732083334227,
+        "nonOverlappingWallTimeMS": {
+          "worker-health": 71.5838333337615,
+          "external-input-delivery-and-navigation-queue": 29.586333333327275,
+          "witness-opening-directory": 203.05820833254984,
+          "directory-task-exit-to-caller-resumption": 19.801166667321013,
+          "witness-binding-and-roster": 11.785416667407844,
+          "witness-original-AX-and-physical": 197.7083333324572,
+          "witness-closing-directory-and-finalization": 174.33649999998124,
+          "unattributed-host-bookkeeping-scheduling-or-fixture-polling": 136.9393333336575,
+          "worker-readback": 45.72970833282852,
+          "worker-show": 73.89354166662088,
+          "ordinary-focus-and-WAL-envelope-inferred": 48.573416666840785,
+          "worker-hide": 73.67741666666916
+        },
+        "sumMatchesMeasurement": true
+      },
+      {
+        "step": "singletonCycle/2",
+        "inputUptime": 1241.8485099583334,
+        "doubleReadUptime": 1244.41566775,
+        "pressToDoubleReadMS": 2567.1577916666593,
+        "nonOverlappingWallTimeMS": {
+          "external-input-delivery-and-navigation-queue": 4.899458333284201,
+          "unattributed-host-bookkeeping-scheduling-or-fixture-polling": 158.73862500006908,
+          "witness-opening-directory": 435.3919166669584,
+          "directory-task-exit-to-caller-resumption": 27.332458333376053,
+          "witness-binding-and-roster": 113.28558333298133,
+          "witness-original-AX-and-physical": 904.9252916668138,
+          "witness-closing-directory-and-finalization": 340.9624583327968,
+          "worker-health": 47.67354166688165,
+          "worker-readback": 52.15833333363662,
+          "worker-show": 304.04670833331693,
+          "ordinary-focus-and-WAL-envelope-inferred": 118.18741666661481,
+          "worker-hide": 59.555999999929554
+        },
+        "sumMatchesMeasurement": true
+      }
+    ],
+    "slowestCompleteWitnesses": [
+      {
+        "bindingMS": 4.554749999897467,
+        "closingDirectoryMS": 37.097541666753386,
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 660.5796250000822,
+        "event": "independentStageProduct",
+        "focusLocal": true,
+        "focusPID": 43528,
+        "focusWindow": 56,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 25.789958333461982,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 593.1393749999643,
+        "roster": 1,
+        "sequence": 34,
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 3.9567916667238023,
+          "nestedInPhaseDurations": true,
+          "totalMS": 8.793458333457238
+        },
+        "uptime": 1242.8353332083334,
+        "windows": 3,
+        "sourceLine": 776
+      },
+      {
+        "bindingMS": 17.183208333335642,
+        "closingDirectoryMS": 121.54841666665561,
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 15.383916666678488,
+          "roleReadTotalMS": 15.383916666678488,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 241.78145833343478,
+        "event": "independentStageProduct",
+        "focusLocal": true,
+        "focusPID": 43533,
+        "focusWindow": 57,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 39.635541666712015,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 13.799833333223432,
+          "roleReadTotalMS": 13.799833333223432,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 63.416125000003376,
+        "roster": 1,
+        "sequence": 43,
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 11.741458333290211,
+          "nestedInPhaseDurations": true,
+          "totalMS": 22.970666665969475
+        },
+        "uptime": 1244.781679125,
+        "windows": 3,
+        "sourceLine": 968
+      },
+      {
+        "bindingMS": 0.6021249998866551,
+        "closingDirectoryMS": 24.82241666666596,
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 199.79891666662297,
+        "event": "independentStageProduct",
+        "focusLocal": true,
+        "focusPID": 43528,
+        "focusWindow": 56,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 108.32099999993261,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 66.05462500010617,
+        "roster": 1,
+        "sequence": 33,
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 11.330708333161965,
+          "nestedInPhaseDurations": true,
+          "totalMS": 22.030916666835765
+        },
+        "uptime": 1242.1389535,
+        "windows": 3,
+        "sourceLine": 748
+      }
+    ],
+    "largestPreTask": {
+      "auditCreationMS": 0.0015833331872272538,
+      "creatorKind": "observer",
+      "creatorPriority": 17,
+      "dispatching": false,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 1238.2715142916668,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 71.08904166648244,
+      "readCallStartedUptime": 1238.2715137916668,
+      "readSession": "D9AA592C-70DF-4821-A0EE-F0B7876C61D2",
+      "requestConstructionMS": 0.0005833333034388488,
+      "requestRevision": 2,
+      "sessionAvailabilityMS": 71.07154166669716,
+      "taskCreatedUptime": 1238.3426028333333,
+      "uptime": 1238.3427415416668,
+      "sourceLine": 40
+    },
+    "largestPreTaskBeforeFirstInput": true,
+    "scope": "The 660.580ms seq34 witness contains a593.139ms physical-window elapsed envelope. These await envelopes include queue and actor-resumption time; the existing raw trace does not isolate how much was native AX. Nested role and permit timings are not added again. Future segmented clocks were not part of this head."
+  },
+  "laterGateOutcomes": {
+    "R4ProductPath": {
+      "runtimeSummary": "FAIL",
+      "productReceipt": null
+    },
+    "groupMergeSplit": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "yellowButtonRouting": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopReveal": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopSwitch": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeFullScreen": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "missionControl": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "appExpose": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "desktopGestures": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "fullScreenSplitView": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "newWindowLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "windowCloseLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "applicationExitLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "coldHiddenPreview": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "hostCrashRecovery": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "platformForeignMechanism": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": null
+    },
+    "exactTargetEngine": {
+      "runtimeSummary": "NOT_PROVEN",
+      "productReceipt": null
+    }
+  },
+  "cleanup": {
+    "workerReleaseRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 21,
+        "detail": 225,
+        "durationMS": 242.9770000001099,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "208A2EE8-FB3A-4822-AB78-A277F81903C5",
+        "maxPollQueueMS": 0.08229166655837616,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 21,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1244.8826635833334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1245.1257402916667,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 1005
+      }
+    ],
+    "hostFinalShutdown": {
+      "end": 1252.92764375,
+      "milliseconds": 1.2956250000115688,
+      "released": true,
+      "start": 1252.926348125
+    },
+    "externalTwoHomeReadback": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1252.930963,
+          "readStart": 1252.9286129583334,
+          "received": 1252.9624784166667,
+          "uptime": 1252.9624784166667,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 43528,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 43528,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 43533,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1253.165229875,
+          "readStart": 1253.16318675,
+          "received": 1253.1670879166668,
+          "uptime": 1253.1670879166668,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 43528,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 43528,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 43533,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "productCleanup": true,
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "workspaceCleanup": {
+      "cleanup": true,
+      "created": {
+        "id": 12,
+        "type": 0,
+        "uuid": "E85B0966-220C-C7EC-2731-FF0F2D1658B2"
+      },
+      "current": 1,
+      "currentHasSystemUUID": false,
+      "directWindowOperations": 0,
+      "lastRecordedStep": "issued:closeMissionControl",
+      "originalCurrent": 1,
+      "phase": "cleaned",
+      "physicalGestureClaimed": false,
+      "process": {
+        "exit": 0,
+        "log": "ci-workspace-cleanup.log",
+        "status": "PASS",
+        "stderr": "ci-workspace-cleanup.stderr.log"
+      },
+      "qualificationGranted": false,
+      "schema": 1,
+      "status": "READY",
+      "systemInputs": 11
+    }
+  },
+  "cleanupInterpretation": "The actual recovery RELEASE took242.977ms and ended owned0; the later Host final-shutdown call took1.296ms and must not be substituted for that release latency. External double reads confirmed all three original windows visible at home with preserved frames; product, fixture and workspace cleanup passed.",
+  "limits": [
+    "No FAST outcome supplies missing FULL join/split/system/lifecycle coverage.",
+    "Successful source tests, signatures and direct engine checks do not confer R4 release qualification.",
+    "The future miniature clipping and expanded scan/observation timing diagnostics were not executed in this artifact.",
+    "Raw ZIP and extracted files are immutable; only derived analysis is created by this script."
+  ]
+}

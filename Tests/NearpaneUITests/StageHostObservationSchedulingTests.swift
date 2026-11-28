@@ -42,7 +42,7 @@ import Testing
         }, sessionAvailable: { true }, fingerprint: {
             state.withLock { $0.started = true }
             started.yield(())
-            _ = release.wait(timeout: .now() + 2)
+            release.wait()
             state.withLock { $0.finished = true }
             completed.yield(())
             return 7

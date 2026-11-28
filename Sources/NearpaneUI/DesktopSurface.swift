@@ -247,10 +247,11 @@ struct DesktopSurface: View {
             guard canNavigate else { return }
             let input = NativeSelectionPermit.inputCounters()
             let epoch = navigation.ownershipEpoch
-            navigation.submit(stage:true) { token in
+            navigation.submit(stage:true, needsInitialObservation: true) { token in
                 try await feed.stageEngine.chooseHeld(held, member: member, in:feed, selectionToken: token, current:{
                     canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-                }, successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
+                }, successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil },
+                    initialObservationCompleted: { _ = navigation.completeInitialObservation(for: token, in: epoch) })
             }
         }
         return VStack(spacing:0) {
@@ -290,11 +291,8 @@ struct DesktopSurface: View {
                           in feed: CurrentDesktopWindows) {
         guard canNavigate else { return }
         selectionIssue = nil
-        let input = NativeSelectionPermit.inputCounters()
-        navigation.submit(selection: false, stage: true) { token in
-            try await IndependentStageGroupEditing.perform(change, held: held, in: feed) {
-                canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-            }
+        IndependentStageGroupEditing.enqueue(change, held: held, in: feed, navigation: navigation) {
+            canNavigate
         }
     }
 
@@ -336,6 +334,22 @@ struct DesktopSurface: View {
             "stillGrouped": lifetime.map { feed.stillGroups(member, in: group, appearance: $0) } ?? false,
             "routesGroupChoice": feed.stageEngine.routesGroupChoice])
         guard admitted else { return }
+        if intent == .member, feed.stageEngine.routesGroupChoice,
+           let owned = feed.stageEngine.ownedMemberSelection(member, group: group, in: snapshot, feed: feed) {
+            // The current card can outlive its ordinary appearance while the
+            // preceding switch seals its final confirmations. Queue the exact
+            // original member; the held route supplies all fresh authority.
+            let input = NativeSelectionPermit.inputCounters(), epoch = navigation.ownershipEpoch
+            IndependentStageTrace.record("owned-member-selection-queued", ["window": member.key.number,
+                "group": owned.group.uuidString, "member": owned.member.uuidString, "hostRevision": owned.revision])
+            navigation.submit(stage: true, needsInitialObservation: true) { token in
+                try await feed.stageEngine.chooseOwnedMember(owned, in: feed, selectionToken: token, current: {
+                    canNavigate && navigation.isCurrent(token) && NativeSelectionPermit.inputCounters() == input
+                }, successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil },
+                    initialObservationCompleted: { _ = navigation.completeInitialObservation(for: token, in: epoch) })
+            }
+            return
+        }
         guard let lifetime, let requested = feed.selectionGroup(member, in: snapshot), requested.id == group,
               feed.stillIntendsGroup(member, group: requested, appearance: lifetime) else {
             selectionIssue = StageGroupError.staleBinding.localizedDescription
@@ -352,7 +366,7 @@ struct DesktopSurface: View {
         }
         let input = NativeSelectionPermit.inputCounters()
         let epoch = navigation.ownershipEpoch
-        navigation.submit(stage:true) { token in
+        navigation.submit(stage:true, needsInitialObservation: true) { token in
             var prepared = false
             let valid: @MainActor () -> Bool = {
                 canNavigate && navigation.isCurrent(token) &&
@@ -366,6 +380,9 @@ struct DesktopSurface: View {
             guard feed.stageEngine.routesGroupChoice else { throw StageSwitchError.unavailable }
             let fresh = try await feed.prepareGroupSelection(member, group: requested, appearance: lifetime, current: valid)
             guard valid() else { throw StageSwitchError.interrupted }
+            if fresh.native?.catalogComplete == true {
+                navigation.completeInitialObservation(for: token, in: epoch)
+            }
             prepared = true
             IndependentStageTrace.record("group-job-fresh", ["window": member.key.number, "revision": fresh.revision])
             let handled = try await feed.stageEngine.groupChoice(group,member:member,selection:intent,in:feed,snapshot:fresh,current:valid,

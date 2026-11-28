@@ -1,0 +1,577 @@
+{
+  "schema": 1,
+  "revision": "d86660db6c4091d7c708544d79cf14844688d907",
+  "runID": 46122156556,
+  "notes": [
+    "Each native lane is a single sample, not a population latency claim.",
+    "External physical double-read confirmation precedes transaction completion.",
+    "Scope durationMS is not used as held duration: it includes acquisition queuing.",
+    "Ordinary appearances expire on a real hide. Their absence is not lost original AX ownership."
+  ],
+  "lanes": [
+    {
+      "lane": "fast",
+      "directEngine": "FOREIGN_ENGINE_PASS",
+      "productStatus": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "actualInputs": 2,
+      "externalConfirmations": 1,
+      "completedTransactions": 1,
+      "navigationSubmissions": 1,
+      "completeWitnesses": 17,
+      "rejectedWitnesses": 0,
+      "workerOperationCounts": {
+        "8": 1,
+        "6": 8,
+        "2": 8,
+        "3": 2,
+        "13": 1
+      },
+      "allWorkerRepliesPASS": true,
+      "scopeCount": 13,
+      "scopes": [
+        {
+          "scope": "E6DA5D9D-149D-41DA-A99D-E9D38725A89E",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.417999999967833,
+          "drainToEndMS": 127.36816666665618,
+          "reserved": 921.5562415,
+          "drained": 921.5566595,
+          "ended": 921.6840276666667
+        },
+        {
+          "scope": "ED9897A0-4907-467F-89E9-44C97D54A6E2",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3220416667772952,
+          "drainToEndMS": 58.95516666657841,
+          "reserved": 921.9165445416667,
+          "drained": 921.9168665833334,
+          "ended": 921.97582175
+        },
+        {
+          "scope": "A95BD689-E208-44A5-B42C-BA826EB48AC6",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.45233333332816983,
+          "drainToEndMS": 57.632083333373885,
+          "reserved": 922.0958252500001,
+          "drained": 922.0962775833334,
+          "ended": 922.1539096666668
+        },
+        {
+          "scope": "0F0F6FF2-40AE-4DE4-9C34-1949F29E5FB0",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.33762500004286267,
+          "drainToEndMS": 54.14987500000734,
+          "reserved": 922.2439725,
+          "drained": 922.2443101250001,
+          "ended": 922.2984600000001
+        },
+        {
+          "scope": "2C7925DD-825F-49C3-A929-EA9DBE0EB739",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.38745833330722235,
+          "drainToEndMS": 99.39462499994534,
+          "reserved": 922.2991521250001,
+          "drained": 922.2995395833334,
+          "ended": 922.3989342083333
+        },
+        {
+          "scope": "4AD5C889-610A-42F9-BE4E-9DE793BDB383",
+          "purpose": "hide",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.35704166668892867,
+          "drainToEndMS": 254.32233333333443,
+          "reserved": 922.4009924583333,
+          "drained": 922.4013495,
+          "ended": 922.6556718333334
+        },
+        {
+          "scope": "E90EC430-6DFC-4A53-9F52-99DF2F3D5559",
+          "purpose": "hide",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3132083332957336,
+          "drainToEndMS": 255.23808333343823,
+          "reserved": 922.6566383333334,
+          "drained": 922.6569515416667,
+          "ended": 922.9121896250001
+        },
+        {
+          "scope": "237951B6-361D-4F94-8345-567B0DB5473B",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.30587499998091516,
+          "drainToEndMS": 44.22983333336106,
+          "reserved": 922.91303025,
+          "drained": 922.913336125,
+          "ended": 922.9575659583334
+        },
+        {
+          "scope": "4C148DCE-368E-4FD5-84F5-B722537F4EB0",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3577500000346845,
+          "drainToEndMS": 66.51741666667021,
+          "reserved": 922.9596604583334,
+          "drained": 922.9600182083334,
+          "ended": 923.0265356250001
+        },
+        {
+          "scope": "1B780AA1-FA66-4FE0-9A3E-929124DB93FA",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.6326249999801803,
+          "drainToEndMS": 82.55195833328344,
+          "reserved": 923.0283142083334,
+          "drained": 923.0289468333334,
+          "ended": 923.1114987916667
+        },
+        {
+          "scope": "CB095540-49CF-4A73-AC33-F598705F4264",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": true,
+          "publisherAtReserve": true,
+          "reserveToDrainMS": 33.72691666663741,
+          "drainToEndMS": 116.11500000003616,
+          "reserved": 924.199112125,
+          "drained": 924.2328390416667,
+          "ended": 924.3489540416667
+        },
+        {
+          "scope": "4B0A5ABC-92A8-4290-A534-AF16ACA0EB1F",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3816250000454602,
+          "drainToEndMS": 79.09145833332332,
+          "reserved": 927.7456435416667,
+          "drained": 927.7460251666668,
+          "ended": 927.8251166250001
+        },
+        {
+          "scope": "AC2D4864-D237-4BC2-9E93-7DDAD19FF186",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 1.2308750000329383,
+          "drainToEndMS": 125.01045833334956,
+          "reserved": 930.9565068750001,
+          "drained": 930.9577377500001,
+          "ended": 931.0827482083334
+        }
+      ],
+      "inputToExternalConfirmationMS": [
+        1337.5909583334078
+      ],
+      "inputToFirstTransactionCompleteMS": 1670.2205416667084,
+      "secondInputBeforeFirstTransactionCompleteMS": 78.20358333333388,
+      "secondInput": {
+        "uptime": 923.0657166666667,
+        "identifier": "current-desktop-window:25587:57"
+      },
+      "secondCardPress": {
+        "appearancePresent": false,
+        "event": "independentStageProduct",
+        "feedPresent": true,
+        "memberCount": 0,
+        "memberPresent": true,
+        "navigationPresented": true,
+        "phase": "current-card-press",
+        "pid": 25587,
+        "routesGroupChoice": true,
+        "uptime": 923.0658987916668,
+        "visibleGroup": "none",
+        "window": 57
+      },
+      "secondChooseGroup": {
+        "canNavigate": true,
+        "event": "independentStageProduct",
+        "group": "84DE62E9-6F4F-4AAB-8A28-D735B0C3E4E1",
+        "lifetimePresent": false,
+        "phase": "choose-group",
+        "pid": 25587,
+        "routesGroupChoice": true,
+        "stillGrouped": false,
+        "uptime": 923.0662405,
+        "window": 57
+      },
+      "shutdown": {
+        "end": 931.466855125,
+        "milliseconds": 196.88529166671742,
+        "released": true,
+        "start": 931.2699698333333
+      },
+      "workerReleaseMS": [
+        128.58070833328838
+      ],
+      "cleanup": true,
+      "externalReturnConfirmed": true,
+      "sampling": "disabledByRequest"
+    },
+    {
+      "lane": "full",
+      "directEngine": "FOREIGN_ENGINE_PASS",
+      "productStatus": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "actualInputs": 2,
+      "externalConfirmations": 1,
+      "completedTransactions": 1,
+      "navigationSubmissions": 1,
+      "completeWitnesses": 17,
+      "rejectedWitnesses": 0,
+      "workerOperationCounts": {
+        "8": 1,
+        "6": 8,
+        "2": 8,
+        "3": 2,
+        "13": 1
+      },
+      "allWorkerRepliesPASS": true,
+      "scopeCount": 13,
+      "scopes": [
+        {
+          "scope": "21486037-9A99-4411-A8A0-4F03635B60BA",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.4014166665911034,
+          "drainToEndMS": 123.87858333340773,
+          "reserved": 1809.3180328333335,
+          "drained": 1809.31843425,
+          "ended": 1809.4423128333335
+        },
+        {
+          "scope": "F6CFEE3F-5A18-4AC4-84AD-D565C23CD311",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": true,
+          "publisherAtReserve": true,
+          "reserveToDrainMS": 16.68754166666986,
+          "drainToEndMS": 62.8364583333223,
+          "reserved": 1809.7785197500002,
+          "drained": 1809.7952072916669,
+          "ended": 1809.8580437500002
+        },
+        {
+          "scope": "0A7DDE0D-678B-41A8-9ECA-7FE283061CFC",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": true,
+          "publisherAtReserve": true,
+          "reserveToDrainMS": 4.133249999995314,
+          "drainToEndMS": 73.6660000000029,
+          "reserved": 1809.9848339166667,
+          "drained": 1809.9889671666667,
+          "ended": 1810.0626331666667
+        },
+        {
+          "scope": "39A881EF-EFC3-4E61-833A-5A854EC33D9F",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3595416665120865,
+          "drainToEndMS": 58.47458333346367,
+          "reserved": 1810.2282703333335,
+          "drained": 1810.228629875,
+          "ended": 1810.2871044583335
+        },
+        {
+          "scope": "3AE95161-F5D6-460E-9942-887E93C02FDC",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3957916667332029,
+          "drainToEndMS": 53.34183333320652,
+          "reserved": 1810.288052,
+          "drained": 1810.2884477916668,
+          "ended": 1810.341789625
+        },
+        {
+          "scope": "CE9F1DA4-E9CA-4452-BA66-B6EAF2821F26",
+          "purpose": "hide",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3120833334833151,
+          "drainToEndMS": 253.25649999990674,
+          "reserved": 1810.3435251666667,
+          "drained": 1810.3438372500002,
+          "ended": 1810.59709375
+        },
+        {
+          "scope": "425ADCDC-C8BB-405F-BF24-EE2000907F14",
+          "purpose": "hide",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.34845833329200104,
+          "drainToEndMS": 265.9623750000719,
+          "reserved": 1810.5980020000002,
+          "drained": 1810.5983504583335,
+          "ended": 1810.8643128333335
+        },
+        {
+          "scope": "1990CD57-9C97-48BB-854A-55767233F898",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3067083332553011,
+          "drainToEndMS": 45.66750000003594,
+          "reserved": 1810.8651281250002,
+          "drained": 1810.8654348333334,
+          "ended": 1810.9111023333335
+        },
+        {
+          "scope": "6F66D393-3B56-4D7E-B8A7-057CBBEF1213",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.4169166668361868,
+          "drainToEndMS": 53.9379583333357,
+          "reserved": 1810.9124956666667,
+          "drained": 1810.9129125833335,
+          "ended": 1810.9668505416669
+        },
+        {
+          "scope": "8780EE92-4396-410A-A029-A680B65F2C3E",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.3329999999550637,
+          "drainToEndMS": 50.370458333418355,
+          "reserved": 1810.968124875,
+          "drained": 1810.968457875,
+          "ended": 1811.0188283333334
+        },
+        {
+          "scope": "9699CF1A-1D27-4F99-B9E5-90F474E0D65D",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": true,
+          "publisherAtReserve": true,
+          "reserveToDrainMS": 99.59800000001451,
+          "drainToEndMS": 104.36849999996411,
+          "reserved": 1812.1459920000002,
+          "drained": 1812.2455900000002,
+          "ended": 1812.3499585000002
+        },
+        {
+          "scope": "A29F2BC4-FD3C-4ED9-8655-353FF8BA1868",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 1.0330833333682676,
+          "drainToEndMS": 232.62387499994475,
+          "reserved": 1815.7784221250001,
+          "drained": 1815.7794552083335,
+          "ended": 1816.0120790833334
+        },
+        {
+          "scope": "3C26954B-13CF-4E93-9A68-4CB3FAF95AA8",
+          "purpose": "witness",
+          "marks": [
+            "drained",
+            "ended",
+            "reserved"
+          ],
+          "producerAtReserve": false,
+          "publisherAtReserve": false,
+          "reserveToDrainMS": 0.5062083332632028,
+          "drainToEndMS": 255.94212500004687,
+          "reserved": 1818.8928614166668,
+          "drained": 1818.893367625,
+          "ended": 1819.1493097500002
+        }
+      ],
+      "inputToExternalConfirmationMS": [
+        1550.4223333332448
+      ],
+      "inputToFirstTransactionCompleteMS": 1850.2585416665625,
+      "secondInputBeforeFirstTransactionCompleteMS": 48.53404166669861,
+      "secondInput": {
+        "uptime": 1811.0267448333334,
+        "identifier": "current-desktop-window:60338:57"
+      },
+      "secondCardPress": {
+        "appearancePresent": false,
+        "event": "independentStageProduct",
+        "feedPresent": true,
+        "memberCount": 0,
+        "memberPresent": true,
+        "navigationPresented": true,
+        "phase": "current-card-press",
+        "pid": 60338,
+        "routesGroupChoice": true,
+        "uptime": 1811.0269229166668,
+        "visibleGroup": "none",
+        "window": 57
+      },
+      "secondChooseGroup": {
+        "canNavigate": true,
+        "event": "independentStageProduct",
+        "group": "CD4D0D83-5CC1-4BC2-BE8C-0BE718CAFF05",
+        "lifetimePresent": false,
+        "phase": "choose-group",
+        "pid": 60338,
+        "routesGroupChoice": true,
+        "stillGrouped": false,
+        "uptime": 1811.0272364166667,
+        "window": 57
+      },
+      "shutdown": {
+        "end": 1819.5138290416667,
+        "milliseconds": 264.36137499990764,
+        "released": true,
+        "start": 1819.2494676666668
+      },
+      "workerReleaseMS": [
+        135.8853750000435
+      ],
+      "cleanup": true,
+      "externalReturnConfirmed": true,
+      "sampling": "disabledByRequest",
+      "candidateReceipt": {
+        "schema": 1,
+        "revision": "d86660db6c4091d7c708544d79cf14844688d907",
+        "sourceChecks": "PASS",
+        "fullBuild": "PASS",
+        "bundleSignature": "PASS",
+        "qualificationGranted": false
+      }
+    }
+  ]
+}

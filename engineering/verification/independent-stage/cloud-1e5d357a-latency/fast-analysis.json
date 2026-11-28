@@ -1,0 +1,649 @@
+{
+  "schema": 1,
+  "createdUTC": "2026-11-28T04:57:38.344359+00:00",
+  "provenance": {
+    "artifactID": 15249575454,
+    "runID": 46109176116,
+    "commit": "1e5d357a6649fc8afb64b97334769bc00eef9379",
+    "artifactName": "nearpane-independent-stage-1e5d357a6649fc8afb64b97334769bc00eef9379-r4-fast",
+    "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15249575454",
+    "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast.zip",
+    "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast",
+    "downloadBytes": 24980967,
+    "downloadSHA256": "5ff82f600fd91708e145a27cc8d1dab4b4c1d7a87ef3964c2946870ae62d6593",
+    "providerDigest": "sha256:5ff82f600fd91708e145a27cc8d1dab4b4c1d7a87ef3964c2946870ae62d6593",
+    "digestMatches": true
+  },
+  "result": {
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "formalR4Status": "FAIL",
+    "reason": "R4SwitchReadbackFailed",
+    "actualR4Inputs": 1,
+    "confirmedR4Switches": 0,
+    "cleanup": true,
+    "stageWindowShutdown": {
+      "end": 492.920812875,
+      "milliseconds": 3.5814166666341407,
+      "released": true,
+      "start": 492.9172314583334
+    },
+    "shutdownReturnedHomeConfirmed": true,
+    "remainingLifecycleGates": {
+      "newWindowLifecycle": "NOT_RUN",
+      "windowCloseLifecycle": "NOT_RUN",
+      "applicationExitLifecycle": "NOT_RUN",
+      "groupMergeSplit": "NOT_RUN",
+      "hostCrashRecovery": "NOT_RUN"
+    }
+  },
+  "firstFailure": {
+    "origin": "Host Dock observation expiration before actual foreign window dispatch",
+    "workerFirstFault": null,
+    "workerFaultCount": 0,
+    "expired": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 179,
+      "event": {
+        "event": "independentStageProduct",
+        "pendingRequestStart": 486.5967277083334,
+        "phase": "dispatch-dock-observation-expired",
+        "readEnd": 485.42576675000004,
+        "readStart": 485.4247574583334,
+        "readTotalMilliseconds": 3472.7582916666506,
+        "requestID": "7146FBA9-6848-4678-B014-95B569655295",
+        "uptime": 488.8977114166667
+      }
+    },
+    "ownershipRejected": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 180,
+      "event": {
+        "disposition": "system",
+        "eligible": false,
+        "event": "independentStageProduct",
+        "evidence": "sampleExpired",
+        "missionControl": "unknown",
+        "phase": "system-window-ownership",
+        "previousEligible": true,
+        "readEnd": null,
+        "readStart": null,
+        "stopped": false,
+        "suspended": false,
+        "systemManagesWindows": false,
+        "uptime": 488.8979903333334,
+        "wallpaperAwaitingOrdinary": false,
+        "wallpaperHeld": false
+      }
+    },
+    "activationInterrupted": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 211,
+      "event": {
+        "error": "interrupted",
+        "event": "spacesHostLifecycle",
+        "phase": "group-choice-activation-error",
+        "uptime": 489.02817987500003
+      }
+    },
+    "superseded": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 213,
+      "event": {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-superseded",
+        "reason": "窗口或焦点已变化，本次切换已停止。",
+        "uptime": 489.0314600416667
+      }
+    }
+  },
+  "dockDelay": {
+    "created": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 172,
+      "event": {
+        "creatorPriority": 17,
+        "dispatching": true,
+        "event": "independentStageProduct",
+        "generation": "7E546760-42E2-408F-AEA3-87F56BDA817B",
+        "phase": "dispatch-dock-poll-created",
+        "requestID": "7146FBA9-6848-4678-B014-95B569655295",
+        "requestStart": 486.5967277083334,
+        "uptime": 486.59726650000005
+      }
+    },
+    "started": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 174,
+      "event": {
+        "dispatching": true,
+        "event": "independentStageProduct",
+        "generation": "7E546760-42E2-408F-AEA3-87F56BDA817B",
+        "phase": "dispatch-dock-poll-started",
+        "requestID": "7146FBA9-6848-4678-B014-95B569655295",
+        "requestStart": 486.5967277083334,
+        "taskPriority": 25,
+        "uptime": 488.87919995833334
+      }
+    },
+    "completed": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 182,
+      "event": {
+        "event": "independentStageProduct",
+        "evidence": "signedDockAXListWithoutMC",
+        "generation": "7E546760-42E2-408F-AEA3-87F56BDA817B",
+        "hostPresent": true,
+        "phase": "dispatch-dock-poll-completed",
+        "readEnd": 488.89731470833334,
+        "readStart": 488.8892635833334,
+        "requestID": "7146FBA9-6848-4678-B014-95B569655295",
+        "requestStart": 486.5967277083334,
+        "sameGeneration": false,
+        "taskPriority": 25,
+        "uptime": 488.98919625,
+        "visibility": "ordinary"
+      }
+    },
+    "taskQueueMS": 2282.4722499999552,
+    "nativeReadMS": 8.051124999951753,
+    "nativeEndToCallbackMS": 91.88154166668028
+  },
+  "parallelDirectoryDelay": {
+    "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+    "line": 178,
+    "event": {
+      "completed": true,
+      "durationMS": 3390.8702916666584,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0.8591666666575293,
+      "nativeAgeOnReturnMS": 3384.7937083333477,
+      "nativeBeganUptime": 485.50668858333336,
+      "nativeBeginAfterRequestMS": 0.7510416666605124,
+      "nativeDurationMS": 76.96083333331671,
+      "nativeEndedUptime": 485.5836494166667,
+      "nativeEndToReturnMS": 3307.832875000031,
+      "observeDirectoryMS": 0.2552499999524116,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 3385.544750000008,
+      "readerAwaitStartedUptime": 485.5059375416667,
+      "readerReturnedUptime": 488.8914822916667,
+      "readSession": "4D5DF8B5-3853-487B-8AB8-75CAC2DDCB97",
+      "receivedReply": true,
+      "remainingProcessingMS": 4.211125000040283,
+      "requestRevision": 7,
+      "sidebarHistoryMS": 0,
+      "step": "complete",
+      "taskCreatedUptime": 485.4605588333334,
+      "taskPriority": 17,
+      "taskQueueMS": 44.81887499997583,
+      "taskStartedUptime": 485.50537770833336,
+      "uptime": 488.89663433333334
+    }
+  },
+  "workerRequests": [
+    {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 173,
+      "event": {
+        "cancelled": false,
+        "completedPollCount": 7,
+        "detail": 227,
+        "durationMS": 1154.2314999999803,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 1896,
+        "intent": "5F9FC3CE-41C2-4103-A8C7-75E703B58F19",
+        "maxPollQueueMS": 1037.5450000000228,
+        "operation": 8,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 7,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 485.44298000000003,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 486.59742745833336,
+        "waitPriorities": [
+          25
+        ]
+      }
+    },
+    {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 181,
+      "event": {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 6.509250000021893,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 64,
+        "intent": "5626DD1A-1BC6-411E-B9F0-2625C50FCB0C",
+        "maxPollQueueMS": 0.011541666651737614,
+        "operation": 6,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 488.89227162500003,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 488.89889325,
+        "waitPriorities": [
+          25
+        ]
+      }
+    },
+    {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 219,
+      "event": {
+        "cancelled": false,
+        "completedPollCount": 1,
+        "detail": 225,
+        "durationMS": 2.7352916666814053,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "C26AECA6-98D1-43E1-9E05-851CB958D38E",
+        "maxPollQueueMS": 0.008250000007592462,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 1,
+        "pollPriorities": [
+          21
+        ],
+        "requestedPriority": 21,
+        "requestStartUptime": 489.06210583333336,
+        "returnPriority": 21,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 489.0649445833334,
+        "waitPriorities": []
+      }
+    }
+  ],
+  "successfulPreparation": {
+    "navigationDequeue": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 91,
+      "event": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "event": "independentStageProduct",
+        "job": "198EA8CF-8F8C-4B50-B44A-71E127C75E96",
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": false,
+        "taskPriority": 25,
+        "uptime": 484.46602262500005,
+        "userActivity": true
+      }
+    },
+    "groupSelection": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 99,
+      "event": {
+        "appearanceMatches": true,
+        "awaits": [
+          {
+            "durationMS": 202.42954166661775,
+            "resultPresent": true,
+            "revision": 4,
+            "step": "first-directory"
+          }
+        ],
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 220.12895833330504,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "groupLifetimePresent": true,
+        "holdsDispatch": false,
+        "pendingRead": false,
+        "phase": "group-selection-preparation-exit",
+        "rejectedBy": "none",
+        "revision": 4,
+        "step": "existing-group-binding",
+        "uptime": 484.69500254166667,
+        "window": 53
+      }
+    },
+    "witness": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 166,
+      "event": {
+        "bindingMS": 303.17879166665307,
+        "closingDirectoryMS": 36.47962500002677,
+        "durationMS": 637.5475833333439,
+        "event": "independentStageProduct",
+        "focusLocal": false,
+        "focusPID": 0,
+        "focusWindow": 0,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 203.39629166664963,
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 94.49316666666618,
+        "roster": 3,
+        "sequence": 1,
+        "uptime": 485.43902520833336,
+        "windows": 3
+      }
+    }
+  },
+  "formalR4NativeTimings": {
+    "foreignBindingEvents": 0,
+    "readTimingsByOperation": {
+      "see": 27,
+      "view": 13
+    },
+    "scope": "Only launch canary see/view events; no actual managed foreign-window binding was reached. This failure cannot assess batch latency on formal R4 switches."
+  },
+  "directEngineNativeTimings": {
+    "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+    "formalR4Evidence": false,
+    "bindingStats": {
+      "durationMS": {
+        "count": 335,
+        "median": 1.096,
+        "max": 56.45,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 344,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 468.976700208,
+            "endedUptime": 469.033149917,
+            "durationMS": 56.45,
+            "preconditionMS": 0.044,
+            "windowListMS": 54.576,
+            "identityScanMS": 1.626,
+            "minimizedBeforeMS": 0.084,
+            "attributeBatchMS": 0.108,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.012
+          }
+        }
+      },
+      "preconditionMS": {
+        "count": 335,
+        "median": 0.008,
+        "max": 0.25,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 1094,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 55,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 480.11067675,
+            "endedUptime": 480.117244625,
+            "durationMS": 6.568,
+            "preconditionMS": 0.25,
+            "windowListMS": 5.192,
+            "identityScanMS": 0.655,
+            "minimizedBeforeMS": 0.001,
+            "attributeBatchMS": 0.459,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.012
+          }
+        }
+      },
+      "windowListMS": {
+        "count": 335,
+        "median": 0.848,
+        "max": 54.576,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 344,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 468.976700208,
+            "endedUptime": 469.033149917,
+            "durationMS": 56.45,
+            "preconditionMS": 0.044,
+            "windowListMS": 54.576,
+            "identityScanMS": 1.626,
+            "minimizedBeforeMS": 0.084,
+            "attributeBatchMS": 0.108,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.012
+          }
+        }
+      },
+      "identityScanMS": {
+        "count": 335,
+        "median": 0.095,
+        "max": 9.142,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 267,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 467.583281333,
+            "endedUptime": 467.594231375,
+            "durationMS": 10.95,
+            "preconditionMS": 0.004,
+            "windowListMS": 1.495,
+            "identityScanMS": 9.142,
+            "minimizedBeforeMS": 0.159,
+            "attributeBatchMS": 0.144,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.005
+          }
+        }
+      },
+      "minimizedBeforeMS": {
+        "count": 335,
+        "median": 0.0,
+        "max": 2.869,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 274,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 467.598297917,
+            "endedUptime": 467.620555292,
+            "durationMS": 22.257,
+            "preconditionMS": 0.006,
+            "windowListMS": 8.463,
+            "identityScanMS": 0.346,
+            "minimizedBeforeMS": 2.869,
+            "attributeBatchMS": 10.567,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.007
+          }
+        }
+      },
+      "attributeBatchMS": {
+        "count": 335,
+        "median": 0.08,
+        "max": 10.567,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 274,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 467.598297917,
+            "endedUptime": 467.620555292,
+            "durationMS": 22.257,
+            "preconditionMS": 0.006,
+            "windowListMS": 8.463,
+            "identityScanMS": 0.346,
+            "minimizedBeforeMS": 2.869,
+            "attributeBatchMS": 10.567,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.007
+          }
+        }
+      },
+      "minimizedAfterMS": {
+        "count": 335,
+        "median": 0.0,
+        "max": 0.083,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 255,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 53,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 466.849690292,
+            "endedUptime": 466.852266667,
+            "durationMS": 2.576,
+            "preconditionMS": 0.007,
+            "windowListMS": 0.674,
+            "identityScanMS": 1.353,
+            "minimizedBeforeMS": 0.179,
+            "attributeBatchMS": 0.27,
+            "minimizedAfterMS": 0.083,
+            "returnIdentityMS": 0.011
+          }
+        }
+      },
+      "returnIdentityMS": {
+        "count": 335,
+        "median": 0.004,
+        "max": 0.048,
+        "slowest": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+          "line": 715,
+          "event": {
+            "event": "spacesBindingTiming",
+            "window": 55,
+            "pid": 10565,
+            "completed": true,
+            "phase": 6,
+            "beganUptime": 473.531025042,
+            "endedUptime": 473.533257292,
+            "durationMS": 2.232,
+            "preconditionMS": 0.028,
+            "windowListMS": 1.734,
+            "identityScanMS": 0.231,
+            "minimizedBeforeMS": 0.0,
+            "attributeBatchMS": 0.19,
+            "minimizedAfterMS": 0.0,
+            "returnIdentityMS": 0.048
+          }
+        }
+      }
+    }
+  },
+  "sample": {
+    "receiptPath": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+    "receipt": {
+      "actualPressUptime": 484.437784,
+      "captureCompletionObservedMonotonic": 488.953965958,
+      "captureStartObservedMonotonic": 485.023358583,
+      "diagnosticOnly": true,
+      "durationSeconds": 3,
+      "exit": 0,
+      "intervalMilliseconds": 10,
+      "nonce": "67ec360f-82d6-40ac-9160-72698af0896d",
+      "pid": 11661,
+      "pressReceiptUptime": 484.48360725000003,
+      "reapedMonotonic": 493.624393416,
+      "receiptFile": "r4-press-de65c0be-b198-436c-800b-c558ceb1bfba.result.json",
+      "receiptObservedMonotonic": 484.643360291,
+      "requestFile": "r4-press-de65c0be-b198-436c-800b-c558ceb1bfba.request.json",
+      "requestObservedMonotonic": 484.051483875,
+      "sampleFile": "host-selection-preparation-main-thread.sample.txt",
+      "sampleLaunchMonotonic": 484.509248833,
+      "selectionCurrentAtEntry": true,
+      "selectionObservedMonotonic": 484.509161458,
+      "selectionStartUptime": 484.474675375,
+      "selectionWindow": 53,
+      "startedAfterHostSeconds": 3.26975620799999,
+      "status": "COMPLETE",
+      "trigger": "firstGroupSelectionJob",
+      "triggerObservedMonotonic": 484.509248833
+    },
+    "mainThreadSamples": 24,
+    "mainThreadAggregate": {
+      "runLoopMachWait": 14,
+      "swiftUILayout": 2,
+      "initialWitness": 5,
+      "prepareBackendPermit": 1,
+      "traceEnvironmentRead": 1,
+      "galleryAwaitDispatchTurn": 1
+    },
+    "limitation": "Aggregate samples have no per-sample uptime. The capture interval overlaps the complete queue gap, but cannot attribute that interval to a specific stack or prove profiler causation. A sample-free run is required before inferring production queue behavior."
+  },
+  "rawEvidenceSHA256": [
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 87820,
+      "sha256": "f143c67175fb5be6c16e3e0e0ba7589bfc417d1ccc01e36fee62c90ad91d7f83"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-b4900421-1812-4666-80ed-392bd1848a14.jsonl",
+      "bytes": 63900,
+      "sha256": "d6be4417b3aa65602f491d63157b080e14c830d5f94093f25b78affdc723977f"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 348714,
+      "sha256": "ee4cf3cf4c7d7ea463e5ac19f3a17a2b109fca3637bb220c7a7ca3479e57cded"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/summary.json",
+      "bytes": 29565,
+      "sha256": "2c658bed6dadd105eb67740a1570d13adb35289fe7e94259fe654a6160698332"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product/product-result.json",
+      "bytes": 21631,
+      "sha256": "7a2795b9f8463a5de61badb9d2c15478b685a0c8ae932ba9a28b4aabc24e93d6"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1044,
+      "sha256": "7aa8ed6bfee643abc124b348ee6c1ea8da401196fb5634d7ef1d2b81ecb01542"
+    },
+    {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread.sample.txt",
+      "bytes": 216790,
+      "sha256": "7aeed4cb6d68ede2b2bbf65168afffec097078091a23749a77a2abf326fd69a5"
+    }
+  ]
+}

@@ -8,12 +8,18 @@ use std::time::{Duration, Instant};
 #[cfg(target_os = "macos")]
 mod installed;
 mod launch;
+mod read_timing;
 mod system;
+use read_timing::{MoveConfirmationTiming, ReadTiming};
 type Id = [u8; 16];
 type Check<T> = Result<T, Fault>;
 type Rows = BTreeSet<u64>;
 const LIMIT: usize = 64;
 const DEADLINE: Duration = Duration::from_millis(120);
+// Membership must acknowledge the one issued move within DEADLINE. The original
+// AX object then needs two complete positive views within this total budget,
+// measured from that same move, without extending any transient-error retry.
+const MOVE_CONFIRMATION_BUDGET: Duration = Duration::from_millis(650);
 const AX_OBSERVATION_BUDGET: Duration = Duration::from_millis(650);
 // A same-app native animation can keep the original AX object temporarily
 // unresponsive. Only that transport result permits this total read-only budget;
@@ -533,13 +539,16 @@ impl<P: Platform> State<P> {
     }
     fn view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64, hidden: bool) -> Check<Seen> {
         let window = lease.window;
+        let mut timing = ReadTiming::new("view", window, "minimized");
         if self.sys.minimized(w).inspect_err(|&fault| trace_fault("view-minimized-read", lease, sid, fault))? {
             let fault = unknown(Why::MinimizedOrAX);
             trace_fault("view-confirmed-minimized", lease, sid, fault);
             return Err(fault);
         }
         let target = if hidden { sid } else { lease.slot.home.id };
+        timing.stage("first-see");
         let a = self.sys.see(window, w)?;
+        timing.stage("forward-and-target-membership");
         let membership = self.sys.spaces(c, window.number)?;
         if membership != Rows::from([target])
             || !self
@@ -549,6 +558,7 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Membership));
         }
+        timing.stage("other-membership");
         let other = if hidden { lease.slot.home.id } else { sid };
         if other != 0
             && self
@@ -558,10 +568,13 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Membership));
         }
+        timing.stage("second-see");
         let b = self.sys.see(window, w)?;
+        timing.stage("managed-desktops");
         let home_visible = self.sys.desktops(c)?.iter().any(|d| {
             d.display == lease.slot.home.display && d.id == lease.slot.home.id && d.current == 1
         });
+        timing.stage("geometry-and-visibility");
         if a.rect != b.rect
             || a.visible != b.visible
             || (!self.sys.transparent_canary(w)
@@ -570,6 +583,7 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Readback));
         }
+        timing.completed();
         Ok(b)
     }
     fn minimized_view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64) -> Check<Seen> {
@@ -639,14 +653,84 @@ impl<P: Platform> State<P> {
             bound.pending_target.set(None);
             return Err(fail(Why::NoDelivery));
         }
+        // Preserve the original anchor immediately after move_window returns;
+        // preflight and the native write itself are outside both read budgets.
         let started = self.sys.now();
         let until = started + DEADLINE;
-        let mut hit = 0;
+        let confirmation_until = started + MOVE_CONFIRMATION_BUDGET;
+        let mut timing = MoveConfirmationTiming::new(lease.window, target, started,
+            DEADLINE, MOVE_CONFIRMATION_BUDGET);
         let mut missed = false;
+        // This acknowledgement is only Space placement, never an AX identity or
+        // geometry proof. A late positive cannot establish timely placement.
         loop {
             self.scope(c, lease.slot.home, top, a)?;
+            a.observation()?;
+            if self.sys.now() >= until {
+                self.failed = true;
+                return Err(Fault(TIMEOUT, Why::Uncertain));
+            }
+            let membership = (|| {
+                if self.sys.spaces(c, lease.window.number)? != Rows::from([target])
+                    || !self.sys.members(c, target)?.contains(&u64::from(lease.window.number)) {
+                    return Err(unknown(Why::Membership));
+                }
+                let other = if hidden { lease.slot.home.id } else { sid };
+                if other != 0 && self.sys.members(c, other)?.contains(&u64::from(lease.window.number)) {
+                    return Err(unknown(Why::Membership));
+                }
+                Ok(())
+            })();
+            match membership {
+                Ok(()) => {
+                    self.scope(c, lease.slot.home, top, a)?;
+                    a.observation()?;
+                    let now = self.sys.now();
+                    if now >= until {
+                        self.failed = true;
+                        return Err(Fault(TIMEOUT, Why::Uncertain));
+                    }
+                    timing.acknowledged(now);
+                    break;
+                }
+                Err(Fault(_, Why::Membership | Why::Readback | Why::AXCannotComplete)) => {
+                    missed |= self.sys.now().saturating_duration_since(started) >= grace;
+                }
+                Err(e) => {
+                    self.failed = true;
+                    return Err(e);
+                }
+            }
+            if self.sys.now() >= until {
+                self.failed = true;
+                return Err(Fault(TIMEOUT, Why::Uncertain));
+            }
+            self.sys.wait(Duration::from_millis(4));
+        }
+        let mut hit = 0;
+        let mut retrying_miss = false;
+        loop {
+            self.scope(c, lease.slot.home, top, a)?;
+            a.observation()?;
+            let read_until = if retrying_miss { until } else { confirmation_until };
+            if self.sys.now() >= read_until {
+                self.failed = true;
+                return Err(Fault(TIMEOUT, Why::Uncertain));
+            }
+            timing.begin_full_view();
             match self.view(c, lease, &bound.witness, sid, hidden) {
                 Ok(seen) if seen.rect == original.rect => {
+                    timing.positive_full_view();
+                    // Both complete views, including the second, must return
+                    // before the original move's total budget expires. Scope
+                    // may itself block, so recheck authority and time after it.
+                    self.scope(c, lease.slot.home, top, a)?;
+                    a.observation()?;
+                    if self.sys.now() >= read_until {
+                        self.failed = true;
+                        return Err(Fault(TIMEOUT, Why::Uncertain));
+                    }
+                    retrying_miss = false;
                     hit += 1;
                     if hit >= 2 {
                         break;
@@ -654,10 +738,15 @@ impl<P: Platform> State<P> {
                 }
                 Err(Fault(_, Why::Membership | Why::Readback | Why::AXCannotComplete)) => {
                     // Reobserve the same original binding after a transient AX
-                    // transport miss. The move is never resent and the original
-                    // acknowledgement deadline still bounds both full samples.
+                    // transport miss. The move is never resent; errors keep the
+                    // original 120 ms retry deadline even after a timely ACK.
                     hit = 0;
+                    retrying_miss = true;
                     missed |= self.sys.now().saturating_duration_since(started) >= grace;
+                    if self.sys.now() >= until {
+                        self.failed = true;
+                        return Err(Fault(TIMEOUT, Why::Uncertain));
+                    }
                 }
                 Err(e) => {
                     self.failed = true;
@@ -669,14 +758,11 @@ impl<P: Platform> State<P> {
                     return Err(unknown(Why::Identity));
                 }
             }
-            if self.sys.now() >= until {
-                self.failed = true;
-                return Err(Fault(TIMEOUT, Why::Uncertain));
-            }
             self.sys.wait(Duration::from_millis(4));
         }
         bound.pending_target.set(None);
         a.fixture_membership_receipt(lease.window, target, hidden)?;
+        timing.completed();
         if missed {
             self.record_late(self.sys.now());
         }
@@ -912,27 +998,36 @@ impl<P: Platform> State<P> {
         self.cleanup(c, lease.slot, &top, a)
     }
     fn read(&mut self, c: i32, lease: Lease, a: &impl Authority) -> Check<(Seen, bool)> {
+        let mut timing = ReadTiming::new("read", lease.window, "opening-topology");
         let top = self.topology(c, lease.slot.home)?;
         if let Some(saved) = self.owned.get(&lease.window) {
             if saved.lease != lease {
                 return Err(fail(Why::Identity));
             }
+            timing.stage("lease-membership");
             let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
             let m = self.sys.spaces(c, lease.window.number)?;
             let hidden = m == Rows::from([sid]);
+            timing.stage("paired-window-observation");
             let seen = self.view(c, lease, &saved.witness, sid, hidden)?;
+            timing.stage("closing-scope");
             self.scope(c, lease.slot.home, &top, a)?;
+            timing.completed();
             Ok((seen, hidden))
         } else {
             if self.visible.len() >= LIMIT && !self.visible.contains_key(&lease.window) {
                 return Err(fail(Why::Capacity));
             }
+            timing.stage("window-binding");
             let w = match self.remembered(lease) { Some(w) => w, None => self.sys.bind(lease.window)? };
+            timing.stage("paired-window-observation");
             let seen = self.view(c, lease, &w, 0, false)?;
+            timing.stage("closing-scope");
             self.scope(c, lease.slot.home, &top, a)?;
             if !self.sys.transparent_canary(&w) {
                 self.visible.insert(lease.window, Remembered { lease, witness: w });
             }
+            timing.completed();
             Ok((seen, false))
         }
     }

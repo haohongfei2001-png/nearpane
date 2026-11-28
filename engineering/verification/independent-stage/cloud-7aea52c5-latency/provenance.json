@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 16,
+  "runID": 46118680741,
+  "commit": "7aea52c55736ae7b0138b884eaa81b9d76db8ae1",
+  "baselineCommit": "987215dcbc79f1b50e22ceed1fc707b526acf3df",
+  "baselineProvenance": "/workspace/scratch/519883d1dfd8/r4-audit/9872/provenance.json",
+  "createdUTC": "2026-11-28T07:09:43.119649+00:00",
+  "artifacts": [
+    {
+      "artifactID": 15253470061,
+      "artifactName": "nearpane-independent-stage-7aea52c55736ae7b0138b884eaa81b9d76db8ae1-full",
+      "runID": 46118680741,
+      "commit": "7aea52c55736ae7b0138b884eaa81b9d76db8ae1",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15253470061",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/full.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/full",
+      "downloadBytes": 53788800,
+      "downloadSHA256": "18e6072810c6e73b63b81f09fb24db5eff33abfdbec6b6f5ccf481210840712f",
+      "providerDigest": "sha256:18e6072810c6e73b63b81f09fb24db5eff33abfdbec6b6f5ccf481210840712f",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15252981860,
+      "artifactName": "nearpane-independent-stage-7aea52c55736ae7b0138b884eaa81b9d76db8ae1-r4-fast",
+      "runID": 46118680741,
+      "commit": "7aea52c55736ae7b0138b884eaa81b9d76db8ae1",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15252981860",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/fast.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/fast",
+      "downloadBytes": 25166417,
+      "downloadSHA256": "6f11f73899401f7b444a9ae3f98efd48fee277850b1a9f1be7b93d0ed4097e17",
+      "providerDigest": "sha256:6f11f73899401f7b444a9ae3f98efd48fee277850b1a9f1be7b93d0ed4097e17",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15252174047,
+      "artifactName": "nearpane-independent-context-7aea52c55736ae7b0138b884eaa81b9d76db8ae1-full",
+      "runID": 46118680741,
+      "commit": "7aea52c55736ae7b0138b884eaa81b9d76db8ae1",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15252174047",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/source/context.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/source/context",
+      "downloadBytes": 32235,
+      "downloadSHA256": "cc89c5c5e5e402035c1846af2b253da8cb55c2b00a627353262385ab2ca8b17f",
+      "providerDigest": "sha256:cc89c5c5e5e402035c1846af2b253da8cb55c2b00a627353262385ab2ca8b17f",
+      "digestMatches": true
+    }
+  ],
+  "workflowJobs": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/workflow-jobs.json",
+  "apiMetadata": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/artifact-api-metadata.json",
+  "sourceGateAudit": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/source/audit.json",
+  "derivedFiles": {
+    "comparison.json": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/comparison.json",
+    "click-timelines.json": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/click-timelines.json",
+    "full-analysis.json": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/full-analysis.json",
+    "fast-analysis.json": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/fast-analysis.json",
+    "full-interpretation.json": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/full-interpretation.json",
+    "recompute.py": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/recompute.py",
+    "analyze_full.py": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/analyze_full.py",
+    "freeze_evidence.py": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/freeze_evidence.py"
+  },
+  "selectedRawEvidence": {
+    "archivePath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/runtime-traces-7aea.tar.gz",
+    "archiveBytes": 172717,
+    "archiveSHA256": "84b470d149e8d2b8f37b42e30049ceff79a9c8345104d2eab65d77ccf072011c",
+    "members": 51,
+    "manifestPath": "/workspace/scratch/519883d1dfd8/r4-audit/7aea/runtime-traces-manifest.json"
+  },
+  "dataFrozenUTC": "2026-11-28T07:09:43.119649+00:00"
+}

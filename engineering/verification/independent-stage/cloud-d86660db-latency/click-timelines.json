@@ -1,0 +1,2930 @@
+[
+  {
+    "name": "d866/fast",
+    "sourceSummary": "/workspace/scratch/519883d1dfd8/r4-audit/d866/fast/independent-runtime/runtime/summary.json",
+    "sourceTrace": "/workspace/scratch/519883d1dfd8/r4-audit/d866/fast/independent-runtime/runtime/product.stderr.log",
+    "notes": [
+      "All additive timeline intervals are clipped to external AX press start and the fixture's second physical confirmation.",
+      "Witness trace durations include nested directory and physical reads; no nested totals are added twice.",
+      "Task-exit stamp precedes final trace serialization/write; the caller gap does not identify its blocking cause.",
+      "Ordinary focus is an inferred envelope including WAL and guards, not a measured pure AX focus duration.",
+      "Elapsed intervals do not prove CPU occupancy or exclude sampling perturbation.",
+      "Candidate host and overview reader started before the measured click; their earlier startup is not charged to the click."
+    ],
+    "steps": [
+      {
+        "step": "singletonCycle/0",
+        "inputUptime": 921.4737023333333,
+        "doubleReadUptime": 922.8112932916667,
+        "pressToDoubleReadMS": 1337.5909583334078,
+        "nonOverlappingWallTimeMS": {
+          "external-input-delivery-and-navigation-queue": 15.776333333406,
+          "unattributed-host-bookkeeping-scheduling-or-fixture-polling": 99.78179166614609,
+          "worker-process-start-and-durable-owner": 6.174833333375318,
+          "witness-opening-directory": 144.9525416664983,
+          "directory-task-exit-to-caller-resumption": 9.8254166668994,
+          "witness-binding-and-roster": 71.55587500017191,
+          "witness-original-AX-and-physical": 245.06170833330998,
+          "witness-closing-directory-and-finalization": 145.34779166649514,
+          "worker-launch-canary": 227.8263750000633,
+          "worker-health": 46.475291666524754,
+          "worker-readback": 128.80337500041605,
+          "ordinary-focus-and-WAL-envelope-inferred": 90.63975000015034,
+          "worker-hide": 105.36987499995121
+        },
+        "sumMS": 1337.5909583334078,
+        "sumMatchesMeasurement": true,
+        "segments": [
+          {
+            "from": 921.4737023333333,
+            "to": 921.4894786666667,
+            "milliseconds": 15.776333333406,
+            "category": "external-input-delivery-and-navigation-queue",
+            "detail": {
+              "job": "8961692A-79B7-45FB-92B8-A7AAC9BE47C0"
+            }
+          },
+          {
+            "from": 921.4894786666667,
+            "to": 921.5473589583333,
+            "milliseconds": 57.880291666606354,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.5473589583333,
+            "to": 921.5535337916667,
+            "milliseconds": 6.174833333375318,
+            "category": "worker-process-start-and-durable-owner",
+            "detail": {
+              "pid": 26407
+            }
+          },
+          {
+            "from": 921.5535337916667,
+            "to": 921.5567997083334,
+            "milliseconds": 3.265916666691737,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.5567997083334,
+            "to": 921.5816910833333,
+            "milliseconds": 24.891374999924665,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 1,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.5816910833333,
+            "to": 921.5819988750001,
+            "milliseconds": 0.30779166672800784,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 5,
+              "sequence": 1,
+              "afterActionBoundary": 921.5571158333333,
+              "taskExit": 921.5816910833333,
+              "afterActionReturn": 921.5819988750001
+            }
+          },
+          {
+            "from": 921.5819988750001,
+            "to": 921.582114625,
+            "milliseconds": 0.11574999996355473,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 1,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.582114625,
+            "to": 921.6448609166667,
+            "milliseconds": 62.74629166671275,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 1,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 921.6448609166667,
+            "to": 921.6685596666667,
+            "milliseconds": 23.698749999994106,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 1,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 921.6685596666667,
+            "to": 921.6821462916668,
+            "milliseconds": 13.586625000016284,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 1,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.6821462916668,
+            "to": 921.6823333750001,
+            "milliseconds": 0.18708333334416238,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 6,
+              "sequence": 1,
+              "afterActionBoundary": 921.6686011666667,
+              "taskExit": 921.6821462916668,
+              "afterActionReturn": 921.6823333750001
+            }
+          },
+          {
+            "from": 921.6823333750001,
+            "to": 921.6838930416667,
+            "milliseconds": 1.5596666665942394,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 1,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.6838930416667,
+            "to": 921.68622025,
+            "milliseconds": 2.32720833332678,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.68622025,
+            "to": 921.9140466250001,
+            "milliseconds": 227.8263750000633,
+            "category": "worker-launch-canary",
+            "detail": {
+              "operation": 8,
+              "intent": "D3243633-4A13-4557-9910-A2CCC45D2E3D",
+              "status": 0,
+              "detail": 227
+            }
+          },
+          {
+            "from": 921.9140466250001,
+            "to": 921.9145645000001,
+            "milliseconds": 0.5178750000141008,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.9145645000001,
+            "to": 921.9151768333334,
+            "milliseconds": 0.6123333332652692,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "5B2A8629-331A-4B1D-9AEF-057FD5FB3D72",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 921.9151768333334,
+            "to": 921.9169824583333,
+            "milliseconds": 1.8056249999744978,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.9169824583333,
+            "to": 921.9314446666667,
+            "milliseconds": 14.462208333384297,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 2,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.9314446666667,
+            "to": 921.9316704583334,
+            "milliseconds": 0.22579166670766426,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 8,
+              "sequence": 2,
+              "afterActionBoundary": 921.9171930833334,
+              "taskExit": 921.9314446666667,
+              "afterActionReturn": 921.9316704583334
+            }
+          },
+          {
+            "from": 921.9316704583334,
+            "to": 921.9317981666667,
+            "milliseconds": 0.12770833325248532,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 2,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.9317981666667,
+            "to": 921.9328887916666,
+            "milliseconds": 1.0906249999607098,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 2,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 921.9328887916666,
+            "to": 921.957739125,
+            "milliseconds": 24.850333333347407,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 2,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 921.957739125,
+            "to": 921.970995,
+            "milliseconds": 13.255875000027117,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 2,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.970995,
+            "to": 921.9711767083334,
+            "milliseconds": 0.1817083333435221,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 9,
+              "sequence": 2,
+              "afterActionBoundary": 921.9576913750001,
+              "taskExit": 921.970995,
+              "afterActionReturn": 921.9711767083334
+            }
+          },
+          {
+            "from": 921.9711767083334,
+            "to": 921.9756451666667,
+            "milliseconds": 4.46845833334919,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 2,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 921.9756451666667,
+            "to": 921.9769057083333,
+            "milliseconds": 1.2605416666247038,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.9769057083333,
+            "to": 921.9956296250001,
+            "milliseconds": 18.72391666677231,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "0F422D8E-408C-4FA2-AFB1-47DA42C21235",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 921.9956296250001,
+            "to": 921.9964127916667,
+            "milliseconds": 0.7831666665651937,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 921.9964127916667,
+            "to": 922.0194838333334,
+            "milliseconds": 23.071041666753445,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "0F422D8E-408C-4FA2-AFB1-47DA42C21235",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.0194838333334,
+            "to": 922.0209342083334,
+            "milliseconds": 1.4503749999903448,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.0209342083334,
+            "to": 922.0286275000001,
+            "milliseconds": 7.693291666669211,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "483C1153-5471-4C01-BC44-C59FC601F712",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.0286275000001,
+            "to": 922.029621625,
+            "milliseconds": 0.9941249999201318,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.029621625,
+            "to": 922.0415885416667,
+            "milliseconds": 11.966916666665384,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "483C1153-5471-4C01-BC44-C59FC601F712",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.0415885416667,
+            "to": 922.0441442916667,
+            "milliseconds": 2.555750000055923,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.0441442916667,
+            "to": 922.0503476666668,
+            "milliseconds": 6.203375000040978,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "DBE2A4E0-112E-48AD-AFF2-E76E245D065D",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.0503476666668,
+            "to": 922.0510893333334,
+            "milliseconds": 0.7416666666131277,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.0510893333334,
+            "to": 922.0752154583334,
+            "milliseconds": 24.126125000066168,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "DBE2A4E0-112E-48AD-AFF2-E76E245D065D",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.0752154583334,
+            "to": 922.0780944166668,
+            "milliseconds": 2.878958333326409,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.0780944166668,
+            "to": 922.0941970833334,
+            "milliseconds": 16.102666666597543,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "84C0BCF9-587D-422C-93F4-23C080A1A6B5",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 922.0941970833334,
+            "to": 922.096413375,
+            "milliseconds": 2.2162916666275123,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.096413375,
+            "to": 922.1117945833333,
+            "milliseconds": 15.381208333337781,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 3,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.1117945833333,
+            "to": 922.1120009583334,
+            "milliseconds": 0.20637500006159826,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 11,
+              "sequence": 3,
+              "afterActionBoundary": 922.0967555000001,
+              "taskExit": 922.1117945833333,
+              "afterActionReturn": 922.1120009583334
+            }
+          },
+          {
+            "from": 922.1120009583334,
+            "to": 922.112109875,
+            "milliseconds": 0.10891666659063048,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 3,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.112109875,
+            "to": 922.113305125,
+            "milliseconds": 1.1952500000234068,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 3,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.113305125,
+            "to": 922.13746475,
+            "milliseconds": 24.15962500003843,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 3,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.13746475,
+            "to": 922.1519727916667,
+            "milliseconds": 14.508041666658755,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 3,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.1519727916667,
+            "to": 922.1521878333334,
+            "milliseconds": 0.2150416667063837,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 12,
+              "sequence": 3,
+              "afterActionBoundary": 922.137427125,
+              "taskExit": 922.1519727916667,
+              "afterActionReturn": 922.1521878333334
+            }
+          },
+          {
+            "from": 922.1521878333334,
+            "to": 922.1537666666667,
+            "milliseconds": 1.5788333332693583,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 3,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.1537666666667,
+            "to": 922.2444064166668,
+            "milliseconds": 90.63975000015034,
+            "category": "ordinary-focus-and-WAL-envelope-inferred",
+            "detail": {
+              "beforeSequence": 3,
+              "afterSequence": 4,
+              "oldFocus": [
+                0,
+                0
+              ],
+              "newFocus": [
+                25587,
+                55
+              ],
+              "limitation": "Upper bound including journal/guards; no isolated focus start/end trace."
+            }
+          },
+          {
+            "from": 922.2444064166668,
+            "to": 922.25931775,
+            "milliseconds": 14.911333333202492,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 4,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.25931775,
+            "to": 922.2595166250001,
+            "milliseconds": 0.19887500002369052,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 13,
+              "sequence": 4,
+              "afterActionBoundary": 922.2446118333334,
+              "taskExit": 922.25931775,
+              "afterActionReturn": 922.2595166250001
+            }
+          },
+          {
+            "from": 922.2595166250001,
+            "to": 922.2596217916667,
+            "milliseconds": 0.10516666668536345,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 4,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.2596217916667,
+            "to": 922.2607435833335,
+            "milliseconds": 1.1217916667192185,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 4,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.2607435833335,
+            "to": 922.2855325833334,
+            "milliseconds": 24.788999999941552,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 4,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.2855325833334,
+            "to": 922.296810875,
+            "milliseconds": 11.278291666599216,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 4,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.296810875,
+            "to": 922.2970518750001,
+            "milliseconds": 0.24100000007365452,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 14,
+              "sequence": 4,
+              "afterActionBoundary": 922.2855002083334,
+              "taskExit": 922.296810875,
+              "afterActionReturn": 922.2970518750001
+            }
+          },
+          {
+            "from": 922.2970518750001,
+            "to": 922.2983205833334,
+            "milliseconds": 1.268708333327595,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 4,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.2983205833334,
+            "to": 922.2996437916668,
+            "milliseconds": 1.323208333360526,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.2996437916668,
+            "to": 922.3169742916667,
+            "milliseconds": 17.330499999957283,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 5,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.3169742916667,
+            "to": 922.31733325,
+            "milliseconds": 0.3589583333223345,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 15,
+              "sequence": 5,
+              "afterActionBoundary": 922.2999247916667,
+              "taskExit": 922.3169742916667,
+              "afterActionReturn": 922.31733325
+            }
+          },
+          {
+            "from": 922.31733325,
+            "to": 922.3176442083334,
+            "milliseconds": 0.310958333329836,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 5,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.3176442083334,
+            "to": 922.3193593750001,
+            "milliseconds": 1.7151666667132304,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 5,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.3193593750001,
+            "to": 922.3792457083334,
+            "milliseconds": 59.88633333333837,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 5,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.3792457083334,
+            "to": 922.3970146250001,
+            "milliseconds": 17.768916666682344,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 5,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.3970146250001,
+            "to": 922.3972577083334,
+            "milliseconds": 0.2430833333164628,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 16,
+              "sequence": 5,
+              "afterActionBoundary": 922.3792061666667,
+              "taskExit": 922.3970146250001,
+              "afterActionReturn": 922.3972577083334
+            }
+          },
+          {
+            "from": 922.3972577083334,
+            "to": 922.3987882083334,
+            "milliseconds": 1.530499999944368,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 5,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.3987882083334,
+            "to": 922.4019114166667,
+            "milliseconds": 3.1232083333634364,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.4019114166667,
+            "to": 922.4186290416667,
+            "milliseconds": 16.71762499995566,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "9609647F-EF79-412C-9190-3CB4D2039FA1",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 922.4186290416667,
+            "to": 922.41938425,
+            "milliseconds": 0.7552083333166593,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.41938425,
+            "to": 922.4339103333334,
+            "milliseconds": 14.526083333407769,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 6,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.4339103333334,
+            "to": 922.4341397500001,
+            "milliseconds": 0.22941666668430116,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 17,
+              "sequence": 6,
+              "afterActionBoundary": 922.4196975000001,
+              "taskExit": 922.4339103333334,
+              "afterActionReturn": 922.4341397500001
+            }
+          },
+          {
+            "from": 922.4341397500001,
+            "to": 922.4342604166667,
+            "milliseconds": 0.1206666665893863,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 6,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.4342604166667,
+            "to": 922.4353065833334,
+            "milliseconds": 1.0461666666969904,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 6,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.4353065833334,
+            "to": 922.4704724166667,
+            "milliseconds": 35.165833333280716,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 6,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.4704724166667,
+            "to": 922.4865436250001,
+            "milliseconds": 16.07120833341469,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 6,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.4865436250001,
+            "to": 922.4870092083333,
+            "milliseconds": 0.4655833332662951,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 18,
+              "sequence": 6,
+              "afterActionBoundary": 922.470443625,
+              "taskExit": 922.4865436250001,
+              "afterActionReturn": 922.4870092083333
+            }
+          },
+          {
+            "from": 922.4870092083333,
+            "to": 922.4886947083334,
+            "milliseconds": 1.685500000007778,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 6,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.4886947083334,
+            "to": 922.4921459583334,
+            "milliseconds": 3.451250000011896,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.4921459583334,
+            "to": 922.5259402083334,
+            "milliseconds": 33.794250000028114,
+            "category": "worker-hide",
+            "detail": {
+              "operation": 3,
+              "intent": "9609647F-EF79-412C-9190-3CB4D2039FA1",
+              "status": 0,
+              "detail": 224
+            }
+          },
+          {
+            "from": 922.5259402083334,
+            "to": 922.5267325833333,
+            "milliseconds": 0.7923749999463325,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.5267325833333,
+            "to": 922.5456910833334,
+            "milliseconds": 18.95850000005339,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "9609647F-EF79-412C-9190-3CB4D2039FA1",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.5456910833334,
+            "to": 922.546562,
+            "milliseconds": 0.8709166665994417,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.546562,
+            "to": 922.5609118750001,
+            "milliseconds": 14.349875000107204,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 7,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.5609118750001,
+            "to": 922.5666626666667,
+            "milliseconds": 5.750791666628174,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 19,
+              "sequence": 7,
+              "afterActionBoundary": 922.5467714583334,
+              "taskExit": 922.5609118750001,
+              "afterActionReturn": 922.5666626666667
+            }
+          },
+          {
+            "from": 922.5666626666667,
+            "to": 922.5668482916667,
+            "milliseconds": 0.18562499997187842,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 7,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.5668482916667,
+            "to": 922.5679170000001,
+            "milliseconds": 1.0687083333777991,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 7,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.5679170000001,
+            "to": 922.5906425833334,
+            "milliseconds": 22.725583333340182,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 7,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.5906425833334,
+            "to": 922.6043960416667,
+            "milliseconds": 13.753458333326307,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 7,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6043960416667,
+            "to": 922.6045845000001,
+            "milliseconds": 0.1884583333549017,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 20,
+              "sequence": 7,
+              "afterActionBoundary": 922.5905996666668,
+              "taskExit": 922.6043960416667,
+              "afterActionReturn": 922.6045845000001
+            }
+          },
+          {
+            "from": 922.6045845000001,
+            "to": 922.6059081666667,
+            "milliseconds": 1.323666666621648,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 7,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6059081666667,
+            "to": 922.6075207083334,
+            "milliseconds": 1.612541666645484,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.6075207083334,
+            "to": 922.6205145,
+            "milliseconds": 12.993791666644938,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 8,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6205145,
+            "to": 922.6207332500001,
+            "milliseconds": 0.21875000004456524,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 21,
+              "sequence": 8,
+              "afterActionBoundary": 922.6077115416667,
+              "taskExit": 922.6205145,
+              "afterActionReturn": 922.6207332500001
+            }
+          },
+          {
+            "from": 922.6207332500001,
+            "to": 922.6208613333334,
+            "milliseconds": 0.12808333337943623,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 8,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6208613333334,
+            "to": 922.6216526666667,
+            "milliseconds": 0.791333333268085,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 8,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.6216526666667,
+            "to": 922.6365720833334,
+            "milliseconds": 14.919416666657526,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 8,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.6365720833334,
+            "to": 922.652455,
+            "milliseconds": 15.882916666669189,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 8,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.652455,
+            "to": 922.6526793333334,
+            "milliseconds": 0.2243333333353803,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 22,
+              "sequence": 8,
+              "afterActionBoundary": 922.6365234166667,
+              "taskExit": 922.652455,
+              "afterActionReturn": 922.6526793333334
+            }
+          },
+          {
+            "from": 922.6526793333334,
+            "to": 922.6542364166668,
+            "milliseconds": 1.5570833334095369,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 8,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6542364166668,
+            "to": 922.6574433333334,
+            "milliseconds": 3.206916666613324,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.6574433333334,
+            "to": 922.6704860000001,
+            "milliseconds": 13.042666666706282,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "55805DB2-AFDF-4708-B675-0DDBA7AACA54",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 922.6704860000001,
+            "to": 922.6711711250001,
+            "milliseconds": 0.6851250000181608,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.6711711250001,
+            "to": 922.6845532916667,
+            "milliseconds": 13.382166666588091,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 9,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6845532916667,
+            "to": 922.6847288333333,
+            "milliseconds": 0.17554166663558135,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 23,
+              "sequence": 9,
+              "afterActionBoundary": 922.6714122083334,
+              "taskExit": 922.6845532916667,
+              "afterActionReturn": 922.6847288333333
+            }
+          },
+          {
+            "from": 922.6847288333333,
+            "to": 922.6848322083334,
+            "milliseconds": 0.10337500009427458,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 9,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.6848322083334,
+            "to": 922.6856127500001,
+            "milliseconds": 0.7805416666997189,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 9,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 922.6856127500001,
+            "to": 922.7004795833335,
+            "milliseconds": 14.866833333371687,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 9,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 922.7004795833335,
+            "to": 922.7135042916667,
+            "milliseconds": 13.024708333205126,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 9,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.7135042916667,
+            "to": 922.713711125,
+            "milliseconds": 0.20683333332272014,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 24,
+              "sequence": 9,
+              "afterActionBoundary": 922.7004399166667,
+              "taskExit": 922.7135042916667,
+              "afterActionReturn": 922.713711125
+            }
+          },
+          {
+            "from": 922.713711125,
+            "to": 922.7149564583334,
+            "milliseconds": 1.2453333333724004,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 9,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 922.7149564583334,
+            "to": 922.7181786666667,
+            "milliseconds": 3.222208333340859,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.7181786666667,
+            "to": 922.7897542916667,
+            "milliseconds": 71.5756249999231,
+            "category": "worker-hide",
+            "detail": {
+              "operation": 3,
+              "intent": "55805DB2-AFDF-4708-B675-0DDBA7AACA54",
+              "status": 0,
+              "detail": 224
+            }
+          },
+          {
+            "from": 922.7897542916667,
+            "to": 922.79070575,
+            "milliseconds": 0.9514583333611881,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.79070575,
+            "to": 922.8087659583334,
+            "milliseconds": 18.060208333395167,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "55805DB2-AFDF-4708-B675-0DDBA7AACA54",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 922.8087659583334,
+            "to": 922.8098755416667,
+            "milliseconds": 1.1095833332319671,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 922.8098755416667,
+            "to": 922.8112932916667,
+            "milliseconds": 1.4177500000869259,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 10,
+              "traceField": "openingDirectoryMS"
+            }
+          }
+        ],
+        "nestedDesktopDiagnosticsDoNotAddToWallTime": {
+          "readerAwaitMS": 314.05216666644264,
+          "nativeDurationMS": 294.6010833336459,
+          "nativeBeginAfterRequestMS": 7.914999999570682,
+          "nativeEndToReturnMS": 11.536083333226088,
+          "groupProjectionMS": 3.2452083333964765,
+          "observeDirectoryMS": 0.4641666664610966,
+          "taskQueueMS": 4.11024999982601,
+          "remainingProcessingMS": 22.78883333349313
+        },
+        "callerResumptions": [
+          {
+            "requestRevision": 4,
+            "boundary": 921.4921146666667,
+            "taskExit": 921.5307572083334,
+            "return": 921.5309860833333,
+            "gapMS": 0.2288749999479478,
+            "afterActionMS": 38.78604166675359,
+            "taskDurationMS": 38.21554166665919,
+            "nativeMS": 32.278750000045875,
+            "projectionMS": 0.16137499994783866
+          },
+          {
+            "requestRevision": 5,
+            "boundary": 921.5571158333333,
+            "taskExit": 921.5816910833333,
+            "return": 921.5819988750001,
+            "gapMS": 0.30779166672800784,
+            "afterActionMS": 24.80483333340544,
+            "taskDurationMS": 23.699041666645826,
+            "nativeMS": 21.000083333319708,
+            "projectionMS": 0.20029166671520215
+          },
+          {
+            "requestRevision": 6,
+            "boundary": 921.6686011666667,
+            "taskExit": 921.6821462916668,
+            "return": 921.6823333750001,
+            "gapMS": 0.18708333334416238,
+            "afterActionMS": 13.65945833333626,
+            "taskDurationMS": 13.200583333286886,
+            "nativeMS": 11.420499999985623,
+            "projectionMS": 0.1325833333112314
+          },
+          {
+            "requestRevision": 8,
+            "boundary": 921.9171930833334,
+            "taskExit": 921.9314446666667,
+            "return": 921.9316704583334,
+            "gapMS": 0.22579166670766426,
+            "afterActionMS": 14.39120833333618,
+            "taskDurationMS": 13.937833333329763,
+            "nativeMS": 12.015416666713463,
+            "projectionMS": 0.16874999994342943
+          },
+          {
+            "requestRevision": 9,
+            "boundary": 921.9576913750001,
+            "taskExit": 921.970995,
+            "return": 921.9711767083334,
+            "gapMS": 0.1817083333435221,
+            "afterActionMS": 13.412666666681616,
+            "taskDurationMS": 12.967500000058862,
+            "nativeMS": 11.142500000005384,
+            "projectionMS": 0.14391666661595082
+          },
+          {
+            "requestRevision": 11,
+            "boundary": 922.0967555000001,
+            "taskExit": 922.1117945833333,
+            "return": 922.1120009583334,
+            "gapMS": 0.20637500006159826,
+            "afterActionMS": 15.16929166666614,
+            "taskDurationMS": 14.605958333390845,
+            "nativeMS": 12.178291666600671,
+            "projectionMS": 0.19224999994094105
+          },
+          {
+            "requestRevision": 12,
+            "boundary": 922.137427125,
+            "taskExit": 922.1519727916667,
+            "return": 922.1521878333334,
+            "gapMS": 0.2150416667063837,
+            "afterActionMS": 14.671125000063512,
+            "taskDurationMS": 14.192083333341543,
+            "nativeMS": 12.248958333316295,
+            "projectionMS": 0.14929166673027794
+          },
+          {
+            "requestRevision": 13,
+            "boundary": 922.2446118333334,
+            "taskExit": 922.25931775,
+            "return": 922.2595166250001,
+            "gapMS": 0.19887500002369052,
+            "afterActionMS": 14.830583333377945,
+            "taskDurationMS": 14.107958333283932,
+            "nativeMS": 12.057458333288196,
+            "projectionMS": 0.15483333334032068
+          },
+          {
+            "requestRevision": 14,
+            "boundary": 922.2855002083334,
+            "taskExit": 922.296810875,
+            "return": 922.2970518750001,
+            "gapMS": 0.24100000007365452,
+            "afterActionMS": 11.47891666664691,
+            "taskDurationMS": 10.918458333321723,
+            "nativeMS": 9.147666666649457,
+            "projectionMS": 0.11608333340973331
+          },
+          {
+            "requestRevision": 15,
+            "boundary": 922.2999247916667,
+            "taskExit": 922.3169742916667,
+            "return": 922.31733325,
+            "gapMS": 0.3589583333223345,
+            "afterActionMS": 17.208708333328104,
+            "taskDurationMS": 16.714083333340568,
+            "nativeMS": 14.189541666723926,
+            "projectionMS": 0.18916666670065752
+          },
+          {
+            "requestRevision": 16,
+            "boundary": 922.3792061666667,
+            "taskExit": 922.3970146250001,
+            "return": 922.3972577083334,
+            "gapMS": 0.2430833333164628,
+            "afterActionMS": 17.975958333408926,
+            "taskDurationMS": 17.45504166660794,
+            "nativeMS": 15.535916666749472,
+            "projectionMS": 0.13020833330301684
+          },
+          {
+            "requestRevision": 17,
+            "boundary": 922.4196975000001,
+            "taskExit": 922.4339103333334,
+            "return": 922.4341397500001,
+            "gapMS": 0.22941666668430116,
+            "afterActionMS": 14.347416666623758,
+            "taskDurationMS": 13.833333333309383,
+            "nativeMS": 11.879208333311908,
+            "projectionMS": 0.1533333332872644
+          },
+          {
+            "requestRevision": 18,
+            "boundary": 922.470443625,
+            "taskExit": 922.4865436250001,
+            "return": 922.4870092083333,
+            "gapMS": 0.4655833332662951,
+            "afterActionMS": 16.48550000004434,
+            "taskDurationMS": 15.41787500002556,
+            "nativeMS": 13.1887083333595,
+            "projectionMS": 0.15237499997056148
+          },
+          {
+            "requestRevision": 19,
+            "boundary": 922.5467714583334,
+            "taskExit": 922.5609118750001,
+            "return": 922.5666626666667,
+            "gapMS": 5.750791666628174,
+            "afterActionMS": 19.798958333353767,
+            "taskDurationMS": 13.797874999909254,
+            "nativeMS": 12.024791666704004,
+            "projectionMS": 0.1411666665944722
+          },
+          {
+            "requestRevision": 20,
+            "boundary": 922.5905996666668,
+            "taskExit": 922.6043960416667,
+            "return": 922.6045845000001,
+            "gapMS": 0.1884583333549017,
+            "afterActionMS": 13.910291666661578,
+            "taskDurationMS": 13.434166666684177,
+            "nativeMS": 11.735250000015185,
+            "projectionMS": 0.14104166666584206
+          },
+          {
+            "requestRevision": 21,
+            "boundary": 922.6077115416667,
+            "taskExit": 922.6205145,
+            "return": 922.6207332500001,
+            "gapMS": 0.21875000004456524,
+            "afterActionMS": 12.934541666709265,
+            "taskDurationMS": 12.482624999961445,
+            "nativeMS": 10.889458333394941,
+            "projectionMS": 0.11729166669738333
+          },
+          {
+            "requestRevision": 22,
+            "boundary": 922.6365234166667,
+            "taskExit": 922.652455,
+            "return": 922.6526793333334,
+            "gapMS": 0.2243333333353803,
+            "afterActionMS": 16.07441666669729,
+            "taskDurationMS": 15.590250000059314,
+            "nativeMS": 13.702500000022155,
+            "projectionMS": 0.16833333336307987
+          },
+          {
+            "requestRevision": 23,
+            "boundary": 922.6714122083334,
+            "taskExit": 922.6845532916667,
+            "return": 922.6847288333333,
+            "gapMS": 0.17554166663558135,
+            "afterActionMS": 13.24649999992289,
+            "taskDurationMS": 12.796999999977743,
+            "nativeMS": 11.085916666729645,
+            "projectionMS": 0.15133333340600075
+          },
+          {
+            "requestRevision": 24,
+            "boundary": 922.7004399166667,
+            "taskExit": 922.7135042916667,
+            "return": 922.713711125,
+            "gapMS": 0.20683333332272014,
+            "afterActionMS": 13.186791666726094,
+            "taskDurationMS": 12.728583333341703,
+            "nativeMS": 11.13137499999084,
+            "projectionMS": 0.14004166666836682
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "d866/full",
+    "sourceSummary": "/workspace/scratch/519883d1dfd8/r4-audit/d866/full/independent-runtime/runtime/summary.json",
+    "sourceTrace": "/workspace/scratch/519883d1dfd8/r4-audit/d866/full/independent-runtime/runtime/product.stderr.log",
+    "notes": [
+      "All additive timeline intervals are clipped to external AX press start and the fixture's second physical confirmation.",
+      "Witness trace durations include nested directory and physical reads; no nested totals are added twice.",
+      "Task-exit stamp precedes final trace serialization/write; the caller gap does not identify its blocking cause.",
+      "Ordinary focus is an inferred envelope including WAL and guards, not a measured pure AX focus duration.",
+      "Elapsed intervals do not prove CPU occupancy or exclude sampling perturbation.",
+      "Candidate host and overview reader started before the measured click; their earlier startup is not charged to the click."
+    ],
+    "steps": [
+      {
+        "step": "singletonCycle/0",
+        "inputUptime": 1809.2250223333335,
+        "doubleReadUptime": 1810.7754446666668,
+        "pressToDoubleReadMS": 1550.4223333332448,
+        "nonOverlappingWallTimeMS": {
+          "external-input-delivery-and-navigation-queue": 24.854416666585166,
+          "unattributed-host-bookkeeping-scheduling-or-fixture-polling": 121.61816666684899,
+          "worker-process-start-and-durable-owner": 6.297791666611374,
+          "witness-opening-directory": 156.9194166665966,
+          "directory-task-exit-to-caller-resumption": 14.812583333196017,
+          "witness-binding-and-roster": 74.89966666685177,
+          "witness-original-AX-and-physical": 212.69495833303154,
+          "witness-closing-directory-and-finalization": 150.17412500037608,
+          "worker-launch-canary": 331.6189166666845,
+          "worker-health": 40.690999999924315,
+          "worker-readback": 132.7828750002027,
+          "ordinary-focus-and-WAL-envelope-inferred": 166.29095833309293,
+          "worker-hide": 116.76745833324276
+        },
+        "sumMS": 1550.4223333332448,
+        "sumMatchesMeasurement": true,
+        "segments": [
+          {
+            "from": 1809.2250223333335,
+            "to": 1809.24987675,
+            "milliseconds": 24.854416666585166,
+            "category": "external-input-delivery-and-navigation-queue",
+            "detail": {
+              "job": "E8DBC6BE-5FB6-4E8E-B775-2E4AE76F87BF"
+            }
+          },
+          {
+            "from": 1809.24987675,
+            "to": 1809.308904875,
+            "milliseconds": 59.0281249999407,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.308904875,
+            "to": 1809.3152026666667,
+            "milliseconds": 6.297791666611374,
+            "category": "worker-process-start-and-durable-owner",
+            "detail": {
+              "pid": 61145
+            }
+          },
+          {
+            "from": 1809.3152026666667,
+            "to": 1809.3185690833334,
+            "milliseconds": 3.366416666722216,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.3185690833334,
+            "to": 1809.3375802916669,
+            "milliseconds": 19.011208333495233,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 1,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.3375802916669,
+            "to": 1809.3378500416668,
+            "milliseconds": 0.2697499999158026,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 6,
+              "sequence": 1,
+              "afterActionBoundary": 1809.3188561250001,
+              "taskExit": 1809.3375802916669,
+              "afterActionReturn": 1809.3378500416668
+            }
+          },
+          {
+            "from": 1809.3378500416668,
+            "to": 1809.3379781666667,
+            "milliseconds": 0.1281249999465217,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 1,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.3379781666667,
+            "to": 1809.400644,
+            "milliseconds": 62.66583333331255,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 1,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1809.400644,
+            "to": 1809.426842625,
+            "milliseconds": 26.19862500000636,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 1,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1809.426842625,
+            "to": 1809.4403777083335,
+            "milliseconds": 13.535083333408693,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 1,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.4403777083335,
+            "to": 1809.4406168750002,
+            "milliseconds": 0.2391666666881065,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 7,
+              "sequence": 1,
+              "afterActionBoundary": 1809.4268166250001,
+              "taskExit": 1809.4403777083335,
+              "afterActionReturn": 1809.4406168750002
+            }
+          },
+          {
+            "from": 1809.4406168750002,
+            "to": 1809.4421520416668,
+            "milliseconds": 1.5351666665992525,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 1,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.4421520416668,
+            "to": 1809.4440732083335,
+            "milliseconds": 1.9211666667615646,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.4440732083335,
+            "to": 1809.7756921250002,
+            "milliseconds": 331.6189166666845,
+            "category": "worker-launch-canary",
+            "detail": {
+              "operation": 8,
+              "intent": "3F435F5B-C308-4AE8-B38C-B1F0768FF13D",
+              "status": 0,
+              "detail": 227
+            }
+          },
+          {
+            "from": 1809.7756921250002,
+            "to": 1809.7762676250002,
+            "milliseconds": 0.5754999999680876,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.7762676250002,
+            "to": 1809.776942375,
+            "milliseconds": 0.6747499999164575,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "D2418920-FF71-4A4E-BF15-8B8606D208C0",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 1809.776942375,
+            "to": 1809.7953807916667,
+            "milliseconds": 18.438416666640478,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.7953807916667,
+            "to": 1809.8099689583335,
+            "milliseconds": 14.588166666726465,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 2,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.8099689583335,
+            "to": 1809.8102295,
+            "milliseconds": 0.26054166664835066,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 10,
+              "sequence": 2,
+              "afterActionBoundary": 1809.7956269583335,
+              "taskExit": 1809.8099689583335,
+              "afterActionReturn": 1809.8102295
+            }
+          },
+          {
+            "from": 1809.8102295,
+            "to": 1809.810369375,
+            "milliseconds": 0.13987499983159069,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 2,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.810369375,
+            "to": 1809.8113659166668,
+            "milliseconds": 0.9965416668364924,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 2,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1809.8113659166668,
+            "to": 1809.8392165416667,
+            "milliseconds": 27.850624999928186,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 2,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1809.8392165416667,
+            "to": 1809.8530385416668,
+            "milliseconds": 13.82200000011835,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 2,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.8530385416668,
+            "to": 1809.8532477083334,
+            "milliseconds": 0.20916666653647553,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 11,
+              "sequence": 2,
+              "afterActionBoundary": 1809.8391582083334,
+              "taskExit": 1809.8530385416668,
+              "afterActionReturn": 1809.8532477083334
+            }
+          },
+          {
+            "from": 1809.8532477083334,
+            "to": 1809.8578498333334,
+            "milliseconds": 4.602125000019441,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 2,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1809.8578498333334,
+            "to": 1809.859534875,
+            "milliseconds": 1.6850416666329693,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.859534875,
+            "to": 1809.8752447916668,
+            "milliseconds": 15.709916666764911,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "80601388-D7E0-490B-B5A3-61CB7DAADE3F",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.8752447916668,
+            "to": 1809.876422125,
+            "milliseconds": 1.1773333333167102,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.876422125,
+            "to": 1809.8912655416668,
+            "milliseconds": 14.84341666673572,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "80601388-D7E0-490B-B5A3-61CB7DAADE3F",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.8912655416668,
+            "to": 1809.8927840833335,
+            "milliseconds": 1.5185416666554374,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.8927840833335,
+            "to": 1809.9070532500002,
+            "milliseconds": 14.269166666736055,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "D553C27C-4E6B-4548-A8F8-23FF966F4B1B",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.9070532500002,
+            "to": 1809.9078091666668,
+            "milliseconds": 0.7559166665487282,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.9078091666668,
+            "to": 1809.9300229583334,
+            "milliseconds": 22.213791666672478,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "D553C27C-4E6B-4548-A8F8-23FF966F4B1B",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.9300229583334,
+            "to": 1809.9316551250001,
+            "milliseconds": 1.6321666666954115,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.9316551250001,
+            "to": 1809.9515633750002,
+            "milliseconds": 19.908250000071348,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "96ADE5C0-CB39-450C-AF42-673A79B08E08",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.9515633750002,
+            "to": 1809.9527105833336,
+            "milliseconds": 1.147208333350136,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.9527105833336,
+            "to": 1809.966679375,
+            "milliseconds": 13.968791666457037,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "96ADE5C0-CB39-450C-AF42-673A79B08E08",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1809.966679375,
+            "to": 1809.96924125,
+            "milliseconds": 2.5618750000830914,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.96924125,
+            "to": 1809.9830658750002,
+            "milliseconds": 13.824625000097512,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "35D0E804-714C-4171-A398-CFA10E580462",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 1809.9830658750002,
+            "to": 1809.9890992500002,
+            "milliseconds": 6.03337500001544,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1809.9890992500002,
+            "to": 1810.005525625,
+            "milliseconds": 16.426374999809923,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 3,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.005525625,
+            "to": 1810.0057895416667,
+            "milliseconds": 0.26391666665404045,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 13,
+              "sequence": 3,
+              "afterActionBoundary": 1809.9893527916668,
+              "taskExit": 1810.005525625,
+              "afterActionReturn": 1810.0057895416667
+            }
+          },
+          {
+            "from": 1810.0057895416667,
+            "to": 1810.0059121666668,
+            "milliseconds": 0.12262500013093813,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 3,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.0059121666668,
+            "to": 1810.0075208750002,
+            "milliseconds": 1.6087083333786723,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 3,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.0075208750002,
+            "to": 1810.0425812500002,
+            "milliseconds": 35.06037500005732,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 3,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.0425812500002,
+            "to": 1810.0608354166668,
+            "milliseconds": 18.254166666565652,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 3,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.0608354166668,
+            "to": 1810.0610489166668,
+            "milliseconds": 0.2134999999725551,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 14,
+              "sequence": 3,
+              "afterActionBoundary": 1810.042529625,
+              "taskExit": 1810.0608354166668,
+              "afterActionReturn": 1810.0610489166668
+            }
+          },
+          {
+            "from": 1810.0610489166668,
+            "to": 1810.0624924583335,
+            "milliseconds": 1.4435416667311074,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 3,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.0624924583335,
+            "to": 1810.2287834166666,
+            "milliseconds": 166.29095833309293,
+            "category": "ordinary-focus-and-WAL-envelope-inferred",
+            "detail": {
+              "beforeSequence": 3,
+              "afterSequence": 4,
+              "oldFocus": [
+                0,
+                0
+              ],
+              "newFocus": [
+                60338,
+                55
+              ],
+              "limitation": "Upper bound including journal/guards; no isolated focus start/end trace."
+            }
+          },
+          {
+            "from": 1810.2287834166666,
+            "to": 1810.2443916250002,
+            "milliseconds": 15.60820833356047,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 4,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.2443916250002,
+            "to": 1810.244639875,
+            "milliseconds": 0.24824999991324148,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 15,
+              "sequence": 4,
+              "afterActionBoundary": 1810.2289768750002,
+              "taskExit": 1810.2443916250002,
+              "afterActionReturn": 1810.244639875
+            }
+          },
+          {
+            "from": 1810.244639875,
+            "to": 1810.2447920416666,
+            "milliseconds": 0.15216666656669986,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 4,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.2447920416666,
+            "to": 1810.2458749583334,
+            "milliseconds": 1.0829166667463141,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 4,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.2458749583334,
+            "to": 1810.2663274583333,
+            "milliseconds": 20.452499999919382,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 4,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.2663274583333,
+            "to": 1810.2850633333335,
+            "milliseconds": 18.73587500017493,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 4,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.2850633333335,
+            "to": 1810.2853095416667,
+            "milliseconds": 0.24620833323751867,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 16,
+              "sequence": 4,
+              "afterActionBoundary": 1810.26624375,
+              "taskExit": 1810.2850633333335,
+              "afterActionReturn": 1810.2853095416667
+            }
+          },
+          {
+            "from": 1810.2853095416667,
+            "to": 1810.28691325,
+            "milliseconds": 1.6037083332776092,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 4,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.28691325,
+            "to": 1810.2885557083337,
+            "milliseconds": 1.642458333662944,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.2885557083337,
+            "to": 1810.3039476666668,
+            "milliseconds": 15.391958333111688,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 5,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.3039476666668,
+            "to": 1810.3043483333333,
+            "milliseconds": 0.4006666665645753,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 17,
+              "sequence": 5,
+              "afterActionBoundary": 1810.2888200833333,
+              "taskExit": 1810.3039476666668,
+              "afterActionReturn": 1810.3043483333333
+            }
+          },
+          {
+            "from": 1810.3043483333333,
+            "to": 1810.304469916667,
+            "milliseconds": 0.1215833335663774,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 5,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.304469916667,
+            "to": 1810.305532541667,
+            "milliseconds": 1.062625000031403,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 5,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.305532541667,
+            "to": 1810.3244343333336,
+            "milliseconds": 18.901791666621648,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 5,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.3244343333336,
+            "to": 1810.3400185416667,
+            "milliseconds": 15.584208333166316,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 5,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.3400185416667,
+            "to": 1810.3402427083333,
+            "milliseconds": 0.224166666612291,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 18,
+              "sequence": 5,
+              "afterActionBoundary": 1810.3243782916668,
+              "taskExit": 1810.3400185416667,
+              "afterActionReturn": 1810.3402427083333
+            }
+          },
+          {
+            "from": 1810.3402427083333,
+            "to": 1810.3416267500002,
+            "milliseconds": 1.384041666824487,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 5,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.3416267500002,
+            "to": 1810.3442960000002,
+            "milliseconds": 2.66925000005358,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.3442960000002,
+            "to": 1810.3564642916667,
+            "milliseconds": 12.168291666512232,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "6F4CF0C9-C045-46F5-AFFF-CD7B0C83225A",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 1810.3564642916667,
+            "to": 1810.3574985,
+            "milliseconds": 1.034208333294373,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.3574985,
+            "to": 1810.3713592083334,
+            "milliseconds": 13.860708333368166,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 6,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.3713592083334,
+            "to": 1810.371557166667,
+            "milliseconds": 0.19795833350144676,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 19,
+              "sequence": 6,
+              "afterActionBoundary": 1810.3577129583334,
+              "taskExit": 1810.3713592083334,
+              "afterActionReturn": 1810.371557166667
+            }
+          },
+          {
+            "from": 1810.371557166667,
+            "to": 1810.371661375,
+            "milliseconds": 0.10420833314128686,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 6,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.371661375,
+            "to": 1810.3725429583333,
+            "milliseconds": 0.8815833332391776,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 6,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.3725429583333,
+            "to": 1810.3887845,
+            "milliseconds": 16.24154166665903,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 6,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.3887845,
+            "to": 1810.4020944583335,
+            "milliseconds": 13.309958333593386,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 6,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.4020944583335,
+            "to": 1810.4023531250002,
+            "milliseconds": 0.25866666669571714,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 20,
+              "sequence": 6,
+              "afterActionBoundary": 1810.388729125,
+              "taskExit": 1810.4020944583335,
+              "afterActionReturn": 1810.4023531250002
+            }
+          },
+          {
+            "from": 1810.4023531250002,
+            "to": 1810.4038572083334,
+            "milliseconds": 1.5040833332022885,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 6,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.4038572083334,
+            "to": 1810.4070134583335,
+            "milliseconds": 3.1562500000745786,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.4070134583335,
+            "to": 1810.462268666667,
+            "milliseconds": 55.25520833339215,
+            "category": "worker-hide",
+            "detail": {
+              "operation": 3,
+              "intent": "6F4CF0C9-C045-46F5-AFFF-CD7B0C83225A",
+              "status": 0,
+              "detail": 224
+            }
+          },
+          {
+            "from": 1810.462268666667,
+            "to": 1810.46323525,
+            "milliseconds": 0.9665833331382601,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.46323525,
+            "to": 1810.4806431250001,
+            "milliseconds": 17.4078750001172,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "6F4CF0C9-C045-46F5-AFFF-CD7B0C83225A",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1810.4806431250001,
+            "to": 1810.4814225833334,
+            "milliseconds": 0.7794583332270122,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.4814225833334,
+            "to": 1810.4950844583334,
+            "milliseconds": 13.661875000025248,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 7,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.4950844583334,
+            "to": 1810.4991407083335,
+            "milliseconds": 4.056250000076034,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 21,
+              "sequence": 7,
+              "afterActionBoundary": 1810.4816125000002,
+              "taskExit": 1810.4950844583334,
+              "afterActionReturn": 1810.4991407083335
+            }
+          },
+          {
+            "from": 1810.4991407083335,
+            "to": 1810.4992886250002,
+            "milliseconds": 0.14791666671953863,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 7,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.4992886250002,
+            "to": 1810.5001632083336,
+            "milliseconds": 0.8745833333705377,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 7,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.5001632083336,
+            "to": 1810.52278075,
+            "milliseconds": 22.617541666477337,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 7,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.52278075,
+            "to": 1810.5358579583335,
+            "milliseconds": 13.07720833347048,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 7,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5358579583335,
+            "to": 1810.5361160833334,
+            "milliseconds": 0.25812499984567694,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 22,
+              "sequence": 7,
+              "afterActionBoundary": 1810.5227166666668,
+              "taskExit": 1810.5358579583335,
+              "afterActionReturn": 1810.5361160833334
+            }
+          },
+          {
+            "from": 1810.5361160833334,
+            "to": 1810.5375374583334,
+            "milliseconds": 1.4213750000635628,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 7,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5375374583334,
+            "to": 1810.5392194583333,
+            "milliseconds": 1.6819999998460844,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.5392194583333,
+            "to": 1810.5546428750001,
+            "milliseconds": 15.423416666862977,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 8,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5546428750001,
+            "to": 1810.554863,
+            "milliseconds": 0.22012499994161772,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 23,
+              "sequence": 8,
+              "afterActionBoundary": 1810.5395305000002,
+              "taskExit": 1810.5546428750001,
+              "afterActionReturn": 1810.554863
+            }
+          },
+          {
+            "from": 1810.554863,
+            "to": 1810.5549967916666,
+            "milliseconds": 0.13379166648519458,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 8,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5549967916666,
+            "to": 1810.5558379166666,
+            "milliseconds": 0.841125000079046,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 8,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.5558379166666,
+            "to": 1810.5787625416667,
+            "milliseconds": 22.924625000086962,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 8,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.5787625416667,
+            "to": 1810.5936770833334,
+            "milliseconds": 14.914541666712466,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 8,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5936770833334,
+            "to": 1810.5938861666668,
+            "milliseconds": 0.20908333340230456,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 24,
+              "sequence": 8,
+              "afterActionBoundary": 1810.5786876250002,
+              "taskExit": 1810.5936770833334,
+              "afterActionReturn": 1810.5938861666668
+            }
+          },
+          {
+            "from": 1810.5938861666668,
+            "to": 1810.5951968333334,
+            "milliseconds": 1.310666666540783,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 8,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.5951968333334,
+            "to": 1810.5989337083333,
+            "milliseconds": 3.7368749999586726,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.5989337083333,
+            "to": 1810.6129570416667,
+            "milliseconds": 14.023333333398114,
+            "category": "worker-health",
+            "detail": {
+              "operation": 6,
+              "intent": "07B84E75-CF84-4CA4-BD33-EBCDD84BC3F9",
+              "status": 0,
+              "detail": 226
+            }
+          },
+          {
+            "from": 1810.6129570416667,
+            "to": 1810.6143129166667,
+            "milliseconds": 1.3558749999447173,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.6143129166667,
+            "to": 1810.6299321666668,
+            "milliseconds": 15.619250000099782,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 9,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.6299321666668,
+            "to": 1810.6301700416668,
+            "milliseconds": 0.23787500003891182,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 25,
+              "sequence": 9,
+              "afterActionBoundary": 1810.614577625,
+              "taskExit": 1810.6299321666668,
+              "afterActionReturn": 1810.6301700416668
+            }
+          },
+          {
+            "from": 1810.6301700416668,
+            "to": 1810.630289375,
+            "milliseconds": 0.1193333332594193,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 9,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.630289375,
+            "to": 1810.6311199583333,
+            "milliseconds": 0.8305833332542534,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 9,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.6311199583333,
+            "to": 1810.6491985,
+            "milliseconds": 18.078541666682213,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 9,
+              "traceField": "physicalWindowsMS"
+            }
+          },
+          {
+            "from": 1810.6491985,
+            "to": 1810.6620457083334,
+            "milliseconds": 12.847208333369053,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 9,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.6620457083334,
+            "to": 1810.6622396250002,
+            "milliseconds": 0.19391666683077347,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 26,
+              "sequence": 9,
+              "afterActionBoundary": 1810.6491423333334,
+              "taskExit": 1810.6620457083334,
+              "afterActionReturn": 1810.6622396250002
+            }
+          },
+          {
+            "from": 1810.6622396250002,
+            "to": 1810.6635287916667,
+            "milliseconds": 1.2891666665382218,
+            "category": "witness-closing-directory-and-finalization",
+            "detail": {
+              "sequence": 9,
+              "traceField": "closingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.6635287916667,
+            "to": 1810.6664795000002,
+            "milliseconds": 2.950708333401053,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.6664795000002,
+            "to": 1810.72799175,
+            "milliseconds": 61.51224999985061,
+            "category": "worker-hide",
+            "detail": {
+              "operation": 3,
+              "intent": "07B84E75-CF84-4CA4-BD33-EBCDD84BC3F9",
+              "status": 0,
+              "detail": 224
+            }
+          },
+          {
+            "from": 1810.72799175,
+            "to": 1810.7287062916669,
+            "milliseconds": 0.7145416668663529,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.7287062916669,
+            "to": 1810.7431679583335,
+            "milliseconds": 14.461666666647943,
+            "category": "worker-readback",
+            "detail": {
+              "operation": 2,
+              "intent": "07B84E75-CF84-4CA4-BD33-EBCDD84BC3F9",
+              "status": 0,
+              "detail": 200
+            }
+          },
+          {
+            "from": 1810.7431679583335,
+            "to": 1810.7442568333336,
+            "milliseconds": 1.0888750000503933,
+            "category": "unattributed-host-bookkeeping-scheduling-or-fixture-polling",
+            "detail": null
+          },
+          {
+            "from": 1810.7442568333336,
+            "to": 1810.7602277916667,
+            "milliseconds": 15.970958333127783,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 10,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.7602277916667,
+            "to": 1810.7668330416668,
+            "milliseconds": 6.605250000120577,
+            "category": "directory-task-exit-to-caller-resumption",
+            "detail": {
+              "requestRevision": 27,
+              "sequence": 10,
+              "afterActionBoundary": 1810.7445940833334,
+              "taskExit": 1810.7602277916667,
+              "afterActionReturn": 1810.7668330416668
+            }
+          },
+          {
+            "from": 1810.7668330416668,
+            "to": 1810.7670207083336,
+            "milliseconds": 0.18766666676128807,
+            "category": "witness-opening-directory",
+            "detail": {
+              "sequence": 10,
+              "traceField": "openingDirectoryMS"
+            }
+          },
+          {
+            "from": 1810.7670207083336,
+            "to": 1810.7710758750002,
+            "milliseconds": 4.055166666603327,
+            "category": "witness-binding-and-roster",
+            "detail": {
+              "sequence": 10,
+              "traceField": "bindingMS"
+            }
+          },
+          {
+            "from": 1810.7710758750002,
+            "to": 1810.7754446666668,
+            "milliseconds": 4.368791666593097,
+            "category": "witness-original-AX-and-physical",
+            "detail": {
+              "sequence": 10,
+              "traceField": "physicalWindowsMS"
+            }
+          }
+        ],
+        "nestedDesktopDiagnosticsDoNotAddToWallTime": {
+          "readerAwaitMS": 347.76049999982206,
+          "nativeDurationMS": 317.2811666668167,
+          "nativeBeginAfterRequestMS": 8.296874999814463,
+          "nativeEndToReturnMS": 22.18245833319088,
+          "groupProjectionMS": 4.184291666433637,
+          "observeDirectoryMS": 0.6211249992702506,
+          "taskQueueMS": 5.245916666581252,
+          "remainingProcessingMS": 27.809416667878395
+        },
+        "callerResumptions": [
+          {
+            "requestRevision": 5,
+            "boundary": 1809.26449,
+            "taskExit": 1809.280858416667,
+            "return": 1809.2811066666668,
+            "gapMS": 0.24824999991324148,
+            "afterActionMS": 16.53358333351207,
+            "taskDurationMS": 15.993874999821855,
+            "nativeMS": 14.258916666676669,
+            "projectionMS": 0.12920833341922844
+          },
+          {
+            "requestRevision": 6,
+            "boundary": 1809.3188561250001,
+            "taskExit": 1809.3375802916669,
+            "return": 1809.3378500416668,
+            "gapMS": 0.2697499999158026,
+            "afterActionMS": 18.903166666632387,
+            "taskDurationMS": 17.822833333184462,
+            "nativeMS": 15.630625000085274,
+            "projectionMS": 0.15404166651933338
+          },
+          {
+            "requestRevision": 7,
+            "boundary": 1809.4268166250001,
+            "taskExit": 1809.4403777083335,
+            "return": 1809.4406168750002,
+            "gapMS": 0.2391666666881065,
+            "afterActionMS": 13.709708333408344,
+            "taskDurationMS": 13.196750000133761,
+            "nativeMS": 11.506875000122818,
+            "projectionMS": 0.13783333315586788
+          },
+          {
+            "requestRevision": 10,
+            "boundary": 1809.7956269583335,
+            "taskExit": 1809.8099689583335,
+            "return": 1809.8102295,
+            "gapMS": 0.26054166664835066,
+            "afterActionMS": 14.51849999989463,
+            "taskDurationMS": 14.008583333179558,
+            "nativeMS": 12.304541666708246,
+            "projectionMS": 0.15362499993898382
+          },
+          {
+            "requestRevision": 11,
+            "boundary": 1809.8391582083334,
+            "taskExit": 1809.8530385416668,
+            "return": 1809.8532477083334,
+            "gapMS": 0.20916666653647553,
+            "afterActionMS": 14.011583333285671,
+            "taskDurationMS": 13.492625000026237,
+            "nativeMS": 11.787916666662568,
+            "projectionMS": 0.12904166669613915
+          },
+          {
+            "requestRevision": 13,
+            "boundary": 1809.9893527916668,
+            "taskExit": 1810.005525625,
+            "return": 1810.0057895416667,
+            "gapMS": 0.26391666665404045,
+            "afterActionMS": 16.34708333335766,
+            "taskDurationMS": 15.76195833354177,
+            "nativeMS": 12.815958333249,
+            "projectionMS": 0.16904166682252253
+          },
+          {
+            "requestRevision": 14,
+            "boundary": 1810.042529625,
+            "taskExit": 1810.0608354166668,
+            "return": 1810.0610489166668,
+            "gapMS": 0.2134999999725551,
+            "afterActionMS": 18.43708333331051,
+            "taskDurationMS": 17.90404166672488,
+            "nativeMS": 16.19954166676507,
+            "projectionMS": 0.16841666683831136
+          },
+          {
+            "requestRevision": 15,
+            "boundary": 1810.2289768750002,
+            "taskExit": 1810.2443916250002,
+            "return": 1810.244639875,
+            "gapMS": 0.24824999991324148,
+            "afterActionMS": 15.564749999839478,
+            "taskDurationMS": 14.777749999893786,
+            "nativeMS": 12.77595833334999,
+            "projectionMS": 0.16454166666335368
+          },
+          {
+            "requestRevision": 16,
+            "boundary": 1810.26624375,
+            "taskExit": 1810.2850633333335,
+            "return": 1810.2853095416667,
+            "gapMS": 0.24620833323751867,
+            "afterActionMS": 18.977250000034473,
+            "taskDurationMS": 18.36191666666309,
+            "nativeMS": 16.35374999978012,
+            "projectionMS": 0.2307916668087273
+          },
+          {
+            "requestRevision": 17,
+            "boundary": 1810.2888200833333,
+            "taskExit": 1810.3039476666668,
+            "return": 1810.3043483333333,
+            "gapMS": 0.4006666665645753,
+            "afterActionMS": 15.435708333370712,
+            "taskDurationMS": 14.732124999909502,
+            "nativeMS": 12.99733333326003,
+            "projectionMS": 0.12599999990925426
+          },
+          {
+            "requestRevision": 18,
+            "boundary": 1810.3243782916668,
+            "taskExit": 1810.3400185416667,
+            "return": 1810.3402427083333,
+            "gapMS": 0.224166666612291,
+            "afterActionMS": 15.789208333217175,
+            "taskDurationMS": 15.244458333199873,
+            "nativeMS": 13.463750000028085,
+            "projectionMS": 0.12533333324427076
+          },
+          {
+            "requestRevision": 19,
+            "boundary": 1810.3577129583334,
+            "taskExit": 1810.3713592083334,
+            "return": 1810.371557166667,
+            "gapMS": 0.19795833350144676,
+            "afterActionMS": 13.758499999994456,
+            "taskDurationMS": 13.314041666717458,
+            "nativeMS": 11.541666666744277,
+            "projectionMS": 0.17270833336624491
+          },
+          {
+            "requestRevision": 20,
+            "boundary": 1810.388729125,
+            "taskExit": 1810.4020944583335,
+            "return": 1810.4023531250002,
+            "gapMS": 0.25866666669571714,
+            "afterActionMS": 13.533333333498376,
+            "taskDurationMS": 12.757333333411225,
+            "nativeMS": 11.056000000053245,
+            "projectionMS": 0.1279166665426601
+          },
+          {
+            "requestRevision": 21,
+            "boundary": 1810.4816125000002,
+            "taskExit": 1810.4950844583334,
+            "return": 1810.4991407083335,
+            "gapMS": 4.056250000076034,
+            "afterActionMS": 17.438416666664125,
+            "taskDurationMS": 13.115624999954889,
+            "nativeMS": 11.5722083332912,
+            "projectionMS": 0.12616666663234355
+          },
+          {
+            "requestRevision": 22,
+            "boundary": 1810.5227166666668,
+            "taskExit": 1810.5358579583335,
+            "return": 1810.5361160833334,
+            "gapMS": 0.25812499984567694,
+            "afterActionMS": 13.320541666644203,
+            "taskDurationMS": 12.75325000005978,
+            "nativeMS": 10.67983333336997,
+            "projectionMS": 0.2207916666066012
+          },
+          {
+            "requestRevision": 23,
+            "boundary": 1810.5395305000002,
+            "taskExit": 1810.5546428750001,
+            "return": 1810.554863,
+            "gapMS": 0.22012499994161772,
+            "afterActionMS": 15.250708333269358,
+            "taskDurationMS": 14.724208333291244,
+            "nativeMS": 13.019625000197266,
+            "projectionMS": 0.1598333333276969
+          },
+          {
+            "requestRevision": 24,
+            "boundary": 1810.5786876250002,
+            "taskExit": 1810.5936770833334,
+            "return": 1810.5938861666668,
+            "gapMS": 0.20908333340230456,
+            "afterActionMS": 15.126541666631965,
+            "taskDurationMS": 14.3945000002077,
+            "nativeMS": 12.390124999910768,
+            "projectionMS": 0.14570833332072652
+          },
+          {
+            "requestRevision": 25,
+            "boundary": 1810.614577625,
+            "taskExit": 1810.6299321666668,
+            "return": 1810.6301700416668,
+            "gapMS": 0.23787500003891182,
+            "afterActionMS": 15.500041666655306,
+            "taskDurationMS": 14.901166666732024,
+            "nativeMS": 13.135041666600955,
+            "projectionMS": 0.16174999996110273
+          },
+          {
+            "requestRevision": 26,
+            "boundary": 1810.6491423333334,
+            "taskExit": 1810.6620457083334,
+            "return": 1810.6622396250002,
+            "gapMS": 0.19391666683077347,
+            "afterActionMS": 13.0247083334325,
+            "taskDurationMS": 12.527666666755977,
+            "nativeMS": 10.987458333374889,
+            "projectionMS": 0.15675000008741335
+          },
+          {
+            "requestRevision": 27,
+            "boundary": 1810.7445940833334,
+            "taskExit": 1810.7602277916667,
+            "return": 1810.7668330416668,
+            "gapMS": 6.605250000120577,
+            "afterActionMS": 22.12987500001873,
+            "taskDurationMS": 15.00287500016384,
+            "nativeMS": 13.304875000130778,
+            "projectionMS": 0.1652500000091095
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -20,6 +20,7 @@ import NearpaneOrdinaryWindowRuntime
     let scope: StageGroupScope
     let generation = UUID()
     private let available: @MainActor () -> Bool, restoreAvailable: @MainActor () -> Bool
+    private var initialSelectionCurrent: (@MainActor () -> Bool)?
     private let availabilityRejection: @MainActor (Bool) -> [String: Any]?
     private let authorizedLifetimes: [NativeSpaceWindow: UUID]
     private var leases: [NativeSpaceWindow: OrdinaryFileLease]
@@ -35,6 +36,7 @@ import NearpaneOrdinaryWindowRuntime
     private var returnedSample: StageWindowSample?
     private var returnedAppearances = [DesktopWindowKey: UUID]()
     private var pendingDeparture: (target: UUID, after: UInt64)?
+    private var metadataScopes = [StageMetadataReadScope: StageEngineOwner]()
     private(set) var departures = [UUID:StageGroupDeparture]()
 
     func preparePictures(leavingFor target: UUID) { pendingDeparture = (target, sequence) }
@@ -45,16 +47,38 @@ import NearpaneOrdinaryWindowRuntime
             bindings[member.before.window]?.lifetime == member.before.lifetime && mayManage(member.before)
     }
 
-    func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture) -> Bool {
+    /// Drawing a retained image consumes the last complete witness. It must not
+    /// issue AX/WindowServer IPC from SwiftUI body, or every displayed member can
+    /// block delivery of a new click and the system-ownership reply. A card is
+    /// never a write permit: chooseHeld obtains a new session.read and supplies
+    /// that exact sample; the coordinator still performs its normal preflights.
+    func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture,
+                                  observed: StageWindowSample? = nil) -> Bool {
         let window = member.before.window
         guard generation == departure.generation, scope == departure.scope, departures[departure.group] == departure,
               let binding = bindings[window], mayManage(member.before), binding.lifetime == member.before.lifetime,
-              let held = lastStates[window], held.lifetime == binding.lifetime, let claim = claims[window],
-              [StageWindowState.Visibility.parked, .stageSpace].contains(held.visibility), let home,
-              let actual = try? binding.monitor.observation(home:home), actual.id.pid == window.pid,
-              actual.id.number == window.number, actual.id.launch == window.birth, !actual.minimized,
-              actual.frame == held.frame, actual.membership == claim.member else { return false }
-        return claim.backend == .spaces ? !actual.onscreen && actual.membership == held.hiddenSpaceID : actual.membership == departure.nativeID
+              let latest = lastSample, let sample = observed ?? lastSample, sample.sequence == latest.sequence,
+              sample.sequence == sequence, sample.windows[window] == lastStates[window], let claim = claims[window],
+              let home, UInt64(home.record) == sample.nativeID,
+              lastSnapshot?.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) == true else { return false }
+        return Self.confirmsHistoricalState(member, of: departure, in: sample, claim: claim)
+    }
+
+    /// Only already observed facts are compared here. A removed/changed claim,
+    /// different original lifetime or newer appearance cannot retain old pixels.
+    static func confirmsHistoricalState(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture,
+                                        in sample: StageWindowSample, claim: VisibilityClaim) -> Bool {
+        guard departure.members.contains(member), sample.generation == departure.generation,
+              sample.scope == departure.scope, sample.nativeID == departure.nativeID,
+              let state = sample.windows[member.before.window], state.window == member.before.window,
+              state.lifetime == member.before.lifetime, state.frame == claim.frame else { return false }
+        switch claim.backend {
+        case .spaces:
+            return state.visibility == .stageSpace && state.hiddenSpaceID == claim.member &&
+                claim.member > 0 && claim.member != departure.nativeID
+        case .corner:
+            return state.visibility == .parked && state.hiddenSpaceID == nil && claim.member == departure.nativeID
+        }
     }
     private struct ArrivalWatch {
         let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow
@@ -63,6 +87,7 @@ import NearpaneOrdinaryWindowRuntime
     private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
 
     init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot, authorized: [NativeSpaceWindow: UUID],
+          initialSelectionCurrent: @escaping @MainActor () -> Bool,
           available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool,
           availabilityRejection: @escaping @MainActor (Bool) -> [String: Any]? = { _ in nil }) {
         guard let physical = snapshot.displays.first(where: { UUID(uuidString:$0.id) == scope.display }),
@@ -76,6 +101,7 @@ import NearpaneOrdinaryWindowRuntime
         self.feed = feed; self.scope = scope; self.session = snapshot.sessionID; display = physical.id
         topology = snapshot.topologyFingerprint
         self.available = available; self.restoreAvailable = restoreAvailable
+        self.initialSelectionCurrent = initialSelectionCurrent
         self.availabilityRejection = availabilityRejection
     }
 
@@ -101,6 +127,22 @@ import NearpaneOrdinaryWindowRuntime
         return absent.compactMap { try? $0.value.monitor.departure() }
     }
     func lifetime(of window: NativeSpaceWindow) -> UUID? { bindings[window]?.lifetime }
+    /// Read-only identity for a click crossing from a current row to an owned
+    /// hidden row. It is not an appearance token or a physical write permit.
+    struct RetainedMemberIdentity: Equatable {
+        let generation: UUID, scope: StageGroupScope, session: UUID, topology: String, home: UInt64
+        let window: NativeSpaceWindow, lifetime: UUID, original: ObjectIdentifier
+    }
+    func retainedMemberIdentity(_ window: NativeSpaceWindow, owner: StageEngineOwner) -> RetainedMemberIdentity? {
+        guard owner.backend == .spaces, owner.generation == generation, self.owner == .spaces,
+              let home, let native = UInt64(home.record), native > 0,
+              let binding = bindings[window], let state = lastStates[window], mayManage(state),
+              let sample = lastSample, sample.scope == scope, sample.generation == generation,
+              sample.nativeID == native, sample.windows[window] == state,
+              lastSnapshot?.sessionID == session, lastSnapshot?.topologyFingerprint == topology else { return nil }
+        return .init(generation: generation, scope: scope, session: session, topology: topology, home: native,
+                     window: window, lifetime: binding.lifetime, original: ObjectIdentifier(binding.monitor))
+    }
     func mayManage(_ state: StageWindowState) -> Bool {
         guard let binding = bindings[state.window] else { return false }
         return !binding.readOnly && binding.lifetime == state.lifetime &&
@@ -110,6 +152,7 @@ import NearpaneOrdinaryWindowRuntime
     func beginRelease() { releaseInput = NativeSelectionPermit.inputCounters() }
 
     func endedOwnership() {
+        cancelMetadataReadScopes()
         cancelArrivals()
         leases.removeAll()
         claims.removeAll()
@@ -211,20 +254,125 @@ import NearpaneOrdinaryWindowRuntime
         Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology, rejected: rejected)
     }
 
+    struct InitialReadState {
+        var sequence: UInt64 = 0
+        var bindings = 0, claims = 0
+        var enrolled = false, specialized = false
+        var allowsRetry: Bool { sequence == 0 && bindings == 0 && claims == 0 && !enrolled && !specialized }
+    }
+
+    struct InitialOpeningCandidate {
+        let catalog: NativeSpaceCatalog
+        let identities: [UInt32: NativeSpaceWindow]
+        let rows: [UInt32: WindowObservation]
+    }
+
+    private static func directoryIdentities(_ snapshot: DesktopSnapshot) -> [UInt32: NativeSpaceWindow] {
+        Dictionary(uniqueKeysWithValues: snapshot.windows.compactMap { window in
+            DesktopWindowKey(window).map { ($0.number, NativeSpaceWindow(pid: $0.pid, birth: $0.birth, number: $0.number)) }
+        })
+    }
+
+    /// Shared read-only eligibility; staging is not evidence that this remains
+    /// eligible when the original action resumes. The helper checks it again.
+    static func initialOpeningCandidate(_ first: DesktopSnapshot, display: String, scope: StageGroupScope,
+                                        session: UUID, topology: String, authorized: Set<NativeSpaceWindow>, state: InitialReadState,
+                                        clock: @MainActor () -> (date: Date, uptime: Double)) -> InitialOpeningCandidate? {
+        guard state.allowsRetry, first.native?.catalogComplete == false,
+              let issues = first.native?.catalogIssues, issues.count < 32,
+              issues.filter({ $0 == "windowRosterChanged" }).count == 1 else { return nil }
+        let authorizedNumbers = Set(authorized.map(\.number))
+        for issue in issues where issue != "windowRosterChanged" {
+            let prefix = "windowIdentityOrBounds:pid="
+            guard issue.hasPrefix(prefix) else { return nil }
+            let parts = String(issue.dropFirst(prefix.count)).components(separatedBy: ",window=")
+            guard parts.count == 2, let pid = Int32(parts[0]), pid > 1, let number = UInt32(parts[1]), number > 0,
+                  issue == "\(prefix)\(pid),window=\(number)", !authorizedNumbers.contains(number) else { return nil }
+        }
+        let checked = clock()
+        guard !authorized.isEmpty, authorized.count <= 64, UUID(uuidString: display) == scope.display,
+              first.sessionID == session, first.topologyFingerprint == topology, first.native?.stageManagerEnabled == false,
+              let opening = NativeSpaceCatalog(first, displayID: display, now: checked.date, uptime: checked.uptime),
+              opening.current.ordinaryUUID == scope.nativeSpace else { return nil }
+        let before = directoryIdentities(first)
+        let oldRows = Dictionary(uniqueKeysWithValues: first.windows.compactMap { w in w.metadata.map { ($0.number, w) } })
+        guard before.count == first.windows.count, authorized.allSatisfy({ key in
+            before[key.number] == key && oldRows[key.number]?.displayID == display &&
+                oldRows[key.number]?.membership == .known(recordIDs: [opening.current.id])
+        }) else { return nil }
+        return .init(catalog: opening, identities: before, rows: oldRows)
+    }
+
+    /// One new directory before the first enrollment only. The failed directory
+    /// supplies negative/context evidence; none of its rows is repaired or bound.
+    static func initialOpeningDirectory(_ first: DesktopSnapshot, display: String, scope: StageGroupScope,
+                                        session: UUID, topology: String, authorized: Set<NativeSpaceWindow>,
+                                        state: @MainActor () -> InitialReadState, current: @MainActor () -> Bool,
+                                        read: @MainActor () async -> DesktopSnapshot?,
+                                        clock: @MainActor () -> (date: Date, uptime: Double) = { (.now, ProcessInfo.processInfo.systemUptime) },
+                                        retrying: @MainActor () -> Void = {}) async throws -> DesktopSnapshot {
+        guard let candidate = initialOpeningCandidate(first, display: display, scope: scope, session: session,
+            topology: topology, authorized: authorized, state: state(), clock: clock) else { return first }
+        let opening = candidate.catalog, before = candidate.identities, oldRows = candidate.rows
+        guard !Task.isCancelled, state().allowsRetry, current() else { throw StageSwitchError.interrupted }
+        retrying()
+        let boundary = clock()
+        guard let fresh = await read(), !Task.isCancelled, state().allowsRetry, current() else { throw StageSwitchError.interrupted }
+        let finished = clock()
+        guard fresh.sessionID == session, fresh.revision > first.revision,
+              fresh.topologyFingerprint == topology, fresh.displays == first.displays, fresh.scopes == first.scopes,
+              fresh.separateSpaces == first.separateSpaces, fresh.native?.stageManagerEnabled == false,
+              let native = fresh.native, native.catalogComplete == true, native.catalogIssues?.isEmpty != false,
+              fresh.sampledFrom > boundary.date, native.beganUptime > boundary.uptime,
+              let closing = NativeSpaceCatalog(fresh, displayID: display, now: finished.date, uptime: finished.uptime),
+              closing.current == opening.current else { throw StageSwitchError.incomplete }
+        let after = directoryIdentities(fresh)
+        let newRows = Dictionary(uniqueKeysWithValues: fresh.windows.compactMap { w in w.metadata.map { ($0.number, w) } })
+        guard after.count == fresh.windows.count,
+              before.allSatisfy({ number, key in after[number].map { $0 == key } != false }),
+              authorized.allSatisfy({ key in
+                  after[key.number] == key && newRows[key.number]?.displayID == oldRows[key.number]?.displayID &&
+                      newRows[key.number]?.membership == oldRows[key.number]?.membership &&
+                      newRows[key.number]?.metadata?.globalFrame == oldRows[key.number]?.metadata?.globalFrame
+              }) else { throw StageSwitchError.ownership }
+        return fresh
+    }
+
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess,
                         rejected: (([String: Any]) -> Void)? = nil,
+                        metrics: (([String: Any]) -> Void)? = nil,
                         current: @MainActor () -> Bool) async throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
+        var candidateCount = 0, retainedCount = 0, roleReadCount = 0, candidateEnumerationCompleted = false
+        var roleReadTotalMS: Double = 0, roleReadMaxMS: Double = 0
+        defer {
+            metrics?(["candidateCount": candidateCount, "candidateEnumerationCompleted": candidateEnumerationCompleted,
+                      "retainedCount": retainedCount, "roleReadCount": roleReadCount,
+                      "roleReadTotalMS": roleReadTotalMS, "roleReadMaxMS": roleReadMaxMS,
+                      "roleTimingIncludesTaskQueueAndActorResume": true, "nestedInPhaseDurations": true])
+        }
         guard let catalog = homeCatalog(snapshot, rejected: rejected) else { throw StageSwitchError.incomplete }
         let originalBindings = bindings, originalClaims = claims, originalHome = home, originalOwner = owner
         let candidates = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id, rejected: rejected) { _ in true }
+        candidateCount = candidates.count; candidateEnumerationCompleted = true
         var keys = Set<NativeSpaceWindow>()
         for key in candidates {
             guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
                   home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
             // An already retained standard window can be unlisted after our same-desktop action.
             // Its original AX object and current physical state are still verified in the binding loop.
-            if bindings[key] != nil { keys.insert(key); continue }
-            let ordinary = try await Task.detached(priority: .userInitiated) { try access.role(of: key) }.value
+            if bindings[key] != nil { retainedCount += 1; keys.insert(key); continue }
+            let ordinary: Bool
+            do {
+                let began = metrics == nil ? 0 : ProcessInfo.processInfo.systemUptime
+                roleReadCount += 1
+                defer {
+                    if metrics != nil {
+                        let elapsed = (ProcessInfo.processInfo.systemUptime - began) * 1000
+                        roleReadTotalMS += elapsed; roleReadMaxMS = max(roleReadMaxMS, elapsed)
+                    }
+                }
+                ordinary = try await Task.detached(priority: .userInitiated) { try access.role(of: key) }.value
+            }
             guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
                   home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
             if ordinary { keys.insert(key) }
@@ -267,7 +415,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     /// Bounded metadata from the exact rejected read, never a later feed snapshot
-    /// or a second native query. Window titles, frames and contents are omitted.
+    /// or a second native query. Failed-item CG geometry is diagnostic only;
+    /// window titles, paths and contents are omitted.
     private static func rosterSnapshotFacts(_ snapshot: DesktopSnapshot, display: String) -> [String: Any] {
         let scopes = snapshot.scopes.filter { $0.displayID == display }
         var facts: [String: Any] = ["session": snapshot.sessionID.uuidString, "revision": snapshot.revision,
@@ -294,6 +443,16 @@ import NearpaneOrdinaryWindowRuntime
             facts["catalogIssueCount"] = issues.count
             facts["catalogIssues"] = issues.prefix(12).map { String($0.prefix(200)) }
             facts["catalogIssuesTruncated"] = issues.count > 12 || issues.contains { $0.count > 200 }
+            if let census = native.catalogCensus,
+               let data = try? JSONEncoder().encode(census),
+               let counts = try? JSONSerialization.jsonObject(with: data) {
+                facts["catalogCensus"] = counts
+            }
+            if let samples = native.catalogIssueWindows,
+               let data = try? JSONEncoder().encode(Array(samples.prefix(CatalogIssueWindowFacts.limit))),
+               let rows = try? JSONSerialization.jsonObject(with: data) {
+                facts["catalogIssueWindows"] = rows
+            }
         }
         return facts
     }
@@ -332,6 +491,39 @@ import NearpaneOrdinaryWindowRuntime
         try await read(requested, owner: owner, candidate: nil)
     }
 
+    func read(_ requested: StageGroupScope, owner: StageEngineOwner,
+              within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        try await read(requested, owner: owner, candidate: nil, within: metadata)
+    }
+
+    func beginMetadataReadScope(owner: StageEngineOwner,
+                                purpose: StageMetadataReadScope.Purpose = .witness) async throws -> StageMetadataReadScope? {
+        guard owner.backend == .spaces else { return nil }
+        guard let feed, !Task.isCancelled, permits(owner, restoring: false) || permits(owner, restoring: true)
+        else { throw StageSwitchError.interrupted }
+        let metadata = StageMetadataReadScope(purpose: purpose)
+        metadataScopes[metadata] = owner
+        do {
+            try await feed.acquireMetadataReadScope(metadata) { [weak self] in
+                guard let self, metadataScopes[metadata] == owner else { return false }
+                return permits(owner, restoring: false) || permits(owner, restoring: true)
+            }
+            return metadata
+        } catch {
+            endMetadataReadScope(metadata)
+            throw error
+        }
+    }
+
+    func endMetadataReadScope(_ metadata: StageMetadataReadScope) {
+        guard metadataScopes.removeValue(forKey: metadata) != nil else { return }
+        feed?.endMetadataReadScope(metadata)
+    }
+
+    func cancelMetadataReadScopes() {
+        for metadata in Array(metadataScopes.keys) { endMetadataReadScope(metadata) }
+    }
+
     func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
         guard command.action == .hide, !command.restoring, command.generation == generation,
               let binding = bindings[command.before.window], binding.lifetime == command.before.lifetime,
@@ -340,20 +532,65 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
-                      candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
+                      candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil,
+                      within supplied: StageMetadataReadScope? = nil) async throws -> StageWindowSample {
+        let metadata: StageMetadataReadScope?
+        if let supplied {
+            guard metadataScopes[supplied] == owner, feed?.hasMetadataReadScope(supplied) == true
+            else { throw StageSwitchError.interrupted }
+            metadata = supplied
+        } else { metadata = try await beginMetadataReadScope(owner: owner) }
+        defer { if supplied == nil, let metadata { endMetadataReadScope(metadata) } }
+        return try await withTaskCancellationHandler {
+            try await readObserved(requested, owner: owner, candidate: candidate, measured: measured, within: metadata)
+        } onCancel: { [weak self] in
+            if let metadata { Task { @MainActor in self?.endMetadataReadScope(metadata) } }
+        }
+    }
+
+    private func readObserved(_ requested: StageGroupScope, owner: StageEngineOwner,
+                              candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)?,
+                              within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
         let readStarted = ProcessInfo.processInfo.systemUptime
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
+        let initialAttempt = sequence == 0 && bindings.isEmpty && claims.isEmpty && self.owner == nil
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
         var guardRejection: [String: Any]?, observationPhase: String?
         var rosterRejection: [String: Any]?, rejectedRoster: DesktopSnapshot?
+        var openingRosterMetrics: [String: Any]?, closingRosterMetrics: [String: Any]?
+        var physicalBeforeClosing: [String: Any]?
+        var unchangedPermitCount = 0, unchangedPermitTotalMS: Double = 0, unchangedPermitMaxMS: Double = 0
+        func unchangedPermit(restoring: Bool) -> (allowed: Bool, rejection: [String: Any]?) {
+            guard tracing else { return checkedPermit(owner, restoring: restoring) }
+            let began = ProcessInfo.processInfo.systemUptime
+            defer {
+                let elapsed = (ProcessInfo.processInfo.systemUptime - began) * 1000
+                unchangedPermitCount += 1; unchangedPermitTotalMS += elapsed
+                unchangedPermitMaxMS = max(unchangedPermitMaxMS, elapsed)
+            }
+            return checkedPermit(owner, restoring: restoring)
+        }
+        // This subset overlaps the existing phase timings; do not add it to them.
+        func unchangedPermitTiming() -> [String: Any] {
+            ["count": unchangedPermitCount, "totalMS": unchangedPermitTotalMS,
+             "maxMS": unchangedPermitMaxMS, "nestedInPhaseDurations": true]
+        }
         defer {
+            // This predicate belongs to one initial selection, not the lifetime
+            // of the subsequently enrolled owner or any later selection.
+            if initialAttempt { initialSelectionCurrent = nil }
             if !completed {
                 var facts: [String: Any] = ["step": step,
                     "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
                     "bindings": bindings.count, "claims": claims.count, "sequence": sequence,
-                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000]
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000,
+                    "unchangedPermitTiming": unchangedPermitTiming()]
                 if let guardRejection { facts["guardRejection"] = guardRejection }
                 if let observationPhase { facts["observationPhase"] = observationPhase }
                 if let rosterRejection { facts["rosterRejection"] = rosterRejection }
+                if let openingRosterMetrics { facts["openingRosterMetrics"] = openingRosterMetrics }
+                if let closingRosterMetrics { facts["closingRosterMetrics"] = closingRosterMetrics }
+                if let physicalBeforeClosing { facts["physicalBeforeClosing"] = physicalBeforeClosing }
                 if let rejectedRoster {
                     facts["rosterSnapshot"] = Self.rosterSnapshotFacts(rejectedRoster, display: display)
                     facts["expectedSession"] = session.uuidString
@@ -363,9 +600,38 @@ import NearpaneOrdinaryWindowRuntime
                 IndependentStageTrace.record("witness-read-rejected", facts)
             }
         }
-        guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
-              let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
-        let directoryReady = ProcessInfo.processInfo.systemUptime
+        guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true)
+        else { throw StageSwitchError.unavailable }
+        var staging: CurrentDesktopWindows.InitialDirectoryStaging?
+        if initialAttempt, owner.backend == .spaces, candidate == nil, measured == nil,
+           home == nil, enrolledTopology == nil, releaseInput == nil, initialSelectionCurrent != nil {
+            let initialLeases = Set(leases.keys)
+            staging = .init { [weak self, weak feed] sample in
+                guard let self, let feed else { return false }
+                let state = InitialReadState(sequence: self.sequence, bindings: self.bindings.count, claims: self.claims.count,
+                    enrolled: self.owner != nil || self.home != nil || self.enrolledTopology != nil,
+                    specialized: self.releaseInput != nil)
+                guard Self.initialOpeningCandidate(sample, display: self.display, scope: self.scope, session: self.session,
+                    topology: self.topology, authorized: Set(self.authorizedLifetimes.keys), state: state,
+                    clock: { (.now, ProcessInfo.processInfo.systemUptime) }) != nil,
+                    Set(self.leases.keys) == initialLeases,
+                    self.permits(owner, restoring: false) || self.permits(owner, restoring: true),
+                    self.initialSelectionCurrent?() == true,
+                    self.authorizedLifetimes.allSatisfy({ key, lifetime in
+                        feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number)) == lifetime
+                    }) else { return false }
+                return true
+            }
+        }
+        let openingRead: DesktopSnapshot?
+        if let staging {
+            let cancellation = staging.cancellation
+            openingRead = await withTaskCancellationHandler {
+                await feed.readAfterAction(staging: staging, within: metadata)
+            } onCancel: { cancellation.cancel() }
+        } else { openingRead = await feed.readAfterAction(within: metadata) }
+        guard var first = openingRead else { throw StageSwitchError.unavailable }
+        var directoryReady = ProcessInfo.processInfo.systemUptime
         step = "host-access"
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
         hostAccess = access
@@ -379,23 +645,45 @@ import NearpaneOrdinaryWindowRuntime
                 if !value { guardRejection = ["reason": reason] }
                 return value
             }
-            guard checked(!Task.isCancelled, "cancelled"), checked(bindings == expectedBindings, "bindings"),
+            guard checked(!Task.isCancelled, "cancelled"), checked(metadata.map(feed.hasMetadataReadScope) != false, "metadata-scope"),
+                  checked(bindings == expectedBindings, "bindings"),
                   checked(claims == expectedClaims, "claims"), checked(Set(leases.keys) == expectedLeases, "leases"),
                   checked(home == expectedHome, "home"), checked(self.owner == expectedOwner, "owner"),
                   checked(releaseInput == expectedReleaseInput, "release-input") else { return false }
-            let ordinary = checkedPermit(owner, restoring: false)
+            let ordinary = unchangedPermit(restoring: false)
             if ordinary.allowed { return true }
-            let restoring = checkedPermit(owner, restoring: true)
+            let restoring = unchangedPermit(restoring: true)
             if restoring.allowed { return true }
             guardRejection = ["reason": "permission"]
             if let facts = ordinary.rejection { guardRejection?["ordinary"] = facts }
             if let facts = restoring.rejection { guardRejection?["restoring"] = facts }
             return false
         }
+        if initialAttempt, candidate == nil, measured == nil, first.native?.catalogComplete == false {
+            first = try await Self.initialOpeningDirectory(first, display: display, scope: scope, session: session,
+                topology: topology, authorized: Set(authorizedLifetimes.keys), state: {
+                    .init(sequence: self.sequence, bindings: self.bindings.count, claims: self.claims.count,
+                          enrolled: self.owner != nil || self.home != nil || self.enrolledTopology != nil,
+                          specialized: self.releaseInput != nil)
+                }, current: {
+                    unchanged() && self.initialSelectionCurrent?() == true && self.authorizedLifetimes.allSatisfy { key, lifetime in
+                        feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number)) == lifetime
+                    }
+                }, read: {
+                    let fresh = await feed.readAfterAction(within: metadata)
+                    if let fresh { rejectedRoster = fresh }
+                    return fresh
+                }, retrying: {
+                    step = "initial-opening-directory-retry"
+                    rejectedRoster = first
+                    IndependentStageTrace.record("witness-initial-directory-retry", ["revision": first.revision, "sequence": self.sequence])
+                })
+            directoryReady = ProcessInfo.processInfo.systemUptime
+        }
         step = "opening-roster"
         let (opening,keys) = try await roster(first, access: access, rejected: {
             rosterRejection = $0; rejectedRoster = first
-        }, current: unchanged)
+        }, metrics: tracing ? { openingRosterMetrics = $0 } : nil, current: unchanged)
         step = "opening-scope"
         let initial = enrolledTopology ?? first.scopes
         guard unchanged(), first.scopes == initial else { throw StageSwitchError.interrupted }
@@ -462,11 +750,41 @@ import NearpaneOrdinaryWindowRuntime
             focuses.append(observed.focus)
         }
         let physicalReady = ProcessInfo.processInfo.systemUptime
+        if tracing {
+            let prior = lastStates
+            func ordered(_ keys: Set<NativeSpaceWindow>) -> [NativeSpaceWindow] {
+                keys.sorted { ($0.pid, $0.birth, $0.number) < ($1.pid, $1.birth, $1.number) }
+            }
+            func keyFacts(_ key: NativeSpaceWindow) -> [String: Any] {
+                ["pid": key.pid, "birth": key.birth, "window": key.number]
+            }
+            func stateFacts(_ state: StageWindowState?) -> Any {
+                guard let state else { return NSNull() }
+                let validFrame = state.frame.geometry.isValid
+                return ["visibility": state.visibility.rawValue, "lifetime": state.lifetime.uuidString,
+                    "frameValid": validFrame,
+                    "frame": validFrame ? [state.frame.x, state.frame.y, state.frame.width, state.frame.height] as Any : NSNull(),
+                    "hiddenSpaceID": state.hiddenSpaceID.map { $0 as Any } ?? NSNull()] as [String: Any]
+            }
+            let observedKeys = ordered(Set(observedBindings.keys))
+            let changed = ordered(Set(prior.keys).union(states.keys)).filter { prior[$0] != states[$0] }
+            physicalBeforeClosing = ["capturedBeforeClosingValidation": true, "coordinatorValidated": false,
+                "physicalObservationCount": focuses.count, "physicalKeys": observedKeys.prefix(64).map(keyFacts),
+                "physicalKeysTruncated": observedKeys.count > 64, "stateCount": states.count, "lastStateCount": prior.count,
+                "statesEqualLastStates": states == prior,
+                "matchingStateCount": states.filter { prior[$0.key] == $0.value }.count,
+                "changedStateCount": changed.count, "changedStatesTruncated": changed.count > 8,
+                "changedStates": changed.prefix(8).map { key -> [String: Any] in
+                    ["key": keyFacts(key), "previous": stateFacts(prior[key]), "current": stateFacts(states[key])]
+                },
+                "focuses": focuses.prefix(64).map { $0.map { keyFacts($0) as Any } ?? NSNull() },
+                "focusesTruncated": focuses.count > 64, "distinctFocusCount": Set(focuses).count]
+        }
         step = "closing-roster"; reading = nil
-        guard let last = await feed.readAfterAction(), unchanged(),
+        guard let last = await feed.readAfterAction(within: metadata), unchanged(),
               let closing = try? await roster(last, access: access, rejected: {
                   rosterRejection = $0; rejectedRoster = last
-              }, current: unchanged), unchanged(), closing.1 == keys,
+              }, metrics: tracing ? { closingRosterMetrics = $0 } : nil, current: unchanged), unchanged(), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
@@ -516,6 +834,8 @@ import NearpaneOrdinaryWindowRuntime
             "focusPID": focus?.pid ?? 0, "focusWindow": focus?.number ?? 0,
             "focusLocal": focus.map { states[$0] != nil } ?? false, "foreignFocus": foreign != nil,
             "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000,
+            "unchangedPermitTiming": unchangedPermitTiming(),
+            "openingRosterMetrics": openingRosterMetrics ?? [:], "closingRosterMetrics": closingRosterMetrics ?? [:],
             "openingDirectoryMS": (directoryReady - readStarted) * 1000,
             "bindingMS": (bindingsReady - directoryReady) * 1000,
             "physicalWindowsMS": (physicalReady - bindingsReady) * 1000,

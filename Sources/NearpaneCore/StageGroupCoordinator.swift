@@ -663,8 +663,11 @@ public enum StageSwitchError: LocalizedError, Equatable {
                   otherIDs.allSatisfy({ next.windows[$0] == first.windows[$0] }) else { throw StageSwitchError.interrupted }
             return next
         }
-        func read() async throws -> StageWindowSample {
-            let next = try await session.read(scope)
+        func read(within metadata: StageMetadataReadScope? = nil) async throws -> StageWindowSample {
+            let next: StageWindowSample
+            if let metadata, let engine = session as? StageEngineSession {
+                next = try await engine.read(scope, within: metadata)
+            } else { next = try await session.read(scope) }
             return try validate(next)
         }
         func verifySelection() async throws {
@@ -718,119 +721,134 @@ public enum StageSwitchError: LocalizedError, Equatable {
         func perform(_ action: StageWindowAction, id: NativeSpaceWindow,
                      check: (StageWindowState, StageWindowSample) -> Bool) async throws {
             try requireCurrentIntent()
-            let pre = try await read()
-            try requireCurrentIntent()
-            try requireFocus(pre, last.focus)
-            guard pre.foreignFocusScope == last.foreignFocusScope, pre.windows == last.windows,
-                  let before = pre.windows[id] else { throw StageSwitchError.interrupted }
-            last = pre
             let primitive = UUID()
-            guard let member = members.first(where: { $0.windowHint == id }),
+            guard let before = last.windows[id], let member = members.first(where: { $0.windowHint == id }),
                   let owningGroup = groups.first(where: { $0.members.contains(where: { $0.id == member.id }) }) else { throw StageSwitchError.interrupted }
-            try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive, group: owningGroup.id, member: member.id)) }
-            guard epoch == token else { throw StageSwitchError.interrupted }
             let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
                 scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
-            var coordinatedPost: StageWindowSample?
-            do {
-                if let engine = session as? StageEngineSession, engine.owner.backend == .spaces, !command.restoring {
-                    coordinatedPost = try await engine.dispatch(command, coordinatedPreflight: pre)
+            func performObserved(within metadata: StageMetadataReadScope?) async throws {
+                let prepared: PreparedSpacesDispatch?
+                let pre: StageWindowSample
+                if let engine = session as? StageEngineSession, engine.owner.backend == .spaces {
+                    let receipt = try await engine.prepareCoordinatedDispatch(command, after: last, within: metadata)
+                    prepared = receipt
+                    pre = try validate(receipt.sample)
                 } else {
-                    try await session.dispatch(command)
+                    prepared = nil
+                    pre = try await read(within: metadata)
                 }
-            }
-            catch let proof as SupersededBeforeStageWrite {
-                func canWithdraw() -> Bool {
-                    guard session is StageEngineSession, proof.owner == owner, proof.command == command,
-                          !Task.isCancelled, epoch == token, !current(), newerChoice(),
-                          session.engineOwner == owner, session.qualifiedHiddenState == mechanism,
-                          let pending = ledger.pending, pending.intent == intent, pending.target == group,
-                          pending.owner == owner, !pending.verifiedDirectoryCommit, let last = pending.entries.last
-                    else { return false }
-                    return last.intent == primitive && last.group == command.group && last.member == command.member &&
-                        last.action == action && last.before == before && last.after == nil && last.undoIntent == nil &&
-                        last.measuredReturnIntent == nil && last.guardianPending == nil
+                try requireCurrentIntent()
+                try requireFocus(pre, last.focus)
+                guard pre.foreignFocusScope == last.foreignFocusScope, pre.windows == last.windows,
+                      pre.windows[id] == before else { throw StageSwitchError.interrupted }
+                last = pre
+                try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive, group: owningGroup.id, member: member.id)) }
+                guard epoch == token else { throw StageSwitchError.interrupted }
+                var coordinatedPost: StageWindowSample?
+                do {
+                    if let engine = session as? StageEngineSession, let prepared {
+                        coordinatedPost = try await engine.dispatch(command, prepared: prepared)
+                    } else {
+                        try await session.dispatch(command)
+                    }
                 }
-                guard canWithdraw() else { throw StageSwitchError.recoveryRequired }
-                for _ in 0..<2 {
-                    let next = try await read()
-                    guard canWithdraw(), next.focus == pre.focus, next.foreignFocusScope == pre.foreignFocusScope,
-                          next.windows == pre.windows else { throw StageSwitchError.recoveryRequired }
-                    last = next
+                catch let proof as SupersededBeforeStageWrite {
+                    func canWithdraw() -> Bool {
+                        guard session is StageEngineSession, proof.owner == owner, proof.command == command,
+                              !Task.isCancelled, epoch == token, !current(), newerChoice(),
+                              session.engineOwner == owner, session.qualifiedHiddenState == mechanism,
+                              let pending = ledger.pending, pending.intent == intent, pending.target == group,
+                              pending.owner == owner, !pending.verifiedDirectoryCommit, let last = pending.entries.last
+                        else { return false }
+                        return last.intent == primitive && last.group == command.group && last.member == command.member &&
+                            last.action == action && last.before == before && last.after == nil && last.undoIntent == nil &&
+                            last.measuredReturnIntent == nil && last.guardianPending == nil
+                    }
+                    guard canWithdraw() else { throw StageSwitchError.recoveryRequired }
+                    for _ in 0..<2 {
+                        let next = try await read(within: metadata)
+                        guard canWithdraw(), next.focus == pre.focus, next.foreignFocusScope == pre.foreignFocusScope,
+                              next.windows == pre.windows else { throw StageSwitchError.recoveryRequired }
+                        last = next
+                    }
+                    try update { _ = $0.pending?.entries.popLast() }
+                    throw StageSwitchError.superseded
                 }
-                try update { _ = $0.pending?.entries.popLast() }
-                throw StageSwitchError.superseded
-            }
-            catch let proof as MeasuredCornerHide {
-                guard let engine = session as? StageEngineSession, proof.owner == owner, proof.command == command,
-                      epoch == token, current(), !Task.isCancelled, action == .hide, before.visibility == .visible,
-                      let native = command.nativeID, var pending = ledger.pending, pending.intent == intent,
-                      pending.owner == owner, !pending.verifiedDirectoryCommit, let index = pending.entries.indices.last,
-                      pending.entries[index].intent == primitive, pending.entries[index].after == nil,
-                      pending.entries[index].undoIntent == nil, pending.entries[index].measuredReturnIntent == nil
-                else { throw StageSwitchError.recoveryRequired }
-                let undo = UUID()
-                pending.entries[index].measuredReturnIntent = undo
-                try update { $0.pending = pending }
-                defer { engine.freeze(); invalidate() }
-                try await engine.returnMeasured(proof, intent: undo, baseline: pre)
-                try verifyJournal()
-                guard ledger.pending?.intent == intent, ledger.pending?.entries.last?.measuredReturnIntent == undo
-                else { throw StageSwitchError.recoveryRequired }
-                pending.entries.removeLast()
-                // The other entries still belong to the failed switch. A complete
-                // physical return never commits its target group or replays focus.
-                try update {
-                    $0.pending = pending.entries.isEmpty ? nil : pending
-                    $0.lastLiveCornerReturn = .init(transaction: intent, intent: primitive, group: command.group,
-                        member: command.member, owner: proof.owner, scope: scope, nativeID: native, before: before,
-                        measuredReturnIntent: undo)
-                }
-                throw StageSwitchError.incomplete
-            }
-            catch let proof as UnsubmittedCornerHide {
-                let yielding = epoch == token && !Task.isCancelled && proof.yieldedFocus == nil &&
-                    !current() && newerChoice() && session.qualifiedHiddenState == mechanism
-                try recordWithdrawal(proof, command: command, transaction: intent, target: group,
-                                     owner: session.engineOwner, yieldingToChoice: yielding)
-                throw yielding ? StageSwitchError.superseded : .interrupted
-            }
-            var firstAfter: StageWindowState?
-            func requireSettlingIntent() throws {
-                // An already-sent primitive must settle before yielding to a
-                // newer card. Other lost input and cancellation still stop it.
-                guard epoch == token, !Task.isCancelled, current() || newerChoice() else { throw StageSwitchError.interrupted }
-            }
-            for confirmation in 0..<2 {
-                if coordinatedPost != nil { try requireSettlingIntent() }
-                let post: StageWindowSample
-                if confirmation == 0, let coordinatedPost { post = try validate(coordinatedPost) }
-                else { post = try await read() }
-                if coordinatedPost != nil { try requireSettlingIntent() }
-                try requireFocus(post, action == .focus ? id : pre.focus)
-                guard post.foreignFocusScope == (action == .focus ? nil : pre.foreignFocusScope),
-                      let value = post.windows[id], check(value, post),
-                      firstAfter == nil || firstAfter == value,
-                      action != .focus || value == before,
-                      pre.windows.keys.filter({ $0 != id }).allSatisfy({ post.windows[$0] == pre.windows[$0] }) else {
+                catch let proof as MeasuredCornerHide {
+                    guard let engine = session as? StageEngineSession, proof.owner == owner, proof.command == command,
+                          epoch == token, current(), !Task.isCancelled, action == .hide, before.visibility == .visible,
+                          let native = command.nativeID, var pending = ledger.pending, pending.intent == intent,
+                          pending.owner == owner, !pending.verifiedDirectoryCommit, let index = pending.entries.indices.last,
+                          pending.entries[index].intent == primitive, pending.entries[index].after == nil,
+                          pending.entries[index].undoIntent == nil, pending.entries[index].measuredReturnIntent == nil
+                    else { throw StageSwitchError.recoveryRequired }
+                    let undo = UUID()
+                    pending.entries[index].measuredReturnIntent = undo
+                    try update { $0.pending = pending }
+                    defer { engine.freeze(); invalidate() }
+                    try await engine.returnMeasured(proof, intent: undo, baseline: pre)
+                    try verifyJournal()
+                    guard ledger.pending?.intent == intent, ledger.pending?.entries.last?.measuredReturnIntent == undo
+                    else { throw StageSwitchError.recoveryRequired }
+                    pending.entries.removeLast()
+                    // The other entries still belong to the failed switch. A complete
+                    // physical return never commits its target group or replays focus.
+                    try update {
+                        $0.pending = pending.entries.isEmpty ? nil : pending
+                        $0.lastLiveCornerReturn = .init(transaction: intent, intent: primitive, group: command.group,
+                            member: command.member, owner: proof.owner, scope: scope, nativeID: native, before: before,
+                            measuredReturnIntent: undo)
+                    }
                     throw StageSwitchError.incomplete
                 }
-                firstAfter = value
-                last = post
+                catch let proof as UnsubmittedCornerHide {
+                    let yielding = epoch == token && !Task.isCancelled && proof.yieldedFocus == nil &&
+                        !current() && newerChoice() && session.qualifiedHiddenState == mechanism
+                    try recordWithdrawal(proof, command: command, transaction: intent, target: group,
+                                         owner: session.engineOwner, yieldingToChoice: yielding)
+                    throw yielding ? StageSwitchError.superseded : .interrupted
+                }
+                var firstAfter: StageWindowState?
+                func requireSettlingIntent() throws {
+                    // An already-sent primitive must settle before yielding to a
+                    // newer card. Other lost input and cancellation still stop it.
+                    guard epoch == token, !Task.isCancelled, current() || newerChoice() else { throw StageSwitchError.interrupted }
+                }
+                for confirmation in 0..<2 {
+                    if coordinatedPost != nil { try requireSettlingIntent() }
+                    let post: StageWindowSample
+                    if confirmation == 0, let coordinatedPost { post = try validate(coordinatedPost) }
+                    else { post = try await read(within: metadata) }
+                    if coordinatedPost != nil { try requireSettlingIntent() }
+                    try requireFocus(post, action == .focus ? id : pre.focus)
+                    guard post.foreignFocusScope == (action == .focus ? nil : pre.foreignFocusScope),
+                          let value = post.windows[id], check(value, post),
+                          firstAfter == nil || firstAfter == value,
+                          action != .focus || value == before,
+                          pre.windows.keys.filter({ $0 != id }).allSatisfy({ post.windows[$0] == pre.windows[$0] }) else {
+                        throw StageSwitchError.incomplete
+                    }
+                    firstAfter = value
+                    last = post
+                }
+                let confirmed = last.windows[id]!
+                try update {
+                    let i = $0.pending!.entries.count-1
+                    $0.pending!.entries[i].after = confirmed
+                    if owner?.backend == .corner, action == .hide || action == .show { $0.pending!.entries[i].guardianPending = true }
+                    if action == .hide { $0.owned.append(.init(scope: scope, original: before, hidden: confirmed, owner: owner,
+                        group: owningGroup.id, member: member.id, nativeID: first.nativeID)) }
+                    if action == .show { $0.owned.removeAll { $0.scope == scope && $0.hidden.window == id } }
+                }
+                if owner?.backend == .corner, action == .hide || action == .show {
+                    try await session.didVerify(command,after:confirmed)
+                    try update { $0.pending!.entries[$0.pending!.entries.count-1].guardianPending = nil }
+                }
             }
-            let confirmed = last.windows[id]!
-            try update {
-                let i = $0.pending!.entries.count-1
-                $0.pending!.entries[i].after = confirmed
-                if owner?.backend == .corner, action == .hide || action == .show { $0.pending!.entries[i].guardianPending = true }
-                if action == .hide { $0.owned.append(.init(scope: scope, original: before, hidden: confirmed, owner: owner,
-                    group: owningGroup.id, member: member.id, nativeID: first.nativeID)) }
-                if action == .show { $0.owned.removeAll { $0.scope == scope && $0.hidden.window == id } }
-            }
-            if owner?.backend == .corner, action == .hide || action == .show {
-                try await session.didVerify(command,after:confirmed)
-                try update { $0.pending!.entries[$0.pending!.entries.count-1].guardianPending = nil }
-            }
+            if let engine = session as? StageEngineSession, engine.owner.backend == .spaces,
+               action == .hide || action == .show {
+                try await engine.withMetadataReadScope(purpose: action == .hide ? .hide : .show) { try await performObserved(within: $0) }
+            } else { try await performObserved(within: nil) }
         }
         do {
             // A desktop with only the outgoing group must keep a real work window visible. Reveal

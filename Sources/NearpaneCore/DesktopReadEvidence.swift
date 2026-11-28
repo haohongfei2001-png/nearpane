@@ -159,10 +159,132 @@ public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
     public init(_ window: NativeSpaceWindow, flags: [String: Bool]) { self.window = window; self.flags = flags }
 }
 
+/// Counts from the two existing catalog enumerations. These diagnose whether a
+/// missing row disappeared before or during filtering; they grant no authority.
+public struct CatalogCensusFacts: Equatable, Codable, Sendable {
+    public struct Sample: Equatable, Codable, Sendable {
+        public var publicRows = 0, expandedRows = 0, eligibleSurfaceRows = 0, acceptedWindows = 0
+        public var parentExcludedRows = 0, ownerRejectedRows = 0
+        public var ownersChecked = 0, ownersAccepted = 0, ownersUnavailable = 0
+        public var ownersNotRegular = 0, ownersMissingBundle = 0, ownersExcludedBundle = 0
+
+        public init() {}
+
+        fileprivate var valid: Bool {
+            let counts = [publicRows, expandedRows, eligibleSurfaceRows, acceptedWindows,
+                parentExcludedRows, ownerRejectedRows, ownersChecked, ownersAccepted, ownersUnavailable,
+                ownersNotRegular, ownersMissingBundle, ownersExcludedBundle]
+            return counts.allSatisfy { $0 >= 0 && $0 <= 1_000_000 } &&
+                publicRows <= expandedRows && eligibleSurfaceRows <= expandedRows &&
+                acceptedWindows <= eligibleSurfaceRows && parentExcludedRows <= eligibleSurfaceRows &&
+                ownerRejectedRows <= eligibleSurfaceRows && ownersChecked <= eligibleSurfaceRows &&
+                ownersChecked == ownersAccepted + ownersUnavailable + ownersNotRegular +
+                    ownersMissingBundle + ownersExcludedBundle
+        }
+    }
+
+    public let first, second: Sample
+    public init(first: Sample, second: Sample) { self.first = first; self.second = second }
+    fileprivate var valid: Bool { first.valid && second.valid }
+}
+
+/// Diagnostic samples for existing catalog failures. They never admit a window
+/// or supply membership to the roster. No title, content or action handle is stored.
+public struct CatalogIssueWindowFacts: Equatable, Codable, Sendable {
+    public static let limit = 8
+
+    public struct Sample: Equatable, Codable, Sendable {
+        public let pid: Int32
+        public let birth: UInt64?
+        public let frame: SurfaceRect?
+        public let frameValid: Bool
+        public let reportedOnscreen, observedOnscreen, active, ordered: Bool?
+        public let ownerUnhidden: Bool
+
+        public init(pid: Int32, birth: UInt64?, frame: SurfaceRect, reportedOnscreen: Bool?,
+                    observedOnscreen: Bool?, active: Bool?, ordered: Bool?, ownerUnhidden: Bool) {
+            self.pid = pid; self.birth = birth
+            frameValid = frame.geometry.isValid
+            self.frame = frameValid ? frame : nil // Non-finite diagnostic data must not break the reader's JSON reply.
+            self.reportedOnscreen = reportedOnscreen; self.observedOnscreen = observedOnscreen
+            self.active = active; self.ordered = ordered; self.ownerUnhidden = ownerUnhidden
+        }
+
+        fileprivate var valid: Bool {
+            pid > 0 && (frameValid ? frame?.geometry.isValid == true : frame == nil)
+        }
+    }
+
+    public struct Membership: Equatable, Codable, Sendable {
+        public enum State: String, Codable, Sendable { case unavailable, unknown, known }
+        public let state: State
+        public let recordIDs: [String]
+        public let recordCount: Int
+        public let truncated: Bool
+
+        public init(_ membership: WindowMembership?) {
+            switch membership {
+            case nil: state = .unavailable; recordIDs = []; recordCount = 0
+            case .unknown?: state = .unknown; recordIDs = []; recordCount = 0
+            case .known(let ids)?:
+                state = .known; recordCount = ids.count
+                // Omit an oversized identifier rather than logging a misleading
+                // shortened ID. The original count preserves that distinction.
+                recordIDs = ids.prefix(8).filter { !$0.isEmpty && $0.utf8.count <= 80 }
+            }
+            truncated = recordCount != recordIDs.count
+        }
+
+        fileprivate var valid: Bool {
+            recordIDs.count <= 8 && recordIDs.allSatisfy { !$0.isEmpty && $0.utf8.count <= 80 } &&
+                recordCount >= recordIDs.count && truncated == (recordCount != recordIDs.count) &&
+                (state == .known || recordCount == 0)
+        }
+    }
+
+    public struct Role: Equatable, Codable, Sendable {
+        public enum Source: String, Codable, Sendable { case notRequested, current, background }
+        /// The AX role read was selected from the first CG inventory's PID.
+        public let firstPID: Int32?
+        public let source: Source
+        public let ownerRead, windowRead: Bool
+        public let everyNumberKnown, allRolesRead, ordinary, minimized, fullscreen: Bool?
+
+        public init(firstPID: Int32?, source: Source, ownerRead: Bool, windowRead: Bool,
+                    everyNumberKnown: Bool?, allRolesRead: Bool?, ordinary: Bool?, minimized: Bool?, fullscreen: Bool?) {
+            self.firstPID = firstPID; self.source = source; self.ownerRead = ownerRead; self.windowRead = windowRead
+            self.everyNumberKnown = everyNumberKnown; self.allRolesRead = allRolesRead
+            self.ordinary = ordinary; self.minimized = minimized; self.fullscreen = fullscreen
+        }
+    }
+
+    public let issueIndex: Int
+    public let number: UInt32
+    public let first: Sample?
+    public let second: Sample
+    public let left, right: Membership
+    public let role: Role
+
+    public init(issueIndex: Int, number: UInt32, first: Sample?, second: Sample,
+                left: WindowMembership?, right: WindowMembership?, role: Role) {
+        self.issueIndex = issueIndex; self.number = number; self.first = first; self.second = second
+        self.left = Membership(left); self.right = Membership(right); self.role = role
+    }
+
+    fileprivate func valid(issueCount: Int) -> Bool {
+        (0..<min(32, issueCount)).contains(issueIndex) && number > 0 && first?.valid != false && second.valid &&
+            left.valid && right.valid && role.firstPID == first?.pid
+    }
+}
+
 public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var sidebarWindowAudit: [SidebarWindowReaderProof]? = nil
     /// Bounded reason codes for an incomplete roster; never window titles or contents.
     public var catalogIssues: [String]? = nil
+    /// Up to eight samples from the same failed directory, linked to catalogIssues by index.
+    public var catalogIssueWindows: [CatalogIssueWindowFacts]? = nil
+    /// Aggregate counts only, from the same two failed native enumerations.
+    public var catalogCensus: CatalogCensusFacts? = nil
     public let population: DesktopReadPopulation
     public package(set) var accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
@@ -184,6 +306,11 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     }
 
     func validates(_ snapshot: DesktopSnapshot) -> Bool {
+        if catalogCensus?.valid == false { return false }
+        if let facts = catalogIssueWindows {
+            guard facts.count <= CatalogIssueWindowFacts.limit,
+                  facts.allSatisfy({ $0.valid(issueCount: catalogIssues?.count ?? 0) }) else { return false }
+        }
         guard snapshot.source == "macos-window-server", snapshot.capabilities.observation == .readOnly,
               beganUptime.isFinite, endedUptime.isFinite, beganUptime >= 0, endedUptime >= beganUptime,
               snapshot.displays.allSatisfy({ d in

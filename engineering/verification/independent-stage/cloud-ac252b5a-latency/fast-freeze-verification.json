@@ -1,0 +1,15 @@
+{
+  "verifiedUTC": "2026-11-28T08:16:02.397690+00:00",
+  "commit": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+  "runID": 46124060416,
+  "jobID": 140914596723,
+  "artifactID": 15254598772,
+  "providerDigest": "sha256:d747b913ba0c3176d03af6d81e444ca369c0f211ca34839c03a65d2f6694139d",
+  "rawFiles": 95,
+  "allRawFilesEqualProviderZIP": true,
+  "hashes": {
+    "fast.zip": "d747b913ba0c3176d03af6d81e444ca369c0f211ca34839c03a65d2f6694139d",
+    "fast-analysis.json": "92e342a890c6972ba104660c5a7770b8d49bde17576f6eadcd16de0ca28d5d3b",
+    "fast-raw-manifest.json": "c83c1caa23124cca969d0fd4a7192f519541ce633c327f5581af52760d1666b2"
+  }
+}

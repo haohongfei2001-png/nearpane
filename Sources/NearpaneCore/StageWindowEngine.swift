@@ -1,9 +1,21 @@
 import Foundation
 
+/// Correlates one metadata scheduling scope. It grants no window-write authority.
+public struct StageMetadataReadScope: Hashable, Sendable {
+    public enum Purpose: String, Sendable { case witness, hide, show, restoreShow }
+    package let id: UUID
+    package let purpose: Purpose
+    package init(purpose: Purpose = .witness) { id = UUID(); self.purpose = purpose }
+}
+
 /// Swift supplies the independent, complete inventory and keeps the exact-window ordinary focus/placement
 /// operations. The Rust worker only receives visibility requests. Both lanes require the same exclusive lease.
 @MainActor public protocol StageEngineWindowWitness: AnyObject {
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample
+    func read(_ scope: StageGroupScope, owner: StageEngineOwner, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample
+    func beginMetadataReadScope(owner: StageEngineOwner, purpose: StageMetadataReadScope.Purpose) async throws -> StageMetadataReadScope?
+    func endMetadataReadScope(_ scope: StageMetadataReadScope)
+    func cancelMetadataReadScopes()
     func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample
     func ordinary(_ command: StageWindowCommand, valid: @escaping @MainActor () -> Bool) async throws
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool
@@ -14,6 +26,12 @@ import Foundation
 }
 
 public extension StageEngineWindowWitness {
+    func read(_ scope: StageGroupScope, owner: StageEngineOwner, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        try await read(scope, owner: owner)
+    }
+    func beginMetadataReadScope(owner: StageEngineOwner, purpose: StageMetadataReadScope.Purpose) async throws -> StageMetadataReadScope? { nil }
+    func endMetadataReadScope(_ scope: StageMetadataReadScope) {}
+    func cancelMetadataReadScopes() {}
     func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
         throw StageSwitchError.unavailable
     }
@@ -113,6 +131,22 @@ struct UnsubmittedCornerHide: Error {
     }
 }
 
+/// Issued only by the session after worker health and a newer, complete Host
+/// observation. The coordinator can inspect the sample but cannot mint or retarget
+/// its single-use permission to skip the duplicate pre-write observation.
+struct PreparedSpacesDispatch {
+    let sample: StageWindowSample
+    fileprivate let session, token: UUID
+    fileprivate let owner: StageEngineOwner
+    fileprivate let command: StageWindowCommand
+    fileprivate let metadata: StageMetadataReadScope?
+    fileprivate init(sample: StageWindowSample, session: UUID, token: UUID,
+                     owner: StageEngineOwner, command: StageWindowCommand, metadata: StageMetadataReadScope?) {
+        self.sample = sample; self.session = session; self.token = token
+        self.owner = owner; self.command = command; self.metadata = metadata
+    }
+}
+
 @MainActor public final class StageEngineSession: StageWindowSession {
     public let owner: StageEngineOwner
     public var engineOwner: StageEngineOwner? { owner }
@@ -121,6 +155,8 @@ struct UnsubmittedCornerHide: Error {
     public private(set) var backendFailed = false
     public var isFrozen: Bool { frozen }
     private var enrolledLifetimes: [NativeSpaceWindow: UUID]?
+    private let dispatchSession = UUID()
+    private var preparedDispatch: UUID?
     var intentIsCurrent: @MainActor () -> Bool = { false }
     fileprivate var newerSelectionWaiting: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
@@ -133,8 +169,14 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func read(_ scope: StageGroupScope) async throws -> StageWindowSample {
+        try await read(scope, within: nil)
+    }
+
+    func read(_ scope: StageGroupScope, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        preparedDispatch = nil
+        defer { preparedDispatch = nil }
         guard !closed else { throw StageSwitchError.unavailable }
-        let sample = try await witness.read(scope,owner:owner)
+        let sample = try await witness.read(scope, owner: owner, within: metadata)
         let area = sample.workArea
         guard sample.scope == scope, sample.generation == owner.generation, (sample.nativeID ?? 0) > 0, area.width > 0, area.height > 0,
               [area.x,area.y,area.width,area.height].allSatisfy(\.isFinite),
@@ -151,6 +193,19 @@ struct UnsubmittedCornerHide: Error {
             enrolledLifetimes = sample.windows.mapValues(\.lifetime)
         }
         return sample
+    }
+
+    /// Used for one primitive only. The current witness's own reads explicitly
+    /// reuse the token; unrelated observers remain ordinary queued readers.
+    func withMetadataReadScope<T>(purpose: StageMetadataReadScope.Purpose,
+                                  _ operation: @MainActor (StageMetadataReadScope?) async throws -> T) async throws -> T {
+        let metadata = try await witness.beginMetadataReadScope(owner: owner, purpose: purpose)
+        defer { if let metadata { witness.endMetadataReadScope(metadata) } }
+        return try await withTaskCancellationHandler {
+            try await operation(metadata)
+        } onCancel: { [weak self] in
+            if let metadata { Task { @MainActor in self?.witness.endMetadataReadScope(metadata) } }
+        }
     }
 
     public func mayManage(_ state: StageWindowState) -> Bool {
@@ -225,11 +280,69 @@ struct UnsubmittedCornerHide: Error {
         _ = try await dispatch(c, coordinatedPreflight: nil)
     }
 
+    /// Place the read-only health operation before the coordinator's one fresh
+    /// preflight. The baseline still comes from the same activation and every
+    /// bystander, focus, lifetime and desktop must survive the asynchronous work.
+    func prepareCoordinatedDispatch(_ c: StageWindowCommand, after baseline: StageWindowSample,
+                                    within metadata: StageMetadataReadScope? = nil) async throws -> PreparedSpacesDispatch {
+        preparedDispatch = nil
+        guard owner.backend == .spaces, !c.restoring, c.generation == owner.generation,
+              (c.nativeID ?? 0) > 0, baseline.scope == c.scope, baseline.generation == c.generation,
+              baseline.nativeID == c.nativeID, baseline.windows[c.before.window] == c.before
+        else { throw StageSwitchError.ownership }
+        func permitted() -> Bool {
+            !closed && !frozen && mayManage(c.before) && witness.permits(owner, restoring: false)
+        }
+        func requireCurrent() throws {
+            guard permitted(), !Task.isCancelled else { throw StageSwitchError.interrupted }
+            guard intentIsCurrent() else {
+                throw newerSelectionWaiting() ? StageSwitchError.superseded : .interrupted
+            }
+        }
+        try requireCurrent()
+        do {
+            let health = try await transport.submit(6, owner: owner, c)
+            try requireHealthy(health, intent: c.intent)
+        } catch { stopAfterBackendFailure(current: intentIsCurrent() && permitted()); throw error }
+        try requireCurrent()
+        let fresh = try await read(c.scope, within: metadata)
+        try requireCurrent()
+        guard fresh.sequence > baseline.sequence, fresh.scope == baseline.scope,
+              fresh.generation == baseline.generation, fresh.nativeID == baseline.nativeID,
+              fresh.windows == baseline.windows, fresh.focus == baseline.focus,
+              fresh.foreignFocusScope == baseline.foreignFocusScope, fresh.workArea == baseline.workArea
+        else { throw StageSwitchError.interrupted }
+        let token = UUID()
+        preparedDispatch = token
+        return .init(sample: fresh, session: dispatchSession, token: token, owner: owner, command: c, metadata: metadata)
+    }
+
+    @discardableResult
+    func dispatch(_ c: StageWindowCommand, prepared: PreparedSpacesDispatch) async throws -> StageWindowSample? {
+        let pending = preparedDispatch
+        preparedDispatch = nil
+        guard pending == prepared.token, prepared.session == dispatchSession,
+              prepared.owner == owner, prepared.command == c,
+              owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
+        return try await dispatch(c, coordinatedPreflight: prepared.sample, healthAlreadyObserved: true, within: prepared.metadata)
+    }
+
     /// The coordinator has just read the complete baseline before recording this
     /// primitive. Only normal Spaces operations can reuse it; the fresh read after
     /// worker health must still match before any window writer is entered.
     @discardableResult
     func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?) async throws -> StageWindowSample? {
+        preparedDispatch = nil
+        if owner.backend == .spaces, c.action == .hide || c.action == .show {
+            return try await withMetadataReadScope(purpose: c.restoring ? .restoreShow : (c.action == .hide ? .hide : .show)) { metadata in
+                try await self.dispatch(c, coordinatedPreflight: coordinatedPreflight, healthAlreadyObserved: false, within: metadata)
+            }
+        }
+        return try await dispatch(c, coordinatedPreflight: coordinatedPreflight, healthAlreadyObserved: false, within: nil)
+    }
+
+    private func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?,
+                          healthAlreadyObserved: Bool, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample? {
         if coordinatedPreflight != nil {
             guard owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
         }
@@ -254,21 +367,21 @@ struct UnsubmittedCornerHide: Error {
         }
         let pre: StageWindowSample
         if let coordinatedPreflight { pre = coordinatedPreflight }
-        else { pre = try await read(c.scope) }
+        else { pre = try await read(c.scope, within: metadata) }
         guard pre.scope == c.scope, pre.generation == c.generation, pre.nativeID == c.nativeID,
               pre.windows[c.before.window] == c.before else { throw StageSwitchError.interrupted }
         try requireUnsentIntent()
         var lastReadSequence = pre.sequence
         // Restoration can survive a revoked event tap/failed probe; the old worker must still explicitly
         // attest its retained ownership via RESTORE. No new hide/show/place follows a lost health result.
-        if !c.restoring {
+        if !c.restoring && !healthAlreadyObserved {
             do {
                 let health = try await transport.submit(6,owner:owner,c)
                 try requireHealthy(health, intent: c.intent)
             } catch { stopAfterBackendFailure(current: eligible()); throw error }
             try requireUnsentIntent()
             // Recheck the home, roster and original focus after the worker health observation.
-            let checked = try await read(c.scope)
+            let checked = try await read(c.scope, within: metadata)
             guard checked.sequence > pre.sequence, checked.generation == pre.generation,
                   checked.nativeID == pre.nativeID, checked.windows == pre.windows, checked.focus == pre.focus,
                   checked.foreignFocusScope == pre.foreignFocusScope, checked.workArea == pre.workArea
@@ -304,7 +417,7 @@ struct UnsubmittedCornerHide: Error {
                 var yieldedFocus: NativeSpaceWindow?
                 var submitting = false
                 do {
-                    let after = try await read(c.scope)
+                    let after = try await read(c.scope, within: metadata)
                     guard after.scope == pre.scope, after.nativeID == pre.nativeID, after.generation == pre.generation,
                           after.sequence > lastReadSequence, after.windows == pre.windows, after.workArea == pre.workArea
                     else { throw StageSwitchError.interrupted }
@@ -336,7 +449,7 @@ struct UnsubmittedCornerHide: Error {
                   membershipMatches
             else { freeze(); throw StageSwitchError.incomplete }
             witness.expectVisibility(c,nativeID:readback.nativeID,frame:readback.frame)
-            let independentlyRead = try await read(c.scope)
+            let independentlyRead = try await read(c.scope, within: metadata)
             guard eligible(settling: true), independentlyRead.generation == pre.generation, independentlyRead.nativeID == pre.nativeID,
                   independentlyRead.sequence > lastReadSequence, let result = independentlyRead.windows[c.before.window],
                   result.lifetime == c.before.lifetime, let measured = readback.frame,
@@ -396,8 +509,10 @@ struct UnsubmittedCornerHide: Error {
               command.restoreFrame != nil, witness.permits(owner, restoring: true) else { return false }
         return await transport.readsFinalRelease(command, owner: owner)
     }
-    func beginRelease() { recovering = true; witness.beginRelease() }
+    func beginRelease() { preparedDispatch = nil; recovering = true; witness.cancelMetadataReadScopes(); witness.beginRelease() }
     func freeze() {
+        preparedDispatch = nil
+        witness.cancelMetadataReadScopes()
         guard !frozen, !closed else { return }
         frozen = true; transport.revoke()
     }

@@ -4,6 +4,15 @@ import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
 import OSLog
 
+/// The publishing reader runs in a different task from the initial user action.
+/// Carry only that action's cancellation across the boundary, never its authority.
+final class InitialDirectoryReadCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    func cancel() { lock.lock(); cancelled = true; lock.unlock() }
+    var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
+}
+
 /// One fast, metadata-only feed for all visible sidebar panels. The full reader
 /// serves geometry and window management independently of the window switcher.
 @MainActor @Observable final class CurrentDesktopWindows {
@@ -14,6 +23,7 @@ import OSLog
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
     private let fingerprint: @Sendable () -> Int?
+    private let navigation: NativeSidebarNavigation
     private let session = UUID()
     private(set) var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
@@ -122,11 +132,22 @@ import OSLog
 
     /// A member must still be on this physical display and its current ordinary desktop.
     private func groupWindow(_ window: WindowObservation, on screen: DisplayObservation,
-                             current: SpaceRecord) -> StageGroupWindow? {
-        guard let nativeSpace = current.ordinaryUUID, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
-              window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
-              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole != false, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
-              let key = DesktopWindowKey(window), let lifetime = groupLifetime(of: key) else { return nil }
+                             current: SpaceRecord, rejected: ((String) -> Void)? = nil) -> StageGroupWindow? {
+        func reject(_ reason: String) -> StageGroupWindow? { rejected?(reason); return nil }
+        // Keep the original guard's short-circuit order. A diagnostic observes
+        // the first failed predicate without repeating any live resolver.
+        guard let nativeSpace = current.ordinaryUUID else { return reject("window/ordinary-space") }
+        guard window.displayID == screen.id else { return reject("window/display") }
+        guard let display = UUID(uuidString: screen.id) else { return reject("window/display-uuid") }
+        guard window.membership == .known(recordIDs: [current.id]) else { return reject("window/membership") }
+        guard let m = window.metadata else { return reject("window/metadata") }
+        guard m.isOnscreen == true else { return reject("window/onscreen") }
+        guard m.minimized != true else { return reject("window/minimized") }
+        guard m.fullScreen != true else { return reject("window/fullscreen") }
+        guard m.overviewOrdinaryRole != false else { return reject("window/ordinary-role") }
+        guard m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace else { return reject("window/current-space-witness") }
+        guard let key = DesktopWindowKey(window) else { return reject("window/identity") }
+        guard let lifetime = groupLifetime(of: key) else { return reject("window/group-lifetime") }
         let layout = screen.usable.flatMap { area in
             m.hasCatalogGeometry == true || m.presentation == .confirmed
                 ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
@@ -147,13 +168,61 @@ import OSLog
         }.compactMap { groupWindow($0, on: screen, current: row.record) }
     }
 
-    func groupWindow(_ member: NativeSidebarMember, in raw: DesktopSnapshot) -> StageGroupWindow? {
+    func groupWindow(_ member: NativeSidebarMember, in raw: DesktopSnapshot,
+                     rejected: (([String: Any]) -> Void)? = nil) -> StageGroupWindow? {
         let snapshot = stageEngine.snapshotForGroups(raw)
-        guard snapshot.native?.stageManagerEnabled == false, let catalog = member.source.resolve(snapshot),
-              catalog.current.id == member.source.space, let window = member.resolve(snapshot),
-              snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1,
-              DesktopWindowTarget(window, in: snapshot) != nil else { return nil }
-        return groupWindow(window, on: catalog.display, current: catalog.current)
+        func reject(_ reason: String) -> StageGroupWindow? {
+            guard let rejected else { return nil }
+            func value<T>(_ optional: T?) -> Any { optional.map { $0 as Any } ?? NSNull() }
+            var facts: [String: Any] = ["reason": reason, "snapshotRevision": snapshot.revision,
+                "snapshotSession": snapshot.sessionID.uuidString, "snapshotWindows": snapshot.windows.count,
+                "catalogComplete": value(snapshot.native?.catalogComplete), "catalogIssues": value(snapshot.native?.catalogIssues),
+                "stageManagerEnabled": value(snapshot.native?.stageManagerEnabled),
+                "sourceSessionMatches": member.source.session == snapshot.sessionID,
+                "sourceTopologyMatches": member.source.topology == snapshot.topologyFingerprint,
+                "sourceDisplay": member.source.display, "sourceSpace": member.source.space,
+                "selectedPID": member.key.pid, "selectedBirth": member.key.birth, "selectedWindow": member.key.number,
+                "selectionOnly": member.selectionOnly, "originalWindowPresent": member.originalWindow != nil]
+            if let native = snapshot.native {
+                let now = ProcessInfo.processInfo.systemUptime
+                if native.beganUptime.isFinite, native.endedUptime.isFinite {
+                    facts["nativeBeganUptime"] = native.beganUptime; facts["nativeEndedUptime"] = native.endedUptime
+                    facts["nativeSampleMS"] = (native.endedUptime - native.beganUptime) * 1000
+                    facts["nativeAgeMS"] = (now - native.beganUptime) * 1000
+                    facts["nativeSinceEndMS"] = (now - native.endedUptime) * 1000
+                }
+            }
+            // Include same-number rows so a conflicting owner/birth is visible.
+            // These are existing metadata only: no titles, paths, AX or new reads.
+            facts["selectedRows"] = snapshot.windows.compactMap { row -> [String: Any]? in
+                guard let m = row.metadata, m.number == member.key.number else { return nil }
+                let membership: Any
+                switch row.membership { case .known(let ids): membership = ids; case .unknown: membership = NSNull() }
+                return ["pid": m.pid, "birth": value(m.launchMicroseconds), "window": m.number,
+                    "identityMatches": m.pid == member.key.pid && m.launchMicroseconds == member.key.birth,
+                    "display": row.displayID, "displayMatches": row.displayID == member.source.display,
+                    "knownMembership": membership, "membershipMatchesSource": row.membership == .known(recordIDs: [member.source.space]),
+                    "overviewOrdinaryRole": value(m.overviewOrdinaryRole), "minimized": value(m.minimized),
+                    "fullScreen": value(m.fullScreen), "isOnscreen": value(m.isOnscreen),
+                    "onActiveDesktop": value(m.onActiveDesktop), "overviewSpaceID": value(m.overviewSpaceID),
+                    "overviewIsPresented": value(m.overviewIsPresented), "hasCatalogGeometry": value(m.hasCatalogGeometry),
+                    "sidebarOriginalWindowPresent": row.sidebarOriginalWindow != nil,
+                    "originalWindowMatches": row.sidebarOriginalWindow == member.originalWindow,
+                    "originalWindowConstraintSatisfied": member.originalWindow == nil || row.sidebarOriginalWindow == member.originalWindow,
+                    "confidence": String(describing: row.confidence), "globalFrameValid": m.globalFrame.geometry.isValid,
+                    "axElementPresent": m.element != nil, "axFramePresent": m.axFrame != nil,
+                    "axStandardWindowNumber": value(m.axStandardWindowNumber)]
+            }
+            rejected(facts)
+            return nil
+        }
+        guard snapshot.native?.stageManagerEnabled == false else { return reject("catalog/native-stage-manager") }
+        guard let catalog = member.source.resolve(snapshot) else { return reject("catalog/source") }
+        guard catalog.current.id == member.source.space else { return reject("catalog/current-space") }
+        guard let window = member.resolve(snapshot) else { return reject("member/resolve") }
+        guard snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1 else { return reject("member/unique-identity") }
+        guard DesktopWindowTarget(window, in: snapshot) != nil else { return reject("member/desktop-target") }
+        return groupWindow(window, on: catalog.display, current: catalog.current, rejected: { _ = reject($0) })
     }
 
     func join(_ moving: NativeSidebarMember, _ target: NativeSidebarMember, in snapshot: DesktopSnapshot,
@@ -384,26 +453,172 @@ import OSLog
         return lifetimes.filter { key, _ in enrolled[.init(pid: key.pid, birth: key.birth, number: key.number)] != nil }
     }
     @ObservationIgnored private var epoch = UUID()
-    @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
+    private struct ReadOutcome: Sendable {
+        let snapshot: DesktopSnapshot
+        /// Travels with this exact task result even after its action has ended.
+        let stagedFor: UUID?
+    }
+    @MainActor final class InitialDirectoryStaging {
+        fileprivate let id = UUID()
+        fileprivate var registered = false
+        let cancellation = InitialDirectoryReadCancellation()
+        fileprivate let eligible: @MainActor (DesktopSnapshot) -> Bool
+        init(eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) { self.eligible = eligible }
+    }
+    private struct InitialStage {
+        let token: InitialDirectoryStaging, epoch: UUID
+        let boundaryRevision: UInt64, date: Date, uptime: Double
+        var request: (id: UUID, revision: UInt64)?
+    }
+    private struct PendingRead {
+        let id: UUID, revision: UInt64
+        let metadata: StageMetadataReadScope?
+        let task: Task<ReadOutcome?, Never>
+    }
+    @ObservationIgnored private var initialStage: InitialStage?
+    @ObservationIgnored private var pending: PendingRead?
+    @ObservationIgnored private var stageableRead: UUID?
+    private struct MetadataReservation {
+        let scope: StageMetadataReadScope, epoch: UUID
+        let started: TimeInterval
+        var ready = false
+    }
+    @ObservationIgnored private var metadataReservation: MetadataReservation?
+    @ObservationIgnored private var metadataWaiters = [UUID: CheckedContinuation<Void, Never>]()
+    @ObservationIgnored private var admittedObserver: UUID?
+    @ObservationIgnored private var observerNavigationWait: UUID?
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
     @ObservationIgnored weak var automaticTiling: DesktopAutomaticTiling?
     @ObservationIgnored var didSample: (() -> Void)?
     @ObservationIgnored var didBeginAfterActionRead: ((Date, TimeInterval) -> Void)?
+    /// Deterministic test barrier for a late event-loop consumer of a shared read.
+    @ObservationIgnored var beforePublishingRead: (@MainActor (UInt64?) async -> Void)?
+    @ObservationIgnored var didFinishPublishingRead: ((UInt64?) -> Void)?
+    @ObservationIgnored var didJoinPendingRead: ((UInt64) -> Void)?
+    @ObservationIgnored var beforeFreshAfterActionRead: (@MainActor () async -> Void)?
+    @ObservationIgnored var didWaitForMetadataRead: ((String) -> Void)?
     private var panelRequested = false
     private var managementRequested = false
     private var stageOwnershipObserved = false
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @Sendable () -> Int? = CurrentDesktopWindows.windowNumbersFingerprint,
-         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
+         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil,
+         navigation: NativeSidebarNavigation = .shared) {
         let store = StageGroupStore(profile: stageGroupProfile)
         groups = store
         stageEngine = StageWindowEngineHost(profile:stageGroupProfile,store:store)
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
+        self.navigation = navigation
         stageEngine.attach(to:self)
+    }
+
+    private func metadataChanged() {
+        let waiters = metadataWaiters.values
+        metadataWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    private func waitForMetadataChange(_ reason: String) async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard !Task.isCancelled else { continuation.resume(); return }
+                metadataWaiters[id] = continuation
+                didWaitForMetadataRead?(reason)
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.metadataWaiters.removeValue(forKey: id)?.resume() }
+        }
+    }
+
+    func hasMetadataReadScope(_ scope: StageMetadataReadScope) -> Bool {
+        metadataReservation?.scope == scope && metadataReservation?.epoch == epoch && metadataReservation?.ready == true
+    }
+
+    /// Close ordinary admission first. Every already-admitted producer and the
+    /// exact observer publication turn finish normally before foreground reads.
+    func acquireMetadataReadScope(_ scope: StageMetadataReadScope, current: @MainActor () -> Bool) async throws {
+        let expected = epoch, started = ProcessInfo.processInfo.systemUptime
+        func valid() -> Bool {
+            !Task.isCancelled && expected == epoch && events != nil && observationRequested && current()
+        }
+        do {
+            while metadataReservation != nil {
+                guard valid() else { throw StageSwitchError.interrupted }
+                await waitForMetadataChange("acquire")
+            }
+            guard valid() else { throw StageSwitchError.interrupted }
+            metadataReservation = .init(scope: scope, epoch: expected, started: started)
+            IndependentStageTrace.record("metadata-scope-reserved", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": expected.uuidString,
+                "pendingProducer": pending != nil, "pendingPublisher": admittedObserver != nil,
+                "queuedMS": (ProcessInfo.processInfo.systemUptime - started) * 1000])
+            while pending != nil || admittedObserver != nil {
+                guard valid(), metadataReservation?.scope == scope else { throw StageSwitchError.interrupted }
+                await waitForMetadataChange("drain")
+            }
+            guard valid(), metadataReservation?.scope == scope else { throw StageSwitchError.interrupted }
+            metadataReservation?.ready = true
+            IndependentStageTrace.record("metadata-scope-drained", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": expected.uuidString,
+                "pendingProducer": pending != nil, "pendingPublisher": admittedObserver != nil,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000])
+        } catch {
+            endMetadataReadScope(scope)
+            throw error
+        }
+    }
+
+    func endMetadataReadScope(_ scope: StageMetadataReadScope) {
+        if let reservation = metadataReservation, reservation.scope == scope {
+            metadataReservation = nil
+            // An owner cancelled/frozen while its read awaited the helper. Its
+            // late result cannot mutate the feed after this scope was revoked.
+            if pending?.metadata == scope { pending?.task.cancel() }
+            IndependentStageTrace.record("metadata-scope-ended", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": reservation.epoch.uuidString, "drained": reservation.ready,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - reservation.started) * 1000])
+        }
+        metadataChanged()
+    }
+
+    private func admitObserver() async -> UUID? {
+        let expected = epoch
+        while true {
+            guard !Task.isCancelled, expected == epoch, events != nil else { return nil }
+            if navigation.blocksObserverAdmission {
+                // Wait before acquiring either a publication token or a pending
+                // producer. Foreground reads must never drain an observer that
+                // is itself waiting for that foreground navigation to finish.
+                let id = UUID(), started = ProcessInfo.processInfo.systemUptime
+                observerNavigationWait = id
+                IndependentStageTrace.record("observer-navigation-wait-enter", ["waiter": id.uuidString,
+                    "epoch": expected.uuidString, "revision": revision])
+                didWaitForMetadataRead?("observer-navigation")
+                let ready = await navigation.waitForObserverAdmission(id) { [weak self] in
+                    self?.epoch == expected && self?.events != nil
+                }
+                if observerNavigationWait == id { observerNavigationWait = nil }
+                IndependentStageTrace.record("observer-navigation-wait-exit", ["waiter": id.uuidString,
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
+                    "ready": ready, "blocked": navigation.blocksObserverAdmission, "dispatching": navigation.isDispatching,
+                    "epochMatches": expected == epoch, "cancelled": Task.isCancelled])
+                // A navigation epoch change revokes that wait, not this observation
+                // request. Recheck feed lifetime and the current queue before admission.
+                continue
+            }
+            if metadataReservation != nil {
+                await waitForMetadataChange("observer")
+                continue
+            }
+            let id = UUID()
+            admittedObserver = id
+            return id
+        }
     }
 
     func changed() { events?.yield(()) }
@@ -414,6 +629,7 @@ import OSLog
     }
 
     func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        if let id = observerNavigationWait { navigation.cancelObserverWait(id); observerNavigationWait = nil }
         if preservingOriginalWindows { holdDisplayedRoster() }
         else { departingPictures = nil }
         stageEngine.freeze()
@@ -422,7 +638,11 @@ import OSLog
             ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
         if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
-        pending?.1.cancel()
+        metadataReservation = nil
+        metadataChanged()
+        initialStage = nil
+        stageableRead = nil
+        pending?.task.cancel()
         pending = nil
         snapshot = nil
         nativeFullscreenSeen = false
@@ -519,9 +739,43 @@ import OSLog
             for await _ in stream {
                 guard !Task.isCancelled, let self else { return }
                 let expected = epoch
-                let next = await readNow()
+                guard let observer = await admitObserver() else { continue }
+                defer {
+                    if admittedObserver == observer { admittedObserver = nil }
+                    metadataChanged()
+                }
+                let outcome = await readOutcome(observer: observer)
+                defer { didFinishPublishingRead?(outcome?.snapshot.revision) }
+                if let beforePublishingRead { await beforePublishingRead(outcome?.snapshot.revision) }
                 guard !Task.isCancelled, expected == epoch else { continue }
+                if let outcome, let token = outcome.stagedFor {
+                    IndependentStageTrace.record("desktop-read-publication-staged", ["revision": outcome.snapshot.revision,
+                                                                                     "token": token.uuidString])
+                    continue
+                }
+                let next = outcome?.snapshot
                 snapshot = next
+                if ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+                    let publishedAt = Date(), publicationUptime = ProcessInfo.processInfo.systemUptime
+                    func finite(_ value: Double?) -> Any {
+                        guard let value, value.isFinite else { return NSNull() }
+                        return value
+                    }
+                    IndependentStageTrace.record("desktop-observer-published", [
+                        "observer": observer.uuidString, "epoch": expected.uuidString,
+                        "snapshotPresent": next != nil,
+                        "snapshotSession": next.map { $0.sessionID.uuidString as Any } ?? NSNull(),
+                        "snapshotRevision": next.map { $0.revision as Any } ?? NSNull(),
+                        "catalogComplete": (next?.native?.catalogComplete).map { $0 as Any } ?? NSNull(),
+                        "navigationEpoch": navigation.ownershipEpoch.uuidString,
+                        "dispatching": navigation.isDispatching, "publicationUptime": finite(publicationUptime),
+                        "nativeBeganUptime": finite(next?.native?.beganUptime),
+                        "nativeEndedUptime": finite(next?.native?.endedUptime),
+                        "wallSampledToAgeMS": finite(next.map { publishedAt.timeIntervalSince($0.sampledTo) * 1000 }),
+                        "nativeFreshAtPublication": next.map {
+                            $0.nativeIsFresh(now: publishedAt, uptime: publicationUptime) as Any
+                        } ?? NSNull()])
+                }
                 if next?.native?.windowLimitReached == false || !sessionAvailable() { departingPictures = nil }
                 stageEngine.observeEnvironment(next)
                 if next?.native?.stageManagerEnabled == false {
@@ -581,18 +835,35 @@ import OSLog
     }
 
     /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
-    func readAfterAction() async -> DesktopSnapshot? {
+    func readAfterAction(staging: InitialDirectoryStaging? = nil,
+                         within metadata: StageMetadataReadScope? = nil) async -> DesktopSnapshot? {
+        let enteringEpoch = epoch
+        while metadata == nil && metadataReservation != nil {
+            guard !Task.isCancelled, enteringEpoch == epoch else { return nil }
+            await waitForMetadataChange("after-action")
+        }
+        guard enteringEpoch == epoch, metadata.map(hasMetadataReadScope) != false else { return nil }
         let boundary = revision, expected = epoch, afterDate = Date(), started = ProcessInfo.processInfo.systemUptime
+        var registeredStaging: InitialDirectoryStaging?
+        if let staging, !staging.registered, initialStage == nil {
+            staging.registered = true
+            registeredStaging = staging
+            initialStage = .init(token: staging, epoch: expected, boundaryRevision: boundary,
+                                 date: afterDate, uptime: started)
+        }
         var priorMS: Double = 0, freshMS: Double = 0, receivedRevision: UInt64 = 0
+        var freshRequestedUptime: TimeInterval?
         var step = "waiting-prior", completed = false, hadPrior = false, reusedPrior = false
         var priorResult: DesktopSnapshot?
         defer {
+            if let registeredStaging, initialStage?.token.id == registeredStaging.id { initialStage = nil }
             var facts: [String: Any] = ["step": step, "completed": completed,
                 "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
                 "priorWaitMS": priorMS, "freshReadMS": freshMS, "hadPrior": hadPrior,
                 "reusedPrior": reusedPrior, "boundaryDate": afterDate.timeIntervalSince1970, "boundaryUptime": started,
                 "boundaryRevision": boundary, "receivedRevision": receivedRevision, "revision": revision,
                 "epochMatches": epoch == expected, "cancelled": Task.isCancelled, "pendingRead": pending != nil]
+            if let freshRequestedUptime { facts["freshRequestedUptime"] = freshRequestedUptime }
             if let priorResult {
                 facts["priorRevision"] = priorResult.revision
                 facts["priorSampledFrom"] = priorResult.sampledFrom.timeIntervalSince1970
@@ -604,14 +875,15 @@ import OSLog
         if let prior = pending {
             hadPrior = true
             let began = ProcessInfo.processInfo.systemUptime
-            priorResult = await prior.1.value
+            priorResult = (await prior.task.value)?.snapshot
             priorMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
-            if pending?.0 == prior.0 { pending = nil }
+            if pending?.id == prior.id { pending = nil; metadataChanged() }
         }
         step = "epoch-after-prior"
         guard epoch == expected else { return nil }
         step = "observation-after-prior"
         guard !Task.isCancelled, observationRequested, events != nil else { return nil }
+        guard metadata.map(hasMetadataReadScope) != false else { return nil }
         // A queued request may not have begun its actual native sample until
         // after this call. Reuse only that complete, still-fresh sample; retain
         // its real revision so the next serial read must establish a later one.
@@ -635,8 +907,10 @@ import OSLog
             }
         }
         step = "fresh-read"
+        if let beforeFreshAfterActionRead { await beforeFreshAfterActionRead() }
         let began = ProcessInfo.processInfo.systemUptime
-        let result = await readNow()
+        freshRequestedUptime = began
+        let result = (await readOutcome(staging: registeredStaging, within: metadata))?.snapshot
         freshMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
         step = "fresh-read-unavailable"
         guard let fresh = result else { return nil }
@@ -644,13 +918,32 @@ import OSLog
         step = "fresh-read-revision"
         guard fresh.revision > boundary else { return nil }
         step = "epoch-after-fresh"
-        guard epoch == expected else { return nil }
+        guard epoch == expected, metadata.map(hasMetadataReadScope) != false else { return nil }
         step = "complete"; completed = true
         return fresh
     }
 
     func readNow() async -> DesktopSnapshot? {
-        guard events != nil, sessionAvailable() else {
+        (await readOutcome())?.snapshot
+    }
+
+    private func readOutcome(staging: InitialDirectoryStaging? = nil, within metadata: StageMetadataReadScope? = nil,
+                             observer: UUID? = nil) async -> ReadOutcome? {
+        let readCallStarted = ProcessInfo.processInfo.systemUptime
+        let enteringEpoch = epoch
+        // Never put a gated request in pending: its own foreground owner must
+        // not later join a producer that is waiting for that owner to release.
+        while metadata == nil && metadataReservation != nil && (observer == nil || observer != admittedObserver) {
+            guard !Task.isCancelled, enteringEpoch == epoch else { return nil }
+            await waitForMetadataChange("reader")
+        }
+        guard enteringEpoch == epoch, metadata.map(hasMetadataReadScope) != false else { return nil }
+        let metadataAdmitted = ProcessInfo.processInfo.systemUptime
+        // Time the original short-circuit check without introducing a second
+        // permission/session query or changing when a pending read is joined.
+        let available = events != nil && sessionAvailable()
+        let availabilityChecked = ProcessInfo.processInfo.systemUptime
+        guard available else {
             departingPictures = nil
             boundSidebarPair?.revoke(.feedInvalidated)
             lifetimes.removeAll()
@@ -658,16 +951,31 @@ import OSLog
             return nil
         }
         let expected = epoch
+        func bindInitialStage(to id: UUID, revision: UInt64) {
+            guard let staging, var stage = initialStage, stage.token.id == staging.id, stage.epoch == expected,
+                  stage.request == nil, stageableRead == id, revision > stage.boundaryRevision else { return }
+            stage.request = (id, revision)
+            initialStage = stage
+        }
         if let pending {
-            let result = await pending.1.value
-            return expected == epoch ? result : nil
+            bindInitialStage(to: pending.id, revision: pending.revision)
+            didJoinPendingRead?(pending.revision)
+            let result = await pending.task.value
+            return expected == epoch && metadata.map(hasMetadataReadScope) != false ? result : nil
         }
         revision &+= 1
+        let token = UUID()
+        stageableRead = token
+        // Only the action's actual fresh-read call can bind its shared request.
+        // A background read completed while it waits for a prior read cannot.
+        bindInitialStage(to: token, revision: revision)
+        let auditStarted = ProcessInfo.processInfo.systemUptime
         let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
+        let auditCreated = ProcessInfo.processInfo.systemUptime
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let taskCreated = ProcessInfo.processInfo.systemUptime
-        let task = Task { [read, weak self] () -> DesktopSnapshot? in
+        let task = Task { [read, weak self] () -> ReadOutcome? in
             let taskStarted = ProcessInfo.processInfo.systemUptime
             IndependentStageTrace.record("desktop-read-task-started", ["readSession": request.session.uuidString,
                 "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
@@ -675,7 +983,9 @@ import OSLog
             var step = "entry", completed = false, receivedReply = false
             var readerMS: Double = 0, historyMS: Double = 0, projectionMS: Double = 0, directoryMS: Double = 0
             var nativeTiming = [String: Double]()
+            var incompleteCatalogFacts: [String: Any]?
             defer {
+                if self?.stageableRead == token { self?.stageableRead = nil }
                 let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
                 var fields: [String: Any] = ["readSession": request.session.uuidString, "requestRevision": request.revision,
                     "step": step, "completed": completed, "receivedReply": receivedReply,
@@ -686,6 +996,7 @@ import OSLog
                     "groupProjectionMS": projectionMS, "observeDirectoryMS": directoryMS,
                     "remainingProcessingMS": max(0, totalMS - readerMS - historyMS - projectionMS - directoryMS)]
                 for (key, value) in nativeTiming { fields[key] = value }
+                if let incompleteCatalogFacts { fields["incompleteCatalog"] = incompleteCatalogFacts }
                 IndependentStageTrace.record("desktop-read-task-exit", fields)
             }
             guard let self, !Task.isCancelled, self.epoch == expected, self.observationRequested, self.sessionAvailable() else { return nil }
@@ -695,6 +1006,23 @@ import OSLog
             let readerReturned = ProcessInfo.processInfo.systemUptime
             readerMS = (readerReturned - readerStarted) * 1000
             receivedReply = readback != nil
+            if let native = readback?.native, native.catalogComplete != true {
+                let issues = native.catalogIssues ?? []
+                var facts: [String: Any] = ["catalogComplete": native.catalogComplete.map { $0 as Any } ?? NSNull(),
+                    "catalogIssueCount": issues.count, "catalogIssues": issues.prefix(12).map { String($0.prefix(200)) },
+                    "catalogIssuesTruncated": issues.count > 12 || issues.contains { $0.count > 200 }]
+                if let census = native.catalogCensus,
+                   let data = try? JSONEncoder().encode(census),
+                   let counts = try? JSONSerialization.jsonObject(with: data) {
+                    facts["catalogCensus"] = counts
+                }
+                if let samples = native.catalogIssueWindows,
+                   let data = try? JSONEncoder().encode(Array(samples.prefix(CatalogIssueWindowFacts.limit))),
+                   let rows = try? JSONSerialization.jsonObject(with: data) {
+                    facts["catalogIssueWindows"] = rows
+                }
+                incompleteCatalogFacts = facts
+            }
             // These are the helper's existing timestamps, observed before any
             // result validation. Diagnostics perform no additional native read.
             if let native = readback?.native, native.beganUptime.isFinite, native.endedUptime.isFinite {
@@ -722,6 +1050,21 @@ import OSLog
                 }
                 return nil
             }
+            // Only an already validated, genuinely later sample may be staged.
+            // Return the unmodified failure to the original helper before any
+            // lifetime, group, history or environment publication can consume it.
+            let stageIsOpen = self.stageableRead == token
+            if stageIsOpen { self.stageableRead = nil }
+            if stageIsOpen, let stage = self.initialStage, stage.epoch == expected,
+               stage.request?.id == token, stage.request?.revision == request.revision,
+               result.revision > stage.boundaryRevision, result.native?.catalogComplete == false,
+               result.sampledFrom > stage.date, let native = result.native, native.beganUptime > stage.uptime,
+               !stage.token.cancellation.isCancelled, stage.token.eligible(result), !stage.token.cancellation.isCancelled {
+                step = "initial-directory-staged"; completed = true
+                IndependentStageTrace.record("initial-directory-staged", ["revision": result.revision,
+                    "boundaryRevision": stage.boundaryRevision, "token": stage.token.id.uuidString])
+                return .init(snapshot: result, stagedFor: stage.token.id)
+            }
             self.boundSidebarPair?.observe(result)
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
@@ -732,7 +1075,7 @@ import OSLog
                 if self.departingPictures?.retainAcrossCappedInventory(result) != true { self.departingPictures = nil }
                 self.lifetimes.removeAll()
                 step = "capped-inventory"; completed = true
-                return result
+                return .init(snapshot: result, stagedFor: nil)
             }
             let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
             var diagnosticTargets: Set<NativeSidebarWindowLocation>?
@@ -803,17 +1146,22 @@ import OSLog
                 }
             }
             step = "complete"; completed = true
-            return result
+            return .init(snapshot: result, stagedFor: nil)
         }
-        let token = UUID()
-        pending = (token, task)
+        pending = .init(id: token, revision: request.revision, metadata: metadata, task: task)
         IndependentStageTrace.record("desktop-read-task-created", ["readSession": request.session.uuidString,
             "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
+            "readCallStartedUptime": readCallStarted, "metadataAdmittedUptime": metadataAdmitted,
+            "sessionAvailabilityMS": (availabilityChecked - metadataAdmitted) * 1000,
+            "auditCreationMS": (auditCreated - auditStarted) * 1000,
+            "requestConstructionMS": (taskCreated - auditCreated) * 1000,
+            "preTaskCreationMS": (taskCreated - readCallStarted) * 1000,
             "creatorPriority": Task.currentPriority.rawValue,
-            "dispatching": NativeSidebarNavigation.shared.isDispatching])
+            "creatorKind": metadata != nil ? "metadata-owner" : (observer != nil ? "observer" : "direct"),
+            "dispatching": navigation.isDispatching])
         let result = await task.value
-        if pending?.0 == token { pending = nil }
-        return expected == epoch ? result : nil
+        if pending?.id == token { pending = nil; metadataChanged() }
+        return expected == epoch && metadata.map(hasMetadataReadScope) != false ? result : nil
     }
 
     /// A read-only wake-up hint, independent of AppKit and safe on a background executor.

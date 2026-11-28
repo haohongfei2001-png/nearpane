@@ -36,6 +36,36 @@ import NearpaneOrdinaryWindowRuntime
             return (selected.id, selected.before.window, selected.before.lifetime)
         }
     }
+    /// This records which original member the user clicked. Only the later
+    /// chooseHeld read and coordinator can authorize its restoration.
+    struct OwnedMemberSelection: Equatable {
+        let owner: StageEngineOwner, session: ObjectIdentifier, revision: UInt64
+        let group: UUID, member: UUID, members: [UUID: NativeSpaceWindow]
+        let identity: StageWindowEngineWitness.RetainedMemberIdentity
+
+        func capturesWholeGroup(_ states: [StageWindowState], claimed: Set<NativeSpaceWindow>) -> Bool {
+            guard states.count == members.count, Set(states.map(\.window)) == Set(members.values),
+                  states.contains(where: { $0.window == identity.window && $0.lifetime == identity.lifetime && $0.visibility == .stageSpace })
+            else { return false }
+            return states.allSatisfy { state in
+                if state.visibility == .stageSpace {
+                    return claimed.contains(state.window) && (state.hiddenSpaceID ?? 0) > 0 && state.hiddenSpaceID != identity.home
+                }
+                return state.visibility == .minimized && state.hiddenSpaceID == nil && !claimed.contains(state.window)
+            }
+        }
+
+        func parkedState(in observed: StageWindowSample, held: HeldGroup, current: OwnedMemberSelection?) -> StageWindowState? {
+            guard current == self, held.id == group, held.owner == owner, held.scope == identity.scope,
+                  members[member] == identity.window, owner.generation == identity.generation,
+                  observed.scope == identity.scope, observed.generation == identity.generation,
+                  observed.nativeID == identity.home, let state = observed.windows[identity.window],
+                  state.window == identity.window, state.lifetime == identity.lifetime,
+                  state.visibility == .stageSpace, let hidden = state.hiddenSpaceID,
+                  hidden > 0, hidden != identity.home else { return nil }
+            return state
+        }
+    }
     private(set) var heldGroups = [HeldGroup]()
     private var heldSuccessor: (token: UUID, card: HeldGroup)?
     @ObservationIgnored private var heldRefresh: Task<Void,Never>?
@@ -488,8 +518,8 @@ import NearpaneOrdinaryWindowRuntime
         }
         guard !scopes.isEmpty else { return }
         lastResumeAttempt = now
-        let input = NativeSelectionPermit.inputCounters(), version = revision
-        navigation.submit(stage: true, userActivity: false) { [weak self, weak feed] token in
+        let input = NativeSelectionPermit.inputCounters(), version = revision, epoch = navigation.ownershipEpoch
+        navigation.submit(stage: true, userActivity: false, needsInitialObservation: true) { [weak self, weak feed] token in
             guard let self, let feed else { return }
             self.resumeEnqueued = true
             defer { self.resumeEnqueued = false }
@@ -512,6 +542,9 @@ import NearpaneOrdinaryWindowRuntime
                       catalog.current.ordinaryUUID == scope.nativeSpace,
                       let row = catalog.rows.first(where: { $0.record.isCurrent }),
                       let source = NativeSidebarDestination(row, in: catalog) else { continue }
+                if first.native?.catalogComplete == true {
+                    navigation.completeInitialObservation(for: token, in: epoch)
+                }
                 let home = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
                 let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
                 for window in row.windows where window.metadata?.pid == frontPID {
@@ -638,6 +671,66 @@ import NearpaneOrdinaryWindowRuntime
             participants.map { ($0.id, $0.members.map(\.id)) }), lifetimes: lifetimes)
     }
 
+    private func ownedMemberSelection(group: UUID, member: UUID, window: NativeSpaceWindow,
+                                      in feed: CurrentDesktopWindows) -> OwnedMemberSelection? {
+        guard self.feed === feed, !wallpaperPaused, !unreadableLedger, !releasing, !terminationOwnsLane,
+              let engine, let session = engine.session, session.owner.backend == .spaces, !session.isFrozen, let witness,
+              let identity = witness.retainedMemberIdentity(window, owner: session.owner),
+              let granted, granted.scope == identity.scope, granted.evidence == session.owner.evidence,
+              granted.groups[group]?.contains(member) == true, granted.lifetimes[window] == identity.lifetime,
+              let saved = feed.groups.groups(in: identity.scope).first(where: { $0.id == group }),
+              saved.needsReorganization != true,
+              let selected = saved.members.first(where: { $0.id == member }), selected.windowHint == window,
+              feed.groups.isBound(selected, to: identity.lifetime) else { return nil }
+        return .init(owner: session.owner, session: ObjectIdentifier(session), revision: revision,
+                     group: group, member: member,
+                     members: Dictionary(uniqueKeysWithValues: saved.members.map { ($0.id, $0.windowHint) }), identity: identity)
+    }
+
+    func ownedMemberSelection(_ member: NativeSidebarMember, group: UUID, in snapshot: DesktopSnapshot,
+                              feed: CurrentDesktopWindows) -> OwnedMemberSelection? {
+        guard let location = member.location,
+              let saved = feed.selectionGroup(member, in: snapshot), saved.id == group,
+              let selected = saved.members.first(where: { $0.windowHint == location.window }),
+              let stamp = ownedMemberSelection(group: group, member: selected.id, window: location.window, in: feed),
+              member.source.session == stamp.identity.session, member.source.topology == stamp.identity.topology,
+              location.display == stamp.identity.scope.display, location.spaceUUID == stamp.identity.scope.nativeSpace,
+              UInt64(location.space) == stamp.identity.home,
+              snapshot.windows.contains(where: { DesktopWindowKey($0) == member.key &&
+                  (member.originalWindow == nil || $0.sidebarOriginalWindow == member.originalWindow) }), let witness else { return nil }
+        let states = saved.members.compactMap { saved -> StageWindowState? in
+            guard let state = witness.state(of: saved.windowHint), witness.mayManage(state),
+                  feed.groups.isBound(saved, to: state.lifetime) else { return nil }
+            return state
+        }
+        let claimed = Set(saved.members.map(\.windowHint).filter(witness.hasVisibilityClaim))
+        guard stamp.capturesWholeGroup(states, claimed: claimed) else { return nil }
+        return stamp
+    }
+
+    func ownedMemberSelectionIsCurrent(_ stamp: OwnedMemberSelection, in feed: CurrentDesktopWindows) -> Bool {
+        ownedMemberSelection(group: stamp.group, member: stamp.member, window: stamp.identity.window, in: feed) == stamp
+    }
+
+    func chooseOwnedMember(_ stamp: OwnedMemberSelection, in feed: CurrentDesktopWindows, selectionToken: UUID,
+                           current: @escaping @MainActor () -> Bool,
+                           successor: @escaping @MainActor () -> UUID? = { nil },
+                           initialObservationCompleted: @escaping @MainActor () -> Void = {}) async throws {
+        var completed = false
+        IndependentStageTrace.record("owned-member-selection-enter", ["window": stamp.identity.window.number,
+            "group": stamp.group.uuidString, "member": stamp.member.uuidString, "hostRevision": stamp.revision])
+        defer { IndependentStageTrace.record("owned-member-selection-exit", ["window": stamp.identity.window.number,
+            "member": stamp.member.uuidString, "completed": completed]) }
+        guard current(), ownedMemberSelectionIsCurrent(stamp, in: feed),
+              let held = heldGroups.first(where: { $0.id == stamp.group && $0.scope == stamp.identity.scope && $0.owner == stamp.owner })
+        else { throw StageSwitchError.interrupted }
+        try await chooseHeld(held, member: nil, ownedSelection: stamp, in: feed, selectionToken: selectionToken,
+            current: { current() && self.ownedMemberSelectionIsCurrent(stamp, in: feed) },
+            successor: { self.ownedMemberSelectionIsCurrent(stamp, in: feed) ? successor() : nil },
+            initialObservationCompleted: initialObservationCompleted)
+        completed = true
+    }
+
     func groupChoice(_ group: UUID, member: NativeSidebarMember, selection: StageSidebarSelection, in feed: CurrentDesktopWindows,
                      snapshot raw: DesktopSnapshot, current: @escaping @MainActor () -> Bool,
                      successor: @escaping @MainActor () -> UUID? = { nil }) async throws -> Bool {
@@ -657,10 +750,29 @@ import NearpaneOrdinaryWindowRuntime
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
         phase = "binding"
-        guard !unreadableLedger, !releasing, !terminationOwnsLane, let engine, let window = feed.groupWindow(member,in:snapshot),
-              let space = window.nativeSpace, let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
-                .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity })
-        else { SpacesWorkerLifecycle.trace("group-choice-binding-rejected", ["hasLiveWindow": feed.groupWindow(member, in: snapshot) != nil]); throw StageSwitchError.recoveryRequired }
+        func bindingRejected(_ reason: String, hasLiveWindow: Bool = false,
+                             details: [String: Any] = [:]) -> StageSwitchError {
+            var facts: [String: Any] = ["reason": reason, "hasLiveWindow": hasLiveWindow,
+                                      "snapshotRevision": snapshot.revision]
+            facts.merge(details, uniquingKeysWith: { _, observed in observed })
+            SpacesWorkerLifecycle.trace("group-choice-binding-rejected", facts)
+            return .recoveryRequired
+        }
+        guard !unreadableLedger else { throw bindingRejected("host/unreadable-ledger") }
+        guard !releasing else { throw bindingRejected("host/releasing") }
+        guard !terminationOwnsLane else { throw bindingRejected("host/terminating") }
+        guard let engine else { throw bindingRejected("host/controller") }
+        var windowRejection = [String: Any]()
+        guard let window = feed.groupWindow(member, in: snapshot, rejected: { windowRejection = $0 }) else {
+            // Use this exact failed read. Repeating groupWindow here would use a
+            // later clock/projection and could contradict the rejected guard.
+            throw bindingRejected("member/window", details: windowRejection)
+        }
+        guard let space = window.nativeSpace else { throw bindingRejected("member/ordinary-space", hasLiveWindow: true) }
+        guard let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
+            .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity }) else {
+            throw bindingRejected("group/member", hasLiveWindow: true)
+        }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
         // The live worker owns one certified home. A click on a different monitor must leave
         // that home intact until a worker can independently verify simultaneous display dispatch.
@@ -765,6 +877,7 @@ import NearpaneOrdinaryWindowRuntime
                 return unchangedInput
             }
             guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
+                initialSelectionCurrent: permitted,
                 available:environmentCurrent,restoreAvailable:restore,
                 availabilityRejection: { restoring in restoring ? restoreRejection : environmentRejection }) else {
                 SpacesWorkerLifecycle.trace("group-choice-witness-rejected", ["lifetimes": approval.lifetimes.count]); return nil
@@ -983,9 +1096,11 @@ import NearpaneOrdinaryWindowRuntime
 
     /// The row represents an explicitly owned, independently read group. Its pixel stream and drag source
     /// remain absent while hidden. Recheck the whole roster before the existing coordinator can dispatch.
-    func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, in feed: CurrentDesktopWindows, selectionToken: UUID,
+    func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, ownedSelection: OwnedMemberSelection? = nil,
+                    in feed: CurrentDesktopWindows, selectionToken: UUID,
                     current: @escaping @MainActor () -> Bool,
-                    successor: @escaping @MainActor () -> UUID? = { nil }) async throws {
+                    successor: @escaping @MainActor () -> UUID? = { nil },
+                    initialObservationCompleted: @escaping @MainActor () -> Void = {}) async throws {
         guard !wallpaperPaused else { throw StageSwitchError.busy }
         let continuing = heldSuccessor?.token == selectionToken && heldSuccessor?.card == held
         heldSuccessor = nil
@@ -1011,13 +1126,28 @@ import NearpaneOrdinaryWindowRuntime
             throw StageSwitchError.interrupted
         }
         try checkSelection()
-        guard let choice = held.memberIdentity(stamp) else { throw StageSwitchError.interrupted }
+        initialObservationCompleted()
+        let choice: (member: UUID, window: NativeSpaceWindow, lifetime: UUID)
+        if let ownedSelection {
+            guard stamp == nil, ownedMemberSelectionIsCurrent(ownedSelection, in: feed),
+                  ownedSelection.group == held.id, ownedSelection.owner == held.owner,
+                  ownedSelection.identity.scope == held.scope else { throw StageSwitchError.interrupted }
+            choice = (ownedSelection.member, ownedSelection.identity.window, ownedSelection.identity.lifetime)
+        } else {
+            guard let selected = held.memberIdentity(stamp) else { throw StageSwitchError.interrupted }
+            choice = selected
+        }
         let stillParked = heldGroups.contains(held)
         if stillParked {
             let parked: StageWindowState
-            if let stamp {
+            if let ownedSelection {
+                let current = self.ownedMemberSelection(group: ownedSelection.group, member: ownedSelection.member,
+                    window: ownedSelection.identity.window, in: feed)
+                guard let state = ownedSelection.parkedState(in: observed, held: held, current: current) else { throw StageSwitchError.interrupted }
+                parked = state
+            } else if let stamp {
                 guard let departure = held.departure, let (member, state) = departure.parkedMember(stamp, in: observed),
-                      witness.confirmsHistoricalMember(member, of: departure) else { throw StageSwitchError.interrupted }
+                      witness.confirmsHistoricalMember(member, of: departure, observed: observed) else { throw StageSwitchError.interrupted }
                 parked = state
             } else { parked = held.state }
             guard observed.windows[parked.window] == parked,

@@ -1,0 +1,1839 @@
+{
+  "schema": 1,
+  "revision": "786abfef7d12e5c93be195baead315919523fb22",
+  "runID": 46126567734,
+  "jobID": 140922353517,
+  "overall": "INCOMPLETE; source and product gates failed",
+  "sourceVerification": {
+    "Rust": {
+      "passed": 188,
+      "failed": 0,
+      "allEightNewFunctionsExplicitlyOK": true,
+      "old150MSAXDeadlineFunctionExplicitlyOK": true
+    },
+    "CDecoder": {
+      "passed": 25,
+      "failed": 0,
+      "windowWrites": 0
+    },
+    "Swift": {
+      "total": 274,
+      "passed": 272,
+      "skipped": 1,
+      "failed": 1,
+      "failedFunction": "StageHostObservationSchedulingTests.aStoppedDetectorCannotPublishItsDelayedHint()"
+    },
+    "rawSHA256": {
+      "rust.log": "99f28920e7f0390a345f9c496d052d6a6f6bebfaf49feda0e1287494d7c3b836",
+      "binding-attributes.log": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286",
+      "swift.xml": "cb0aa23adbdd2a94706db4d546c81d2fe33bb3f26842a62c71546e0410f11b01"
+    },
+    "sourceAuditPath": "r4-audit/786ab/source/source-gate-audit.json"
+  },
+  "nativeMoveResult": {
+    "total": 28,
+    "documentMoves": 24,
+    "canaryMoves": 4,
+    "allCompleted": true,
+    "allTwoPositiveFullViews": true,
+    "failedWorkerTerminalCount": 0,
+    "documentPositiveProofOver120MS": [
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 57,
+        "pid": 51016,
+        "target": 43,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 12.804,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 175.343,
+        "sourceLine": 340,
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/786ab/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-7dd5a766-750a-4b3e-830c-9874bcd71a9a.jsonl"
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 50845,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 3.51,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 127.415,
+        "sourceLine": 860,
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/786ab/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-7dd5a766-750a-4b3e-830c-9874bcd71a9a.jsonl"
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 50845,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 53.416,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 181.436,
+        "sourceLine": 1169,
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/786ab/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-f452622e-8adb-42bf-a39b-b5df7673271f.jsonl"
+      }
+    ],
+    "budgetMeaning": "ACK remained within 120 ms. The original two complete positive views used 650 ms total from move return, including normal return calls through moved. No transient error retry beyond 120 ms is claimed."
+  },
+  "r4Outcome": {
+    "actualPhysicalInputs": 10,
+    "independentPhysicalConfirmations": 10,
+    "explicitSelectionSettlementCount": 1,
+    "explicitSettlementEvents": [
+      {
+        "exactMember": true,
+        "group": "B2D0D443-0B50-47F8-AA71-DFFD72B0F50F",
+        "navigationIdle": true,
+        "navigationIssue": "none",
+        "newSelection": true,
+        "originalDeadlineUptime": 1416.3782049166668,
+        "phase": "R4SelectionSettled",
+        "pressToSettlementMS": 7350.451708333139,
+        "sameOwnershipEpoch": true,
+        "sameSelection": true,
+        "selectedMember": "FB36B1FD-DBFB-433E-95CD-3C004A9A8E38",
+        "selection": "9DB35C65-9E78-42F7-A509-E76054A947B5",
+        "step": "singletonCycle/9",
+        "uptime": 1415.728678125,
+        "verifiedActive": true,
+        "window": 54
+      }
+    ],
+    "normalNewerSelectionSupersessions": 6,
+    "systemOwnershipInterruptedJobReportedAsSuperseded": 1,
+    "ownedMemberHandoffs": {
+      "queued": 2,
+      "entered": 2,
+      "exits": [
+        {
+          "completed": false,
+          "event": "independentStageProduct",
+          "member": "F909780F-2D2B-4391-8B7B-0147FC8DD3B1",
+          "phase": "owned-member-selection-exit",
+          "uptime": 1385.16663225,
+          "window": 56,
+          "sourceLine": 704
+        },
+        {
+          "completed": false,
+          "event": "independentStageProduct",
+          "member": "F909780F-2D2B-4391-8B7B-0147FC8DD3B1",
+          "phase": "owned-member-selection-exit",
+          "uptime": 1405.12674575,
+          "window": 56,
+          "sourceLine": 2498
+        }
+      ]
+    },
+    "scope": "A physical confirmation or a normally settled superseded prefix does not establish a committed selection. The final step has an explicit navigation-idle, verified-directory, exact-member settlement proof. Other queue returns without a rejection are not counted as explicit commits."
+  },
+  "metadataScopes": {
+    "reserved": 109,
+    "allDrained": true,
+    "allEnded": true,
+    "primitiveCount": 20,
+    "primitivesWithTwoCompletedPostWitnesses": 19,
+    "primitives": [
+      {
+        "scope": "5E496826-2629-4CEA-BA22-3F10C3037FB9",
+        "purpose": "hide",
+        "from": 1381.6763243750001,
+        "to": 1381.9592725833334,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1381.6784629583335,
+            "uptime": 1381.6844013333334,
+            "sourceLine": 245
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1381.761654875,
+            "uptime": 1381.8004977083335,
+            "sourceLine": 258
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1381.8016755416668,
+            "uptime": 1381.82174375,
+            "sourceLine": 262
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 6,
+            "uptime": 1381.7585692083335,
+            "sourceLine": 254
+          },
+          {
+            "sequence": 7,
+            "uptime": 1381.8971345,
+            "sourceLine": 271
+          },
+          {
+            "sequence": 8,
+            "uptime": 1381.9570445833335,
+            "sourceLine": 280
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "46DD0943-EB14-4372-95B7-E1752B812846",
+        "purpose": "hide",
+        "from": 1381.9604695,
+        "to": 1382.2482944166668,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1381.9616277916668,
+            "uptime": 1381.9725818333334,
+            "sourceLine": 287
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1382.0426007916667,
+            "uptime": 1382.09561,
+            "sourceLine": 303
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1382.0966230833335,
+            "uptime": 1382.1123868333334,
+            "sourceLine": 307
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 9,
+            "uptime": 1382.0388845416667,
+            "sourceLine": 299
+          },
+          {
+            "sequence": 10,
+            "uptime": 1382.1894105416668,
+            "sourceLine": 316
+          },
+          {
+            "sequence": 11,
+            "uptime": 1382.2465127916666,
+            "sourceLine": 325
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "C54782B2-63EC-429D-8D31-76EBC34237E8",
+        "purpose": "show",
+        "from": 1383.6584623333333,
+        "to": 1384.1168959166669,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1383.6606957083334,
+            "uptime": 1383.7005345,
+            "sourceLine": 502
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1383.8788127500002,
+            "uptime": 1383.966297125,
+            "sourceLine": 518
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1383.96722625,
+            "uptime": 1383.9765570416666,
+            "sourceLine": 522
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 20,
+            "uptime": 1383.8681062083335,
+            "sourceLine": 514
+          },
+          {
+            "sequence": 21,
+            "uptime": 1384.05072475,
+            "sourceLine": 534
+          },
+          {
+            "sequence": 22,
+            "uptime": 1384.1153812083335,
+            "sourceLine": 543
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "A7F768D2-DD2A-4295-88D5-36E89D48A062",
+        "purpose": "hide",
+        "from": 1384.4567754166667,
+        "to": 1384.7787294166667,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1384.4576275000002,
+            "uptime": 1384.4739014166666,
+            "sourceLine": 596
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1384.5336435416668,
+            "uptime": 1384.5953828333334,
+            "sourceLine": 609
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1384.5965780833335,
+            "uptime": 1384.61760125,
+            "sourceLine": 613
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 26,
+            "uptime": 1384.5303964583334,
+            "sourceLine": 605
+          },
+          {
+            "sequence": 27,
+            "uptime": 1384.7108482916667,
+            "sourceLine": 622
+          },
+          {
+            "sequence": 28,
+            "uptime": 1384.77366,
+            "sourceLine": 634
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "308B09B4-9442-4B1A-AF0A-48D4E781D289",
+        "purpose": "show",
+        "from": 1385.525367875,
+        "to": 1385.8004774583335,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1385.5262785,
+            "uptime": 1385.5368105416667,
+            "sourceLine": 801
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1385.592374625,
+            "uptime": 1385.6644243750002,
+            "sourceLine": 814
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1385.6651838333335,
+            "uptime": 1385.683657625,
+            "sourceLine": 818
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 37,
+            "uptime": 1385.5898028333334,
+            "sourceLine": 810
+          },
+          {
+            "sequence": 38,
+            "uptime": 1385.744772875,
+            "sourceLine": 827
+          },
+          {
+            "sequence": 39,
+            "uptime": 1385.799068625,
+            "sourceLine": 839
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "F3937DB0-64EF-45A8-A9DF-F442FFBF7CB0",
+        "purpose": "hide",
+        "from": 1386.21910725,
+        "to": 1386.4801067916667,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1386.2199155416668,
+            "uptime": 1386.2282253750002,
+            "sourceLine": 892
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1386.2849172083334,
+            "uptime": 1386.3366295416668,
+            "sourceLine": 905
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1386.337393125,
+            "uptime": 1386.3551487500001,
+            "sourceLine": 909
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 43,
+            "uptime": 1386.2819167500002,
+            "sourceLine": 901
+          },
+          {
+            "sequence": 44,
+            "uptime": 1386.4267600416667,
+            "sourceLine": 918
+          },
+          {
+            "sequence": 45,
+            "uptime": 1386.4784874583333,
+            "sourceLine": 928
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "9A04FAD4-3691-4FDB-8287-63148B2A8594",
+        "purpose": "show",
+        "from": 1387.1767952083335,
+        "to": 1387.5270186666667,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1387.1840634583334,
+            "uptime": 1387.2033175833335,
+            "sourceLine": 1068
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1387.269538,
+            "uptime": 1387.343380625,
+            "sourceLine": 1084
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1387.3442884166668,
+            "uptime": 1387.3587733333334,
+            "sourceLine": 1088
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 54,
+            "uptime": 1387.2666879166668,
+            "sourceLine": 1080
+          },
+          {
+            "sequence": 55,
+            "uptime": 1387.4601937916668,
+            "sourceLine": 1097
+          },
+          {
+            "sequence": 56,
+            "uptime": 1387.5253652916667,
+            "sourceLine": 1107
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "17BEAA83-D5CF-426F-8F93-CE7FD555454E",
+        "purpose": "hide",
+        "from": 1387.9463061666668,
+        "to": 1388.2051294166668,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1387.9473369166667,
+            "uptime": 1387.954299125,
+            "sourceLine": 1190
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1388.0073829583334,
+            "uptime": 1388.0741091250002,
+            "sourceLine": 1203
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1388.0747908333335,
+            "uptime": 1388.092515125,
+            "sourceLine": 1207
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 60,
+            "uptime": 1388.0040470833335,
+            "sourceLine": 1199
+          },
+          {
+            "sequence": 61,
+            "uptime": 1388.1593735000001,
+            "sourceLine": 1216
+          },
+          {
+            "sequence": 62,
+            "uptime": 1388.2035040416667,
+            "sourceLine": 1225
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "BDD9481D-BA49-43F1-9DF5-1113A3583323",
+        "purpose": "show",
+        "from": 1388.6447065416667,
+        "to": 1388.9095251666668,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1388.650729125,
+            "uptime": 1388.675456875,
+            "sourceLine": 1344
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1388.7202920833333,
+            "uptime": 1388.7836603750002,
+            "sourceLine": 1357
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1388.7844172916668,
+            "uptime": 1388.7913779583334,
+            "sourceLine": 1361
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 69,
+            "uptime": 1388.717904375,
+            "sourceLine": 1353
+          },
+          {
+            "sequence": 70,
+            "uptime": 1388.8544120416668,
+            "sourceLine": 1370
+          },
+          {
+            "sequence": 71,
+            "uptime": 1388.9080141666668,
+            "sourceLine": 1379
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "CFAC1D12-53A8-40B1-B9F7-F1C97D74C32E",
+        "purpose": "hide",
+        "from": 1389.187111375,
+        "to": 1389.44514925,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1389.1880090833333,
+            "uptime": 1389.2042365416667,
+            "sourceLine": 1432
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1389.2624344583335,
+            "uptime": 1389.3106568333335,
+            "sourceLine": 1445
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1389.31135175,
+            "uptime": 1389.3254814166667,
+            "sourceLine": 1450
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 75,
+            "uptime": 1389.259413,
+            "sourceLine": 1441
+          },
+          {
+            "sequence": 76,
+            "uptime": 1389.3915956666667,
+            "sourceLine": 1461
+          },
+          {
+            "sequence": 77,
+            "uptime": 1389.4435789166666,
+            "sourceLine": 1470
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "3A5950F3-DB74-4C9A-9056-A0400986A0DB",
+        "purpose": "show",
+        "from": 1390.11125825,
+        "to": 1390.3680757500001,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1390.1121265416668,
+            "uptime": 1390.1261092083334,
+            "sourceLine": 1617
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1390.1741851250001,
+            "uptime": 1390.2508206250002,
+            "sourceLine": 1630
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1390.251528875,
+            "uptime": 1390.270003375,
+            "sourceLine": 1634
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 84,
+            "uptime": 1390.1718364166668,
+            "sourceLine": 1626
+          },
+          {
+            "sequence": 85,
+            "uptime": 1390.31948575,
+            "sourceLine": 1643
+          },
+          {
+            "sequence": 86,
+            "uptime": 1390.366786625,
+            "sourceLine": 1655
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "1A5A66DF-B744-42A1-8538-EE4DA5FE99E2",
+        "purpose": "hide",
+        "from": 1390.7183267916666,
+        "to": 1391.2189181666668,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1390.7189834583335,
+            "uptime": 1390.7398105833333,
+            "sourceLine": 1708
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1390.7879250833334,
+            "uptime": 1390.8444264166667,
+            "sourceLine": 1721
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1390.846116125,
+            "uptime": 1390.8759499583334,
+            "sourceLine": 1725
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 90,
+            "uptime": 1390.784961625,
+            "sourceLine": 1717
+          }
+        ],
+        "postWitnessCount": 0,
+        "ended": true
+      },
+      {
+        "scope": "EFE7940C-D9E9-4F20-9E05-009500DBCADB",
+        "purpose": "hide",
+        "from": 1396.19395875,
+        "to": 1397.9339568333335,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1396.1949142916667,
+            "uptime": 1396.1983044166668,
+            "sourceLine": 2032
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1396.9610429166667,
+            "uptime": 1397.161599125,
+            "sourceLine": 2054
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1397.16820925,
+            "uptime": 1397.21091225,
+            "sourceLine": 2058
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 6,
+            "uptime": 1396.9426452083335,
+            "sourceLine": 2047
+          },
+          {
+            "sequence": 7,
+            "uptime": 1397.5594565833335,
+            "sourceLine": 2070
+          },
+          {
+            "sequence": 8,
+            "uptime": 1397.9310125416669,
+            "sourceLine": 2082
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "7457079F-EF62-4C86-A12E-6FF4E132E671",
+        "purpose": "hide",
+        "from": 1397.94438625,
+        "to": 1399.3504961666667,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1397.9458808333334,
+            "uptime": 1397.9652267083334,
+            "sourceLine": 2089
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1398.316291375,
+            "uptime": 1398.629295375,
+            "sourceLine": 2108
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1398.6306226250001,
+            "uptime": 1398.6485488750002,
+            "sourceLine": 2112
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 9,
+            "uptime": 1398.3118481666668,
+            "sourceLine": 2101
+          },
+          {
+            "sequence": 10,
+            "uptime": 1399.1588363750002,
+            "sourceLine": 2127
+          },
+          {
+            "sequence": 11,
+            "uptime": 1399.348321125,
+            "sourceLine": 2141
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "CEF0C312-4FD8-4FB5-BB81-0DC47E7789CF",
+        "purpose": "show",
+        "from": 1401.4507328333334,
+        "to": 1402.4641409166668,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1401.4631671250002,
+            "uptime": 1401.5094422083334,
+            "sourceLine": 2283
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1401.81407525,
+            "uptime": 1401.972924375,
+            "sourceLine": 2302
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1401.98008925,
+            "uptime": 1402.0009385,
+            "sourceLine": 2306
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 17,
+            "uptime": 1401.8001786666669,
+            "sourceLine": 2295
+          },
+          {
+            "sequence": 18,
+            "uptime": 1402.2988630416667,
+            "sourceLine": 2318
+          },
+          {
+            "sequence": 19,
+            "uptime": 1402.4618405833335,
+            "sourceLine": 2327
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "5FF5C0E1-0EC4-4BB9-A8C5-AD669F599102",
+        "purpose": "hide",
+        "from": 1403.7834954166667,
+        "to": 1404.86706075,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1403.7964551666666,
+            "uptime": 1403.831739375,
+            "sourceLine": 2417
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1404.0637952083334,
+            "uptime": 1404.2264037500001,
+            "sourceLine": 2433
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1404.2289601666666,
+            "uptime": 1404.250154625,
+            "sourceLine": 2437
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 23,
+            "uptime": 1404.0600463750002,
+            "sourceLine": 2429
+          },
+          {
+            "sequence": 24,
+            "uptime": 1404.5957469166667,
+            "sourceLine": 2449
+          },
+          {
+            "sequence": 25,
+            "uptime": 1404.8645225833334,
+            "sourceLine": 2463
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "85A2FF17-6BDA-4B86-9A96-988F37D0F4A7",
+        "purpose": "show",
+        "from": 1405.9327088333334,
+        "to": 1406.5505814583335,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1405.9341204166667,
+            "uptime": 1405.9778370000001,
+            "sourceLine": 2595
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1406.0805224166668,
+            "uptime": 1406.1922714583334,
+            "sourceLine": 2611
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1406.196880875,
+            "uptime": 1406.225529125,
+            "sourceLine": 2615
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 31,
+            "uptime": 1406.0778038333335,
+            "sourceLine": 2604
+          },
+          {
+            "sequence": 32,
+            "uptime": 1406.3982443333334,
+            "sourceLine": 2624
+          },
+          {
+            "sequence": 33,
+            "uptime": 1406.5490405833334,
+            "sourceLine": 2636
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "9FBB18FB-51B8-4500-841F-0DC6BFABD36C",
+        "purpose": "hide",
+        "from": 1407.4250435416668,
+        "to": 1408.3318400833334,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1407.4263532083335,
+            "uptime": 1407.4445094583334,
+            "sourceLine": 2692
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1407.679742125,
+            "uptime": 1407.8257238333333,
+            "sourceLine": 2709
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1407.8266447083333,
+            "uptime": 1407.8408765833335,
+            "sourceLine": 2715
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 37,
+            "uptime": 1407.6628794583335,
+            "sourceLine": 2704
+          },
+          {
+            "sequence": 38,
+            "uptime": 1408.0917624583335,
+            "sourceLine": 2724
+          },
+          {
+            "sequence": 39,
+            "uptime": 1408.3300114583335,
+            "sourceLine": 2736
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "D4CA6A31-FD3D-430F-A1AE-00081883896F",
+        "purpose": "show",
+        "from": 1410.1005810000001,
+        "to": 1411.5692994583335,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1410.1115385,
+            "uptime": 1410.1918627083335,
+            "sourceLine": 2887
+          },
+          {
+            "operation": 4,
+            "status": 0,
+            "requestStartUptime": 1410.4988042500001,
+            "uptime": 1410.682202375,
+            "sourceLine": 2906
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1410.6943501666667,
+            "uptime": 1410.7193700833334,
+            "sourceLine": 2910
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 46,
+            "uptime": 1410.481065875,
+            "sourceLine": 2899
+          },
+          {
+            "sequence": 47,
+            "uptime": 1411.0465141666668,
+            "sourceLine": 2922
+          },
+          {
+            "sequence": 48,
+            "uptime": 1411.550027125,
+            "sourceLine": 2934
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      },
+      {
+        "scope": "7911A1EF-6C5D-48BD-993C-877E29B83B2C",
+        "purpose": "hide",
+        "from": 1413.1119747916669,
+        "to": 1414.4994082083333,
+        "workerOperations": [
+          {
+            "operation": 6,
+            "status": 0,
+            "requestStartUptime": 1413.1148593750002,
+            "uptime": 1413.1654572916668,
+            "sourceLine": 3024
+          },
+          {
+            "operation": 3,
+            "status": 0,
+            "requestStartUptime": 1413.546448125,
+            "uptime": 1413.676377125,
+            "sourceLine": 3040
+          },
+          {
+            "operation": 2,
+            "status": 0,
+            "requestStartUptime": 1413.68053675,
+            "uptime": 1413.7019495000002,
+            "sourceLine": 3044
+          }
+        ],
+        "fullWitnesses": [
+          {
+            "sequence": 52,
+            "uptime": 1413.5295746250001,
+            "sourceLine": 3036
+          },
+          {
+            "sequence": 53,
+            "uptime": 1414.047988,
+            "sourceLine": 3056
+          },
+          {
+            "sequence": 54,
+            "uptime": 1414.494868625,
+            "sourceLine": 3068
+          }
+        ],
+        "postWitnessCount": 2,
+        "ended": true
+      }
+    ],
+    "limits": "Correlation uses actual monotonic intervals. Worker records do not carry the scope token; journal after-image writes have no separate timestamped trace. A scope ending alone is not a successful commit."
+  },
+  "firstNonInputSafetyInterruption": {
+    "trigger": {
+      "disposition": "system",
+      "eligible": false,
+      "event": "independentStageProduct",
+      "evidence": "missingOrUnboundedDockChildren",
+      "missionControl": "unknown",
+      "phase": "system-window-ownership",
+      "previousEligible": true,
+      "readEnd": 1391.2177835833334,
+      "readStart": 1391.0969345416668,
+      "stopped": false,
+      "suspended": false,
+      "systemManagesWindows": false,
+      "uptime": 1391.218572125,
+      "wallpaperAwaitingOrdinary": false,
+      "wallpaperHeld": false,
+      "sourceLine": 1731
+    },
+    "dockPoll": {
+      "event": "independentStageProduct",
+      "evidence": "missingOrUnboundedDockChildren",
+      "generation": "2FE592B0-8CEA-4C87-A13E-EA6F345D21DD",
+      "hostPresent": true,
+      "phase": "dispatch-dock-poll-completed",
+      "readEnd": 1391.2177835833334,
+      "readStart": 1391.0969345416668,
+      "requestID": "1E5D462D-D7FC-43DE-A237-F251AC5D706E",
+      "requestStart": 1391.0957102500001,
+      "sameGeneration": true,
+      "taskPriority": 25,
+      "uptime": 1391.2183192083335,
+      "visibility": "unknown",
+      "sourceLine": 1730
+    },
+    "scopeEnd": {
+      "drained": true,
+      "durationMS": 500.7840833332011,
+      "epoch": "0F32FC9F-1D40-44E7-9A81-37AF652F7B07",
+      "event": "independentStageProduct",
+      "phase": "metadata-scope-ended",
+      "purpose": "hide",
+      "scope": "1A5A66DF-B744-42A1-8538-EE4DA5FE99E2",
+      "uptime": 1391.2189181666668,
+      "sourceLine": 1732
+    },
+    "readerReaped": {
+      "event": "independentStageProduct",
+      "phase": "desktop-overview-reader-reaped",
+      "pid": 51889,
+      "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+      "uptime": 1391.2337878333335,
+      "sourceLine": 1733
+    },
+    "readTaskExit": {
+      "completed": false,
+      "durationMS": 813.8158750000457,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0,
+      "observeDirectoryMS": 0,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 813.1205833333297,
+      "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+      "receivedReply": false,
+      "remainingProcessingMS": 0.6952916667160025,
+      "requestRevision": 208,
+      "sidebarHistoryMS": 0,
+      "step": "reader-epoch-check",
+      "taskCreatedUptime": 1390.8804669583335,
+      "taskPriority": 25,
+      "taskQueueMS": 0.7292083332686161,
+      "taskStartedUptime": 1390.8811961666668,
+      "uptime": 1391.6951056666667,
+      "sourceLine": 1735
+    },
+    "witnessRejection": {
+      "bindings": 3,
+      "claims": 2,
+      "durationMS": 830.2385416666311,
+      "event": "independentStageProduct",
+      "phase": "witness-read-rejected",
+      "pid": 0,
+      "sequence": 90,
+      "step": "fresh-directory",
+      "unchangedPermitTiming": {
+        "count": 0,
+        "maxMS": 0,
+        "nestedInPhaseDurations": true,
+        "totalMS": 0
+      },
+      "uptime": 1391.7096547083333,
+      "window": 0,
+      "sourceLine": 1738
+    },
+    "ordinaryObservationReturned": {
+      "disposition": "ordinary",
+      "eligible": true,
+      "event": "independentStageProduct",
+      "evidence": "signedDockAXListWithoutMC",
+      "missionControl": "ordinary",
+      "phase": "system-window-ownership",
+      "previousEligible": false,
+      "readEnd": 1391.7079742083333,
+      "readStart": 1391.7069287916668,
+      "stopped": false,
+      "suspended": false,
+      "systemManagesWindows": false,
+      "uptime": 1391.7104699583333,
+      "wallpaperAwaitingOrdinary": false,
+      "wallpaperHeld": false,
+      "sourceLine": 1741
+    },
+    "recovery": {
+      "cancelled": false,
+      "completedPollCount": 28,
+      "detail": 225,
+      "durationMS": 391.68912500008446,
+      "epoch": 2,
+      "event": "spacesHostLifecycle",
+      "flags": 32,
+      "intent": "B8461872-EC22-4DEB-A69D-5BCD35FE4A7B",
+      "maxPollQueueMS": 0.0128333333577757,
+      "operation": 13,
+      "owned": 0,
+      "phase": "worker-request-exit",
+      "pollCount": 28,
+      "pollPriorities": [
+        25
+      ],
+      "requestedPriority": 25,
+      "requestStartUptime": 1391.7361679166668,
+      "returnPriority": 25,
+      "status": 0,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1392.1279665833333,
+      "waitPriorities": [
+        25
+      ],
+      "sourceLine": 1754
+    },
+    "interpretation": "The Dock observation first became unknown (missingOrUnboundedDockChildren). This is a safety revocation, not a moved timeout. The pending full witness did not complete after its metadata scope ended. Original owned windows were returned by the original release path; later real input opened a new worker generation. The subsequently incomplete revision 209 was observed during that return and cannot be the earlier cause."
+  },
+  "finalJoinFailure": {
+    "receiptStatus": "FAIL",
+    "receiptReason": "interrupted",
+    "groupMergeSplit": "FAIL",
+    "selectionSettledBeforeJoin": {
+      "exactMember": true,
+      "group": "B2D0D443-0B50-47F8-AA71-DFFD72B0F50F",
+      "navigationIdle": true,
+      "navigationIssue": "none",
+      "newSelection": true,
+      "originalDeadlineUptime": 1416.3782049166668,
+      "phase": "R4SelectionSettled",
+      "pressToSettlementMS": 7350.451708333139,
+      "sameOwnershipEpoch": true,
+      "sameSelection": true,
+      "selectedMember": "FB36B1FD-DBFB-433E-95CD-3C004A9A8E38",
+      "selection": "9DB35C65-9E78-42F7-A509-E76054A947B5",
+      "step": "singletonCycle/9",
+      "uptime": 1415.728678125,
+      "verifiedActive": true,
+      "window": 54
+    },
+    "normalReleaseBeforeEdit": {
+      "cancelled": false,
+      "completedPollCount": 30,
+      "detail": 225,
+      "durationMS": 365.7729166666286,
+      "epoch": 2,
+      "event": "spacesHostLifecycle",
+      "flags": 32,
+      "intent": "1A56EFBC-AE28-4681-917A-C8D75E269579",
+      "maxPollQueueMS": 0.025583333354006754,
+      "operation": 13,
+      "owned": 0,
+      "phase": "worker-request-exit",
+      "pollCount": 30,
+      "pollPriorities": [
+        21
+      ],
+      "requestedPriority": 21,
+      "requestStartUptime": 1415.8353695833334,
+      "returnPriority": 21,
+      "status": 0,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1416.2013173333335,
+      "waitPriorities": [
+        21
+      ],
+      "sourceLine": 3166
+    },
+    "afterActionResults": [
+      {
+        "boundaryDate": 1795855672.8264542,
+        "boundaryRevision": 347,
+        "boundaryUptime": 1416.3113131250002,
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 202.69254166646533,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "freshReadMS": 0,
+        "hadPrior": true,
+        "pendingRead": false,
+        "phase": "after-action-directory-read",
+        "priorNativeBeganUptime": 1416.3294465000001,
+        "priorRevision": 347,
+        "priorSampledFrom": 1795855672.844588,
+        "priorWaitMS": 202.4218333333465,
+        "receivedRevision": 347,
+        "reusedPrior": true,
+        "revision": 347,
+        "step": "complete",
+        "uptime": 1416.5141154166668,
+        "sourceLine": 3173
+      },
+      {
+        "boundaryDate": 1795855673.0294828,
+        "boundaryRevision": 347,
+        "boundaryUptime": 1416.514343,
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 265.2208333333874,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "freshReadMS": 265.21275000004607,
+        "freshRequestedUptime": 1416.5143445833335,
+        "hadPrior": false,
+        "pendingRead": false,
+        "phase": "after-action-directory-read",
+        "priorWaitMS": 0,
+        "receivedRevision": 348,
+        "reusedPrior": false,
+        "revision": 348,
+        "step": "complete",
+        "uptime": 1416.7796677916667,
+        "sourceLine": 3206
+      },
+      {
+        "boundaryDate": 1795855673.295058,
+        "boundaryRevision": 348,
+        "boundaryUptime": 1416.779917625,
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 421.2001250000412,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "freshReadMS": 421.19675000003554,
+        "freshRequestedUptime": 1416.779919,
+        "hadPrior": false,
+        "pendingRead": false,
+        "phase": "after-action-directory-read",
+        "priorWaitMS": 0,
+        "receivedRevision": 349,
+        "reusedPrior": false,
+        "revision": 349,
+        "step": "complete",
+        "uptime": 1417.2013742916668,
+        "sourceLine": 3214
+      }
+    ],
+    "finalIncompleteRead": {
+      "completed": true,
+      "durationMS": 269.21120833344503,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0.1869999998689309,
+      "incompleteCatalog": {
+        "catalogComplete": false,
+        "catalogIssueCount": 2,
+        "catalogIssues": [
+          "windowRosterChanged",
+          "windowIdentityOrBounds:pid=51016,window=112"
+        ],
+        "catalogIssuesTruncated": false,
+        "catalogIssueWindows": [
+          {
+            "issueIndex": 1,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 112,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795855612457389,
+              "frame": {
+                "height": 20,
+                "width": 66,
+                "x": 686,
+                "y": 392
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 51016,
+              "reportedOnscreen": true
+            }
+          }
+        ]
+      },
+      "nativeAgeOnReturnMS": 265.6747500000165,
+      "nativeBeganUptime": 1416.8496075,
+      "nativeBeginAfterRequestMS": 1.7282916667227255,
+      "nativeDurationMS": 149.77345833335676,
+      "nativeEndedUptime": 1416.9993809583334,
+      "nativeEndToReturnMS": 115.90129166665974,
+      "observeDirectoryMS": 0.020624999933716026,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 267.4030416667392,
+      "readerAwaitStartedUptime": 1416.8478792083333,
+      "readerReturnedUptime": 1417.11528225,
+      "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+      "receivedReply": true,
+      "remainingProcessingMS": 1.6005416669031547,
+      "requestRevision": 349,
+      "sidebarHistoryMS": 0,
+      "step": "complete",
+      "taskCreatedUptime": 1416.78011225,
+      "taskPriority": 17,
+      "taskQueueMS": 67.11350000000493,
+      "taskStartedUptime": 1416.84722575,
+      "uptime": 1417.1165160833334,
+      "sourceLine": 3212
+    },
+    "finalActionReturn": {
+      "boundaryDate": 1795855673.295058,
+      "boundaryRevision": 348,
+      "boundaryUptime": 1416.779917625,
+      "cancelled": false,
+      "completed": true,
+      "durationMS": 421.2001250000412,
+      "epochMatches": true,
+      "event": "independentStageProduct",
+      "freshReadMS": 421.19675000003554,
+      "freshRequestedUptime": 1416.779919,
+      "hadPrior": false,
+      "pendingRead": false,
+      "phase": "after-action-directory-read",
+      "priorWaitMS": 0,
+      "receivedRevision": 349,
+      "reusedPrior": false,
+      "revision": 349,
+      "step": "complete",
+      "uptime": 1417.2013742916668,
+      "sourceLine": 3214
+    },
+    "adequateRejectingGuard": "StageWindowEngineHost.prepareHeldGroupEdit requires witness.homeCatalog(fresh) != nil after its final readAfterAction. Revision 349 is catalogComplete=false and is sufficient for rejection. There is no dedicated per-guard trace to rule out simultaneous current() invalidation.",
+    "producerDistinction": "Revision 347 reused an existing complete pending producer whose native sample began after the action boundary. Revision 348 was a new complete read; revision 349 was the last new read. Do not describe all three as newly created producers.",
+    "planApplication": "IndependentStageGroupEditing.perform calls Plan.apply only after prepareHeldGroupEdit returns. The retained directory still has three singleton groups; no successful crossAppJoin/groupSplit event exists.",
+    "observedUnknownSurface": "Window 112 belongs to FixtureB PID 51016. Only the second CG observation includes it, with frame 66x20; no first membership or AX role proof exists. Its functional role is not identified.",
+    "subsequentGates": {
+      "R4ProductPath": {
+        "runtimeSummary": "FAIL",
+        "productReceipt": null
+      },
+      "groupMergeSplit": {
+        "runtimeSummary": "FAIL",
+        "productReceipt": "FAIL"
+      },
+      "yellowButtonRouting": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "nativeDesktopReveal": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "nativeDesktopSwitch": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "nativeFullScreen": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "missionControl": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "appExpose": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "desktopGestures": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "fullScreenSplitView": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "newWindowLifecycle": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "windowCloseLifecycle": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "applicationExitLifecycle": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "coldHiddenPreview": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "hostCrashRecovery": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": "NOT_RUN"
+      },
+      "platformForeignMechanism": {
+        "runtimeSummary": "NOT_RUN",
+        "productReceipt": null
+      },
+      "exactTargetEngine": {
+        "runtimeSummary": "NOT_PROVEN",
+        "productReceipt": null
+      }
+    }
+  },
+  "latency": {
+    "physicalLatenciesMS": [
+      1623.1553749998966,
+      2227.5091666665503,
+      1399.3289166667182,
+      1469.053791666738,
+      1019.7035416667859,
+      1807.5209999999515,
+      5729.58979166674,
+      5015.37733333339,
+      3215.972625000177,
+      5319.408124999882
+    ],
+    "physicalMedianMS": 2017.515083333251,
+    "lateClicks": [
+      {
+        "step": "singletonCycle/6",
+        "inputUptime": 1392.84533975,
+        "physicalDoubleReadUptime": 1398.5749295416667,
+        "physicalLatencyMS": 5729.58979166674,
+        "completeWitnessEnvelopesIntersectingClick": 9,
+        "clippedWitnessElapsedMS": 3700.923375000002,
+        "largestWitnessEnvelopes": [
+          {
+            "sourceLine": 2047,
+            "sequence": 6,
+            "from": 1396.2097929583335,
+            "to": 1396.9426452083335,
+            "fullDurationMS": 732.8522499999508,
+            "overlapMS": 732.8522499999508
+          },
+          {
+            "sourceLine": 2025,
+            "sequence": 5,
+            "from": 1395.6942951666667,
+            "to": 1396.1834920000001,
+            "fullDurationMS": 489.1968333333807,
+            "overlapMS": 489.1968333333807
+          },
+          {
+            "sourceLine": 1868,
+            "sequence": 1,
+            "from": 1393.0336685416667,
+            "to": 1393.4334902916667,
+            "fullDurationMS": 399.821750000001,
+            "overlapMS": 399.821750000001
+          }
+        ],
+        "largestPreTaskRecord": {
+          "auditCreationMS": 0.001249999968422344,
+          "creatorPriority": 25,
+          "dispatching": true,
+          "event": "independentStageProduct",
+          "metadataAdmittedUptime": 1395.333953625,
+          "phase": "desktop-read-task-created",
+          "preTaskCreationMS": 14.1235416665495,
+          "readCallStartedUptime": 1395.3339530833334,
+          "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+          "requestConstructionMS": 0.0009166665222437587,
+          "requestRevision": 227,
+          "sessionAvailabilityMS": 14.106041666764213,
+          "taskCreatedUptime": 1395.348076625,
+          "uptime": 1395.3482415,
+          "sourceLine": 1997
+        }
+      },
+      {
+        "step": "singletonCycle/7",
+        "inputUptime": 1399.196996875,
+        "physicalDoubleReadUptime": 1404.2123742083334,
+        "physicalLatencyMS": 5015.37733333339,
+        "completeWitnessEnvelopesIntersectingClick": 13,
+        "clippedWitnessElapsedMS": 3612.9776249997576,
+        "largestWitnessEnvelopes": [
+          {
+            "sourceLine": 2231,
+            "sequence": 14,
+            "from": 1400.0805308333336,
+            "to": 1400.5166045,
+            "fullDurationMS": 436.07366666651615,
+            "overlapMS": 436.07366666651615
+          },
+          {
+            "sourceLine": 2380,
+            "sequence": 20,
+            "from": 1402.6316919583335,
+            "to": 1403.0293450416668,
+            "fullDurationMS": 397.6530833333527,
+            "overlapMS": 397.6530833333527
+          },
+          {
+            "sourceLine": 2246,
+            "sequence": 15,
+            "from": 1400.548825625,
+            "to": 1400.9006209583333,
+            "fullDurationMS": 351.7953333332571,
+            "overlapMS": 351.7953333332571
+          }
+        ],
+        "largestPreTaskRecord": {
+          "auditCreationMS": 0.001249999968422344,
+          "creatorPriority": 25,
+          "dispatching": true,
+          "event": "independentStageProduct",
+          "metadataAdmittedUptime": 1401.6677278333334,
+          "phase": "desktop-read-task-created",
+          "preTaskCreationMS": 10.901249999960783,
+          "readCallStartedUptime": 1401.6677272083334,
+          "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+          "requestConstructionMS": 0.00041666658034955617,
+          "requestRevision": 256,
+          "sessionAvailabilityMS": 10.882791666745106,
+          "taskCreatedUptime": 1401.6786284583334,
+          "uptime": 1401.67874725,
+          "sourceLine": 2291
+        }
+      },
+      {
+        "step": "singletonCycle/8",
+        "inputUptime": 1404.7516080833332,
+        "physicalDoubleReadUptime": 1407.9675807083333,
+        "physicalLatencyMS": 3215.972625000177,
+        "completeWitnessEnvelopesIntersectingClick": 14,
+        "clippedWitnessElapsedMS": 2202.8725833345106,
+        "largestWitnessEnvelopes": [
+          {
+            "sourceLine": 2673,
+            "sequence": 35,
+            "from": 1406.9671974583334,
+            "to": 1407.1995485833334,
+            "fullDurationMS": 232.35112499992283,
+            "overlapMS": 232.35112499992283
+          },
+          {
+            "sourceLine": 2704,
+            "sequence": 37,
+            "from": 1407.445436375,
+            "to": 1407.6628794583335,
+            "fullDurationMS": 217.44308333336448,
+            "overlapMS": 217.44308333336448
+          },
+          {
+            "sourceLine": 2685,
+            "sequence": 36,
+            "from": 1407.2093864583335,
+            "to": 1407.4155291666668,
+            "fullDurationMS": 206.14270833334558,
+            "overlapMS": 206.14270833334558
+          }
+        ],
+        "largestPreTaskRecord": {
+          "auditCreationMS": 0.0010000001111620804,
+          "creatorPriority": 25,
+          "dispatching": true,
+          "event": "independentStageProduct",
+          "metadataAdmittedUptime": 1406.6452744166668,
+          "phase": "desktop-read-task-created",
+          "preTaskCreationMS": 0.48404166659565817,
+          "readCallStartedUptime": 1406.6452737500001,
+          "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+          "requestConstructionMS": 0.0005416666226665257,
+          "requestRevision": 293,
+          "sessionAvailabilityMS": 0.470416666530582,
+          "taskCreatedUptime": 1406.6457577916667,
+          "uptime": 1406.6458757500002,
+          "sourceLine": 2647
+        }
+      },
+      {
+        "step": "singletonCycle/9",
+        "inputUptime": 1408.3782115000001,
+        "physicalDoubleReadUptime": 1413.697619625,
+        "physicalLatencyMS": 5319.408124999882,
+        "completeWitnessEnvelopesIntersectingClick": 13,
+        "clippedWitnessElapsedMS": 3800.362083332857,
+        "largestWitnessEnvelopes": [
+          {
+            "sourceLine": 2934,
+            "sequence": 48,
+            "from": 1411.0482442500002,
+            "to": 1411.550027125,
+            "fullDurationMS": 501.7828749998898,
+            "overlapMS": 501.7828749998898
+          },
+          {
+            "sourceLine": 3014,
+            "sequence": 51,
+            "from": 1412.6628220833334,
+            "to": 1413.0991164166667,
+            "fullDurationMS": 436.2943333333078,
+            "overlapMS": 436.2943333333078
+          },
+          {
+            "sourceLine": 2984,
+            "sequence": 49,
+            "from": 1411.7116889583335,
+            "to": 1412.0821007916668,
+            "fullDurationMS": 370.41183333326444,
+            "overlapMS": 370.41183333326444
+          }
+        ],
+        "largestPreTaskRecord": {
+          "auditCreationMS": 0.0010416665645607281,
+          "creatorPriority": 25,
+          "dispatching": true,
+          "event": "independentStageProduct",
+          "metadataAdmittedUptime": 1410.73386475,
+          "phase": "desktop-read-task-created",
+          "preTaskCreationMS": 9.496499999841035,
+          "readCallStartedUptime": 1410.7338636250001,
+          "readSession": "96B41B4D-4040-407C-B0A7-A31AC9099C87",
+          "requestConstructionMS": 0.0005833333034388488,
+          "requestRevision": 321,
+          "sessionAvailabilityMS": 9.478208333348448,
+          "taskCreatedUptime": 1410.743360125,
+          "uptime": 1410.7434784166667,
+          "sourceLine": 2911
+        }
+      }
+    ],
+    "allReadCreationStatisticsMS": {
+      "preTaskCreationMS": {
+        "count": 350,
+        "minimum": 0.09179166659123439,
+        "median": 0.17610416671232088,
+        "p95NearestRank": 1.560708333272487,
+        "maximum": 80.0307916665588
+      },
+      "sessionAvailabilityMS": {
+        "count": 350,
+        "minimum": 0.08579166660638293,
+        "median": 0.16558333334160125,
+        "p95NearestRank": 1.5451666668013786,
+        "maximum": 80.00987499985968
+      },
+      "auditCreationMS": {
+        "count": 350,
+        "minimum": 0.00016666672308929265,
+        "median": 0.0007500000265281415,
+        "p95NearestRank": 0.0014166666915116366,
+        "maximum": 0.032250000003841706
+      },
+      "requestConstructionMS": {
+        "count": 350,
+        "minimum": 0.00012499981494329404,
+        "median": 0.00045833326112187933,
+        "p95NearestRank": 0.0008750000688451109,
+        "maximum": 0.0014583333722839598
+      }
+    },
+    "maximumWorkerPollQueueMS": 0.18100000011145312,
+    "limits": "The broad witness intervals include existing role IPC, permission reads and actor resumption. Nested timings are not summed into the same elapsed interval. No sampled CPU data identifies a unique scheduler or native cause."
+  },
+  "cleanup": {
+    "hostReleased": true,
+    "externalTwoHomeReadbacks": true,
+    "ownedAtBothWorkerClose": [
+      0,
+      0
+    ],
+    "productCleanup": true,
+    "fixtures": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "workspace": {
+      "cleanup": true,
+      "created": {
+        "id": 12,
+        "type": 0,
+        "uuid": "56560F91-FB0C-24A6-ECB6-2C61DE238630"
+      },
+      "current": 1,
+      "currentHasSystemUUID": false,
+      "directWindowOperations": 0,
+      "lastRecordedStep": "issued:closeMissionControl",
+      "originalCurrent": 1,
+      "phase": "cleaned",
+      "physicalGestureClaimed": false,
+      "process": {
+        "exit": 0,
+        "log": "ci-workspace-cleanup.log",
+        "status": "PASS",
+        "stderr": "ci-workspace-cleanup.stderr.log"
+      },
+      "qualificationGranted": false,
+      "schema": 1,
+      "status": "READY",
+      "systemInputs": 11
+    }
+  }
+}

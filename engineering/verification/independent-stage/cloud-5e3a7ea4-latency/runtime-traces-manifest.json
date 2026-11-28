@@ -1,0 +1,308 @@
+{
+  "schema": 1,
+  "purpose": "Unmodified selected original R4 evidence; no binaries or generated window fixture inventories. Derived comparisons are separate.",
+  "baselineCommit": "d614f58d06b4a23cda3ae6d381ff59fb31ca414d",
+  "currentCommit": "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+  "members": [
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "06b9dd964db65f4199d50e772f512b143acc0fee99d09753de0c15472b053b35"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 883,
+      "sha256": "3f5c54e3d56510007a2045a17cddcb3cfdff5f64eda0e7aaf1305d5dbaeab0c8"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 342933,
+      "sha256": "b7f56d6ed48373f182a3da7a171d9aab8f4ab89819e14bf3c8e0e7532e5fa40d"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 94,
+      "sha256": "9e3cf962453383bf8227c0e329d7625d38be05c58633d0c7ca7751479a7acf09"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1065,
+      "sha256": "d08ba65cd90af1f63733d5555c80373c901abc657c29856cd693c326212e37ab"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 491,
+      "sha256": "81173ae03248884154e48630983008455511a8037ec3ddaa9992540df2ba59fb"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 222815,
+      "sha256": "1581f146a4f335e50a3a5e7590e0733a54e95fdc66f1aa9f729e6a2b9db1083d"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-6d8da504-c081-48b4-a7de-f902e6440d4c.jsonl",
+      "bytes": 53511,
+      "sha256": "762eabd76da375fffe6276113cb0cefb580ab60225d6b5e11a747871b8f59f31"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/r4-press-0298e14d-e55c-4e22-ba2c-0dacef3929cf.result.json",
+      "bytes": 3676,
+      "sha256": "243e7e4f140f71363f74e51e77afa2f621f1530ee5488e477139442cc527a32a"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/r4-press-5f991faf-c190-4da3-957f-83d907f61d46.result.json",
+      "bytes": 4456,
+      "sha256": "634916f3e830c2b1c9e8d3ad5a13b8ae21bda4be13d6d12a0a2e0bd05651a1ed"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product/r4-press-a102d946-8b79-4a23-bcd4-d5aa3178dd2e.result.json",
+      "bytes": 3773,
+      "sha256": "26093c5096e4b2f8e5a94507e36d4d389c5bc5e45e03eb2b7f4d87fb6180be6d"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 333898,
+      "sha256": "5baed8c8cde040eb816ea603b122c5628bb26a6480c20cd0ed5b38b357807aa5"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/runtime/summary.json",
+      "bytes": 35819,
+      "sha256": "60843f809dd6fa99e086afde007496bb8d3082e5eab643ef6995ca71ff5d649e"
+    },
+    {
+      "path": "5e3a/fast/independent-runtime/summary.json",
+      "bytes": 38747,
+      "sha256": "5839bf8f50e26fd8b445cbbd45cdf9eb856867853aff493b59d7867cbebdd843"
+    },
+    {
+      "path": "5e3a/full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "0dd526e1748e4d5d0de9c2e2b875cc34685d427adacd9823e48a06fc0115f335"
+    },
+    {
+      "path": "5e3a/full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "f3b050160acbfcf01ac9e04c98eb5f1817f4ed412f60af8630cf38212599d7d2"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "644c4500f98a70436e44ae2ad844f7bf370d864e296eb529f4775deed966845c"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-a4293e41-5c1a-45da-a8b1-25112a3c3185.jsonl",
+      "bytes": 51487,
+      "sha256": "ded62b1fceb10ddcb85f016a8b2c0194226cde2d7a5bdc8d0a0b02f63e58385b"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/r4-press-1bc8155a-b8a0-43f1-a155-4891f085206f.result.json",
+      "bytes": 3682,
+      "sha256": "dd9854bbd21efc222b4f107a1dd43a070c8101e31105ae75eeeba03e01327395"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product/r4-press-be9428a0-b804-4c8b-b57d-07dea7e453a0.result.json",
+      "bytes": 3774,
+      "sha256": "e75deaaa3b11a3efd9dab29c8f3ba2074b5ae35817889a9964ea77896d4a06f5"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 219626,
+      "sha256": "975111d60ec0fdcc55c3b65e268ee96e4485bdaa58e56bfd89e0a0beb0f2f832"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/runtime/summary.json",
+      "bytes": 32948,
+      "sha256": "8024ca3d8d99d5af54526f93cea67e946634309353d61795130dfed5d99ccf8b"
+    },
+    {
+      "path": "5e3a/full/independent-runtime/summary.json",
+      "bytes": 35671,
+      "sha256": "0fa76a9466c2087a38c4f1c4a45291c9362214c67f56b515270d1dd687c373fc"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "278c64aa111a547c6dcd6a2642d9b6b1fd45c170f2938583a05b500b44cf2b4d"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 880,
+      "sha256": "52e8536e203ae70561880397830d97487d58d26394aea8b930f2d699d3bd6bf6"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 332672,
+      "sha256": "93756968b4145dc46723b6aecdf6aea29e4873c5d64676228af044fba054dbfa"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 94,
+      "sha256": "9e3cf962453383bf8227c0e329d7625d38be05c58633d0c7ca7751479a7acf09"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1061,
+      "sha256": "20b5dd53ec1fbdc14e24f24ea7a078c60adb8b42599070dc0a497ca0a5e3acd8"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 489,
+      "sha256": "8d843a1291776091dfe945ce31d3f40fe58564af5a73388d52de6adfaa78473e"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 190999,
+      "sha256": "bf347cc58001c3f935ee858bcbbb38b56fc2203819892d3be6d6bf1094175017"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-8b34388f-48e2-4a91-a41e-90320fe644fb.jsonl",
+      "bytes": 58315,
+      "sha256": "eb5b4efe5f1776f99593dfd3cfc1703d23ae621c52fee093a1e7df6b7ddbb47f"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/r4-press-058bd4e8-3372-49b8-8d91-8ea73c434291.result.json",
+      "bytes": 3774,
+      "sha256": "747ddb5106a5ff316eec6c80b3a5568de225057f7febff2dc5e00f5cd3850038"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/r4-press-2ef3bd5f-7fa0-46a5-aa4e-3c2b45041856.result.json",
+      "bytes": 3774,
+      "sha256": "d8aec61646612d063a7c5fc28204101c53d0c06f9f978658af7c6c5ff0021674"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/r4-press-47923814-343a-4400-8a68-843557ff609f.result.json",
+      "bytes": 3774,
+      "sha256": "0e800ebe4837f699d2b2abd42ced87b11186bbe11d68c113c1c5249da96a86b0"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/r4-press-84a69d95-62f7-4709-b052-98feefaa2bdb.result.json",
+      "bytes": 3774,
+      "sha256": "c207affdd00895ca05c24a77a7fd7a2028c9485d2390fa112c88435475a7c881"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product/r4-press-dd56fdaf-6cf8-4a16-a894-1ed1ea3525c8.result.json",
+      "bytes": 3682,
+      "sha256": "ebe63c3aab79dbd7951b116428b52bffe33f57089b578662627f3fc1f84c8164"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 593879,
+      "sha256": "8d268ae59b2ffbd8f477ce5923c20baa60b7ece27846a73918690f2087f75bf6"
+    },
+    {
+      "path": "fast/independent-runtime/runtime/summary.json",
+      "bytes": 41906,
+      "sha256": "e94e17b919a042c810c1425e97f799ceb72cce2d55c02a322e81c423338c861f"
+    },
+    {
+      "path": "fast/independent-runtime/summary.json",
+      "bytes": 45234,
+      "sha256": "9ff33228847db43fd9ba7acaaaf608ec30c99cab00ef1edab0db57768fc6f56a"
+    },
+    {
+      "path": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "ccfc6e17a88f224b08c59aad5f6ec267db98b526e82417b7d93fc390aee50ab4"
+    },
+    {
+      "path": "full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "883cd8c6bc88bd3a8f32f8749b69e68f2944422ec2b2f206cabe55e273af7fc0"
+    },
+    {
+      "path": "full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "5ad3438f395182d6b9c384c104ef8b8afbe87686771a5db2cb558ad38f51c6ef"
+    },
+    {
+      "path": "full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-b3e8e584-6e2b-40fd-a9bc-82644beba321.jsonl",
+      "bytes": 54646,
+      "sha256": "970c4e40d8c1a88ebd61cc8a12e099cd3549ba673013653ed8ff6c423679e51d"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/r4-press-4c985e5a-dbfc-4013-8d69-975d279100d1.result.json",
+      "bytes": 4207,
+      "sha256": "d02a5163e340d2ca84704d324b049dfecffb5a6f876fea9f17f4e8a956a7d681"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/r4-press-e4ac1984-d56f-48fd-b9d8-dcf808a1f5dc.result.json",
+      "bytes": 3682,
+      "sha256": "e2038b6a49d920b09e6ba639618c2c2d58fc9c97063ce8eb97074af3339710e4"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 291068,
+      "sha256": "946cb80d6f1652aeb47798487651427934e7f4a0899d35e2a15b4545575b0514"
+    },
+    {
+      "path": "full/independent-runtime/runtime/summary.json",
+      "bytes": 33282,
+      "sha256": "fd5082d48436b0d11d1b6c4626654defc11095a157e72d476f4ed7005f9884bd"
+    },
+    {
+      "path": "full/independent-runtime/summary.json",
+      "bytes": 36035,
+      "sha256": "ecc61e0f9df790084f380ec557eec5cdf4575f67bc7283f0b955b2dab84e08c3"
+    }
+  ]
+}

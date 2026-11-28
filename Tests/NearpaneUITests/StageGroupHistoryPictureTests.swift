@@ -78,6 +78,44 @@ import Testing
         #expect(departure(lifetime:UUID()) == nil && departure(closing:snapshot(2,session:UUID())) == nil)
     }
 
+    @Test func historicalPixelsConsumeVerifiedHiddenStateAndRejectReturnOrChangedOwnership() throws {
+        let group = try #require(departure()), member = try #require(group.members.first)
+        var hidden = member.before
+        hidden.visibility = .stageSpace; hidden.hiddenSpaceID = 99
+        let claim = StageWindowEngineWitness.VisibilityClaim(backend: .spaces, frame: hidden.frame, member: 99)
+        func permits(_ state: StageWindowState, claim replacement: StageWindowEngineWitness.VisibilityClaim? = nil,
+                     epoch: UUID? = nil, home: UInt64 = 4, source: StageGroupScope? = nil) -> Bool {
+            let read = StageWindowSample(scope: source ?? scope, generation: epoch ?? generation, sequence: 3,
+                workArea: area, windows: [state.window: state], focus: nil, nativeID: home)
+            return StageWindowEngineWitness.confirmsHistoricalState(member, of: group, in: read, claim: replacement ?? claim)
+        }
+        #expect(permits(hidden))
+        // Repainting while a retained receiver is being read must use the
+        // completed sample. New visible/minimized states cannot keep old hides.
+        #expect(!permits(member.before))
+        var minimized = hidden; minimized.visibility = .minimized; minimized.hiddenSpaceID = nil
+        #expect(!permits(minimized))
+        var otherHide = hidden; otherHide.hiddenSpaceID = 100
+        #expect(!permits(otherHide))
+        var changedFrame = hidden; changedFrame.frame.x += 10
+        #expect(!permits(changedFrame))
+        let replacement = StageWindowState(window: hidden.window, lifetime: UUID(), frame: hidden.frame,
+            visibility: .stageSpace, hiddenSpaceID: 99)
+        #expect(!permits(replacement))
+        #expect(!permits(hidden, epoch: UUID()))
+        #expect(!permits(hidden, home: 5))
+        #expect(!permits(hidden, source: .init(display: UUID(), nativeSpace: scope.nativeSpace)))
+        #expect(!permits(hidden, claim: .init(backend: .corner, frame: hidden.frame, member: 4)))
+        var atHome = hidden; atHome.hiddenSpaceID = 4
+        #expect(!permits(atHome, claim: .init(backend: .spaces, frame: hidden.frame, member: 4)))
+
+        // Preserve the historical Corner evidence rule without promoting it to
+        // the production route or confusing a parked sliver with a hidden Space.
+        var parked = member.before; parked.visibility = .parked; parked.frame.x = -100
+        #expect(permits(parked, claim: .init(backend: .corner, frame: parked.frame, member: 4)))
+        #expect(!permits(parked, claim: .init(backend: .corner, frame: parked.frame, member: 5)))
+    }
+
     @Test func selectedHistoricalWindowMustStillBeTheSameParkedIncarnationOnTheSameDesktop() throws {
         let group = try #require(departure())
         let rear = try #require(group.members.first), stamp = group.stamp(for: rear)

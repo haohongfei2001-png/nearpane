@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "revision": "1e5d357a6649fc8afb64b97334769bc00eef9379",
+  "runID": 46109176116,
+  "jobID": 140868636446,
+  "sourceGate": "PASS",
+  "contextArtifact": {
+    "id": 15249420854,
+    "providerSHA256": "b05450fdcdc9109c4606dce44d97d8df2c5471695b07d1d49ba4cac94226cb4b",
+    "localSHA256": "b05450fdcdc9109c4606dce44d97d8df2c5471695b07d1d49ba4cac94226cb4b",
+    "zip": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/full-context.zip",
+    "directory": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/full-context"
+  },
+  "swift": {
+    "passed": 248,
+    "skipped": 1,
+    "reportedTotal": 249,
+    "suiteCount": 41,
+    "skippedCases": [
+      "\u279c Test observeSignedInactiveSiblingAcrossItsOwnMinimizeAndRestore() skipped."
+    ],
+    "readerFunctions": 9,
+    "readerCases": 10,
+    "readerResults": [
+      {
+        "name": "repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.025,
+        "logLine": "\u2714 Test repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies() passed after 6.025 seconds."
+      },
+      {
+        "name": "anotherFeedUsesANewChildAndRetiresThePreviousOne",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.002,
+        "logLine": "\u2714 Test anotherFeedUsesANewChildAndRetiresThePreviousOne() passed after 6.002 seconds."
+      },
+      {
+        "name": "malformedFrameCannotBeConsumedByTheNextRequest",
+        "status": "PASS",
+        "cases": 2,
+        "durationSeconds": 5.941,
+        "logLine": "\u2714 Test malformedFrameCannotBeConsumedByTheNextRequest(_:) with 2 test cases passed after 5.941 seconds."
+      },
+      {
+        "name": "cancellationDoesNotBlockTheMainActorAndReapsItsExactChild",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 5.988,
+        "logLine": "\u2714 Test cancellationDoesNotBlockTheMainActorAndReapsItsExactChild() passed after 5.988 seconds."
+      },
+      {
+        "name": "timeoutReapsChildAndDoesNotReturnAnyLateResponse",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.129,
+        "logLine": "\u2714 Test timeoutReapsChildAndDoesNotReturnAnyLateResponse() passed after 6.129 seconds."
+      },
+      {
+        "name": "cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.025,
+        "logLine": "\u2714 Test cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild() passed after 6.025 seconds."
+      },
+      {
+        "name": "unusedFeedReleasesItsChildAndTheNextReadStartsCleanly",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.131,
+        "logLine": "\u2714 Test unusedFeedReleasesItsChildAndTheNextReadStartsCleanly() passed after 6.131 seconds."
+      },
+      {
+        "name": "invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 6.041,
+        "logLine": "\u2714 Test invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect() passed after 6.041 seconds."
+      },
+      {
+        "name": "changedExecutableCannotStartANewReader",
+        "status": "PASS",
+        "cases": 1,
+        "durationSeconds": 5.842,
+        "logLine": "\u2714 Test changedExecutableCannotStartANewReader() passed after 5.842 seconds."
+      }
+    ],
+    "rawXMLVerified": true,
+    "xml": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/full/independent-source/source/swift.xml",
+      "sha256": "ebd0b5a85ba84e19e49bd4dd6aaa8780e6fd22f29a0f9b7a8932e749a282f8f2"
+    },
+    "xmlReaderCases": [
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "changedExecutableCannotStartANewReader()",
+        "time": "5.842942958"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "cancellationDoesNotBlockTheMainActorAndReapsItsExactChild()",
+        "time": "5.9881955"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "malformedFrameCannotBeConsumedByTheNextRequest(_:)",
+        "time": "5.941046334"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "timeoutReapsChildAndDoesNotReturnAnyLateResponse()",
+        "time": "6.129252542"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies()",
+        "time": "6.0257210830000005"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "unusedFeedReleasesItsChildAndTheNextReadStartsCleanly()",
+        "time": "6.131774458"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect()",
+        "time": "6.0410158329999994"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "anotherFeedUsesANewChildAndRetiresThePreviousOne()",
+        "time": "6.002329083"
+      },
+      {
+        "classname": "NearpaneUITests.DesktopOverviewReaderTests",
+        "name": "cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild()",
+        "time": "6.025458916"
+      }
+    ],
+    "xmlSkippedCases": [
+      {
+        "classname": "NearpaneUITests.NativeMinimizeFixtureTests",
+        "name": "observeSignedInactiveSiblingAcrossItsOwnMinimizeAndRestore()"
+      }
+    ],
+    "contextAndTerminalLogsIdentical": true
+  },
+  "rust": {
+    "summaryStatus": "PASS",
+    "summaryPassed": 180,
+    "rawLogVerified": true,
+    "rawPassed": 180,
+    "rawResultGroups": [
+      180,
+      0
+    ],
+    "rawLog": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/full/independent-source/source/rust.log",
+      "sha256": "316b3dc9a0a9a7acfe96827a8ca79813cda77ed59ab053b2d1196b65d05a46d8"
+    }
+  },
+  "bindingAttributes": {
+    "buildStatus": "PASS",
+    "runStatus": "PASS",
+    "expectedCases": 25,
+    "rawLogVerified": true,
+    "rawResult": {
+      "schema": 1,
+      "status": "PASS",
+      "passed": 25,
+      "failed": 0,
+      "windowWrites": 0
+    },
+    "rawLog": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/full/independent-source/source/binding-attributes.log",
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    }
+  },
+  "scope": "source only; product R4 and foreign-window dispatch NOT_RUN in this artifact"
+}

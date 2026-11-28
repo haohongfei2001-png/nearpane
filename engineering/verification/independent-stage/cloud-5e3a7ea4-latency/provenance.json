@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 16,
+  "createdUTC": "2026-11-28T04:39:06.322297+00:00",
+  "artifacts": [
+    {
+      "artifactID": 15224419622,
+      "artifactName": "nearpane-independent-stage-d614f58d06b4a23cda3ae6d381ff59fb31ca414d-r4-fast",
+      "runID": 46053112049,
+      "commit": "d614f58d06b4a23cda3ae6d381ff59fb31ca414d",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15224419622",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/fast.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/fast",
+      "downloadBytes": 24974296,
+      "downloadSHA256": "a57de9165f322616dc4ffdbdb601b115d2de57cb1f16622b31e361c6896e3cad",
+      "providerDigest": "sha256:a57de9165f322616dc4ffdbdb601b115d2de57cb1f16622b31e361c6896e3cad",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15225578868,
+      "artifactName": "nearpane-independent-stage-d614f58d06b4a23cda3ae6d381ff59fb31ca414d-full",
+      "runID": 46053112049,
+      "commit": "d614f58d06b4a23cda3ae6d381ff59fb31ca414d",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15225578868",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/full.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/full",
+      "downloadBytes": 53396644,
+      "downloadSHA256": "f4c5127fe9c4c8823cd89f74f50803f3198ea73cf255b2f47bfad0f10988b5c1",
+      "providerDigest": "sha256:f4c5127fe9c4c8823cd89f74f50803f3198ea73cf255b2f47bfad0f10988b5c1",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15247929617,
+      "artifactName": "nearpane-independent-stage-5e3a7ea4b0adceae401ef222a79f7d1887268324-r4-fast",
+      "runID": 46107341621,
+      "commit": "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15247929617",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/fast.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/fast",
+      "downloadBytes": 25014630,
+      "downloadSHA256": "ac7d9cdf4a37f880815297de6af04ef23d470e8c083d90aef6a50a35ac9f67cd",
+      "providerDigest": "sha256:ac7d9cdf4a37f880815297de6af04ef23d470e8c083d90aef6a50a35ac9f67cd",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15248466725,
+      "artifactName": "nearpane-independent-context-5e3a7ea4b0adceae401ef222a79f7d1887268324-full",
+      "runID": 46107341621,
+      "commit": "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15248466725",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/full-context.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/full-context",
+      "downloadBytes": 29523,
+      "downloadSHA256": "c7cef4f134229b22299778724880d92baae272fc5ff9440147942fc489de5ee6",
+      "providerDigest": "sha256:c7cef4f134229b22299778724880d92baae272fc5ff9440147942fc489de5ee6",
+      "digestMatches": true
+    },
+    {
+      "origin": "target Mac exact-head source gate supplied by root",
+      "commit": "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/target-source.zip",
+      "downloadBytes": 44044,
+      "downloadSHA256": "6c92bc93549730e2966cc015c7d43b403f82a10d006f3c82521bbaf616169cc5",
+      "artifactID": null
+    },
+    {
+      "artifactID": 15248825602,
+      "artifactName": "nearpane-independent-stage-5e3a7ea4b0adceae401ef222a79f7d1887268324-full",
+      "runID": 46107341621,
+      "commit": "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15248825602",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/full.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/full",
+      "downloadBytes": 53376716,
+      "downloadSHA256": "3bc57b5444fb3f42bd383e5da1a9fdd550aa2cf4fa7c44778b6ebe9588ca6080",
+      "providerDigest": "sha256:3bc57b5444fb3f42bd383e5da1a9fdd550aa2cf4fa7c44778b6ebe9588ca6080",
+      "digestMatches": true
+    }
+  ],
+  "derivatives": {
+    "comparison": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/comparison.json",
+    "recompute": "/workspace/scratch/519883d1dfd8/r4-audit/audit_compare.py",
+    "clickTimelines": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/click-timelines.json",
+    "recomputeClickTimelines": "/workspace/scratch/519883d1dfd8/r4-audit/audit_timeline.py"
+  },
+  "completedUTC": "2026-11-28T04:42:52.063954+00:00",
+  "selectedRawEvidence": {
+    "archivePath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/runtime-traces-d614-5e3a.tar.gz",
+    "archiveBytes": 504676,
+    "archiveSHA256": "81ecfff02a1d0d11a239aadb909d2ffc93450206451c0bb3402ee99c20482674",
+    "members": 60,
+    "manifestPath": "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/runtime-traces-manifest.json"
+  },
+  "dataFrozenUTC": "2026-11-28T04:43:43.995481+00:00"
+}

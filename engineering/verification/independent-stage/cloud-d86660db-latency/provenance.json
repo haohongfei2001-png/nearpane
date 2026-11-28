@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 16,
+  "runID": 46122156556,
+  "commit": "d86660db6c4091d7c708544d79cf14844688d907",
+  "tree": "0913831d4ad3fb45dc23798a5b571a4d1e0c7815",
+  "baselineCommit": "7aea52c55736ae7b0138b884eaa81b9d76db8ae1",
+  "frozenUTC": "2026-11-28T08:02:02.005965+00:00",
+  "artifacts": [
+    {
+      "lane": "fast",
+      "artifactID": 15253794677,
+      "name": "nearpane-independent-stage-d86660db6c4091d7c708544d79cf14844688d907-r4-fast",
+      "bytes": 25302536,
+      "providerDigest": "sha256:cc6bae338225806bf97ffb7e8bf8781026918f164509d9d1747e4f1d262d8f65",
+      "downloadedSHA256": "cc6bae338225806bf97ffb7e8bf8781026918f164509d9d1747e4f1d262d8f65",
+      "providerDigestVerified": true,
+      "workflowHead": "d86660db6c4091d7c708544d79cf14844688d907"
+    },
+    {
+      "lane": "full",
+      "artifactID": 15254253304,
+      "name": "nearpane-independent-stage-d86660db6c4091d7c708544d79cf14844688d907-full",
+      "bytes": 53569730,
+      "providerDigest": "sha256:e45f0ed9fdf4d2eb1ca0e3b1133bd373cf1667381b2e30bc9d49d6f66cb8d6df",
+      "downloadedSHA256": "e45f0ed9fdf4d2eb1ca0e3b1133bd373cf1667381b2e30bc9d49d6f66cb8d6df",
+      "providerDigestVerified": true,
+      "workflowHead": "d86660db6c4091d7c708544d79cf14844688d907"
+    },
+    {
+      "lane": "source",
+      "artifactID": 15253344128,
+      "name": "nearpane-independent-context-d86660db6c4091d7c708544d79cf14844688d907-full",
+      "bytes": 32843,
+      "providerDigest": "sha256:cda9039c034c6d9a265bd291b77ceff400d3fc8dcc1b3cfb7281963381800af5",
+      "downloadedSHA256": "cda9039c034c6d9a265bd291b77ceff400d3fc8dcc1b3cfb7281963381800af5",
+      "providerDigestVerified": true,
+      "workflowHead": "d86660db6c4091d7c708544d79cf14844688d907"
+    }
+  ],
+  "workflowJobs": "workflow-jobs.json",
+  "artifactMetadata": "artifact-api-metadata.json",
+  "sourceAudit": "source-gate-audit.json",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 8756,
+      "sha256": "7bf68c20960fb4d702924ec81f795cc278935ff9f5aee751cd5991a35db6b2bb"
+    },
+    {
+      "path": "artifact-api-metadata.json",
+      "bytes": 3864,
+      "sha256": "7157daa27fa985447306cd40baba39d63f37984461fefeb4e6573157d8965f2e"
+    },
+    {
+      "path": "candidate-receipt.json",
+      "bytes": 187,
+      "sha256": "df9b770dbd01ee0c50fe12f2749d59852322b0443d5f17b3d1b24517db3b1dac"
+    },
+    {
+      "path": "click-timelines.json",
+      "bytes": 102417,
+      "sha256": "8bfbb413e8128a192b239baaa6ed001bbd7ee3c349fa8dc3dc94c1be5f5dcdad"
+    },
+    {
+      "path": "cloud-source.zip",
+      "bytes": 32843,
+      "sha256": "cda9039c034c6d9a265bd291b77ceff400d3fc8dcc1b3cfb7281963381800af5"
+    },
+    {
+      "path": "comparison.json",
+      "bytes": 17804,
+      "sha256": "2ac0a59c3cf0b55f18748bacb5bf6595fb6f9a9cf3b9d3e4ee8ec4e0de65679d"
+    },
+    {
+      "path": "fast-analysis.json",
+      "bytes": 356113,
+      "sha256": "35e0b674efd363fec5a4f522c2efedaa84eb8b0942ff969e52ef9d243f195966"
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "bytes": 18658,
+      "sha256": "7aa5c5146857cc8523a86487a61c0da894e0cb6d423e9ce9378f31f890e0481e"
+    },
+    {
+      "path": "full-analysis.json",
+      "bytes": 632590,
+      "sha256": "9afbb12f16a553d080e2bee49876ccdba980aca3517c6a821a5b913afa9fc041"
+    },
+    {
+      "path": "full-freeze-verification.json",
+      "bytes": 847,
+      "sha256": "6b2edf9df0301a76e65f4b3d6e38b09802977c4d458f191dde4053569478da4b"
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "bytes": 110665,
+      "sha256": "791d31c69a00188f77db8400a0993ec960efe33744333ba6b3060574b108b11c"
+    },
+    {
+      "path": "runtime-traces-d866.tar.gz",
+      "bytes": 191138,
+      "sha256": "efc6988264380fbe839e0b094ba01762bb52023632026f82a11fdf354682c0cb"
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "bytes": 35428,
+      "sha256": "d67ba1c120e768ea871332ffe625fb1e4b66c58f90ecd79c29f785b3e65175ae"
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "source/rust.log",
+      "bytes": 17086,
+      "sha256": "9f3c75c66879442c512070374d0e6f74025c94f0e23410e6da0cd3b7fd331dcc"
+    },
+    {
+      "path": "source/swift.xml",
+      "bytes": 45025,
+      "sha256": "5c76eb19fdbed8feb6d03c8b0b2552c293aced23007e8c05d81980eee4606f35"
+    },
+    {
+      "path": "source-gate-audit.json",
+      "bytes": 19796,
+      "sha256": "2d928d6f1347c6919a022431979569064a23ab5db3941115a7ac9dc9bc57d3e2"
+    },
+    {
+      "path": "workflow-jobs.json",
+      "bytes": 14377,
+      "sha256": "ce7baa282e6261047d8e058d3d00669b7ac0362cb5cde3bcf59db990e8ea1e89"
+    },
+    {
+      "path": "workflow-run.json",
+      "bytes": 16105,
+      "sha256": "2c70b09df595d24285788fb33bbd3c22f4c22cbc4a7049cffda7697b64727c81"
+    }
+  ],
+  "scope": {
+    "source": "PASS",
+    "completeCandidate": "PASS",
+    "strictSignature": "PASS",
+    "formalR4": "FAIL_SECOND_INPUT_NOT_SUBMITTED",
+    "eachLaneInputs": 2,
+    "eachLaneExternalConfirmations": 1,
+    "eachLaneCompletedTransactions": 1,
+    "targetGUI": "NOT_RUN",
+    "qualificationGranted": false
+  },
+  "interpretation": "Ordinary appearance expiry after a real hide is correct. The observed second current-card press precedes transaction completion and is rejected before submission; the later hidden directory does not establish persistent post-completion UI failure. No third press occurred."
+}

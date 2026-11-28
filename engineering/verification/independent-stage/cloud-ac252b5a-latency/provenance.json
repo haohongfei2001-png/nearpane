@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 16,
+  "revision": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+  "runID": 46124060416,
+  "jobs": {
+    "r4-fast": 140914596723,
+    "full": 140914596552
+  },
+  "artifactMetadata": "artifact-api-metadata.json",
+  "workflowRun": "workflow-run.json",
+  "workflowJobs": "workflow-jobs.json",
+  "downloads": {
+    "fast": {
+      "retrievedUTC": "2026-11-28T08:10:25.245304+00:00",
+      "repository": "haohongfei2001-png/nearpane",
+      "commit": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+      "runID": 46124060416,
+      "jobID": 140914596723,
+      "artifactID": 15254598772,
+      "providerDigest": "sha256:d747b913ba0c3176d03af6d81e444ca369c0f211ca34839c03a65d2f6694139d",
+      "localSHA256": "d747b913ba0c3176d03af6d81e444ca369c0f211ca34839c03a65d2f6694139d",
+      "bytes": 25389097,
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/fast.zip",
+      "rawPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/fast"
+    },
+    "full": {
+      "retrievedUTC": "2026-11-28T08:19:35.911980+00:00",
+      "repository": "haohongfei2001-png/nearpane",
+      "commit": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+      "runID": 46124060416,
+      "jobID": 140914596552,
+      "artifactID": 15255137795,
+      "providerDigest": "sha256:c07fce2413e7728fe25aa028936f98d2f0eae56d238eb86eed700f43f4b60e23",
+      "localSHA256": "c07fce2413e7728fe25aa028936f98d2f0eae56d238eb86eed700f43f4b60e23",
+      "bytes": 53973592,
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/full.zip",
+      "rawPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/full"
+    }
+  },
+  "sourceContext": {
+    "artifactID": 15255147826,
+    "artifactName": "nearpane-independent-context-ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856-full",
+    "runID": 46124060416,
+    "revision": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+    "providerDigest": "sha256:eb8f097ab0b06b11b7b9e6d559b4e5de2c3f6b613875a7ec8b9891266b228301",
+    "localSHA256": "eb8f097ab0b06b11b7b9e6d559b4e5de2c3f6b613875a7ec8b9891266b228301",
+    "sizeInBytes": 34208,
+    "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/source/context.zip",
+    "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/source/context",
+    "metadataPath": "/workspace/scratch/519883d1dfd8/r4-audit/ac252/source/context-artifact-metadata.json",
+    "downloadCount": 1
+  },
+  "downloadHandoff": {
+    "providerArtifactID": 15255137795,
+    "networkDownloadAttempts": 2,
+    "reason": "Ownership reassignment raced the first agent's completed download. The second agent began another download under the parent's not-yet-downloaded information before receiving the first completion notice.",
+    "rawExtractionCount": 1,
+    "rawReextractedOrModifiedBySecondAgent": false,
+    "secondCompletedZIPMatchesProviderSHA256": true,
+    "originalDownloadReceiptPreserved": true
+  },
+  "copiedOriginalBytes": [
+    {
+      "path": "runtime-traces-ac252.tar.gz",
+      "source": "runtime-traces-ac252.tar.gz",
+      "bytes": 373429,
+      "sha256": "6156f3a8a52ce9164fb95c1f4f9c0bb359816ea6a601c35d380d8b00ba0cbaf8"
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "source": "runtime-traces-manifest.json",
+      "bytes": 50434,
+      "sha256": "45834856c89e6da7d03c277d6a213c8fdc2b9efe3d09bf2ad376696be4bea2ee"
+    },
+    {
+      "path": "source-gate-audit.json",
+      "source": "source/source-gate-audit.json",
+      "bytes": 20699,
+      "sha256": "777b654cb0fbd153c5eb343d4016a93618f6fcc0d97ef69d1b3ab3dc5ce0ae43"
+    },
+    {
+      "path": "source/swift.xml",
+      "source": "full/independent-source/source/swift.xml",
+      "bytes": 45560,
+      "sha256": "4fb271d8dfc9027c73f4e7636ac092eb2b3cd8b7f67535c9165af605a8d32d5f"
+    },
+    {
+      "path": "source/rust.log",
+      "source": "full/independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "348e62110e8c788bbcd53e9edd80200f4a400b1a629fa2107a3d0eb8ff955322"
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "source": "full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "cloud-source.zip",
+      "source": "source/context.zip",
+      "bytes": 34208,
+      "sha256": "eb8f097ab0b06b11b7b9e6d559b4e5de2c3f6b613875a7ec8b9891266b228301"
+    },
+    {
+      "path": "candidate-receipt.json",
+      "source": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "6586d615b494dd8e5956d1dab51086e445042467a1f97ffa6b93b8698fd73b94"
+    },
+    {
+      "path": "candidate.sha256",
+      "source": "full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "dd6b9a1d82c2735f94de17c0131a1ddaf76b66b3e6e0463e89f65546f213866a"
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "source": "fast-raw-manifest.json",
+      "bytes": 19738,
+      "sha256": "c83c1caa23124cca969d0fd4a7192f519541ce633c327f5581af52760d1666b2"
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "source": "full-raw-manifest.json",
+      "bytes": 134866,
+      "sha256": "df4a45e745de124e5e09d4b9f4c390185ebc055ce1b22fe5cab45c1255533c84"
+    },
+    {
+      "path": "fast-freeze-verification.json",
+      "source": "fast-freeze-verification.json",
+      "bytes": 636,
+      "sha256": "48919988f00ad02251263672afda312791905bc80e8d4bdcc80f7ac2bc5bfb6a"
+    },
+    {
+      "path": "full-freeze-verification.json",
+      "source": "full-freeze-verification.json",
+      "bytes": 679,
+      "sha256": "ee1796da9ab69d78c8b27023498cb204814f5b77172880a944c441c244d95661"
+    },
+    {
+      "path": "workflow-run.json",
+      "source": "workflow-run.json",
+      "bytes": 16166,
+      "sha256": "3285e3a2029f1fe6da9bea62f048d486d12956dbca9bba3e65622850e006079e"
+    },
+    {
+      "path": "workflow-jobs.json",
+      "source": "workflow-jobs.json",
+      "bytes": 14377,
+      "sha256": "f7f9c547e3af1a1921c17cdf6a661ed247a7619544bd5e2af778419eda24bb67"
+    }
+  ],
+  "compressedAnalyses": [
+    {
+      "path": "fast-analysis.json.gz",
+      "bytes": 89342,
+      "sha256": "5beff8fd889887a93729b237ff44dbd7109b9ff4758058ff309fd0c72b2eb106",
+      "uncompressedBytes": 945032,
+      "uncompressedSHA256": "92e342a890c6972ba104660c5a7770b8d49bde17576f6eadcd16de0ca28d5d3b",
+      "gzip": {
+        "mtime": 0,
+        "filename": "",
+        "compressionLevel": 9
+      }
+    },
+    {
+      "path": "full-analysis.json.gz",
+      "bytes": 149849,
+      "sha256": "521f1d9a29818a31d95f2d68e18096a789c125d1a515da85b69342de64143c21",
+      "uncompressedBytes": 1661003,
+      "uncompressedSHA256": "8d61c94821146e2337235e9c84b90848b1d17f7fef8150a682f37820899ebf05",
+      "gzip": {
+        "mtime": 0,
+        "filename": "",
+        "compressionLevel": 9
+      }
+    }
+  ],
+  "rawArtifactVerification": {
+    "fastFiles": 95,
+    "fullFiles": 480,
+    "allComparedWithProviderZIP": true,
+    "selectedRuntimeArchive": {
+      "path": "runtime-traces-ac252.tar.gz",
+      "bytes": 373429,
+      "sha256": "6156f3a8a52ce9164fb95c1f4f9c0bb359816ea6a601c35d380d8b00ba0cbaf8",
+      "memberCount": 136
+    }
+  },
+  "qualificationGranted": false,
+  "nextPatchNativeVerification": "NOT_RUN"
+}

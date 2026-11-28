@@ -1,0 +1,1261 @@
+[
+  {
+    "name": "fast",
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "r4": {
+      "status": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "inputs": 5,
+      "confirmed": 4,
+      "switchLatencyMS": {
+        "max": 7418.9772916666925,
+        "measurement": "R4 press to two matching physical readbacks",
+        "p50": 4835.5127499999635,
+        "p95": 7418.9772916666925,
+        "samples": 4
+      },
+      "steps": [
+        {
+          "step": "singletonCycle/0",
+          "latencyMS": 6729.565916666672,
+          "witnessCompletionsBeforeFixtureConfirmation": 12,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 12,
+              "total": 4850.878,
+              "median": 317.361,
+              "max": 969.523
+            },
+            "openingDirectoryMS": {
+              "count": 12,
+              "total": 1939.88,
+              "median": 147.628,
+              "max": 226.846
+            },
+            "bindingMS": {
+              "count": 12,
+              "total": 389.26,
+              "median": 3.756,
+              "max": 342.324
+            },
+            "physicalWindowsMS": {
+              "count": 12,
+              "total": 1032.373,
+              "median": 54.898,
+              "max": 300.809
+            },
+            "closingDirectoryMS": {
+              "count": 12,
+              "total": 1489.369,
+              "median": 117.309,
+              "max": 306.408
+            }
+          }
+        },
+        {
+          "step": "singletonCycle/1",
+          "latencyMS": 7418.9772916666925,
+          "witnessCompletionsBeforeFixtureConfirmation": 13,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 13,
+              "total": 6752.021,
+              "median": 473.393,
+              "max": 961.274
+            },
+            "openingDirectoryMS": {
+              "count": 13,
+              "total": 2840.113,
+              "median": 183.908,
+              "max": 633.914
+            },
+            "bindingMS": {
+              "count": 13,
+              "total": 293.204,
+              "median": 18.517,
+              "max": 86.602
+            },
+            "physicalWindowsMS": {
+              "count": 13,
+              "total": 1089.596,
+              "median": 78.16,
+              "max": 141.427
+            },
+            "closingDirectoryMS": {
+              "count": 13,
+              "total": 2529.11,
+              "median": 153.07,
+              "max": 415.375
+            }
+          }
+        },
+        {
+          "step": "singletonCycle/2",
+          "latencyMS": 4602.967999999975,
+          "witnessCompletionsBeforeFixtureConfirmation": 16,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 16,
+              "total": 4083.706,
+              "median": 256.554,
+              "max": 299.161
+            },
+            "openingDirectoryMS": {
+              "count": 16,
+              "total": 1824.207,
+              "median": 116.941,
+              "max": 139.69
+            },
+            "bindingMS": {
+              "count": 16,
+              "total": 18.721,
+              "median": 1.011,
+              "max": 2.081
+            },
+            "physicalWindowsMS": {
+              "count": 16,
+              "total": 572.544,
+              "median": 32.37,
+              "max": 68.12
+            },
+            "closingDirectoryMS": {
+              "count": 16,
+              "total": 1668.237,
+              "median": 108.881,
+              "max": 124.036
+            }
+          }
+        },
+        {
+          "step": "singletonCycle/3",
+          "latencyMS": 4835.5127499999635,
+          "witnessCompletionsBeforeFixtureConfirmation": 16,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 16,
+              "total": 4247.213,
+              "median": 254.276,
+              "max": 344.828
+            },
+            "openingDirectoryMS": {
+              "count": 16,
+              "total": 1884.467,
+              "median": 109.292,
+              "max": 167.533
+            },
+            "bindingMS": {
+              "count": 16,
+              "total": 27.398,
+              "median": 1.608,
+              "max": 3.082
+            },
+            "physicalWindowsMS": {
+              "count": 16,
+              "total": 533.238,
+              "median": 32.553,
+              "max": 53.332
+            },
+            "closingDirectoryMS": {
+              "count": 16,
+              "total": 1802.113,
+              "median": 107.307,
+              "max": 148.136
+            }
+          }
+        }
+      ],
+      "failedNavigation": [],
+      "cleanup": true,
+      "hostShutdown": {
+        "end": 522.7930359166667,
+        "milliseconds": 4.986041666597885,
+        "released": true,
+        "start": 522.7880498750001
+      },
+      "externalHomeConfirmed": true,
+      "lifecycle": {
+        "newWindowLifecycle": "NOT_RUN",
+        "windowCloseLifecycle": "NOT_RUN",
+        "applicationExitLifecycle": "NOT_RUN",
+        "groupMergeSplit": "NOT_RUN",
+        "hostCrashRecovery": "NOT_RUN"
+      }
+    },
+    "witnessMS": {
+      "durationMS": {
+        "count": 71,
+        "total": 23677.061,
+        "median": 275.295,
+        "max": 969.523
+      },
+      "openingDirectoryMS": {
+        "count": 71,
+        "total": 10114.5,
+        "median": 126.268,
+        "max": 633.914
+      },
+      "bindingMS": {
+        "count": 71,
+        "total": 762.422,
+        "median": 1.434,
+        "max": 342.324
+      },
+      "physicalWindowsMS": {
+        "count": 71,
+        "total": 3816.603,
+        "median": 39.513,
+        "max": 300.809
+      },
+      "closingDirectoryMS": {
+        "count": 71,
+        "total": 8983.551,
+        "median": 110.28,
+        "max": 415.375
+      }
+    },
+    "desktopReads": {
+      "exits": 157,
+      "completed": 156,
+      "receivedReply": 156,
+      "MS": {
+        "taskQueueMS": {
+          "count": 157,
+          "total": 2523.644,
+          "median": 0.43,
+          "max": 1336.622
+        },
+        "readerAwaitMS": {
+          "count": 157,
+          "total": 24558.975,
+          "median": 114.66,
+          "max": 1028.352
+        },
+        "nativeDurationMS": {
+          "count": 156,
+          "total": 8775.417,
+          "median": 42.301,
+          "max": 451.087
+        },
+        "nativeBeginAfterRequestMS": {
+          "count": 156,
+          "total": 12955.315,
+          "median": 63.258,
+          "max": 977.319
+        },
+        "nativeEndToReturnMS": {
+          "count": 156,
+          "total": 2094.456,
+          "median": 12.22,
+          "max": 266.487
+        },
+        "groupProjectionMS": {
+          "count": 157,
+          "total": 377.957,
+          "median": 0.348,
+          "max": 149.901
+        },
+        "observeDirectoryMS": {
+          "count": 157,
+          "total": 8.476,
+          "median": 0.029,
+          "max": 2.335
+        },
+        "remainingProcessingMS": {
+          "count": 157,
+          "total": 555.213,
+          "median": 1.94,
+          "max": 92.625
+        }
+      }
+    },
+    "afterAction": {
+      "count": 145,
+      "hadPrior": 34,
+      "reusedPrior": 30,
+      "MS": {
+        "durationMS": {
+          "count": 145,
+          "total": 20326.458,
+          "median": 115.167,
+          "max": 1288.544
+        },
+        "priorWaitMS": {
+          "count": 145,
+          "total": 3566.655,
+          "median": 0.0,
+          "max": 362.685
+        },
+        "freshReadMS": {
+          "count": 145,
+          "total": 16736.566,
+          "median": 110.056,
+          "max": 1288.537
+        }
+      }
+    },
+    "readerProcesses": {
+      "started": [],
+      "reaped": []
+    },
+    "dock": {
+      "polls": 97,
+      "expired": [
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 516.6527615,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 516.13179275,
+          "readStart": 516.1305183750001,
+          "readTotalMilliseconds": 1383.1039166666415,
+          "requestID": "A0104015-97B6-40F5-B928-5D8D55903310",
+          "uptime": 517.5137355833334
+        },
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 518.3085227083334,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 517.8897562083333,
+          "readStart": 517.8887402083334,
+          "readTotalMilliseconds": 901.5562916666795,
+          "requestID": "469AFD79-12D6-435F-A860-F0E2A2D546E1",
+          "uptime": 518.790417
+        }
+      ]
+    },
+    "workerFaults": [
+      {
+        "event": "spacesLeaseFault",
+        "phase": "health-preparation",
+        "status": 4,
+        "detail": 217,
+        "pid": 10650,
+        "birth": 1795806091370739,
+        "window": 55,
+        "home": 12,
+        "parking": 0
+      },
+      {
+        "event": "spacesHealthReadFailed",
+        "window": 55,
+        "pid": 10650,
+        "parking": 0,
+        "detail": 217,
+        "completeObservations": 0,
+        "elapsedMS": 906,
+        "budgetMS": 650
+      }
+    ],
+    "failedWorkerRequests": []
+  },
+  {
+    "name": "full",
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "r4": {
+      "status": "UNKNOWN",
+      "reason": "productionRestoreIncomplete",
+      "inputs": 2,
+      "confirmed": 1,
+      "switchLatencyMS": {
+        "max": 4798.333333333176,
+        "measurement": "R4 press to two matching physical readbacks",
+        "p50": 4798.333333333176,
+        "p95": 4798.333333333176,
+        "samples": 1
+      },
+      "steps": [
+        {
+          "step": "singletonCycle/0",
+          "latencyMS": 4798.333333333176,
+          "witnessCompletionsBeforeFixtureConfirmation": 12,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 12,
+              "total": 3435.971,
+              "median": 249.322,
+              "max": 648.021
+            },
+            "openingDirectoryMS": {
+              "count": 12,
+              "total": 1360.08,
+              "median": 121.233,
+              "max": 159.905
+            },
+            "bindingMS": {
+              "count": 12,
+              "total": 294.689,
+              "median": 1.74,
+              "max": 271.191
+            },
+            "physicalWindowsMS": {
+              "count": 12,
+              "total": 521.976,
+              "median": 42.85,
+              "max": 94.253
+            },
+            "closingDirectoryMS": {
+              "count": 12,
+              "total": 1259.228,
+              "median": 101.037,
+              "max": 135.889
+            }
+          }
+        }
+      ],
+      "failedNavigation": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-failed",
+          "reason": "窗口或焦点已变化，本次切换已停止。",
+          "uptime": 1112.4872425
+        }
+      ],
+      "cleanup": false,
+      "hostShutdown": {
+        "end": 1113.8263821666667,
+        "milliseconds": 1735.0129166666193,
+        "released": false,
+        "start": 1112.09136925
+      },
+      "externalHomeConfirmed": true,
+      "lifecycle": {
+        "newWindowLifecycle": "NOT_RUN",
+        "windowCloseLifecycle": "NOT_RUN",
+        "applicationExitLifecycle": "NOT_RUN",
+        "groupMergeSplit": "NOT_RUN",
+        "hostCrashRecovery": "NOT_RUN"
+      }
+    },
+    "witnessMS": {
+      "durationMS": {
+        "count": 31,
+        "total": 12558.758,
+        "median": 356.469,
+        "max": 814.258
+      },
+      "openingDirectoryMS": {
+        "count": 31,
+        "total": 5063.408,
+        "median": 137.882,
+        "max": 362.216
+      },
+      "bindingMS": {
+        "count": 31,
+        "total": 833.333,
+        "median": 8.347,
+        "max": 271.191
+      },
+      "physicalWindowsMS": {
+        "count": 31,
+        "total": 1823.277,
+        "median": 47.353,
+        "max": 199.804
+      },
+      "closingDirectoryMS": {
+        "count": 31,
+        "total": 4838.745,
+        "median": 133.004,
+        "max": 388.358
+      }
+    },
+    "desktopReads": {
+      "exits": 69,
+      "completed": 69,
+      "receivedReply": 69,
+      "MS": {
+        "taskQueueMS": {
+          "count": 69,
+          "total": 1074.617,
+          "median": 0.405,
+          "max": 749.893
+        },
+        "readerAwaitMS": {
+          "count": 69,
+          "total": 12256.124,
+          "median": 138.225,
+          "max": 903.955
+        },
+        "nativeDurationMS": {
+          "count": 69,
+          "total": 4333.666,
+          "median": 51.932,
+          "max": 201.589
+        },
+        "nativeBeginAfterRequestMS": {
+          "count": 69,
+          "total": 6848.075,
+          "median": 77.173,
+          "max": 529.206
+        },
+        "nativeEndToReturnMS": {
+          "count": 69,
+          "total": 1074.382,
+          "median": 11.624,
+          "max": 236.992
+        },
+        "groupProjectionMS": {
+          "count": 69,
+          "total": 47.049,
+          "median": 0.337,
+          "max": 12.264
+        },
+        "observeDirectoryMS": {
+          "count": 69,
+          "total": 7.842,
+          "median": 0.009,
+          "max": 6.853
+        },
+        "remainingProcessingMS": {
+          "count": 69,
+          "total": 356.32,
+          "median": 2.169,
+          "max": 57.546
+        }
+      }
+    },
+    "afterAction": {
+      "count": 63,
+      "hadPrior": 15,
+      "reusedPrior": 15,
+      "MS": {
+        "durationMS": {
+          "count": 63,
+          "total": 9571.214,
+          "median": 134.236,
+          "max": 361.396
+        },
+        "priorWaitMS": {
+          "count": 63,
+          "total": 2115.977,
+          "median": 0.0,
+          "max": 330.605
+        },
+        "freshReadMS": {
+          "count": 63,
+          "total": 7448.364,
+          "median": 123.582,
+          "max": 361.392
+        }
+      }
+    },
+    "readerProcesses": {
+      "started": [],
+      "reaped": []
+    },
+    "dock": {
+      "polls": 52,
+      "expired": [
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 1113.2294155416666,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 1112.043685625,
+          "readStart": 1112.04082025,
+          "readTotalMilliseconds": 1506.946791666678,
+          "requestID": "03F7F6D7-718B-4FD2-BCDB-2E8AE94F736D",
+          "uptime": 1113.5478460000002
+        },
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 1114.4124459583334,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 1113.826299375,
+          "readStart": 1113.8177328333334,
+          "readTotalMilliseconds": 925.4837916666929,
+          "requestID": "E362E43E-FFCB-4166-BBE1-672664C2C2D0",
+          "uptime": 1114.744479875
+        }
+      ]
+    },
+    "workerFaults": [
+      {
+        "event": "spacesLeaseFault",
+        "phase": "release-member",
+        "status": 4,
+        "detail": 214,
+        "pid": 37156,
+        "birth": 1795806693339795,
+        "window": 53,
+        "home": 12,
+        "parking": 36
+      }
+    ],
+    "failedWorkerRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 18,
+        "detail": 0,
+        "durationMS": 398.4492916667932,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 0,
+        "intent": "0D7B2EE4-E044-4BE1-86E5-7AFBEC80CCD7",
+        "maxPollQueueMS": 0.12595833322848193,
+        "operation": 3,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 18,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1111.9670472916666,
+        "returnPriority": 25,
+        "status": 2,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1112.365638125,
+        "waitPriorities": [
+          25
+        ]
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 39,
+        "detail": 214,
+        "durationMS": 1025.568041666702,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 128,
+        "intent": "97BFC4C3-45E1-4E75-9292-4E5FC213E84D",
+        "maxPollQueueMS": 0.08008333338693774,
+        "operation": 13,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 39,
+        "pollPriorities": [
+          21
+        ],
+        "requestedPriority": 21,
+        "requestStartUptime": 1112.5803363333334,
+        "returnPriority": 21,
+        "status": 4,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1113.6061675833334,
+        "waitPriorities": [
+          21
+        ]
+      }
+    ]
+  },
+  {
+    "name": "5e3a/fast",
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "r4": {
+      "status": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "inputs": 3,
+      "confirmed": 2,
+      "switchLatencyMS": {
+        "max": 4862.573791666648,
+        "measurement": "R4 press to two matching physical readbacks",
+        "p50": 2820.043958333315,
+        "p95": 4862.573791666648,
+        "samples": 2
+      },
+      "steps": [
+        {
+          "step": "singletonCycle/0",
+          "latencyMS": 2820.043958333315,
+          "witnessCompletionsBeforeFixtureConfirmation": 9,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 9,
+              "total": 1773.29,
+              "median": 91.053,
+              "max": 920.5
+            },
+            "openingDirectoryMS": {
+              "count": 9,
+              "total": 1028.769,
+              "median": 24.393,
+              "max": 812.538
+            },
+            "bindingMS": {
+              "count": 9,
+              "total": 141.56,
+              "median": 1.462,
+              "max": 128.373
+            },
+            "physicalWindowsMS": {
+              "count": 9,
+              "total": 348.091,
+              "median": 37.861,
+              "max": 60.305
+            },
+            "closingDirectoryMS": {
+              "count": 9,
+              "total": 254.871,
+              "median": 27.555,
+              "max": 45.85
+            }
+          }
+        },
+        {
+          "step": "singletonCycle/1",
+          "latencyMS": 4862.573791666648,
+          "witnessCompletionsBeforeFixtureConfirmation": 11,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 11,
+              "total": 3851.084,
+              "median": 313.984,
+              "max": 597.41
+            },
+            "openingDirectoryMS": {
+              "count": 11,
+              "total": 1245.171,
+              "median": 71.628,
+              "max": 282.323
+            },
+            "bindingMS": {
+              "count": 11,
+              "total": 473.184,
+              "median": 36.225,
+              "max": 121.786
+            },
+            "physicalWindowsMS": {
+              "count": 11,
+              "total": 1069.977,
+              "median": 83.451,
+              "max": 183.467
+            },
+            "closingDirectoryMS": {
+              "count": 11,
+              "total": 1062.755,
+              "median": 87.474,
+              "max": 142.605
+            }
+          }
+        }
+      ],
+      "failedNavigation": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-failed",
+          "reason": "当前环境暂不能切换整个窗口组。",
+          "uptime": 446.7623692083334
+        }
+      ],
+      "cleanup": true,
+      "hostShutdown": {
+        "end": 452.65429875,
+        "milliseconds": 17.42083333328992,
+        "released": true,
+        "start": 452.6368779166667
+      },
+      "externalHomeConfirmed": true,
+      "lifecycle": {
+        "newWindowLifecycle": "NOT_RUN",
+        "windowCloseLifecycle": "NOT_RUN",
+        "applicationExitLifecycle": "NOT_RUN",
+        "groupMergeSplit": "NOT_RUN",
+        "hostCrashRecovery": "NOT_RUN"
+      }
+    },
+    "witnessMS": {
+      "durationMS": {
+        "count": 32,
+        "total": 9243.55,
+        "median": 209.363,
+        "max": 1412.206
+      },
+      "openingDirectoryMS": {
+        "count": 32,
+        "total": 4275.145,
+        "median": 52.177,
+        "max": 1320.075
+      },
+      "bindingMS": {
+        "count": 32,
+        "total": 654.361,
+        "median": 3.369,
+        "max": 128.373
+      },
+      "physicalWindowsMS": {
+        "count": 32,
+        "total": 2330.474,
+        "median": 61.187,
+        "max": 203.142
+      },
+      "closingDirectoryMS": {
+        "count": 32,
+        "total": 1983.578,
+        "median": 50.46,
+        "max": 201.117
+      }
+    },
+    "desktopReads": {
+      "exits": 92,
+      "completed": 90,
+      "receivedReply": 91,
+      "MS": {
+        "taskQueueMS": {
+          "count": 92,
+          "total": 1830.399,
+          "median": 0.522,
+          "max": 426.681
+        },
+        "readerAwaitMS": {
+          "count": 92,
+          "total": 7183.533,
+          "median": 42.541,
+          "max": 1166.578
+        },
+        "nativeDurationMS": {
+          "count": 91,
+          "total": 5591.825,
+          "median": 36.004,
+          "max": 1152.81
+        },
+        "nativeBeginAfterRequestMS": {
+          "count": 91,
+          "total": 394.579,
+          "median": 0.593,
+          "max": 175.318
+        },
+        "nativeEndToReturnMS": {
+          "count": 91,
+          "total": 1054.077,
+          "median": 0.956,
+          "max": 278.958
+        },
+        "groupProjectionMS": {
+          "count": 92,
+          "total": 1342.266,
+          "median": 0.259,
+          "max": 758.116
+        },
+        "observeDirectoryMS": {
+          "count": 92,
+          "total": 20.31,
+          "median": 0.025,
+          "max": 16.568
+        },
+        "remainingProcessingMS": {
+          "count": 92,
+          "total": 544.675,
+          "median": 1.923,
+          "max": 67.222
+        }
+      }
+    },
+    "afterAction": {
+      "count": 65,
+      "hadPrior": 9,
+      "reusedPrior": 1,
+      "MS": {
+        "durationMS": {
+          "count": 65,
+          "total": 5769.857,
+          "median": 49.878,
+          "max": 1318.673
+        },
+        "priorWaitMS": {
+          "count": 65,
+          "total": 284.724,
+          "median": 0.0,
+          "max": 145.685
+        },
+        "freshReadMS": {
+          "count": 65,
+          "total": 5483.111,
+          "median": 49.321,
+          "max": 1318.661
+        }
+      }
+    },
+    "readerProcesses": {
+      "started": [
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-started",
+          "pid": 10188,
+          "readSession": "2F9E76B2-5503-4885-8EBE-33BD69F7EF86",
+          "uptime": 432.26884762500003,
+          "nativeReplies": 86,
+          "reapedInTrace": true
+        },
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-started",
+          "pid": 10626,
+          "readSession": "2F9E76B2-5503-4885-8EBE-33BD69F7EF86",
+          "uptime": 449.7618585,
+          "nativeReplies": 5,
+          "reapedInTrace": false
+        }
+      ],
+      "reaped": [
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-reaped",
+          "pid": 10188,
+          "readSession": "2F9E76B2-5503-4885-8EBE-33BD69F7EF86",
+          "uptime": 449.3837910416667
+        }
+      ]
+    },
+    "dock": {
+      "polls": 53,
+      "expired": [
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 449.1718944166667,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 448.33192512500005,
+          "readStart": 448.33121358333335,
+          "readTotalMilliseconds": 1022.0088749999832,
+          "requestID": "C4918E64-0FF0-4F4B-ABB3-00234F2C248D",
+          "uptime": 449.35361995833335
+        },
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 451.24728295833336,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 450.46887125,
+          "readStart": 450.465610125,
+          "readTotalMilliseconds": 1024.2009583333243,
+          "requestID": "69078D6A-5E7F-4058-B0E2-53F6ABEC9608",
+          "uptime": 451.48994645833335
+        },
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 453.4828577916667,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 452.4485967916667,
+          "readStart": 452.44379675000005,
+          "readTotalMilliseconds": 1361.8559166666273,
+          "requestID": "CC3DC1A3-30D5-487E-BA59-BCF766CF85BC",
+          "uptime": 453.8059265416667
+        }
+      ]
+    },
+    "workerFaults": [
+      {
+        "event": "spacesLeaseFault",
+        "phase": "health-owned-readback",
+        "status": 4,
+        "detail": 217,
+        "pid": 9455,
+        "birth": 1795840037199227,
+        "window": 55,
+        "home": 12,
+        "parking": 34
+      },
+      {
+        "event": "spacesHealthReadFailed",
+        "window": 55,
+        "pid": 9455,
+        "parking": 34,
+        "detail": 217,
+        "completeObservations": 0,
+        "elapsedMS": 1104,
+        "budgetMS": 650
+      }
+    ],
+    "failedWorkerRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 218,
+        "durationMS": 14.465374999986125,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 128,
+        "intent": "4D099186-CC29-44D8-ACB6-DE413C63461B",
+        "maxPollQueueMS": 0.01995833332557595,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 446.7445414166667,
+        "returnPriority": 25,
+        "status": 2,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 446.7591950416667,
+        "waitPriorities": [
+          25
+        ]
+      }
+    ]
+  },
+  {
+    "name": "5e3a/full",
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "r4": {
+      "status": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "inputs": 2,
+      "confirmed": 1,
+      "switchLatencyMS": {
+        "max": 1906.9366666665246,
+        "measurement": "R4 press to two matching physical readbacks",
+        "p50": 1906.9366666665246,
+        "p95": 1906.9366666665246,
+        "samples": 1
+      },
+      "steps": [
+        {
+          "step": "singletonCycle/0",
+          "latencyMS": 1906.9366666665246,
+          "witnessCompletionsBeforeFixtureConfirmation": 9,
+          "witnessCostMS": {
+            "durationMS": {
+              "count": 9,
+              "total": 836.028,
+              "median": 80.318,
+              "max": 190.779
+            },
+            "openingDirectoryMS": {
+              "count": 9,
+              "total": 209.213,
+              "median": 17.35,
+              "max": 51.22
+            },
+            "bindingMS": {
+              "count": 9,
+              "total": 103.814,
+              "median": 1.11,
+              "max": 86.711
+            },
+            "physicalWindowsMS": {
+              "count": 9,
+              "total": 282.201,
+              "median": 30.394,
+              "max": 48.953
+            },
+            "closingDirectoryMS": {
+              "count": 9,
+              "total": 240.801,
+              "median": 19.423,
+              "max": 50.284
+            }
+          }
+        }
+      ],
+      "failedNavigation": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-failed",
+          "reason": "尚未核对完整的窗口组状态。",
+          "uptime": 1250.3999942916666
+        }
+      ],
+      "cleanup": true,
+      "hostShutdown": {
+        "end": 1255.5768022083334,
+        "milliseconds": 1.6348750000361179,
+        "released": true,
+        "start": 1255.5751673333334
+      },
+      "externalHomeConfirmed": true,
+      "lifecycle": {
+        "newWindowLifecycle": "NOT_RUN",
+        "windowCloseLifecycle": "NOT_RUN",
+        "applicationExitLifecycle": "NOT_RUN",
+        "groupMergeSplit": "NOT_RUN",
+        "hostCrashRecovery": "NOT_RUN"
+      }
+    },
+    "witnessMS": {
+      "durationMS": {
+        "count": 18,
+        "total": 3383.776,
+        "median": 77.52,
+        "max": 945.088
+      },
+      "openingDirectoryMS": {
+        "count": 18,
+        "total": 1045.506,
+        "median": 19.047,
+        "max": 422.239
+      },
+      "bindingMS": {
+        "count": 18,
+        "total": 231.218,
+        "median": 1.277,
+        "max": 86.711
+      },
+      "physicalWindowsMS": {
+        "count": 18,
+        "total": 938.616,
+        "median": 27.321,
+        "max": 185.533
+      },
+      "closingDirectoryMS": {
+        "count": 18,
+        "total": 1168.438,
+        "median": 20.704,
+        "max": 343.924
+      }
+    },
+    "desktopReads": {
+      "exits": 58,
+      "completed": 56,
+      "receivedReply": 58,
+      "MS": {
+        "taskQueueMS": {
+          "count": 58,
+          "total": 858.371,
+          "median": 0.275,
+          "max": 254.15
+        },
+        "readerAwaitMS": {
+          "count": 58,
+          "total": 4470.086,
+          "median": 21.964,
+          "max": 670.823
+        },
+        "nativeDurationMS": {
+          "count": 58,
+          "total": 3577.165,
+          "median": 20.872,
+          "max": 382.762
+        },
+        "nativeBeginAfterRequestMS": {
+          "count": 58,
+          "total": 183.287,
+          "median": 0.48,
+          "max": 93.258
+        },
+        "nativeEndToReturnMS": {
+          "count": 58,
+          "total": 709.635,
+          "median": 0.541,
+          "max": 353.099
+        },
+        "groupProjectionMS": {
+          "count": 58,
+          "total": 586.971,
+          "median": 0.18,
+          "max": 238.159
+        },
+        "observeDirectoryMS": {
+          "count": 58,
+          "total": 6.79,
+          "median": 0.008,
+          "max": 6.184
+        },
+        "remainingProcessingMS": {
+          "count": 58,
+          "total": 192.246,
+          "median": 1.088,
+          "max": 21.602
+        }
+      }
+    },
+    "afterAction": {
+      "count": 37,
+      "hadPrior": 5,
+      "reusedPrior": 0,
+      "MS": {
+        "durationMS": {
+          "count": 37,
+          "total": 1997.427,
+          "median": 19.359,
+          "max": 419.783
+        },
+        "priorWaitMS": {
+          "count": 37,
+          "total": 43.291,
+          "median": 0.0,
+          "max": 19.684
+        },
+        "freshReadMS": {
+          "count": 37,
+          "total": 1953.959,
+          "median": 19.356,
+          "max": 400.08
+        }
+      }
+    },
+    "readerProcesses": {
+      "started": [
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-started",
+          "pid": 44327,
+          "readSession": "681F8AD7-7CE4-43BD-8DC7-55F45CB46A1A",
+          "uptime": 1243.7647056666667,
+          "nativeReplies": 58,
+          "reapedInTrace": true
+        }
+      ],
+      "reaped": [
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-reaped",
+          "pid": 44327,
+          "readSession": "681F8AD7-7CE4-43BD-8DC7-55F45CB46A1A",
+          "uptime": 1256.2711646666667
+        }
+      ]
+    },
+    "dock": {
+      "polls": 31,
+      "expired": [
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 1252.3100900416669,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 1251.7091802916668,
+          "readStart": 1251.7079619166668,
+          "readTotalMilliseconds": 880.0025416664994,
+          "requestID": "4E5D45BD-14AC-4FDE-80A3-880FDF6399CA",
+          "uptime": 1252.5883315416668
+        },
+        {
+          "event": "independentStageProduct",
+          "pendingRequestStart": 1254.3940228333333,
+          "phase": "dispatch-dock-observation-expired",
+          "readEnd": 1254.0981422083335,
+          "readStart": 1254.0948392916666,
+          "readTotalMilliseconds": 861.0742916666823,
+          "requestID": "28179E29-08EB-4452-9DCE-DB9A139BB842",
+          "uptime": 1254.9561784166667
+        }
+      ]
+    },
+    "workerFaults": [],
+    "failedWorkerRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 25,
+        "detail": 214,
+        "durationMS": 297.97420833324395,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 128,
+        "intent": "FC96918B-DC41-4BFA-84D3-A7A2B61107AC",
+        "maxPollQueueMS": 0.05341666678759793,
+        "operation": 4,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 25,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1250.0820780416668,
+        "returnPriority": 25,
+        "status": 4,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1250.3803589583333,
+        "waitPriorities": [
+          25
+        ]
+      }
+    ]
+  }
+]

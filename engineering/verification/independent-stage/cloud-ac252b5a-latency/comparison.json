@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "revision": "ac252b5a76a44c3c3ac12ff4e8c69e6d32dc7856",
+  "runID": 46124060416,
+  "fast": {
+    "result": {
+      "overall": "INCOMPLETE",
+      "directEngine": "PASS",
+      "formalR4": "FAIL",
+      "reason": "R4SwitchReadbackFailed",
+      "actualInputs": 3,
+      "externalDoublePhysicalConfirmations": 2,
+      "successfulOwnedSelectionExits": 1,
+      "initialActivationSuperseded": true,
+      "completeWitnesses": 35,
+      "managedBindings": 3,
+      "successfulHides": 3,
+      "successfulShows": 1,
+      "failedShows": 1
+    },
+    "physicalLatencyMS": [
+      1660.5743750001238,
+      1470.5425416666458
+    ],
+    "secondInputToOwnedCompletionMS": 1735.4517916667191,
+    "firstFailure": {
+      "operation": 4,
+      "status": 4,
+      "detail": 214,
+      "pid": 51361,
+      "window": 57,
+      "requestMS": 182.27887500006545,
+      "firstFullPostViewMS": 167.657
+    },
+    "unattributedBoundaryToTaskCreationMS": 670.6100833334858,
+    "cleanupHost": true,
+    "externalTwoHome": true
+  },
+  "full": {
+    "physicalInputs": 10,
+    "physicalConfirmations": 10,
+    "supersededPrefixes": 9,
+    "explicitSuccessfulActivationExitCount": 0,
+    "physicalLatency": {
+      "firstMS": 2319.96187499999,
+      "successive": {
+        "count": 9,
+        "totalMS": 14439.440833333038,
+        "medianMS": 1454.965333333348,
+        "maxMS": 2311.0647083333333
+      },
+      "allMS": [
+        2319.96187499999,
+        1449.7526249999737,
+        1778.4950833333824,
+        1772.9661666667198,
+        2311.0647083333333,
+        1431.6102499999488,
+        1373.1846250000217,
+        1407.5752916664896,
+        1454.965333333348,
+        1459.82674999982
+      ],
+      "limit": "Per-input physical visibility/frame/focus measurements only; not internal completion latency or a population estimate."
+    },
+    "firstFailure": "crossAppSourceNotHeld",
+    "workerRequests": 115,
+    "failedWorkerRequests": 0,
+    "hidesPassed": 11,
+    "showsPassed": 9,
+    "completeWitnesses": 160,
+    "metadataScopes": 121,
+    "cleanupHost": true,
+    "externalTwoHome": true
+  },
+  "scope": "Exact-head observations. Physical confirmations, sealed prefixes and full commits are different endpoints. No native results from the next patch are included."
+}

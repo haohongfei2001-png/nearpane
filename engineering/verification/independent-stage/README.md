@@ -1,8 +1,292 @@
 # Independent Stage — implementation and evidence
 
 Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16).
-Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
+Implementation started from PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8`.
+PR #16 targets `main`. Its current product constitution and branch-governance
+rules were rechecked at `c74ea94520f55bc784f110176c59f5a38f1f1935` and copied
+exactly into this branch. The existing PR #16 branch remains the explicit engine-work exception;
+no main-app source refactor is overwritten by this focused R4 change.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
+
+## Current source/runtime checkpoint: 9af43964
+
+Exact source passes **299 Swift functions (one existing skip), 188 Rust and 25
+native AX decoder checks**, including all 12 new geometry and census-wire cases.
+The complete candidate and strict signature pass. Formal R4 remains unqualified.
+
+FAST never obtains a decoded desktop snapshot: **37 failed reader requests,
+zero R4 inputs**. Its helper is reaped after each failure, but that revision does
+not record the transport stage or child status; a reap does not prove a crash.
+The independent Controller also fails its initial yellow-button preparation,
+which is kept separate from the formal Host's read failure.
+
+Full independently records **one input and zero physical confirmations**: the
+first witness rejects a target application's incomplete AX window list before
+launch/HIDE/SHOW. Across the run it receives **nine decoded directory replies
+from one helper**; the partial directory carrying the new census data arrives
+after that refusal. Its new timing
+split shows **141.106 ms in the physical read**, with only **0.030 ms** on each
+actor handoff. This one failed observation is not a successful-switch benchmark.
+
+The next source exposes the parent/helper failure phase and original process
+status, plus the existing target AX-list count/array results, without changing
+any refusal, query count, retry policy, identity or timeout. Both lanes recover;
+the member-button repair and later interaction stages still need actual coverage.
+
+[Exact 9af439 source/runtime evidence and distinct read failures](cloud-9af43964-latency/README.md).
+The target Mac remains offline and exact-target GUI acceptance is NOT_RUN.
+
+## Earlier source/runtime checkpoint: 3f531dae
+
+Exact source passes **295 Swift functions (one existing skip), 188 Rust and 25
+native AX decoder checks**. The new Dock handoff suite executes all 20 parameter
+cases and the shared edit queue suite all 11 cases. Complete candidate and strict
+signature also pass; release qualification remains false.
+
+FAST reaches **12 real inputs / 12 external double physical confirmations**. The
+last singleton explicitly settles; the cross-app join executes through the same
+queued handler as the UI, then leaving and restoring that combined group both
+physically confirm. The timer actually consumes completed Dock readings before
+their MainActor callbacks, and no Dock expiry occurs. Following the first input,
+the nine singleton switches have a **2017.906 ms median**; group leave and restore
+physically confirm in **5216.669 / 6108.214 ms**, with later transaction completion.
+Repeated complete witness work dominates those long segments, not worker poll queues.
+
+The next exact-member input is **not issued**: its button extends beyond the R4
+panel, and the original input guard rejects it. A separate incomplete background
+directory is retained as distinct evidence. The next source fixes actual button
+layout using the visible canvas intersection and a correctly cropped full-size
+picture, while leaving the input guard intact. It also separates physical-read
+execution from actor resumption and records existing enumeration/filter counts;
+these changes still require their own native run.
+
+Full independently records **four real inputs / three physical confirmations**.
+Its next foreground directory has an incomplete roster, revoking the held session
+before the fourth job can SHOW its member. All 39 worker requests and its launch
+canary pass. Both lanes complete recovery and independent external home checks,
+but neither passes formal R4. The target Mac is offline and exact-target GUI
+acceptance remains NOT_RUN.
+
+[Exact 3f531 source/runtime evidence, actual queued join, Dock handoff and distinct failures](cloud-3f531dae-latency/README.md).
+
+## Earlier source/runtime checkpoint: ef5c91c4
+
+Exact source passes **188 Rust, 281 Swift (one existing skip), and 25 native AX
+decoder checks**. The eight new observer-preparation functions execute all
+15 deterministic cases; the corrected stopped-detector fixture passes with its
+original assertions. The complete candidate and strict signature also pass.
+
+Fast records **ten actual inputs and ten external double physical confirmations**,
+with a **2086.931 ms median / 2720.798 ms maximum**. Nine confirmed prefixes are
+normally superseded; the last selection reaches true, idle, exact-member settlement
+in **2741.434 ms**. All 116 worker requests, 158 witnesses and 118 metadata scopes
+complete successfully. All ten preparation gates open explicitly. Forty-one real
+observer publications remain complete/fresh; the largest previous-native-begin to
+next-publication interval is **2095.954 ms**, preserving the unchanged 12-second rule.
+
+After settlement and normal release, join preparation first fails because the timer
+expires an old Dock reading while a new ordinary native result has already completed
+but awaits MainActor delivery. The new result's later generation mismatch follows
+that revocation. The acceptance helper also directly invokes editing outside the
+navigation wrapper used by the real menu. The next source repairs the exact-poll
+completion handoff and shares that production edit queue; it does not change the
+750 ms freshness limit or other native budgets. These repairs remain unverified.
+
+Full independently records **one actual input and no physical confirmation**.
+Its first witness completes, then launch-canary Finder AX window-list errors
+produce detail 229 / ProbeFocus before document HIDE/SHOW. The 650 ms home-discovery
+budget is not exhausted. This separate native refusal remains explicit; fast's
+continuous-selection evidence does not fill the full lane's unexecuted phases.
+
+[Exact ef5 source/runtime evidence, real publication cadence and distinct lane failures](cloud-ef5c91c4-latency/README.md).
+Both lanes finish cleanup and independent double home/frame/visibility checks.
+Formal R4, the approximately two-second latency, later interactions and target GUI
+acceptance remain unfinished. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: 786abfef
+
+Exact source passes **188 Rust and 25 native AX decoder checks**. Swift records
+**272 passes, one existing skip and one failure**: the stopped-detector fixture
+automatically releases after two seconds, and the test fails after 2.940 seconds
+when it requires the detector still to be blocked.
+The complete app and strict signature build successfully, but the source gate
+remains **FAIL**. The next source replaces that fixture's timed release with its
+existing explicit release and cleanup; no assertion is removed.
+
+The native confirmation change is exercised: all 28 full-lane moves complete
+with timely membership acknowledgement and two complete positive views. Three
+take **127.415–181.436 ms**, beyond the former combined 120 ms boundary. Error
+retries still use 120 ms; this evidence does not authorize extra error retries.
+
+Fast records **six actual inputs and five external physical confirmations**,
+at **1108–1671 ms**. The fifth transaction completes its final observations and
+health check. Before the sixth job's first foreground scope, an observer is
+already admitted after submit; its incomplete directory later withdraws system
+ownership. The trace establishes the admission gap, but does not uniquely identify
+which caller created the shared producer. Final release and double home checks pass.
+
+Full records **ten actual inputs and ten external physical confirmations**, with
+six normal supersessions and one distinct system-observation interruption. The
+last singleton selection reaches a verified, idle, exact-member settlement at
+**7350.452 ms**. The following join correctly stops on an incomplete third fresh
+read; join/split and later lifecycle phases do not pass. Slow physical switches
+take **5015–5730 ms**; repeated complete foreground witness work occupies much
+of those intervals, while worker poll queueing remains below 0.2 ms.
+
+The next scheduling repair pauses new observer admission only during each opted-in
+R4 job's preparation, from idle submit/dequeue through its first successful complete
+foreground read. Already-admitted producers and publishers still drain normally.
+Observer publication then resumes through the original metadata gate while the
+job can continue. Pausing publication for the entire navigation lane was rejected:
+this run contains a **22.895-second** continuous lane, longer than the unchanged
+**12-second** snapshot freshness requirement. The narrowed repair still needs
+exact-source native verification.
+
+[Exact 786ab source/runtime evidence, acknowledgement proofs, admission ordering and full settlement](cloud-786abfef-latency/README.md).
+Both lanes return owned windows and independently confirm home recovery. Continuous
+R4 acceptance, later interaction/lifecycle gates and exact-target GUI acceptance
+remain incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: ac252b5a
+
+Exact source passes **180 Rust, 273 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. The
+three new original-member handoff test functions execute all 28 cases.
+
+Fast records **three actual inputs and two external physical confirmations**.
+The first transaction safely yields to the next input. The second queued exact
+member completes SHOW, READBACK, both full post observations, exact focus, HIDE
+and final commit in **1735.452 ms**; its external confirmation is **1470.543 ms**.
+The third SHOW fails after one complete positive native view takes **167.657 ms**,
+past the original combined 120 ms move-confirmation budget. Its membership was
+read after the slow AX observation, so this run does not prove timely landing.
+A separate **670.610 ms** interval before a metadata producer is created remains
+unattributed; the next source adds precise timing around the existing checks.
+
+Full records **ten actual inputs and ten external physical confirmations**,
+with all 115 worker requests successful. The first nine selections safely hand
+off confirmed prefixes; they are not nine committed transactions. The harness
+checks the hidden group for its next scenario before the final transaction
+finishes and stops with `crossAppSourceNotHeld`. Later witness cancellation
+occurs after cleanup has started. The next source waits for the original
+selection's real completion only at the two dependent join/split phase boundaries.
+
+The native correction explicitly separates timely membership acknowledgement
+from complete positive confirmation: **120 ms** for the former, **650 ms total**
+for two complete positive views, both measured from the original single move's
+return. Transient error retries retain the original 120 ms limit; every positive
+result must pass authority and deadline checks. This is a confirmation-budget
+change and still needs exact-source native verification.
+
+[Exact ac252 source/runtime evidence, successful member handoff and distinct remaining failures](cloud-ac252b5a-latency/README.md).
+Both original-owner releases and independent double home checks pass. Continuous
+R4 acceptance, later interaction/lifecycle gates and exact-target GUI acceptance
+remain incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: d86660db
+
+Exact source passes **180 Rust, 270 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. All
+thirteen new metadata scheduling cases execute successfully. Both unsampled
+R4 lanes complete the first real switch, with two HIDE primitives, exact focus,
+READBACK and both complete Host confirmations.
+
+Fast/full each record **two actual inputs, one external physical confirmation
+and one completed internal transaction**. First external confirmation takes
+**1337.591 / 1550.422 ms**; transaction completion takes **1670.221 / 1850.259 ms**.
+The next press reaches an old current card during final verification, after its
+ordinary appearance correctly expires but before the held-card handoff. It is
+rejected before navigation submission. No product SHOW is issued.
+
+All thirteen metadata scopes in each lane reserve, drain and end; real prior
+producer/publisher drains are observed. There is no incomplete-directory or
+worker failure in these runs. The next repair is the explicit original-member
+selection handoff into the existing stage queue, with fresh held-group checks.
+It must not preserve expired ordinary appearances or turn pictures into permits.
+
+[Exact d866 source/runtime evidence, scope ordering and second-click handoff](cloud-d86660db-latency/README.md).
+Both real-hide recoveries and independent two-read home checks pass. Continuous
+R4, exact-target GUI acceptance and release qualification remain incomplete.
+
+## Earlier source/runtime checkpoint: 7aea52c5
+
+Exact source passes **180 Rust, 263 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. All ten
+new deterministic shared-publication cases execute successfully. Both unsampled
+R4 lanes receive one actual input and confirm no complete switch; neither
+exercises the new initial staging branch in this run.
+
+Fast verifies the exact selected focus and two HIDE primitives, then loses the
+transport epoch after a background read observes the second target's membership
+transition. Full stops during initial binding after a different background read
+adds two role-unknown small surfaces. The observed revocations and source path
+identify a wider metadata scheduling problem; they do not justify ignoring
+incomplete snapshots or widening retry rules.
+
+[Exact 7aea source/runtime evidence, event ordering and recovery](cloud-7aea52c5-latency/README.md).
+Both original-owner cleanups and independent two-read home checks pass. Continuous
+R4, exact-target GUI acceptance and release qualification remain incomplete.
+
+## Earlier source/runtime checkpoint: 987215dc
+
+Exact source passes **180 Rust, 258 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete release build/signature pass. Unsampled full
+receives two real inputs and records external physical confirmations at
+**2183.082 / 4398.461 ms**. Three HIDE, one SHOW and focus confirmation pass,
+but the second transaction subsequently fails in its final roster confirmation.
+Two physical confirmations are not two committed transactions. Unsampled fast
+exercises the existing initial retry, then loses its original intent before
+the complete retry result can finish validation.
+
+[Original 9872 evidence, initial publication race and late role-access failure](cloud-987215dc-latency/README.md).
+[Previous 2d7d source/runtime evidence and distinct prewrite failures](cloud-2d7d1beb-latency/README.md).
+The next product change stages only the qualifying first incomplete prebinding
+result before shared mutations/publication; it preserves the existing fresh
+retry, all subsequent failure rules and the original hidden-Space backend.
+Both recoveries pass, but continuous R4 and exact-target GUI acceptance remain
+incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: caa2e0aa
+
+Exact source passes **180 Rust, 255 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete release build/signature pass. Unsampled full
+confirms one real R4 switch in **1890.56 ms**. Its next SHOW succeeds, but the
+first full confirmation after focus rejects an unbound directory item's
+changing membership. Unsampled fast stops earlier at live-window binding, before
+a worker exists. Both Host releases and independent two-read home checks pass.
+Continuous R4 operation and release qualification remain incomplete.
+
+[Original caa2 source/runtime evidence, precise post-focus failure and click cost partition](cloud-caa2e0aa-latency/README.md).
+The initial-directory retry passes 43 parameter cases but is not exercised by
+either runtime lane. The next diagnostic change adds first-failed binding
+conditions and bounded existing facts about rejected catalog rows; it does not
+ignore those failures or expand the retry to already-bound windows.
+
+## Earlier initial-read checkpoint: 1e5d357a
+
+Exact-source validation passes **180 Rust, 248 Swift (one existing skip), and
+25 native AX decoder checks**; the complete application and strict signature
+pass. Both R4 lanes receive one real input and confirm zero switches: full
+rejects an inconsistent opening roster before binding, while sampled fast loses
+dispatch after delayed Dock callbacks. Neither reaches managed-window HIDE/SHOW.
+Both cleanups and independent two-home reads pass; release remains unqualified.
+
+[Original 1e5d source/runtime evidence and the distinct initial-read failures](cloud-1e5d357a-latency/README.md).
+
+## Earlier R4 latency checkpoint: 5e3a7ea4
+
+The complete, unsampled release candidate confirms its first actual R4 selection in
+**1906.94 ms**, versus **4798.33 ms** for the corresponding d614f58d step. Its second
+SHOW lacks a complete acknowledgement; sampled fast confirms two of three inputs
+before a separate passive-health timeout. Both current Hosts release successfully
+and receive independent two-read home confirmation. The exact target source gate
+passes 180 Rust and 248 Swift cases (one skip); cloud source has eight failed reader
+fixture functions. The complete release build/signature pass, but source and R4
+acceptance remain failed. These results do not grant release qualification.
+
+[Exact source/runtime evidence, non-overlapping click timelines and remaining failures](cloud-5e3a7ea4-latency/README.md)
+are preserved with original hashes. The subsequent AX attribute batch and native
+test-fixture changes require their own native verification.
 
 ## Implemented product path
 
