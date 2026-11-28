@@ -10,11 +10,15 @@ enum DesktopReaderProcess {
                      didSpawn: (@Sendable (pid_t) -> Void)? = nil) async throws -> DesktopSnapshot {
         let input = try JSONEncoder().encode(request)
         guard input.count <= 8192 else { throw ReaderFailure.invalidResponse }
-        let job = Task.detached(priority: .utility) {
+        let job = Task.detached(priority: Task.currentPriority) {
             try collect(executable: executable, mode: overview ? "--window-overview" : "--read-encoded",
                         argument: input.base64EncodedString(), timeout: timeout, didSpawn: didSpawn)
         }
         let bytes = try await withTaskCancellationHandler { try await job.value } onCancel: { job.cancel() }
+        return try decode(bytes, request: request, overview: overview)
+    }
+
+    static func decode(_ bytes: Data, request: DesktopReadRequest, overview: Bool) throws -> DesktopSnapshot {
         let snapshot = try JSONDecoder().decode(DesktopSnapshot.self, from: bytes)
         guard snapshot.isStructurallyValid, snapshot.sessionID == request.session, snapshot.revision == request.revision,
               snapshot.native?.population == (request.fixtureWindows == nil ? .workWindows : .markedFixture),

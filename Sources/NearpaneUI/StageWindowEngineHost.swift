@@ -1017,7 +1017,7 @@ import NearpaneOrdinaryWindowRuntime
             let parked: StageWindowState
             if let stamp {
                 guard let departure = held.departure, let (member, state) = departure.parkedMember(stamp, in: observed),
-                      witness.confirmsHistoricalMember(member, of: departure) else { throw StageSwitchError.interrupted }
+                      witness.confirmsHistoricalMember(member, of: departure, observed: observed) else { throw StageSwitchError.interrupted }
                 parked = state
             } else { parked = held.state }
             guard observed.windows[parked.window] == parked,

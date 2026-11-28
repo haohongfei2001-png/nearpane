@@ -20,20 +20,35 @@ enum MissionControlVisibility: String, Sendable {
 
 /// Only the fixed "mc" identifier and the ordinary Dock list role are used. Never
 /// descend into that list or fetch names, titles, documents, geometry, or content.
-actor MissionControlVisibilityReader {
+final class MissionControlVisibilityReader: @unchecked Sendable {
+    // Dock AX is synchronous IPC. A private queue keeps it off both AppKit and
+    // Swift's cooperative pool, where blocking desktop-reader work used to delay
+    // this ownership observation long enough to revoke an otherwise valid click.
+    // All mutable state below is confined to this one serial queue.
+    private let queue = DispatchQueue(label: "com.holdsnow.nearpane.dock-observation", qos: .userInitiated)
     private var verifiedDock: OrdinaryProcessImage?
+    private let injectedSample: (@Sendable () -> (MissionControlVisibility, String))?
     private static let executable = "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock"
     private static let identifier = "com.apple.dock"
 
     typealias Reading = (visibility: MissionControlVisibility, evidence: String, startUptime: TimeInterval, endUptime: TimeInterval)
 
-    func read() -> Reading {
-        let start = ProcessInfo.processInfo.systemUptime
-        let result = sampleDock()
-        return (result.visibility, result.evidence, start, ProcessInfo.processInfo.systemUptime)
+    init(sample: (@Sendable () -> (MissionControlVisibility, String))? = nil) {
+        injectedSample = sample
+    }
+
+    func read() async -> Reading {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                let start = ProcessInfo.processInfo.systemUptime
+                let result = injectedSample.map { $0() } ?? sampleDock()
+                continuation.resume(returning: (result.0, result.1, start, ProcessInfo.processInfo.systemUptime))
+            }
+        }
     }
 
     private func sampleDock() -> (visibility: MissionControlVisibility, evidence: String) {
+        dispatchPrecondition(condition: .onQueue(queue))
         guard AXIsProcessTrusted() else { return (.unknown, "accessibilityUnavailable") }
         let matches = NSRunningApplication.runningApplications(withBundleIdentifier: Self.identifier)
         guard matches.count == 1, let pid = matches.first?.processIdentifier,

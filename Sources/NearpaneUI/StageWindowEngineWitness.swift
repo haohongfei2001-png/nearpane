@@ -45,16 +45,38 @@ import NearpaneOrdinaryWindowRuntime
             bindings[member.before.window]?.lifetime == member.before.lifetime && mayManage(member.before)
     }
 
-    func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture) -> Bool {
+    /// Drawing a retained image consumes the last complete witness. It must not
+    /// issue AX/WindowServer IPC from SwiftUI body, or every displayed member can
+    /// block delivery of a new click and the system-ownership reply. A card is
+    /// never a write permit: chooseHeld obtains a new session.read and supplies
+    /// that exact sample; the coordinator still performs its normal preflights.
+    func confirmsHistoricalMember(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture,
+                                  observed: StageWindowSample? = nil) -> Bool {
         let window = member.before.window
         guard generation == departure.generation, scope == departure.scope, departures[departure.group] == departure,
               let binding = bindings[window], mayManage(member.before), binding.lifetime == member.before.lifetime,
-              let held = lastStates[window], held.lifetime == binding.lifetime, let claim = claims[window],
-              [StageWindowState.Visibility.parked, .stageSpace].contains(held.visibility), let home,
-              let actual = try? binding.monitor.observation(home:home), actual.id.pid == window.pid,
-              actual.id.number == window.number, actual.id.launch == window.birth, !actual.minimized,
-              actual.frame == held.frame, actual.membership == claim.member else { return false }
-        return claim.backend == .spaces ? !actual.onscreen && actual.membership == held.hiddenSpaceID : actual.membership == departure.nativeID
+              let latest = lastSample, let sample = observed ?? lastSample, sample.sequence == latest.sequence,
+              sample.sequence == sequence, sample.windows[window] == lastStates[window], let claim = claims[window],
+              let home, UInt64(home.record) == sample.nativeID,
+              lastSnapshot?.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) == true else { return false }
+        return Self.confirmsHistoricalState(member, of: departure, in: sample, claim: claim)
+    }
+
+    /// Only already observed facts are compared here. A removed/changed claim,
+    /// different original lifetime or newer appearance cannot retain old pixels.
+    static func confirmsHistoricalState(_ member: StageGroupDeparture.Member, of departure: StageGroupDeparture,
+                                        in sample: StageWindowSample, claim: VisibilityClaim) -> Bool {
+        guard departure.members.contains(member), sample.generation == departure.generation,
+              sample.scope == departure.scope, sample.nativeID == departure.nativeID,
+              let state = sample.windows[member.before.window], state.window == member.before.window,
+              state.lifetime == member.before.lifetime, state.frame == claim.frame else { return false }
+        switch claim.backend {
+        case .spaces:
+            return state.visibility == .stageSpace && state.hiddenSpaceID == claim.member &&
+                claim.member > 0 && claim.member != departure.nativeID
+        case .corner:
+            return state.visibility == .parked && state.hiddenSpaceID == nil && claim.member == departure.nativeID
+        }
     }
     private struct ArrivalWatch {
         let token: UUID, group: UUID, source: NativeSpaceWindow, monitor: StageHostWindow

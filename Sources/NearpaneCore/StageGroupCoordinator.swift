@@ -718,23 +718,32 @@ public enum StageSwitchError: LocalizedError, Equatable {
         func perform(_ action: StageWindowAction, id: NativeSpaceWindow,
                      check: (StageWindowState, StageWindowSample) -> Bool) async throws {
             try requireCurrentIntent()
-            let pre = try await read()
+            let primitive = UUID()
+            guard let before = last.windows[id], let member = members.first(where: { $0.windowHint == id }),
+                  let owningGroup = groups.first(where: { $0.members.contains(where: { $0.id == member.id }) }) else { throw StageSwitchError.interrupted }
+            let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
+                scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
+            let prepared: PreparedSpacesDispatch?
+            let pre: StageWindowSample
+            if let engine = session as? StageEngineSession, engine.owner.backend == .spaces {
+                let receipt = try await engine.prepareCoordinatedDispatch(command, after: last)
+                prepared = receipt
+                pre = try validate(receipt.sample)
+            } else {
+                prepared = nil
+                pre = try await read()
+            }
             try requireCurrentIntent()
             try requireFocus(pre, last.focus)
             guard pre.foreignFocusScope == last.foreignFocusScope, pre.windows == last.windows,
-                  let before = pre.windows[id] else { throw StageSwitchError.interrupted }
+                  pre.windows[id] == before else { throw StageSwitchError.interrupted }
             last = pre
-            let primitive = UUID()
-            guard let member = members.first(where: { $0.windowHint == id }),
-                  let owningGroup = groups.first(where: { $0.members.contains(where: { $0.id == member.id }) }) else { throw StageSwitchError.interrupted }
             try update { $0.pending?.entries.append(.init(action: action, before: before, intent: primitive, group: owningGroup.id, member: member.id)) }
             guard epoch == token else { throw StageSwitchError.interrupted }
-            let command = StageWindowCommand(intent:primitive,group:owningGroup.id,member:member.id,generation:first.generation,
-                scope:scope,nativeID:first.nativeID,action:action,before:before,restoring:false,restoreFrame:held[id]?.original.frame)
             var coordinatedPost: StageWindowSample?
             do {
-                if let engine = session as? StageEngineSession, engine.owner.backend == .spaces, !command.restoring {
-                    coordinatedPost = try await engine.dispatch(command, coordinatedPreflight: pre)
+                if let engine = session as? StageEngineSession, let prepared {
+                    coordinatedPost = try await engine.dispatch(command, prepared: prepared)
                 } else {
                     try await session.dispatch(command)
                 }

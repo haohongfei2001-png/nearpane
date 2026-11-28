@@ -296,6 +296,19 @@ struct Reader {
 }
 
 @main enum DesktopReader {
+    @MainActor static func validate(_ request: DesktopReadRequest, overview: Bool) throws {
+        guard request.version == 1, request.revision > 0, request.parentPID == getppid(),
+              request.anchors.count <= 16, (request.fixtureWindows?.count ?? 0) <= 32 else { throw DesktopActionError.unsupported }
+        if let targets = request.sidebarAuditWindows {
+            var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+            guard overview, (1...2).contains(targets.count), Set(targets).count == targets.count,
+                  proc_pidpath(getppid(), &path, UInt32(path.count)) > 0,
+                  URL(fileURLWithPath: String(decoding: path.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self))
+                    .resolvingSymlinksInPath().path == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost"
+            else { throw DesktopActionError.unsupported }
+        }
+    }
+
     @MainActor static func main() {
         let arguments = Array(CommandLine.arguments.dropFirst())
         if arguments == ["--self-check"] { print("Nearpane desktop reader 1"); return }
@@ -317,6 +330,13 @@ struct Reader {
                 return
             }
             #else
+            if arguments == ["--window-overview-service"] {
+                NSApplication.shared.setActivationPolicy(.prohibited)
+                let service = OverviewReaderService()
+                service.start()
+                withExtendedLifetime(service) { NSApplication.shared.run() }
+                return
+            }
             if arguments.count == 2, arguments[0] == "--admission", arguments[1].utf8.count < 16384,
                let bytes = Data(base64Encoded: arguments[1]) {
                 let request = try JSONDecoder().decode(AdmissionReadRequest.self, from: bytes)
@@ -338,15 +358,7 @@ struct Reader {
             } else { exit(2) }
             guard bytes.count <= 8192 else { exit(2) }
             let request = try JSONDecoder().decode(DesktopReadRequest.self, from: bytes)
-            guard request.version == 1, request.revision > 0, request.parentPID == getppid(),
-                  request.anchors.count <= 16, (request.fixtureWindows?.count ?? 0) <= 32 else { exit(2) }
-            if let targets = request.sidebarAuditWindows {
-                var path = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
-                guard arguments.first == "--window-overview", (1...2).contains(targets.count),
-                      Set(targets).count == targets.count, proc_pidpath(getppid(), &path, UInt32(path.count)) > 0,
-                      URL(fileURLWithPath: String(decoding: path.prefix { $0 != 0 }.map(UInt8.init(bitPattern:)), as: UTF8.self))
-                        .resolvingSymlinksInPath().path == "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost" else { exit(2) }
-            }
+            try validate(request, overview: arguments.first == "--window-overview")
             NSApplication.shared.setActivationPolicy(.prohibited)
             #if NEARPANE_ISOLATED_GUI_LAB
             var ordinary: [String: [String]]?

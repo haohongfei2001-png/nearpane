@@ -113,6 +113,21 @@ struct UnsubmittedCornerHide: Error {
     }
 }
 
+/// Issued only by the session after worker health and a newer, complete Host
+/// observation. The coordinator can inspect the sample but cannot mint or retarget
+/// its single-use permission to skip the duplicate pre-write observation.
+struct PreparedSpacesDispatch {
+    let sample: StageWindowSample
+    fileprivate let session, token: UUID
+    fileprivate let owner: StageEngineOwner
+    fileprivate let command: StageWindowCommand
+    fileprivate init(sample: StageWindowSample, session: UUID, token: UUID,
+                     owner: StageEngineOwner, command: StageWindowCommand) {
+        self.sample = sample; self.session = session; self.token = token
+        self.owner = owner; self.command = command
+    }
+}
+
 @MainActor public final class StageEngineSession: StageWindowSession {
     public let owner: StageEngineOwner
     public var engineOwner: StageEngineOwner? { owner }
@@ -121,6 +136,8 @@ struct UnsubmittedCornerHide: Error {
     public private(set) var backendFailed = false
     public var isFrozen: Bool { frozen }
     private var enrolledLifetimes: [NativeSpaceWindow: UUID]?
+    private let dispatchSession = UUID()
+    private var preparedDispatch: UUID?
     var intentIsCurrent: @MainActor () -> Bool = { false }
     fileprivate var newerSelectionWaiting: @MainActor () -> Bool = { false }
     var canAttemptRelease: Bool { !closed && witness.permits(owner, restoring: true) }
@@ -133,6 +150,8 @@ struct UnsubmittedCornerHide: Error {
     }
 
     public func read(_ scope: StageGroupScope) async throws -> StageWindowSample {
+        preparedDispatch = nil
+        defer { preparedDispatch = nil }
         guard !closed else { throw StageSwitchError.unavailable }
         let sample = try await witness.read(scope,owner:owner)
         let area = sample.workArea
@@ -225,11 +244,63 @@ struct UnsubmittedCornerHide: Error {
         _ = try await dispatch(c, coordinatedPreflight: nil)
     }
 
+    /// Place the read-only health operation before the coordinator's one fresh
+    /// preflight. The baseline still comes from the same activation and every
+    /// bystander, focus, lifetime and desktop must survive the asynchronous work.
+    func prepareCoordinatedDispatch(_ c: StageWindowCommand, after baseline: StageWindowSample) async throws -> PreparedSpacesDispatch {
+        preparedDispatch = nil
+        guard owner.backend == .spaces, !c.restoring, c.generation == owner.generation,
+              (c.nativeID ?? 0) > 0, baseline.scope == c.scope, baseline.generation == c.generation,
+              baseline.nativeID == c.nativeID, baseline.windows[c.before.window] == c.before
+        else { throw StageSwitchError.ownership }
+        func permitted() -> Bool {
+            !closed && !frozen && mayManage(c.before) && witness.permits(owner, restoring: false)
+        }
+        func requireCurrent() throws {
+            guard permitted(), !Task.isCancelled else { throw StageSwitchError.interrupted }
+            guard intentIsCurrent() else {
+                throw newerSelectionWaiting() ? StageSwitchError.superseded : .interrupted
+            }
+        }
+        try requireCurrent()
+        do {
+            let health = try await transport.submit(6, owner: owner, c)
+            try requireHealthy(health, intent: c.intent)
+        } catch { stopAfterBackendFailure(current: intentIsCurrent() && permitted()); throw error }
+        try requireCurrent()
+        let fresh = try await read(c.scope)
+        try requireCurrent()
+        guard fresh.sequence > baseline.sequence, fresh.scope == baseline.scope,
+              fresh.generation == baseline.generation, fresh.nativeID == baseline.nativeID,
+              fresh.windows == baseline.windows, fresh.focus == baseline.focus,
+              fresh.foreignFocusScope == baseline.foreignFocusScope, fresh.workArea == baseline.workArea
+        else { throw StageSwitchError.interrupted }
+        let token = UUID()
+        preparedDispatch = token
+        return .init(sample: fresh, session: dispatchSession, token: token, owner: owner, command: c)
+    }
+
+    @discardableResult
+    func dispatch(_ c: StageWindowCommand, prepared: PreparedSpacesDispatch) async throws -> StageWindowSample? {
+        let pending = preparedDispatch
+        preparedDispatch = nil
+        guard pending == prepared.token, prepared.session == dispatchSession,
+              prepared.owner == owner, prepared.command == c,
+              owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
+        return try await dispatch(c, coordinatedPreflight: prepared.sample, healthAlreadyObserved: true)
+    }
+
     /// The coordinator has just read the complete baseline before recording this
     /// primitive. Only normal Spaces operations can reuse it; the fresh read after
     /// worker health must still match before any window writer is entered.
     @discardableResult
     func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?) async throws -> StageWindowSample? {
+        preparedDispatch = nil
+        return try await dispatch(c, coordinatedPreflight: coordinatedPreflight, healthAlreadyObserved: false)
+    }
+
+    private func dispatch(_ c: StageWindowCommand, coordinatedPreflight: StageWindowSample?,
+                          healthAlreadyObserved: Bool) async throws -> StageWindowSample? {
         if coordinatedPreflight != nil {
             guard owner.backend == .spaces, !c.restoring else { throw StageSwitchError.ownership }
         }
@@ -261,7 +332,7 @@ struct UnsubmittedCornerHide: Error {
         var lastReadSequence = pre.sequence
         // Restoration can survive a revoked event tap/failed probe; the old worker must still explicitly
         // attest its retained ownership via RESTORE. No new hide/show/place follows a lost health result.
-        if !c.restoring {
+        if !c.restoring && !healthAlreadyObserved {
             do {
                 let health = try await transport.submit(6,owner:owner,c)
                 try requireHealthy(health, intent: c.intent)
@@ -396,8 +467,9 @@ struct UnsubmittedCornerHide: Error {
               command.restoreFrame != nil, witness.permits(owner, restoring: true) else { return false }
         return await transport.readsFinalRelease(command, owner: owner)
     }
-    func beginRelease() { recovering = true; witness.beginRelease() }
+    func beginRelease() { preparedDispatch = nil; recovering = true; witness.beginRelease() }
     func freeze() {
+        preparedDispatch = nil
         guard !frozen, !closed else { return }
         frozen = true; transport.revoke()
     }

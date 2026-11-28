@@ -321,6 +321,73 @@ import Testing
         #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty && fixture.prepared.isEmpty)
     }
 
+    @Test func preparedSpacesDispatchReadsAfterHealthAndConsumesItsPermissionOnce() async throws {
+        let (session, fixture, baseline, command) = try await focusPreflight()
+        var healthSequences = [UInt64]()
+        fixture.onPrimitiveHealth = { [unowned fixture] _ in healthSequences.append(fixture.sequence) }
+        let prepared = try await session.prepareCoordinatedDispatch(command, after: baseline)
+        #expect(healthSequences == [baseline.sequence])
+        #expect(prepared.sample.sequence == baseline.sequence + 1)
+        #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty)
+        let post = try await session.dispatch(command, prepared: prepared)
+        #expect(post == nil && fixture.sequence == prepared.sample.sequence)
+        #expect(healthSequences == [baseline.sequence])
+        #expect(fixture.ordinaryEffects == [.focus])
+        await #expect(throws: StageSwitchError.ownership) {
+            try await session.dispatch(command, prepared: prepared)
+        }
+        #expect(fixture.ordinaryEffects == [.focus])
+    }
+
+    @Test(arguments: ["bystander", "focus", "lifetime", "roster", "input"])
+    func preparedSpacesDispatchRejectsChangesDuringWorkerHealth(_ change: String) async throws {
+        let (session, fixture, baseline, command) = try await focusPreflight()
+        let other = try #require(baseline.windows.keys.first { $0 != command.before.window })
+        var current = true
+        session.intentIsCurrent = { current }
+        fixture.onPrimitiveHealth = { [unowned fixture] _ in
+            switch change {
+            case "bystander": fixture.windows[other]?.frame.x += 10
+            case "focus": fixture.focus = command.before.window
+            case "lifetime":
+                if let previous = fixture.windows[other] {
+                    fixture.windows[other] = .init(window: other, lifetime: UUID(), frame: previous.frame, visibility: .visible)
+                }
+            case "roster": fixture.windows.removeValue(forKey: other)
+            default: current = false
+            }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await session.prepareCoordinatedDispatch(command, after: baseline)
+        }
+        #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty && fixture.prepared.isEmpty)
+        #expect(fixture.sequence == baseline.sequence + (change == "input" ? 0 : 1))
+    }
+
+    @Test(arguments: ["other-command", "other-session", "later-read", "freeze", "release", "input"])
+    func preparedSpacesDispatchCannotOutliveItsCommandAndSession(_ change: String) async throws {
+        let (session, fixture, baseline, command) = try await focusPreflight()
+        let prepared = try await session.prepareCoordinatedDispatch(command, after: baseline)
+        var receiver = session, submitted = command
+        switch change {
+        case "other-command":
+            submitted = .init(intent: UUID(), group: command.group, member: command.member, generation: command.generation,
+                scope: command.scope, nativeID: command.nativeID, action: command.action, before: command.before,
+                restoring: command.restoring, restoreFrame: command.restoreFrame)
+        case "other-session":
+            receiver = StageEngineSession(owner: session.owner, witness: fixture, transport: fixture)
+            receiver.intentIsCurrent = { true }
+        case "later-read": _ = try await session.read(fixture.scope)
+        case "freeze": session.freeze()
+        case "release": session.beginRelease()
+        default: session.intentIsCurrent = { false }
+        }
+        await #expect(throws: StageSwitchError.self) {
+            try await receiver.dispatch(submitted, prepared: prepared)
+        }
+        #expect(fixture.ordinaryEffects.isEmpty && fixture.effects.isEmpty && fixture.prepared.isEmpty)
+    }
+
     @Test func spacesCoordinatorHandsItsCompletePreflightToTheSameSession() async throws {
         let (profile, store, _, fixture, groups) = try setup()
         defer { try? FileManager.default.removeItem(at: profile) }
@@ -337,9 +404,9 @@ import Testing
             }
         }
         try await activate(groups[1], controller, fixture)
-        // Initial enrollment, post-launch read, and the coordinator's preflight.
-        // Worker health is followed by its own fresh read before exact focus.
-        #expect(firstPrimitiveReadCount == 3)
+        // Initial enrollment and post-launch read. Health now precedes the one
+        // complete coordinator preflight instead of separating two identical reads.
+        #expect(firstPrimitiveReadCount == 2)
         #expect(store.activeGroup(in: fixture.scope) == groups[1].id)
         try await controller.release()
     }
