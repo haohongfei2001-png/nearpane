@@ -90,6 +90,11 @@ try:
     placed=command([str(a.placement_helper),client['bundleID'],str(x),'112','1352','838',str(out/'client-window-placement.json')],timeout=12,log=out/'placement-command.json')
     screenshot('client-and-lyrics-before-seek-4k.png')
     if placed['exitCode']!=0:raise RuntimeError('Actual QQ client window geometry could not be confirmed')
+    # Begin a short real-screen preroll before seeking; the source's complete
+    # 165.6–170.6 interval must not be lost during recorder initialization.
+    recorder=subprocess.Popen([str(a.recorder),os.environ['NEARPANE_FILM_DISPLAY_ID'],'12',str(out/'source2-fullscreen.mov')],stdout=(out/'recorder.log').open('w'),stderr=subprocess.STDOUT)
+    capture=wait('capture-first-frame.json',20)
+    event('capture-first-video-frame',capture=capture,latestState=load('state.json'))
     # Only the existing production control route performs the seek. Nothing sets a model clock.
     request_id='source2-seek-'+os.environ['GITHUB_RUN_ID']
     save('transport-command.json',{'id':request_id,'seekMS':163600})
@@ -100,9 +105,6 @@ try:
     event('actual-seek-readback-confirmed',request=request,readback=state)
     media_readback('actual-media-capture-start.json')
     screenshot('source2-first-frame-4k.png')
-    recorder=subprocess.Popen([str(a.recorder),os.environ['NEARPANE_FILM_DISPLAY_ID'],'12',str(out/'source2-fullscreen.mov')],stdout=(out/'recorder.log').open('w'),stderr=subprocess.STDOUT)
-    capture=wait('capture-first-frame.json',20)
-    event('capture-first-video-frame',capture=capture,latestState=load('state.json'))
     recorder.wait(timeout=28)
     if recorder.returncode:raise RuntimeError('ScreenCaptureKit recording did not complete')
     media_readback('actual-media-capture-end.json')
@@ -112,7 +114,8 @@ try:
     if not completed or completed.get('audioBuffers',0)<=0:raise RuntimeError('Actual system audio was not recorded')
     report.update(status='CAPTURED',stage='completed',durationRequested=12,actualPlayback=True,desktopNative=True,
         firstReadyReadback=ready,seekReadback=state,finalReadback=final,capture=completed,
-        limitations=['Current embedded production module in isolated native camera host; not full Host release qualification.',
+        limitations=['Raw capture starts with short pre-seek preroll; use real source/audio alignment to choose the 165.6–170.6 interval.',
+                     'Current embedded production module in isolated native camera host; not full Host release qualification.',
                      'Source-clock LRC imported through actual local lyric importer; no injected player snapshots.',
                      'Final 165.6–170.6 selection must be aligned from real audio and source timeline; no speed change.'])
 except Exception as error:

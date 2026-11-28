@@ -36,13 +36,14 @@ jobs:
       - name: Prepare licensed recording and actual 4K desktop
         run: |
           python3 "$RUNNER_TEMP/source2-harness/build_good_to_go.py" --output "$RUNNER_TEMP/good-to-go.m4a" --source-dir "$RUNNER_TEMP/song-originals" > build/film-v2-source2/audio-source.json
+          python3 Marketing/FirstFilmV2/source2/build_qq_compatibility.py --alac "$RUNNER_TEMP/good-to-go.m4a" --cover "$RUNNER_TEMP/song-originals/simple-life-cover.jpg" --output "$RUNNER_TEMP/good-to-go-source2.mp3" --evidence build/film-v2-source2
           python3 "$RUNNER_TEMP/source2-harness/set_motion_preference.py" build/film-v2-source2
           python3 "$RUNNER_TEMP/source2-harness/prepare_hidpi.py" build/film-v2-source2
           defaults write com.apple.dock autohide -bool true
           killall Dock || true
       - name: Record actual official QQ Music and live lyrics
         run: |
-          python3 "$RUNNER_TEMP/source2-harness/drive_source2_capture.py" --app "$RUNNER_TEMP/Nearpane Film V2.app" --audio "$RUNNER_TEMP/good-to-go.m4a" --wallpaper Marketing/FirstFilmV2/assets/workspace/morning-water-photography.jpg --recorder "$RUNNER_TEMP/source2-recorder" --placement-helper "$RUNNER_TEMP/source2-place-window" --output build/film-v2-source2
+          python3 "$RUNNER_TEMP/source2-harness/drive_source2_capture.py" --app "$RUNNER_TEMP/Nearpane Film V2.app" --audio "$RUNNER_TEMP/good-to-go-source2.mp3" --wallpaper Marketing/FirstFilmV2/assets/workspace/morning-water-photography.jpg --recorder "$RUNNER_TEMP/source2-recorder" --placement-helper "$RUNNER_TEMP/source2-place-window" --output build/film-v2-source2
           ffprobe -v error -show_streams -show_format -of json build/film-v2-source2/source2-fullscreen.mov > build/film-v2-source2/media-probe.json
       - name: Preserve actual frames audio readbacks or bounded failure
         if: ${{ !cancelled() }}

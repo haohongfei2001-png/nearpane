@@ -36,7 +36,40 @@ let actualPos=point(window,kAXPositionAttribute),actualSize=size(window)
 report["setPositionResult"]=setPos.rawValue;report["setSizeResult"]=setSize.rawValue
 report["actualPosition"]=actualPos;report["actualSize"]=actualSize
 report["selectedTitle"]=str(window,kAXTitleAttribute)
-let ok=actualPos.count==2 && actualSize.count==2 && abs(actualPos[0]-x)<30 && abs(actualPos[1]-y)<30 && actualSize[0]<=1450 && actualSize[1]<=900
+func nodes(_ root:AXUIElement)->[AXUIElement]{var result:[AXUIElement]=[];func walk(_ e:AXUIElement,_ d:Int){guard d<15,result.count<1400 else{return};result.append(e);for c in (attr(e,kAXChildrenAttribute) as? [AXUIElement] ?? []).prefix(100){walk(c,d+1)}};walk(root,0);return result}
+func labels(_ e:AXUIElement)->[String]{[kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].map{str(e,$0)}.filter{!$0.isEmpty}}
+func supportsPress(_ e:AXUIElement)->Bool{var names:CFArray?;return AXUIElementCopyActionNames(e,&names) == .success && ((names as? [String]) ?? []).contains(kAXPressAction)}
+// "本地·1" was actually observed in the first take. Re-inspect its native node;
+// press only this local-library control, never recommendations or sign-in.
+let localNodes=nodes(window).filter{labels($0).contains{label in label == "本地" || label.hasPrefix("本地·") || label == "本地音乐"}}
+var action:[String:Any]=["observedMatchingNodes":localNodes.count,"performed":false]
+for node in localNodes{
+ var target:AXUIElement?=node
+ var pressed=false
+ for _ in 0..<3{
+  guard let e=target else{break}
+  if supportsPress(e){let r=AXUIElementPerformAction(e,kAXPressAction as CFString);action=["performed":r == .success,"method":"Freshly observed AXPress","labels":labels(node),"result":r.rawValue];pressed=r == .success;break}
+  if let parent=attr(e,kAXParentAttribute){target=parent as! AXUIElement}else{target=nil}
+ }
+ if !pressed{
+  let p=point(node,kAXPositionAttribute),s=size(node)
+  if p.count==2,s.count==2,s[0]>4,s[0]<280,s[1]>4,s[1]<80,p[0]>=x,p[0]<x+310,p[1]>y+80,p[1]<y+650{
+   let center=CGPoint(x:p[0]+s[0]/2,y:p[1]+s[1]/2)
+   CGEvent(mouseEventSource:nil,mouseType:.mouseMoved,mouseCursorPosition:center,mouseButton:.left)?.post(tap:.cghidEventTap)
+   CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:center,mouseButton:.left)?.post(tap:.cghidEventTap)
+   CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:center,mouseButton:.left)?.post(tap:.cghidEventTap)
+   action=["performed":true,"method":"Real CGEvent on freshly observed AX element bounds","labels":labels(node),"bounds":p+s];pressed=true
+  }
+ }
+ if pressed{break}
+}
+RunLoop.current.run(until:Date().addingTimeInterval(1.2))
+let afterLabels=nodes(window).flatMap{labels($0)}
+let text=afterLabels.joined(separator:"\n")
+let localConfirmed=(action["performed"] as? Bool == true) && !text.contains("专属热门节目") && text.contains("Good To Go")
+report["localLibraryAction"]=action;report["localLibraryConfirmedFromAX"]=localConfirmed;report["labelsAfterLocalAction"]=afterLabels
+CGEvent(mouseEventSource:nil,mouseType:.mouseMoved,mouseCursorPosition:CGPoint(x:x-60,y:y+830),mouseButton:.left)?.post(tap:.cghidEventTap)
+let ok=actualPos.count==2 && actualSize.count==2 && abs(actualPos[0]-x)<30 && abs(actualPos[1]-y)<30 && actualSize[0]<=1450 && actualSize[1]<=900 && localConfirmed
 report["status"]=ok ? "PLACED":"GEOMETRY_NOT_CONFIRMED"
 report["uiPixelsModified"]=false
 save();exit(ok ? 0:5)
