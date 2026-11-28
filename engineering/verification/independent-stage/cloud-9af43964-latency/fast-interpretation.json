@@ -1,0 +1,1195 @@
+{
+  "schema": 1,
+  "head": "9af439644f93bf6c77c3234be19093ef92327c1c",
+  "workflowRunID": 46135195913,
+  "jobID": 140948808419,
+  "artifactID": 15259064056,
+  "providerDigest": "sha256:d03199550c72a6cba313d3acb9136cd1a3bcdf9ac997dcac02c72693994b102a",
+  "rawFileCount": 74,
+  "outcome": {
+    "productStatus": "BLOCKED",
+    "reason": "fixtureGroupsNotReady",
+    "issuedInputs": 0,
+    "physicalConfirmations": 0,
+    "selectionSettlements": 0,
+    "groupEdits": 0,
+    "qualified": false,
+    "firstObservedFailure": "The first overview read fails to return a DesktopSnapshot; all subsequent readiness reads also return none."
+  },
+  "firstRead": {
+    "created": {
+      "auditCreationMS": 0.01391666665995217,
+      "creatorKind": "observer",
+      "creatorPriority": 17,
+      "dispatching": false,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 370.98248525,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 125.0498333333212,
+      "readCallStartedUptime": 370.98246458333335,
+      "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+      "requestConstructionMS": 0.004541666669410915,
+      "requestRevision": 1,
+      "sessionAvailabilityMS": 124.89929166667935,
+      "taskCreatedUptime": 371.1075144166667,
+      "uptime": 371.1078056666667,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 6
+    },
+    "channel": {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8050,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.127128125,
+        "sourceLine": 9,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8050,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.3432239166667,
+        "sourceLine": 14,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 216.095791666703
+    },
+    "exit": {
+      "completed": false,
+      "durationMS": 231.77824999999075,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0,
+      "observeDirectoryMS": 0,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 229.61391666666486,
+      "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+      "receivedReply": false,
+      "remainingProcessingMS": 2.164333333325885,
+      "requestRevision": 1,
+      "sidebarHistoryMS": 0,
+      "step": "reader-validation",
+      "taskCreatedUptime": 371.1075144166667,
+      "taskPriority": 17,
+      "taskQueueMS": 5.049541666664936,
+      "taskStartedUptime": 371.11256395833334,
+      "uptime": 371.34445891666667,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 15
+    },
+    "publication": {
+      "catalogComplete": null,
+      "dispatching": false,
+      "epoch": "C047530F-5601-46CE-8D9F-5FCE8C684A92",
+      "event": "independentStageProduct",
+      "nativeBeganUptime": null,
+      "nativeEndedUptime": null,
+      "nativeFreshAtPublication": null,
+      "navigationEpoch": "6B2F35D0-954B-41A0-97E7-722399913D0B",
+      "observer": "0E53F7EB-92F4-48C9-AFA4-AC03B5609978",
+      "phase": "desktop-observer-published",
+      "publicationUptime": 371.3451322083334,
+      "snapshotPresent": false,
+      "snapshotRevision": null,
+      "snapshotSession": null,
+      "uptime": 371.3453939583334,
+      "wallSampledToAgeMS": null,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 16
+    }
+  },
+  "readiness": {
+    "lastReadiness": {
+      "accessibilityTrusted": true,
+      "distinctFixtureGroupCount": 0,
+      "fixtureGroupCount": 0,
+      "missionControlEvidence": "signedDockAXListWithoutMC",
+      "missionControlState": "ordinary",
+      "observedCapability": "unavailable",
+      "panelVisible": true,
+      "previewVisibleDisplays": [
+        "2109FE05-700B-4D86-963C-08B091DE5E60"
+      ],
+      "r4OpenRequested": true,
+      "snapshotAvailable": false,
+      "windowDispatchEligible": true
+    },
+    "dispatchState": {
+      "consentRequestPresent": false,
+      "groupIssue": "none",
+      "groupLoadIssue": "none",
+      "holdsDispatch": false,
+      "navigationDispatchAvailable": true,
+      "navigationIssue": "none",
+      "routesGroupChoice": true,
+      "snapshotAvailable": false,
+      "targets": [
+        {
+          "groupLifetime": "none",
+          "number": 54,
+          "ordinaryLifetime": "none",
+          "pid": 7408,
+          "visibleGroupBound": false
+        },
+        {
+          "groupLifetime": "none",
+          "number": 56,
+          "ordinaryLifetime": "none",
+          "pid": 7408,
+          "visibleGroupBound": false
+        },
+        {
+          "groupLifetime": "none",
+          "number": 57,
+          "ordinaryLifetime": "none",
+          "pid": 7676,
+          "visibleGroupBound": false
+        }
+      ]
+    },
+    "overviewRequested": {
+      "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+      "phase": "R4OverviewOpenRequested",
+      "route": "productionOverviewCommand",
+      "uptime": 371.11568245833337
+    },
+    "requestCount": 37,
+    "allRequestsWereObserverCreated": true,
+    "allExitsReaderValidationWithoutSnapshot": true,
+    "nilPublications": 37,
+    "readerAwaitMedianMS": 203.6455416666172,
+    "readerAwaitMaxMS": 1058.2038333333799,
+    "preTaskMaxMS": 125.0498333333212
+  },
+  "channelLifecycles": [
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8050,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.127128125,
+        "sourceLine": 9,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8050,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.3432239166667,
+        "sourceLine": 14,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 216.095791666703
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8052,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.35530058333336,
+        "sourceLine": 19,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8052,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.47527520833336,
+        "sourceLine": 20,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 119.97462499999756
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8054,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.54179891666666,
+        "sourceLine": 25,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8054,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.70398858333334,
+        "sourceLine": 30,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 162.1896666666771
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8057,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.73006175,
+        "sourceLine": 35,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8057,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.9040767083334,
+        "sourceLine": 40,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 174.01495833337322
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8060,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 371.9706595,
+        "sourceLine": 45,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8060,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.15089750000004,
+        "sourceLine": 46,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 180.2380000000312
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8062,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.17243758333336,
+        "sourceLine": 51,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8062,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.404441125,
+        "sourceLine": 56,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 232.00354166664283
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8063,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.42489575,
+        "sourceLine": 61,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8063,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.6579644166667,
+        "sourceLine": 66,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 233.06866666666792
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8065,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.67826420833336,
+        "sourceLine": 71,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8065,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.81420383333335,
+        "sourceLine": 72,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 135.9396249999918
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8066,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.8269000416667,
+        "sourceLine": 77,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8066,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.9649151666667,
+        "sourceLine": 82,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 138.01512499998125
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8067,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 372.99976920833336,
+        "sourceLine": 87,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8067,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.17507545833337,
+        "sourceLine": 88,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 175.30625000000555
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8068,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.18984800000004,
+        "sourceLine": 93,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8068,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.3489333333334,
+        "sourceLine": 98,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 159.08533333333708
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8069,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.4176385416667,
+        "sourceLine": 103,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8069,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.58721975000003,
+        "sourceLine": 104,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 169.58120833334078
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8070,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.608436625,
+        "sourceLine": 113,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8070,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.7559780416667,
+        "sourceLine": 114,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 147.54141666668374
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8072,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.770902125,
+        "sourceLine": 119,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8072,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.94234320833334,
+        "sourceLine": 120,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 171.44108333332042
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8073,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 373.96396737500004,
+        "sourceLine": 129,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8073,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 375.00861645833334,
+        "sourceLine": 142,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 1044.6490833332973
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8075,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 375.0295459166667,
+        "sourceLine": 147,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8075,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 375.8162519166667,
+        "sourceLine": 156,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 786.7060000000379
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8077,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 375.95233470833335,
+        "sourceLine": 161,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8077,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.49090208333337,
+        "sourceLine": 170,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 538.5673750000137
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8079,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.52151833333335,
+        "sourceLine": 175,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8079,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.6398219166667,
+        "sourceLine": 176,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 118.30358333332924
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8080,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.6538645,
+        "sourceLine": 181,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8080,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.76901300000003,
+        "sourceLine": 186,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 115.14850000003207
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8081,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.78214720833336,
+        "sourceLine": 191,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8081,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.88821625,
+        "sourceLine": 192,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 106.06904166667164
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8083,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 376.90039612500004,
+        "sourceLine": 197,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8083,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.03621595833334,
+        "sourceLine": 198,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 135.81983333330072
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8084,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.05371908333336,
+        "sourceLine": 203,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8084,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.1545399583334,
+        "sourceLine": 208,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 100.8208750000108
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8086,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.17768108333337,
+        "sourceLine": 213,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8086,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.33477800000003,
+        "sourceLine": 214,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 157.09691666666004
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8088,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.3582131666667,
+        "sourceLine": 219,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8088,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.698458625,
+        "sourceLine": 224,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 340.24545833329967
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8096,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.78003358333336,
+        "sourceLine": 229,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8096,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.89754058333335,
+        "sourceLine": 234,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 117.50699999998915
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8110,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 377.9131466666667,
+        "sourceLine": 239,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8110,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.07155745833336,
+        "sourceLine": 240,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 158.41079166665395
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8123,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.1546195,
+        "sourceLine": 245,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8123,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.4402890416667,
+        "sourceLine": 250,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 285.6695416666639
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8129,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.53936308333334,
+        "sourceLine": 259,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8129,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.7066320833334,
+        "sourceLine": 260,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 167.26900000003297
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8143,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 378.8845802916667,
+        "sourceLine": 265,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8143,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.0999530416667,
+        "sourceLine": 270,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 215.37275000002865
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8156,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.16146537500003,
+        "sourceLine": 275,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8156,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.3405710416667,
+        "sourceLine": 280,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 179.10566666665773
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8164,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.427451625,
+        "sourceLine": 285,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8164,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.6860950833334,
+        "sourceLine": 290,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 258.6434583333812
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8178,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.7569125,
+        "sourceLine": 295,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8178,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.93856150000005,
+        "sourceLine": 300,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 181.6490000000499
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8189,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 379.9908354166667,
+        "sourceLine": 305,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8189,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.16898883333334,
+        "sourceLine": 306,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 178.15341666664608
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8196,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.2795597916667,
+        "sourceLine": 313,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8196,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.4475100416667,
+        "sourceLine": 316,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 167.95024999998986
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8204,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.50095591666667,
+        "sourceLine": 321,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8204,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.717740875,
+        "sourceLine": 326,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 216.784958333335
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8215,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 380.74094525000004,
+        "sourceLine": 331,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8215,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 381.0364137083334,
+        "sourceLine": 336,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 295.468458333346
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 8237,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 381.09365445833333,
+        "sourceLine": 341,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 8237,
+        "readSession": "D17059C2-14CD-4026-91CC-AB7E5D23B73F",
+        "uptime": 381.2982749166667,
+        "sourceLine": 344,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 204.62045833335196
+    }
+  ],
+  "unobservedFailureCause": {
+    "exitStatusAvailable": false,
+    "signalAvailable": false,
+    "exchangeErrorAvailable": false,
+    "decodeErrorAvailable": false,
+    "childStderrAvailable": false,
+    "rawReapedFields": [
+      "event",
+      "phase",
+      "pid",
+      "readSession",
+      "uptime"
+    ],
+    "sourcePath": "Sources/NearpaneUI/DesktopOverviewReader.swift",
+    "facts": [
+      "OverviewReaderChannel.stop closes its descriptors, sends SIGKILL, calls waitpid, and discards the returned status.",
+      "Any exchange/decode failure can invoke stop; reaped is not evidence of natural child exit or a particular signal.",
+      "The child stderr is redirected to /dev/null; no child stderr or crash report is included in these 74 raw files.",
+      "receivedReply=false means no decoded DesktopSnapshot reached CurrentDesktopWindows, not that the pipe necessarily returned zero bytes."
+    ],
+    "conclusion": "The retained evidence cannot distinguish service rejection/structure failure, decoding failure, transport error, or crash. No environment or census root cause is asserted."
+  },
+  "requestedCoverage": {
+    "fixedMemberAXBounds": "NOT_REACHED",
+    "thirteenthInput": "NOT_REACHED",
+    "splitAndLaterLifecycle": "NOT_REACHED",
+    "physicalObservationGuardTimings": "NOT_REACHED",
+    "physicalObservationActorQueueNativeResume": "NOT_REACHED",
+    "catalogCensus": "NO_REPLY_REACHED_HOST",
+    "catalogIssueWindows": "NO_REPLY_REACHED_HOST"
+  },
+  "dock": {
+    "requestPairs": 31,
+    "allConsumedCurrent": true,
+    "allCompletedOrdinary": true,
+    "timerConsumedBeforeCallback": 0,
+    "expiryEvents": [],
+    "ownershipEvents": [
+      {
+        "disposition": "ordinary",
+        "eligible": true,
+        "event": "independentStageProduct",
+        "evidence": "signedDockAXListWithoutMC",
+        "missionControl": "ordinary",
+        "phase": "system-window-ownership",
+        "previousEligible": false,
+        "readEnd": 370.88664112500004,
+        "readStart": 370.8764029166667,
+        "stopped": false,
+        "suspended": false,
+        "systemManagesWindows": false,
+        "uptime": 370.88725245833336,
+        "wallpaperAwaitingOrdinary": false,
+        "wallpaperHeld": false,
+        "sourceLine": 5,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      {
+        "disposition": "system",
+        "eligible": false,
+        "event": "independentStageProduct",
+        "evidence": "signedDockAXListWithoutMC",
+        "missionControl": "ordinary",
+        "phase": "system-window-ownership",
+        "previousEligible": true,
+        "readEnd": 381.32680683333336,
+        "readStart": 381.31112033333335,
+        "stopped": true,
+        "suspended": false,
+        "systemManagesWindows": false,
+        "uptime": 381.509146875,
+        "wallpaperAwaitingOrdinary": false,
+        "wallpaperHeld": false,
+        "sourceLine": 352,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      }
+    ],
+    "limit": "Current is a pre-acceptance observation; it is not treated as an independent window-writing permit."
+  },
+  "separateControllerReceipt": {
+    "status": "FAIL",
+    "reason": "initialYellowButtonFailed",
+    "operationReason": "initialYellowButtonFailed",
+    "windowWrites": 1,
+    "setupAXWrites": 2,
+    "ordinaryHome": 12,
+    "enrolledWindows": [
+      {
+        "attempted": true,
+        "birth": 1795861836894596,
+        "directory": "/Users/runner/work/_temp/independent-runtime/runtime/FixtureA",
+        "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+        "frame": [
+          120,
+          386,
+          250,
+          202
+        ],
+        "group": "3CC7A028-E2AB-4967-BE98-B47A48F22B97",
+        "hidden": false,
+        "index": 0,
+        "lifetime": "07FB1BC6-E2B0-494B-8822-BADD841B49EC",
+        "member": "C67D8413-E94E-4AF8-8FA1-CE2FAEFF77A1",
+        "number": 54,
+        "pid": 7408
+      },
+      {
+        "attempted": false,
+        "birth": 1795861836894596,
+        "directory": "/Users/runner/work/_temp/independent-runtime/runtime/FixtureA",
+        "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+        "frame": [
+          400,
+          386,
+          250,
+          202
+        ],
+        "group": "C72A8E0E-1C7C-494A-812D-1BB29FE998B6",
+        "hidden": false,
+        "index": 1,
+        "lifetime": "22BFCC96-0DB8-43E8-9463-FDF09BE4E185",
+        "member": "F5706AC0-6E07-45BA-AAE6-583AEF57C14A",
+        "number": 56,
+        "pid": 7408
+      },
+      {
+        "attempted": false,
+        "birth": 1795861839894631,
+        "directory": "/Users/runner/work/_temp/independent-runtime/runtime/FixtureB",
+        "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+        "frame": [
+          680,
+          386,
+          250,
+          202
+        ],
+        "group": "2C9747E0-5D74-4007-BA27-3D956BAE0E62",
+        "hidden": false,
+        "index": 0,
+        "lifetime": "C71242CB-6B46-431A-A665-1E484B4D952D",
+        "member": "625730F4-5804-457E-9C75-BB11AF8B437B",
+        "number": 57,
+        "pid": 7676
+      }
+    ],
+    "interpretation": "The separate Controller path fails initialYellowButtonFailed before the later engine sequence. This is distinct from the production Host overview-channel readiness failure; no common cause is proven."
+  },
+  "cleanup": {
+    "host": {
+      "end": 381.28424795833337,
+      "milliseconds": 34.30212500001062,
+      "released": true,
+      "start": 381.24994583333336
+    },
+    "externalTwoHomeReadbacks": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 381.32248787500004,
+          "readStart": 381.29149566666666,
+          "received": 381.32429087500003,
+          "uptime": 381.32429087500003,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 7408,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 7408,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 7676,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 381.50476475000005,
+          "readStart": 381.49072416666667,
+          "received": 381.505154,
+          "uptime": 381.505154,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 7408,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 7408,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 7676,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "formalHostWorkerRequests": 0,
+    "visibilityLedgerFilePresent": false,
+    "interpretation": "No formal R4 action was issued. Cleanup returned released=true and independent external reads verified all three fixture windows at their home with frames preserved."
+  },
+  "verificationLimits": [
+    "The exact-head Host native build passed; FAST source tests were NOT_RUN and this evidence does not replace the separately owned source/full lanes.",
+    "No physical-observation timing or member-button coverage is claimed when readiness never admitted a click.",
+    "All 74 raw files match the single provider ZIP byte for byte. The evidence analysis owner did not modify tested source or raw evidence; artifact/exact9af439 remain unchanged. Concurrent or later shared-worktree next-patch edits are not part of this run."
+  ]
+}

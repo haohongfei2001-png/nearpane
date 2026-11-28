@@ -71,21 +71,31 @@ extension Reader {
     }
 
     /// A read-only catalogue for this screen's window roster, independent of AX responsiveness.
-    func windowOverview() throws -> DesktopSnapshot {
+    func windowOverview(diagnostic: ((String) -> Void)? = nil) throws -> DesktopSnapshot {
+        diagnostic?("session-and-request")
         guard WindowServerSession.available, request.fixtureWindows == nil, request.anchors.isEmpty else {
             throw DesktopActionError.unsupported
         }
+        diagnostic?("opening-topology")
         let start = clock.systemUptime, from = Date(), topology = try Topology()
+        diagnostic?("catalog-availability")
         let canRead = NPProbeReadOnlyCatalog() == 1 && (topology.displays.count == 1 || topology.separateSpaces)
+        diagnostic?("opening-stage-preference")
         let stageBefore = StageManagerPreference.read()
+        diagnostic?("accessibility-permission")
         let trusted = AXIsProcessTrusted()
+        diagnostic?("background-inventory")
         let backgroundInventory = canRead && trusted ? NPReadInventory().flatMap { SpaceInventory($0 as [AnyObject], displays:topology.displays) } : nil
+        diagnostic?("first-window-list")
         let first = try windowList(overview: true, backgroundInventory:backgroundInventory)
+        diagnostic?("first-active-and-logical")
         let activeBeforeRead = observedActiveNumbers()
         let activeBefore = activeBeforeRead ?? []
         let ids = first.windows.map(\.windowID)
         let firstLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
+        diagnostic?("first-boundary")
         let firstBoundary = canRead ? SpaceBoundary.read(displays: topology.displays, windowIDs: ids) : nil
+        diagnostic?("background-inventory-agreement")
         if let backgroundInventory, backgroundInventory != firstBoundary?.inventory { throw DesktopActionError.unsupported }
         let currentIDs = firstBoundary?.inventory.map { inventory in
             Set(inventory.scopes.flatMap(\.records).filter { $0.isCurrent && $0.nativeKind != nil }.map(\.id))
@@ -100,29 +110,38 @@ extension Reader {
         let currentNumbers = Set(targets.flatMap(\.numbers))
         let sharedSpaces = topology.displays.count > 1 && !topology.separateSpaces
         let otherNumbers = Set(others.flatMap(\.numbers)).subtracting(currentNumbers)
+        diagnostic?("current-window-roles")
         let roles = trusted ? OverviewWindowRole.read(targets: targets, revision: request.revision, deadline: start + 0.8,
                                                      frameNumbers: sharedSpaces ? currentNumbers : fullscreenNumbers) : [:]
         // Preserve the entire current-desktop budget. Spend a separate bounded slice
         // on known background members for the other Space cards.
+        diagnostic?("background-window-roles")
         let otherRoles = trusted ? OverviewWindowRole.read(targets: others, revision: request.revision,
                                                            deadline: min(start + 1, clock.systemUptime + 0.2)) : [:]
+        diagnostic?("last-logical")
         let lastLogical = Dictionary(uniqueKeysWithValues: ids.compactMap { id in Self.logicalFrame(id).map { (id, $0) } })
+        diagnostic?("second-window-list")
         let second = try windowList(overview: true, backgroundInventory:backgroundInventory)
+        diagnostic?("second-active")
         let activeAfterRead = observedActiveNumbers()
         let activeAfter = activeAfterRead ?? []
         let active = activeBefore.intersection(activeAfter)
         let observedActive = activeBefore.union(activeAfter)
+        diagnostic?("last-boundary")
         let lastBoundary = firstBoundary?.inventory == nil ? nil : SpaceBoundary.read(displays: topology.displays, windowIDs: ids)
+        diagnostic?("closing-topology-session-and-limits")
         guard topology == (try Topology()), WindowServerSession.available, !first.limited, !second.limited else {
             throw DesktopActionError.unsupported
         }
         let inventory = firstBoundary?.inventory == lastBoundary?.inventory ? lastBoundary?.inventory : nil
+        diagnostic?("boundary-inventory-agreement")
         if firstBoundary?.inventory != lastBoundary?.inventory { throw DesktopActionError.unsupported }
         let lastFullMembers = inventory?.fullscreenMembers() ?? [:]
         let previous = Dictionary(uniqueKeysWithValues: first.windows.map { ($0.windowID, $0) })
         let currentByDisplay = Dictionary(uniqueKeysWithValues: (inventory?.scopes ?? []).map { scope in
             (scope.displayID, scope.records.first(where: \.isCurrent))
         }).compactMapValues { $0 }
+        diagnostic?("closing-stage-preference")
         let stageAfter = StageManagerPreference.read()
         let stageManager = stageBefore == stageAfter ? stageAfter : nil
         var windows = [WindowObservation]()
@@ -165,6 +184,7 @@ extension Reader {
         if Set(first.windows.map(\.windowID)) != Set(second.windows.map(\.windowID)) { incomplete("windowRosterChanged") }
         let admitted = inventory?.scopes.flatMap(\.records).filter { $0.ordinaryUUID != nil || $0.fullscreenUUID != nil } ?? []
         let supported = Set(admitted.map(\.id))
+        diagnostic?("window-classification")
         for entry in second.windows {
             guard let before = previous[entry.windowID], let birth = entry.process.launchEpochMicroseconds, birth > 0,
                   before.process == entry.process,
@@ -265,6 +285,7 @@ extension Reader {
             windows.append(.init(id: "\(entry.process.pid)/\(birth)/\(entry.windowID)",
                 displayID: display.id, bounds: local, membership: membership, confidence: .unknown, metadata: meta))
         }
+        diagnostic?("snapshot-construction")
         var result = DesktopSnapshot.observed(request, from: from, to: Date(), build: clock.operatingSystemVersionString,
             topology: topology.fingerprint, consistent: true, separateSpaces: topology.separateSpaces,
             displays: topology.displays, scopes: inventory?.scopes ?? [], windows: windows,

@@ -8,7 +8,35 @@ exactly into this branch. The existing PR #16 branch remains the explicit engine
 no main-app source refactor is overwritten by this focused R4 change.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 3f531dae
+## Current source/runtime checkpoint: 9af43964
+
+Exact source passes **299 Swift functions (one existing skip), 188 Rust and 25
+native AX decoder checks**, including all 12 new geometry and census-wire cases.
+The complete candidate and strict signature pass. Formal R4 remains unqualified.
+
+FAST never obtains a decoded desktop snapshot: **37 failed reader requests,
+zero R4 inputs**. Its helper is reaped after each failure, but that revision does
+not record the transport stage or child status; a reap does not prove a crash.
+The independent Controller also fails its initial yellow-button preparation,
+which is kept separate from the formal Host's read failure.
+
+Full independently records **one input and zero physical confirmations**: the
+first witness rejects a target application's incomplete AX window list before
+launch/HIDE/SHOW. Across the run it receives **nine decoded directory replies
+from one helper**; the partial directory carrying the new census data arrives
+after that refusal. Its new timing
+split shows **141.106 ms in the physical read**, with only **0.030 ms** on each
+actor handoff. This one failed observation is not a successful-switch benchmark.
+
+The next source exposes the parent/helper failure phase and original process
+status, plus the existing target AX-list count/array results, without changing
+any refusal, query count, retry policy, identity or timeout. Both lanes recover;
+the member-button repair and later interaction stages still need actual coverage.
+
+[Exact 9af439 source/runtime evidence and distinct read failures](cloud-9af43964-latency/README.md).
+The target Mac remains offline and exact-target GUI acceptance is NOT_RUN.
+
+## Earlier source/runtime checkpoint: 3f531dae
 
 Exact source passes **295 Swift functions (one existing skip), 188 Rust and 25
 native AX decoder checks**. The new Dock handoff suite executes all 20 parameter

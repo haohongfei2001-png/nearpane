@@ -33,7 +33,20 @@ package func checkOwner(_ owner: OrdinaryOwnerIdentity, pid: Int32, launch: UInt
 package func windows(_ pid: Int32) throws -> [AXUIElement] {
     let application = AXUIElementCreateApplication(pid)
     try require(AXUIElementSetMessagingTimeout(application, 0.18) == .success, "无法限制辅助功能读取时限。")
-    guard let result = AXWindowList.read(application, limit: 64).windows else { throw Refusal("无法核对完整窗口清单。") }
+    let list = AXWindowList.read(application, limit: 64)
+    guard let result = list.windows else {
+        if ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+            let facts: [String: Any] = ["event": "stageWindowListRejected", "pid": pid, "limit": 64,
+                "countStatus": list.countStatus.rawValue, "reportedCount": list.reportedCount.map { $0 as Any } ?? NSNull(),
+                "arrayStatus": list.arrayStatus.map { $0.rawValue as Any } ?? NSNull(),
+                "actualCount": list.actualCount.map { $0 as Any } ?? NSNull(),
+                "uptime": ProcessInfo.processInfo.systemUptime]
+            if var data = try? JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys]) {
+                data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+            }
+        }
+        throw Refusal("无法核对完整窗口清单。")
+    }
     for item in result {
         var owner: pid_t = 0
         try require(AXUIElementGetPid(item, &owner) == .success && owner == pid &&

@@ -1,0 +1,2185 @@
+{
+  "schema": 1,
+  "revision": "9af439644f93bf6c77c3234be19093ef92327c1c",
+  "artifactID": 15259831894,
+  "zipSHA256": "d454d7a65afd48b6c5009d899cea018bf08a568fb79e335f567e66e90d67029b",
+  "fileCount": 435,
+  "allFilesVerifiedAgainstZIP": true,
+  "files": [
+    {
+      "path": "independent-source/source/NearpaneSpacesEngine",
+      "bytes": 2647272,
+      "sha256": "3ed5d83358f57a4db664d7977715938aee3a5f9e2125b60b1334378e2e746176"
+    },
+    {
+      "path": "independent-source/source/binding-attributes-build.json",
+      "bytes": 128,
+      "sha256": "0f8952d6e8f4ced85780e7e37a83d9a1eef33b80648cb0ea54719dd4c95c0ad5"
+    },
+    {
+      "path": "independent-source/source/binding-attributes-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/binding-attributes-build.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/binding-attributes-selftest",
+      "bytes": 34968,
+      "sha256": "52b8789ab734c2101cf68b123a88e8487a2a2b17a90d564ddf610c99c72225fc"
+    },
+    {
+      "path": "independent-source/source/binding-attributes.json",
+      "bytes": 116,
+      "sha256": "664db3c8dd8068215d0ccac63f7f7fa327b4f9d0c013132c2f691abc5d1d50e4"
+    },
+    {
+      "path": "independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "independent-source/source/binding-attributes.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/build-engine.json",
+      "bytes": 104,
+      "sha256": "fcd2dd9d5a8ee718e93e1c550110d84fe1480bd726a5d07699222ae36a232d84"
+    },
+    {
+      "path": "independent-source/source/build-engine.log",
+      "bytes": 219,
+      "sha256": "0181b09f86b4de866fa67dc66ff013fe1577bb077965f7d371f73c416f2e3046"
+    },
+    {
+      "path": "independent-source/source/build-engine.stderr.log",
+      "bytes": 8193,
+      "sha256": "a824c70db47c4e4679372258349b3e73476ac46849371af5157e44ebd93b1363"
+    },
+    {
+      "path": "independent-source/source/build-spaces-worker.json",
+      "bytes": 118,
+      "sha256": "8f74dca5f67f07e5cb2c81905f8925ce341587347c84f20d4774502105baefed"
+    },
+    {
+      "path": "independent-source/source/build-spaces-worker.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/build-spaces-worker.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/controller-kit/CIWorkspace",
+      "bytes": 659296,
+      "sha256": "28c8da1dae4ada0edaf03e48282d9931af42200e557208db0ea65c503852b699"
+    },
+    {
+      "path": "independent-source/source/controller-kit/Controller.app/Contents/Info.plist",
+      "bytes": 599,
+      "sha256": "41f9855d0de3ea5e78d2faa45458f9597e6f97b928bed3995bbc3ba1cf71f310"
+    },
+    {
+      "path": "independent-source/source/controller-kit/Controller.app/Contents/MacOS/Controller",
+      "bytes": 2755136,
+      "sha256": "a83011b249a5a2d28a0199e63c9b41f7d62eb78e0ceb5689ffc4d06b67977bf7"
+    },
+    {
+      "path": "independent-source/source/controller-kit/Controller.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureA.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "d952acb7edff282354ee8a0687759c67d762243ebb6f4d4ee145b946936e2e6b"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "bytes": 57664,
+      "sha256": "ccd90f5a4707a0702933b09683f8bae9ee7f186517a1f42ca3044f283cce297f"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureA.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureB.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "2d25f682fccc4359c0d5421348c2fc04df929b2b349277ea733c864fd6862171"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "bytes": 57664,
+      "sha256": "b72b9914ead1b5a1e86a0f09f840d302cec755f6f7fc15a96fd0de4d9b8067ad"
+    },
+    {
+      "path": "independent-source/source/controller-kit/FixtureB.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-source/source/controller-kit/SplitViewHelper",
+      "bytes": 496448,
+      "sha256": "700dd4c41c4cec167d41310a5c607631e27f1a9a56801a4963a3fd632430046e"
+    },
+    {
+      "path": "independent-source/source/controller-kit/SplitViewHelper.swift",
+      "bytes": 18406,
+      "sha256": "4c7cdf7069d25bc057f7ccf0c4dab2a5a86455d17ea8229a9e29bce401c89ee6"
+    },
+    {
+      "path": "independent-source/source/controller-kit/build.json",
+      "bytes": 1872,
+      "sha256": "507c2eddcf976b3e7630f46ae8566082e2f0104094e96fb778fb69e37a4bc142"
+    },
+    {
+      "path": "independent-source/source/controller-kit/reader.o",
+      "bytes": 12632,
+      "sha256": "8b9fa80e04bc5bc3b8c1a2a339fe0160c48943c7276db47e77f88f822650ac79"
+    },
+    {
+      "path": "independent-source/source/evidence.json",
+      "bytes": 96,
+      "sha256": "e4e8a0af9d4f55a11c5b3664fd8ce0eaa396f9b0cbed2cee8bab97a2f51f2b65"
+    },
+    {
+      "path": "independent-source/source/evidence.log",
+      "bytes": 165,
+      "sha256": "a78586e257585cdff3444857e581130e365400b3872c0f42b84044a5109f5dda"
+    },
+    {
+      "path": "independent-source/source/evidence.stderr.log",
+      "bytes": 125,
+      "sha256": "858308597fadfd5bfc67b85d74d4740f899f7f5b23d8bf276bc60fa71f45b1fe"
+    },
+    {
+      "path": "independent-source/source/native-diagnostic.json",
+      "bytes": 114,
+      "sha256": "93df34436745b01611b9de24420bd590bbbdca9e995aa72784bc2284d5d47b51"
+    },
+    {
+      "path": "independent-source/source/native-diagnostic.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/native-diagnostic.stderr.log",
+      "bytes": 106,
+      "sha256": "60bb849356ffbc091f601e17fc6ae0b2eb5e26d734d433da020c6e775efbf97f"
+    },
+    {
+      "path": "independent-source/source/probe-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/probe-build.stderr.log",
+      "bytes": 549,
+      "sha256": "cb1760b2dcb53c164c39765afe4169c8edd81205f51ee769030ce72f0e3a4c70"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity-build.json",
+      "bytes": 124,
+      "sha256": "721855188aa1130b916e308fcd73891d5e60349bb7cf4d855f31dc7ad51130b9"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity-build.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity-selftest",
+      "bytes": 34712,
+      "sha256": "95dfa9090f12af76283c2a2da3b50c26b4a703cf2d5aced9960282d7d814e873"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity.json",
+      "bytes": 112,
+      "sha256": "4e597583533b56a1bb5bcd018a746a193bc3a791c543b77c144af288067aaf4f"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity.log",
+      "bytes": 69,
+      "sha256": "042e8e6e2ba0aafc6bf2cc35576a623a871517e9fc60f8604ab84e162692db9a"
+    },
+    {
+      "path": "independent-source/source/r4-file-identity.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/read-only-context.json",
+      "bytes": 114,
+      "sha256": "9bff68b8484e6126080177e997b6d45b4f424314e5c2b2b542f49b132bacef8c"
+    },
+    {
+      "path": "independent-source/source/read-only-context.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/read-only-context.stderr.log",
+      "bytes": 288,
+      "sha256": "6bd34058637225d1498df435e7358927b213259742b7fb0679a6bbcfd7ff99a8"
+    },
+    {
+      "path": "independent-source/source/rust.json",
+      "bytes": 88,
+      "sha256": "b90ada0aa90a9c68fa4ff2aa399481f0512c60894970469c4af84a8425fdff9f"
+    },
+    {
+      "path": "independent-source/source/rust.log",
+      "bytes": 17833,
+      "sha256": "1a9907c75fe09042e4412f534a2fe58f1c024b58936d6c77052a209d6938148b"
+    },
+    {
+      "path": "independent-source/source/rust.stderr.log",
+      "bytes": 9146,
+      "sha256": "eeb11ce612567048516e6469623d26ef2e4457f2fe6705c444fd8e334660fd2d"
+    },
+    {
+      "path": "independent-source/source/spaces-worker-protocol.json",
+      "bytes": 124,
+      "sha256": "6544a566280509d3250b4af224b2939d4c62e9b1dcb2ee83301f46ac6d67dd1b"
+    },
+    {
+      "path": "independent-source/source/spaces-worker-protocol.log",
+      "bytes": 75,
+      "sha256": "00c2354acce6916e6fd781f402a4ddf257f6aca1391dd98419661e7eb59899e6"
+    },
+    {
+      "path": "independent-source/source/spaces-worker-protocol.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-source/source/swift.json",
+      "bytes": 90,
+      "sha256": "6e9aa9807ac168e347a85d54fa2001103c9ea9a4844eced375e93ee950f8e79b"
+    },
+    {
+      "path": "independent-source/source/swift.log",
+      "bytes": 94733,
+      "sha256": "65dfc529d5ea3c37225a0ba64c70baf65336fde01af9b57d3759a1813f4ca2a4"
+    },
+    {
+      "path": "independent-source/source/summary.json",
+      "bytes": 1921,
+      "sha256": "c720a1d07f2cf22b8cf74cad013e34298406c44bb5ea5d3fb3315c5605533a77"
+    },
+    {
+      "path": "independent-source/source/swift.stderr.log",
+      "bytes": 327883,
+      "sha256": "b4762485aac22df94efc37706fee7788c386493c8b5b9b7b1ec5f9f44819460f"
+    },
+    {
+      "path": "independent-source/source/swift.xml",
+      "bytes": 50311,
+      "sha256": "6d506423011c90ab04f921c0f79154b3262f7d9ba72ab77dd85ded51e4c197c5"
+    },
+    {
+      "path": "independent-source/source/windowserver-context.json",
+      "bytes": 1989,
+      "sha256": "265f7e43a83ad78cede1fcbbf67f1b5c52491ccd65f6effe16b5ec8d6fa6d5b2"
+    },
+    {
+      "path": "independent-source/summary.json",
+      "bytes": 2434,
+      "sha256": "234b2725d7fb9bda9142d9ca659132dc6be10d582d747dac7f3c333b7b234d04"
+    },
+    {
+      "path": "independent-runtime/build-engine.json",
+      "bytes": 104,
+      "sha256": "fcd2dd9d5a8ee718e93e1c550110d84fe1480bd726a5d07699222ae36a232d84"
+    },
+    {
+      "path": "independent-runtime/build-engine.log",
+      "bytes": 219,
+      "sha256": "0181b09f86b4de866fa67dc66ff013fe1577bb077965f7d371f73c416f2e3046"
+    },
+    {
+      "path": "independent-runtime/build-engine.stderr.log",
+      "bytes": 8080,
+      "sha256": "083aa846e6e698dcfcdf2952303116c99da086941bed79e9c629256b6d85aeb2"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/command.json",
+      "bytes": 105,
+      "sha256": "694821d9d5d8b9299e4ec294fd4e958f18be27e2da51584ee6b377f3bb0a95ce"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "9cd9d621571ca5b7d191f49d83938831b8ec44b41fd34c5d500ebcf69d3abc9d"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/command.json",
+      "bytes": 105,
+      "sha256": "aaeecbc8e0890fa77af1b6a9b0ab5de236ede1155ec81dddeefe3a10d107987b"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "d1449fd7defe89c74a892f3a7529860ae673a15893e6de94e1d5625cd33fa1cc"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "5f443f7546f7320a65bf9b720fd58004141dce97eae18603eefa0fbed35e1cf9"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.json",
+      "bytes": 120,
+      "sha256": "afae4b604b5e75376d0e72f7db1fcf5996868dfd81d12950f9a491e704338b07"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.log",
+      "bytes": 352,
+      "sha256": "76c243a4914db5c3a8bf7761d7ad63d9e69badc59db51f73fbba7f2ac35d4bd1"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "f473cad94642e4719e4cce0c8ed7c2a03b105acdee35dd8993c25b98c8e69cff"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.json",
+      "bytes": 120,
+      "sha256": "bed5ac5c5929166d4cf45515db708347fdd754492af3ed3a3df4bf496e6a828b"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.log",
+      "bytes": 344,
+      "sha256": "1e88175fe24efc6f36048c9305d520597d1a2efecc5550cbeaea3bba435f3372"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-state.json",
+      "bytes": 3294,
+      "sha256": "d5774aa99c84542c0e003d2d83f84688cfab04615a4198e34cdf3461e29af6e4"
+    },
+    {
+      "path": "independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "6b2ba6a7398c4415b573554ab0a861e485114f02728c55f53adf0c89bbc9acb1"
+    },
+    {
+      "path": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "86f9286fd79425b3875b93450c1bfada921fdbcba285b455dfbbc594493bfe70"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.json",
+      "bytes": 92,
+      "sha256": "5a2f1fb2f8673ce64de917c563087b857865589284893bbe29116d13b57266f3"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.log",
+      "bytes": 44419,
+      "sha256": "e007276324b07ef746630a80c757c7c1a451b908471def08459df1985d1d2f18"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 352386,
+      "sha256": "cc796d747d9b041108b45a7a511f8b52b6b140e57dda2df32700da76159e1cad"
+    },
+    {
+      "path": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/CIWorkspace",
+      "bytes": 659296,
+      "sha256": "28c8da1dae4ada0edaf03e48282d9931af42200e557208db0ea65c503852b699"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/Info.plist",
+      "bytes": 599,
+      "sha256": "41f9855d0de3ea5e78d2faa45458f9597e6f97b928bed3995bbc3ba1cf71f310"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/MacOS/Controller",
+      "bytes": 2755136,
+      "sha256": "a83011b249a5a2d28a0199e63c9b41f7d62eb78e0ceb5689ffc4d06b67977bf7"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "d952acb7edff282354ee8a0687759c67d762243ebb6f4d4ee145b946936e2e6b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "bytes": 57664,
+      "sha256": "ccd90f5a4707a0702933b09683f8bae9ee7f186517a1f42ca3044f283cce297f"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "2d25f682fccc4359c0d5421348c2fc04df929b2b349277ea733c864fd6862171"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "bytes": 57664,
+      "sha256": "b72b9914ead1b5a1e86a0f09f840d302cec755f6f7fc15a96fd0de4d9b8067ad"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/SplitViewHelper",
+      "bytes": 496448,
+      "sha256": "700dd4c41c4cec167d41310a5c607631e27f1a9a56801a4963a3fd632430046e"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/SplitViewHelper.swift",
+      "bytes": 18406,
+      "sha256": "4c7cdf7069d25bc057f7ccf0c4dab2a5a86455d17ea8229a9e29bce401c89ee6"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/build.json",
+      "bytes": 1800,
+      "sha256": "d7a067229385273983e4d3c0da1b8c19d33e17f4dcf90fda60a9ca1aa8f44820"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/reader.o",
+      "bytes": 12632,
+      "sha256": "8b9fa80e04bc5bc3b8c1a2a339fe0160c48943c7276db47e77f88f822650ac79"
+    },
+    {
+      "path": "independent-runtime/runtime/kit-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/kit-build.stderr.log",
+      "bytes": 504,
+      "sha256": "55ceb6ef3829ce6e48afca7ba3ac40e154916735cdb9cb24f1e649a52225cc45"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Autoupdate",
+      "bytes": 673328,
+      "sha256": "ef68793ce6bdaa12aebfcd7182fe816005d62be760d6c0e852ffe19be4723b06"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUAppcastSigningValidationStatus.h",
+      "bytes": 1007,
+      "sha256": "513d4607ac9ba03c2203b03df307f404216c3ce7f3436784fbbef1842c742749"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUDownloadData.h",
+      "bytes": 1222,
+      "sha256": "58184c2c068a8d43b1ee85651f9edd30a6a9e5899ac936baf4a5f15a6081d7b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUStandardUpdaterController.h",
+      "bytes": 5604,
+      "sha256": "f45dfdf2315664c5891b97ad0d7ffce9ab09d067effbd2921b10b58b4831ef0f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUStandardUserDriver.h",
+      "bytes": 1311,
+      "sha256": "0a0e476b61932196027dd7b94e78d187f810f80c7900168eb4a5956b63d54a77"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUStandardUserDriverDelegate.h",
+      "bytes": 11256,
+      "sha256": "d906e549f7b108979727fa56f13c029906fe48c5602538513a4b480bb45a8c2d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUpdateCheck.h",
+      "bytes": 874,
+      "sha256": "1f7d05da2e466263aefe3e09130e56b2e65b8862579e07b9829c9bf5ed921c03"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUpdatePermissionRequest.h",
+      "bytes": 1093,
+      "sha256": "8c227246c2ea7461741db8bd7274936c3cbcbc7375fe814654d479b2650cd6bd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUpdater.h",
+      "bytes": 20262,
+      "sha256": "a30b876dc722a2861fb8f271a0bf0c95bd664db4cf2af57d216d190f2e010ee7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUpdaterDelegate.h",
+      "bytes": 23537,
+      "sha256": "20ea4bf5273eaa6560160941d680acec6565965162737f50ea4240845a7dde24"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUpdaterSettings.h",
+      "bytes": 3428,
+      "sha256": "ad7bdfc719775fe4cdf1490f45ef902ded4dcb3756402e64884397bee425edff"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUserDriver.h",
+      "bytes": 16622,
+      "sha256": "db9fe6cf78aca0f2f79a99898d38daff566f96c823de2bb2b985511ad77017dc"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SPUUserUpdateState.h",
+      "bytes": 2052,
+      "sha256": "59f95e933f8b5b2b39c1e7c465aa39af021a2c88820b4b09dbcfc55b1dd19c30"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUAppcast.h",
+      "bytes": 1327,
+      "sha256": "251d6ffa7cbc890999ddda3406834f45396cf887a71e5be9ff581883559df0a0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUAppcastItem.h",
+      "bytes": 18835,
+      "sha256": "21df22d4f0ebd4eaba530f77f520a29451a057b70093efec3104ce0253026cf9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUErrors.h",
+      "bytes": 3289,
+      "sha256": "e7e84fa6ef85b549810682ec883593f560d79b776ebec5fb11d9558a6f1f78e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUExport.h",
+      "bytes": 302,
+      "sha256": "5cef024266c54e12db620f78f4d106860de0fa2a2e230dffdfe04208bb447451"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUStandardVersionComparator.h",
+      "bytes": 1845,
+      "sha256": "7d407b9ce721d5c650e741ecb692e77f12ef3b5e18ea8136f72448e8d7208c6c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUUpdatePermissionResponse.h",
+      "bytes": 2509,
+      "sha256": "f9355c8044c7dc168bdaefa37ac2e986002ec328895f17119293e084dad96f21"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUUpdater.h",
+      "bytes": 6874,
+      "sha256": "96f6f598d582ca87c9d17f3ccd7bccb0ae4f057ac6e8fafb854ad8d04de336f6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUUpdaterDelegate.h",
+      "bytes": 13764,
+      "sha256": "a1a08c33fd41ebdd105916d8181d222417f9feda01cdc42afa6a3151106cde36"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUVersionComparisonProtocol.h",
+      "bytes": 1011,
+      "sha256": "28bbb424ac7ab81e2b93f61e359fefa3ed09d6a38d0b265004d2103c0f46bdb4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/SUVersionDisplayProtocol.h",
+      "bytes": 3773,
+      "sha256": "3f23c4fb9bbdbc19714580ee4dd7f73ffc31436ea733c9bb308c3f74e7ab512c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Headers/Sparkle.h",
+      "bytes": 1170,
+      "sha256": "3a442a32eb22a77bb5a08e61ac678daffdf6c697d33020b82a683baf40228e0c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Modules/module.modulemap",
+      "bytes": 95,
+      "sha256": "2bcae1eb66d55dc49f58acfe856375a5bbc91c6e83bdb298d19442ae6264cfa6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Modules/module.private.modulemap",
+      "bytes": 833,
+      "sha256": "db1d60f57b43a9eb17f3550f5720ac53466d4385368670fb5148da5b71f43f3a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SPUAppcastItemStateResolver.h",
+      "bytes": 1105,
+      "sha256": "1c3be298008c19757ae3b27083622a005bce809a01f06d2c74f6dea16f3214ee"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SPUGentleUserDriverReminders.h",
+      "bytes": 475,
+      "sha256": "f56d9d277f16417d79d66a484b4afcfc47c2a9957a8c487adb5c709dad895402"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SPUInstallationType.h",
+      "bytes": 828,
+      "sha256": "52a1a445f58e7c6de94ac558c23913f8081647a499262affe9ac38ff790971d4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SPUStandardUserDriver+Private.h",
+      "bytes": 1097,
+      "sha256": "acc764e731fe9e6d307fe32dea4d06b451964225c2b2a9745a23f035a9cdeaad"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SPUUserAgent+Private.h",
+      "bytes": 751,
+      "sha256": "0c3ea7c6aabab32840e41c56bb22cfab4dee4dde3302603b6f4aba9ac1b5850c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SUAppcastItem+Private.h",
+      "bytes": 1641,
+      "sha256": "642ecbeecb323f7201a732b5953d60fefefa13cf894af28936dd0d7d001a101a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/PrivateHeaders/SUInstallerLauncher+Private.h",
+      "bytes": 1240,
+      "sha256": "cb2e9c465f08ab0309c2bf3a4d2f7c35d9c76ff5a4480694700a22298520dd94"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/Base.lproj/Sparkle.strings",
+      "bytes": 6249,
+      "sha256": "bf93bdde8ad020f2ba210ecfa0e84b5365d0342355a3ca39d88fec0acb1e4a40"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/Info.plist",
+      "bytes": 1341,
+      "sha256": "b9e7615eb3409e090e69966619b88d260750540d39df3e21b192ee31aea516e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ReleaseNotesColorStyle.css",
+      "bytes": 231,
+      "sha256": "76bd6999758fd8e51d17e6b482db434f9b4768c02b037af6bd2e3a000ce8cbc1"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/SUUpdateAlert.nib",
+      "bytes": 18490,
+      "sha256": "3987a333da7c2728ef2cb9656e5eeaf0832884873cabf78353fcb9099c5d8fbe"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/SUUpdatePermissionPrompt.nib",
+      "bytes": 25407,
+      "sha256": "b35425caab26a59cd6ee148dcb5a5f1a18d75933407ef1ab8eae9331af41e0a4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ar.lproj/Sparkle.strings",
+      "bytes": 3554,
+      "sha256": "441182787471a3998908044515fe13e92230edaa7e2730638e72a49610f56cba"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ca.lproj/Sparkle.strings",
+      "bytes": 3501,
+      "sha256": "7ed0d5ca300649a7f13304015008f2dede98ad743a625c17d5a5fedacc1a3b1a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/cs.lproj/Sparkle.strings",
+      "bytes": 10774,
+      "sha256": "99e66decf9bc46cf5622eead4e65b3b502e3775a4e8e0f03ef1b41683ea8d518"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/da.lproj/Sparkle.strings",
+      "bytes": 10280,
+      "sha256": "64e1f30b75ebc3c415f684dcc5a7987193f9f278fd437532a8eb416baa90895f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/de.lproj/Sparkle.strings",
+      "bytes": 11559,
+      "sha256": "311035a15227fb12e85eba2a46f3f6198d98ac5590d1d38c43c4ff7430d06599"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/el.lproj/Sparkle.strings",
+      "bytes": 5934,
+      "sha256": "638981a4f095d8b1dabb6230d452e470359711b81803bc5df8c21e1211fd3757"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/es.lproj/Sparkle.strings",
+      "bytes": 7070,
+      "sha256": "3d2391b84342280e999cdfa39ace2f89675bc99fe5fbe8d75af28167b83e3ed6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/fa.lproj/Sparkle.strings",
+      "bytes": 5716,
+      "sha256": "ed9dda9e271f7a97b8a7f327e71a1b6d06e5e061b367e7da3d153e47dc319263"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/fi.lproj/Sparkle.strings",
+      "bytes": 3252,
+      "sha256": "c14af9bac3fce436222a4ea277a7a6c0f9b42b2d84aceea75e758ce7538acae2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/fr.lproj/Sparkle.strings",
+      "bytes": 7930,
+      "sha256": "3863a20e60029b001fe654a70476470b95dda461efb1e36785c95b41563a4c74"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/he.lproj/Sparkle.strings",
+      "bytes": 9657,
+      "sha256": "1d795bd7329d04b7ce84b6bdc845f917369e858b2b292f117b89a6666a185723"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/hu.lproj/Sparkle.strings",
+      "bytes": 4449,
+      "sha256": "cc2a16e4d487c6fab357b4f7d0fbbf7ec882371b2130413ffcb1b69cd540d2cf"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/hr.lproj/Sparkle.strings",
+      "bytes": 6367,
+      "sha256": "920041380a08b3ba50d44e8a83f59de551139845a72748d58f2387c65920b33a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/is.lproj/Sparkle.strings",
+      "bytes": 3954,
+      "sha256": "403feba503410e9455cd0eaafe592a2576eedb24130ccf2cdb13dda4b101f87e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/it.lproj/Sparkle.strings",
+      "bytes": 10956,
+      "sha256": "56a7445c1b68d76849ac59b98aa5c20c9002d5e07e9f0a2720486160f85b7366"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ja.lproj/Sparkle.strings",
+      "bytes": 8697,
+      "sha256": "e404910028af70579cfa208bb4fadd9e3592505fc89af208f4071f2309553fb2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ko.lproj/Sparkle.strings",
+      "bytes": 7797,
+      "sha256": "a6269eb3f5a07d0c4f5d7467d5065372085aef7484c518a9d784ffd6c8f5aae4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/nb.lproj/Sparkle.strings",
+      "bytes": 5539,
+      "sha256": "ef6f0dcae90c440b47ece09909e9cdf35f3383f34e72a614c8c5c0752ecbffe0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/nl.lproj/Sparkle.strings",
+      "bytes": 9574,
+      "sha256": "ca9adf34fb93fe3f394ccc92114bf6a6b1f8a128bb5f362cb9f3247d7c26c77d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/nn.lproj/Sparkle.strings",
+      "bytes": 5671,
+      "sha256": "1db8c6853a550aa25382da2d55431a1c1d308d6a37676c4f8593cc1633f8a5ae"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/pl.lproj/Sparkle.strings",
+      "bytes": 5453,
+      "sha256": "5c54b3f8e1eb3026e142e710e2167f2f839b73ab5ad7f18719230f33ae682aa9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/pt-BR.lproj/Sparkle.strings",
+      "bytes": 9976,
+      "sha256": "0292cadc2acfc34875c1e0b54e2d50de3833cd5e20c8660c8effe2b859aac84c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/pt-PT.lproj/Sparkle.strings",
+      "bytes": 5870,
+      "sha256": "f1eb7c97678287d02924806a94dc20e58719f2fdfe059c39213df1df5575e1dd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ro.lproj/Sparkle.strings",
+      "bytes": 6115,
+      "sha256": "b2bf064222c38a3672b01fe09406f799718cb0fc4e715121662639d6fdfea6ed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/ru.lproj/Sparkle.strings",
+      "bytes": 5853,
+      "sha256": "237f81f65ca89aecff5b9abfbb7973b0ec8175266374341c5770cf19ae43c674"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/sk.lproj/Sparkle.strings",
+      "bytes": 5675,
+      "sha256": "e158daaa4f3f91b57cee05ab896f2c1bc467317932cc53bb7c01e7daee9e5238"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/sl.lproj/Sparkle.strings",
+      "bytes": 5646,
+      "sha256": "c62770c604a6c8c89e283357c8b322d8ce6a85f4d85c09002048331f65f8d980"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/sv.lproj/Sparkle.strings",
+      "bytes": 5160,
+      "sha256": "4a21ad5bcf8d836d265710c2e4a0a64f07c9551f1c49694d6734a931d23efd39"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/th.lproj/Sparkle.strings",
+      "bytes": 5339,
+      "sha256": "4b6c8dc2ab69a0425de3aa9dc386c6539348e3983e47aa10f94c17e345a157a5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/tr.lproj/Sparkle.strings",
+      "bytes": 6183,
+      "sha256": "b040d3f02d341eba047c15dfcafb60406d0847096a94466ecab512dcfb16abb5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/uk.lproj/Sparkle.strings",
+      "bytes": 5911,
+      "sha256": "767d33af04602fd9fe57f21a0d3a6286eb09204978ec414867ad69d363104de6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/vi.lproj/Sparkle.strings",
+      "bytes": 12418,
+      "sha256": "2b3b4acbadf534cd0e812b97e589f80a4e1655b07c8907e98cc31df458ffd8b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/zh_CN.lproj/Sparkle.strings",
+      "bytes": 7475,
+      "sha256": "e7f543b92977e9abc907241c411d8db0f59c4fee480859b3e88e4b495e0976c8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/zh_HK.lproj/Sparkle.strings",
+      "bytes": 8402,
+      "sha256": "8669b22faeab3c7386cb533132ec8f8f4a01913f4fc38b19b457b44f2445b09e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Resources/zh_TW.lproj/Sparkle.strings",
+      "bytes": 7625,
+      "sha256": "76321e1dd844c9b6568cb4af7c63bb57d9d1b700109aeedd7e5721d78727b12d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Sparkle",
+      "bytes": 941872,
+      "sha256": "9680ddf3800a9b3780c911fabc64816ef0a358d38153ddc77cee10ea779e9180"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Updater.app/Contents/Info.plist",
+      "bytes": 2400,
+      "sha256": "ed941468d1ef47aa219b0e806ef634ecadfe2dbe0bcc8acece54f4cd1a93d19f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Updater.app/Contents/MacOS/Updater",
+      "bytes": 305008,
+      "sha256": "c00c88ddac70e750a3c791abdc73039f967ca785bf884d76a44e2824d763206b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Updater.app/Contents/PkgInfo",
+      "bytes": 8,
+      "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Updater.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+      "bytes": 673328,
+      "sha256": "ef68793ce6bdaa12aebfcd7182fe816005d62be760d6c0e852ffe19be4723b06"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUAppcastSigningValidationStatus.h",
+      "bytes": 1007,
+      "sha256": "513d4607ac9ba03c2203b03df307f404216c3ce7f3436784fbbef1842c742749"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUDownloadData.h",
+      "bytes": 1222,
+      "sha256": "58184c2c068a8d43b1ee85651f9edd30a6a9e5899ac936baf4a5f15a6081d7b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUpdaterController.h",
+      "bytes": 5604,
+      "sha256": "f45dfdf2315664c5891b97ad0d7ffce9ab09d067effbd2921b10b58b4831ef0f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUserDriver.h",
+      "bytes": 1311,
+      "sha256": "0a0e476b61932196027dd7b94e78d187f810f80c7900168eb4a5956b63d54a77"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUStandardUserDriverDelegate.h",
+      "bytes": 11256,
+      "sha256": "d906e549f7b108979727fa56f13c029906fe48c5602538513a4b480bb45a8c2d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdateCheck.h",
+      "bytes": 874,
+      "sha256": "1f7d05da2e466263aefe3e09130e56b2e65b8862579e07b9829c9bf5ed921c03"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdatePermissionRequest.h",
+      "bytes": 1093,
+      "sha256": "8c227246c2ea7461741db8bd7274936c3cbcbc7375fe814654d479b2650cd6bd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdater.h",
+      "bytes": 20262,
+      "sha256": "a30b876dc722a2861fb8f271a0bf0c95bd664db4cf2af57d216d190f2e010ee7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdaterDelegate.h",
+      "bytes": 23537,
+      "sha256": "20ea4bf5273eaa6560160941d680acec6565965162737f50ea4240845a7dde24"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUpdaterSettings.h",
+      "bytes": 3428,
+      "sha256": "ad7bdfc719775fe4cdf1490f45ef902ded4dcb3756402e64884397bee425edff"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUserDriver.h",
+      "bytes": 16622,
+      "sha256": "db9fe6cf78aca0f2f79a99898d38daff566f96c823de2bb2b985511ad77017dc"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SPUUserUpdateState.h",
+      "bytes": 2052,
+      "sha256": "59f95e933f8b5b2b39c1e7c465aa39af021a2c88820b4b09dbcfc55b1dd19c30"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUAppcast.h",
+      "bytes": 1327,
+      "sha256": "251d6ffa7cbc890999ddda3406834f45396cf887a71e5be9ff581883559df0a0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUAppcastItem.h",
+      "bytes": 18835,
+      "sha256": "21df22d4f0ebd4eaba530f77f520a29451a057b70093efec3104ce0253026cf9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUErrors.h",
+      "bytes": 3289,
+      "sha256": "e7e84fa6ef85b549810682ec883593f560d79b776ebec5fb11d9558a6f1f78e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUExport.h",
+      "bytes": 302,
+      "sha256": "5cef024266c54e12db620f78f4d106860de0fa2a2e230dffdfe04208bb447451"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUStandardVersionComparator.h",
+      "bytes": 1845,
+      "sha256": "7d407b9ce721d5c650e741ecb692e77f12ef3b5e18ea8136f72448e8d7208c6c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdatePermissionResponse.h",
+      "bytes": 2509,
+      "sha256": "f9355c8044c7dc168bdaefa37ac2e986002ec328895f17119293e084dad96f21"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdater.h",
+      "bytes": 6874,
+      "sha256": "96f6f598d582ca87c9d17f3ccd7bccb0ae4f057ac6e8fafb854ad8d04de336f6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUUpdaterDelegate.h",
+      "bytes": 13764,
+      "sha256": "a1a08c33fd41ebdd105916d8181d222417f9feda01cdc42afa6a3151106cde36"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUVersionComparisonProtocol.h",
+      "bytes": 1011,
+      "sha256": "28bbb424ac7ab81e2b93f61e359fefa3ed09d6a38d0b265004d2103c0f46bdb4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/SUVersionDisplayProtocol.h",
+      "bytes": 3773,
+      "sha256": "3f23c4fb9bbdbc19714580ee4dd7f73ffc31436ea733c9bb308c3f74e7ab512c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Headers/Sparkle.h",
+      "bytes": 1170,
+      "sha256": "3a442a32eb22a77bb5a08e61ac678daffdf6c697d33020b82a683baf40228e0c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Modules/module.modulemap",
+      "bytes": 95,
+      "sha256": "2bcae1eb66d55dc49f58acfe856375a5bbc91c6e83bdb298d19442ae6264cfa6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Modules/module.private.modulemap",
+      "bytes": 833,
+      "sha256": "db1d60f57b43a9eb17f3550f5720ac53466d4385368670fb5148da5b71f43f3a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUAppcastItemStateResolver.h",
+      "bytes": 1105,
+      "sha256": "1c3be298008c19757ae3b27083622a005bce809a01f06d2c74f6dea16f3214ee"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUGentleUserDriverReminders.h",
+      "bytes": 475,
+      "sha256": "f56d9d277f16417d79d66a484b4afcfc47c2a9957a8c487adb5c709dad895402"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUInstallationType.h",
+      "bytes": 828,
+      "sha256": "52a1a445f58e7c6de94ac558c23913f8081647a499262affe9ac38ff790971d4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUStandardUserDriver+Private.h",
+      "bytes": 1097,
+      "sha256": "acc764e731fe9e6d307fe32dea4d06b451964225c2b2a9745a23f035a9cdeaad"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SPUUserAgent+Private.h",
+      "bytes": 751,
+      "sha256": "0c3ea7c6aabab32840e41c56bb22cfab4dee4dde3302603b6f4aba9ac1b5850c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SUAppcastItem+Private.h",
+      "bytes": 1641,
+      "sha256": "642ecbeecb323f7201a732b5953d60fefefa13cf894af28936dd0d7d001a101a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/PrivateHeaders/SUInstallerLauncher+Private.h",
+      "bytes": 1240,
+      "sha256": "cb2e9c465f08ab0309c2bf3a4d2f7c35d9c76ff5a4480694700a22298520dd94"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Base.lproj/Sparkle.strings",
+      "bytes": 6249,
+      "sha256": "bf93bdde8ad020f2ba210ecfa0e84b5365d0342355a3ca39d88fec0acb1e4a40"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Info.plist",
+      "bytes": 1341,
+      "sha256": "b9e7615eb3409e090e69966619b88d260750540d39df3e21b192ee31aea516e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ReleaseNotesColorStyle.css",
+      "bytes": 231,
+      "sha256": "76bd6999758fd8e51d17e6b482db434f9b4768c02b037af6bd2e3a000ce8cbc1"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUUpdateAlert.nib",
+      "bytes": 18490,
+      "sha256": "3987a333da7c2728ef2cb9656e5eeaf0832884873cabf78353fcb9099c5d8fbe"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/SUUpdatePermissionPrompt.nib",
+      "bytes": 25407,
+      "sha256": "b35425caab26a59cd6ee148dcb5a5f1a18d75933407ef1ab8eae9331af41e0a4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ar.lproj/Sparkle.strings",
+      "bytes": 3554,
+      "sha256": "441182787471a3998908044515fe13e92230edaa7e2730638e72a49610f56cba"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ca.lproj/Sparkle.strings",
+      "bytes": 3501,
+      "sha256": "7ed0d5ca300649a7f13304015008f2dede98ad743a625c17d5a5fedacc1a3b1a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/cs.lproj/Sparkle.strings",
+      "bytes": 10774,
+      "sha256": "99e66decf9bc46cf5622eead4e65b3b502e3775a4e8e0f03ef1b41683ea8d518"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/da.lproj/Sparkle.strings",
+      "bytes": 10280,
+      "sha256": "64e1f30b75ebc3c415f684dcc5a7987193f9f278fd437532a8eb416baa90895f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/de.lproj/Sparkle.strings",
+      "bytes": 11559,
+      "sha256": "311035a15227fb12e85eba2a46f3f6198d98ac5590d1d38c43c4ff7430d06599"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/el.lproj/Sparkle.strings",
+      "bytes": 5934,
+      "sha256": "638981a4f095d8b1dabb6230d452e470359711b81803bc5df8c21e1211fd3757"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/es.lproj/Sparkle.strings",
+      "bytes": 7070,
+      "sha256": "3d2391b84342280e999cdfa39ace2f89675bc99fe5fbe8d75af28167b83e3ed6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fa.lproj/Sparkle.strings",
+      "bytes": 5716,
+      "sha256": "ed9dda9e271f7a97b8a7f327e71a1b6d06e5e061b367e7da3d153e47dc319263"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fi.lproj/Sparkle.strings",
+      "bytes": 3252,
+      "sha256": "c14af9bac3fce436222a4ea277a7a6c0f9b42b2d84aceea75e758ce7538acae2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/fr.lproj/Sparkle.strings",
+      "bytes": 7930,
+      "sha256": "3863a20e60029b001fe654a70476470b95dda461efb1e36785c95b41563a4c74"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/he.lproj/Sparkle.strings",
+      "bytes": 9657,
+      "sha256": "1d795bd7329d04b7ce84b6bdc845f917369e858b2b292f117b89a6666a185723"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/hr.lproj/Sparkle.strings",
+      "bytes": 6367,
+      "sha256": "920041380a08b3ba50d44e8a83f59de551139845a72748d58f2387c65920b33a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/hu.lproj/Sparkle.strings",
+      "bytes": 4449,
+      "sha256": "cc2a16e4d487c6fab357b4f7d0fbbf7ec882371b2130413ffcb1b69cd540d2cf"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/is.lproj/Sparkle.strings",
+      "bytes": 3954,
+      "sha256": "403feba503410e9455cd0eaafe592a2576eedb24130ccf2cdb13dda4b101f87e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/it.lproj/Sparkle.strings",
+      "bytes": 10956,
+      "sha256": "56a7445c1b68d76849ac59b98aa5c20c9002d5e07e9f0a2720486160f85b7366"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ja.lproj/Sparkle.strings",
+      "bytes": 8697,
+      "sha256": "e404910028af70579cfa208bb4fadd9e3592505fc89af208f4071f2309553fb2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ko.lproj/Sparkle.strings",
+      "bytes": 7797,
+      "sha256": "a6269eb3f5a07d0c4f5d7467d5065372085aef7484c518a9d784ffd6c8f5aae4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nb.lproj/Sparkle.strings",
+      "bytes": 5539,
+      "sha256": "ef6f0dcae90c440b47ece09909e9cdf35f3383f34e72a614c8c5c0752ecbffe0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nl.lproj/Sparkle.strings",
+      "bytes": 9574,
+      "sha256": "ca9adf34fb93fe3f394ccc92114bf6a6b1f8a128bb5f362cb9f3247d7c26c77d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/nn.lproj/Sparkle.strings",
+      "bytes": 5671,
+      "sha256": "1db8c6853a550aa25382da2d55431a1c1d308d6a37676c4f8593cc1633f8a5ae"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pl.lproj/Sparkle.strings",
+      "bytes": 5453,
+      "sha256": "5c54b3f8e1eb3026e142e710e2167f2f839b73ab5ad7f18719230f33ae682aa9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pt-BR.lproj/Sparkle.strings",
+      "bytes": 9976,
+      "sha256": "0292cadc2acfc34875c1e0b54e2d50de3833cd5e20c8660c8effe2b859aac84c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/pt-PT.lproj/Sparkle.strings",
+      "bytes": 5870,
+      "sha256": "f1eb7c97678287d02924806a94dc20e58719f2fdfe059c39213df1df5575e1dd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ro.lproj/Sparkle.strings",
+      "bytes": 6115,
+      "sha256": "b2bf064222c38a3672b01fe09406f799718cb0fc4e715121662639d6fdfea6ed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/ru.lproj/Sparkle.strings",
+      "bytes": 5853,
+      "sha256": "237f81f65ca89aecff5b9abfbb7973b0ec8175266374341c5770cf19ae43c674"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sk.lproj/Sparkle.strings",
+      "bytes": 5675,
+      "sha256": "e158daaa4f3f91b57cee05ab896f2c1bc467317932cc53bb7c01e7daee9e5238"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sl.lproj/Sparkle.strings",
+      "bytes": 5646,
+      "sha256": "c62770c604a6c8c89e283357c8b322d8ce6a85f4d85c09002048331f65f8d980"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/sv.lproj/Sparkle.strings",
+      "bytes": 5160,
+      "sha256": "4a21ad5bcf8d836d265710c2e4a0a64f07c9551f1c49694d6734a931d23efd39"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/th.lproj/Sparkle.strings",
+      "bytes": 5339,
+      "sha256": "4b6c8dc2ab69a0425de3aa9dc386c6539348e3983e47aa10f94c17e345a157a5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/tr.lproj/Sparkle.strings",
+      "bytes": 6183,
+      "sha256": "b040d3f02d341eba047c15dfcafb60406d0847096a94466ecab512dcfb16abb5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/uk.lproj/Sparkle.strings",
+      "bytes": 5911,
+      "sha256": "767d33af04602fd9fe57f21a0d3a6286eb09204978ec414867ad69d363104de6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/vi.lproj/Sparkle.strings",
+      "bytes": 12418,
+      "sha256": "2b3b4acbadf534cd0e812b97e589f80a4e1655b07c8907e98cc31df458ffd8b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_CN.lproj/Sparkle.strings",
+      "bytes": 7475,
+      "sha256": "e7f543b92977e9abc907241c411d8db0f59c4fee480859b3e88e4b495e0976c8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_HK.lproj/Sparkle.strings",
+      "bytes": 8402,
+      "sha256": "8669b22faeab3c7386cb533132ec8f8f4a01913f4fc38b19b457b44f2445b09e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/zh_TW.lproj/Sparkle.strings",
+      "bytes": 7625,
+      "sha256": "76321e1dd844c9b6568cb4af7c63bb57d9d1b700109aeedd7e5721d78727b12d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle",
+      "bytes": 941872,
+      "sha256": "9680ddf3800a9b3780c911fabc64816ef0a358d38153ddc77cee10ea779e9180"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/Info.plist",
+      "bytes": 2400,
+      "sha256": "ed941468d1ef47aa219b0e806ef634ecadfe2dbe0bcc8acece54f4cd1a93d19f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+      "bytes": 305008,
+      "sha256": "c00c88ddac70e750a3c791abdc73039f967ca785bf884d76a44e2824d763206b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/PkgInfo",
+      "bytes": 8,
+      "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/Info.plist",
+      "bytes": 1717,
+      "sha256": "0b1cf514c04eb383f601b3fed668e9f26a7d6905ce65bd52c2de58356f1be307"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+      "bytes": 137584,
+      "sha256": "93613041e65c3eba8a7d30500f4e4578e8e6a563cb0604f5fd742d798c49c89f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/Info.plist",
+      "bytes": 1605,
+      "sha256": "a2f90081d42b04740b63e967a8e45143d476138e0d33e0cb5fc85bee068ecafa"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+      "bytes": 172336,
+      "sha256": "6fefcc9791ce51c5cd6a13fde6f3c140bd54427e6fbfb4b50b13e9fee230e092"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/_CodeSignature/CodeResources",
+      "bytes": 22197,
+      "sha256": "be8a6bbce1f1ad7f3d4e69d3adaf255390ddde3359064acdb0a547c6259a35d8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Autoupdate",
+      "bytes": 673328,
+      "sha256": "ef68793ce6bdaa12aebfcd7182fe816005d62be760d6c0e852ffe19be4723b06"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUAppcastSigningValidationStatus.h",
+      "bytes": 1007,
+      "sha256": "513d4607ac9ba03c2203b03df307f404216c3ce7f3436784fbbef1842c742749"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUDownloadData.h",
+      "bytes": 1222,
+      "sha256": "58184c2c068a8d43b1ee85651f9edd30a6a9e5899ac936baf4a5f15a6081d7b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUStandardUpdaterController.h",
+      "bytes": 5604,
+      "sha256": "f45dfdf2315664c5891b97ad0d7ffce9ab09d067effbd2921b10b58b4831ef0f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUStandardUserDriver.h",
+      "bytes": 1311,
+      "sha256": "0a0e476b61932196027dd7b94e78d187f810f80c7900168eb4a5956b63d54a77"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUStandardUserDriverDelegate.h",
+      "bytes": 11256,
+      "sha256": "d906e549f7b108979727fa56f13c029906fe48c5602538513a4b480bb45a8c2d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUpdateCheck.h",
+      "bytes": 874,
+      "sha256": "1f7d05da2e466263aefe3e09130e56b2e65b8862579e07b9829c9bf5ed921c03"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUpdatePermissionRequest.h",
+      "bytes": 1093,
+      "sha256": "8c227246c2ea7461741db8bd7274936c3cbcbc7375fe814654d479b2650cd6bd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUpdater.h",
+      "bytes": 20262,
+      "sha256": "a30b876dc722a2861fb8f271a0bf0c95bd664db4cf2af57d216d190f2e010ee7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUpdaterDelegate.h",
+      "bytes": 23537,
+      "sha256": "20ea4bf5273eaa6560160941d680acec6565965162737f50ea4240845a7dde24"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUpdaterSettings.h",
+      "bytes": 3428,
+      "sha256": "ad7bdfc719775fe4cdf1490f45ef902ded4dcb3756402e64884397bee425edff"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUserDriver.h",
+      "bytes": 16622,
+      "sha256": "db9fe6cf78aca0f2f79a99898d38daff566f96c823de2bb2b985511ad77017dc"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SPUUserUpdateState.h",
+      "bytes": 2052,
+      "sha256": "59f95e933f8b5b2b39c1e7c465aa39af021a2c88820b4b09dbcfc55b1dd19c30"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUAppcast.h",
+      "bytes": 1327,
+      "sha256": "251d6ffa7cbc890999ddda3406834f45396cf887a71e5be9ff581883559df0a0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUAppcastItem.h",
+      "bytes": 18835,
+      "sha256": "21df22d4f0ebd4eaba530f77f520a29451a057b70093efec3104ce0253026cf9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUErrors.h",
+      "bytes": 3289,
+      "sha256": "e7e84fa6ef85b549810682ec883593f560d79b776ebec5fb11d9558a6f1f78e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUExport.h",
+      "bytes": 302,
+      "sha256": "5cef024266c54e12db620f78f4d106860de0fa2a2e230dffdfe04208bb447451"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUStandardVersionComparator.h",
+      "bytes": 1845,
+      "sha256": "7d407b9ce721d5c650e741ecb692e77f12ef3b5e18ea8136f72448e8d7208c6c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUUpdatePermissionResponse.h",
+      "bytes": 2509,
+      "sha256": "f9355c8044c7dc168bdaefa37ac2e986002ec328895f17119293e084dad96f21"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUUpdaterDelegate.h",
+      "bytes": 13764,
+      "sha256": "a1a08c33fd41ebdd105916d8181d222417f9feda01cdc42afa6a3151106cde36"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUUpdater.h",
+      "bytes": 6874,
+      "sha256": "96f6f598d582ca87c9d17f3ccd7bccb0ae4f057ac6e8fafb854ad8d04de336f6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUVersionComparisonProtocol.h",
+      "bytes": 1011,
+      "sha256": "28bbb424ac7ab81e2b93f61e359fefa3ed09d6a38d0b265004d2103c0f46bdb4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/SUVersionDisplayProtocol.h",
+      "bytes": 3773,
+      "sha256": "3f23c4fb9bbdbc19714580ee4dd7f73ffc31436ea733c9bb308c3f74e7ab512c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Headers/Sparkle.h",
+      "bytes": 1170,
+      "sha256": "3a442a32eb22a77bb5a08e61ac678daffdf6c697d33020b82a683baf40228e0c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Modules/module.modulemap",
+      "bytes": 95,
+      "sha256": "2bcae1eb66d55dc49f58acfe856375a5bbc91c6e83bdb298d19442ae6264cfa6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Modules/module.private.modulemap",
+      "bytes": 833,
+      "sha256": "db1d60f57b43a9eb17f3550f5720ac53466d4385368670fb5148da5b71f43f3a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SPUAppcastItemStateResolver.h",
+      "bytes": 1105,
+      "sha256": "1c3be298008c19757ae3b27083622a005bce809a01f06d2c74f6dea16f3214ee"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SPUGentleUserDriverReminders.h",
+      "bytes": 475,
+      "sha256": "f56d9d277f16417d79d66a484b4afcfc47c2a9957a8c487adb5c709dad895402"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SPUInstallationType.h",
+      "bytes": 828,
+      "sha256": "52a1a445f58e7c6de94ac558c23913f8081647a499262affe9ac38ff790971d4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SPUStandardUserDriver+Private.h",
+      "bytes": 1097,
+      "sha256": "acc764e731fe9e6d307fe32dea4d06b451964225c2b2a9745a23f035a9cdeaad"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SPUUserAgent+Private.h",
+      "bytes": 751,
+      "sha256": "0c3ea7c6aabab32840e41c56bb22cfab4dee4dde3302603b6f4aba9ac1b5850c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SUAppcastItem+Private.h",
+      "bytes": 1641,
+      "sha256": "642ecbeecb323f7201a732b5953d60fefefa13cf894af28936dd0d7d001a101a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/PrivateHeaders/SUInstallerLauncher+Private.h",
+      "bytes": 1240,
+      "sha256": "cb2e9c465f08ab0309c2bf3a4d2f7c35d9c76ff5a4480694700a22298520dd94"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/Base.lproj/Sparkle.strings",
+      "bytes": 6249,
+      "sha256": "bf93bdde8ad020f2ba210ecfa0e84b5365d0342355a3ca39d88fec0acb1e4a40"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/Info.plist",
+      "bytes": 1341,
+      "sha256": "b9e7615eb3409e090e69966619b88d260750540d39df3e21b192ee31aea516e5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/SUUpdatePermissionPrompt.nib",
+      "bytes": 25407,
+      "sha256": "b35425caab26a59cd6ee148dcb5a5f1a18d75933407ef1ab8eae9331af41e0a4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/SUUpdateAlert.nib",
+      "bytes": 18490,
+      "sha256": "3987a333da7c2728ef2cb9656e5eeaf0832884873cabf78353fcb9099c5d8fbe"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ReleaseNotesColorStyle.css",
+      "bytes": 231,
+      "sha256": "76bd6999758fd8e51d17e6b482db434f9b4768c02b037af6bd2e3a000ce8cbc1"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ar.lproj/Sparkle.strings",
+      "bytes": 3554,
+      "sha256": "441182787471a3998908044515fe13e92230edaa7e2730638e72a49610f56cba"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ca.lproj/Sparkle.strings",
+      "bytes": 3501,
+      "sha256": "7ed0d5ca300649a7f13304015008f2dede98ad743a625c17d5a5fedacc1a3b1a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/cs.lproj/Sparkle.strings",
+      "bytes": 10774,
+      "sha256": "99e66decf9bc46cf5622eead4e65b3b502e3775a4e8e0f03ef1b41683ea8d518"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/da.lproj/Sparkle.strings",
+      "bytes": 10280,
+      "sha256": "64e1f30b75ebc3c415f684dcc5a7987193f9f278fd437532a8eb416baa90895f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/de.lproj/Sparkle.strings",
+      "bytes": 11559,
+      "sha256": "311035a15227fb12e85eba2a46f3f6198d98ac5590d1d38c43c4ff7430d06599"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/el.lproj/Sparkle.strings",
+      "bytes": 5934,
+      "sha256": "638981a4f095d8b1dabb6230d452e470359711b81803bc5df8c21e1211fd3757"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/es.lproj/Sparkle.strings",
+      "bytes": 7070,
+      "sha256": "3d2391b84342280e999cdfa39ace2f89675bc99fe5fbe8d75af28167b83e3ed6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/fa.lproj/Sparkle.strings",
+      "bytes": 5716,
+      "sha256": "ed9dda9e271f7a97b8a7f327e71a1b6d06e5e061b367e7da3d153e47dc319263"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/fi.lproj/Sparkle.strings",
+      "bytes": 3252,
+      "sha256": "c14af9bac3fce436222a4ea277a7a6c0f9b42b2d84aceea75e758ce7538acae2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/fr.lproj/Sparkle.strings",
+      "bytes": 7930,
+      "sha256": "3863a20e60029b001fe654a70476470b95dda461efb1e36785c95b41563a4c74"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/he.lproj/Sparkle.strings",
+      "bytes": 9657,
+      "sha256": "1d795bd7329d04b7ce84b6bdc845f917369e858b2b292f117b89a6666a185723"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/hr.lproj/Sparkle.strings",
+      "bytes": 6367,
+      "sha256": "920041380a08b3ba50d44e8a83f59de551139845a72748d58f2387c65920b33a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/hu.lproj/Sparkle.strings",
+      "bytes": 4449,
+      "sha256": "cc2a16e4d487c6fab357b4f7d0fbbf7ec882371b2130413ffcb1b69cd540d2cf"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/is.lproj/Sparkle.strings",
+      "bytes": 3954,
+      "sha256": "403feba503410e9455cd0eaafe592a2576eedb24130ccf2cdb13dda4b101f87e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/it.lproj/Sparkle.strings",
+      "bytes": 10956,
+      "sha256": "56a7445c1b68d76849ac59b98aa5c20c9002d5e07e9f0a2720486160f85b7366"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ja.lproj/Sparkle.strings",
+      "bytes": 8697,
+      "sha256": "e404910028af70579cfa208bb4fadd9e3592505fc89af208f4071f2309553fb2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ko.lproj/Sparkle.strings",
+      "bytes": 7797,
+      "sha256": "a6269eb3f5a07d0c4f5d7467d5065372085aef7484c518a9d784ffd6c8f5aae4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/nb.lproj/Sparkle.strings",
+      "bytes": 5539,
+      "sha256": "ef6f0dcae90c440b47ece09909e9cdf35f3383f34e72a614c8c5c0752ecbffe0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/nl.lproj/Sparkle.strings",
+      "bytes": 9574,
+      "sha256": "ca9adf34fb93fe3f394ccc92114bf6a6b1f8a128bb5f362cb9f3247d7c26c77d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/nn.lproj/Sparkle.strings",
+      "bytes": 5671,
+      "sha256": "1db8c6853a550aa25382da2d55431a1c1d308d6a37676c4f8593cc1633f8a5ae"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/pl.lproj/Sparkle.strings",
+      "bytes": 5453,
+      "sha256": "5c54b3f8e1eb3026e142e710e2167f2f839b73ab5ad7f18719230f33ae682aa9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/pt-BR.lproj/Sparkle.strings",
+      "bytes": 9976,
+      "sha256": "0292cadc2acfc34875c1e0b54e2d50de3833cd5e20c8660c8effe2b859aac84c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/pt-PT.lproj/Sparkle.strings",
+      "bytes": 5870,
+      "sha256": "f1eb7c97678287d02924806a94dc20e58719f2fdfe059c39213df1df5575e1dd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ro.lproj/Sparkle.strings",
+      "bytes": 6115,
+      "sha256": "b2bf064222c38a3672b01fe09406f799718cb0fc4e715121662639d6fdfea6ed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/ru.lproj/Sparkle.strings",
+      "bytes": 5853,
+      "sha256": "237f81f65ca89aecff5b9abfbb7973b0ec8175266374341c5770cf19ae43c674"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/sk.lproj/Sparkle.strings",
+      "bytes": 5675,
+      "sha256": "e158daaa4f3f91b57cee05ab896f2c1bc467317932cc53bb7c01e7daee9e5238"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/sl.lproj/Sparkle.strings",
+      "bytes": 5646,
+      "sha256": "c62770c604a6c8c89e283357c8b322d8ce6a85f4d85c09002048331f65f8d980"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/sv.lproj/Sparkle.strings",
+      "bytes": 5160,
+      "sha256": "4a21ad5bcf8d836d265710c2e4a0a64f07c9551f1c49694d6734a931d23efd39"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/th.lproj/Sparkle.strings",
+      "bytes": 5339,
+      "sha256": "4b6c8dc2ab69a0425de3aa9dc386c6539348e3983e47aa10f94c17e345a157a5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/tr.lproj/Sparkle.strings",
+      "bytes": 6183,
+      "sha256": "b040d3f02d341eba047c15dfcafb60406d0847096a94466ecab512dcfb16abb5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/uk.lproj/Sparkle.strings",
+      "bytes": 5911,
+      "sha256": "767d33af04602fd9fe57f21a0d3a6286eb09204978ec414867ad69d363104de6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/vi.lproj/Sparkle.strings",
+      "bytes": 12418,
+      "sha256": "2b3b4acbadf534cd0e812b97e589f80a4e1655b07c8907e98cc31df458ffd8b7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/zh_CN.lproj/Sparkle.strings",
+      "bytes": 7475,
+      "sha256": "e7f543b92977e9abc907241c411d8db0f59c4fee480859b3e88e4b495e0976c8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/zh_HK.lproj/Sparkle.strings",
+      "bytes": 8402,
+      "sha256": "8669b22faeab3c7386cb533132ec8f8f4a01913f4fc38b19b457b44f2445b09e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Resources/zh_TW.lproj/Sparkle.strings",
+      "bytes": 7625,
+      "sha256": "76321e1dd844c9b6568cb4af7c63bb57d9d1b700109aeedd7e5721d78727b12d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Sparkle",
+      "bytes": 941872,
+      "sha256": "9680ddf3800a9b3780c911fabc64816ef0a358d38153ddc77cee10ea779e9180"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app/Contents/Info.plist",
+      "bytes": 2400,
+      "sha256": "ed941468d1ef47aa219b0e806ef634ecadfe2dbe0bcc8acece54f4cd1a93d19f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app/Contents/MacOS/Updater",
+      "bytes": 305008,
+      "sha256": "c00c88ddac70e750a3c791abdc73039f967ca785bf884d76a44e2824d763206b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app/Contents/PkgInfo",
+      "bytes": 8,
+      "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc/Contents/Info.plist",
+      "bytes": 1717,
+      "sha256": "0b1cf514c04eb383f601b3fed668e9f26a7d6905ce65bd52c2de58356f1be307"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+      "bytes": 137584,
+      "sha256": "93613041e65c3eba8a7d30500f4e4578e8e6a563cb0604f5fd742d798c49c89f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc/Contents/Info.plist",
+      "bytes": 1605,
+      "sha256": "a2f90081d42b04740b63e967a8e45143d476138e0d33e0cb5fc85bee068ecafa"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+      "bytes": 172336,
+      "sha256": "6fefcc9791ce51c5cd6a13fde6f3c140bd54427e6fbfb4b50b13e9fee230e092"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/Versions/Current/_CodeSignature/CodeResources",
+      "bytes": 22197,
+      "sha256": "be8a6bbce1f1ad7f3d4e69d3adaf255390ddde3359064acdb0a547c6259a35d8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Downloader.xpc/Contents/Info.plist",
+      "bytes": 1717,
+      "sha256": "0b1cf514c04eb383f601b3fed668e9f26a7d6905ce65bd52c2de58356f1be307"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+      "bytes": 137584,
+      "sha256": "93613041e65c3eba8a7d30500f4e4578e8e6a563cb0604f5fd742d798c49c89f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Downloader.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Installer.xpc/Contents/Info.plist",
+      "bytes": 1605,
+      "sha256": "a2f90081d42b04740b63e967a8e45143d476138e0d33e0cb5fc85bee068ecafa"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+      "bytes": 172336,
+      "sha256": "6fefcc9791ce51c5cd6a13fde6f3c140bd54427e6fbfb4b50b13e9fee230e092"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Frameworks/Sparkle.framework/XPCServices/Installer.xpc/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneCornerGuardian",
+      "bytes": 2684032,
+      "sha256": "67a8b5af8835abc5896326d2c15dfe87d330e90ead0e66d7a33cea1c7618a999"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneDesktopReader",
+      "bytes": 6500984,
+      "sha256": "ed455454b5c0abdca38839e6a161edfcc7ed30447fcacc4d0f0e75d0cc065cd9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneOrdinaryWindowController",
+      "bytes": 6676640,
+      "sha256": "6bd0d33b15a9aae8b414a796eb5ae191ab23fb810c611a4e37bd2fe9d1491d41"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneSpaceAction",
+      "bytes": 6305168,
+      "sha256": "9fa2042a8274bdd469e7e1cce6a45002933527b06d7734373efac61dbe0037a3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneSpacesEngine",
+      "bytes": 2632000,
+      "sha256": "62812c6cd82174812787698ceceb97681d6b4bb95750b450f2bb051a38125c2c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Info.plist",
+      "bytes": 3497,
+      "sha256": "98fc3eda6691b05c4282765ff5567eaa2be6f2bf4aa7142b26b83c9f3f53fcff"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/AcceptanceTargetGuard.js",
+      "bytes": 13552,
+      "sha256": "103df531b7cf576c31c9bce64b8e1deb2411c292c5d1606c9f432091b39161a3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/MacOS/NearpaneHost",
+      "bytes": 40121424,
+      "sha256": "4162f0bc7148c50f496acfdc9c40fd5c4abf705aa491f511d4359a5c7b72eedb"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/AppIconSource.json",
+      "bytes": 2460,
+      "sha256": "8e4ff1965792f0d0297cd112f708aaf825c52dce95b204c7f08387a7770fc384"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/ConnectionSample.pcm",
+      "bytes": 200706,
+      "sha256": "5d29f5fc799a571b27d80bcf442004ba78a619c0d6e847258bb2b6b8b075387a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/nemotron-metal.json",
+      "bytes": 1096,
+      "sha256": "b2268fa1152fbe5e1dd0e98027a70c9a58edf5217a13957dbf3e6efeed836ba5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/paraformer.json",
+      "bytes": 3255,
+      "sha256": "30ba0ebcd41bc82936347adefdb9ed6fcfe2a3d9b71a0e024e8b84148c364e6f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/qwen-large.json",
+      "bytes": 930,
+      "sha256": "396971d3edb3f940917060171c5610c56c6ceee79a549f78fb027c02b1758953"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/sensevoice.json",
+      "bytes": 1787,
+      "sha256": "102d00a727b89cdd40320c6745d65acd2278f219d2cb21899a9655ac4f1921a3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/qwen-small.json",
+      "bytes": 1094,
+      "sha256": "a2b9d00644087dff42139996f013c396e468f1948a312893cd5e9e7f805149b8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/sherpa.json",
+      "bytes": 655,
+      "sha256": "3c5bc301d3abe7d4797abbed59b223b4fe83410ffb3eb8906fdbcfece88aa7e6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/LocalASR/zipformer.json",
+      "bytes": 538,
+      "sha256": "83c49dfe3b003f1b3d9356117f1f1b00fc6d9377a1ef400f321562e26c759803"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/InstantSpaceSwitcher-LICENSE",
+      "bytes": 1064,
+      "sha256": "f058631aa400b6ec941cc5b0175be27ee54e8691ee5b3ff972e8b87b69f65129"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/SOURCES.md",
+      "bytes": 1834,
+      "sha256": "6d29954bf861751aaedf3db8ac9a761b770156846ea3637785d8a845a4f421c2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/yabai-LICENSE",
+      "bytes": 1081,
+      "sha256": "2dd345192ecb21c6b42fd2cec29b6dd9bbc27688f37c9c3c20bd63ba216f8938"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane.icns",
+      "bytes": 1086174,
+      "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Info.plist",
+      "bytes": 335,
+      "sha256": "365a3fbd2de4e49e4b9f4d625bc3952ffe95692f492d7ed18241107e9c385161"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/ConnectionSample.pcm",
+      "bytes": 200706,
+      "sha256": "5d29f5fc799a571b27d80bcf442004ba78a619c0d6e847258bb2b6b8b075387a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/nemotron-metal.json",
+      "bytes": 1096,
+      "sha256": "b2268fa1152fbe5e1dd0e98027a70c9a58edf5217a13957dbf3e6efeed836ba5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/paraformer.json",
+      "bytes": 3255,
+      "sha256": "30ba0ebcd41bc82936347adefdb9ed6fcfe2a3d9b71a0e024e8b84148c364e6f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/qwen-large.json",
+      "bytes": 930,
+      "sha256": "396971d3edb3f940917060171c5610c56c6ceee79a549f78fb027c02b1758953"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/qwen-small.json",
+      "bytes": 1094,
+      "sha256": "a2b9d00644087dff42139996f013c396e468f1948a312893cd5e9e7f805149b8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/sensevoice.json",
+      "bytes": 1787,
+      "sha256": "102d00a727b89cdd40320c6745d65acd2278f219d2cb21899a9655ac4f1921a3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/sherpa.json",
+      "bytes": 655,
+      "sha256": "3c5bc301d3abe7d4797abbed59b223b4fe83410ffb3eb8906fdbcfece88aa7e6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane_SaytileKit.bundle/Contents/Resources/LocalASR/zipformer.json",
+      "bytes": 538,
+      "sha256": "83c49dfe3b003f1b3d9356117f1f1b00fc6d9377a1ef400f321562e26c759803"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Riftlet_RiftletAdapters.bundle/Contents/Info.plist",
+      "bytes": 340,
+      "sha256": "c2f3a678873cd3d4a20bd5695405c9109c07549aca21451933d98cf03cfb819f"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/chatgpt-web-20261027.js",
+      "bytes": 112395,
+      "sha256": "50b0d16d10f38c688ce33189df55ad3da6588b4c7006b710777f30340dc55ed7"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/issue120-provider-profiles.json",
+      "bytes": 1204,
+      "sha256": "051858a3b8f27d2a472f218a01f14c0127108fec44cf981b8e779f891b2cb895"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/issue120-provider-runtime.js",
+      "bytes": 18824,
+      "sha256": "7f0f100681c2480a43ae8e82fbf88b1f5c61f382a65359736e63f301078f63b1"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Riftlet_RiftletAdapters.bundle/Contents/Resources/legacy-web-observe.js",
+      "bytes": 4728,
+      "sha256": "9a60f99e806289213e9df8bd9812337ebf58e334cd996679ef3a5de394805848"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Updates/SPARKLE-LICENSE.txt",
+      "bytes": 6154,
+      "sha256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Updates/source.json",
+      "bytes": 722,
+      "sha256": "1aca68b1c45f2f3f64525f1499b0933efaf609b3060f1f00fc5628b116ea138b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/riftlet/ThirdPartyNotices/Screenshoss/LICENSE",
+      "bytes": 1072,
+      "sha256": "ba6e7da08b1ae572908ac282b6ed1b5c2771ca7d619a9ad2bb173979e69df816"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/riftlet/ThirdPartyNotices/Sukurini/LICENSE",
+      "bytes": 11340,
+      "sha256": "ef3e7d889124843952688376a12817992a6942190820005096ab71b17d703091"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/riftlet/ThirdPartyNotices/Tendedero/LICENSE",
+      "bytes": 1580,
+      "sha256": "03543f9ce9dddb3f7e06afcda9f62386d364c357f897ee0ee7ad5d0fdb6b483d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/riftlet/ThirdPartyNotices/Sukurini/NOTICE",
+      "bytes": 117,
+      "sha256": "ab71755fa2afdb52fc3f4e773f595241d86b19778c6f93a90335021c84566721"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/riftlet/source.json",
+      "bytes": 904,
+      "sha256": "35ce7f17d8800eab1bfd41dda5689a2323e7f097602d1863a63d5fe18e1943d9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/saytile/Sources/CAudio/WEBRTC-LICENSE.txt",
+      "bytes": 2715,
+      "sha256": "c652961f6c92f978ebe4acea6b8b68d4d2d777bd0a1df130c9deffca12d482cd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/saytile/THIRD_PARTY_NOTICES.md",
+      "bytes": 5071,
+      "sha256": "83adebf7e17d7d15ccd3291484a8e6490e56fb72d2038f83d55118b24cdbe01e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/LICENSE",
+      "bytes": 1074,
+      "sha256": "16851449171a13fcc5f978373f836cd2466ab3c0de85f8766f4a8c07f8cfc933"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/saytile/source.json",
+      "bytes": 631,
+      "sha256": "240737916616fcd65c412e5d8328705afb1c0b2325db707361eb108e47071fd3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/apple-host.json",
+      "bytes": 1587,
+      "sha256": "fbd7fa223689610873824a8e4c712fc93303c62e9ec0c32896e473ff078603ed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/apple.json",
+      "bytes": 3595,
+      "sha256": "7844d4c1f57a54035259810b158b1c8c7a5bbfa637c22f65bf86a5e596a95bed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/corner.json",
+      "bytes": 6379,
+      "sha256": "9278d8456c484ea3235cec53db95d684a67cc012db2974f1d03f9f015c5dace8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/minimize.json",
+      "bytes": 1355,
+      "sha256": "6a9c1237e26bc86d6165c37e5e4362b78d923a338478ba4b8f10e448cb68aee6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/base.json",
+      "bytes": 470,
+      "sha256": "325c19e6090072cb3215b2837f76aca67638e24a219390ebdc14fdb7925b034a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/spaces.json",
+      "bytes": 3100,
+      "sha256": "b11a4514241ef51b1c50f47e3dd98bedf20f396855da2073519aa2927538d45a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/source.json",
+      "bytes": 276,
+      "sha256": "97907744484d911d86136175ef455eff3e031cdae51b06835e444fced1a3234d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/WEBRTC-LICENSE.txt",
+      "bytes": 2715,
+      "sha256": "c652961f6c92f978ebe4acea6b8b68d4d2d777bd0a1df130c9deffca12d482cd"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 15734,
+      "sha256": "8a3ac168aac31930534d2faaf924fd691465ba8d72c8a6e05155296549a1cc35"
+    },
+    {
+      "path": "independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "2beccaf6b18fbb5f66e870dd6106e4cf2888f7e509e0cff70bcf62afff9c33f2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 21659,
+      "sha256": "1d572758aa875e0c5c67f2744d7e5d4f5f7c6680948b21f6c3e55ca8cbe240da"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-23d4fe73-db6f-4abc-a2e7-f1b4aae70b6b.jsonl",
+      "bytes": 570,
+      "sha256": "be3fcac9b5c59c2bd0d447dde0c3cab96f7f85582500d98497218737737ed1e4"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1033,
+      "sha256": "9444aeff0f75f1e196112283c80a70a4395d5c0e1a55eeb2abc32348be8262f1"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-448a9f10-dc7b-4408-86c6-e1229e1926b9.json",
+      "bytes": 1085,
+      "sha256": "b887c920e8d06653914adc30c0261a7714d3a8f22245df6972936a7eed49cec9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "7b9cb31f49ea69234d8619bdc05b9c6ee9b7b57c9fe33425699cf2257b86057c"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-before-external-input.png",
+      "bytes": 15991,
+      "sha256": "60cad963dc723584c28e38562f013b1748d5a1355440fbfd1d2319cf9d41f994"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-baseline.png",
+      "bytes": 15991,
+      "sha256": "60cad963dc723584c28e38562f013b1748d5a1355440fbfd1d2319cf9d41f994"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-74cdb5d6-65c5-4d36-91a3-93220ac2853f.log",
+      "bytes": 2464,
+      "sha256": "f7640f4e6ee171aafdf15b960f35949b1505cf3ec7aedf9d8ee80bb4af73fb43"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-74cdb5d6-65c5-4d36-91a3-93220ac2853f.request.json",
+      "bytes": 697,
+      "sha256": "0df2db95a7557122ebe5a1803dc27b44abdeb52fd12c118b1616ea36266bea41"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-74cdb5d6-65c5-4d36-91a3-93220ac2853f.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-74cdb5d6-65c5-4d36-91a3-93220ac2853f.result.json",
+      "bytes": 3682,
+      "sha256": "7c74f1935b123f647eec5f34fff29fab8e58e074b20bcdaa43b75b35929242d3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-readback-failed.png",
+      "bytes": 36143,
+      "sha256": "ce733cea122a1efec9f0e6bb01f5bd288d9a004f90c1bebb1903ced9771858a5"
+    },
+    {
+      "path": "independent-runtime/runtime/product.json",
+      "bytes": 94,
+      "sha256": "a0d5c808a383ebcac227b5305fb8d918bae0d62bb16f4c36edc3512fc9f64c1d"
+    },
+    {
+      "path": "independent-runtime/runtime/product.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 90342,
+      "sha256": "dd905b6558531199e3067d91116babb8ffc4d1a17e1e3e2fcd1599cbd3b85524"
+    },
+    {
+      "path": "independent-runtime/runtime/summary.json",
+      "bytes": 29649,
+      "sha256": "032713b66c239113ebf6f14ff12612743d4a54d43f00959f875f0d518469ff56"
+    },
+    {
+      "path": "independent-runtime/summary.json",
+      "bytes": 32158,
+      "sha256": "021c38da3438a110b41aa92e9cfc187927f00b460640bdf5d8cf2b2f810a7862"
+    },
+    {
+      "path": "Nearpane-independent-candidate.zip",
+      "bytes": 25965220,
+      "sha256": "9ef958f5b6c06a68317acf7d0b6141aea8efee0a737195bf6518ef10e0270c36"
+    },
+    {
+      "path": "Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "3b1c7d7097575ca0521a3c81efbc05f1c9dbe7b3cf15add2ff9d17ad9e66f455"
+    },
+    {
+      "path": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "d0dc325285c6a478dab0140da0408f7af6e517d0c00cac9d61a84b8820b998a9"
+    }
+  ]
+}
