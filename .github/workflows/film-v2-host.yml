@@ -42,6 +42,7 @@ jobs:
           restore-keys: |
             workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-
       - name: Build isolated complete Host and real capture tools
+        id: build
         run: |
           set -o pipefail
           mkdir -p build/film-v2-host
@@ -50,6 +51,21 @@ jobs:
           swiftc -parse-as-library -swift-version 5 -O Marketing/FirstFilmV2/native/FilmAVCapture.swift -framework AppKit -framework ScreenCaptureKit -framework AVFoundation -framework CoreMedia -o "$RUNNER_TEMP/film-av-capture" 2>&1 | tee build/film-v2-host/recorder-build.log
           swiftc -swift-version 5 -O Marketing/FirstFilmV2/native/FilmNativeWindow.swift -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/film-native-window" 2>&1 | tee build/film-v2-host/window-build.log
           swiftc -swift-version 5 -O Marketing/FirstFilmV2/host-capture/FilmHostInput.swift -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/film-host-input" 2>&1 | tee build/film-v2-host/input-build.log
+      - name: Preserve completed compilation before optional desktop initialization
+        if: ${{ steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        run: ditto "$RUNNER_TEMP/film-v2-host-repo/.build" .build
+      - name: Save the native build cache
+        if: ${{ steps.build.outcome == 'success' && steps.cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Prepare owned song and real 4K desktop
         run: |
           command -v ffmpeg || brew install ffmpeg

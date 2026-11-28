@@ -31,9 +31,31 @@ try:
     if subprocess.run(['pgrep','-x','Music'],capture_output=True,text=True).stdout.strip():raise RuntimeError('Music unexpectedly running before isolated host take')
     permission=start_cloud_ui(out/'permission-ui','music',seconds=170)
     subprocess.run(['open','-a','Music'],check=True)
+    # A cold Music launch can accept add() before its initial library finishes
+    # opening, then silently leave the owned playlist empty. Complete only the
+    # already observed native welcome/marketing controls before importing.
+    native_window('com.apple.Music','music-onboarding-inspection.json')
+    onboarding_deadline=time.monotonic()+18
+    while time.monotonic()<onboarding_deadline:
+        try:
+            ui=json.loads((out/'permission-ui/native-permission-ui.json').read_text())
+            if any(row.get('button')=='Not Now' for row in ui.get('actions',[])):break
+        except (OSError,ValueError):pass
+        time.sleep(.2)
     playlist='Nearpane Film Host '+os.environ['GITHUB_RUN_ID']
     apple('tell application "Music"\nset sound volume to 72\nset filmList to make new user playlist with properties {name:'+quote(playlist)+'}\nadd POSIX file '+quote(a.audio.resolve())+' to filmList\nend tell',timeout=50)
-    verified=verified_import(playlist)
+    for attempt in range(3):
+        try:
+            verified=verified_import(playlist)
+            break
+        except RuntimeError:
+            failed=json.loads((out/'verified-music-import.json').read_text())
+            save('import-attempt-'+str(attempt+1)+'.json',failed)
+            reads=[row.get('readback') for row in failed.get('observations',[]) if row.get('readback')]
+            if attempt==2 or not reads or any(value!='COUNT\t0' for value in reads):raise
+            event('owned-empty-import-retry',attempt=attempt+2)
+            apple('tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nadd POSIX file '+quote(a.audio.resolve())+' to filmList\nend tell',timeout=30)
+            time.sleep(1)
     apple('tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nset shuffle enabled to false\nset song repeat to off\nplay filmList\nend tell')
     deadline=time.monotonic()+12
     while time.monotonic()<deadline:
