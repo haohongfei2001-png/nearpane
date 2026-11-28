@@ -21,7 +21,10 @@ def event(name,**extra):
     events.append(row);save('driver-events.json',{'events':events});return row
 def quote(value):return json.dumps(str(value),ensure_ascii=False)
 def apple(script,timeout=30,required=True):
-    r=subprocess.run(['/usr/bin/osascript','-e',script],capture_output=True,text=True,timeout=timeout)
+    try:r=subprocess.run(['/usr/bin/osascript','-e',script],capture_output=True,text=True,timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        if required:raise
+        event('optional-applescript-timeout',script=script);return ''
     with (out/'applescript.log').open('a') as f:f.write(script+'\n'+r.stdout+r.stderr+'\n')
     if required and r.returncode:raise RuntimeError(r.stderr)
     return r.stdout.strip()
@@ -33,6 +36,12 @@ def wait_json(name,seconds=60):
     raise RuntimeError('Timed out waiting for '+name)
 def snap(name):
     subprocess.run(['/usr/sbin/screencapture','-x','-C','-D',os.environ['NEARPANE_FILM_SCREEN_INDEX'],str(out/name)],check=True)
+def native_window(bundle,name,*arguments):
+    helper=Path(os.environ['RUNNER_TEMP'])/'film-native-window'
+    try:
+        result=subprocess.run([str(helper),bundle,str(out/name),*[str(x) for x in arguments]],capture_output=True,text=True,timeout=10)
+        if result.returncode:event('optional-native-window-error',name=name,stderr=result.stderr)
+    except (OSError,subprocess.TimeoutExpired) as error:event('optional-native-window-error',name=name,error=str(error))
 def seek_real(seconds):
     deadline=time.monotonic()+12
     attempts=[]
@@ -125,7 +134,7 @@ try:
     display_manifest=json.loads((out/'display/capture-display.json').read_text())
     early_display=json.loads((out/'display'/display_manifest['selectedReport']).read_text())['selected']['nsFrame']
     early_x=int(early_display['x']+120)
-    apple('tell application "Music"\nactivate\nset bounds of front window to {'+f'{early_x},112,{early_x+1352},950'+'}\nend tell',required=False)
+    native_window('com.apple.Music','music-initial-position.json',early_x,112,1352,838)
     playlist='Nearpane Film '+os.environ['GITHUB_RUN_ID']
     apple('tell application "Music"\nset sound volume to 72\nset filmList to make new user playlist with properties {name:'+quote(playlist)+'}\nadd POSIX file '+quote(a.audio.resolve())+' to filmList\nend tell',timeout=50)
     verified=verified_import(playlist)
@@ -149,13 +158,13 @@ try:
     geometry=json.loads((out/'camera-host.json').read_text());sf=geometry['screenFrame']
     # AppleScript window positions use the global top-left coordinates.
     x=int(sf[0]+120);y=112
-    apple('tell application "Music"\nactivate\nset bounds of front window to {'+f'{x}, {y}, {x+1352}, {y+838}'+'}\nend tell')
+    native_window('com.apple.Music','music-main-position.json',x,y,1352,838)
     # Reveal the actual current song in the real library; artwork remains original.
     apple('tell application "Music" to reveal current track',required=False)
     # Native MiniPlayer is a real Apple Music command; use the large artwork view if available.
-    apple('tell application "System Events" to tell process "Music"\nset frontmost to true\nkeystroke "m" using {command down,shift down}\nend tell',required=False)
+    native_window('com.apple.Music','music-miniplayer-key.json','--key','miniplayer')
     time.sleep(1.0)
-    apple('tell application "Music" to set bounds of front window to {'+f'{x+85}, {y+80}, {x+735}, {y+730}'+'}',required=False)
+    native_window('com.apple.Music','music-miniplayer-position.json',x+85,y+80,650,650,'--focused')
     snap('core-initial-music-layout-4k.png')
     seek_real(147.60)
     apple('tell application "Music"\npause\nset player position to 147.60\nend tell')
@@ -186,19 +195,26 @@ try:
     event('preview-open-request')
     subprocess.run(['open','-a','Preview',str(a.pdf.resolve())],check=True)
     time.sleep(.65)
-    apple('tell application "System Events" to tell process "Preview"\nset frontmost to true\nset position of front window to {'+f'{x},{y}'+'}\nset size of front window to {1352,838}\nend tell',required=False)
+    native_window('com.apple.Preview','preview-position.json',x,y,1352,838)
     # Actual Preview Fit and hide-sidebar keyboard/menu commands, never a fake window.
-    apple('tell application "System Events" to tell process "Preview"\nkeystroke "1" using {command down,option down}\nkeystroke "9" using {command down}\nend tell',required=False)
+    native_window('com.apple.Preview','preview-sidebar-key.json','--key','hide-sidebar')
+    native_window('com.apple.Preview','preview-fit-key.json','--key','fit')
     apple('tell application "System Events" to set visible of process "Music" to false',required=False)
     event('preview-frontmost',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
     time.sleep(1)
     snap('core-document-frame-4k.png')
     # Baseline captures the ordinary lyric state. A missing production artwork
     # path must not produce a fake cover or an advertised placeholder hover.
+    try:present=json.loads((out/'state.json').read_text())
+    except (OSError,ValueError):present={}
+    if present.get('artworkDecoded'):
+        for offset,action in [(12,'enter'),(15,'leave')]:
+            while time.monotonic()<take_start+offset:time.sleep(.03)
+            (out/'pointer-command.json').write_text(json.dumps({'action':action}));event('native-pointer-'+action)
     recorder.wait(timeout=30)
     if recorder.returncode:raise RuntimeError('Actual screen/audio recorder failed')
     event('core-complete',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
-    save('core-result.json',{'status':'CAPTURED','player':'Apple Music','sourceTrack':'Good To Go','artist':'Josh Woodward','durationRequested':18,'actualPlayback':True,'realMusicTrackArtworkCountVerified':1,'lyricViewArtworkDecoded':ready.get('artworkDecoded',False),'desktopNative':True,'sourceView':'NearpaneLyricsModule','workflowRun':os.environ['GITHUB_RUN_ID'],'limitations':['Isolated photography host, not a release Host qualification','LRC real lyrics, ASR-derived source-clock timings pending final listening check','No hover advertised in baseline until actual product artwork is confirmed']})
+    save('core-result.json',{'status':'CAPTURED','player':'Apple Music','sourceTrack':'Good To Go','artist':'Josh Woodward','durationRequested':18,'actualPlayback':True,'realMusicTrackArtworkCountVerified':1,'lyricViewArtworkDecoded':present.get('artworkDecoded',False),'desktopNative':True,'sourceView':'NearpaneLyricsModule','workflowRun':os.environ['GITHUB_RUN_ID'],'limitations':['Isolated photography host, not a release Host qualification','LRC real lyrics, ASR-derived source-clock timings pending final listening check','The actual typed-artwork bridge fix is unreleased and only present on the film branch']})
 except Exception as error:
     save('core-result.json',{'status':'BLOCKED','error':str(error),'events':events})
     try:snap('failure-desktop.png')

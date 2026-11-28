@@ -14,15 +14,19 @@ are supplied.
 
 The camera host is a small isolated executable linking those embedded libraries;
 it is **not** the complete shipping Nearpane Host or a release acceptance test.
-The production repository source files are unchanged. One extra extension exposes
-the existing local-file import action to this bounded capture driver. A read-only
-bridge diagnostic records the actual `rawData` class and image payload. If, and
-only if, the actual current-track payload is a typed descriptor/proxy, its track
-identity is stable, its bytes are at most 8 MiB and ffprobe decodes a real image,
-the same VM may apply a two-line descriptor-unwrapping **unreleased candidate**
-inside the isolated camera copy. Its exact diff and image hash are preserved.
-The candidate must still return real artwork through the ordinary model/decoder
-before a hover shot is accepted. No album image is injected into the view. The view
+One extra extension exposes the existing local-file import action to this bounded
+capture driver. A read-only bridge diagnostic records the actual `rawData` class
+and image payload. Run `46109639614` proved that Music returned an `SBObject`
+proxy resolving to an `NSAppleEventDescriptor`, rather than `NSData`. The actual
+current-track payload passed the unchanged identity and 8 MiB guards, and decoded
+as the original licensed JPEG (SHA-256
+`1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682`).
+The isolated candidate then produced the actual cover through the ordinary
+production model and decoder in a real 4K hover recording with system audio.
+That proven two-line unwrapping fix is now included on this **unreleased creative
+branch only**. It is not merged to main and is not a shipping capability claim.
+The original code, diagnostic, exact diff and result remain in the run artifact.
+No album image is injected into the view. The view
 keeps its canonical 208 × 192-point composition, with a stated photographic
 scale of 280/208 on a verified real 2× display. The native window is positioned
 at the upper right for this photograph. This is not evidence of a new product
@@ -79,7 +83,8 @@ verifies their SHA-256 values, preserves the actual artist/title/album, and
 converts to ALAC for Music import without changing speed or pitch. This avoids
 another lossy encode; it does not claim the downloaded Vorbis was a lossless
 studio master. The LRC words have been checked against the author's lyrics;
-its ASR-derived times still require listening validation before final release.
+its ASR-derived times were cross-checked with two models in a wider audio context;
+they have not been described as a completed human listening calibration.
 
 The private `CGVirtualDisplay` helper is a camera-only utility with Chromium
 BSD attribution in `np-hidpi-third-party.txt`. It is not shipped in Nearpane.

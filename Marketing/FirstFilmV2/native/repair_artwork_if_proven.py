@@ -16,7 +16,11 @@ if probe.exists() and payload.exists():
     image=subprocess.run(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=codec_name,width,height','-of','json',str(payload)],capture_output=True,text=True)
     streams=json.loads(image.stdout or '{}').get('streams',[]) if image.returncode==0 else []
     good=any(s.get('width',0)>0 and s.get('height',0)>0 for s in streams)
-    if typed and data.get('identityValid') and data.get('unwrappedIsData') and 0<payload.stat().st_size<=8*1024*1024 and good:
+    source=a.package/'Sources/CPlayerBridge/CPlayerBridge.m'
+    already='if ([raw isKindOfClass:SBObject.class]) raw = [raw get];' in source.read_text() and 'if ([raw isKindOfClass:NSAppleEventDescriptor.class]) raw = [(NSAppleEventDescriptor *)raw data];' in source.read_text()
+    if already:
+        result.update(status='ALREADY_HAS_PROVEN_UNRELEASED_FIX',actualImageSHA256=hashlib.sha256(payload.read_bytes()).hexdigest(),actualImageProbe=streams)
+    elif typed and data.get('identityValid') and data.get('unwrappedIsData') and 0<payload.stat().st_size<=8*1024*1024 and good:
         source=a.package/'Sources/CPlayerBridge/CPlayerBridge.m';before=source.read_text()
         needle='id raw = [art valueForKey:@"rawData"];'
         assert before.count(needle)==1

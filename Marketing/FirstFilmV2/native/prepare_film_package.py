@@ -4,7 +4,7 @@
 This is not a shipping Nearpane package and does not alter the repository source.
 Only the local lyric-file chooser is exposed to the bounded camera driver.
 """
-import argparse, hashlib, json, shutil
+import argparse, hashlib, json, shutil, subprocess
 from pathlib import Path
 
 p=argparse.ArgumentParser()
@@ -67,7 +67,9 @@ let package = Package(name: "NearpaneFilmV2", platforms: [.macOS("26.0")],
  ],swiftLanguageModes:[.v6])
 ''')
 (dest/'source-manifest.json').write_text(json.dumps({
- 'sourceCommit':'d5767d87bc45245b31d0980e91e43778c5f424ed',
+ 'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),
+ 'productionBaseCommit':'d5767d87bc45245b31d0980e91e43778c5f424ed',
+ 'unreleasedArtworkFix':'Actual Music SBObject/NSAppleEventDescriptor unwrap, verified in run46109639614; image SHA matches licensed original. Only film branch, not main.',
  'scope':'Current embedded NearpaneLyricsModule in an isolated photography host. Actual Music metadata/artwork/playback, actual product lyric importer/view/controls; not a packaged Host release qualification.',
  'productionRepositorySourceFilesModified':[],
  'isolatedInstrumentation':'CPlayerBridge logs actual rawData class/descriptor payload to diagnose missing production artwork. It does not change the baseline artwork result or inject an image.',

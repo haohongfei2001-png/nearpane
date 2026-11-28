@@ -79,7 +79,9 @@ import LyricPlayback
         let acquired=await module.activate(takingOverStandalone:false)
         module.model.isVisible=true
         write("camera-host.json",[
-            "sourceCommit":"d5767d87bc45245b31d0980e91e43778c5f424ed",
+            "sourceCommit":environment["GITHUB_SHA"] ?? "unknown",
+            "productionBaseCommit":"d5767d87bc45245b31d0980e91e43778c5f424ed",
+            "unreleasedArtworkBridgeFix":true,
             "module":"NearpaneLyricsModule","realPlayerRequired":true,"fixtureSnapshots":false,
             "sourceViewLogicalSize":[208,192],"photographicScale":scale,
             "screenFrame":[screen.frame.minX,screen.frame.minY,screen.frame.width,screen.frame.height],

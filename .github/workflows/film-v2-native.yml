@@ -30,6 +30,7 @@ jobs:
           set -o pipefail
           python3 Marketing/FirstFilmV2/native/build_camera_app.py "$RUNNER_TEMP/film-v2-package" "$RUNNER_TEMP/Nearpane Film V2.app" 2>&1 | tee build/film-v2-core/build.log
           swiftc -parse-as-library -swift-version 5 -O Marketing/FirstFilmV2/native/FilmAVCapture.swift -framework AppKit -framework ScreenCaptureKit -framework AVFoundation -framework CoreMedia -o "$RUNNER_TEMP/film-av-capture" 2>&1 | tee build/film-v2-core/recorder-build.log
+          swiftc -swift-version 5 -O Marketing/FirstFilmV2/native/FilmNativeWindow.swift -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/film-native-window" 2>&1 | tee build/film-v2-core/native-window-build.log
       - name: Prepare licensed real recording and real Retina display
         run: |
           python3 Marketing/FirstFilmV2/native/build_good_to_go.py --output "$RUNNER_TEMP/good-to-go.m4a" --source-dir "$RUNNER_TEMP/song-originals" > build/film-v2-core/audio-source.json

@@ -163,6 +163,8 @@ NSData *LTPReadPlayer(int32_t pid, BOOL spotify, BOOL includeArtwork) {
                         if (artworks.count > 0) {
                             id art = [artworks objectAtIndex:0];
                             id raw = [art valueForKey:@"rawData"];
+                            if ([raw isKindOfClass:SBObject.class]) raw = [raw get];
+                            if ([raw isKindOfClass:NSAppleEventDescriptor.class]) raw = [(NSAppleEventDescriptor *)raw data];
                             if ([raw isKindOfClass:NSData.class] && [raw length] <= 8 * 1024 * 1024) {
                                 result[@"artworkBase64"] = [raw base64EncodedStringWithOptions:0];
                             }

@@ -1,0 +1,18 @@
+{
+  "status": "VERIFIED_IN_ACTUAL_NATIVE_CAPTURE",
+  "verificationRun": 46109639614,
+  "sourceBase": "d5767d87bc45245b31d0980e91e43778c5f424ed",
+  "released": false,
+  "mergedToMain": false,
+  "probe": {
+    "rawClass": "SBObject",
+    "resolvedClass": "NSAppleEventDescriptor",
+    "descriptorType": 1952740449,
+    "identityValid": true,
+    "bytes": 486932,
+    "imageSHA256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682"
+  },
+  "change": "Unwrap the actual ScriptingBridge proxy and Apple Event descriptor before the existing NSData/8 MiB check; retain track identity guards.",
+  "actualResult": "Real production model/decoder displayed current Music album artwork in native 3840x2160 hover video. System audio independently matches original recording with median normalized correlation 0.9994937.",
+  "sourceFile": "Products/LyricTile/Sources/CPlayerBridge/CPlayerBridge.m"
+}
