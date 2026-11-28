@@ -23,6 +23,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     private let read: Read
     private let sessionAvailable: @MainActor () -> Bool
     private let fingerprint: @Sendable () -> Int?
+    private let navigation: NativeSidebarNavigation
     private let session = UUID()
     private(set) var revision: UInt64 = 0
     private(set) var snapshot: DesktopSnapshot?
@@ -485,6 +486,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     @ObservationIgnored private var metadataReservation: MetadataReservation?
     @ObservationIgnored private var metadataWaiters = [UUID: CheckedContinuation<Void, Never>]()
     @ObservationIgnored private var admittedObserver: UUID?
+    @ObservationIgnored private var observerNavigationWait: UUID?
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
@@ -503,12 +505,14 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
 
     init(read: @escaping Read, sessionAvailable: @escaping @MainActor () -> Bool = WindowContentPreview.sessionAvailable,
          fingerprint: @escaping @Sendable () -> Int? = CurrentDesktopWindows.windowNumbersFingerprint,
-         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil) {
+         readSidebarWindows: NativeSidebarWindowHistory.Read? = nil, stageGroupProfile: URL? = nil,
+         navigation: NativeSidebarNavigation = .shared) {
         let store = StageGroupStore(profile: stageGroupProfile)
         groups = store
         stageEngine = StageWindowEngineHost(profile:stageGroupProfile,store:store)
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
+        self.navigation = navigation
         stageEngine.attach(to:self)
     }
 
@@ -584,14 +588,37 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
 
     private func admitObserver() async -> UUID? {
         let expected = epoch
-        while metadataReservation != nil {
-            guard !Task.isCancelled, expected == epoch else { return nil }
-            await waitForMetadataChange("observer")
+        while true {
+            guard !Task.isCancelled, expected == epoch, events != nil else { return nil }
+            if navigation.blocksObserverAdmission {
+                // Wait before acquiring either a publication token or a pending
+                // producer. Foreground reads must never drain an observer that
+                // is itself waiting for that foreground navigation to finish.
+                let id = UUID(), started = ProcessInfo.processInfo.systemUptime
+                observerNavigationWait = id
+                IndependentStageTrace.record("observer-navigation-wait-enter", ["waiter": id.uuidString,
+                    "epoch": expected.uuidString, "revision": revision])
+                didWaitForMetadataRead?("observer-navigation")
+                let ready = await navigation.waitForObserverAdmission(id) { [weak self] in
+                    self?.epoch == expected && self?.events != nil
+                }
+                if observerNavigationWait == id { observerNavigationWait = nil }
+                IndependentStageTrace.record("observer-navigation-wait-exit", ["waiter": id.uuidString,
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
+                    "ready": ready, "blocked": navigation.blocksObserverAdmission, "dispatching": navigation.isDispatching,
+                    "epochMatches": expected == epoch, "cancelled": Task.isCancelled])
+                // A navigation epoch change revokes that wait, not this observation
+                // request. Recheck feed lifetime and the current queue before admission.
+                continue
+            }
+            if metadataReservation != nil {
+                await waitForMetadataChange("observer")
+                continue
+            }
+            let id = UUID()
+            admittedObserver = id
+            return id
         }
-        guard !Task.isCancelled, expected == epoch, events != nil else { return nil }
-        let id = UUID()
-        admittedObserver = id
-        return id
     }
 
     func changed() { events?.yield(()) }
@@ -602,6 +629,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     }
 
     func invalidate(preservingOriginalWindows: Bool = false, reason: String = "invalidate") {
+        if let id = observerNavigationWait { navigation.cancelObserverWait(id); observerNavigationWait = nil }
         if preservingOriginalWindows { holdDisplayedRoster() }
         else { departingPictures = nil }
         stageEngine.freeze()
@@ -727,6 +755,27 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
                 }
                 let next = outcome?.snapshot
                 snapshot = next
+                if ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+                    let publishedAt = Date(), publicationUptime = ProcessInfo.processInfo.systemUptime
+                    func finite(_ value: Double?) -> Any {
+                        guard let value, value.isFinite else { return NSNull() }
+                        return value
+                    }
+                    IndependentStageTrace.record("desktop-observer-published", [
+                        "observer": observer.uuidString, "epoch": expected.uuidString,
+                        "snapshotPresent": next != nil,
+                        "snapshotSession": next.map { $0.sessionID.uuidString as Any } ?? NSNull(),
+                        "snapshotRevision": next.map { $0.revision as Any } ?? NSNull(),
+                        "catalogComplete": (next?.native?.catalogComplete).map { $0 as Any } ?? NSNull(),
+                        "navigationEpoch": navigation.ownershipEpoch.uuidString,
+                        "dispatching": navigation.isDispatching, "publicationUptime": finite(publicationUptime),
+                        "nativeBeganUptime": finite(next?.native?.beganUptime),
+                        "nativeEndedUptime": finite(next?.native?.endedUptime),
+                        "wallSampledToAgeMS": finite(next.map { publishedAt.timeIntervalSince($0.sampledTo) * 1000 }),
+                        "nativeFreshAtPublication": next.map {
+                            $0.nativeIsFresh(now: publishedAt, uptime: publicationUptime) as Any
+                        } ?? NSNull()])
+                }
                 if next?.native?.windowLimitReached == false || !sessionAvailable() { departingPictures = nil }
                 stageEngine.observeEnvironment(next)
                 if next?.native?.stageManagerEnabled == false {
@@ -1103,7 +1152,8 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             "requestConstructionMS": (taskCreated - auditCreated) * 1000,
             "preTaskCreationMS": (taskCreated - readCallStarted) * 1000,
             "creatorPriority": Task.currentPriority.rawValue,
-            "dispatching": NativeSidebarNavigation.shared.isDispatching])
+            "creatorKind": metadata != nil ? "metadata-owner" : (observer != nil ? "observer" : "direct"),
+            "dispatching": navigation.isDispatching])
         let result = await task.value
         if pending?.id == token { pending = nil; metadataChanged() }
         return expected == epoch && metadata.map(hasMetadataReadScope) != false ? result : nil

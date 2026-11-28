@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "revision": "786abfef7d12e5c93be195baead315919523fb22",
+  "runID": 46126567734,
+  "jobs": {
+    "fast": 140922353290,
+    "full": 140922353517,
+    "diagnostics": 140922353607
+  },
+  "sourceGate": "FAIL",
+  "qualificationGranted": false,
+  "downloads": [
+    {
+      "lane": "fast",
+      "artifactID": 15255738480,
+      "bytes": 25578378,
+      "sha256": "085c10c6c65f2021a95600df0840d52a2bd64399f63e44ec69665751d51b6ea3",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "full",
+      "artifactID": 15255908947,
+      "bytes": 54067310,
+      "sha256": "5a30898eece27bdde896f9e117d0b1078a9ffc7d045d31d616d257cfb7214a61",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "source",
+      "artifactID": 15255269889,
+      "bytes": 34093,
+      "sha256": "2747514d16ac17cbfc61ec1b5f5e4f87e2c8f11d9ec6dc1fecd94f2642a060ca",
+      "providerDigestVerified": true,
+      "downloads": 1
+    }
+  ],
+  "copiedOriginalBytes": [
+    {
+      "path": "source-gate-audit.json",
+      "originalPath": "source/source-gate-audit.json",
+      "bytes": 25517,
+      "sha256": "aff06daf4a1dee4a110d3feb19c94842956f7bde7566b843570f8c4fca6e5a96",
+      "byteIdentical": true
+    },
+    {
+      "path": "cloud-source.zip",
+      "originalPath": "source/context.zip",
+      "bytes": 34093,
+      "sha256": "2747514d16ac17cbfc61ec1b5f5e4f87e2c8f11d9ec6dc1fecd94f2642a060ca",
+      "byteIdentical": true
+    },
+    {
+      "path": "candidate-receipt.json",
+      "originalPath": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "0c285482d61f773e6fa1cc98dd9b049e382d795d13d62605df996f2084f4f7e8",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/swift.xml",
+      "originalPath": "full/independent-source/source/swift.xml",
+      "bytes": 45708,
+      "sha256": "cb0aa23adbdd2a94706db4d546c81d2fe33bb3f26842a62c71546e0410f11b01",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/rust.log",
+      "originalPath": "full/independent-source/source/rust.log",
+      "bytes": 17833,
+      "sha256": "99f28920e7f0390a345f9c496d052d6a6f6bebfaf49feda0e1287494d7c3b836",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "originalPath": "full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "originalPath": "fast-raw-manifest.json",
+      "bytes": 23723,
+      "sha256": "60560299eaaaafdf0cee194009bfd9ede95e5d3aadefd5d0b01d5d5a9caaaacd",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "originalPath": "full-raw-manifest.json",
+      "bytes": 120003,
+      "sha256": "c60ac7625f7671b9455125e254e738d0b7c4af693763e6029c6f23be06ea61d2",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-freeze-verification.json",
+      "originalPath": "fast-freeze.json",
+      "bytes": 1084,
+      "sha256": "0f776564a556c82b1086a537863cf00197681d801b691e684828d48da0641003",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-analysis-manifest.json",
+      "originalPath": "full-analysis-manifest.json",
+      "bytes": 1481,
+      "sha256": "1c3e4134583e37620cf7069baa475eb782b42eedde73cae9445b067158dfd161",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-interpretation.json",
+      "originalPath": "full-interpretation.json",
+      "bytes": 55801,
+      "sha256": "6014c3fd3283a3878c6fa983ddced4b4fddc643f3b86db056665200e1c06dbcc",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-run.json",
+      "originalPath": "workflow-run.json",
+      "bytes": 16213,
+      "sha256": "eb300ea23983f90494b58a560636a2f33265cce9d43e526d79cabdc8e9847ec1",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-jobs.json",
+      "originalPath": "workflow-jobs.json",
+      "bytes": 14377,
+      "sha256": "fac32205e421a06a148af1210ed455c09939fd849a7b622833f18f75189c2808",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-786ab.tar.gz",
+      "originalPath": "runtime-traces-786ab.tar.gz",
+      "bytes": 501514,
+      "sha256": "e045014eab65d07116689a05fb281328c0e0ae14d8b3431f81b61538d5c46529",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "originalPath": "runtime-traces-manifest.json",
+      "bytes": 57218,
+      "sha256": "bf5509e08578114847a33bfef003a312140f8da104eeaa72de373d4561fe3640",
+      "byteIdentical": true
+    }
+  ],
+  "compressedAnalyses": [
+    {
+      "path": "fast-analysis.json.gz",
+      "bytes": 32814,
+      "sha256": "b1dd6efd8898768777ec1758b5a093d4c5025ec3cfe6c6b324686287ad131d18",
+      "originalBytes": 297889,
+      "originalSHA256": "7da73c4e38b2a2443e26ced9d62d9e248b52e9dfcac24d4dafb0b0306a194361",
+      "roundTripVerified": true
+    },
+    {
+      "path": "full-analysis.json.gz",
+      "bytes": 173115,
+      "sha256": "b016608cd4737dfd8838f00c9acfc52e4576d9f543b0f27937c8b646be6f4da9",
+      "originalBytes": 1810829,
+      "originalSHA256": "5c780f87ee0be5ab29c60c32b680f3223894a36af83fcb4bb627dd885c04d448",
+      "roundTripVerified": true
+    }
+  ],
+  "rawFilesVerified": {
+    "fast": 112,
+    "full": 482
+  },
+  "runtimeArchiveFilesVerified": 152,
+  "nextPatchNativeVerification": "NOT_RUN"
+}

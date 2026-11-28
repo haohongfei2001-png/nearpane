@@ -518,8 +518,8 @@ import NearpaneOrdinaryWindowRuntime
         }
         guard !scopes.isEmpty else { return }
         lastResumeAttempt = now
-        let input = NativeSelectionPermit.inputCounters(), version = revision
-        navigation.submit(stage: true, userActivity: false) { [weak self, weak feed] token in
+        let input = NativeSelectionPermit.inputCounters(), version = revision, epoch = navigation.ownershipEpoch
+        navigation.submit(stage: true, userActivity: false, needsInitialObservation: true) { [weak self, weak feed] token in
             guard let self, let feed else { return }
             self.resumeEnqueued = true
             defer { self.resumeEnqueued = false }
@@ -542,6 +542,9 @@ import NearpaneOrdinaryWindowRuntime
                       catalog.current.ordinaryUUID == scope.nativeSpace,
                       let row = catalog.rows.first(where: { $0.record.isCurrent }),
                       let source = NativeSidebarDestination(row, in: catalog) else { continue }
+                if first.native?.catalogComplete == true {
+                    navigation.completeInitialObservation(for: token, in: epoch)
+                }
                 let home = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
                 let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
                 for window in row.windows where window.metadata?.pid == frontPID {
@@ -711,7 +714,8 @@ import NearpaneOrdinaryWindowRuntime
 
     func chooseOwnedMember(_ stamp: OwnedMemberSelection, in feed: CurrentDesktopWindows, selectionToken: UUID,
                            current: @escaping @MainActor () -> Bool,
-                           successor: @escaping @MainActor () -> UUID? = { nil }) async throws {
+                           successor: @escaping @MainActor () -> UUID? = { nil },
+                           initialObservationCompleted: @escaping @MainActor () -> Void = {}) async throws {
         var completed = false
         IndependentStageTrace.record("owned-member-selection-enter", ["window": stamp.identity.window.number,
             "group": stamp.group.uuidString, "member": stamp.member.uuidString, "hostRevision": stamp.revision])
@@ -722,7 +726,8 @@ import NearpaneOrdinaryWindowRuntime
         else { throw StageSwitchError.interrupted }
         try await chooseHeld(held, member: nil, ownedSelection: stamp, in: feed, selectionToken: selectionToken,
             current: { current() && self.ownedMemberSelectionIsCurrent(stamp, in: feed) },
-            successor: { self.ownedMemberSelectionIsCurrent(stamp, in: feed) ? successor() : nil })
+            successor: { self.ownedMemberSelectionIsCurrent(stamp, in: feed) ? successor() : nil },
+            initialObservationCompleted: initialObservationCompleted)
         completed = true
     }
 
@@ -1094,7 +1099,8 @@ import NearpaneOrdinaryWindowRuntime
     func chooseHeld(_ held: HeldGroup, member stamp: StageGroupDeparture.Stamp?, ownedSelection: OwnedMemberSelection? = nil,
                     in feed: CurrentDesktopWindows, selectionToken: UUID,
                     current: @escaping @MainActor () -> Bool,
-                    successor: @escaping @MainActor () -> UUID? = { nil }) async throws {
+                    successor: @escaping @MainActor () -> UUID? = { nil },
+                    initialObservationCompleted: @escaping @MainActor () -> Void = {}) async throws {
         guard !wallpaperPaused else { throw StageSwitchError.busy }
         let continuing = heldSuccessor?.token == selectionToken && heldSuccessor?.card == held
         heldSuccessor = nil
@@ -1120,6 +1126,7 @@ import NearpaneOrdinaryWindowRuntime
             throw StageSwitchError.interrupted
         }
         try checkSelection()
+        initialObservationCompleted()
         let choice: (member: UUID, window: NativeSpaceWindow, lifetime: UUID)
         if let ownedSelection {
             guard stamp == nil, ownedMemberSelectionIsCurrent(ownedSelection, in: feed),

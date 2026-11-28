@@ -196,6 +196,10 @@ struct CrossSpaceFocusContinuity {
         windowSwitch.cancel()
         ownershipEpoch = UUID()
         generation = UUID()
+        // The revoked job can still be finishing recovery. Keep its actual
+        // identity, with admission open, until its own defer reaches dequeue.
+        activeObservationJob?.waiting = false
+        finishObserverWaits(false)
         activeSelection?.revoke()
         let discarded = pending
         pending.removeAll()
@@ -211,11 +215,19 @@ struct CrossSpaceFocusContinuity {
     private static let log = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "NativeSpaceActions")
     private struct Job {
         let token: UUID, epoch: UUID, selection: Bool, stage: Bool
+        let needsInitialObservation: Bool
         let activity: SidebarUserActivity?
         let run: Work
     }
+    private struct ObservationJob {
+        let token: UUID, epoch: UUID
+        var waiting: Bool
+    }
     private var pending: [Job] = []
     private var running = false
+    @ObservationIgnored private var activeObservationJob: ObservationJob?
+    @ObservationIgnored private var observerWaiters = [UUID: CheckedContinuation<Bool, Never>]()
+    @ObservationIgnored var didRegisterObserverWait: ((UUID) -> Void)?
     /// Capture refreshes yield while an explicit window action owns this lane.
     /// Include queued work so they cannot slip between two rapid choices.
     var isDispatching: Bool { running || !pending.isEmpty }
@@ -225,6 +237,61 @@ struct CrossSpaceFocusContinuity {
     func whenIdle(_ observe: @MainActor () -> Void) {
         guard !isDispatching else { return }
         observe()
+    }
+
+    /// Protect only an opted-in job's initial foreground observation. An already
+    /// prepared active job stays open even if a newer selection is pending.
+    var blocksObserverAdmission: Bool {
+        if let activeObservationJob { return activeObservationJob.waiting }
+        return pending.first?.needsInitialObservation == true
+    }
+
+    /// Called only at an explicit foreground read's existing successful boundary.
+    /// This is scheduling, not a permission or confirmation of a window action.
+    @discardableResult
+    func completeInitialObservation(for token: UUID, in epoch: UUID) -> Bool {
+        guard dispatchAvailable, ownershipEpoch == epoch, var active = activeObservationJob,
+              active.token == token, active.epoch == epoch, active.waiting else { return false }
+        active.waiting = false
+        activeObservationJob = active
+        IndependentStageTrace.record("navigation-initial-observation-complete", [
+            "job": token.uuidString, "epoch": epoch.uuidString])
+        finishObserverWaits(true)
+        return true
+    }
+
+    private func finishObservationJob(_ job: Job) {
+        guard activeObservationJob?.token == job.token, activeObservationJob?.epoch == job.epoch else { return }
+        activeObservationJob = nil
+        finishObserverWaits(true)
+    }
+
+    /// Only scheduling: an admission notification never grants window authority.
+    /// The caller owns its cancellation handle and rechecks its own epoch on return.
+    func waitForObserverAdmission(_ id: UUID, current: @escaping @MainActor () -> Bool = { true }) async -> Bool {
+        let expected = ownershipEpoch
+        let resumed = await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                guard !Task.isCancelled, current() else { continuation.resume(returning: false); return }
+                guard blocksObserverAdmission else { continuation.resume(returning: true); return }
+                guard observerWaiters[id] == nil else { continuation.resume(returning: false); return }
+                observerWaiters[id] = continuation
+                didRegisterObserverWait?(id)
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancelObserverWait(id) }
+        }
+        return resumed && !Task.isCancelled && expected == ownershipEpoch && current()
+    }
+
+    func cancelObserverWait(_ id: UUID) {
+        observerWaiters.removeValue(forKey: id)?.resume(returning: false)
+    }
+
+    private func finishObserverWaits(_ ready: Bool) {
+        let waiting = observerWaiters.values
+        observerWaiters.removeAll()
+        for waiter in waiting { waiter.resume(returning: ready) }
     }
     /// An ownership observer may start release from a different MainActor task.
     /// Keep the running user's work alive until that particular release returns.
@@ -252,10 +319,11 @@ struct CrossSpaceFocusContinuity {
     }
 
     func submit(selection: Bool = true, stage: Bool = false, userActivity: Bool = true,
+                needsInitialObservation: Bool = false,
                 prepare: (() -> Void)? = nil, _ work: @escaping Work) {
         IndependentStageTrace.record("navigation-submit", ["stage": stage, "selection": selection,
             "dispatchAvailable": dispatchAvailable, "stageOwnsDispatch": stageOwnsWindowDispatch(),
-            "pending": pending.count, "running": running])
+            "pending": pending.count, "running": running, "needsInitialObservation": needsInitialObservation])
         guard dispatchAvailable, stage || !stageOwnsWindowDispatch() else { return }
         if selection && pending.last?.selection == true { pending.removeLast().activity?.completeJob() }
         guard pending.count < 8 else { issue = "已有操作在等待，请稍后再试。"; return }
@@ -264,14 +332,18 @@ struct CrossSpaceFocusContinuity {
         let activity = userActivity ? SidebarUserActivity(job: generation, end: beginUserActivity()) : nil
         if let prepare { prepare() } else { windowSwitch.cancel() }
         pending.append(Job(token: generation, epoch: ownershipEpoch, selection: selection, stage: stage,
-                           activity: activity, run: work))
+                           needsInitialObservation: needsInitialObservation, activity: activity, run: work))
+        if !blocksObserverAdmission { finishObserverWaits(true) }
         guard !running else { return }
         running = true
         Task(priority: .userInitiated) {
             while !pending.isEmpty {
                 let job = pending.removeFirst()
+                activeObservationJob = .init(token: job.token, epoch: job.epoch, waiting: job.needsInitialObservation)
+                if !blocksObserverAdmission { finishObserverWaits(true) }
                 runningUserActivity = job.activity
                 defer {
+                    finishObservationJob(job)
                     runningUserActivity = nil
                     job.activity?.completeJob()
                 }
@@ -279,6 +351,7 @@ struct CrossSpaceFocusContinuity {
                     "job": job.token.uuidString, "userActivity": job.activity != nil,
                     "taskPriority": Task.currentPriority.rawValue,
                     "dispatchAvailable": dispatchAvailable, "sameEpoch": job.epoch == ownershipEpoch,
+                    "epoch": job.epoch.uuidString, "needsInitialObservation": job.needsInitialObservation,
                     "currentSelection": !job.selection || isCurrent(job.token), "stageOwnsDispatch": stageOwnsWindowDispatch()])
                 guard dispatchAvailable, job.epoch == ownershipEpoch, !job.selection || isCurrent(job.token),
                       job.stage || !stageOwnsWindowDispatch() else { continue }
@@ -298,6 +371,7 @@ struct CrossSpaceFocusContinuity {
                 catch { IndependentStageTrace.record("navigation-job-superseded", ["reason": error.localizedDescription]) }
             }
             running = false
+            finishObserverWaits(true)
         }
     }
 

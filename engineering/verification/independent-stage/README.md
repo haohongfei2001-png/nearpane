@@ -6,7 +6,51 @@ PR #16 currently targets `main`; the product constitution on `main` was rechecke
 and matches this branch.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: ac252b5a
+## Current source/runtime checkpoint: 786abfef
+
+Exact source passes **188 Rust and 25 native AX decoder checks**. Swift records
+**272 passes, one existing skip and one failure**: the stopped-detector fixture
+automatically releases after two seconds, and the test fails after 2.940 seconds
+when it requires the detector still to be blocked.
+The complete app and strict signature build successfully, but the source gate
+remains **FAIL**. The next source replaces that fixture's timed release with its
+existing explicit release and cleanup; no assertion is removed.
+
+The native confirmation change is exercised: all 28 full-lane moves complete
+with timely membership acknowledgement and two complete positive views. Three
+take **127.415–181.436 ms**, beyond the former combined 120 ms boundary. Error
+retries still use 120 ms; this evidence does not authorize extra error retries.
+
+Fast records **six actual inputs and five external physical confirmations**,
+at **1108–1671 ms**. The fifth transaction completes its final observations and
+health check. Before the sixth job's first foreground scope, an observer is
+already admitted after submit; its incomplete directory later withdraws system
+ownership. The trace establishes the admission gap, but does not uniquely identify
+which caller created the shared producer. Final release and double home checks pass.
+
+Full records **ten actual inputs and ten external physical confirmations**, with
+six normal supersessions and one distinct system-observation interruption. The
+last singleton selection reaches a verified, idle, exact-member settlement at
+**7350.452 ms**. The following join correctly stops on an incomplete third fresh
+read; join/split and later lifecycle phases do not pass. Slow physical switches
+take **5015–5730 ms**; repeated complete foreground witness work occupies much
+of those intervals, while worker poll queueing remains below 0.2 ms.
+
+The next scheduling repair pauses new observer admission only during each opted-in
+R4 job's preparation, from idle submit/dequeue through its first successful complete
+foreground read. Already-admitted producers and publishers still drain normally.
+Observer publication then resumes through the original metadata gate while the
+job can continue. Pausing publication for the entire navigation lane was rejected:
+this run contains a **22.895-second** continuous lane, longer than the unchanged
+**12-second** snapshot freshness requirement. The narrowed repair still needs
+exact-source native verification.
+
+[Exact 786ab source/runtime evidence, acknowledgement proofs, admission ordering and full settlement](cloud-786abfef-latency/README.md).
+Both lanes return owned windows and independently confirm home recovery. Continuous
+R4 acceptance, later interaction/lifecycle gates and exact-target GUI acceptance
+remain incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: ac252b5a
 
 Exact source passes **180 Rust, 273 Swift (one existing skip), and 25 native
 AX decoder checks**; the complete candidate and strict signature pass. The

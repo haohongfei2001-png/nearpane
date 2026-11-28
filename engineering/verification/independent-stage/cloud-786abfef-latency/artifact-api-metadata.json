@@ -1,0 +1,59 @@
+{
+  "fast": {
+    "id": 15255738480,
+    "name": "nearpane-independent-stage-786abfef7d12e5c93be195baead315919523fb22-r4-fast",
+    "size_in_bytes": 25578378,
+    "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255738480",
+    "archive_download_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255738480/zip",
+    "expired": false,
+    "created_at": "2026-11-28T08:39:40Z",
+    "expires_at": "2026-12-28T08:39:36Z",
+    "updated_at": "2026-11-28T08:39:40Z",
+    "digest": "sha256:085c10c6c65f2021a95600df0840d52a2bd64399f63e44ec69665751d51b6ea3",
+    "workflow_run": {
+      "id": 46126567734,
+      "repository_id": 1450283942,
+      "head_repository_id": 1450283942,
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "head_sha": "786abfef7d12e5c93be195baead315919523fb22"
+    }
+  },
+  "full": {
+    "id": 15255908947,
+    "name": "nearpane-independent-stage-786abfef7d12e5c93be195baead315919523fb22-full",
+    "size_in_bytes": 54067310,
+    "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255908947",
+    "archive_download_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255908947/zip",
+    "expired": false,
+    "created_at": "2026-11-28T08:48:04Z",
+    "expires_at": "2026-12-28T08:47:58Z",
+    "updated_at": "2026-11-28T08:48:04Z",
+    "digest": "sha256:5a30898eece27bdde896f9e117d0b1078a9ffc7d045d31d616d257cfb7214a61",
+    "workflow_run": {
+      "id": 46126567734,
+      "repository_id": 1450283942,
+      "head_repository_id": 1450283942,
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "head_sha": "786abfef7d12e5c93be195baead315919523fb22"
+    }
+  },
+  "source": {
+    "id": 15255269889,
+    "name": "nearpane-independent-context-786abfef7d12e5c93be195baead315919523fb22-full",
+    "size_in_bytes": 34093,
+    "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255269889",
+    "archive_download_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15255269889/zip",
+    "expired": false,
+    "created_at": "2026-11-28T08:40:06Z",
+    "expires_at": "2026-12-28T08:40:05Z",
+    "updated_at": "2026-11-28T08:40:06Z",
+    "digest": "sha256:2747514d16ac17cbfc61ec1b5f5e4f87e2c8f11d9ec6dc1fecd94f2642a060ca",
+    "workflow_run": {
+      "id": 46126567734,
+      "repository_id": 1450283942,
+      "head_repository_id": 1450283942,
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "head_sha": "786abfef7d12e5c93be195baead315919523fb22"
+    }
+  }
+}
