@@ -1,10 +1,48 @@
 # Independent Stage — implementation and evidence
 
 Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16).
-Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
+Implementation started from PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8`.
+PR #16 currently targets `main`; the product constitution on `main` was rechecked
+and matches this branch.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: d86660db
+## Current source/runtime checkpoint: ac252b5a
+
+Exact source passes **180 Rust, 273 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. The
+three new original-member handoff test functions execute all 28 cases.
+
+Fast records **three actual inputs and two external physical confirmations**.
+The first transaction safely yields to the next input. The second queued exact
+member completes SHOW, READBACK, both full post observations, exact focus, HIDE
+and final commit in **1735.452 ms**; its external confirmation is **1470.543 ms**.
+The third SHOW fails after one complete positive native view takes **167.657 ms**,
+past the original combined 120 ms move-confirmation budget. Its membership was
+read after the slow AX observation, so this run does not prove timely landing.
+A separate **670.610 ms** interval before a metadata producer is created remains
+unattributed; the next source adds precise timing around the existing checks.
+
+Full records **ten actual inputs and ten external physical confirmations**,
+with all 115 worker requests successful. The first nine selections safely hand
+off confirmed prefixes; they are not nine committed transactions. The harness
+checks the hidden group for its next scenario before the final transaction
+finishes and stops with `crossAppSourceNotHeld`. Later witness cancellation
+occurs after cleanup has started. The next source waits for the original
+selection's real completion only at the two dependent join/split phase boundaries.
+
+The native correction explicitly separates timely membership acknowledgement
+from complete positive confirmation: **120 ms** for the former, **650 ms total**
+for two complete positive views, both measured from the original single move's
+return. Transient error retries retain the original 120 ms limit; every positive
+result must pass authority and deadline checks. This is a confirmation-budget
+change and still needs exact-source native verification.
+
+[Exact ac252 source/runtime evidence, successful member handoff and distinct remaining failures](cloud-ac252b5a-latency/README.md).
+Both original-owner releases and independent double home checks pass. Continuous
+R4 acceptance, later interaction/lifecycle gates and exact-target GUI acceptance
+remain incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: d86660db
 
 Exact source passes **180 Rust, 270 Swift (one existing skip), and 25 native
 AX decoder checks**; the complete candidate and strict signature pass. All

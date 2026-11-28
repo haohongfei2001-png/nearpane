@@ -59,3 +59,52 @@ impl Drop for ReadTiming {
             t.last.saturating_duration_since(t.began).as_secs_f64() * 1000.0, stages);
     }
 }
+
+// One summary per issued move, including early returns. Full views remain
+// independently timed above; no polling iteration emits another stage record.
+pub(super) struct MoveConfirmationTiming {
+    enabled: bool,
+    window: Window,
+    target: u64,
+    began: Instant,
+    acknowledgement_budget: Duration,
+    confirmation_budget: Duration,
+    acknowledged: Option<Duration>,
+    full_view_attempts: u32,
+    positive_full_views: u32,
+    completed: bool,
+}
+impl MoveConfirmationTiming {
+    pub(super) fn new(window: Window, target: u64, began: Instant,
+        acknowledgement_budget: Duration, confirmation_budget: Duration) -> Self {
+        Self { enabled: std::env::var_os("NP_SPACES_LAUNCH_TRACE").is_some(),
+            window, target, began, acknowledgement_budget, confirmation_budget,
+            acknowledged: None, full_view_attempts: 0, positive_full_views: 0, completed: false }
+    }
+    pub(super) fn acknowledged(&mut self, now: Instant) {
+        self.acknowledged = Some(now.saturating_duration_since(self.began));
+    }
+    pub(super) fn begin_full_view(&mut self) {
+        self.full_view_attempts = self.full_view_attempts.saturating_add(1);
+    }
+    pub(super) fn positive_full_view(&mut self) {
+        self.positive_full_views = self.positive_full_views.saturating_add(1);
+    }
+    pub(super) fn completed(&mut self) { self.completed = true; }
+}
+impl Drop for MoveConfirmationTiming {
+    fn drop(&mut self) {
+        if !self.enabled { return; }
+        let ack = self.acknowledged.map_or_else(|| "null".to_owned(),
+            |elapsed| format!("{:.3}", elapsed.as_secs_f64() * 1000.0));
+        let stage = if self.completed { "completed" }
+            else if self.acknowledged.is_some() { "full-confirmation" }
+            else { "membership-acknowledgement" };
+        let _ = writeln!(std::io::stderr().lock(), "{{\"event\":\"spacesMoveConfirmation\",\"window\":{},\"pid\":{},\"target\":{},\"completed\":{},\"finalStage\":\"{}\",\"acknowledgementMS\":{},\"acknowledgementBudgetMS\":{:.3},\"confirmationBudgetMS\":{:.3},\"fullViewAttempts\":{},\"positiveFullViews\":{},\"durationMS\":{:.3}}}",
+            self.window.number, self.window.pid, self.target, self.completed, stage, ack,
+            self.acknowledgement_budget.as_secs_f64() * 1000.0,
+            self.confirmation_budget.as_secs_f64() * 1000.0,
+            self.full_view_attempts, self.positive_full_views,
+            Instant::now().saturating_duration_since(self.began).as_secs_f64() * 1000.0);
+    }
+}

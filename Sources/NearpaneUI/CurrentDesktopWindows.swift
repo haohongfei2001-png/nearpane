@@ -803,6 +803,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
                                  date: afterDate, uptime: started)
         }
         var priorMS: Double = 0, freshMS: Double = 0, receivedRevision: UInt64 = 0
+        var freshRequestedUptime: TimeInterval?
         var step = "waiting-prior", completed = false, hadPrior = false, reusedPrior = false
         var priorResult: DesktopSnapshot?
         defer {
@@ -813,6 +814,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
                 "reusedPrior": reusedPrior, "boundaryDate": afterDate.timeIntervalSince1970, "boundaryUptime": started,
                 "boundaryRevision": boundary, "receivedRevision": receivedRevision, "revision": revision,
                 "epochMatches": epoch == expected, "cancelled": Task.isCancelled, "pendingRead": pending != nil]
+            if let freshRequestedUptime { facts["freshRequestedUptime"] = freshRequestedUptime }
             if let priorResult {
                 facts["priorRevision"] = priorResult.revision
                 facts["priorSampledFrom"] = priorResult.sampledFrom.timeIntervalSince1970
@@ -858,6 +860,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         step = "fresh-read"
         if let beforeFreshAfterActionRead { await beforeFreshAfterActionRead() }
         let began = ProcessInfo.processInfo.systemUptime
+        freshRequestedUptime = began
         let result = (await readOutcome(staging: registeredStaging, within: metadata))?.snapshot
         freshMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
         step = "fresh-read-unavailable"
@@ -877,6 +880,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
 
     private func readOutcome(staging: InitialDirectoryStaging? = nil, within metadata: StageMetadataReadScope? = nil,
                              observer: UUID? = nil) async -> ReadOutcome? {
+        let readCallStarted = ProcessInfo.processInfo.systemUptime
         let enteringEpoch = epoch
         // Never put a gated request in pending: its own foreground owner must
         // not later join a producer that is waiting for that owner to release.
@@ -885,7 +889,12 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             await waitForMetadataChange("reader")
         }
         guard enteringEpoch == epoch, metadata.map(hasMetadataReadScope) != false else { return nil }
-        guard events != nil, sessionAvailable() else {
+        let metadataAdmitted = ProcessInfo.processInfo.systemUptime
+        // Time the original short-circuit check without introducing a second
+        // permission/session query or changing when a pending read is joined.
+        let available = events != nil && sessionAvailable()
+        let availabilityChecked = ProcessInfo.processInfo.systemUptime
+        guard available else {
             departingPictures = nil
             boundSidebarPair?.revoke(.feedInvalidated)
             lifetimes.removeAll()
@@ -911,7 +920,9 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         // Only the action's actual fresh-read call can bind its shared request.
         // A background read completed while it waits for a prior read cannot.
         bindInitialStage(to: token, revision: revision)
+        let auditStarted = ProcessInfo.processInfo.systemUptime
         let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
+        let auditCreated = ProcessInfo.processInfo.systemUptime
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let taskCreated = ProcessInfo.processInfo.systemUptime
@@ -1086,6 +1097,11 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         pending = .init(id: token, revision: request.revision, metadata: metadata, task: task)
         IndependentStageTrace.record("desktop-read-task-created", ["readSession": request.session.uuidString,
             "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
+            "readCallStartedUptime": readCallStarted, "metadataAdmittedUptime": metadataAdmitted,
+            "sessionAvailabilityMS": (availabilityChecked - metadataAdmitted) * 1000,
+            "auditCreationMS": (auditCreated - auditStarted) * 1000,
+            "requestConstructionMS": (taskCreated - auditCreated) * 1000,
+            "preTaskCreationMS": (taskCreated - readCallStarted) * 1000,
             "creatorPriority": Task.currentPriority.rawValue,
             "dispatching": NativeSidebarNavigation.shared.isDispatching])
         let result = await task.value
