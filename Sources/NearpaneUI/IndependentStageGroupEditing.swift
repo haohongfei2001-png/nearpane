@@ -6,6 +6,68 @@ import NearpaneCore
 @MainActor enum IndependentStageGroupEditing {
     enum Change { case joinCurrent, detach(UUID) }
 
+    /// A caller can stop only its own edit. The navigation job still owns any
+    /// already issued primitive and its normal recovery/settling path.
+    @MainActor final class Ticket {
+        private(set) var job: UUID?
+        private(set) var isCancelled = false
+        private var result: NativeSidebarNavigation.Outcome?
+        private var waiting = [CheckedContinuation<Void, Error>]()
+
+        fileprivate func submitted(_ job: UUID?) { self.job = job }
+        fileprivate func finish(_ outcome: NativeSidebarNavigation.Outcome) {
+            guard result == nil else { return }
+            result = outcome
+            let continuations = waiting
+            waiting.removeAll()
+            for continuation in continuations { continuation.resume(with: outcome) }
+        }
+        func cancel() {
+            guard result == nil else { return }
+            isCancelled = true
+            finish(.failure(CancellationError()))
+        }
+        func value() async throws {
+            try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    if Task.isCancelled {
+                        cancel(); continuation.resume(throwing: CancellationError())
+                    } else if let result { continuation.resume(with: result) }
+                    else { waiting.append(continuation) }
+                }
+                try Task.checkCancellation()
+            } onCancel: {
+                Task { @MainActor [weak self] in self?.cancel() }
+            }
+        }
+    }
+
+    /// Both visible context-menu input and acceptance use this production queue.
+    @discardableResult
+    static func enqueue(_ change: Change, held: StageWindowEngineHost.HeldGroup, in feed: CurrentDesktopWindows,
+                        navigation: NativeSidebarNavigation = .shared,
+                        current: @escaping @MainActor () -> Bool) -> Ticket {
+        enqueue(navigation: navigation, current: current) { permitted in
+            try await perform(change, held: held, in: feed, current: permitted)
+        }
+    }
+
+    /// The operation seam tests queue/current/cancellation without fixture window writes.
+    @discardableResult
+    static func enqueue(navigation: NativeSidebarNavigation,
+                        current: @escaping @MainActor () -> Bool,
+                        input: @escaping @MainActor () -> [UInt32] = NativeSelectionPermit.inputCounters,
+                        operation: @escaping @MainActor (@escaping @MainActor () -> Bool) async throws -> Void) -> Ticket {
+        let ticket = Ticket(), counters = input()
+        let job = navigation.submit(selection: false, stage: true, outcome: { ticket.finish($0) }) { token in
+            try await operation {
+                !ticket.isCancelled && current() && navigation.isCurrent(token) && counters == input()
+            }
+        }
+        ticket.submitted(job)
+        return ticket
+    }
+
     struct Result {
         let group: UUID
         let window: NativeSpaceWindow

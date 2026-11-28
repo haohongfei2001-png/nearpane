@@ -6,7 +6,41 @@ PR #16 currently targets `main`; the product constitution on `main` was rechecke
 and matches this branch.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 786abfef
+## Current source/runtime checkpoint: ef5c91c4
+
+Exact source passes **188 Rust, 281 Swift (one existing skip), and 25 native AX
+decoder checks**. The eight new observer-preparation functions execute all
+15 deterministic cases; the corrected stopped-detector fixture passes with its
+original assertions. The complete candidate and strict signature also pass.
+
+Fast records **ten actual inputs and ten external double physical confirmations**,
+with a **2086.931 ms median / 2720.798 ms maximum**. Nine confirmed prefixes are
+normally superseded; the last selection reaches true, idle, exact-member settlement
+in **2741.434 ms**. All 116 worker requests, 158 witnesses and 118 metadata scopes
+complete successfully. All ten preparation gates open explicitly. Forty-one real
+observer publications remain complete/fresh; the largest previous-native-begin to
+next-publication interval is **2095.954 ms**, preserving the unchanged 12-second rule.
+
+After settlement and normal release, join preparation first fails because the timer
+expires an old Dock reading while a new ordinary native result has already completed
+but awaits MainActor delivery. The new result's later generation mismatch follows
+that revocation. The acceptance helper also directly invokes editing outside the
+navigation wrapper used by the real menu. The next source repairs the exact-poll
+completion handoff and shares that production edit queue; it does not change the
+750 ms freshness limit or other native budgets. These repairs remain unverified.
+
+Full independently records **one actual input and no physical confirmation**.
+Its first witness completes, then launch-canary Finder AX window-list errors
+produce detail 229 / ProbeFocus before document HIDE/SHOW. The 650 ms home-discovery
+budget is not exhausted. This separate native refusal remains explicit; fast's
+continuous-selection evidence does not fill the full lane's unexecuted phases.
+
+[Exact ef5 source/runtime evidence, real publication cadence and distinct lane failures](cloud-ef5c91c4-latency/README.md).
+Both lanes finish cleanup and independent double home/frame/visibility checks.
+Formal R4, the approximately two-second latency, later interactions and target GUI
+acceptance remain unfinished. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: 786abfef
 
 Exact source passes **188 Rust and 25 native AX decoder checks**. Swift records
 **272 passes, one existing skip and one failure**: the stopped-detector fixture

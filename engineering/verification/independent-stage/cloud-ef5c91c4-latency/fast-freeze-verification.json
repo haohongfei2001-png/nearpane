@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "head": "ef5c91c41020398443573db065f0f6fd2b8d9558",
+  "artifactID": 15256844081,
+  "rawImmutable": true,
+  "files": [
+    {
+      "path": "fast.zip",
+      "bytes": 25796156,
+      "sha256": "f0ef524c83b484c9bd6397bf660c8529362e9c0aba19ee8e2ff2ad5551e6d22b"
+    },
+    {
+      "path": "fast-artifact-api-metadata.json",
+      "bytes": 826,
+      "sha256": "2bcf446343f04f5b081ce3dcae721a0ad093796d3ceaefa0030b4c44390bcc0b"
+    },
+    {
+      "path": "fast-job-terminal.json",
+      "bytes": 2174,
+      "sha256": "2f2be343da00f3ab8c3c60be63d47b2cf3a61073d32d3d008cdb80a47a125ae2"
+    },
+    {
+      "path": "fast-download-receipt.json",
+      "bytes": 353,
+      "sha256": "4f53ac2ae7cb746bfeaf629ecc93b1ef628e2aca64f55edf3480bc3a05768490"
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "bytes": 27510,
+      "sha256": "b6978e9c620cf5d21a394a892f3480722d4353b1067446e3e386382bfc0e801e"
+    },
+    {
+      "path": "fast-interpretation.json",
+      "bytes": 22068,
+      "sha256": "7652eea864d9f212659168e4a45a416c8ffa7f2a6d5da2c94856f82c6e97eac1"
+    },
+    {
+      "path": "fast-analysis.json",
+      "bytes": 1553279,
+      "sha256": "1163a14fca5e23d0e241acf7a2eac7b63692bb99fee4feedba8c6d679007394b"
+    }
+  ]
+}

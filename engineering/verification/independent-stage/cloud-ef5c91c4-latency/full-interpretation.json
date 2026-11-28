@@ -1,0 +1,1069 @@
+{
+  "revision": "ef5c91c41020398443573db065f0f6fd2b8d9558",
+  "runID": 46130289030,
+  "jobID": 140933708136,
+  "lane": "full",
+  "sourceSampling": "disabledByRequest",
+  "outcome": {
+    "overall": "INCOMPLETE",
+    "sourceGate": "PASS",
+    "candidate": {
+      "schema": 1,
+      "revision": "ef5c91c41020398443573db065f0f6fd2b8d9558",
+      "sourceChecks": "PASS",
+      "fullBuild": "PASS",
+      "bundleSignature": "PASS",
+      "qualificationGranted": false
+    },
+    "candidateZIPLocalSHA256": "755f35ff786329941872dce6a8aabeb718bd4954eece095fd57218955c59fe1b",
+    "candidateZIPMatchesSuppliedSHA256": true,
+    "directEngine": "PASS",
+    "directEngineChecks": {
+      "cleanup": {
+        "scope": "all enrolled foreign windows on their original desktop; no owned Space remains",
+        "status": "PASS"
+      },
+      "crossAppGroup": {
+        "scope": "two foreign apps visible, same-app sibling hidden; engine calls, not R4 input",
+        "status": "PASS"
+      },
+      "focusRestore": {
+        "scope": "fixture-owned focus witness after exact window restoration",
+        "status": "PASS"
+      },
+      "foreignRoundTrip": {
+        "scope": "foreign window, same-app sibling and other-app bystander",
+        "status": "PASS"
+      },
+      "initialVisibleBindings": {
+        "scope": "two existing NP_READBACK receipts per initial visible foreign window; retained standard AX identity, original home and frame; no Space write",
+        "status": "PASS"
+      },
+      "initialYellowButton": {
+        "scope": "first yellow minimize before any ordinary HIDE/SHOW, using the initially retained standard AX window; independent bystanders and return",
+        "status": "PASS"
+      },
+      "launchCanary": {
+        "scope": "controller-owned panel only",
+        "status": "PASS"
+      },
+      "repeatedSwitch": {
+        "scope": "A→B→C→A through candidate ABI with independent readback",
+        "status": "PASS"
+      },
+      "sameAppIndependent": {
+        "scope": "only one of two windows from the same foreign app left the ordinary desktop",
+        "status": "PASS"
+      },
+      "yellowButton": {
+        "scope": "real title-bar action after repeated switching → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately",
+        "status": "PASS"
+      }
+    },
+    "directEngineWriteAttempts": 26,
+    "formalR4": "FAIL",
+    "formalR4ReceiptReason": "R4SwitchReadbackFailed",
+    "actualExternalAXInputs": 1,
+    "physicalDoubleConfirmations": 0,
+    "selectionSettledEvents": 0,
+    "completedGroupChoiceExits": 0,
+    "documentHideShowRequests": 0,
+    "formalR4SupersededPrefixes": 0,
+    "qualified": false
+  },
+  "firstBlockingFailure": {
+    "classification": "Launch canary retained Finder desktop focus structure could not be positively confirmed",
+    "workerPath": "/workspace/scratch/519883d1dfd8/r4-audit/ef5/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-8deb7b75-6dae-4503-9ec3-edfa8f9002b6.jsonl",
+    "firstExactNativeFailure": {
+      "event": "spacesLaunchDesktopFocus",
+      "systemFinder": true,
+      "canonicalError": -25201,
+      "canonicalNumber": 0,
+      "roleError": 0,
+      "desktopScrollArea": true,
+      "parentError": 0,
+      "parentIsApplication": true,
+      "containingWindowError": 0,
+      "containingWindowReturnedValue": true,
+      "containingWindowIsSelf": true,
+      "countError": -25204,
+      "reportedCount": 0,
+      "arrayError": -25204,
+      "actualCount": -1,
+      "windowListComplete": false,
+      "listedAsWindow": false,
+      "listedOccurrences": 0,
+      "confirmedDesktop": false,
+      "sourceLine": 17
+    },
+    "followingFailure": {
+      "event": "spacesLaunchEngine",
+      "phase": "panel-home",
+      "status": 2,
+      "detail": 229,
+      "window": 80,
+      "home": 0,
+      "parking": 0,
+      "sourceLine": 21
+    },
+    "nativeCall": {
+      "event": "spacesLaunchScheduling",
+      "phase": "exit",
+      "callID": 3,
+      "operation": 2,
+      "result": 1,
+      "enqueuedUptime": 1095.444469125,
+      "enteredUptime": 1095.444552583,
+      "exitedUptime": 1095.758713458,
+      "enqueuedThreadQoS": 21,
+      "enteredThreadQoS": 17,
+      "exitedThreadQoS": 17,
+      "mainQueueMS": 0.083,
+      "panelCallMS": 314.161,
+      "openSteps": [],
+      "sourceLine": 20
+    },
+    "terminalReceipt": {
+      "cancelled": false,
+      "completedPollCount": 42,
+      "detail": 229,
+      "durationMS": 505.5851666668332,
+      "epoch": 1,
+      "event": "spacesHostLifecycle",
+      "flags": 0,
+      "intent": "F24D3481-F0B0-43F8-99C0-DBA90DE30708",
+      "maxPollQueueMS": 0.03633333335528732,
+      "operation": 8,
+      "owned": 0,
+      "phase": "worker-request-exit",
+      "pollCount": 42,
+      "pollPriorities": [
+        25
+      ],
+      "requestedPriority": 25,
+      "requestStartUptime": 1095.3963775,
+      "returnPriority": 25,
+      "status": 2,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1095.9023439166667,
+      "waitPriorities": [
+        25
+      ],
+      "sourceLine": 188
+    },
+    "reasonCode": "ProbeFocus = 229; UNKNOWN status = 2",
+    "sequence": "Prepare and Open confirmed the Finder desktop, initial panel-home Read returned incomplete Finder window count/list, then cleanup closed the canary. No enrolled document move was issued.",
+    "budget": {
+      "originalHomeDiscoveryBudgetMS": 650,
+      "nativeCallPanelMS": 314.161,
+      "nativeMainQueueMS": 0.083,
+      "wholeLaunchRequestIncludingCleanupMS": 505.5851666668332,
+      "budgetExhausted": false,
+      "basis": "The whole host launch request, including Prepare/Open and later cleanup, is below 650 ms. panel-home rejected ProbeFocus immediately; there is no Membership/deadline result. No spacesMoveConfirmation occurred in this production worker.",
+      "separate300msMainQueueWait": "No main-queue-timeout record occurred. The measured call elapsed 314.161 ms; do not recast the semaphore wait setting as a measured strict wall-time ceiling."
+    },
+    "hostRejection": {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "当前环境暂不能切换整个窗口组。",
+      "uptime": 1095.9064176666668,
+      "sourceLine": 191
+    },
+    "externalInputToHostRejectionMS": 894.4270416668587,
+    "notCausedBy": "The later Dock expiry and incomplete desktop reads occur after the launch failure; this first rejection has no preceding witness rejection or incomplete catalog."
+  },
+  "preparationAndPublication": {
+    "preparations": [
+      {
+        "completion": {
+          "epoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+          "event": "independentStageProduct",
+          "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+          "phase": "navigation-initial-observation-complete",
+          "uptime": 1095.0579590416667,
+          "sourceLine": 80
+        },
+        "dequeue": {
+          "currentSelection": true,
+          "dispatchAvailable": true,
+          "epoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+          "event": "independentStageProduct",
+          "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+          "needsInitialObservation": true,
+          "phase": "navigation-dequeue",
+          "sameEpoch": true,
+          "stage": true,
+          "stageOwnsDispatch": false,
+          "taskPriority": 25,
+          "uptime": 1095.0289324166667,
+          "userActivity": true,
+          "sourceLine": 69
+        },
+        "activityEnd": {
+          "completionHolds": 1,
+          "event": "independentStageProduct",
+          "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+          "phase": "navigation-user-activity-end",
+          "uptime": 1095.9979938333333,
+          "sourceLine": 196
+        },
+        "dequeueToPreparationMS": 29.02662499991493,
+        "firstActualPublicationAfterCompletion": {
+          "catalogComplete": true,
+          "dispatching": true,
+          "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+          "event": "independentStageProduct",
+          "nativeBeganUptime": 1095.3976417916667,
+          "nativeEndedUptime": 1095.4133674583334,
+          "nativeFreshAtPublication": true,
+          "navigationEpoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+          "observer": "03BB403D-80C4-4686-9414-285A35D5BED4",
+          "phase": "desktop-observer-published",
+          "publicationUptime": 1095.4151104583334,
+          "snapshotPresent": true,
+          "snapshotRevision": 7,
+          "snapshotSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+          "uptime": 1095.4151957916667,
+          "wallSampledToAgeMS": 1.9290447235107422,
+          "sourceLine": 152,
+          "nativeAgeFromBeginMS": 17.468666666673016,
+          "nativeEndToPublicationMS": 1.7430000000331347
+        },
+        "completionToNextPublicationMS": 357.15141666673844,
+        "nextPublicationBeforeThisActivityEnded": true
+      }
+    ],
+    "actualPublicationCount": 11,
+    "allPublishedSamplesNativeFreshAtPublication": true,
+    "publishedPartialSamples": [
+      {
+        "catalogComplete": false,
+        "dispatching": false,
+        "epoch": "1C3DCDE1-73CB-4F04-8FF6-3C0F2026BF5A",
+        "event": "independentStageProduct",
+        "nativeBeganUptime": 1099.3299295416668,
+        "nativeEndedUptime": 1100.0369116250001,
+        "nativeFreshAtPublication": true,
+        "navigationEpoch": "516AEC1B-EAC7-4811-97F2-1BFA16032463",
+        "observer": "B50D2EAA-06CC-4C12-885B-70556A8361D2",
+        "phase": "desktop-observer-published",
+        "publicationUptime": 1100.5548222916668,
+        "snapshotPresent": true,
+        "snapshotRevision": 13,
+        "snapshotSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+        "uptime": 1100.5550189166668,
+        "wallSampledToAgeMS": 518.3829069137573,
+        "sourceLine": 291,
+        "nativeAgeFromBeginMS": 1224.8927499999809,
+        "nativeEndToPublicationMS": 517.9106666666939
+      }
+    ],
+    "activityEnvelope": [
+      {
+        "from": 1095.0284161666668,
+        "to": 1095.9979938333333,
+        "jobs": [
+          {
+            "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+            "from": 1095.0284161666668,
+            "to": 1095.9979938333333,
+            "beginLine": 67,
+            "endLine": 196
+          }
+        ],
+        "durationMS": 969.5776666665097,
+        "actualPublications": [
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1095.3976417916667,
+            "nativeEndedUptime": 1095.4133674583334,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+            "observer": "03BB403D-80C4-4686-9414-285A35D5BED4",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1095.4151104583334,
+            "snapshotPresent": true,
+            "snapshotRevision": 7,
+            "snapshotSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+            "uptime": 1095.4151957916667,
+            "wallSampledToAgeMS": 1.9290447235107422,
+            "sourceLine": 152,
+            "nativeAgeFromBeginMS": 17.468666666673016,
+            "nativeEndToPublicationMS": 1.7430000000331347
+          },
+          {
+            "catalogComplete": true,
+            "dispatching": true,
+            "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+            "event": "independentStageProduct",
+            "nativeBeganUptime": 1095.8329242500001,
+            "nativeEndedUptime": 1095.8853119583334,
+            "nativeFreshAtPublication": true,
+            "navigationEpoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+            "observer": "F3AF0616-C203-49DE-ADEF-E5096E0AECEB",
+            "phase": "desktop-observer-published",
+            "publicationUptime": 1095.8887705416666,
+            "snapshotPresent": true,
+            "snapshotRevision": 8,
+            "snapshotSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+            "uptime": 1095.88895075,
+            "wallSampledToAgeMS": 3.674030303955078,
+            "sourceLine": 187,
+            "nativeAgeFromBeginMS": 55.846291666512116,
+            "nativeEndToPublicationMS": 3.458583333213028
+          }
+        ],
+        "retainedSnapshotIntervals": [
+          {
+            "sourceLine": 55,
+            "revision": 3,
+            "from": 1095.0284161666668,
+            "to": 1095.4151104583334,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 1658.6957500001063,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 152,
+            "revision": 7,
+            "from": 1095.4151104583334,
+            "to": 1095.8887705416666,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 491.1287499999162,
+            "nativeFreshWhenPublished": true
+          },
+          {
+            "sourceLine": 187,
+            "revision": 8,
+            "from": 1095.8887705416666,
+            "to": 1095.9979938333333,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 165.06958333320654,
+            "nativeFreshWhenPublished": true
+          }
+        ],
+        "preparationCompletions": [
+          {
+            "completion": {
+              "epoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+              "event": "independentStageProduct",
+              "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+              "phase": "navigation-initial-observation-complete",
+              "uptime": 1095.0579590416667,
+              "sourceLine": 80
+            },
+            "dequeue": {
+              "currentSelection": true,
+              "dispatchAvailable": true,
+              "epoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+              "event": "independentStageProduct",
+              "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+              "needsInitialObservation": true,
+              "phase": "navigation-dequeue",
+              "sameEpoch": true,
+              "stage": true,
+              "stageOwnsDispatch": false,
+              "taskPriority": 25,
+              "uptime": 1095.0289324166667,
+              "userActivity": true,
+              "sourceLine": 69
+            },
+            "activityEnd": {
+              "completionHolds": 1,
+              "event": "independentStageProduct",
+              "job": "7F14BE04-521C-4C4B-B877-522BEFC85632",
+              "phase": "navigation-user-activity-end",
+              "uptime": 1095.9979938333333,
+              "sourceLine": 196
+            },
+            "dequeueToPreparationMS": 29.02662499991493,
+            "firstActualPublicationAfterCompletion": {
+              "catalogComplete": true,
+              "dispatching": true,
+              "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+              "event": "independentStageProduct",
+              "nativeBeganUptime": 1095.3976417916667,
+              "nativeEndedUptime": 1095.4133674583334,
+              "nativeFreshAtPublication": true,
+              "navigationEpoch": "3630DBBA-C7ED-4EBE-8C98-4117055511CB",
+              "observer": "03BB403D-80C4-4686-9414-285A35D5BED4",
+              "phase": "desktop-observer-published",
+              "publicationUptime": 1095.4151104583334,
+              "snapshotPresent": true,
+              "snapshotRevision": 7,
+              "snapshotSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+              "uptime": 1095.4151957916667,
+              "wallSampledToAgeMS": 1.9290447235107422,
+              "sourceLine": 152,
+              "nativeAgeFromBeginMS": 17.468666666673016,
+              "nativeEndToPublicationMS": 1.7430000000331347
+            },
+            "completionToNextPublicationMS": 357.15141666673844,
+            "nextPublicationBeforeThisActivityEnded": true
+          }
+        ],
+        "nativeAgeAtIntervalEndStatisticsMS": {
+          "count": 3,
+          "minimum": 165.06958333320654,
+          "median": 491.1287499999162,
+          "p95NearestRank": 1658.6957500001063,
+          "maximum": 1658.6957500001063
+        },
+        "intervalsBeyondNative12s": []
+      }
+    ],
+    "longLaneOver12sExercised": false,
+    "scope": "One 969.578 ms explicit user activity only. Two actual complete publications occurred while dispatching after preparation; this does not establish long-lane coverage. FAST is audited independently."
+  },
+  "physicalEvidence": {
+    "completeWitnesses": [
+      {
+        "bindingMS": 118.03370833331428,
+        "closingDirectoryMS": 19.891999999799737,
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "durationMS": 282.34341666666296,
+        "event": "independentStageProduct",
+        "focusLocal": false,
+        "focusPID": 0,
+        "focusWindow": 0,
+        "foreignFocus": false,
+        "managed": 3,
+        "openingDirectoryMS": 106.77825000016128,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 0,
+          "roleReadCount": 3,
+          "roleReadMaxMS": 9.22012499995617,
+          "roleReadTotalMS": 21.558708333259347,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "phase": "witness-read-completed",
+        "physicalWindowsMS": 37.640666666675315,
+        "roster": 3,
+        "sequence": 1,
+        "unchangedPermitTiming": {
+          "count": 24,
+          "maxMS": 1.2399166666909878,
+          "nestedInPhaseDurations": true,
+          "totalMS": 9.688416667131605
+        },
+        "uptime": 1095.3938926666667,
+        "windows": 3,
+        "sourceLine": 143
+      }
+    ],
+    "rejectedWitnesses": [],
+    "metadataScheduling": {
+      "counts": {
+        "metadata-scope-reserved": 1,
+        "metadata-scope-drained": 1,
+        "metadata-scope-ended": 1
+      },
+      "scopes": [
+        {
+          "scope": "54A3D4DA-EC8A-4997-88E1-978CD5F9BAAD",
+          "purpose": "witness",
+          "reserved": {
+            "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+            "event": "independentStageProduct",
+            "pendingProducer": false,
+            "pendingPublisher": false,
+            "phase": "metadata-scope-reserved",
+            "purpose": "witness",
+            "queuedMS": 0.24716666666790843,
+            "scope": "54A3D4DA-EC8A-4997-88E1-978CD5F9BAAD",
+            "uptime": 1095.1109444166668,
+            "sourceLine": 118
+          },
+          "drained": {
+            "durationMS": 0.7200416666819365,
+            "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+            "event": "independentStageProduct",
+            "pendingProducer": false,
+            "pendingPublisher": false,
+            "phase": "metadata-scope-drained",
+            "purpose": "witness",
+            "scope": "54A3D4DA-EC8A-4997-88E1-978CD5F9BAAD",
+            "uptime": 1095.111415375,
+            "sourceLine": 119
+          },
+          "ended": {
+            "drained": true,
+            "durationMS": 283.42524999993657,
+            "epoch": "22843675-1DB4-40C5-8977-9D83B2A6DF4C",
+            "event": "independentStageProduct",
+            "phase": "metadata-scope-ended",
+            "purpose": "witness",
+            "scope": "54A3D4DA-EC8A-4997-88E1-978CD5F9BAAD",
+            "uptime": 1095.3941310833334,
+            "sourceLine": 144
+          },
+          "workerRequestsInDrainedInterval": [],
+          "witnessCompletionsInDrainedInterval": [
+            {
+              "bindingMS": 118.03370833331428,
+              "closingDirectoryMS": 19.891999999799737,
+              "closingRosterMetrics": {
+                "candidateCount": 3,
+                "candidateEnumerationCompleted": true,
+                "nestedInPhaseDurations": true,
+                "retainedCount": 3,
+                "roleReadCount": 0,
+                "roleReadMaxMS": 0,
+                "roleReadTotalMS": 0,
+                "roleTimingIncludesTaskQueueAndActorResume": true
+              },
+              "durationMS": 282.34341666666296,
+              "event": "independentStageProduct",
+              "focusLocal": false,
+              "focusPID": 0,
+              "focusWindow": 0,
+              "foreignFocus": false,
+              "managed": 3,
+              "openingDirectoryMS": 106.77825000016128,
+              "openingRosterMetrics": {
+                "candidateCount": 3,
+                "candidateEnumerationCompleted": true,
+                "nestedInPhaseDurations": true,
+                "retainedCount": 0,
+                "roleReadCount": 3,
+                "roleReadMaxMS": 9.22012499995617,
+                "roleReadTotalMS": 21.558708333259347,
+                "roleTimingIncludesTaskQueueAndActorResume": true
+              },
+              "phase": "witness-read-completed",
+              "physicalWindowsMS": 37.640666666675315,
+              "roster": 3,
+              "sequence": 1,
+              "unchangedPermitTiming": {
+                "count": 24,
+                "maxMS": 1.2399166666909878,
+                "nestedInPhaseDurations": true,
+                "totalMS": 9.688416667131605
+              },
+              "uptime": 1095.3938926666667,
+              "windows": 3,
+              "sourceLine": 143
+            }
+          ],
+          "correlation": "Elapsed interval correlation; worker and witness records do not themselves carry this scope token."
+        }
+      ],
+      "allReservedScopesEnded": true,
+      "allReservedScopesDrained": true
+    },
+    "foregroundWorkerRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 42,
+        "detail": 229,
+        "durationMS": 505.5851666668332,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 0,
+        "intent": "F24D3481-F0B0-43F8-99C0-DBA90DE30708",
+        "maxPollQueueMS": 0.03633333335528732,
+        "operation": 8,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 42,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1095.3963775,
+        "returnPriority": 25,
+        "status": 2,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1095.9023439166667,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 188
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 1,
+        "detail": 225,
+        "durationMS": 8.41887499996119,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "6A9A8039-8B4A-4F26-ABCE-2523302A2574",
+        "maxPollQueueMS": 0.005166666824152344,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 1,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1095.9762495416667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1095.9848015416667,
+        "waitPriorities": [],
+        "sourceLine": 195
+      }
+    ],
+    "productionMoveConfirmationRecords": []
+  },
+  "laterObservationsNotTheFirstCause": {
+    "dockExpiry": [
+      {
+        "event": "independentStageProduct",
+        "pendingRequestStart": 1097.6238031666667,
+        "phase": "dispatch-dock-observation-expired",
+        "readEnd": 1096.8616029166667,
+        "readStart": 1096.8488795,
+        "readTotalMilliseconds": 1126.8042083333967,
+        "requestID": "5F8E7749-4E13-4B46-B274-ECF0CADBB27B",
+        "uptime": 1097.9757937916668,
+        "sourceLine": 221
+      }
+    ],
+    "incompleteDesktopReads": [
+      {
+        "completed": true,
+        "durationMS": 1674.0577083332937,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 0.6203749999258434,
+        "incompleteCatalog": {
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=38363,window=81"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 81,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795858744496312,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 126,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 38363,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        },
+        "nativeAgeOnReturnMS": 1601.7862083331238,
+        "nativeBeganUptime": 1096.2222336250002,
+        "nativeBeginAfterRequestMS": 0.9985833335122152,
+        "nativeDurationMS": 1326.4251666664677,
+        "nativeEndedUptime": 1097.5486587916666,
+        "nativeEndToReturnMS": 275.3610416666561,
+        "observeDirectoryMS": 0.035041666706092656,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 1602.784791666636,
+        "readerAwaitStartedUptime": 1096.2212350416667,
+        "readerReturnedUptime": 1097.8240198333333,
+        "readSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+        "receivedReply": true,
+        "remainingProcessingMS": 70.61750000002576,
+        "requestRevision": 10,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 1096.21861025,
+        "taskPriority": 17,
+        "taskQueueMS": 0.7137083334782801,
+        "taskStartedUptime": 1096.2193239583335,
+        "uptime": 1097.8934613333333,
+        "sourceLine": 219
+      },
+      {
+        "completed": true,
+        "durationMS": 1087.8159999999752,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 0.8879166666702076,
+        "incompleteCatalog": {
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=38495,window=93"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 93,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795858745614189,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 686,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 38495,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        },
+        "nativeAgeOnReturnMS": 1055.185791666645,
+        "nativeBeganUptime": 1099.3299295416668,
+        "nativeBeginAfterRequestMS": 18.084333333490576,
+        "nativeDurationMS": 706.9820833332869,
+        "nativeEndedUptime": 1100.0369116250001,
+        "nativeEndToReturnMS": 348.203708333358,
+        "observeDirectoryMS": 0.0430416666858946,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 1073.2701250001355,
+        "readerAwaitStartedUptime": 1099.3118452083334,
+        "readerReturnedUptime": 1100.3851153333335,
+        "readSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+        "receivedReply": true,
+        "remainingProcessingMS": 13.614916666483623,
+        "requestRevision": 13,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 1099.1388832916668,
+        "taskPriority": 17,
+        "taskQueueMS": 172.37574999990102,
+        "taskStartedUptime": 1099.3112590416667,
+        "uptime": 1100.399263875,
+        "sourceLine": 289
+      }
+    ],
+    "timingScope": "These occur while the fixture waits for the failed first switch readback or cleans up; they do not explain the preceding launch ProbeFocus refusal."
+  },
+  "latencyLimits": {
+    "noSuccessfulR4ClickLatency": true,
+    "witness": "The only complete witness is 282.343 ms: opening 106.778, binding 118.034, physical 37.641, closing 19.892 ms; nested role/permit times are not added again.",
+    "largestPreTask": {
+      "auditCreationMS": 0.0012083332876500208,
+      "creatorKind": "observer",
+      "creatorPriority": 17,
+      "dispatching": false,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 1093.1642867916667,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 415.27525000014975,
+      "readCallStartedUptime": 1093.164286125,
+      "readSession": "5AA37D01-2885-4659-AFF2-1AC4C07066A4",
+      "requestConstructionMS": 0.0004583334884955548,
+      "requestRevision": 2,
+      "sessionAvailabilityMS": 415.25675000002593,
+      "taskCreatedUptime": 1093.5795613750001,
+      "uptime": 1093.5796761666668,
+      "sourceLine": 43
+    },
+    "largestPreTaskBeforeActualInput": true,
+    "noCPUAttribution": "Elapsed queue/native/actor-envelope timings do not identify CPU occupancy. Sampling was disabled by request."
+  },
+  "laterGateOutcomes": {
+    "R4ProductPath": {
+      "runtimeSummary": "FAIL",
+      "productReceipt": null
+    },
+    "groupMergeSplit": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "yellowButtonRouting": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopReveal": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopSwitch": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeFullScreen": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "missionControl": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "appExpose": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "desktopGestures": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "fullScreenSplitView": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "newWindowLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "windowCloseLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "applicationExitLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "coldHiddenPreview": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "hostCrashRecovery": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "platformForeignMechanism": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": null
+    },
+    "exactTargetEngine": {
+      "runtimeSummary": "NOT_PROVEN",
+      "productReceipt": null
+    }
+  },
+  "cleanup": {
+    "workerReleaseRequests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 1,
+        "detail": 225,
+        "durationMS": 8.41887499996119,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "6A9A8039-8B4A-4F26-ABCE-2523302A2574",
+        "maxPollQueueMS": 0.005166666824152344,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 1,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1095.9762495416667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1095.9848015416667,
+        "waitPriorities": [],
+        "sourceLine": 195
+      }
+    ],
+    "hostFinalShutdown": {
+      "end": 1103.4551239166667,
+      "milliseconds": 3.3404583332412585,
+      "released": true,
+      "start": 1103.4517834583335
+    },
+    "externalTwoHomeReadback": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1103.551744,
+          "readStart": 1103.464190875,
+          "received": 1103.7553447916666,
+          "uptime": 1103.7553447916666,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 38363,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 38363,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 38495,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1104.1644299583334,
+          "readStart": 1104.0829289166668,
+          "received": 1104.3787266666668,
+          "uptime": 1104.3787266666668,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 38363,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 38363,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 38495,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "productCleanup": true,
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "workspaceCleanup": {
+      "cleanup": true,
+      "created": {
+        "id": 12,
+        "type": 0,
+        "uuid": "60134752-1697-6DC1-EEE4-60D393BB29A6"
+      },
+      "current": 1,
+      "currentHasSystemUUID": false,
+      "directWindowOperations": 0,
+      "lastRecordedStep": "issued:closeMissionControl",
+      "originalCurrent": 1,
+      "phase": "cleaned",
+      "physicalGestureClaimed": false,
+      "process": {
+        "exit": 0,
+        "log": "ci-workspace-cleanup.log",
+        "status": "PASS",
+        "stderr": "ci-workspace-cleanup.stderr.log"
+      },
+      "qualificationGranted": false,
+      "schema": 1,
+      "status": "READY",
+      "systemInputs": 11
+    }
+  },
+  "limits": [
+    "Direct engine PASS is independent of formal R4 and cannot supply missing R4 confirmations or lifecycle gates.",
+    "The source tests do not establish runtime success; the candidate signature does not confer release qualification.",
+    "The incomplete Finder count/array returned -25204; role and other positive structural fields do not establish complete membership or unchanged focus by themselves.",
+    "Later Dock completion scheduling and editing entry patches were not part of ef5 and are not evaluated by this artifact.",
+    "No third product repair was made or inferred from this audit."
+  ]
+}

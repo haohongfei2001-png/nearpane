@@ -33,16 +33,39 @@ final class MissionControlVisibilityReader: @unchecked Sendable {
 
     typealias Reading = (visibility: MissionControlVisibility, evidence: String, startUptime: TimeInterval, endUptime: TimeInterval)
 
+    /// One in-flight poll's result, available before its awaiting actor resumes.
+    /// It cannot replace a consumed result or retain a last-good observation.
+    final class PollCompletion: @unchecked Sendable {
+        private enum State { case waiting, ready(Reading), consumed }
+        private let lock = NSLock()
+        private var state: State = .waiting
+
+        func store(_ reading: Reading) {
+            lock.lock(); defer { lock.unlock() }
+            guard case .waiting = state else { return }
+            state = .ready(reading)
+        }
+
+        func take() -> Reading? {
+            lock.lock(); defer { lock.unlock() }
+            guard case let .ready(reading) = state else { return nil }
+            state = .consumed
+            return reading
+        }
+    }
+
     init(sample: (@Sendable () -> (MissionControlVisibility, String))? = nil) {
         injectedSample = sample
     }
 
-    func read() async -> Reading {
+    func read(completion: PollCompletion? = nil) async -> Reading {
         await withCheckedContinuation { continuation in
             queue.async { [self] in
                 let start = ProcessInfo.processInfo.systemUptime
                 let result = injectedSample.map { $0() } ?? sampleDock()
-                continuation.resume(returning: (result.0, result.1, start, ProcessInfo.processInfo.systemUptime))
+                let reading: Reading = (result.0, result.1, start, ProcessInfo.processInfo.systemUptime)
+                completion?.store(reading)
+                continuation.resume(returning: reading)
             }
         }
     }

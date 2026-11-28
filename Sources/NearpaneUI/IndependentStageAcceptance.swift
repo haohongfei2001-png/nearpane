@@ -594,7 +594,8 @@ import Security
             let scope = heldB.scope
             let live: @MainActor () -> Bool = { IndependentStagePolicy.candidateRequested && IndependentStagePolicy.candidatePIDs == pids }
             report["groupMergeSplit"] = "FAIL"
-            try await IndependentStageGroupEditing.perform(.joinCurrent, held: heldB, in: feed, current: live)
+            let join = IndependentStageGroupEditing.enqueue(.joinCurrent, held: heldB, in: feed, current: live)
+            try await join.value()
             let combinedKeys: Set<NativeSpaceWindow> = [targets[0].key, targets[2].key]
             guard let combined = feed.groups.groups(in: scope).first(where: { Set($0.members.map(\.windowHint)) == combinedKeys }),
                   let paired = await waitForState(targets, visible: [targets[0].window.number, targets[2].window.number],
@@ -602,7 +603,7 @@ import Security
                   let siblingGroup = groupIDs[targets[1].window.number] else {
                 throw Failure(reason: "crossAppJoinReadbackFailed")
             }
-            record("crossAppJoin", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+            record("crossAppJoin", ["entry": "IndependentStageGroupEditing.enqueue: production context-menu handler and navigation queue",
                 "group": combined.id.uuidString, "observations": paired, "pointerGestureClaimed": false])
             try await selectR4(1, group: siblingGroup, visible: [targets[1].window.number], phase: "leaveCombinedGroup")
             try await selectR4(0, group: combined.id, visible: [targets[0].window.number, targets[2].window.number], phase: "restoreCombinedGroup")
@@ -615,7 +616,8 @@ import Security
                     .first(where: { $0.windowHint == targets[2].key }) else {
                 throw Failure(reason: "combinedGroupNotHeldForSplit")
             }
-            try await IndependentStageGroupEditing.perform(.detach(detached.id), held: heldCombined, in: feed, current: live)
+            let detach = IndependentStageGroupEditing.enqueue(.detach(detached.id), held: heldCombined, in: feed, current: live)
+            try await detach.value()
             guard let split = await waitForState(targets, visible: [targets[2].window.number], focus: targets[2], seconds: 8) else {
                 throw Failure(reason: "groupSplitReadbackFailed")
             }
@@ -627,7 +629,7 @@ import Security
                 }
                 groupIDs[target.window.number] = group.id
             }
-            record("groupSplit", ["entry": "IndependentStageGroupEditing.perform: production context-menu handler",
+            record("groupSplit", ["entry": "IndependentStageGroupEditing.enqueue: production context-menu handler and navigation queue",
                 "member": detached.id.uuidString, "observations": split, "pointerGestureClaimed": false])
             guard let firstGroup = groupIDs[targets[0].window.number] else { throw Failure(reason: "splitFirstGroupMissing") }
             try await selectR4(0, group: firstGroup, visible: [targets[0].window.number], phase: "returnAfterSplit")

@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "revision": "ef5c91c41020398443573db065f0f6fd2b8d9558",
+  "runID": 46130289030,
+  "jobs": {
+    "full": 140933708136,
+    "fast": 140933708139,
+    "diagnostics": 140933707837
+  },
+  "sourceGate": "PASS",
+  "qualificationGranted": false,
+  "downloads": [
+    {
+      "lane": "source",
+      "artifactID": 15257651295,
+      "bytes": 34583,
+      "sha256": "cb25d7f6276508b292790d92c182abcd446aa198ecb15b1dcde4e2e7871235e2",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "fast",
+      "artifactID": 15256844081,
+      "bytes": 25796156,
+      "sha256": "f0ef524c83b484c9bd6397bf660c8529362e9c0aba19ee8e2ff2ad5551e6d22b",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "full",
+      "artifactID": 15258366309,
+      "bytes": 53652478,
+      "sha256": "a983ed74c797b7ed8a64a9b53f1a2f36d8434dd14d65ef4c3d82b2dff03f10be",
+      "providerDigestVerified": true,
+      "downloads": 1
+    }
+  ],
+  "copiedOriginalBytes": [
+    {
+      "path": "source-gate-audit.json",
+      "originalPath": "source/source-gate-audit.json",
+      "bytes": 28188,
+      "sha256": "c9477695f7ded9108beef6de793cb7895e2f1eee6364eb6f570d9675a1b783f0",
+      "byteIdentical": true
+    },
+    {
+      "path": "cloud-source.zip",
+      "originalPath": "source/context.zip",
+      "bytes": 34583,
+      "sha256": "cb25d7f6276508b292790d92c182abcd446aa198ecb15b1dcde4e2e7871235e2",
+      "byteIdentical": true
+    },
+    {
+      "path": "candidate-receipt.json",
+      "originalPath": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "a63d7c5c2679b1ce773fe00f7ca168891be73d1fb00b7d78df2705ab09169df7",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/swift.xml",
+      "originalPath": "full/independent-source/source/swift.xml",
+      "bytes": 46983,
+      "sha256": "83fb22db9402ef6619cdbaf8dd7c3bb80102c24878862663e819a45327c5a8bf",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/rust.log",
+      "originalPath": "full/independent-source/source/rust.log",
+      "bytes": 17833,
+      "sha256": "da78a423e3e51af276b89bd4a7f88df1eacea53fdcef3a4dd27816d809af762c",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "originalPath": "full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "originalPath": "fast-raw-manifest.json",
+      "bytes": 27510,
+      "sha256": "b6978e9c620cf5d21a394a892f3480722d4353b1067446e3e386382bfc0e801e",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "originalPath": "full-raw-manifest.json",
+      "bytes": 109802,
+      "sha256": "8cc6709ebd5833dc44719cdd6d8920361e3be0104ceb5865072e6fa0f795fdad",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-freeze-verification.json",
+      "originalPath": "fast-freeze.json",
+      "bytes": 1245,
+      "sha256": "abcf1c521ef994ff87f1490a81d24e666ceb7e76d009e576b033a10a9f8511fc",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-analysis-manifest.json",
+      "originalPath": "full-analysis-manifest.json",
+      "bytes": 1808,
+      "sha256": "7f298ad846c450e0fd4d6a977df4cb8eadd6aca2d1a96f5bf473a6570b2315ae",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-interpretation.json",
+      "originalPath": "fast-interpretation.json",
+      "bytes": 22068,
+      "sha256": "7652eea864d9f212659168e4a45a416c8ffa7f2a6d5da2c94856f82c6e97eac1",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-interpretation.json",
+      "originalPath": "full-interpretation.json",
+      "bytes": 37688,
+      "sha256": "0a6a87c03dd3b76e5c9e29ff643d91ee925a40815dd250c9c546c749243ffc6f",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-publication-audit.json",
+      "originalPath": "full-publication-audit.json",
+      "bytes": 27111,
+      "sha256": "cdb2b2c4cf8bb2ba6fa252e6d8bda2702ec541b5a3b35db5c998f599820b4e5c",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-run.json",
+      "originalPath": "workflow-run.json",
+      "bytes": 15684,
+      "sha256": "9fc165e7a90798c5b6192a93eed952e86e1614cd0375d5fe4a2764fa0c7a191a",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-jobs.json",
+      "originalPath": "workflow-jobs.json",
+      "bytes": 14377,
+      "sha256": "5e3c290b1c6708d720b010820e6aeb6d5e64a150d388bcf19cf2a625985f98fd",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-ef5.tar.gz",
+      "originalPath": "runtime-traces-ef5.tar.gz",
+      "bytes": 366855,
+      "sha256": "2ed651668866fec67994609dbd705b37415f4a6ed1db48abe08b388722e38e92",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "originalPath": "runtime-traces-manifest.json",
+      "bytes": 46863,
+      "sha256": "5815cf4596ddd5d5896493feb70b2abde93feca801395a630a58bc7791c606c1",
+      "byteIdentical": true
+    }
+  ],
+  "compressedAnalyses": [
+    {
+      "path": "fast-analysis.json.gz",
+      "bytes": 154735,
+      "sha256": "28b220613673ca4806767f1c7162a2e84876a5ba76242fc86ef15fda695d60b4",
+      "originalBytes": 1553279,
+      "originalSHA256": "1163a14fca5e23d0e241acf7a2eac7b63692bb99fee4feedba8c6d679007394b",
+      "roundTripVerified": true
+    },
+    {
+      "path": "full-analysis.json.gz",
+      "bytes": 20992,
+      "sha256": "47a104b1ce4755f9b76fe472e67afe536c86dacbf0181b6c254c3085716d39d6",
+      "originalBytes": 123211,
+      "originalSHA256": "f3a2b12258ea4418bb34b922c276b49c9847c6c8eefa0757ffac018f881d631d",
+      "roundTripVerified": true
+    }
+  ],
+  "rawFilesVerified": {
+    "source": 10,
+    "fast": 130,
+    "full": 435
+  },
+  "runtimeArchiveFilesVerified": 128,
+  "nextPatchNativeVerification": "PENDING; no later source change was executed by this run"
+}

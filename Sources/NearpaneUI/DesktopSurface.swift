@@ -289,11 +289,8 @@ struct DesktopSurface: View {
                           in feed: CurrentDesktopWindows) {
         guard canNavigate else { return }
         selectionIssue = nil
-        let input = NativeSelectionPermit.inputCounters()
-        navigation.submit(selection: false, stage: true) { token in
-            try await IndependentStageGroupEditing.perform(change, held: held, in: feed) {
-                canNavigate && navigation.isCurrent(token) && input == NativeSelectionPermit.inputCounters()
-            }
+        IndependentStageGroupEditing.enqueue(change, held: held, in: feed, navigation: navigation) {
+            canNavigate
         }
     }
 
