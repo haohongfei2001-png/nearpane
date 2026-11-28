@@ -156,7 +156,7 @@ public struct SettingsView: View {
                                 .padding(.horizontal, 10)
                         }
                     case .library:
-                        navigationGroup(pages: [.voiceArchive, .screenshotArchive, .memoArchive, .tasksArchive, .wordArchive])
+                        navigationGroup(pages: [.voiceArchive, .screenshotArchive, .memoArchive, .wordArchive])
                     case .settings:
                         navigationGroup(pages: [.general, .dimensions, .displays, .permissions, .data, .app, .diagnostics])
                     }
@@ -290,7 +290,8 @@ public struct SettingsView: View {
         SettingsPage.allCases.filter { page in
             switch page {
             case .voice, .tray, .voiceArchive, .screenshotArchive: return hasDomains
-            case .memoArchive, .tasksArchive, .wordArchive: return domains != nil
+            case .memoArchive, .wordArchive: return domains != nil
+            case .tasksArchive: return false
             case .lyrics:
                 #if canImport(NearpaneLyricsModule)
                 return domains?.lyrics != nil
@@ -340,7 +341,7 @@ public struct SettingsView: View {
             #endif
         case .memoArchive, .tasksArchive, .wordArchive:
             if let notebook = domains?.notebook {
-                NotebookLibraryView(notebook: notebook, kind: navigation.page == .memoArchive ? .notes : navigation.page == .tasksArchive ? .tasks : .vocabulary)
+                NotebookLibraryView(notebook: notebook, kind: navigation.page == .wordArchive ? .vocabulary : .notes, navigation: navigation)
                     .id(navigation.page)
             }
         case .permissions: permissions

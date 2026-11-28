@@ -248,7 +248,7 @@ public final class EdgeWindowController: NSWindowController {
                     open.sizeForm(width: frame.width, height: max(1, frame.height - PanelSizeMetrics.minimumSide),
                                   content: content, voice: voice, tray: tray, temporarilyExpanded: true,
                                   voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
-                                  lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
+                                  lyricsHeight: modules?.lyricsHeight ?? 0, notesHeight: modules?.notebook.sidebarHeight(width: frame.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
                                   pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count) == .full
                 }
                 while !fits(frame) && frame.width < limit {
@@ -325,7 +325,7 @@ public final class EdgeWindowController: NSWindowController {
             pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count, expanded: false,
             settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
             voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
-            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+            notesHeight: modules?.notebook.sidebarHeight(width: size.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
         material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true
     }

@@ -1,3 +1,4 @@
+import Foundation
 import NearpaneCore
 import Observation
 
@@ -42,8 +43,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .windowManagement, .windowRules, .desktop: "空间调度"
         case .voiceArchive: "语音"
         case .screenshotArchive: "截图"
-        case .memoArchive: "备忘录"
-        case .tasksArchive: "待办"
+        case .memoArchive, .tasksArchive: "随手记"
         case .wordArchive: "单词本"
         case .general: "通用"
         case .dimensions: "外观与布局"
@@ -63,8 +63,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .lyrics: "music.note"
         case .windowManagement, .desktop: "rectangle.on.rectangle"
         case .windowRules: "list.bullet"
-        case .memoArchive: "note.text"
-        case .tasksArchive: "checklist"
+        case .memoArchive, .tasksArchive: "note.text"
         case .wordArchive: "character.book.closed"
         case .general: "gearshape"
         case .dimensions: "slider.horizontal.3"
@@ -90,6 +89,10 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     private var lastSettings = SettingsPage.general
     private var genericModuleID: String?
     private(set) var lyricsPage = "settings"
+    public private(set) var notebookFilter = "all"
+    public private(set) var selectedNotebookRecordID: UUID?
+    /// Repeating a sidebar deep link must refocus that record even after local list selection changed.
+    public private(set) var notebookNavigationRevision: UInt64 = 0
     var section: MainWindowSection { page.section }
     public var routeID: String { page.rawValue }
     public var selectedPageIdentifier: String { page.rawValue }
@@ -124,20 +127,33 @@ enum SettingsPage: String, CaseIterable, Identifiable {
     public func showApplicationServices() { page = .app }
     public func showDesktop() { page = .desktop }
     public func showWindowManagement() { page = .windowManagement }
-    public func showNotebookLibrary(_ kind: String = "notes") {
-        switch kind {
-        case "tasks": page = .tasksArchive
-        case "words", "vocabulary": page = .wordArchive
-        default: page = .memoArchive
+    public func showNotebookLibrary(_ kind: String = "all", recordID: UUID? = nil) {
+        if kind == "words" || kind == "vocabulary" {
+            page = .wordArchive
+            return
         }
+        // Sidebar details reuse the same route rather than opening a module window.
+        notebookNavigationRevision &+= 1
+        let linkedID = kind.hasPrefix("record:") ? UUID(uuidString: String(kind.dropFirst("record:".count))) : nil
+        selectedNotebookRecordID = recordID ?? linkedID
+        switch kind {
+        case "notes": notebookFilter = "notes"
+        case "tasks", "pending", "unfinished": notebookFilter = "unfinished"
+        case "completed": notebookFilter = "completed"
+        default: notebookFilter = "all"
+        }
+        // An exact record must stay reachable even if its kind/completion has changed.
+        if selectedNotebookRecordID != nil { notebookFilter = "all" }
+        page = .memoArchive
     }
+    public func showNotebookRecord(_ id: UUID) { showNotebookLibrary(recordID: id) }
     public func showModule(_ id: String) {
         switch id {
         case BuiltinCatalog.voice: page = .voice
         case BuiltinCatalog.screenshots: page = .tray
         case BuiltinCatalog.lyrics: showLyrics()
         case BuiltinCatalog.desktop: page = .windowManagement
-        default: genericModuleID = id; page = .module
+        default: genericModuleID = id == BuiltinCatalog.tasks ? BuiltinCatalog.memo : id; page = .module
         }
     }
     public func showModule(id: String) { showModule(id) }
@@ -164,6 +180,7 @@ enum ModulePresentation {
         case BuiltinCatalog.screenshots: "Riftlet"
         case BuiltinCatalog.lyrics: "LyricTile"
         case BuiltinCatalog.desktop: "Spaces"
+        case BuiltinCatalog.memo: "Notes"
         default: nil
         }
     }

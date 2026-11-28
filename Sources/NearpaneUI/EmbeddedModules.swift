@@ -121,7 +121,7 @@ public final class EmbeddedModules {
 
     public var factories: [String: @MainActor () -> any HostModule] {
         var result: [String: @MainActor () -> any HostModule] = [
-            BuiltinCatalog.memo: { NotebookModule() }, BuiltinCatalog.tasks: { NotebookModule() }
+            BuiltinCatalog.memo: { NotebookModule() }
         ]
         #if canImport(NearpaneVoice)
         result[BuiltinCatalog.screenshots] = { [tray] in tray }

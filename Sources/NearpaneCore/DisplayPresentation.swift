@@ -336,7 +336,7 @@ extension DisplaySettings {
     /// Fit ordinary module controls at their configured sizes. Condensing the panel never changes their stored metrics.
     public func sizeForm(width: Double, height: Double, content: PanelContent, voice: Bool, tray: Bool,
                          referenceHeight: Double? = nil, temporarilyExpanded: Bool = false,
-                         voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0,
+                         voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0, notesHeight: Double = 128,
                          toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots],
                          pinnedCount: Int = 0) -> PanelSizeForm {
         let minimum = PanelSizeMetrics.minimumSide
@@ -346,7 +346,7 @@ extension DisplaySettings {
         if content == .full, (voice || tray), width < 176, !temporarilyExpanded { return .compact }
         let layout = LayoutComposer.compose(width: width, height: height, pinnedCount: pinnedCount, expanded: false,
             settings: self, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
-            voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder)
+            voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, notesHeight: notesHeight, toolOrder: toolOrder)
         if lyricsHeight > 0 && toolOrder.contains(BuiltinCatalog.lyrics) && (content == .full || content == .toolsOnly),
            layout.additionalTools[BuiltinCatalog.lyrics] == nil { return .compact }
         let cardPadding = 2 * glass.inset(width: width)
@@ -359,7 +359,7 @@ extension DisplaySettings {
                 // Their editor/list, footer/input, and padding must remain usable.
                 // Short viewports scroll the complete stack; its editors still have
                 // usable individual heights rather than being clipped or omitted.
-                if width < 96 || (layout.additionalTools[id]?.height ?? 0) < 72 { return .compact }
+                if width < 96 || (layout.additionalTools[id]?.height ?? 0) < (id == BuiltinCatalog.memo ? min(72, max(44, notesHeight)) : 72) { return .compact }
             }
             if pinnedCount > 0 && (layout.moduleRail?.height ?? 0) < min(points(.railHeight, in: referenceHeight ?? height), 24) {
                 return .compact

@@ -194,7 +194,8 @@ private struct ToolPresentation: Equatable {
         FullscreenWorkspaceLayout(on: screen, settings: settings,
             enabledModuleIDs: host.registry.preferences.filter(\.enabled).map(\.id),
             pinnedCount: host.registry.pinnedModules.count, expandedSample: host.registry.expandedID != nil,
-            voiceCompact: domains.voiceCompact, trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight)
+            voiceCompact: domains.voiceCompact, trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight,
+            notesHeight: domains.notebook.sidebarHeight(width: WorkbenchVisualPolicy.width(in: screen.visibleFrame.width, settings: settings)))
     }
 
     private func isCurrent(_ binding: UUID) -> Bool {

@@ -82,7 +82,7 @@ struct FullscreenToolSettingsTests {
         var settings = DisplaySettings()
         settings.fullscreenTools.enabled = true
         let order = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics,
-                     BuiltinCatalog.memo, BuiltinCatalog.tasks, BuiltinCatalog.clock]
+                     BuiltinCatalog.memo, BuiltinCatalog.clock]
         let layout = try #require(FullscreenWorkspaceLayout(on: screen, settings: settings,
             enabledModuleIDs: order, lyricsHeight: 192))
         #expect(layout.visibleModuleIDs == order)

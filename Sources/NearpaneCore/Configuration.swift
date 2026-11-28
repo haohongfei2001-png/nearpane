@@ -15,6 +15,24 @@ public struct ModulePreference: Codable, Equatable, Sendable {
     }
 }
 
+/// Collapses the two previous writing surfaces in place, without rearranging any
+/// unrelated module (including unknown or temporarily unavailable ones).
+enum QuickNotesModuleMigration {
+    static func merge(_ saved: [ModulePreference]) -> [ModulePreference] {
+        let legacy = saved.filter { $0.id == BuiltinCatalog.memo || $0.id == BuiltinCatalog.tasks }
+        guard !legacy.isEmpty else { return saved }
+        let combined = ModulePreference(id: BuiltinCatalog.memo,
+            enabled: legacy.contains(where: \.enabled), pinned: legacy.contains(where: \.pinned))
+        var inserted = false
+        return saved.compactMap { preference in
+            guard preference.id == BuiltinCatalog.memo || preference.id == BuiltinCatalog.tasks else { return preference }
+            guard !inserted else { return nil }
+            inserted = true
+            return combined
+        }
+    }
+}
+
 public struct HostConfiguration: Codable, Equatable, Sendable {
     public static let schemaVersion = 1
     public var version = schemaVersion

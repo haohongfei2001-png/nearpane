@@ -3,11 +3,13 @@ import Testing
 @testable import NearpaneCore
 
 @MainActor struct LocalClockTests {
-    @Test func productCatalogStartsWithoutOptionalModulesAndLegacySamplesCannotRun() async throws {
+    @Test func productCatalogStartsWithNotesWhileClockAndLegacySamplesRemainOptIn() async throws {
         let store = MemoryConfigurationStore()
         let host = HostSession(store: store, includeSampleModules: false)
         await host.start()
-        #expect(host.registry.manifests.map(\.id) == [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.desktop, BuiltinCatalog.memo, BuiltinCatalog.tasks, BuiltinCatalog.clock])
+        #expect(host.registry.manifests.map(\.id) == [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.memo, BuiltinCatalog.clock, BuiltinCatalog.desktop])
+        #expect(host.registry.states[BuiltinCatalog.memo] == .resident)
+        #expect(host.registry.states[BuiltinCatalog.tasks] == nil)
         #expect(host.registry.pinnedModules.isEmpty)
         #expect(host.handle(.setEnabled(BuiltinCatalog.calendar, true)) != .accepted)
         #expect(host.permissions.requests.isEmpty)

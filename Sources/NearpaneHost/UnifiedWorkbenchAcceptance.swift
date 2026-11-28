@@ -201,7 +201,7 @@ enum UnifiedWorkbenchAcceptance {
                 sidebar = edge
                 for (name, combination) in [
                     ("11-sidebar-voice-screenshots", Set([BuiltinCatalog.voice, BuiltinCatalog.screenshots])),
-                    ("12-sidebar-screenshots-notes", Set([BuiltinCatalog.screenshots, BuiltinCatalog.memo, BuiltinCatalog.tasks])),
+                    ("12-sidebar-screenshots-notes", Set([BuiltinCatalog.screenshots, BuiltinCatalog.memo])),
                     ("13-sidebar-screenshots", Set([BuiltinCatalog.screenshots]))
                 ] {
                     await enableOnly(combination)
@@ -328,7 +328,7 @@ enum UnifiedWorkbenchAcceptance {
         }
     }
 
-    private static func movePointer(to screenPoint: NSPoint) async -> Bool {
+    static func movePointer(to screenPoint: NSPoint) async -> Bool {
         guard let mainScreen = NSScreen.screens.first else { return false }
         let point = CGPoint(x: screenPoint.x, y: mainScreen.frame.maxY - screenPoint.y)
         guard CGWarpMouseCursorPosition(point) == .success,
@@ -485,7 +485,7 @@ enum UnifiedWorkbenchAcceptance {
         return object.perform(selector, with: attribute)?.takeUnretainedValue()
     }
 
-    private static func press(_ identifier: String, in window: NSWindow, diagnostics output: URL) async throws -> Bool {
+    static func press(_ identifier: String, in window: NSWindow, diagnostics output: URL) async throws -> Bool {
         var rows: [AccessibilityNode] = []
         var actions: [[String: Any]] = []
         var dispatched = false
@@ -564,7 +564,65 @@ enum UnifiedWorkbenchAcceptance {
         try data.write(to: output.appendingPathComponent("ax-" + identifier + ".json"), options: .atomic)
     }
 
-    private static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
+    /// Native text-system input after an AppKit mouse event reaches the shipping
+    /// NSTextView. A missing editor or unsuccessful focus cannot fall back to a
+    /// model write and still count as an interaction pass.
+    static func replaceText(_ text: String, identifier: String, in window: NSWindow,
+                            diagnostics output: URL) async throws -> Bool {
+        var editor: NSTextView?
+        for _ in 0..<20 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            var pending = window.contentView.map { [$0] } ?? []
+            while let view = pending.popLast() {
+                if let candidate = view as? NSTextView, candidate.isEditable,
+                   candidate.accessibilityIdentifier() == identifier || candidate.identifier?.rawValue == identifier {
+                    editor = candidate
+                    break
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            if editor != nil { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        var diagnostic: [String: Any] = ["identifier": identifier,
+            "evidenceKind": "AppKit mouse event and NSTextInputClient.insertText",
+            "windowNumber": window.windowNumber, "editorFound": editor != nil,
+            "directModelWrite": false]
+        guard let editor else {
+            let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+            try bytes.write(to: output.appendingPathComponent("input-" + identifier + ".json"), options: .atomic)
+            return false
+        }
+        let visible = editor.visibleRect.intersection(editor.bounds)
+        let point = editor.convert(NSPoint(x: visible.midX, y: visible.midY), to: nil)
+        let shown = window.isVisible && !editor.isHiddenOrHasHiddenAncestor && visible.width > 1 && visible.height > 1
+        diagnostic["nativeEditorVisible"] = shown
+        if shown {
+            window.orderFront(nil)
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                if let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 1, clickCount: 1, pressure: 1) {
+                    NSApp.postEvent(event, atStart: false)
+                }
+            }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        let focused = window.firstResponder === editor
+        diagnostic["mouseFocusedEditor"] = focused
+        if shown && focused {
+            editor.insertText(text, replacementRange: NSRange(location: 0, length: editor.string.utf16.count))
+            try await Task.sleep(for: .milliseconds(180))
+        }
+        let succeeded = shown && focused && editor.string == text
+        diagnostic["nativeTextMatches"] = editor.string == text
+        diagnostic["passed"] = succeeded
+        let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("input-" + identifier + ".json"), options: .atomic)
+        return succeeded
+    }
+
+    static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
         guard let view = window.contentView else { throw Failure("Missing native content view.") }
         view.layoutSubtreeIfNeeded()
         window.displayIfNeeded()

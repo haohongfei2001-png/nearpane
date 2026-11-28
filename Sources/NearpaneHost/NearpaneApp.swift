@@ -1041,6 +1041,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             if page == "permissions" {
                 settingsNavigation.showPermissions()
+            } else if (id == BuiltinCatalog.memo || id == BuiltinCatalog.tasks),
+                      page == "library" || page?.hasPrefix("record:") == true {
+                settingsNavigation.showNotebookLibrary(page == "library" ? "all" : (page ?? "all"))
             } else if page == "library" {
                 switch id {
                 case BuiltinCatalog.voice: settingsNavigation.showVoiceArchive()
@@ -1313,17 +1316,25 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let window = settings?.window else { throw CocoaError(.validationMissingMandatoryProperty) }
         window.appearance = NSAppearance(named: .aqua)
         do {
-            try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
-                navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in
-                    showSettings()
-                    return settings?.window
-                })
+            if let mode = ProcessInfo.processInfo.environment["NEARPANE_QUICK_NOTES_ACCEPTANCE"] {
+                try await QuickNotesAcceptance.run(mode: mode, session: session, host: host, modules: embedded,
+                    navigation: settingsNavigation, window: window, openMainWindow: { [self] in
+                        showSettings()
+                        return settings?.window
+                    })
+            } else {
+                try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
+                    navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in
+                        showSettings()
+                        return settings?.window
+                    })
+            }
             let (menu, _) = makeStatusMenu()
             let entries = menu.items.filter { !$0.isSeparatorItem }
             guard entries.allSatisfy({ $0.target === self && $0.action.map { self.responds(to: $0) } == true }) else {
                 throw CocoaError(.featureUnsupported)
             }
-            try JSONEncoder().encode(entries.map(\.title)).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
+            try JSONEncoder().encode(entries.map(\.title)).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .atomic)
         } catch {
             window.close()
             _ = await embedded.prepareStageWindowShutdown()

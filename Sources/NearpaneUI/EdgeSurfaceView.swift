@@ -38,7 +38,7 @@ public struct EdgeSurfaceView: View {
                                                 expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight: display?.referenceHeight, voiceCompact: modules?.voiceCompact ?? false,
-                                                trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+                                                trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, notesHeight: modules?.notebook.sidebarHeight(width: geometry.size.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             let overflows = layout.contentHeight > geometry.size.height + 0.5
             let visibleLayout = layout.translated(y: overflows ? scrollOffset : 0)
             ZStack(alignment: .topLeading) {
@@ -99,13 +99,10 @@ public struct EdgeSurfaceView: View {
                     HostLyricsCard(lyrics: lyrics).place(in: rect)
                 }
                 #endif
-                if let notebook = modules?.notebook {
-                    ForEach(Array(layout.additionalTools.keys.sorted()), id: \.self) { id in
-                        if id == BuiltinCatalog.memo || id == BuiltinCatalog.tasks, let rect = layout.additionalTools[id] {
-                            NotebookCard(notebook: notebook, tasks: id == BuiltinCatalog.tasks)
-                                .surfaceCard(width: width, settings: settings).place(in: rect)
-                        }
-                    }
+                if let notebook = modules?.notebook, let rect = layout.additionalTools[BuiltinCatalog.memo] {
+                    QuickNotesCard(notebook: notebook) { record in
+                        modules?.openManagementPage?(BuiltinCatalog.memo, record.map { "record:" + $0.uuidString } ?? "library")
+                    }.surfaceCard(width: width, settings: settings).place(in: rect)
                 }
                 if let rect = layout.additionalTools[BuiltinCatalog.clock] {
                     clock.surfaceCard(width: width, settings: settings).place(in: rect)

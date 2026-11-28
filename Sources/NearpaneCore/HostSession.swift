@@ -97,9 +97,14 @@ public final class HostSession {
             configurationProtected = true
             diagnostics.record(.configurationReadFailed)
         }
+        let storedModules = configuration.modules
+        configuration.modules = QuickNotesModuleMigration.merge(storedModules)
         registry.restore(configuration.modules)
         lastAction = nil
         configurationSaveFailed = false
+        // Commit only the migration, not a new installation preset over old preferences.
+        // A rejected write remains visible and leaves the original file recoverable.
+        if configuration.modules != storedModules { save() }
         registry.startEnabled()
         isRunning = true
         providerFailed = false

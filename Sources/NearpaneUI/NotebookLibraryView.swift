@@ -3,114 +3,202 @@ import SwiftUI
 
 enum NotebookLibraryKind { case notes, tasks, vocabulary }
 
-/// Uses the same notebook as the sidebar. Disabling a surface never removes or
-/// moves its content, and edits made here appear immediately when it returns.
+/// One retained main-window library, sharing the sidebar's canonical records.
 struct NotebookLibraryView: View {
     let notebook: SidebarNotebook
     let kind: NotebookLibraryKind
+    var navigation: SettingsNavigation?
     @State private var query = ""
-    @State private var taskFilter = 0
-    @State private var newTask = ""
+    @State private var filter: SidebarNotebook.Filter = .all
+    @State private var selectedID: UUID?
     @State private var pendingRemoval: UUID?
     @State private var copied = false
+    @State private var editorFocus = 0
+
+    private var matches: [SidebarNotebook.Record] { notebook.records(matching: query, filter: filter) }
+    private var selected: SidebarNotebook.Record? { selectedID.flatMap { notebook.record($0) } }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if !notebook.readable {
                 MainWindowEmptyState(symbol: "exclamationmark.doc", title: "暂时无法打开资料",
-                                     message: notebook.issue ?? "原有内容已保留，请稍后重试。")
+                    message: notebook.issue ?? "原有内容已保留，请稍后重试。")
+            } else if kind == .vocabulary {
+                vocabulary
             } else {
-                switch kind {
-                case .notes: notes
-                case .tasks: tasks
-                case .vocabulary: vocabulary
-                }
-            }
-            if let issue = notebook.issue {
-                Label(issue, systemImage: "exclamationmark.circle").font(.callout).foregroundStyle(.secondary)
-            }
-        }.padding(.horizontal, 28).padding(.bottom, 24)
-            .accessibilityIdentifier("notebook-library")
-    }
-
-    private var notes: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("与侧栏中的备忘录保持同步").font(.callout).foregroundStyle(.secondary)
-                Spacer()
-                Button(copied ? "已复制" : "复制全文", systemImage: copied ? "checkmark" : "doc.on.doc") {
-                    copy(notebook.contents.memo)
-                }.disabled(notebook.contents.memo.isEmpty)
-                    .accessibilityIdentifier("notebook-copy-memo")
-            }
-            ZStack(alignment: .topLeading) {
-                if notebook.contents.memo.isEmpty {
-                    Text("写下一点想法…").foregroundStyle(.tertiary).padding(.horizontal, 7).padding(.top, 8)
-                        .allowsHitTesting(false)
-                }
-                TextEditor(text: Binding(get: { notebook.contents.memo }, set: { value in
-                    copied = false
-                    notebook.edit { $0.memo = value }
-                }))
-                .font(.system(size: 15)).lineSpacing(5).scrollContentBackground(.hidden)
-                .accessibilityLabel("备忘录内容").accessibilityIdentifier("library-memo-editor")
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Text("自动保存").font(.caption).foregroundStyle(.tertiary)
-        }
-    }
-
-    private var filteredTasks: [SidebarNotebook.Entry] {
-        notebook.contents.tasks.filter { item in
-            (taskFilter == 0 || (taskFilter == 1 && !item.done) || (taskFilter == 2 && item.done)) &&
-            (query.isEmpty || item.title.localizedStandardContains(query))
-        }
-    }
-
-    private var tasks: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Picker("筛选待办", selection: $taskFilter) {
-                    Text("全部").tag(0)
-                    Text("未完成").tag(1)
-                    Text("已完成").tag(2)
-                }.pickerStyle(.segmented).frame(maxWidth: 260)
-                Spacer()
-                Text("\(notebook.contents.tasks.filter { !$0.done }.count) 项未完成")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            HStack(spacing: 8) {
-                TextField("添加一项待办", text: $newTask).textFieldStyle(.roundedBorder).onSubmit(addTask)
-                    .accessibilityIdentifier("library-task-input")
-                Button("添加", systemImage: "plus", action: addTask)
-                    .disabled(newTask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            if filteredTasks.isEmpty {
-                MainWindowEmptyState(symbol: "checkmark.circle", title: taskFilter == 2 ? "尚无已完成的待办" : "这里很清爽",
-                                     message: taskFilter == 1 ? "当前待办都已完成。" : "记下接下来想做的事，它也会出现在侧栏。")
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(filteredTasks) { item in
-                            HStack(alignment: .top, spacing: 12) {
-                                Toggle(item.title, isOn: Binding(get: {
-                                    notebook.contents.tasks.first(where: { $0.id == item.id })?.done == true
-                                }, set: { done in
-                                    notebook.edit { contents in
-                                        if let i = contents.tasks.firstIndex(where: { $0.id == item.id }) { contents.tasks[i].done = done }
-                                    }
-                                })).toggleStyle(.checkbox).foregroundStyle(item.done ? .secondary : .primary)
-                                    .strikethrough(item.done).frame(maxWidth: .infinity, alignment: .leading)
-                                removalButton(item.id) {
-                                    notebook.edit { $0.tasks.removeAll { $0.id == item.id } }
-                                }
-                            }.padding(.vertical, 13)
+                toolbar
+                GeometryReader { geometry in
+                    if geometry.size.width >= 540 {
+                        HStack(alignment: .top, spacing: 22) {
+                            recordList.frame(width: min(244, geometry.size.width * 0.38))
                             Divider().opacity(0.5)
+                            detail.frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    } else {
+                        VStack(spacing: 14) {
+                            recordList.frame(height: min(180, geometry.size.height * 0.34))
+                            Divider().opacity(0.5)
+                            detail
                         }
                     }
                 }
             }
+            if notebook.issue != nil { NotebookSaveStatus(notebook: notebook) }
+        }.padding(.horizontal, 28).padding(.bottom, 24)
+            .accessibilityIdentifier("notebook-library")
+            .onAppear(perform: applyNavigation)
+            .onChange(of: navigation?.notebookNavigationRevision) { _, _ in applyNavigation() }
+            .onChange(of: query) { _, _ in selectFirstMatch() }
+            .onChange(of: filter) { _, _ in selectFirstMatch() }
+    }
+
+    private var toolbar: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 4) {
+                ForEach(SidebarNotebook.Filter.allCases, id: \.self) { value in
+                    Button { filter = value } label: {
+                        Text(value.title).font(.system(size: 12, weight: filter == value ? .medium : .regular))
+                            .padding(.horizontal, 11).padding(.vertical, 7)
+                            .foregroundStyle(filter == value ? .primary : .secondary)
+                            .background(filter == value ? Color.primary.opacity(0.07) : .clear,
+                                        in: RoundedRectangle(cornerRadius: 7))
+                    }.buttonStyle(.plain)
+                        .accessibilityAddTraits(filter == value ? .isSelected : [])
+                        .accessibilityIdentifier("notebook-filter-" + value.rawValue)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 12) {
+                HStack(spacing: 7) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("搜索记录", text: $query).textFieldStyle(.plain).accessibilityIdentifier("notebook-search")
+                    if !query.isEmpty {
+                        Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                            .buttonStyle(.plain).accessibilityLabel("清除搜索")
+                    }
+                }.padding(9).background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                Button("新建记录", systemImage: "square.and.pencil") { create(.note) }
+                    .buttonStyle(.borderless).accessibilityIdentifier("notebook-new")
+                Button { create(.task) } label: { Image(systemName: "checklist") }
+                    .buttonStyle(.borderless).help("新建待办").accessibilityLabel("新建待办")
+                    .accessibilityIdentifier("notebook-new-task")
+            }
         }
+    }
+
+    private var recordList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 5) {
+                    if matches.isEmpty && selected == nil {
+                        Text(query.isEmpty ? "还没有记录" : "没有匹配的记录")
+                            .font(.callout).foregroundStyle(.secondary).padding(.vertical, 20)
+                    }
+                    ForEach(matches) { record in
+                        Button {
+                            selectedID = record.id; pendingRemoval = nil; copied = false
+                        } label: {
+                            VStack(alignment: .leading, spacing: 9) {
+                                HStack(alignment: .top, spacing: 7) {
+                                    if record.kind == .task {
+                                        Image(systemName: record.isCompleted ? "checkmark.circle" : "circle")
+                                            .font(.system(size: 12)).foregroundStyle(.secondary).padding(.top, 2)
+                                    }
+                                    Text(record.body).font(.system(size: 13)).lineLimit(3).multilineTextAlignment(.leading)
+                                        .foregroundStyle(record.isCompleted ? .secondary : .primary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                Text(record.updatedAt, format: .dateTime.month().day().hour().minute())
+                                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                            }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                                .background(selectedID == record.id ? Color.primary.opacity(0.055) : .clear,
+                                            in: RoundedRectangle(cornerRadius: 9)).contentShape(Rectangle())
+                        }.buttonStyle(.plain).id(record.id)
+                            .accessibilityIdentifier("notebook-row-" + record.id.uuidString)
+                            .accessibilityAddTraits(selectedID == record.id ? .isSelected : [])
+                    }
+                }
+            }.onChange(of: selectedID) { _, id in if let id { proxy.scrollTo(id) } }
+        }
+    }
+
+    @ViewBuilder private var detail: some View {
+        if let record = selected {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    if record.kind == .task {
+                        Button {
+                            _ = notebook.setCompleted(record.id, completed: !record.isCompleted)
+                        } label: {
+                            Label(record.isCompleted ? "已完成" : "完成", systemImage: record.isCompleted ? "checkmark.circle.fill" : "circle")
+                        }.buttonStyle(.borderless).accessibilityIdentifier("notebook-toggle-completed")
+                    } else { Text("记录").font(.caption).foregroundStyle(.secondary) }
+                    Spacer(minLength: 0)
+                    Button {
+                        _ = notebook.convertRecord(record.id, to: record.kind == .note ? .task : .note)
+                    } label: { Image(systemName: record.kind == .note ? "checklist" : "note.text") }
+                        .buttonStyle(.borderless).help(record.kind == .note ? "转为待办" : "恢复为普通记录")
+                        .accessibilityLabel(record.kind == .note ? "转为待办" : "恢复为普通记录")
+                        .accessibilityIdentifier("notebook-convert")
+                    Button { copy(record.body) } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
+                        .buttonStyle(.borderless).help(copied ? "已复制" : "复制全文")
+                        .accessibilityLabel("复制全文").accessibilityIdentifier("notebook-copy")
+                    Button { pendingRemoval = record.id } label: { Image(systemName: "trash") }
+                        .buttonStyle(.borderless).foregroundStyle(.secondary).help("删除记录")
+                        .accessibilityLabel("删除记录").accessibilityIdentifier("notebook-delete")
+                }
+                if pendingRemoval == record.id {
+                    HStack {
+                        Text("删除这条记录？").font(.callout)
+                        Spacer(minLength: 0)
+                        Button("取消") { pendingRemoval = nil }.buttonStyle(.borderless)
+                        Button("删除", role: .destructive) {
+                            if notebook.deleteRecord(record.id) { selectedID = matches.first?.id; pendingRemoval = nil }
+                        }.buttonStyle(.borderless).accessibilityIdentifier("notebook-confirm-delete")
+                    }.padding(10).background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                }
+                NotebookTextEditor(text: Binding(get: { notebook.record(record.id)?.body ?? "" },
+                    set: { copied = false; _ = notebook.updateRecord(record.id, body: $0) }),
+                    identifier: "notebook-editor", fontSize: 15, focusRequest: editorFocus)
+                    .id(record.id)
+                    .overlay(alignment: .topLeading) {
+                        if record.body.isEmpty {
+                            Text(record.kind == .note ? "写下一点想法…" : "接下来想做的事…")
+                                .font(.system(size: 15)).foregroundStyle(.tertiary).padding(.top, 3)
+                                .allowsHitTesting(false).accessibilityHidden(true)
+                        }
+                    }
+                HStack {
+                    Text(record.updatedAt, format: .dateTime.year().month().day().hour().minute())
+                    Spacer(minLength: 0)
+                    Text(notebook.hasUnsavedChanges ? "等待保存" : "已自动保存")
+                }.font(.caption2).foregroundStyle(.tertiary)
+            }
+        } else {
+            MainWindowEmptyState(symbol: "note.text", title: query.isEmpty ? "随时记下一点想法" : "没有匹配的记录",
+                message: query.isEmpty ? "侧栏里的记录和待办都保存在这里。" : "试试搜索正文里的其他词句。")
+        }
+    }
+
+    private func create(_ kind: SidebarNotebook.RecordKind) {
+        query = ""; filter = .all
+        selectedID = kind == .note ? notebook.beginNote() : notebook.createTask(body: "")
+        editorFocus += 1
+    }
+
+    private func applyNavigation() {
+        guard kind != .vocabulary else { return }
+        filter = SidebarNotebook.Filter(rawValue: navigation?.notebookFilter ?? "") ?? (kind == .tasks ? .unfinished : .all)
+        if let id = navigation?.selectedNotebookRecordID, notebook.record(id) != nil {
+            query = ""; filter = .all; selectedID = id
+        } else if selected == nil { selectedID = matches.first?.id }
+        pendingRemoval = nil
+    }
+
+    private func selectFirstMatch() {
+        guard kind != .vocabulary else { return }
+        if !matches.contains(where: { $0.id == selectedID }) { selectedID = matches.first?.id }
+        pendingRemoval = nil
     }
 
     private var vocabulary: some View {
@@ -166,11 +254,6 @@ struct NotebookLibraryView: View {
         }
     }
 
-    private func addTask() {
-        let value = newTask.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        if notebook.edit({ $0.tasks.append(.init(title: value)) }) { newTask = "" }
-    }
     private func copy(_ text: String) {
         NSPasteboard.general.clearContents()
         copied = NSPasteboard.general.setString(text, forType: .string)
