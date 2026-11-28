@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "revision": "90edd11f53d78c021f27d66e3a49194f0fa42174",
+  "runID": 46141059803,
+  "jobs": {
+    "full": 140966870995,
+    "fast": 140966870782,
+    "diagnostics": 140966871001
+  },
+  "sourceGate": "PASS",
+  "qualificationGranted": false,
+  "downloads": [
+    {
+      "lane": "source",
+      "artifactID": 15261912198,
+      "bytes": 37594,
+      "sha256": "e4633d094f3c58f2b12e9b0bfc634e252bf563d3ee7be5033f5e69c191fc4349",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "fast",
+      "artifactID": 15262550066,
+      "bytes": 26200747,
+      "sha256": "7372f52487b6f6e7fbf94101d8859bf216637262a4d6458a6280a4f18fb118d9",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "full",
+      "artifactID": 15262865638,
+      "bytes": 54300802,
+      "sha256": "95ade973d67b9cfbdd413c2f1d32c6950395c391c3ecf88ed5cf04c559c8b736",
+      "providerDigestVerified": true,
+      "downloads": 1
+    }
+  ],
+  "copiedOriginalBytes": [
+    {
+      "path": "source-gate-audit.json",
+      "originalPath": "source/source-gate-audit.json",
+      "bytes": 41011,
+      "sha256": "ef224d31f9ce9288c28d7ff0834a6eb8047afd9fa44eb9b920ac4d5fcccbf647",
+      "byteIdentical": true
+    },
+    {
+      "path": "cloud-source.zip",
+      "originalPath": "source/context.zip",
+      "bytes": 37594,
+      "sha256": "e4633d094f3c58f2b12e9b0bfc634e252bf563d3ee7be5033f5e69c191fc4349",
+      "byteIdentical": true
+    },
+    {
+      "path": "candidate-receipt.json",
+      "originalPath": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "3ba8f279232deedf6e9a5034a9680d6cd6b5d4fe5c85c8263a383a8d65f4155e",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/swift.xml",
+      "originalPath": "full/independent-source/source/swift.xml",
+      "bytes": 51908,
+      "sha256": "7278143944f6bd4244c5fd9b7ed9778147e65a56069e4d519a94aeb9e0d21859",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/rust.log",
+      "originalPath": "full/independent-source/source/rust.log",
+      "bytes": 17833,
+      "sha256": "4f67f6f1257797d42fb36fe2fb514ad16d518541c58010f99a58485ce2f3846f",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "originalPath": "full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "originalPath": "fast-raw-manifest.json",
+      "bytes": 28000,
+      "sha256": "53c9bfe1837ebb2a3f19c583cd027c288b5e2c3ec178be4e2d84aa611eddd4a4",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "originalPath": "full-raw-manifest.json",
+      "bytes": 116091,
+      "sha256": "4f5f1cc22e6b7112982866ab1435860e322e1bd61fc8fa6a5ef09709fea67457",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-freeze-verification.json",
+      "originalPath": "fast-freeze.json",
+      "bytes": 1985,
+      "sha256": "ca69134aed799b5bf43ea4f4799eab96068a04ec971327f49eb7b21bd76b64e3",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-analysis-manifest.json",
+      "originalPath": "full-analysis-manifest.json",
+      "bytes": 2610,
+      "sha256": "18c36c13795ab3c18cddab7ebdb18b2153901f58c1e61b78cf40f7ace70a7153",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-interpretation.json",
+      "originalPath": "fast-interpretation.json",
+      "bytes": 236449,
+      "sha256": "cc8ca8121326c82dea0e57edabc3f3e848bc5191a8038df386e56a6fe18a69cc",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-interpretation.json",
+      "originalPath": "full-interpretation.json",
+      "bytes": 293225,
+      "sha256": "29a70134740fe49d575e1483c2e5673ce399711c798868ab338c2ce2698346a3",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-publication-audit.json",
+      "originalPath": "full-publication-audit.json",
+      "bytes": 94873,
+      "sha256": "234c17228723dbdbd639b8fbdbd92d9fbfac096dafa41aa34b6ec3f32b93417b",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-dock-delivery-audit.json",
+      "originalPath": "full-dock-delivery-audit.json",
+      "bytes": 138030,
+      "sha256": "e24efece76a4bcd4ce1703fbdc92780b02e07aa97de7d48cf8dba3ad99f62116",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-run.json",
+      "originalPath": "workflow-run.json",
+      "bytes": 15950,
+      "sha256": "7893921a8f3ddee14555aa7419670c9b42bcfae076bfad4170b54152abe4225f",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-jobs.json",
+      "originalPath": "workflow-jobs.json",
+      "bytes": 14378,
+      "sha256": "8b0ddaee690a5b85149e596662ac70f9a644f02fe76c8731c2df6446c0718e91",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-90edd1.tar.gz",
+      "originalPath": "runtime-traces-90edd1.tar.gz",
+      "bytes": 728379,
+      "sha256": "fb7d6f08624560cad15eeabaab1c0b16ad9a859571bdecf015a4733feff36ac8",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "originalPath": "runtime-traces-manifest.json",
+      "bytes": 58120,
+      "sha256": "a8e5b318075ebbf19414504e4838e40647f7390cd226b3072728d4ef8b0990ee",
+      "byteIdentical": true
+    }
+  ],
+  "compressedAnalyses": [
+    {
+      "path": "fast-analysis.json.gz",
+      "bytes": 317634,
+      "sha256": "86eaf14da9c81eb503c2a2e1b76ac49725bc6f286a3b5f71ad48e12fa7efce43",
+      "originalBytes": 3131400,
+      "originalSHA256": "bbb22068926f6928238a0717ed87511266d16ba661e5b1ebcd8eaaa6552a35b6",
+      "roundTripVerified": true
+    },
+    {
+      "path": "full-analysis.json.gz",
+      "bytes": 108567,
+      "sha256": "3ba91b6443b84fd32e762add010d4dae4156270ed50a9a03d9da67ca4bc22bbe",
+      "originalBytes": 1154414,
+      "originalSHA256": "ea8d2d8d3e07912a0e4de5e73e91453749f08697414c0d1837dd5759e606453f",
+      "roundTripVerified": true
+    }
+  ],
+  "rawFilesVerified": {
+    "source": 10,
+    "fast": 132,
+    "full": 464
+  },
+  "runtimeArchiveFilesVerified": 154,
+  "nextPatchNativeVerification": "Subsequent late stack repair, exact final comparison diagnostics and permit phase timing are not executed by this run"
+}

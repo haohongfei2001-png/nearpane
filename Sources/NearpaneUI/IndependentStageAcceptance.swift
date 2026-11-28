@@ -295,11 +295,16 @@ import Security
                     route = "externalAXPress"
                 }
                 let selectionGeneration = navigation.generation
+                // The action acknowledgement consumes this same physical-readback
+                // allowance. Do not start another eight seconds after its receipt.
+                let physicalDeadline = pressedAt + 8
                 record("R4AccessibilityButton", ["group": group.uuidString, "window": target.window.number,
-                    "step": phase, "exactMember": exactMember, "route": route])
-                let readings = await waitForState(targets, visible: visible, focus: target, seconds: 8,
+                    "step": phase, "exactMember": exactMember, "route": route,
+                    "inputUptime": pressedAt, "physicalDeadlineUptime": physicalDeadline])
+                let remaining = max(0, physicalDeadline - ProcessInfo.processInfo.systemUptime)
+                let readings = await waitForState(targets, visible: visible, focus: target, seconds: remaining,
                     diagnostic: { report["lastR4SwitchReadback"] = $0 })
-                guard let readings else {
+                guard let readings, ProcessInfo.processInfo.systemUptime < physicalDeadline else {
                     savePanel(controller.window, to: output.appendingPathComponent("r4-readback-failed.png"))
                     throw Failure(reason: "R4SwitchReadbackFailed")
                 }

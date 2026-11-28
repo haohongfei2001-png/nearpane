@@ -399,9 +399,22 @@ static int runR4Press(NSString *requestPath) {
                 pump(.06);
             } while(NSProcessInfo.processInfo.systemUptime<deadline);
             if(!selected)break;
+            // The retained element's 250 ms timeout bounded the attribute reads.
+            // Give this one action its own bounded acknowledgement wait; a returned
+            // error remains a failure and never permits rediscovery or another press.
+            AXUIElementRef button=(__bridge AXUIElementRef)selected[@"element"];
+            report[@"actionTimeoutMS"]=@1000;
+            AXError timeoutSet=AXUIElementSetMessagingTimeout(button,1.0f);
+            report[@"actionTimeoutSetError"]=@(timeoutSet);
+            if(timeoutSet!=kAXErrorSuccess){report[@"reason"]=@"actionTimeoutUnavailable";break;}
+            double actionStarted=NSProcessInfo.processInfo.systemUptime;
+            if(actionStarted>=deadline){report[@"reason"]=@"discoveryDeadlineBeforePress";break;}
             report[@"issued"]=@YES;
-            report[@"inputUptime"]=@(NSProcessInfo.processInfo.systemUptime);
-            AXError pressed=AXUIElementPerformAction((__bridge AXUIElementRef)selected[@"element"],kAXPressAction);
+            report[@"inputUptime"]=@(actionStarted);report[@"actionStartedUptime"]=@(actionStarted);
+            AXError pressed=AXUIElementPerformAction(button,kAXPressAction);
+            double actionReturned=NSProcessInfo.processInfo.systemUptime;
+            report[@"actionReturnedUptime"]=@(actionReturned);
+            report[@"actionDurationMS"]=@((actionReturned-actionStarted)*1000);
             report[@"axError"]=@(pressed);report[@"status"]=pressed==kAXErrorSuccess?@"ISSUED":@"BLOCKED";
             report[@"reason"]=pressed==kAXErrorSuccess?@"realAccessibilityPressIssued":@"accessibilityPressReturnedError";
             result=pressed==kAXErrorSuccess?0:2;

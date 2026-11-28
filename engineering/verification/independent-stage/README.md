@@ -9,7 +9,50 @@ rules do not change this R4 engine work. The existing PR #16 branch remains the 
 no main-app source refactor is overwritten by this focused R4 change.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 7c8cdc78
+## Current source/runtime checkpoint: 90edd11f
+
+Actual source checks pass **309 Swift functions (one existing skip), 188 Rust and
+25 native C checks**. The ten new functions / 44 parameter cases run successfully;
+complete candidate and strict signature pass. Formal R4 remains incomplete.
+
+FAST executes **ten real thumbnail inputs and ten double physical confirmations**,
+and the last singleton selection reaches final settlement. The next join updates
+the group directory and performs successful HIDE/READBACK/post witnesses, then
+fails its first final semantic comparison. Its specific false predicate is not
+logged. Of the 8900.623 ms failed join, 3401.332 ms is compensation, not normal
+join latency. The subsequent member button, split and lifecycle gates are not run.
+
+FULL separately executes **seven issued AX actions and six double physical
+confirmations**. The seventh action has `-25204`: the original Controller receipt
+is BLOCKED after issue; Host records UNKNOWN. No seventh navigation submission is
+observed. This is not a failed native move and does not establish non-delivery.
+The preceding sixth job has already returned normally. Final-cycle settlement
+and later gates are not reached.
+
+FAST debug physical p50 is **2355.258 ms**, maximum **3360.517 ms**. Its first ten
+jobs spend 20896.193 ms in 157 complete witnesses versus 4581.951 ms in worker
+requests. Singleton permit maxima are only 5.351–28.798 ms; an isolated join check
+reaches 544.928 ms and requires phase attribution. FULL's cold first switch is
+6609.459 ms, with subsequent switches 1430.838–1785.687 ms. Neither set is a
+release latency benchmark. Both lanes recover original windows and empty owned
+state. The new held-preparation retry does **not** execute in either lane.
+
+The next focused repair moves existing stack restoration after HIDE/PLACE,
+preserving exact focus and original confirmations; a model regression addresses
+that independently proven ordering gap. Trace-only changes identify the actual
+first false final predicate and time the original permit phases without new live
+queries. The external harness separately bounds the single action acknowledgement
+at 1 s while retaining 250 ms attribute reads, the original discovery deadline,
+and rejection of UNKNOWN. Its physical deadline is tightened to input + 8 s,
+including acknowledgement time. These later changes are not qualified by the
+90edd run and do not establish improved product latency. Scheduling work remains
+within the existing hidden-Space route.
+
+[Exact 90edd evidence, timing attribution, distinct lane failures and recovery](cloud-90edd11f-latency/README.md).
+The target Mac is offline at the last check; exact-target GUI acceptance is
+NOT_RUN. Interaction polish, stability acceptance and release remain pending.
+
+## Earlier source/runtime checkpoint: 7c8cdc78
 
 The one-file Reader writeback fix is now exercised by both native lanes: real
 directory replies return from one helper, with no Swift exclusivity abort.

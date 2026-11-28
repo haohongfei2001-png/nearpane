@@ -671,19 +671,92 @@ public enum StageSwitchError: LocalizedError, Equatable {
             return try validate(next)
         }
         func verifySelection() async throws {
+            let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
+            var confirmation = 0, evaluatedCount = 0, evaluated = [String]()
+            var observed: StageWindowSample?
+            func key(_ value: NativeSpaceWindow?) -> Any {
+                guard let value else { return NSNull() }
+                return ["pid": value.pid, "birth": value.birth, "window": value.number] as [String: Any]
+            }
+            func frame(_ value: SurfaceRect) -> [Any] {
+                [value.x, value.y, value.width, value.height].map { $0.isFinite ? $0 as Any : NSNull() }
+            }
+            func state(_ value: StageWindowState?) -> Any {
+                guard let value else { return NSNull() }
+                return ["identity": key(value.window), "lifetime": value.lifetime.uuidString,
+                        "frame": frame(value.frame), "visibility": value.visibility.rawValue,
+                        "hiddenSpace": value.hiddenSpaceID.map { $0 as Any } ?? NSNull()] as [String: Any]
+            }
+            func keys(_ values: [NativeSpaceWindow]) -> [String: Any] {
+                ["count": values.count, "truncated": values.count > 64, "values": values.prefix(64).map { key($0) }]
+            }
+            func states(_ values: [NativeSpaceWindow: StageWindowState]) -> [String: Any] {
+                let order = values.keys.sorted { ($0.pid, $0.birth, $0.number) < ($1.pid, $1.birth, $1.number) }
+                return ["count": values.count, "truncated": values.count > 64,
+                        "values": order.prefix(64).map { state(values[$0]) }]
+            }
+            func scopeFacts(_ value: StageGroupScope?) -> Any {
+                guard let value else { return NSNull() }
+                return ["display": value.display.uuidString, "space": value.nativeSpace.uuidString]
+            }
+            func checked(_ value: Bool, _ reason: String, facts: () -> [String: Any]) -> Bool {
+                guard tracing else { return value }
+                evaluatedCount += 1
+                if evaluated.count < 64 { evaluated.append(reason) }
+                if !value {
+                    let event: [String: Any] = ["event": "stageSelectionVerificationRejected", "reason": reason,
+                        "group": group.uuidString, "intent": intent.uuidString, "generation": first.generation.uuidString,
+                        "scope": scopeFacts(scope), "confirmation": confirmation,
+                        "lastSequence": last.sequence, "sequence": observed.map { $0.sequence as Any } ?? NSNull(),
+                        "preferredFocus": key(preferred.windowHint), "actualFocus": key(observed?.focus),
+                        "evaluated": evaluated, "evaluatedCount": evaluatedCount, "evaluatedTruncated": evaluatedCount > 64,
+                        "comparison": facts(), "uptime": ProcessInfo.processInfo.systemUptime]
+                    if var data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]) {
+                        data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+                    }
+                }
+                return value
+            }
             let parked = ledger.owned.filter { $0.scope == scope }
-            guard Set(parked.map { $0.hidden.window }) == ids.subtracting(targets) else { throw StageSwitchError.incomplete }
-            for _ in 0..<3 {
+            let parkedIDs = Set(parked.map { $0.hidden.window }), expectedParkedIDs = ids.subtracting(targets)
+            guard checked(parkedIDs == expectedParkedIDs, "parked-members", facts: {
+                ["expected": keys(Array(expectedParkedIDs)), "actual": keys(Array(parkedIDs))]
+            }) else { throw StageSwitchError.incomplete }
+            for index in 0..<3 {
                 try requireCurrentIntent()
                 let next = try await read()
                 try requireCurrentIntent()
                 try requireFocus(next, preferred.windowHint)
-                guard next.foreignFocusScope == nil, next.windows == last.windows,
-                      expectedStack.map({ next.frontToBack.filter(targets.contains) == $0 }) != false,
-                      parked.allSatisfy({ next.windows[$0.hidden.window] == $0.hidden }),
+                confirmation = index + 1; observed = next; evaluated.removeAll(keepingCapacity: true); evaluatedCount = 0
+                // Only the original comparisons run, in their original short-circuit order.
+                // A failed comparison logs its already-read values; later checks stay unevaluated.
+                guard checked(next.foreignFocusScope == nil, "foreign-focus", facts: {
+                          ["expected": NSNull(), "actual": scopeFacts(next.foreignFocusScope)]
+                      }), checked(next.windows == last.windows, "window-states", facts: {
+                          ["expected": states(last.windows), "actual": states(next.windows)]
+                      }), expectedStack.map({ expected in
+                          let actual = next.frontToBack.filter(targets.contains)
+                          return checked(actual == expected, "stack", facts: { ["expected": keys(expected), "actual": keys(actual)] })
+                      }) != false,
+                      parked.allSatisfy({ entry in
+                          let actual = next.windows[entry.hidden.window]
+                          return checked(actual == entry.hidden, "parked-state", facts: {
+                              ["expected": state(entry.hidden), "actual": state(actual)]
+                          })
+                      }),
                       activeMembers.allSatisfy({ m in
-                          guard let value = next.windows[m.windowHint], value.visibility == .visible else { return false }
-                          return targetLayouts[m.id].map { matches(value.frame, absolute($0, work: first.workArea)) } ?? true
+                          guard let value = next.windows[m.windowHint] else {
+                              return checked(false, "active-member-missing", facts: { ["expected": key(m.windowHint), "actual": NSNull()] })
+                          }
+                          guard checked(value.visibility == .visible, "active-member-visible", facts: {
+                              ["expected": StageWindowState.Visibility.visible.rawValue, "actual": state(value)]
+                          }) else { return false }
+                          return targetLayouts[m.id].map { relative in
+                              let expected = absolute(relative, work: first.workArea)
+                              return checked(matches(value.frame, expected), "active-member-frame", facts: {
+                                  ["identity": key(m.windowHint), "expected": frame(expected), "actual": frame(value.frame)]
+                              })
+                          } ?? true
                       }) else { throw StageSwitchError.incomplete }
                 last = next
             }
@@ -860,15 +933,6 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     }
                 }
             }
-            if let expectedStack, last.frontToBack.filter(targets.contains) != expectedStack {
-                // AX focus/raise is already the exact-window production primitive. Only
-                // repair stacking when the compositor did not preserve it on return.
-                for id in expectedStack.reversed() where last.focus != id {
-                    try await perform(.focus, id: id) { state, sample in
-                        state.visibility == .visible && sample.focus == id
-                    }
-                }
-            }
             if last.focus != preferred.windowHint {
                 try await perform(.focus, id: preferred.windowHint) { state, sample in
                     state.visibility == .visible && sample.focus == preferred.windowHint
@@ -889,6 +953,20 @@ public enum StageSwitchError: LocalizedError, Equatable {
                     if let f = last.windows[id]?.frame, !matches(f, frame) {
                         try await perform(.place(frame), id: id) { value, _ in value.visibility == .visible && self.matches(value.frame, frame) }
                     }
+                }
+            }
+            if let expectedStack, last.frontToBack.filter(targets.contains) != expectedStack {
+                // SHOW, HIDE and PLACE can all disturb stacking. Repair only after their
+                // confirmations, using the same exact-window focus/raise primitive.
+                for id in expectedStack.reversed() where last.focus != id {
+                    try await perform(.focus, id: id) { state, sample in
+                        state.visibility == .visible && sample.focus == id
+                    }
+                }
+            }
+            if last.focus != preferred.windowHint {
+                try await perform(.focus, id: preferred.windowHint) { state, sample in
+                    state.visibility == .visible && sample.focus == preferred.windowHint
                 }
             }
             try await verifySelection()

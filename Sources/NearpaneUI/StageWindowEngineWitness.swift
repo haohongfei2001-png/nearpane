@@ -197,19 +197,26 @@ import NearpaneOrdinaryWindowRuntime
         checkedPermit(owner, restoring: restoring).allowed
     }
 
-    private func checkedPermit(_ owner: StageEngineOwner, restoring: Bool) -> (allowed: Bool, rejection: [String: Any]?) {
+    private func checkedPermit(_ owner: StageEngineOwner, restoring: Bool,
+                               phaseObserved: ((_ reason: String, _ durationMS: Double) -> Void)? = nil) -> (allowed: Bool, rejection: [String: Any]?) {
         var rejection: [String: Any]?
-        func checked(_ value: Bool, _ reason: String) -> Bool {
+        func checked(_ condition: @autoclosure () -> Bool, _ reason: String) -> Bool {
+            let began = phaseObserved.map { _ in ProcessInfo.processInfo.systemUptime }
+            let value = condition()
             if !value {
                 rejection = ["reason": reason]
                 if reason == "availability", let facts = availabilityRejection(restoring) {
                     rejection?["availability"] = facts
                 }
             }
+            if let began {
+                phaseObserved?(reason, (ProcessInfo.processInfo.systemUptime - began) * 1000)
+            }
             return value
         }
         // Preserve the original short-circuit order. The rejection describes
         // this invocation; none of these live checks are repeated for logging.
+        // The availability phase includes its existing rejection-facts call.
         guard checked(owner.generation == generation, "generation"),
               checked(self.owner.map { $0 == owner.backend } != false, "backend-owner") else { return (false, rejection) }
         if restoring {
@@ -691,6 +698,7 @@ import NearpaneOrdinaryWindowRuntime
         var openingRosterMetrics: [String: Any]?, closingRosterMetrics: [String: Any]?
         var physicalBeforeClosing: [String: Any]?
         var unchangedPermitCount = 0, unchangedPermitTotalMS: Double = 0, unchangedPermitMaxMS: Double = 0
+        var unchangedPermitPhases = [String: (count: Int, totalMS: Double, maxMS: Double)]()
         func unchangedPermit(restoring: Bool) -> (allowed: Bool, rejection: [String: Any]?) {
             guard tracing else { return checkedPermit(owner, restoring: restoring) }
             let began = ProcessInfo.processInfo.systemUptime
@@ -699,12 +707,21 @@ import NearpaneOrdinaryWindowRuntime
                 unchangedPermitCount += 1; unchangedPermitTotalMS += elapsed
                 unchangedPermitMaxMS = max(unchangedPermitMaxMS, elapsed)
             }
-            return checkedPermit(owner, restoring: restoring)
+            return checkedPermit(owner, restoring: restoring, phaseObserved: { reason, durationMS in
+                let key = (restoring ? "restoring/" : "ordinary/") + reason
+                var timing = unchangedPermitPhases[key] ?? (count: 0, totalMS: 0, maxMS: 0)
+                timing.count += 1; timing.totalMS += durationMS
+                timing.maxMS = max(timing.maxMS, durationMS)
+                unchangedPermitPhases[key] = timing
+            })
         }
         // This subset overlaps the existing phase timings; do not add it to them.
         func unchangedPermitTiming() -> [String: Any] {
             ["count": unchangedPermitCount, "totalMS": unchangedPermitTotalMS,
-             "maxMS": unchangedPermitMaxMS, "nestedInPhaseDurations": true]
+             "maxMS": unchangedPermitMaxMS, "nestedInPhaseDurations": true,
+             "phases": unchangedPermitPhases.mapValues { timing -> [String: Any] in
+                 ["count": timing.count, "totalMS": timing.totalMS, "maxMS": timing.maxMS]
+             }, "phaseDurationsNestedInPermit": true, "availabilityPhaseIncludesRejectionFacts": true]
         }
         defer {
             // This predicate belongs to one initial selection, not the lifetime

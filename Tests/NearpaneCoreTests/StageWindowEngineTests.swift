@@ -731,6 +731,76 @@ import Testing
         try await controller.release()
     }
 
+    @Test(arguments: ["current", "superseded", "cancelled"])
+    func aHideCanReorderOnlyTheIncomingStackAndLateRepairStillRequiresTheOriginalIntent(_ change: String) async throws {
+        let (profile, store, _, fixture, groups) = try setup(4)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let keys = groups.map { $0.members[0].windowHint }
+        func live(_ id: NativeSpaceWindow) throws -> StageGroupWindow {
+            let value = try #require(fixture.windows[id])
+            return .init(display: fixture.scope.display, identity: id, lifetime: value.lifetime,
+                         nativeSpace: fixture.scope.nativeSpace)
+        }
+        try store.join(live(keys[1]), to: live(keys[0]))
+        try store.join(live(keys[2]), to: live(keys[0]))
+        let mixed = try #require(store.groups(in: fixture.scope).first { $0.id == groups[0].id })
+        let expected = [keys[0], keys[2], keys[1]], displaced = [keys[0], keys[1], keys[2]]
+        fixture.stacking = expected + [keys[3]] + fixture.windows.keys.filter { !keys.contains($0) }
+        let original = fixture.windows
+        let controller = try await spacesController(profile, store, fixture)
+        fixture.metadataEnabled = true
+        var reorders = 0, sealedHides = 0, queued = false
+        fixture.afterVisibilityWrite = { [unowned fixture] in
+            guard fixture.effects.last?.0 == 3, fixture.effects.last?.1 == keys[3] else { return }
+            #expect(fixture.focus == keys[0])
+            // Model an independent compositor order change, without changing any
+            // incoming identity, state, geometry or the already preferred focus.
+            fixture.stacking = displaced + fixture.stacking.filter { !expected.contains($0) }
+            reorders += 1
+        }
+        fixture.beforeMetadataEnd = { [unowned fixture] scope in
+            guard scope.purpose == .hide else { return }
+            #expect((try? readJournal(profile))?.pending?.entries.last?.after != nil)
+            #expect(fixture.metadataEvents.filter { $0.scope == scope && $0.phase == "read" }.count == 3)
+            sealedHides += 1
+            if change == "superseded" { queued = true }
+            if change == "cancelled" { withUnsafeCurrentTask { $0?.cancel() } }
+        }
+        // Isolate cancellation from the test task; revoke only after the issued
+        // HIDE has both confirmations and its durable after-image.
+        let action = Task {
+            try await controller.activate(mixed.id, member: groups[0].members[0].id, in: fixture.scope, consent: true,
+                                          current: { !queued }, newerChoice: { queued })
+        }
+        if change == "current" { try await action.value }
+        else {
+            await #expect(throws: change == "superseded" ? StageSwitchError.superseded : .interrupted) {
+                try await action.value
+            }
+        }
+        #expect(reorders == 1 && sealedHides == 1 && fixture.metadataActive.isEmpty)
+        #expect(fixture.effects.count == 1 && fixture.effects.first?.0 == 3 && fixture.effects.first?.1 == keys[3])
+        #expect(fixture.focus == keys[0] && fixture.windows[keys[3]]?.visibility == .stageSpace)
+        #expect(fixture.windows.filter { $0.key != keys[3] } == original.filter { $0.key != keys[3] })
+        #expect(fixture.windows.mapValues(\.frame) == original.mapValues(\.frame))
+        let journal = try readJournal(profile)
+        if change == "current" {
+            #expect(fixture.stacking.filter { expected.contains($0) } == expected)
+            #expect(store.activeGroup(in: fixture.scope) == mixed.id && journal.pending == nil)
+        } else {
+            #expect(fixture.stacking.filter { expected.contains($0) } == displaced && fixture.ordinaryEffects.isEmpty)
+            #expect(store.activeGroup(in: fixture.scope) == nil)
+            if change == "superseded" {
+                #expect(journal.pending == nil && journal.owned.count == 1 && !controller.coordinator.requiresRecovery)
+            } else {
+                #expect(journal.pending?.entries.last?.after != nil && controller.coordinator.requiresRecovery)
+            }
+        }
+        fixture.afterVisibilityWrite = nil; fixture.beforeMetadataEnd = nil
+        try await controller.release()
+        #expect(fixture.windows == original && !controller.coordinator.hasWindowAuthority)
+    }
+
     @Test func yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine() async throws {
         let (profile, store, _, fixture, groups) = try setup()
         defer { try? FileManager.default.removeItem(at: profile) }
