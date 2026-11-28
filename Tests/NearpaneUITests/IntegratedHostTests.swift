@@ -341,7 +341,8 @@ struct IntegratedHostTests {
         try #require(domains.tray.rows.count == 3 && domains.voice.rows.count == 2)
         let controller = EdgeWindowController(host: host, modules: domains)
         let frame = SurfaceRect(width: 1920, height: 960)
-        controller.place(screens: [.init(id: "fixture", frame: frame, visibleFrame: frame)])
+        let screen = ScreenGeometry(id: "fixture", frame: frame, visibleFrame: frame)
+        controller.place(screens: [screen])
         let window = try #require(controller.window), content = try #require(window.contentView)
         let darkExport = ProcessInfo.processInfo.environment["NEARPANE_RENDER_FIXTURES"] == "1"
             && ProcessInfo.processInfo.environment["NEARPANE_RENDER_DARK"] == "1"
@@ -375,8 +376,20 @@ struct IntegratedHostTests {
                     // This host has no window observations. A label or placeholder below the tools
                     // would introduce strokes against the otherwise uniform empty roster.
                     let bytes = try #require(flat.data).assumingMemoryBound(to: UInt8.self)
-                    let layout = LayoutComposer.compose(width: rect.width, height: rect.height, pinnedCount: 0,
-                                                        expanded: false, voiceCompact: true, trayRows: 2)
+                    // Probe the actual composition. The first-run preset now includes Notes;
+                    // the old voice/tray-only coordinates landed inside its legitimate entry.
+                    let preferences = host.registry.preferences
+                    let settings = host.panelPresentationSettings(on: screen.id)
+                    let fullFrame = try #require(settings.panel(on: screen, fallbackEdge: host.configuration.edge))
+                    let layout = LayoutComposer.compose(width: rect.width, height: rect.height,
+                        pinnedCount: host.registry.pinnedModules.count, expanded: host.registry.expandedID != nil,
+                        settings: settings, content: .full,
+                        voiceEnabled: preferences.contains { $0.id == BuiltinCatalog.voice && $0.enabled },
+                        trayEnabled: preferences.contains { $0.id == BuiltinCatalog.screenshots && $0.enabled },
+                        referenceHeight: fullFrame.height, voiceCompact: domains.voiceCompact,
+                        trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight,
+                        notesHeight: domains.notebook.sidebarHeight(width: rect.width),
+                        toolOrder: preferences.filter(\.enabled).map(\.id))
                     let scale = Double(source.height) / rect.height
                     let top = layout.windowArea.y + 4
                     var contrastingPixels = 0

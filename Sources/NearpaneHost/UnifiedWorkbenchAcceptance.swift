@@ -367,15 +367,32 @@ enum UnifiedWorkbenchAcceptance {
                 // receive the query too. No coordinate click is dispatched.
                 var views = [view]
                 var hitTestRoots: [NSView] = []
+                var nativeControlCenters: [NSPoint] = []
                 while let candidate = views.popLast() {
                     guard candidate.window === window else { continue }
                     if candidate === view || candidate.accessibilityRole() == .group {
                         hitTestRoots.append(candidate)
                     }
+                    // A 24pt grid can miss a 20pt switch after a legitimate row
+                    // reorder. Query the measured native control center as well;
+                    // this only discovers its semantic AX node. Press still
+                    // requires the exact identifier and real enabled state.
+                    if candidate is NSControl, !candidate.isHiddenOrHasHiddenAncestor {
+                        let visible = candidate.visibleRect.intersection(candidate.bounds)
+                        if visible.width > 1 && visible.height > 1 {
+                            nativeControlCenters.append(window.convertPoint(toScreen:
+                                candidate.convert(NSPoint(x: visible.midX, y: visible.midY), to: nil)))
+                        }
+                    }
                     views.append(contentsOf: candidate.subviews)
                 }
                 let spacing: CGFloat = 24
                 for root in hitTestRoots {
+                    for point in nativeControlCenters {
+                        if let hit = root.accessibilityHitTest(point) {
+                            queue.append((hit as AnyObject, nil, "nativeControlCenterHitTest"))
+                        }
+                    }
                     let bounds = root.visibleRect.intersection(root.bounds)
                     for y in stride(from: bounds.minY + spacing / 2, to: bounds.maxY, by: spacing) {
                         for x in stride(from: bounds.minX + spacing / 2, to: bounds.maxX, by: spacing) {
@@ -427,7 +444,7 @@ enum UnifiedWorkbenchAcceptance {
                     ?? legacyValue(object, legacy) as? [Any] ?? []
                 queue.append(contentsOf: children.map { ($0 as AnyObject, index, selector) })
             }
-            if relation == "accessibilityHitTest" || relation == "accessibilityParent" {
+            if relation == "accessibilityHitTest" || relation == "nativeControlCenterHitTest" || relation == "accessibilityParent" {
                 if let nativeParent = objectValue(object, "accessibilityParent") {
                     queue.append((nativeParent as AnyObject, nil, "accessibilityParent"))
                 }

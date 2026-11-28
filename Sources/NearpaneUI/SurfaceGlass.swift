@@ -67,9 +67,9 @@ struct SurfaceGlassPalette {
         let levels = SurfaceGlassLevels(settings, dark: dark, reduceTransparency: reduceTransparency)
         outerOpacity = levels.outerTint
         innerOpacity = levels.innerTint
-        let shellColor = dark ? Color(red: 36/255, green: 39/255, blue: 43/255) : .white
-        let cardColor = dark ? Color(red: 32/255, green: 34/255, blue: 38/255) : .white
-        let solid = dark ? shellColor : Color(red: 239/255, green: 241/255, blue: 243/255)
+        let shellColor = dark ? Color(red: 38/255, green: 38/255, blue: 38/255) : .white
+        let cardColor = dark ? Color(red: 34/255, green: 34/255, blue: 34/255) : .white
+        let solid = dark ? shellColor : Color(red: 241/255, green: 241/255, blue: 241/255)
         func wash(_ top: Color, _ bottom: Color, opacity: Double) -> LinearGradient {
             let colors = reduceTransparency ? [top, top] : [top.opacity(opacity), bottom.opacity(opacity)]
             return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)

@@ -261,7 +261,13 @@ import NearpaneUI
                               BuiltinCatalog.memo, BuiltinCatalog.desktop])
             _ = modules.installLyricsVerificationState("playing")
             let full = try await showSidebar(on: screen, width: 280, full: true)
+            try check("spaces-outline-fixture-light", QuickNotesSpacesFixture.install(host: host, screen: screen),
+                      "Controlled geometry-only window observations feed the production Spaces cards; no real window capture or dispatch.",
+                      kind: "labelled-fixture-setup")
             try await capture(full, "06-full-sidebar")
+            try check("spaces-outline-fixture-dark", QuickNotesSpacesFixture.install(host: host, screen: screen),
+                      "Fresh controlled geometry-only observations keep the same production cards visible in dark mode.",
+                      kind: "labelled-fixture-setup")
             try await capture(full, "full-sidebar-dark", dark: true)
             try check("one-management-window", NSApp.windows.filter {
                 $0.isVisible && $0.styleMask.contains(.titled)

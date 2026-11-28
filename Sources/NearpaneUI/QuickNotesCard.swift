@@ -90,7 +90,6 @@ struct QuickNotesCard: View {
             }
         }
         .onHover { hovered = $0 }
-        .accessibilityIdentifier("quick-notes-card")
         .task(id: completedFeedback) {
             guard completedFeedback != nil else { return }
             try? await Task.sleep(for: .milliseconds(850))

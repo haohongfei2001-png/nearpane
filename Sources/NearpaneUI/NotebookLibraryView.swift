@@ -47,7 +47,6 @@ struct NotebookLibraryView: View {
             }
             if notebook.issue != nil { NotebookSaveStatus(notebook: notebook) }
         }.padding(.horizontal, 28).padding(.bottom, 24)
-            .accessibilityIdentifier("notebook-library")
             .onAppear(perform: applyNavigation)
             .onChange(of: navigation?.notebookNavigationRevision) { _, _ in applyNavigation() }
             .onChange(of: query) { _, _ in selectFirstMatch() }

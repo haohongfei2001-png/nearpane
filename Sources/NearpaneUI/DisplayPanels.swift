@@ -26,10 +26,11 @@ import NearpaneCore
     private var sampleBegan: TimeInterval?
     private var sampleRequestID: UUID?
     private var stopped = false
+    private var withdrawingForTermination = false
 
     /// Login/session and system overview ownership only. An explicit command can reopen a hidden sidebar.
     public var windowDispatchEligible: Bool {
-        !stopped && !suspended && !systemManagesWindows && !wallpaperHeld && !wallpaperAwaitingOrdinary && missionControl == .ordinary
+        !stopped && !withdrawingForTermination && !suspended && !systemManagesWindows && !wallpaperHeld && !wallpaperAwaitingOrdinary && missionControl == .ordinary
     }
     public var missionControlDispatchState: String { missionControl.rawValue }
     /// Fixed reason only, including incomplete reads on other macOS builds.
@@ -393,7 +394,7 @@ import NearpaneCore
         publishOwnership(previous: previous)
     }
     public func update(screens: [ScreenGeometry], presentingOnly displayID: String? = nil) {
-        guard !stopped else { return }
+        guard !stopped, !withdrawingForTermination else { return }
         // A click may unfold the panel once. Later observation ticks must leave it
         // folded if the user subsequently closes the temporary expansion.
         let explicitOpenings = pendingSpaceOpenings
@@ -556,6 +557,17 @@ import NearpaneCore
         observedTransientWindows.removeAll()
         if let localMouse { NSEvent.removeMonitor(localMouse); self.localMouse = nil }
         if let externalMouse { NSEvent.removeMonitor(externalMouse); self.externalMouse = nil }
+    }
+
+    /// Retire user input synchronously after the final save check. Keep window
+    /// ownership and restoration services alive until the Host finishes their
+    /// existing asynchronous shutdown, then call stop() as usual.
+    public func withdrawForTermination() {
+        withdrawingForTermination = true
+        stopObservingClicks()
+        fullscreen.hide()
+        primary.hide()
+        for panel in secondary.values { panel.hide() }
     }
 
     public func stop() {

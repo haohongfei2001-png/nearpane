@@ -443,6 +443,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var passiveShutdownTimer: Timer?
     private var startupTask: Task<Void, Never>?
     private var terminationTask: Task<Void, Never>?
+    private var terminationCommitted = false
     private var updater: ApplicationUpdater?
     private var updateMenuObservation: AnyCancellable?
     // A passive material observation must not create a menu, move the pointer, or fall back to the main display.
@@ -933,8 +934,12 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 sender.reply(toApplicationShouldTerminate: false)
                 return
             }
-            // Awaited drains above can yield back to an editor. Recheck before
-            // retiring its services and releasing the only notebook instance.
+            #if canImport(SaytileKit)
+            if let profileSwitch { _ = await profileSwitch.result }
+            #endif
+            // Every awaited preparation above can yield back to an editor.
+            // Check after the last one, then retire all editing surfaces in the
+            // same MainActor turn before any remaining asynchronous cleanup.
             guard modules?.prepareNotebookShutdown() != false else {
                 #if canImport(SaytileKit)
                 await feedback?.resumeAfterDeferredUpdate()
@@ -945,18 +950,16 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 sender.reply(toApplicationShouldTerminate: false)
                 return
             }
+            terminationCommitted = true
+            settings?.close()
+            settings?.window?.contentView = nil
+            settingsWindowOpen = false
+            panels?.withdrawForTermination()
             wakeReadback?.cancel()
             updater?.stop()
             passiveShutdownTimer?.invalidate()
             passiveShutdownTimer = nil
             settingsPreview.withdraw()
-            #if canImport(SaytileKit)
-            if let profileSwitch {
-                _ = await profileSwitch.result
-                sender.reply(toApplicationShouldTerminate: true)
-                return
-            }
-            #endif
             startupTask?.cancel()
             await modules?.prepareStageWindowShutdown()
             panels?.stop()
@@ -1223,6 +1226,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showSettings() {
+        guard !terminationCommitted else { return }
         #if canImport(SaytileKit)
         if profileSwitch != nil { settings?.showWindow(nil); return }
         #endif
