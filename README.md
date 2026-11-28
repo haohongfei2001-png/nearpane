@@ -10,7 +10,7 @@ Nearpane 是可自由组合的 macOS 桌面伴随式工作台：在同一应用�
 | --- | --- |
 | 统一主窗口、模块、仓库、设置与动态侧栏 | [设计](docs/design/2026-11-28-unified-workbench.md) · [设置](docs/design/2026-11-28-settings-convergence.md) · [原生 UI 验收](docs/verification/unified-workbench/8c884573/README.md) |
 | Spaces 独立真实窗口调度 | [PR #16（Spaces 引擎专项）](https://github.com/haohongfei2001-png/nearpane/pull/16) · [现行技术路线](engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) · [工程证据](engineering/verification/independent-stage/README.md) |
-| 随手记：统一便签与待办 | [设计与交互](design/QUICK-NOTES.md) · [PR #19](https://github.com/haohongfei2001-png/nearpane/pull/19)；完整云端验收进行中 |
+| 随手记：统一便签与待办 | [设计与交互](design/QUICK-NOTES.md) · [原生验收、截图与数据迁移](docs/verification/quick-notes/README.md)；[PR #19](https://github.com/haohongfei2001-png/nearpane/pull/19) 已合入 main，完整源码、原生交互与进程恢复验收通过 |
 | 全屏临时工具工作台 | [设计与实现范围](docs/design/2026-11-28-fullscreen-workspace.md) |
 | 既有 LyricTile 独立发行 | [已发布 build 49](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)；原更新通道仅为兼容保留，不是产品主线 |
 

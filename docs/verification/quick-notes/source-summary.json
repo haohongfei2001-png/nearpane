@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "tests": 1014,
+  "suites": 163,
+  "durationSeconds": 42.818,
+  "rawSummary": "Test run with 1014 tests in 163 suites passed after 42.818 seconds",
+  "rawLogArtifactPath": "quick-notes-evidence/swift-tests.log",
+  "rawLogSHA256": "96309cc32808df637585402ad66fea42113156a5eccb562bf17d0d2ac9004f53",
+  "rawLogBytes": 642354,
+  "sourceCommit": "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "sourceTree": "f3dc5b3659c9263264738a4a7d498fcbd0276627",
+  "scope": "Full product SwiftPM source suite; raw full log retained in CI artifact."
+}

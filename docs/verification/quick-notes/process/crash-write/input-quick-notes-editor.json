@@ -1,0 +1,12 @@
+{
+  "directModelWrite" : false,
+  "editorFocusedAfterMouseDispatch" : true,
+  "editorFound" : true,
+  "evidenceKind" : "AppKit mouse event and NSTextInputClient.insertText",
+  "identifier" : "quick-notes-editor",
+  "nativeEditorVisible" : true,
+  "nativeMouseDownHitEditor" : true,
+  "nativeTextMatches" : true,
+  "passed" : true,
+  "windowNumber" : 97
+}

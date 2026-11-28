@@ -1,0 +1,11 @@
+{
+  "diskMatches" : true,
+  "hostStopped" : true,
+  "pid" : 17537,
+  "productionTerminationCommitted" : true,
+  "schema" : 1,
+  "scope" : "Real NSApp.terminate and production applicationShouldTerminate delegate on the isolated native profile",
+  "stateUnchanged" : true,
+  "status" : "PASS",
+  "willTerminateNotificationObserved" : true
+}

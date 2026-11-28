@@ -1,0 +1,491 @@
+{
+  "applicationEventLoopRunning" : true,
+  "checks" : [
+    {
+      "check" : "fresh-profile-empty",
+      "detail" : "Fresh Nearpane profile has no note or task and requires no additional setup.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "idle-entry-starts-editing",
+      "detail" : "Native accessibility press: quick-notes-start",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "first-note-multiline-input",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "first-note-autosaved",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "native-composition-started",
+      "detail" : "The production NSTextView displays marked Chinese text; this does not claim a real system input-method session.",
+      "evidenceKind" : "native-text-input-client-composition",
+      "passed" : true
+    },
+    {
+      "check" : "new-note-keeps-previous",
+      "detail" : "Native accessibility press: quick-notes-new",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "second-note-input",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "prior-note-and-marked-text-retained",
+      "detail" : "New-note action retained the old editor's visible composed text on its original identity; the next note kept its own body.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "note-to-task-native-action",
+      "detail" : "Native accessibility press: quick-notes-convert-to-task",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "conversion-retains-identity",
+      "detail" : "Type conversion changed one existing identity without losing or duplicating its body.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "start-note-alongside-tasks",
+      "detail" : "Native accessibility press: quick-notes-start",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "combined-note-input",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "direct-task-creation",
+      "detail" : "Native accessibility press: quick-notes-add-task",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "direct-task-native-input",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "combined-content-autosaved",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "combined-native-text-visible",
+      "detail" : "The actual laid-out current note and both short task bodies fit their native visible rectangles after natural reflow; no resize or scrolling workaround.",
+      "evidenceKind" : "native-layout-geometry",
+      "passed" : true
+    },
+    {
+      "check" : "complete-task-native-action",
+      "detail" : "Native accessibility press: quick-notes-toggle-072AF414-DC6C-430C-9D91-36B34D0A35EF",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "task-completion-stored",
+      "detail" : "The original task is completed and records a completion date.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "sidebar-opens-selected-record",
+      "detail" : "Native accessibility press: quick-notes-open-library",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "same-main-window-and-exact-record",
+      "detail" : "The sidebar reused the retained management window and selected its active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "library-native-edit",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "shared-live-record",
+      "detail" : "Library edits changed the same current record shown by the sidebar.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "completed-history-filter",
+      "detail" : "Native accessibility press: notebook-filter-completed",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "completed-history-select",
+      "detail" : "Native accessibility press: notebook-row-072AF414-DC6C-430C-9D91-36B34D0A35EF",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "undo-completion-native-action",
+      "detail" : "Native accessibility press: notebook-toggle-completed",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "task-reopened",
+      "detail" : "Reopening a completed task clears its completion date and preserves its identity.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "all-records-filter",
+      "detail" : "Native accessibility press: notebook-filter-all",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "reopened-task-select",
+      "detail" : "Native accessibility press: notebook-row-072AF414-DC6C-430C-9D91-36B34D0A35EF",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "task-to-note-native-action",
+      "detail" : "Native accessibility press: notebook-convert",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "reverse-conversion-retains-content",
+      "detail" : "The task became a plain note using its existing identity and body.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "copy-record-native-action",
+      "detail" : "Native accessibility press: notebook-copy",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "clipboard-contains-record",
+      "detail" : "The production copy action placed the selected body on this disposable runner's clipboard.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "select-removal-fixture",
+      "detail" : "Native accessibility press: notebook-row-07CE5C74-F2B1-48D7-A726-BA36B28C61BD",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "delete-opens-confirmation",
+      "detail" : "Native accessibility press: notebook-delete",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "delete-not-premature",
+      "detail" : "Opening deletion confirmation has not removed the record.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "confirm-fixture-deletion",
+      "detail" : "Native accessibility press: notebook-confirm-delete",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "only-selected-record-deleted",
+      "detail" : "The explicitly confirmed fixture was removed while the current record remained intact.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "management-operations-autosaved",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "overflow-fixture-seeded",
+      "detail" : "Generated overflow fixture created through production persistence; not a native input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "hide-and-window-switch-autosave",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "hide-keeps-active-record",
+      "detail" : "Hiding the sidebar and activating the management window did not drop the draft.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "disabled-history-remains",
+      "detail" : "Disabling the module retained its history and the management window's selected record.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "spaces-outline-fixture-light",
+      "detail" : "Controlled geometry-only window observations feed the production Spaces cards; no real window capture or dispatch.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "spaces-outline-fixture-dark",
+      "detail" : "Fresh controlled geometry-only observations keep the same production cards visible in dark mode.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "one-management-window",
+      "detail" : "All module and record routes retained the single management window.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "temporary-tools-opt-in-fixture",
+      "detail" : "The isolated display opts into the existing fullscreen tool workspace through production settings; not a native settings-control input claim.",
+      "evidenceKind" : "labelled-fixture-setup",
+      "passed" : true
+    },
+    {
+      "check" : "temporary-tools-share-records",
+      "detail" : "The production temporary workspace uses the existing domain instance; no real fullscreen transition claimed.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "final-ui-disk-readback",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    }
+  ],
+  "evidenceScope" : "Real packaged AppKit\/SwiftUI windows; isolated generated notebook, speech, tray and lyric content",
+  "fullscreenScope" : "Production temporary tool panel shown on cloud desktop; does not qualify a real native-fullscreen transition",
+  "inputScope" : "In-process native AX button presses and actual NSTextView input after AppKit mouse dispatch; no model fallback can pass input checks",
+  "mode" : "ui",
+  "platform" : "Version 26.7.2 (Build 25G332)",
+  "reduceTransparency" : false,
+  "schema" : 1,
+  "screenshots" : [
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 68,
+      "contentWidth" : 280,
+      "file" : "01-idle.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 68,
+      "pixelsWide" : 280,
+      "sha256" : "bd52afb503acdd78fd3b778d38d243e8b0482deb1ed621c60940bd8ba36cc144",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 132,
+      "contentWidth" : 280,
+      "file" : "02-editing.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 132,
+      "pixelsWide" : 280,
+      "sha256" : "92bbc7c6116f040b3c38959d2f12f3b2c6d8b21f8b85586f7cdf0fddbf4fa579",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 204,
+      "contentWidth" : 280,
+      "file" : "03-note-and-tasks.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 204,
+      "pixelsWide" : 280,
+      "sha256" : "988b83cbd803bb13d49c9b3fa4d3384cb6feed40ccb4e2ca65dab838a73dad88",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 174,
+      "contentWidth" : 280,
+      "file" : "task-completed-feedback-settled.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 174,
+      "pixelsWide" : 280,
+      "sha256" : "08ee39236afbbd1198bdc4b7a1d334c0492b260ebb8cff8aa657ecca23d5fc14",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 646,
+      "contentWidth" : 920,
+      "file" : "05-library.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 678,
+      "pixelsWide" : 920,
+      "sha256" : "c01dba62272c426535d60229502a4b2d9509232b3da24315480f2123b4d879e8",
+      "windowNumber" : 57,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 234,
+      "contentWidth" : 220,
+      "file" : "04-many-tasks-narrow.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 234,
+      "pixelsWide" : 220,
+      "sha256" : "e6d9813383ffc5916c3360deaf61f162b6db1c639bd11d1becacd73daa8c114d",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 234,
+      "contentWidth" : 340,
+      "file" : "many-tasks-wide.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 234,
+      "pixelsWide" : 340,
+      "sha256" : "196a896f6069fc7ecafaa1905f4d563ba71cd13a95c5949b7f7d13bc524f2845",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameDarkAqua",
+      "contentHeight" : 234,
+      "contentWidth" : 340,
+      "file" : "07-dark.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 234,
+      "pixelsWide" : 340,
+      "sha256" : "2914e3c501da758a73667cc5ab69e197a9fe6f7e56a2052e043c5ceff8e37a2d",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameDarkAqua",
+      "contentHeight" : 646,
+      "contentWidth" : 920,
+      "file" : "library-dark.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 678,
+      "pixelsWide" : 920,
+      "sha256" : "493af34e9617674ec7ffd63d7173fa55e51a54eae5361617b1fb5a218b4ba09b",
+      "windowNumber" : 57,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 646,
+      "contentWidth" : 920,
+      "file" : "library-module-disabled.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 678,
+      "pixelsWide" : 920,
+      "sha256" : "4068710b81126f05b5b0699f9359681879891fd4bd35848a5226116945b69a89",
+      "windowNumber" : 57,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 675,
+      "contentWidth" : 280,
+      "file" : "06-full-sidebar.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 675,
+      "pixelsWide" : 280,
+      "sha256" : "b5729a354508ae6bc63b3e833d1071e511d6e87ac1a73bfd52b97d0a9a0ecc10",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameDarkAqua",
+      "contentHeight" : 675,
+      "contentWidth" : 280,
+      "file" : "full-sidebar-dark.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 675,
+      "pixelsWide" : 280,
+      "sha256" : "58f75a6f34ea4c8c3b3cea45956a5322ab4ce40e13d7a4d719b5dbf14ba9bb6e",
+      "windowNumber" : 62,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 604,
+      "contentWidth" : 280,
+      "file" : "08-temporary-tools-workspace.png",
+      "method" : "Native NSView cacheDisplay of visible NSWindow (screen capture unavailable)",
+      "pixelsHigh" : 604,
+      "pixelsWide" : 280,
+      "sha256" : "320f57e9bb973e3650aea5e3f71f028a101fff76b5716136ea975066a1352910",
+      "windowNumber" : 79,
+      "windowServerVisible" : true
+    }
+  ],
+  "sourceCommit" : "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "spacesScope" : "Production Spaces surface only; no real foreign-window dispatch is claimed",
+  "status" : "PASS"
+}

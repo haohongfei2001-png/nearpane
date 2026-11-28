@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "sourceCommit": "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "status": "PASS",
+  "scope": "Packaged native UI / isolated fixture data / no real Spaces qualification",
+  "fixtureSession": "95d769fb-6bf8-4a74-96c9-a9fb866030c9",
+  "candidateSHA256": "e4b8b675ddb43064495f9806562a69a42b7e019a52e1afc92e0024cf38ddee88",
+  "fixtureExecutableSHA256": "b748ba47f99f970b01e0adc926f188ef6764c0ae4ade5e2970b92b9909987efe",
+  "fixtureBundleID": "com.holdsnow.nearpane.alpha"
+}

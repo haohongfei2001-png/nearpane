@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "processes": [
+    {
+      "mode": "ui",
+      "label": "native-ui",
+      "session": "f6c4442b-aa4d-46d8-a1b2-2b5bb1c9d024",
+      "pid": 17537,
+      "exit": 0,
+      "exited": true,
+      "passed": true
+    },
+    {
+      "mode": "readback",
+      "label": "normal-restart",
+      "session": "f6c4442b-aa4d-46d8-a1b2-2b5bb1c9d024",
+      "pid": 18175,
+      "exit": 0,
+      "exited": true,
+      "passed": true
+    },
+    {
+      "mode": "crash-write",
+      "label": "crash-write",
+      "session": "f6c4442b-aa4d-46d8-a1b2-2b5bb1c9d024",
+      "pid": 18182,
+      "exit": -9,
+      "termination": "SIGKILL sent to the exact spawned process; no application close/flush path",
+      "readyMarkerObserved": true,
+      "exited": true,
+      "passed": true
+    },
+    {
+      "mode": "crash-readback",
+      "label": "crash-restart",
+      "session": "f6c4442b-aa4d-46d8-a1b2-2b5bb1c9d024",
+      "pid": 18481,
+      "exit": 0,
+      "exited": true,
+      "passed": true
+    },
+    {
+      "mode": "migration",
+      "label": "legacy-migration",
+      "session": "1b1b4e04-d719-4e02-84c3-73480b25316e",
+      "pid": 18489,
+      "exit": 0,
+      "exited": true,
+      "passed": true
+    },
+    {
+      "mode": "migration",
+      "label": "legacy-migration-restart",
+      "session": "1b1b4e04-d719-4e02-84c3-73480b25316e",
+      "pid": 18500,
+      "exit": 0,
+      "exited": true,
+      "passed": true
+    }
+  ],
+  "checks": [
+    {
+      "check": "real-application-termination",
+      "passed": true,
+      "detail": "Requires NSApplication.willTerminateNotification and the production delegate's committed shutdown, with unchanged records on disk.",
+      "receipt": "native/normal-termination.json"
+    },
+    {
+      "check": "legacy-backup-and-other-domains",
+      "passed": true,
+      "originalSHA256": "c11674a7830f9440c23096e88d57cb74cfa009fb91e0d2697f120fa71a4b4122",
+      "detail": "Exact legacy source backup plus unchanged calculation and vocabulary content."
+    },
+    {
+      "check": "migration-idempotent-relaunch",
+      "passed": true,
+      "detail": "A second independent Host process leaves the v2 file byte-identical."
+    }
+  ],
+  "evidenceScope": "Packaged native UI; isolated generated contents; no real Spaces or player qualification",
+  "sourceCommit": "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "candidateExecutableSHA256": "e4b8b675ddb43064495f9806562a69a42b7e019a52e1afc92e0024cf38ddee88",
+  "fixtureExecutableSHA256": "bebcdaa98f33a46f4922d32a083cd13c23bec3ecddefa7367f6e49b77fdc1387",
+  "fixtureBundleID": "com.holdsnow.nearpane.alpha",
+  "materialPreference": {
+    "originalReduceTransparency": "1",
+    "normalMaterialRequested": true,
+    "requestError": null,
+    "restored": true
+  }
+}

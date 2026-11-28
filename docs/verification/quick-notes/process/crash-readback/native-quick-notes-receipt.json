@@ -1,0 +1,53 @@
+{
+  "applicationEventLoopRunning" : true,
+  "checks" : [
+    {
+      "check" : "separate-process-state-restored",
+      "detail" : "The separately launched packaged Host restored exact record IDs, contents, properties and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "separate-process-disk-readback",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    }
+  ],
+  "evidenceScope" : "Real packaged AppKit\/SwiftUI windows; isolated generated notebook, speech, tray and lyric content",
+  "fullscreenScope" : "Production temporary tool panel shown on cloud desktop; does not qualify a real native-fullscreen transition",
+  "inputScope" : "In-process native AX button presses and actual NSTextView input after AppKit mouse dispatch; no model fallback can pass input checks",
+  "mode" : "crash-readback",
+  "platform" : "Version 26.7.2 (Build 25G332)",
+  "reduceTransparency" : false,
+  "schema" : 1,
+  "screenshots" : [
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 235,
+      "contentWidth" : 280,
+      "file" : "10-killed-process-restart.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 235,
+      "pixelsWide" : 280,
+      "sha256" : "3439a7320e4c5f46f62d2dc9efa69422344f3715d92f6961f8265da1a5f21c97",
+      "windowNumber" : 111,
+      "windowServerVisible" : true
+    },
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 646,
+      "contentWidth" : 920,
+      "file" : "restored-library.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 678,
+      "pixelsWide" : 920,
+      "sha256" : "dfd2903c1f5f9f44444398ee352c8fc900b2adf71a774d62aec6bac759b81974",
+      "windowNumber" : 105,
+      "windowServerVisible" : true
+    }
+  ],
+  "sourceCommit" : "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "spacesScope" : "Production Spaces surface only; no real foreign-window dispatch is claimed",
+  "status" : "PASS"
+}

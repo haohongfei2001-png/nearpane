@@ -1,0 +1,515 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "validatedImages": 50,
+  "retainedImages": 20,
+  "coreRequiredImages": 7,
+  "coreRequiredAllWindowServer": true,
+  "uiImageCount": 13,
+  "uiWindowServerImages": 12,
+  "uiNSViewFallbackImages": 1,
+  "uiFallbackFile": "native/08-temporary-tools-workspace.png",
+  "validation": "SHA-256 recomputed on downloaded raw PNG bytes, compared to original receipts, and rechecked after byte-for-byte copy. Workbench PNGs validated in downloaded artifact but deliberately not duplicated in repository.",
+  "screenshots": [
+    {
+      "file": "native/01-idle.png",
+      "sha256": "bd52afb503acdd78fd3b778d38d243e8b0482deb1ed621c60940bd8ba36cc144",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 68
+    },
+    {
+      "file": "native/02-editing.png",
+      "sha256": "92bbc7c6116f040b3c38959d2f12f3b2c6d8b21f8b85586f7cdf0fddbf4fa579",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 132
+    },
+    {
+      "file": "native/03-note-and-tasks.png",
+      "sha256": "988b83cbd803bb13d49c9b3fa4d3384cb6feed40ccb4e2ca65dab838a73dad88",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 204
+    },
+    {
+      "file": "native/task-completed-feedback-settled.png",
+      "sha256": "08ee39236afbbd1198bdc4b7a1d334c0492b260ebb8cff8aa657ecca23d5fc14",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 174
+    },
+    {
+      "file": "native/05-library.png",
+      "sha256": "c01dba62272c426535d60229502a4b2d9509232b3da24315480f2123b4d879e8",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "native/04-many-tasks-narrow.png",
+      "sha256": "e6d9813383ffc5916c3360deaf61f162b6db1c639bd11d1becacd73daa8c114d",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 220,
+      "pixelsHigh": 234
+    },
+    {
+      "file": "native/many-tasks-wide.png",
+      "sha256": "196a896f6069fc7ecafaa1905f4d563ba71cd13a95c5949b7f7d13bc524f2845",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 340,
+      "pixelsHigh": 234
+    },
+    {
+      "file": "native/07-dark.png",
+      "sha256": "2914e3c501da758a73667cc5ab69e197a9fe6f7e56a2052e043c5ceff8e37a2d",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 340,
+      "pixelsHigh": 234
+    },
+    {
+      "file": "native/library-dark.png",
+      "sha256": "493af34e9617674ec7ffd63d7173fa55e51a54eae5361617b1fb5a218b4ba09b",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "native/library-module-disabled.png",
+      "sha256": "4068710b81126f05b5b0699f9359681879891fd4bd35848a5226116945b69a89",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "native/06-full-sidebar.png",
+      "sha256": "b5729a354508ae6bc63b3e833d1071e511d6e87ac1a73bfd52b97d0a9a0ecc10",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 675
+    },
+    {
+      "file": "native/full-sidebar-dark.png",
+      "sha256": "58f75a6f34ea4c8c3b3cea45956a5322ab4ce40e13d7a4d719b5dbf14ba9bb6e",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 675
+    },
+    {
+      "file": "native/08-temporary-tools-workspace.png",
+      "sha256": "320f57e9bb973e3650aea5e3f71f028a101fff76b5716136ea975066a1352910",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "Native NSView cacheDisplay of visible NSWindow (screen capture unavailable)",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 604
+    },
+    {
+      "file": "process/normal-restart/09-normal-restart.png",
+      "sha256": "ce1b12c0f5fec068e8fc4248d44ce0e43bf52931895a16fbc904d5c9033b2534",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 234
+    },
+    {
+      "file": "process/normal-restart/restored-library.png",
+      "sha256": "c07ada25776cf4c94625bdbfc81bb7cfa13b0e1f30acd2e147143ab2c7f7a5ff",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "process/crash-write/before-process-kill.png",
+      "sha256": "eca9e2929216cb43f20429dff1439107424b31974366624a8c10b67979bf9754",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 235
+    },
+    {
+      "file": "process/crash-readback/10-killed-process-restart.png",
+      "sha256": "3439a7320e4c5f46f62d2dc9efa69422344f3715d92f6961f8265da1a5f21c97",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 235
+    },
+    {
+      "file": "process/crash-readback/restored-library.png",
+      "sha256": "dfd2903c1f5f9f44444398ee352c8fc900b2adf71a774d62aec6bac759b81974",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "process/legacy-migration/legacy-migration-sidebar.png",
+      "sha256": "da079d61048bead0775270eab02c7b21f2c6d762ce6cf252930179e29c4b9426",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 280,
+      "pixelsHigh": 174
+    },
+    {
+      "file": "process/legacy-migration/legacy-migration-library.png",
+      "sha256": "9266a04b080987a10209f57602e8ffe3cc6ccd3951f690ad336f049707501f2b",
+      "matchesRawReceipt": true,
+      "retainedInRepository": true,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 678
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/01-modules-light.png",
+      "sha256": "7c2c72667cac40e779e61876c7e8647f3a5fa38248176e4cc2ad5dd634dd5ac4",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 674
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/02-modules-dark.png",
+      "sha256": "6df5b2f2e6a02865b5ac52679d8c22af39ccc2c298bbd14e73a4cffe28b8b264",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/03-modules-compact.png",
+      "sha256": "74ad26b683cec96b8430c1c59d7dbf116413c371e8558816d083a9dddca28ab3",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 740,
+      "pixelsHigh": 552
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/04-screenshot-module.png",
+      "sha256": "6b92d676671e446580fe1d7588a81b176366ba6b4845c21935dafb20061d7040",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/05-voice-library.png",
+      "sha256": "3207e8bc0dcec2c309b36e194978434f260e7feadf86faf0a63109a85f200fc4",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/06-screenshot-library.png",
+      "sha256": "2941ca2e03ac08fead81aac0303d1b71f01045f3e7945ea7b65e6f9d8bebba8d",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/07-screenshot-library-dark.png",
+      "sha256": "8bafa09ac585d39d3193e9b9e5ebd24a06cffe8e468f1ff18a87326dbbf8b6a4",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/08-settings-general.png",
+      "sha256": "59e23a3d694aade88973130d45ac823d77898bd2b23eb5af4b588421bc217c38",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/09-settings-appearance.png",
+      "sha256": "549365f916579225b5ebe2b59576e00f10ee584c30abf1d83019bb3192aa6e29",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-settings-compact-dark.png",
+      "sha256": "4577ca4eeeb7a4ca1b54076cc3035a1ee5092186ee7c4de6518f650d02b7f4ff",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 740,
+      "pixelsHigh": 552
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-display-placement-settings.png",
+      "sha256": "e4e4d19cd65c42d5252e22d1efa5a63ebdff56f3463e081b15accd63395b6090",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-voice-module-settings.png",
+      "sha256": "e60cca84ff71a3755ff60786a79672f17ec2eb58af8fe87ad49abd11772eb9e1",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-spaces-module-settings.png",
+      "sha256": "1641ba92873bcdd29e243144e97b592be87d8676f91b6184c5073241efbbb89c",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-about-and-updates.png",
+      "sha256": "61e212de27a2330a492c3c5ed41a2a873db2636a2ac073e0343d268b0937cc5e",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/10-permissions-explanation.png",
+      "sha256": "4df1c4f1b8da72608d662af8e16351d8d36a56523ea6cde619138005cbd497ba",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/11-sidebar-voice-screenshots.png",
+      "sha256": "481154cc11daa49b3d6e57e3704381d824a74bab58bb0109cc4e1488f25f5dc1",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 218
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/12-sidebar-screenshots-notes.png",
+      "sha256": "ad6f6ad490a2e18078b67b869e5fe989a477fc3e531259b3ce06e329f9b1ea73",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 222
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/13-sidebar-screenshots.png",
+      "sha256": "1961d883fab6dd8a172d0f7b63ddeb5e7fda962ea0cb05743130497b5fbfe701",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 168
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/13-sidebar-screenshots-dark.png",
+      "sha256": "4619054c8cd33c3a53c7663f4ca240b8b695fe8d07e4c5d67c7226f23f4899ee",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 168
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/13-all-tools-clock-spaces-layout.png",
+      "sha256": "c0a747a3b381ff2cb324eaa9ad7cf25b728e53cb673e25ee3f55d18c438bebcd",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-playing-sidebar.png",
+      "sha256": "3367f414b41bc3ebaee1650f760ed790348e2cfa0d485bb3b38ef71ad18c7eda",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 370
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-paused-sidebar.png",
+      "sha256": "300ff54a7ee33d859bf82ec9928061241b5e36352ff023c98a67188a1badbb0a",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 370
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-paused-native-hover.png",
+      "sha256": "5e69bfb60b2420e758350d453d19ec8e0f0ed831fda021db0ac4d9fb535de70c",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 216
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-settings.png",
+      "sha256": "6c16f8fd1e928da44aa18237ae8c0a929acdf36854ffe477140d3e123a5e555a",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-fullLyrics.png",
+      "sha256": "8eb9a4becb668af847f34410c0d2150bfd6f7424ab0de7214461326a4a78889b",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-source.png",
+      "sha256": "b3699290d01c05418a2d5e6dffba9274b2450d7b9f96250d086dd539db261438",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-adjustment.png",
+      "sha256": "c03f15db58dd35b9961fa9062734811681badb0b19fd29e6aacfc6400fa9e702",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/lyrics-noLyrics-sidebar.png",
+      "sha256": "44303e936f399382fde41c1cc277e850e60316996295073c923a06e3d5b5dc2b",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 240,
+      "pixelsHigh": 214
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/14-voice-library-module-disabled.png",
+      "sha256": "3207e8bc0dcec2c309b36e194978434f260e7feadf86faf0a63109a85f200fc4",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    },
+    {
+      "file": "CI-artifact-only/unified-workbench-evidence/native/15-screenshot-library-module-disabled.png",
+      "sha256": "2941ca2e03ac08fead81aac0303d1b71f01045f3e7945ea7b65e6f9d8bebba8d",
+      "matchesRawReceipt": true,
+      "retainedInRepository": false,
+      "method": "WindowServer screencapture",
+      "windowServerVisible": true,
+      "pixelsWide": 920,
+      "pixelsHigh": 677
+    }
+  ]
+}

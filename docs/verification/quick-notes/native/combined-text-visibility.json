@@ -1,0 +1,35 @@
+{
+  "editors" : [
+    {
+      "attempt" : 0,
+      "identifier" : "quick-notes-editor",
+      "nativeBounds" : "{{0, 0}, {232, 60}}",
+      "passed" : true,
+      "present" : true,
+      "usedTextRect" : "{{0, 3}, {208.36575875486386, 34}}",
+      "visibleRect" : "{{0, 0}, {232, 60}}"
+    },
+    {
+      "attempt" : 0,
+      "identifier" : "quick-notes-task-editor-072AF414-DC6C-430C-9D91-36B34D0A35EF",
+      "nativeBounds" : "{{0, 0}, {204, 26}}",
+      "passed" : true,
+      "present" : true,
+      "usedTextRect" : "{{0, 3}, {167.68482490272373, 16}}",
+      "visibleRect" : "{{0, 0}, {204, 26}}"
+    },
+    {
+      "attempt" : 0,
+      "identifier" : "quick-notes-task-editor-A307883D-2AA0-41A4-A473-BFBAD6D96037",
+      "nativeBounds" : "{{0, 0}, {204, 26}}",
+      "passed" : true,
+      "present" : true,
+      "usedTextRect" : "{{0, 3}, {90.2918287937743, 16}}",
+      "visibleRect" : "{{0, 0}, {204, 26}}"
+    }
+  ],
+  "evidenceKind" : "Native NSLayoutManager usedRect and NSTextView visibleRect, including ancestor clipping",
+  "frameOrScrollOverride" : false,
+  "passed" : true,
+  "windowFrame" : "{{744, 534}, {280, 204}}"
+}

@@ -1,0 +1,53 @@
+{
+  "applicationEventLoopRunning" : true,
+  "checks" : [
+    {
+      "check" : "crash-trial-new-note",
+      "detail" : "Native accessibility press: quick-notes-new",
+      "evidenceKind" : "native-accessibility",
+      "passed" : true
+    },
+    {
+      "check" : "crash-trial-native-input",
+      "detail" : "Mouse-focused production NSTextView received insertText; its delegate and binding own persistence.",
+      "evidenceKind" : "appkit-text-input",
+      "passed" : true
+    },
+    {
+      "check" : "crash-trial-body",
+      "detail" : "The current production record contains the final text.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    },
+    {
+      "check" : "crash-trial-already-autosaved",
+      "detail" : "Fresh production notebook read matches every identity, body, type, timestamp, completion and active note.",
+      "evidenceKind" : "production-state-readback",
+      "passed" : true
+    }
+  ],
+  "evidenceScope" : "Real packaged AppKit\/SwiftUI windows; isolated generated notebook, speech, tray and lyric content",
+  "fullscreenScope" : "Production temporary tool panel shown on cloud desktop; does not qualify a real native-fullscreen transition",
+  "inputScope" : "In-process native AX button presses and actual NSTextView input after AppKit mouse dispatch; no model fallback can pass input checks",
+  "mode" : "crash-write",
+  "platform" : "Version 26.7.2 (Build 25G332)",
+  "reduceTransparency" : false,
+  "schema" : 1,
+  "screenshots" : [
+    {
+      "appearance" : "NSAppearanceNameAqua",
+      "contentHeight" : 235,
+      "contentWidth" : 280,
+      "file" : "before-process-kill.png",
+      "method" : "WindowServer screencapture",
+      "pixelsHigh" : 235,
+      "pixelsWide" : 280,
+      "sha256" : "eca9e2929216cb43f20429dff1439107424b31974366624a8c10b67979bf9754",
+      "windowNumber" : 97,
+      "windowServerVisible" : true
+    }
+  ],
+  "sourceCommit" : "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "spacesScope" : "Production Spaces surface only; no real foreign-window dispatch is claimed",
+  "status" : "READY_FOR_SIGKILL"
+}

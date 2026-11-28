@@ -1,0 +1,10 @@
+{
+  "editorFocused" : true,
+  "editorFound" : true,
+  "evidenceKind" : "NSTextInputClient.setMarkedText on the production editor",
+  "hasMarkedText" : true,
+  "identifier" : "quick-notes-editor",
+  "passed" : true,
+  "realSystemInputMethod" : false,
+  "visibleTextMatches" : true
+}

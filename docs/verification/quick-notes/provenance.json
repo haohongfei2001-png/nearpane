@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 19,
+  "workflowRun": 46137542522,
+  "workflowURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46137542522",
+  "featureHead": "58b0e2eae6b501b59563f71ebbb77f18011e76ee",
+  "actionsCheckout": "b63380ef0ed82db3f1f0b9f4cc59f5022ca60529",
+  "mergedMainCommit": "5870f5f18e243fdf9de0ee4725df12a763ff4808",
+  "featureTree": "f3dc5b3659c9263264738a4a7d498fcbd0276627",
+  "checkoutTree": "f3dc5b3659c9263264738a4a7d498fcbd0276627",
+  "mergedMainTree": "f3dc5b3659c9263264738a4a7d498fcbd0276627",
+  "exactTreeEqualityVerifiedLocally": true,
+  "evidenceFilesAreDocumentationOnlyFollowup": true,
+  "platform": "Version 26.7.2 (Build 25G332)",
+  "candidateArchiveSHA256": "88550c1217a6c659f68476766ffff37e60896849d362d3d6bcfe5305fac32094",
+  "candidateArchiveDigestSource": "Raw candidate.sha256 emitted by successful CI; archive itself remains a CI artifact.",
+  "candidateExecutableSHA256": "e4b8b675ddb43064495f9806562a69a42b7e019a52e1afc92e0024cf38ddee88",
+  "packageVerificationResourceCount": 50,
+  "packageVerificationSHA256": "20b45ae75ff138afeeb915592ae20011db84784590a626d26b3a65de26c23abe",
+  "notesFixtureExecutableSHA256": "bebcdaa98f33a46f4922d32a083cd13c23bec3ecddefa7367f6e49b77fdc1387",
+  "workbenchFixtureExecutableSHA256": "b748ba47f99f970b01e0adc926f188ef6764c0ae4ade5e2970b92b9909987efe",
+  "downloadedEvidenceArchiveSHA256": "00cdc700294dd3bdc5045e84c6978c8a0e757449e3055c3606ffe0db6197eafd",
+  "notesCheckCount": 53,
+  "notesCheckKinds": {
+    "production-state-readback": 20,
+    "native-accessibility": 17,
+    "appkit-text-input": 5,
+    "native-text-input-client-composition": 1,
+    "native-layout-geometry": 1,
+    "labelled-fixture-setup": 9
+  },
+  "workbenchCheckCount": 53,
+  "processCount": 6,
+  "allProcessesPassed": true,
+  "captureValidation": "capture-validation.json",
+  "externalDeploymentStatus": {
+    "context": "Vercel",
+    "status": "failure on baseline, tested feature, and merged main",
+    "observedCommits": [
+      "c74ea94520f55bc784f110176c59f5a38f1f1935",
+      "58b0e2eae6b501b59563f71ebbb77f18011e76ee",
+      "5870f5f18e243fdf9de0ee4725df12a763ff4808"
+    ],
+    "targetURL": "https://vercel.com/knowledge/why-is-my-account-deployment-blocked",
+    "scope": "Existing external deployment status; website is unchanged by this feature. This does not assert all GitHub contexts are green."
+  },
+  "subsequentMainWorkflow": {
+    "runID": 46138600813,
+    "statusAtReportAssembly": "running",
+    "completionClaimed": false
+  },
+  "artifacts": [
+    {
+      "id": 15260826469,
+      "name": "Nearpane-quick-notes-evidence",
+      "sha256": "00cdc700294dd3bdc5045e84c6978c8a0e757449e3055c3606ffe0db6197eafd"
+    },
+    {
+      "id": 15259649772,
+      "name": "Nearpane-quick-notes-source-diagnostics",
+      "sha256": "416f8113b334866e93b51ac0435ca83ab6c9bcdfa75491e4d9798e2879e512cd"
+    },
+    {
+      "id": 15260289292,
+      "name": "Nearpane-quick-notes-candidate",
+      "sha256": "d27574c492d45da9b63648a025597a2a66aac911191008ada1a19aae0ca757dd"
+    }
+  ],
+  "unchangedProductObjects": {
+    "Sources": "186d3d45a5999e05c15723d94de9350ccc17db08",
+    "Tests": "036ec52d268354d359ac686f6d63601083928bf6",
+    "scripts": "c5b353d88284e57afae9fbe60a29e7395a0cb6f6",
+    "Package.swift": "a4f9495bc7f438ac56c1a5e2181a16c0332204ce",
+    "Dependencies": "16d5ed256b24bd9eb3dc8bbbf8662c1437ae5f7d",
+    "Resources": "ef75f279ebd7f1fdc0d3bb444d6055f0ccff7c65",
+    "Engine": "45ed994690746fb1cef822055326ca9a5f6713b3",
+    "Products": "c4e730e30edd0c7c58d348ceb61a111d27e658f2",
+    ".github": "1d6b8692d1be0bbe8f4272049db8cfa084bff96c",
+    "website": "1d045b9c61936e40ef4c08b3468ae8cac39c0e20",
+    "design": "2fee2b90b633d8cbd919d61e7829f98163b75066"
+  },
+  "documentationFollowupScope": "Root README and docs/verification/quick-notes only; listed product objects remain identical to the tested source tree."
+}
