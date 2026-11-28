@@ -1,0 +1,27 @@
+{
+  "baseCommit": "29a18feb9402b89984f2115a10da3d59164771b7",
+  "baseFiles": {
+    "FilmV2Capture.swift": {
+      "baseSHA256": "128e5fc6f04cdad8655b1e3e18028435c9d36fe0bc21d2a95f23c944beb3851f",
+      "localSame": true
+    },
+    "prepare_film_package.py": {
+      "baseSHA256": "f2f24b366e9e80c4eb317e9dc766c89fe2e528711429556495671843bb84119e",
+      "localSame": true
+    },
+    "build_camera_app.py": {
+      "baseSHA256": "782fe62e9e130cd81663576deb1f66eb3f198819d8087a9444b357d1f4a06bf2",
+      "localSame": true
+    },
+    "good-to-go-selected-sourceclock.lrc": {
+      "baseSHA256": "7f7a228ac3b6bbb43517842f4ebf6cc3ed4e2b0bfd12b20dac9bc8153e909333",
+      "localSame": true,
+      "playerReadySame": false
+    }
+  },
+  "copiedReferences": {
+    "reference-check-cloud-clients.py": "1c15af1a9114521f8817d492de47a4644df5aa97ae172232d95aa47a4a7159e6",
+    "reference-cloud_pointer.py": "1c1625e7dda9496bf577a4c34df16b21ce84f88a131db0a99a97dd78a7d79f5d",
+    "good-to-go-selected-sourceclock.lrc": "5a3476b4e917b567ec57ab6533ffa8eca384ed1ec13af89c5dc865239802c96d"
+  }
+}
