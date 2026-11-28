@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "checked_session_date": "2026-11-28",
+  "selected_track": "good-to-go",
+  "selected_segment_seconds": [
+    147.6,
+    186.6
+  ],
+  "publication_status": "Licensed music/cover plus newly synthesized Chinese narration. Native source-clock integrity and objective audiovisual checks recorded. No subjective audition certification.",
+  "rights_distinguished": [
+    "sound recording",
+    "original musical composition and words",
+    "original album cover"
+  ],
+  "shared_cover": {
+    "work": "The Simple Life — original released album cover",
+    "creator": "Josh Woodward",
+    "license": "CC BY 3.0 US (also marked CC BY 3.0 Unported on Commons)",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/us/",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg",
+    "direct_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Josh_Wooward_-_The_Simple_Life.jpg",
+    "copyright_holder_permission": "Wikimedia VRT permission confirmation, ticket2013022010009149. The page states the copyright holder confirmed that the covers are freely licensed, as well as the music. The underlying correspondence is held by Wikimedia VRT, not accessible in this production workspace.",
+    "artifact": {
+      "path": "candidates/simple-life-cover.jpg",
+      "bytes": 486932,
+      "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682"
+    },
+    "source_page_archive": {
+      "path": "evidence/simple-life-cover.html",
+      "bytes": 90637,
+      "sha256": "72b59ad996a2c8c8aa296de450e7daeced43aebc3773f93ac5fcb53e6c8e6c78"
+    },
+    "treatment": "Original artwork embedded unchanged for Music. QQ uses a 600×600 JPEG/APIC compatibility thumbnail from the original 1425×1424 image; near-square resizing and recompression, no invented image."
+  },
+  "candidates": [
+    {
+      "creator": "Josh Woodward",
+      "original_album": "The Simple Life",
+      "original_release_year": 2008,
+      "recording_license": "CC BY 3.0 US",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/us/",
+      "legalcode_url": "https://creativecommons.org/licenses/by/3.0/us/legalcode",
+      "recording_evidence": "The specific source file page identifies the song as composed and sung by Josh Woodward, and records a2013-10-30 review confirming the official artist site offered it under the stated license.",
+      "musical_work_and_lyrics_basis": "Original songwriter/performer is Josh Woodward; his own official song/performance descriptions publish the canonical lyrics and link his song page. His official channel explicitly offers all of his music under Creative Commons Attribution. The clearance uses that artist-wide grant plus the reviewed specific licensed recording, not a claim that an arbitrary recording license clears unrelated songwriters. No co-writer or cover composition is identified in these sources.",
+      "artist_cc_grant_source": "https://www.youtube.com/watch?v=BPTwMSEwECQ",
+      "artist_cc_grant_archive": "evidence/im-letting-go-official-video.json",
+      "official_site_current_access": "The public artist website returned403 in this session. That failure is retained in research logs; it is not presented as a successful current-page review. The approved source is the already-licensed archived recording, supported by the artist’s accessible official channel.",
+      "commercial_sync_assessment": "CC BY3.0 US permits attributed reproduction and derivatives, including synchronization with moving images. No NC/ND condition applies. Preserve creator/title/license/source/change attribution; no artist endorsement is implied.",
+      "lyric_use_assessment": "Use the artist’s actual original song words under the same song grant. Line-break changes and repeated sung title phrases are documented; no invented replacement lyric content.",
+      "audio_quality_scope": "Original published Vorbis source, about464–476kbps/44.1kHz/stereo. ALAC is a further-loss-free playback transcode of that lossy source, not a lossless studio-master claim.",
+      "hearing_status": "NOT AUDITIONED. Human vocals and matching words were identified by automatic recognition of the actual downloaded audio; this is not subjective listening approval.",
+      "id": "good-to-go",
+      "title": "Good To Go",
+      "selected": true,
+      "original_source_page": "https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg",
+      "original_direct_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Josh_Woodward_-_The_Simple_Life%2C_Part_2_-_07_-_Good_To_Go.ogg",
+      "original": {
+        "path": "candidates/good-to-go.ogg",
+        "bytes": 10870303,
+        "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64"
+      },
+      "recording_license_archive": {
+        "path": "evidence/good-to-go.html",
+        "bytes": 89882,
+        "sha256": "25786ac8a309fd85891e1c705b780ff3f57b31a33ea977634a1a4f24ebf366b5"
+      },
+      "canonical_lyrics_source": "https://www.youtube.com/watch?v=lqzEFoG2XUE",
+      "canonical_lyrics_archive": {
+        "path": "evidence/good-to-go-official-performance.json",
+        "bytes": 22734,
+        "sha256": "2b73b53d861979c1a8534852a2f2ebe09bf2d17928be87e50cd5dbbdf510f284"
+      },
+      "canonical_lyrics_text": {
+        "path": "lyrics/good-to-go-official.txt",
+        "bytes": 955,
+        "sha256": "f541176b859db17aa9a5df0fd4c00e74fabecdfe61aa3fcbd60ca6c025bae2cb"
+      },
+      "player_file": {
+        "path": "player-ready/good-to-go.m4a",
+        "bytes": 36603965,
+        "sha256": "76b0671ea0db8ac01f28595f003b9ad7de2b2d98d3959e53700a3a5cd82dbda9"
+      },
+      "cover_artwork": "shared_cover",
+      "selected_source_seconds": [
+        147.6,
+        186.6
+      ],
+      "selection_rationale": "The final positive chorus and title refrain; voice is present from the start of the selected passage. This avoids the negative workday language in Morning Blue and the more anxious theme of I’m Letting Go. The decision is based on canonical lyric meaning and measured phrase placement, not an invented listening review."
+    }
+  ],
+  "mastering_record": {
+    "path": "assets/audio/good-to-go-master39.json",
+    "relative_to": "project root",
+    "bytes": 954,
+    "sha256": "cd04e95c032c27b720622816d0f4d06501511991f7df94ceca6aa30c2707d029"
+  },
+  "selected_lrc_record": {
+    "path": "player-ready/good-to-go-lrc-provenance.json",
+    "bytes": 3590,
+    "sha256": "2eda853393f914900dfdfc8964f5fc54b81a68e109867939f812ef61213a2734",
+    "revision": 3,
+    "timing_status": "MACHINE_CROSSCHECKED_NOT_LISTENING_VERIFIED"
+  },
+  "license_archive": {
+    "path": "evidence/cc-by-3-us.html",
+    "bytes": 37461,
+    "sha256": "a5285930c404a709b131b1ef371143dd160596102e6c139764920ba0fc48d37f"
+  },
+  "project_use": [
+    "Commercial product-video synchronization with complete attribution.",
+    "Original song and original released artwork appear as the actual local Music track.",
+    "Do not present Josh Woodward as endorsing HOLDSNOW or Nearpane.",
+    "The project will not register the third-party recording as its exclusive ContentID material.",
+    "Supply complete source within authorized production assets; publishing deliverables are the film, not a separately branded music release."
+  ],
+  "not_used": [
+    "Incorrect Good To Go LRCLIB synced lyric records10481852 and28965523.",
+    "YouTube video imagery or performance audio; only the artist’s canonical lyric/permission descriptions were used as evidence.",
+    "Other candidate recordings in the selected final film.",
+    "Failed403 artist-site HTML as evidence of a current license page."
+  ],
+  "qq_cover_processing": {
+    "original": {
+      "file": "candidates/simple-life-cover.jpg",
+      "width": 1425,
+      "height": 1424,
+      "bytes": 486932,
+      "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682",
+      "source": "https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg",
+      "creator": "Josh Woodward",
+      "license": "CC BY 3.0 US",
+      "VRTConfirmationTicket": "2013022010009149"
+    },
+    "embeddedAPIC": {
+      "file": "qq-compatibility/simple-life-apic-600.jpg",
+      "width": 600,
+      "height": 600,
+      "bytes": 92605,
+      "sha256": "f336ae854d232439d62fe7376223e0da66843fbb46d0fc7d8d85b0a19252e2e2",
+      "changes": "Near-square original1425x1424 reduced to a600x600 JPEG thumbnail with integer-dimension rounding/adaptation. Complete image content is retained without cropping or a generated replacement. This does not claim mathematically identical pixel-grid aspect ratio."
+    },
+    "QQMediaRemoteObserved": {
+      "bytes": 86421,
+      "decodedByProduct": true,
+      "rawPayloadSHA256": null,
+      "rawPayloadSeparatelySaved": false,
+      "evidence": "native-state-timeline.json and native encoded frame; input APIC is92605bytes and original is486932bytes. These three byte counts are distinct. Do not claim byte/hash equality."
+    }
+  },
+  "film_sources": {
+    "core": "Native production lyric component with verified unreleased two-line artwork decoding fix; real Music playback, actual imported LRC, actual Preview PDF.",
+    "qq": "Second real QQ Music client session, original lyrics and record; temporal edit matches same song, not a claim of automatic gapless player handoff.",
+    "host": "Actual Nearpane Host, final capture5. Same-size cards, real registry reorder and genuine region screenshot with native thumbnail. User-authorized filming-only outer material/geometry harmonization. The screenshot records the owned coastal wallpaper, not the reading PDF."
+  },
+  "fonts": [
+    {
+      "name": "Inter Variable",
+      "license": "SIL OFL 1.1",
+      "included_license": "Inter-LICENSE.txt"
+    },
+    {
+      "name": "Noto Sans CJK",
+      "license": "SIL OFL 1.1",
+      "included_license": "NotoSansCJK-LICENSE.txt"
+    }
+  ],
+  "environment": {
+    "type": "Original generated seascape created in this production; actual recorded macOS desktop wallpaper and original reading document. No generated product UI.",
+    "source_in_media": "assets/environment/",
+    "original_document": "assets/workspace/"
+  },
+  "evidence_paths_relative_to": "assets/music-source/",
+  "final_edit_timing": {
+    "duration_seconds": 39,
+    "lyric_visible_interval": [
+      0,
+      32
+    ],
+    "lyric_synchronization": "Each native session matched to original system audio; frame boundaries conformed to30fps.",
+    "riftlet_only_score_interval": [
+      32,
+      36
+    ],
+    "brand_natural_decay_interval": [
+      36,
+      39
+    ]
+  },
+  "qq_playback_derivative": "assets/music-source/qq-compatibility/good-to-go-source2.mp3",
+  "narration_v3": {
+    "asset": "assets/audio/narration/raw/*.wav",
+    "type": "new synthesized narration",
+    "text_owner": "HOLDSNOW production copy created for this project",
+    "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "model_revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+    "model_license": "Apache-2.0",
+    "source_url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "runtime_source": "https://github.com/QwenLM/Qwen3-TTS",
+    "runtime_package": "qwen-tts==0.1.1",
+    "speaker": "Uncle_Fu",
+    "human_voice_clone": false,
+    "third_party_reference_recording_used": false,
+    "model_weights_distributed_in_project": false,
+    "generation_method": "Local CPU inference with predefined generic preset. Telemetry disabled before import; offline local weights.",
+    "rights_scope": "The model/runtime license is recorded; no claim of exclusive ownership of a human voice or third-party endorsement.",
+    "publication_label": "AI-generated Chinese narration.",
+    "processing": "Trim edge silence with breathing margin,70Hz highpass,2:1 compression,dialogue normalization,music ducking,full mix normalization. No speed or pitch alteration.",
+    "subjective_listening": "Not available in this execution environment; content verified by independent ASR and waveform/loudness review."
+  },
+  "v3_changes": [
+    "Riftlet native empty/fill height corrected to production76/144pt; same uniform scale only.",
+    "Large Chinese editorial type and six short Chinese VO lines.",
+    "Real recording retained; music ducked under VO.",
+    "Chinese landscape revision only."
+  ]
+}

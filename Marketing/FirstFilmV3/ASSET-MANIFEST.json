@@ -1,0 +1,465 @@
+{
+  "scope": "Chinese landscape v3 only",
+  "assets": [
+    {
+      "path": "assets/audio/good-to-go-master39.json",
+      "bytes": 954,
+      "sha256": "cd04e95c032c27b720622816d0f4d06501511991f7df94ceca6aa30c2707d029"
+    },
+    {
+      "path": "assets/audio/good-to-go-master39.wav",
+      "bytes": 11232102,
+      "sha256": "a72472488969f7b97afceeabfe0456e54c311a1ba82eefda082d31185511ac15"
+    },
+    {
+      "path": "assets/audio/narration/dialogue-stem-zh.wav",
+      "bytes": 11232102,
+      "sha256": "e2a863fe2a8fe1d214d3c65f7532d316908a4aa032a8f39951bad02f7f0a17af"
+    },
+    {
+      "path": "assets/audio/narration/mix-receipt.json",
+      "bytes": 6208,
+      "sha256": "dfa781f452a0b98931502109b88046fdc6e129bf2817cadf83ea27f7d8eed810"
+    },
+    {
+      "path": "assets/audio/narration/music-ducked-zh.wav",
+      "bytes": 11232102,
+      "sha256": "0802856a0bae811b0163503bdb37e557685999bd7939480ff2deb53e2ffb88a4"
+    },
+    {
+      "path": "assets/audio/narration/narration-zh.srt",
+      "bytes": 426,
+      "sha256": "e9c5ae56c83bcb91ac3567179273173c65e10b364f5ca36d472ee3c2b207d19b"
+    },
+    {
+      "path": "assets/audio/narration/premaster-zh.wav",
+      "bytes": 11232102,
+      "sha256": "46553936cb9e02b51ee5d16abe67d4435f3bb36cc025840151327b6956fc46de"
+    },
+    {
+      "path": "assets/audio/narration/processed/capture-trim.wav",
+      "bytes": 485382,
+      "sha256": "7e192c7c1c96298b1ba2f3747f9c6a27316393b7a4e3217c4668da5262461a2f"
+    },
+    {
+      "path": "assets/audio/narration/processed/capture.wav",
+      "bytes": 970662,
+      "sha256": "30c504ca9d905c2a2ecb95d70b5e91c1969c9441c0c5aed95fe74f990415f572"
+    },
+    {
+      "path": "assets/audio/narration/processed/continuity-trim.wav",
+      "bytes": 787782,
+      "sha256": "adf24fa7bb23c1d5db4b898deeba445987d585815176f9413e33ea832e026cde"
+    },
+    {
+      "path": "assets/audio/narration/processed/continuity.wav",
+      "bytes": 1575462,
+      "sha256": "4ded8eeaeb33f69658a688303bca3ab00d03fb8634b802ede1eacd9bf5b1d44a"
+    },
+    {
+      "path": "assets/audio/narration/processed/controls-trim.wav",
+      "bytes": 468102,
+      "sha256": "e1759ad8f0119af3204f2cc791e169911fb6bd09c67d08827515299367df1cb3"
+    },
+    {
+      "path": "assets/audio/narration/processed/controls.wav",
+      "bytes": 936102,
+      "sha256": "84e5703a8f66e682a31f35ea303a2d35a31de28e456a7a7f4a0f299ac1274f9f"
+    },
+    {
+      "path": "assets/audio/narration/processed/modules-trim.wav",
+      "bytes": 365862,
+      "sha256": "972b6b917bfd739d58a80b4da5e844b3fe69d5da80c65a2c56dd544da6ef6737"
+    },
+    {
+      "path": "assets/audio/narration/processed/modules.wav",
+      "bytes": 731622,
+      "sha256": "8e89028c1fbd42f890aeb48260fb7aa34d0adb323f43dcd5924a251e370786c7"
+    },
+    {
+      "path": "assets/audio/narration/processed/opening-trim.wav",
+      "bytes": 440742,
+      "sha256": "4be89275de7a1026d21e20e1d0a317e0036f89b27beec4a54e5ebed7392d29e6"
+    },
+    {
+      "path": "assets/audio/narration/processed/opening.wav",
+      "bytes": 881382,
+      "sha256": "f5e6fc19e071b449877230b527a752d213d9967661447600fc65f47db31f6ca0"
+    },
+    {
+      "path": "assets/audio/narration/processed/sources-trim.wav",
+      "bytes": 305382,
+      "sha256": "d26d10323e19b276477595cbc43ebd4c2a10d5748d953159e634fb4b924d85a9"
+    },
+    {
+      "path": "assets/audio/narration/processed/sources.wav",
+      "bytes": 610662,
+      "sha256": "d5d13b4609197cb753f2fd25fa9b3caa1c471e73d5ae8b19cd937ae379f7d6eb"
+    },
+    {
+      "path": "assets/audio/narration/raw/capture.json",
+      "bytes": 897,
+      "sha256": "ff1c28cf2098c05db3f95b58fa7d5ce90d0e97065343091fd596e546a242bf9b"
+    },
+    {
+      "path": "assets/audio/narration/raw/capture.wav",
+      "bytes": 311084,
+      "sha256": "a9ca14f7e1327d0640571a400f84bfb04dba69a6eb1a4fdc950619def6db094c"
+    },
+    {
+      "path": "assets/audio/narration/raw/continuity.json",
+      "bytes": 935,
+      "sha256": "1dd33b52eafa3078765f997e16ed8e31786b22fa8e2989e03b87e0f3df174e6d"
+    },
+    {
+      "path": "assets/audio/narration/raw/continuity.wav",
+      "bytes": 443564,
+      "sha256": "7e56f435eaf05de3c81bee6773f7f798907acf8adeb6d1bdd33bbacc6d95922a"
+    },
+    {
+      "path": "assets/audio/narration/raw/controls.json",
+      "bytes": 898,
+      "sha256": "afef2f3c6fcc012b5d27ad1c2942fb00bee22119172ed235fc9a004062862ca0"
+    },
+    {
+      "path": "assets/audio/narration/raw/controls.wav",
+      "bytes": 322604,
+      "sha256": "1a095612409fa0984a512b6df7d024c71cb646d64a475ed94901ed26f93593a1"
+    },
+    {
+      "path": "assets/audio/narration/raw/modules.json",
+      "bytes": 895,
+      "sha256": "b02fcc9507722aafa9775e1ccf2bde6221d2df8ee91875f82dcaa5ca0f2a7f4b"
+    },
+    {
+      "path": "assets/audio/narration/raw/modules.wav",
+      "bytes": 288044,
+      "sha256": "6c07495e1ed914fb6ea905964b439675901f96a913e412bd0d102e10b506f068"
+    },
+    {
+      "path": "assets/audio/narration/raw/opening.json",
+      "bytes": 897,
+      "sha256": "ba7205359ce7cf90173be2a2e119924f828ff84a2002a8e58e8c669804c1d63f"
+    },
+    {
+      "path": "assets/audio/narration/raw/opening.wav",
+      "bytes": 305324,
+      "sha256": "bad1b92efdbccefa25c9b52bf02c95c8138041714122ba964ec389700a1af842"
+    },
+    {
+      "path": "assets/audio/narration/raw/sources.json",
+      "bytes": 874,
+      "sha256": "e16dae39a2d6965c110a0fcfececb48299cbd27b4d6fec18e2f8ed1a88ba73d3"
+    },
+    {
+      "path": "assets/audio/narration/raw/sources.wav",
+      "bytes": 207404,
+      "sha256": "f649740fb23e1d78782595d45d317ac0067585899b35a437916345804470ea5f"
+    },
+    {
+      "path": "assets/audio/nearpane-zh-narrated39.wav",
+      "bytes": 11232102,
+      "sha256": "9cba457cc9392ebcf80ab7108808d5762d3540dc6a29e3874c1bd7224ed70996"
+    },
+    {
+      "path": "assets/audio/proof-voiced6.wav",
+      "bytes": 1728102,
+      "sha256": "7dbbcb3774e15535d38853e2f45136ce60734f667904e3a02642300de024fd2e"
+    },
+    {
+      "path": "assets/environment/morning-water.png",
+      "bytes": 1787355,
+      "sha256": "fa78d5e57fa430f7a1ebd9be9126647eb5639e4181b4bfc04368a3d0e6885ba6"
+    },
+    {
+      "path": "assets/fonts/InterVariable.ttf",
+      "bytes": 879708,
+      "sha256": "4989b125924991b90d05b2d16e0e388c48f7d5bb8b30539bbf9c755278d0ccaf"
+    },
+    {
+      "path": "assets/fonts/NotoSansCJK-Bold.ttc",
+      "bytes": 20050760,
+      "sha256": "faa5f3656a78b2e2d450d27fe8382c778bc2b6bb5ea29c986664a6a435056ceb"
+    },
+    {
+      "path": "assets/fonts/NotoSansCJK-Regular.ttc",
+      "bytes": 19484784,
+      "sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a"
+    },
+    {
+      "path": "assets/music-source/candidates/good-to-go.ogg",
+      "bytes": 10870303,
+      "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64"
+    },
+    {
+      "path": "assets/music-source/candidates/simple-life-cover.jpg",
+      "bytes": 486932,
+      "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682"
+    },
+    {
+      "path": "assets/music-source/edits/good-to-go-excerpt.json",
+      "bytes": 2432,
+      "sha256": "ea1aa1311ac1be087c0194b128a40c316954b6abe68bd8ccdf3c87d058cde42e"
+    },
+    {
+      "path": "assets/music-source/evidence/cc-by-3-us.html",
+      "bytes": 37461,
+      "sha256": "a5285930c404a709b131b1ef371143dd160596102e6c139764920ba0fc48d37f"
+    },
+    {
+      "path": "assets/music-source/evidence/good-to-go-official-performance.json",
+      "bytes": 22734,
+      "sha256": "2b73b53d861979c1a8534852a2f2ebe09bf2d17928be87e50cd5dbbdf510f284"
+    },
+    {
+      "path": "assets/music-source/evidence/good-to-go.html",
+      "bytes": 89882,
+      "sha256": "25786ac8a309fd85891e1c705b780ff3f57b31a33ea977634a1a4f24ebf366b5"
+    },
+    {
+      "path": "assets/music-source/evidence/im-letting-go-official-video.json",
+      "bytes": 23641,
+      "sha256": "25b0d736575110342c649f3026c4088b33f0c46c61171d71435fab271db171bf"
+    },
+    {
+      "path": "assets/music-source/evidence/simple-life-cover.html",
+      "bytes": 90637,
+      "sha256": "72b59ad996a2c8c8aa296de450e7daeced43aebc3773f93ac5fcb53e6c8e6c78"
+    },
+    {
+      "path": "assets/music-source/lyrics/good-to-go-official.txt",
+      "bytes": 955,
+      "sha256": "f541176b859db17aa9a5df0fd4c00e74fabecdfe61aa3fcbd60ca6c025bae2cb"
+    },
+    {
+      "path": "assets/music-source/player-ready/build_good_to_go.py",
+      "bytes": 3095,
+      "sha256": "5c7dcce7de2fabebe972689630d13c23a7d6c63678d826caeb1a9ecaccc0c4c5"
+    },
+    {
+      "path": "assets/music-source/player-ready/good-to-go-lrc-provenance.json",
+      "bytes": 3590,
+      "sha256": "2eda853393f914900dfdfc8964f5fc54b81a68e109867939f812ef61213a2734"
+    },
+    {
+      "path": "assets/music-source/player-ready/good-to-go-selected-sourceclock.lrc",
+      "bytes": 345,
+      "sha256": "5a3476b4e917b567ec57ab6533ffa8eca384ed1ec13af89c5dc865239802c96d"
+    },
+    {
+      "path": "assets/music-source/player-ready/good-to-go.m4a",
+      "bytes": 36603965,
+      "sha256": "76b0671ea0db8ac01f28595f003b9ad7de2b2d98d3959e53700a3a5cd82dbda9"
+    },
+    {
+      "path": "assets/music-source/qq-compatibility/build_qq_compatibility.py",
+      "bytes": 1702,
+      "sha256": "73f2f18bd3152ea40bab3a48a9398eef419e9920ac824f0168d82dc9b47e04a3"
+    },
+    {
+      "path": "assets/music-source/qq-compatibility/good-to-go-source2.mp3",
+      "bytes": 7594602,
+      "sha256": "b08e24a04d9d4beb741cde21dbd5f050a46e2c30c7070c556404fb9510e2679b"
+    },
+    {
+      "path": "assets/music-source/qq-compatibility/mp3-compatibility.json",
+      "bytes": 5566,
+      "sha256": "01338559d9a78482fe11c0481149dd69ef0c5d0034e1afd3c464c03464488c55"
+    },
+    {
+      "path": "assets/music-source/qq-compatibility/simple-life-apic-600.jpg",
+      "bytes": 92605,
+      "sha256": "f336ae854d232439d62fe7376223e0da66843fbb46d0fc7d8d85b0a19252e2e2"
+    },
+    {
+      "path": "assets/native/core/capture-audio-alignment.json",
+      "bytes": 15529,
+      "sha256": "e33ffa8f4f5a6a8d962c4076d363989d8f7723674dbb91d1bb044b019499b8a5"
+    },
+    {
+      "path": "assets/native/core/core-fullscreen.mov",
+      "bytes": 23375129,
+      "sha256": "434d5f8619a8823e87a1650ccf720ed4b6474476d9614b00009562319d218122"
+    },
+    {
+      "path": "assets/native/core/native-state-timeline.json",
+      "bytes": 289782,
+      "sha256": "af5fd3b5d2f77f805f82f1af7d6c5a09d360c9b9847a55c6d6f952edbafec1b4"
+    },
+    {
+      "path": "assets/native/core/source-manifest.json",
+      "bytes": 7351,
+      "sha256": "884da8502eb72071bde72bbc7afe2bd168bad6b747e7a839d22de6c201dfce65"
+    },
+    {
+      "path": "assets/native/dual/actual-capture-journal.json",
+      "bytes": 458,
+      "sha256": "b6817b3729c5fbbdac6fc43908fe3faadac7c45957bb75ec77dd91c2648768f5"
+    },
+    {
+      "path": "assets/native/dual/actual-captured-water.png",
+      "bytes": 784226,
+      "sha256": "0bfcfd5f3ade0a96498a666c11b43ebb8aa6b406b205bc86c7d71a3ba2a0e9cc"
+    },
+    {
+      "path": "assets/native/dual/capture-audio-alignment.json",
+      "bytes": 14825,
+      "sha256": "efe4dd6df3d67857ef295869dda73b8c93fa867c9672de416e1122e4b4cd10e7"
+    },
+    {
+      "path": "assets/native/dual/dual-camera-geometry.json",
+      "bytes": 856,
+      "sha256": "7428b6c1144304809fd08e62b995970a7fa1de52cbd1c5da0c303b7bc24b2edf"
+    },
+    {
+      "path": "assets/native/dual/dual-state-timeline.json",
+      "bytes": 359926,
+      "sha256": "6848cafb908a5649ecb9e92c7304579b332d03c011defe6bba93718cf4c4066d"
+    },
+    {
+      "path": "assets/native/dual/host-fullscreen.mov",
+      "bytes": 36509769,
+      "sha256": "677859e7a748cc94291231c43956b5c532c2b087eaed46dbbc70666244ef8eeb"
+    },
+    {
+      "path": "assets/native/dual/reorder-native-frames/contact.jpg",
+      "bytes": 268613,
+      "sha256": "ed7804c0057df65c94eee38522b58ad058e2a433c0702d2eb2542e9163f43206"
+    },
+    {
+      "path": "assets/native/dual/reorder-native-frames/original-media-pts.json",
+      "bytes": 168,
+      "sha256": "526866c9eb527c1bc377f2753a0a8ee9c2f0bc26bcf98015d18c48f570e5b54e"
+    },
+    {
+      "path": "assets/native/dual/transition-native-frames/original-media-pts.json",
+      "bytes": 182,
+      "sha256": "f71a3559c6d919226f3e9729d97f02b6e5c2f9d22805ab520c8faa7ec2633b4e"
+    },
+    {
+      "path": "assets/native/dual/transition-native-frames/transition-six-frames.jpg",
+      "bytes": 127928,
+      "sha256": "8d6028bd49db65795ab72620acb5c9f289606296f3a3a571b4cd38e0e17b3361"
+    },
+    {
+      "path": "assets/native/qqmusic/capture-audio-alignment.json",
+      "bytes": 11911,
+      "sha256": "0d9bb40b294247d0a315653b1bcb0a03c2ecde34d6c01c93d9e44e4a73d176e9"
+    },
+    {
+      "path": "assets/native/qqmusic/native-state-timeline.json",
+      "bytes": 231471,
+      "sha256": "09d92a0be832e366d50a44fab34eca06490b3124a5360ed0e43d08beca5ce6ff"
+    },
+    {
+      "path": "assets/native/qqmusic/source-manifest.json",
+      "bytes": 7106,
+      "sha256": "2b332f6a3ba24ea333bed3d20302d778c6348ca0042438254fb7f42fbcd52338"
+    },
+    {
+      "path": "assets/native/qqmusic/source2-fullscreen.mov",
+      "bytes": 10077131,
+      "sha256": "b157956f42d21e1db3a8cd246a253dad81bfaa0945632ed212f9c42d804a273b"
+    },
+    {
+      "path": "assets/processed/dual-order-detail-4k.json",
+      "bytes": 494,
+      "sha256": "69dbc432f2694c773c1dc287d2fc32b80d23a96f9b9c5a93f977ab1bfa9a49fe"
+    },
+    {
+      "path": "assets/processed/dual-order-detail-4k.mkv",
+      "bytes": 2567022,
+      "sha256": "c5eb4b8d4896f7d2549fe95a49fa24bdca5d9796367e29fbb3a8691700c3e4b3"
+    },
+    {
+      "path": "assets/processed/layout-mattes/captured-photo.png",
+      "bytes": 1518381,
+      "sha256": "d17804d44f482d0059598e25f640479fd471c99c0bb1b3cef733aae6900f28d0"
+    },
+    {
+      "path": "assets/processed/layout-mattes/paper.png",
+      "bytes": 37464,
+      "sha256": "b9d8def35fa6a7e0293cbfbf124dfc3ae44c117a4e9a7edbd17fa4c818746494"
+    },
+    {
+      "path": "assets/processed/layout-mattes/row-mask.png",
+      "bytes": 2518,
+      "sha256": "96a8e3d295a9c601caf9d8da805b4677740f052820dac9f0c149bbb66a719e49"
+    },
+    {
+      "path": "assets/processed/native-expansion-alpha.json",
+      "bytes": 1287,
+      "sha256": "6b465ed0abe04260800a3ece13d72d8c668ca1a5ebc59f9be5027a028155cf62"
+    },
+    {
+      "path": "assets/processed/native-expansion-alpha.mov",
+      "bytes": 1802802,
+      "sha256": "31065bc06d357eda91cc063df72d3bf739af6dd2a05f47e972d67b72731bc764"
+    },
+    {
+      "path": "assets/processed/native-order-alpha.json",
+      "bytes": 1425,
+      "sha256": "f16e8e23611103bbedff2cc0f0d6475f631b9b193663308d9420044de9c9dd21"
+    },
+    {
+      "path": "assets/processed/native-order-alpha.mov",
+      "bytes": 8731241,
+      "sha256": "19b8fb64b23cea824eeae023f5584db50f310286e1e678590c89e1b2321255e5"
+    },
+    {
+      "path": "assets/processed/riftlet-expansion-detail-4k.json",
+      "bytes": 664,
+      "sha256": "94d07f38621c9bd19c2b6ff63f1d6d35beeec9523558744dc2ab17d5ac8626a1"
+    },
+    {
+      "path": "assets/processed/riftlet-expansion-detail-4k.mkv",
+      "bytes": 4743383,
+      "sha256": "d519b9527dd8c5afe48378718fc0c261455ba84b87128a4f16b116f2f4d4a09c"
+    },
+    {
+      "path": "assets/workspace/field-notes-en-preview.png",
+      "bytes": 706774,
+      "sha256": "e2f7ec16f36c30fc5af5f6be76d310876cc36599cde6a7389ec479342f56716f"
+    },
+    {
+      "path": "assets/workspace/field-notes-en.pdf",
+      "bytes": 439731,
+      "sha256": "99e8443f09c4da35161a62321b2ed3a2280f7c914988f58f4a36d9e51b056faf"
+    },
+    {
+      "path": "assets/workspace/field-notes-zh-preview.png",
+      "bytes": 703936,
+      "sha256": "161ecd896f89b4e2606ba9f0dd196bdc13bbc0922b952fca92d932dda2138c41"
+    },
+    {
+      "path": "assets/workspace/field-notes-zh.pdf",
+      "bytes": 605811,
+      "sha256": "e4c7e7a0305af8c78124ace80f5e78465cae100c1679b80330b78561d954d99e"
+    },
+    {
+      "path": "assets/workspace/fonts/Inter-Reading-Subset.ttf",
+      "bytes": 24008,
+      "sha256": "a67322f1e34c57fddbb8ad0ee187fca64e90348bee529141309d93b90387eec6"
+    },
+    {
+      "path": "assets/workspace/fonts/Inter-Regular.ttf",
+      "bytes": 342336,
+      "sha256": "f46a130a4202904ca6f2a4c0c23478bec917183acaa4c6b59e619a49cf92606f"
+    },
+    {
+      "path": "assets/workspace/fonts/NotoSansSC-Reading-Subset.otf",
+      "bytes": 788692,
+      "sha256": "2833383b5d962118732fb570a226ce76b66c4826649d0bacc8f45e8cf43db02e"
+    },
+    {
+      "path": "assets/workspace/fonts/NotoSansSC-Regular.otf",
+      "bytes": 16437340,
+      "sha256": "09a54bde17ee19834b79e199784fe7e08525127001bfcf43e38b7900e08b039a"
+    },
+    {
+      "path": "assets/workspace/morning-water-photography.jpg",
+      "bytes": 418324,
+      "sha256": "e125d072aa04743c219aa75f4aa7aff141b434326c5861cf3109c0f9b85c6169"
+    }
+  ]
+}

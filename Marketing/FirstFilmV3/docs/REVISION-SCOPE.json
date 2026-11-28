@@ -1,0 +1,9 @@
+{
+  "revision": 3,
+  "scope": "Chinese landscape only",
+  "user_correction": "Riftlet empty tray one row; actual captured images expand it to two rows. Never stretch two entry icons to fake two rows.",
+  "narration": "Brief clear Chinese product explanation, with ducked original licensed song.",
+  "typography": "Larger concise headlines, native product pixels preserved.",
+  "reused_source_commit": "1d1dbacae6859f650412670306cccd5050450c7c",
+  "supersedes": "V2 forced equal-height Riftlet photography geometry, not its accepted Music/Preview/QQ recordings."
+}

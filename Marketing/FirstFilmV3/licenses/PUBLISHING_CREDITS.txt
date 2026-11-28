@@ -1,0 +1,39 @@
+NEARPANE — V2 PUBLICATION CREDITS
+
+Music and lyrics: “Good To Go” by Josh Woodward, from The Simple Life (2008).
+Album artwork: The Simple Life, Josh Woodward.
+Both used under Creative Commons Attribution 3.0 United States.
+
+Artist: https://www.joshwoodward.com/
+License: https://creativecommons.org/licenses/by/3.0/us/
+Recording: https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg
+Album artwork: https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg
+Canonical lyric evidence published by the artist: https://www.youtube.com/watch?v=lqzEFoG2XUE
+
+Editorial changes: a continuous 39-second excerpt from source 147.60–186.60 seconds, with a 5 ms technical entrance ramp and 2.4-second ending fade. 48 kHz stereo PCM preparation, boundary fades and loudness normalization; no speed or pitch change. Music uses the original cover; QQ Music uses a resized/recompressed 600×600 compatibility thumbnail from the original 1425×1424 cover, without substituted artwork. Separate real playback sessions are matched in the edit to the same original recording. No artist endorsement is implied.
+
+—— 中文发布署名 ——
+音乐与歌词：《Good To Go》，Josh Woodward，选自 The Simple Life（2008）。
+专辑封面：Josh Woodward，《The Simple Life》。音乐及封面均依据 CC BY 3.0 US 使用。
+本片节选原曲147.60–186.60秒（共39秒），作5毫秒技术入淡、2.4秒淡出及响度处理；QQ 音乐中的封面为原图的缩略与重编码版本。未改变演唱速度或音高，艺人未参与或代言本产品。
+艺人：https://www.joshwoodward.com/
+授权：https://creativecommons.org/licenses/by/3.0/us/
+录音来源：https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg
+封面来源：https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg
+
+—— English publication credit ——
+Music and lyrics: “Good To Go” by Josh Woodward, from The Simple Life (2008).
+Album art: The Simple Life, Josh Woodward. Music and artwork licensed under CC BY 3.0 US.
+A 39-second excerpt from source 147.60–186.60 seconds, with a 5 ms entrance ramp, 2.4-second ending fade and loudness mastering. The QQ Music cover is a resized/recompressed thumbnail of the original. No speed or pitch changes; no artist endorsement is implied.
+Artist: https://www.joshwoodward.com/
+License: https://creativecommons.org/licenses/by/3.0/us/
+Recording source: https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg
+Artwork source: https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg
+
+Attach the applicable complete credit to every public video/social post or accompanying page. Keep the music source, artwork source, license and change notices. Use the selected-song credits only; no earlier temp music is used in v3. Original editorial typography uses Inter and Noto Sans CJK under their included OFL licenses. Native macOS/application pixels are actual contextual product demonstrations, not a claim that their brands endorse Nearpane.
+
+—— v3 中文解说版补充 ——
+中文解说为本地AI合成，采用Qwen3-TTS的通用预设音色；未使用第三方参考录音克隆真实人物。
+模型与运行时来源：https://github.com/QwenLM/Qwen3-TTS ；模型许可Apache-2.0，详细版本与授权记录见NARRATION-RIGHTS.json。
+本版原歌曲在旁白期间作音量压低和恢复，并与中文旁白混音；未改变歌曲速度或音高。
+Chinese narration is AI-generated using a generic Qwen3-TTS preset. Music is ducked under narration and mixed; no pitch or speed changes.

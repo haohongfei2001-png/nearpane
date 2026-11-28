@@ -1,0 +1,400 @@
+{
+  "schema_version": 1,
+  "status": "CONTINUOUS_MATCH",
+  "capture": {
+    "path": "/workspace/scratch/be9b9c627bdc/v3-native-capture/capture-dynamic-1/host-fullscreen.mov",
+    "bytes": 36509769,
+    "sha256": "677859e7a748cc94291231c43956b5c532c2b087eaed46dbbc70666244ef8eeb"
+  },
+  "original": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-song-research/candidates/good-to-go.ogg",
+    "bytes": 10870303,
+    "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64"
+  },
+  "timeline": {
+    "capture_zero_definition": "First presented video frame PTS; audio-only input uses its first audio-frame PTS.",
+    "video_origin_original_pts_seconds": 0.0,
+    "first_audio_original_pts_seconds": 0.066521,
+    "first_audio_minus_video_origin_seconds": 0.066521,
+    "analysis_duration_seconds": 24.1291875,
+    "sample_rate_hz": 48000,
+    "decode": "copyts; subtract video origin; aresample async=1 first_pts=0. Timestamp gaps/positive audio offset are retained as silence."
+  },
+  "method": "Independent overlapping-window normalized waveform correlation over the whole original at12kHz, competitor test outside±250ms, local48kHz refinement±20ms and parabolic sub-sample peak estimate. Fit source-time mapping per stable-offset region.",
+  "thresholds": {
+    "minimum_abs_correlation": 0.85,
+    "minimum_competing_peak_margin": 0.03,
+    "offset_change_to_split_ms": 40,
+    "window_seconds": 2.5,
+    "hop_seconds": 1.0
+  },
+  "segments": [
+    {
+      "anchor_count": 17,
+      "capture_window_coverage_seconds": [
+        0.0,
+        18.5
+      ],
+      "source_seconds_formula": "source = rate * capture_video_seconds + intercept",
+      "source_at_video_zero_extrapolated_seconds": 168.0422505493687,
+      "rate": 0.9999999987441771,
+      "rate_difference_ppm": -0.0012558228901227153,
+      "constant_offset_median_seconds": 168.04225053873157,
+      "fit_residual_rms_ms": 4.0890470212240695e-05,
+      "fit_residual_p95_absolute_ms": 9.229253805642654e-05,
+      "fit_residual_max_absolute_ms": 0.00011985750347776047,
+      "median_abs_correlation": 0.9999556520157026,
+      "minimum_abs_correlation": 0.8837731386873976,
+      "minimum_competing_peak_margin": 0.18111620811146234,
+      "anchor_capture_centers_seconds": [
+        1.25,
+        2.25,
+        3.25,
+        4.25,
+        5.25,
+        6.25,
+        7.25,
+        8.25,
+        9.25,
+        10.25,
+        11.25,
+        12.25,
+        13.25,
+        14.25,
+        15.25,
+        16.25,
+        17.25
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "capture_start_seconds": 0.0,
+      "capture_end_seconds": 2.5,
+      "capture_center_seconds": 1.25,
+      "rms_dbfs": -12.66379033845402,
+      "coarse_source_start_seconds": 168.04225050297603,
+      "coarse_correlation": 0.8837545568497439,
+      "competing_abs_correlation": 0.24033540129155145,
+      "coarse_peak_margin": 0.6434191555581925,
+      "source_start_seconds": 168.0422505186379,
+      "source_center_seconds": 169.2922505186379,
+      "source_minus_capture_seconds": 168.0422505186379,
+      "fine_correlation": 0.8837731386873976,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 1.0,
+      "capture_end_seconds": 3.5,
+      "capture_center_seconds": 2.25,
+      "rms_dbfs": -12.312299723338233,
+      "coarse_source_start_seconds": 169.04225050659744,
+      "coarse_correlation": 0.9999755448414585,
+      "competing_abs_correlation": 0.22592198451938048,
+      "coarse_peak_margin": 0.774053560322078,
+      "source_start_seconds": 169.04225053092543,
+      "source_center_seconds": 170.29225053092543,
+      "source_minus_capture_seconds": 168.04225053092543,
+      "fine_correlation": 0.9999670668077038,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 2.0,
+      "capture_end_seconds": 4.5,
+      "capture_center_seconds": 3.25,
+      "rms_dbfs": -12.217646197527628,
+      "coarse_source_start_seconds": 170.04225052926645,
+      "coarse_correlation": 0.9999330258855441,
+      "competing_abs_correlation": 0.27167859813425277,
+      "coarse_peak_margin": 0.7282544277512913,
+      "source_start_seconds": 170.0422505590421,
+      "source_center_seconds": 171.2922505590421,
+      "source_minus_capture_seconds": 168.0422505590421,
+      "fine_correlation": 0.9999186801600735,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 3.0,
+      "capture_end_seconds": 5.5,
+      "capture_center_seconds": 4.25,
+      "rms_dbfs": -11.631584764911064,
+      "coarse_source_start_seconds": 171.04225055562898,
+      "coarse_correlation": 0.9999203278614832,
+      "competing_abs_correlation": 0.2389652474692929,
+      "coarse_peak_margin": 0.7609550803921903,
+      "source_start_seconds": 171.04225057773021,
+      "source_center_seconds": 172.29225057773021,
+      "source_minus_capture_seconds": 168.04225057773021,
+      "fine_correlation": 0.9999056913555372,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 4.0,
+      "capture_end_seconds": 6.5,
+      "capture_center_seconds": 5.25,
+      "rms_dbfs": -11.527975577049276,
+      "coarse_source_start_seconds": 172.0422505388854,
+      "coarse_correlation": 0.999932479646165,
+      "competing_abs_correlation": 0.1949966578648037,
+      "coarse_peak_margin": 0.8049358217813614,
+      "source_start_seconds": 172.04225056205968,
+      "source_center_seconds": 173.29225056205968,
+      "source_minus_capture_seconds": 168.04225056205968,
+      "fine_correlation": 0.9999193819915406,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 5.0,
+      "capture_end_seconds": 7.5,
+      "capture_center_seconds": 6.25,
+      "rms_dbfs": -11.933502264012931,
+      "coarse_source_start_seconds": 173.04225051019665,
+      "coarse_correlation": 0.9999559698609927,
+      "competing_abs_correlation": 0.1997604352054895,
+      "coarse_peak_margin": 0.8001955346555032,
+      "source_start_seconds": 173.04225053873157,
+      "source_center_seconds": 174.29225053873157,
+      "source_minus_capture_seconds": 168.04225053873157,
+      "fine_correlation": 0.9999471180125444,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 6.0,
+      "capture_end_seconds": 8.5,
+      "capture_center_seconds": 7.25,
+      "rms_dbfs": -11.842299132303891,
+      "coarse_source_start_seconds": 174.04225050047643,
+      "coarse_correlation": 0.9999601625402811,
+      "competing_abs_correlation": 0.2095923106270332,
+      "coarse_peak_margin": 0.7903678519132479,
+      "source_start_seconds": 174.04225053381583,
+      "source_center_seconds": 175.29225053381583,
+      "source_minus_capture_seconds": 168.04225053381583,
+      "fine_correlation": 0.9999553884366235,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 7.0,
+      "capture_end_seconds": 9.5,
+      "capture_center_seconds": 8.25,
+      "rms_dbfs": -13.115845470408779,
+      "coarse_source_start_seconds": 175.0422504922904,
+      "coarse_correlation": 0.9999594362271303,
+      "competing_abs_correlation": 0.22574822524724752,
+      "coarse_peak_margin": 0.7742112109798829,
+      "source_start_seconds": 175.0422505387441,
+      "source_center_seconds": 176.2922505387441,
+      "source_minus_capture_seconds": 168.0422505387441,
+      "fine_correlation": 0.9999497732654623,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 8.0,
+      "capture_end_seconds": 10.5,
+      "capture_center_seconds": 9.25,
+      "rms_dbfs": -15.540073014307964,
+      "coarse_source_start_seconds": 176.0422504749317,
+      "coarse_correlation": 0.9999598359499334,
+      "competing_abs_correlation": 0.2313134630996582,
+      "coarse_peak_margin": 0.7686463728502753,
+      "source_start_seconds": 176.04225054351636,
+      "source_center_seconds": 177.29225054351636,
+      "source_minus_capture_seconds": 168.04225054351636,
+      "fine_correlation": 0.999945741721016,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 9.0,
+      "capture_end_seconds": 11.5,
+      "capture_center_seconds": 10.25,
+      "rms_dbfs": -21.917554173234656,
+      "coarse_source_start_seconds": 177.04225042816458,
+      "coarse_correlation": 0.9999752085004229,
+      "competing_abs_correlation": 0.21616270032423174,
+      "coarse_peak_margin": 0.7838125081761911,
+      "source_start_seconds": 177.04225049626746,
+      "source_center_seconds": 178.29225049626746,
+      "source_minus_capture_seconds": 168.04225049626746,
+      "fine_correlation": 0.9999605053250565,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 10.0,
+      "capture_end_seconds": 12.5,
+      "capture_center_seconds": 11.25,
+      "rms_dbfs": -22.851648613466903,
+      "coarse_source_start_seconds": 178.0422505001303,
+      "coarse_correlation": 0.9999755751939742,
+      "competing_abs_correlation": 0.22607700288236068,
+      "coarse_peak_margin": 0.7738985723116135,
+      "source_start_seconds": 178.04225053415206,
+      "source_center_seconds": 179.29225053415206,
+      "source_minus_capture_seconds": 168.04225053415206,
+      "fine_correlation": 0.9999654023338721,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 11.0,
+      "capture_end_seconds": 13.5,
+      "capture_center_seconds": 12.25,
+      "rms_dbfs": -26.680423200182233,
+      "coarse_source_start_seconds": 179.0422505143591,
+      "coarse_correlation": 0.9999744415386085,
+      "competing_abs_correlation": 0.34623088888636006,
+      "coarse_peak_margin": 0.6537435526522484,
+      "source_start_seconds": 179.04225056011606,
+      "source_center_seconds": 180.29225056011606,
+      "source_minus_capture_seconds": 168.04225056011606,
+      "fine_correlation": 0.9999593424820246,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 12.0,
+      "capture_end_seconds": 14.5,
+      "capture_center_seconds": 13.25,
+      "rms_dbfs": -31.26767919255721,
+      "coarse_source_start_seconds": 180.0422505413355,
+      "coarse_correlation": 0.9999790429774802,
+      "competing_abs_correlation": 0.5000362836947195,
+      "coarse_peak_margin": 0.49994275928276066,
+      "source_start_seconds": 180.0422505475538,
+      "source_center_seconds": 181.2922505475538,
+      "source_minus_capture_seconds": 168.0422505475538,
+      "fine_correlation": 0.9999760405709472,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 13.0,
+      "capture_end_seconds": 15.5,
+      "capture_center_seconds": 14.25,
+      "rms_dbfs": -44.44931548130802,
+      "coarse_source_start_seconds": 181.0422504934863,
+      "coarse_correlation": 0.9999630601202261,
+      "competing_abs_correlation": 0.6668749193844429,
+      "coarse_peak_margin": 0.3330881407357832,
+      "source_start_seconds": 181.04225050462335,
+      "source_center_seconds": 182.29225050462335,
+      "source_minus_capture_seconds": 168.04225050462335,
+      "fine_correlation": 0.9999556520157026,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 14.0,
+      "capture_end_seconds": 16.5,
+      "capture_center_seconds": 15.25,
+      "rms_dbfs": -51.517160805505135,
+      "coarse_source_start_seconds": 182.04225052364424,
+      "coarse_correlation": 0.999972812173479,
+      "competing_abs_correlation": 0.7760873948805438,
+      "coarse_peak_margin": 0.2238854172929352,
+      "source_start_seconds": 182.04225050474923,
+      "source_center_seconds": 183.29225050474923,
+      "source_minus_capture_seconds": 168.04225050474923,
+      "fine_correlation": 0.9999673516114506,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 15.0,
+      "capture_end_seconds": 17.5,
+      "capture_center_seconds": 16.25,
+      "rms_dbfs": -58.56435037420374,
+      "coarse_source_start_seconds": 183.04225071156912,
+      "coarse_correlation": 0.9999704304849188,
+      "competing_abs_correlation": 0.77280618663609,
+      "coarse_peak_margin": 0.22716424384882883,
+      "source_start_seconds": 183.04225064881908,
+      "source_center_seconds": 184.29225064881908,
+      "source_minus_capture_seconds": 168.04225064881908,
+      "fine_correlation": 0.9999652992344562,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 16.0,
+      "capture_end_seconds": 18.5,
+      "capture_center_seconds": 17.25,
+      "rms_dbfs": -64.4108019112667,
+      "coarse_source_start_seconds": 184.04225043678284,
+      "coarse_correlation": 0.9999773810317227,
+      "competing_abs_correlation": 0.8188611729202604,
+      "coarse_peak_margin": 0.18111620811146234,
+      "source_start_seconds": 184.04225044230446,
+      "source_center_seconds": 185.29225044230446,
+      "source_minus_capture_seconds": 168.04225044230446,
+      "fine_correlation": 0.9999733535831382,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 17.0,
+      "capture_end_seconds": 19.5,
+      "capture_center_seconds": 18.25,
+      "rms_dbfs": -74.54155038084738,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    },
+    {
+      "capture_start_seconds": 18.0,
+      "capture_end_seconds": 20.5,
+      "capture_center_seconds": 19.25,
+      "rms_dbfs": -84.1181136061987,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    },
+    {
+      "capture_start_seconds": 19.0,
+      "capture_end_seconds": 21.5,
+      "capture_center_seconds": 20.25,
+      "rms_dbfs": -110.26307985084838,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    },
+    {
+      "capture_start_seconds": 20.0,
+      "capture_end_seconds": 22.5,
+      "capture_center_seconds": 21.25,
+      "rms_dbfs": -300.0,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    },
+    {
+      "capture_start_seconds": 21.0,
+      "capture_end_seconds": 23.5,
+      "capture_center_seconds": 22.25,
+      "rms_dbfs": -300.0,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    },
+    {
+      "capture_start_seconds": 21.6291875,
+      "capture_end_seconds": 24.1291875,
+      "capture_center_seconds": 22.8791875,
+      "rms_dbfs": -300.0,
+      "accepted": false,
+      "reason": "quiet_or_paused_window"
+    }
+  ],
+  "quiet_intervals_seconds": [
+    [
+      0.0,
+      0.56
+    ],
+    [
+      17.11,
+      17.35
+    ],
+    [
+      17.64,
+      24.12
+    ]
+  ],
+  "limitations": [
+    "Waveform match is evidence of recording identity and relative timing, not subjective listening approval.",
+    "Fit residual is observed anchor consistency, not a guaranteed bound on video capture latency or every sample.",
+    "Parabolic sub-sample positions are estimates; do not equate them with independently verified physical-clock accuracy.",
+    "Repeated music can produce ambiguous matches. Low-margin anchors are excluded.",
+    "Pause/seek boundaries need actual capture/player PTS. Window centers do not locate an action boundary exactly."
+  ],
+  "export": {
+    "requested": false,
+    "performed": false
+  }
+}

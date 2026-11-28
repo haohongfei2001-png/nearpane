@@ -1,0 +1,92 @@
+{
+  "output": "/workspace/scratch/be9b9c627bdc/film-v3-delivery/Nearpane-ZH-v3-4K.mp4",
+  "duration": 39.0,
+  "canvas": [
+    3840,
+    2160
+  ],
+  "language": "zh",
+  "scenes": [
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/native/core/core-fullscreen.mov",
+      "in": 0.5236244841,
+      "conformed_source_in": 0.5333333333333333,
+      "duration": 17.4763755159,
+      "timeline_in": 0.0,
+      "conformed_frames": 524,
+      "crop": null,
+      "provenance": "Native Music to Preview continuous recording, production lyric view and actual cover/control state; source=video+147.0763755159."
+    },
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/native/qqmusic/source2-fullscreen.mov",
+      "in": 4.5313738875,
+      "conformed_source_in": 4.533333333333333,
+      "duration": 5.5236244841,
+      "timeline_in": 17.4763755159,
+      "conformed_frames": 166,
+      "crop": null,
+      "provenance": "Real QQ Music local playback and native lyric card; source=video+160.5450016285."
+    },
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/processed/dual-order-detail-4k.mkv",
+      "in": 0.0,
+      "conformed_source_in": 0.0,
+      "duration": 8.29225053873157,
+      "timeline_in": 23.0,
+      "conformed_frames": 249,
+      "crop": null,
+      "provenance": "Same-time native enabled management rows and two native cards. True empty one-row Riftlet, actual management reorder. No unshipped module rows; no interface redrawing or synthetic reorder animation."
+    },
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/native/dual/host-fullscreen.mov",
+      "in": 10.85,
+      "conformed_source_in": 10.866666666666667,
+      "duration": 0.70774946126843,
+      "timeline_in": 31.292250538731572,
+      "conformed_frames": 21,
+      "crop": null,
+      "provenance": "Actual clean native desktop and reordered one-row Riftlet. Song source clock video+168.04225053873157; original song continuity retained."
+    },
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/native/dual/host-fullscreen.mov",
+      "in": 18.5,
+      "conformed_source_in": 18.5,
+      "duration": 1.7,
+      "timeline_in": 32.0,
+      "conformed_frames": 51,
+      "crop": [
+        800,
+        720,
+        1600,
+        900
+      ],
+      "provenance": "Real region selection of owned coastal desktop. Original speed, no lyric or player UI; continuous song used as editorial score."
+    },
+    {
+      "file": "/workspace/scratch/be9b9c627bdc/film-v3-project/assets/processed/riftlet-expansion-detail-4k.mkv",
+      "in": 0.0,
+      "conformed_source_in": 0.0,
+      "duration": 2.3,
+      "timeline_in": 33.7,
+      "conformed_frames": 69,
+      "crop": null,
+      "provenance": "Continuous native Riftlet raw20.6–22.9: empty one row to actual screenshot two rows. Actual height mask follows observed native frame, including one-pixel top change. Acquired PNG revealed after actual thumbnail. No lyric/player UI and no invented height tween."
+    }
+  ],
+  "audio": {
+    "file": "../assets/audio/nearpane-zh-narrated39.wav",
+    "original_music_source_interval": [
+      147.6,
+      186.6
+    ],
+    "method": "Original licensed song plus six synthesized Chinese narration lines. Gentle music ducking under speech. Native visible-lyric intervals remain original-song clock matched; later screenshot-only cutaways use the original song as score.",
+    "mix_receipt": "../assets/audio/narration/mix-receipt.json",
+    "target_lufs": -16,
+    "voice_model": "Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "speaker": "Uncle_Fu",
+    "human_recording": false
+  },
+  "sha256": "c32e464a7e6a7363f8e7590db24cc930a7398f1a393e97baad9df2096171e7b1",
+  "source_integrity": "All source intervals checked; original-speed video; no frame interpolation.",
+  "release_stage": "product preview; integrated public download not verified"
+}

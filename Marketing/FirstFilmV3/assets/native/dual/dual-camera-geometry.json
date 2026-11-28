@@ -1,0 +1,36 @@
+{
+  "backingScale" : 2,
+  "baseProductCommit" : "d5767d87bc45245b31d0980e91e43778c5f424ed",
+  "canonicalEmptyAndFullTrayHeights" : [
+    76,
+    144
+  ],
+  "displayID" : 2,
+  "emptyOwnedProfile" : "\/Users\/runner\/work\/_temp\/film-v2-host-repo\/build\/native-acceptance\/c1cd249a-901c-4797-9f0c-d9b5fc67feb2\/support",
+  "managementFrame" : [
+    2040,
+    228,
+    1180,
+    740
+  ],
+  "panelFrame" : [
+    3532,
+    925,
+    280,
+    103
+  ],
+  "photographyScale" : 1.3461538461538463,
+  "pid" : 11750,
+  "rightAnchorPoints" : 28,
+  "screenFrame" : [
+    1920,
+    0,
+    1920,
+    1080
+  ],
+  "sourceCommit" : "75911f8db472fe5fd2ffb0d7d9970dcfe241c3b3",
+  "systemReduceMotion" : false,
+  "topAnchorPoints" : 52,
+  "trayHeightAuthority" : "LayoutComposer.compose(... trayRows: TrayModule.rowCount).screenshots.height",
+  "unreleasedArtworkFix" : true
+}

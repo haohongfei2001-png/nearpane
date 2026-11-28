@@ -1,0 +1,20 @@
+{
+  "asset": "assets/audio/narration/raw/*.wav",
+  "type": "new synthesized narration",
+  "text_owner": "HOLDSNOW production copy created for this project",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "model_revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "source_url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "runtime_source": "https://github.com/QwenLM/Qwen3-TTS",
+  "runtime_package": "qwen-tts==0.1.1",
+  "speaker": "Uncle_Fu",
+  "human_voice_clone": false,
+  "third_party_reference_recording_used": false,
+  "model_weights_distributed_in_project": false,
+  "generation_method": "Local CPU inference with predefined generic preset. Telemetry disabled before import; offline local weights.",
+  "rights_scope": "The model/runtime license is recorded; no claim of exclusive ownership of a human voice or third-party endorsement.",
+  "publication_label": "AI-generated Chinese narration.",
+  "processing": "Trim edge silence with breathing margin,70Hz highpass,2:1 compression,dialogue normalization,music ducking,full mix normalization. No speed or pitch alteration.",
+  "subjective_listening": "Not available in this execution environment; content verified by independent ASR and waveform/loudness review."
+}

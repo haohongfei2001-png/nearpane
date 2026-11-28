@@ -1,0 +1,70 @@
+[
+  {
+    "key": "sources",
+    "expected_text": "也能跟随 QQ 音乐。",
+    "transcription": "也能跟隨QQ音樂",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "music_mixed_under_dialogue": true,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 2.0,
+        "text": "也能跟隨QQ音樂",
+        "avg_logprob": -0.316015211018649,
+        "words": [
+          {
+            "word": "也",
+            "start": 0.0,
+            "end": 0.4,
+            "probability": 0.9429351687431335
+          },
+          {
+            "word": "能",
+            "start": 0.4,
+            "end": 0.6,
+            "probability": 0.9984537363052368
+          },
+          {
+            "word": "跟",
+            "start": 0.6,
+            "end": 0.78,
+            "probability": 0.9875050783157349
+          },
+          {
+            "word": "隨",
+            "start": 0.78,
+            "end": 1.06,
+            "probability": 0.8713738322257996
+          },
+          {
+            "word": "Q",
+            "start": 1.06,
+            "end": 1.4,
+            "probability": 0.9092501401901245
+          },
+          {
+            "word": "Q",
+            "start": 1.4,
+            "end": 1.62,
+            "probability": 0.9962093830108643
+          },
+          {
+            "word": "音",
+            "start": 1.62,
+            "end": 1.86,
+            "probability": 0.9958773851394653
+          },
+          {
+            "word": "樂",
+            "start": 1.86,
+            "end": 2.0,
+            "probability": 0.9932655096054077
+          }
+        ]
+      }
+    ]
+  }
+]

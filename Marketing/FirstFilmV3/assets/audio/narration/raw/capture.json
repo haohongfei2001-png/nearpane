@@ -1,0 +1,31 @@
+{
+  "key": "capture",
+  "text": "截图之后，卡片自然展开。",
+  "language": "Chinese",
+  "speaker": "Uncle_Fu",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "seed": 1133,
+  "generation_parameters": {
+    "text": "截图之后，卡片自然展开。",
+    "speaker": "Uncle_Fu",
+    "language": "Chinese",
+    "non_streaming_mode": true,
+    "do_sample": true,
+    "temperature": 0.75,
+    "top_p": 0.95,
+    "top_k": 50,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 192
+  },
+  "sample_rate": 24000,
+  "samples": 103680,
+  "duration": 4.32,
+  "generation_seconds": 30.14,
+  "peak": 0.5827096700668335,
+  "dtype": "float32",
+  "device": "cpu",
+  "sha256": "a9ca14f7e1327d0640571a400f84bfb04dba69a6eb1a4fdc950619def6db094c",
+  "status": "SYNTHESIZED_NOT_SUBJECTIVELY_AUDITIONED"
+}

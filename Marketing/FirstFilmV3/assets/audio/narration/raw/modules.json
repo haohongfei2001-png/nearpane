@@ -1,0 +1,31 @@
+{
+  "key": "modules",
+  "text": "把需要的功能，放在一起。",
+  "language": "Chinese",
+  "speaker": "Uncle_Fu",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "seed": 1132,
+  "generation_parameters": {
+    "text": "把需要的功能，放在一起。",
+    "speaker": "Uncle_Fu",
+    "language": "Chinese",
+    "non_streaming_mode": true,
+    "do_sample": true,
+    "temperature": 0.75,
+    "top_p": 0.95,
+    "top_k": 50,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 192
+  },
+  "sample_rate": 24000,
+  "samples": 96000,
+  "duration": 4.0,
+  "generation_seconds": 18.66,
+  "peak": 0.7221879363059998,
+  "dtype": "float32",
+  "device": "cpu",
+  "sha256": "6c07495e1ed914fb6ea905964b439675901f96a913e412bd0d102e10b506f068",
+  "status": "SYNTHESIZED_NOT_SUBJECTIVELY_AUDITIONED"
+}

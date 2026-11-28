@@ -1,0 +1,251 @@
+{
+  "movie": "host-fullscreen.mov",
+  "sha256": "677859e7a748cc94291231c43956b5c532c2b087eaed46dbbc70666244ef8eeb",
+  "duration": 24.2,
+  "pixels": [
+    3840,
+    2160
+  ],
+  "writerCompleted": true,
+  "nativeFrameCount": 649,
+  "realSystemAudioBuffers": 1203,
+  "actualEmptyAX": {
+    "nearpane-lyrics-card": [
+      3532,
+      52,
+      280,
+      258.46153846153845
+    ],
+    "film-riftlet-card": [
+      3532,
+      326.5,
+      280,
+      102.30769230769232
+    ],
+    "tray-camera-entry": [
+      3540.076923076923,
+      334.5769230769231,
+      127.8846153846154,
+      86.15384615384613
+    ],
+    "tray-file-drop": [
+      3724.5,
+      364.8653846153845,
+      31.634615384615387,
+      25.576923076923038
+    ]
+  },
+  "actualFullAX": {
+    "film-riftlet-card": [
+      3532,
+      52.5,
+      280,
+      193.84615384615387
+    ],
+    "tray-file-drop": [
+      3588.5384615384614,
+      183.0769230769231,
+      31.634615384615394,
+      25.576923076923066
+    ],
+    "nearpane-lyrics-card": [
+      3532,
+      262,
+      280,
+      258.46153846153845
+    ]
+  },
+  "sourceDerivedDynamicHeightsMatchedByAX": true,
+  "firstObservedTwoRowsAndActualAssetVideoPTSApprox": 21.170554041666662,
+  "firstObservedReorderVideoPTSApprox": 7.065329625000061,
+  "heightChangeInsideRecordedInterval": true,
+  "actualPointerEvents": [
+    {
+      "action": "actual-input-reorder",
+      "events": [
+        {
+          "point": [
+            2684.5,
+            387
+          ],
+          "type": 1,
+          "uptime": 514.78087325,
+          "videoPTSApprox": 3.630373249999991
+        },
+        {
+          "point": [
+            2684.5,
+            317
+          ],
+          "type": 2,
+          "uptime": 518.166993,
+          "videoPTSApprox": 7.016493000000025
+        }
+      ]
+    },
+    {
+      "action": "actual-input-close-management",
+      "events": [
+        {
+          "point": [
+            2056,
+            128
+          ],
+          "type": 1,
+          "uptime": 521.0793147083334,
+          "videoPTSApprox": 9.928814708333391
+        },
+        {
+          "point": [
+            2056,
+            128
+          ],
+          "type": 2,
+          "uptime": 521.2344738333334,
+          "videoPTSApprox": 10.083973833333346
+        }
+      ]
+    },
+    {
+      "action": "actual-input-camera",
+      "events": [
+        {
+          "point": [
+            3604.0192307692305,
+            103.15384615384617
+          ],
+          "type": 1,
+          "uptime": 523.0957305416667,
+          "videoPTSApprox": 11.945230541666717
+        },
+        {
+          "point": [
+            3604.0192307692305,
+            103.15384615384617
+          ],
+          "type": 2,
+          "uptime": 523.1835219166667,
+          "videoPTSApprox": 12.033021916666655
+        }
+      ]
+    },
+    {
+      "action": "actual-input-region",
+      "events": [
+        {
+          "point": [
+            3588.201923076923,
+            103.49038461538464
+          ],
+          "type": 1,
+          "uptime": 525.095360875,
+          "videoPTSApprox": 13.94486087499996
+        },
+        {
+          "point": [
+            3588.201923076923,
+            103.49038461538464
+          ],
+          "type": 2,
+          "uptime": 525.2329197500001,
+          "videoPTSApprox": 14.082419750000042
+        }
+      ]
+    },
+    {
+      "action": "actual-input-select-region",
+      "events": [
+        {
+          "point": [
+            2390,
+            432
+          ],
+          "type": 1,
+          "uptime": 527.5683675833334,
+          "videoPTSApprox": 16.41786758333336
+        },
+        {
+          "point": [
+            3050,
+            732
+          ],
+          "type": 2,
+          "uptime": 531.3527044166667,
+          "videoPTSApprox": 20.20220441666669
+        }
+      ]
+    }
+  ],
+  "timingCaveat": "Uptime minus first video PTS locates events; sourceclock comes from independently measured recorded waveform.",
+  "visualVerification": "PASS: actual encoded frames were visually inspected. One-row empty tray, true management reorder, native region capture, two-row layout, then actual coastal thumbnail all appear in the same completed movie. No interpolated frames or reconstructed UI were used.",
+  "fullAudioVideoDecode": {
+    "status": "PASS",
+    "command": "ffmpeg -v error -i host-fullscreen.mov -map 0:v:0 -map 0:a:0 -f null -",
+    "exitCode": 0
+  },
+  "sourceClock": {
+    "formula": "sourceSeconds = rawVideoSeconds + 168.04225053873157",
+    "basis": "Independently cross-correlated actual captured system audio against original licensed OGG. Not based on requested seek or wall clock.",
+    "medianNCC": 0.9999556520157026,
+    "musicTailQuietFromVideoSeconds": 17.64,
+    "limitation": "Do not extend this mapping to claim music continues playing after its recorded tail. Later native capture is still valid visual evidence."
+  },
+  "encodedVisualEvents": {
+    "reorderLastPreviousFramePTS": 7.116667,
+    "reorderFirstSwappedFramePTS": 7.15,
+    "resizeLastOneRowFramePTS": 21.166667,
+    "resizeFirstTwoRowLoadingFramePTS": 21.2,
+    "firstActualThumbnailFramePTS": 21.233333,
+    "intermediateReorderOrResizeGeometryObserved": false,
+    "instruction": "Follow exact encoded layout changes; do not invent position or height interpolation."
+  },
+  "actualMoviePixelGeometry": {
+    "coordinateSystem": "Top-left of captured 3840 x 2160 display; photographic display begins at global logical x1920 and has backingScale2. Border coordinates omit outer shadow.",
+    "beforeSwap": {
+      "lyrics": [
+        3224,
+        104,
+        560,
+        516.9230769230769
+      ],
+      "riftlet": [
+        3224,
+        653,
+        560,
+        204.61538461538464
+      ]
+    },
+    "afterSwapEmpty": {
+      "lyrics": [
+        3224,
+        341,
+        560,
+        516.9230769230769
+      ],
+      "riftlet": [
+        3224,
+        104,
+        560,
+        204.61538461538464
+      ]
+    },
+    "afterAssetTwoRows": {
+      "lyrics": [
+        3224,
+        524,
+        560,
+        516.9230769230769
+      ],
+      "riftlet": [
+        3224,
+        105,
+        560,
+        387.69230769230774
+      ]
+    },
+    "measurementAuthority": "Initial/final actual AX rectangles; after-swap empty camera-entry AX minus unchanged native padding plus original encoded-pixel edge check. Fractional heights are actual AX/native layout, raster extent rounds at boundaries.",
+    "riftletNativeContinuousCornerRadiusPixels": 48.46153846153846,
+    "roundingNote": "On expansion, actual native top border moves downward by one physical pixel. Keep this observed rounding in any matte.",
+    "cropNote": "A fixed final-height crop before expansion would include part of the real lyric card underneath. Follow the real per-state card rectangle; never rescale tray contents to change its height."
+  }
+}

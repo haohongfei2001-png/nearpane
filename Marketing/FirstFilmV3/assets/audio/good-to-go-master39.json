@@ -1,0 +1,25 @@
+{
+  "source": "/workspace/scratch/be9b9c627bdc/v2-song-research/candidates/good-to-go.ogg",
+  "source_sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64",
+  "start": 147.6,
+  "duration": 39.0,
+  "video_origin_pts": 0.0,
+  "decoded_audio_extent": 187.451497,
+  "fade_in": 0.005,
+  "fade_out": 2.4,
+  "loudnorm_first_pass": {
+    "input_i": "-7.72",
+    "input_tp": "0.39",
+    "input_lra": "7.40",
+    "input_thresh": "-18.76",
+    "output_i": "-15.67",
+    "output_tp": "-6.84",
+    "output_lra": "7.40",
+    "output_thresh": "-26.40",
+    "normalization_type": "dynamic",
+    "target_offset": "-0.33"
+  },
+  "output": "/workspace/scratch/be9b9c627bdc/film-v2-project/assets/audio/good-to-go-master39.wav",
+  "sha256": "a72472488969f7b97afceeabfe0456e54c311a1ba82eefda082d31185511ac15",
+  "method": "Timestamp-preserving resample; source interval; short ramps; two-pass loudness normalization. No time stretch or pitch change."
+}

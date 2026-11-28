@@ -1,0 +1,22 @@
+{
+  "scenes": [
+    {
+      "file": "../assets/native/core/core-fullscreen.mov",
+      "in": 11.9236244841,
+      "duration": 6,
+      "provenance": "Native continuous Preview-to-hover recording, original speed."
+    }
+  ],
+  "captions": [
+    {
+      "key": "controls",
+      "start": 0.7,
+      "end": 4.7
+    }
+  ],
+  "end_duration": 0,
+  "audio": {
+    "file": "../assets/audio/proof-voiced6.wav"
+  },
+  "runtime_seconds": 6
+}

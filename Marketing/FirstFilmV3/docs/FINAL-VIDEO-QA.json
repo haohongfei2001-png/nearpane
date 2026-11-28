@@ -1,0 +1,60 @@
+[
+  {
+    "file": "Nearpane-ZH-v3-1080p.mp4",
+    "sha256": "1e3ea25dd2cbbd1373741a06c9415bea38fff59dccb02f7071cea1341ebee3ce",
+    "bytes": 4010714,
+    "duration": 39.0,
+    "video": {
+      "codec_name": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "r_frame_rate": "30/1",
+      "nb_frames": "1170",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "color_primaries": "bt709"
+    },
+    "audio": {
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "308785"
+    },
+    "decoded_without_errors": true,
+    "loudness_lufs": -16.02,
+    "true_peak_dbtp": -2.04,
+    "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+    "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+  },
+  {
+    "file": "Nearpane-ZH-v3-4K.mp4",
+    "sha256": "c32e464a7e6a7363f8e7590db24cc930a7398f1a393e97baad9df2096171e7b1",
+    "bytes": 8857494,
+    "duration": 39.0,
+    "video": {
+      "codec_name": "h264",
+      "width": 3840,
+      "height": 2160,
+      "pix_fmt": "yuv420p",
+      "r_frame_rate": "30/1",
+      "nb_frames": "1170",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "color_primaries": "bt709"
+    },
+    "audio": {
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "308785"
+    },
+    "decoded_without_errors": true,
+    "loudness_lufs": -16.02,
+    "true_peak_dbtp": -2.04,
+    "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+    "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+  }
+]

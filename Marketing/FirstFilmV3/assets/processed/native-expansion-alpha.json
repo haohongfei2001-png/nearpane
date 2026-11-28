@@ -1,0 +1,51 @@
+{
+  "mode": "capture",
+  "source": "assets/native/dual/host-fullscreen.mov",
+  "source_sha256": "677859e7a748cc94291231c43956b5c532c2b087eaed46dbbc70666244ef8eeb",
+  "source_start": 20.6,
+  "conformed_source_start": 20.6,
+  "source_duration": 2.3,
+  "frames": 69,
+  "fps": 30,
+  "pixel_scale": 1,
+  "place_output_at_movie_xy": [
+    3176,
+    56
+  ],
+  "crop_origin": [
+    3224,
+    104
+  ],
+  "actual_native_rounding_radius": 48.461538,
+  "state_changes": [
+    {
+      "output_frame": 0,
+      "output_seconds": 0.0,
+      "state": 0,
+      "observed_green_median": 148.0,
+      "rects_relative_to_movie_3224_104": [
+        [
+          0,
+          205
+        ]
+      ]
+    },
+    {
+      "output_frame": 18,
+      "output_seconds": 0.6,
+      "state": 1,
+      "observed_green_median": 230.0,
+      "rects_relative_to_movie_3224_104": [
+        [
+          1,
+          388
+        ]
+      ]
+    }
+  ],
+  "product_pixels_redrawn": false,
+  "motion_interpolation": false,
+  "mask_authority": "Production AX geometry plus actual native frame changes; frame state is measured from pixels.",
+  "editorial_only": "Transparent outer mask and soft paper-composition shadow; card content unchanged.",
+  "output_sha256": "31065bc06d357eda91cc063df72d3bf739af6dd2a05f47e972d67b72731bc764"
+}

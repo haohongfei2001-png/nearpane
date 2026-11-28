@@ -1,0 +1,18 @@
+{
+  "source": "assets/native/dual/host-fullscreen.mov",
+  "source_in": 2.55774946126843,
+  "duration": 8.29225053873157,
+  "management_crop": [
+    624,
+    488,
+    1950,
+    368
+  ],
+  "native_cards": "native-order-alpha.json",
+  "same_native_source_time_for_management_and_cards": true,
+  "unreleased_rows_shown": false,
+  "product_pixels_redrawn": false,
+  "pixel_scale_cards": 1,
+  "source_speed": 1,
+  "output_sha256": "c5eb4b8d4896f7d2549fe95a49fa24bdca5d9796367e29fbb3a8691700c3e4b3"
+}

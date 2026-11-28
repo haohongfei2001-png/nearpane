@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "status": "CONTINUOUS_MATCH",
+  "capture": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-source2/capture-2/source2-fullscreen.mov",
+    "bytes": 10077131,
+    "sha256": "b157956f42d21e1db3a8cd246a253dad81bfaa0945632ed212f9c42d804a273b"
+  },
+  "original": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-song-research/candidates/good-to-go.ogg",
+    "bytes": 10870303,
+    "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64"
+  },
+  "timeline": {
+    "capture_zero_definition": "First presented video frame PTS; audio-only input uses its first audio-frame PTS.",
+    "video_origin_original_pts_seconds": 0.0,
+    "first_audio_original_pts_seconds": 0.765312,
+    "first_audio_minus_video_origin_seconds": 0.765312,
+    "analysis_duration_seconds": 13.563979166666666,
+    "sample_rate_hz": 48000,
+    "decode": "copyts; subtract video origin; aresample async=1 first_pts=0. Timestamp gaps/positive audio offset are retained as silence."
+  },
+  "method": "Independent overlapping-window normalized waveform correlation over the whole original at12kHz, competitor test outside±250ms, local48kHz refinement±20ms and parabolic sub-sample peak estimate. Fit source-time mapping per stable-offset region.",
+  "thresholds": {
+    "minimum_abs_correlation": 0.85,
+    "minimum_competing_peak_margin": 0.03,
+    "offset_change_to_split_ms": 40,
+    "window_seconds": 2.5,
+    "hop_seconds": 1.0
+  },
+  "segments": [
+    {
+      "anchor_count": 10,
+      "capture_window_coverage_seconds": [
+        2.0,
+        13.5
+      ],
+      "source_seconds_formula": "source = rate * capture_video_seconds + intercept",
+      "source_at_video_zero_extrapolated_seconds": 160.54500128775263,
+      "rate": 1.0000000348772808,
+      "rate_difference_ppm": 0.034877280841172364,
+      "constant_offset_median_seconds": 160.54500161579585,
+      "fit_residual_rms_ms": 0.0001813658980873522,
+      "fit_residual_p95_absolute_ms": 0.0003418979574121292,
+      "fit_residual_max_absolute_ms": 0.0004587776345488237,
+      "median_abs_correlation": 0.9999082113756665,
+      "minimum_abs_correlation": 0.8521575841275463,
+      "minimum_competing_peak_margin": 0.40031527232354175,
+      "anchor_capture_centers_seconds": [
+        3.25,
+        4.25,
+        5.25,
+        6.25,
+        7.25,
+        8.25,
+        9.25,
+        10.25,
+        11.25,
+        12.25
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "capture_start_seconds": 0.0,
+      "capture_end_seconds": 2.5,
+      "capture_center_seconds": 1.25,
+      "rms_dbfs": -22.698136748852377,
+      "coarse_source_start_seconds": 8.031404489040197,
+      "coarse_correlation": 0.6944281540584945,
+      "competing_abs_correlation": 0.2529778993294187,
+      "coarse_peak_margin": 0.44145025472907573,
+      "source_start_seconds": 8.03137677487116,
+      "source_center_seconds": 9.28137677487116,
+      "source_minus_capture_seconds": 8.03137677487116,
+      "fine_correlation": 0.694820103401047,
+      "accepted": false,
+      "reason": "weak_or_ambiguous_match"
+    },
+    {
+      "capture_start_seconds": 1.0,
+      "capture_end_seconds": 3.5,
+      "capture_center_seconds": 2.25,
+      "rms_dbfs": -22.56106031776575,
+      "coarse_source_start_seconds": 9.031480922316078,
+      "coarse_correlation": 0.49270450793746445,
+      "competing_abs_correlation": 0.3071737595515366,
+      "coarse_peak_margin": 0.18553074838592787,
+      "source_start_seconds": 9.031485569624621,
+      "source_center_seconds": 10.281485569624621,
+      "source_minus_capture_seconds": 8.031485569624621,
+      "fine_correlation": 0.4924878304822376,
+      "accepted": false,
+      "reason": "weak_or_ambiguous_match"
+    },
+    {
+      "capture_start_seconds": 2.0,
+      "capture_end_seconds": 4.5,
+      "capture_center_seconds": 3.25,
+      "rms_dbfs": -17.946474624664987,
+      "coarse_source_start_seconds": 162.5450005399469,
+      "coarse_correlation": 0.8527094499263107,
+      "competing_abs_correlation": 0.45239417760276895,
+      "coarse_peak_margin": 0.40031527232354175,
+      "source_start_seconds": 162.54500094232614,
+      "source_center_seconds": 163.79500094232614,
+      "source_minus_capture_seconds": 160.54500094232614,
+      "fine_correlation": 0.8521575841275463,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 3.0,
+      "capture_end_seconds": 5.5,
+      "capture_center_seconds": 4.25,
+      "rms_dbfs": -16.240611359197278,
+      "coarse_source_start_seconds": 163.54500156581958,
+      "coarse_correlation": 0.9773740375949174,
+      "competing_abs_correlation": 0.4339871663764238,
+      "coarse_peak_margin": 0.5433868712184935,
+      "source_start_seconds": 163.54500159812284,
+      "source_center_seconds": 164.79500159812284,
+      "source_minus_capture_seconds": 160.54500159812284,
+      "fine_correlation": 0.9769705341856072,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 4.0,
+      "capture_end_seconds": 6.5,
+      "capture_center_seconds": 5.25,
+      "rms_dbfs": -15.041878141590356,
+      "coarse_source_start_seconds": 164.54500161443966,
+      "coarse_correlation": 0.9999416505423598,
+      "competing_abs_correlation": 0.2901442541031601,
+      "coarse_peak_margin": 0.7097973964391997,
+      "source_start_seconds": 164.54500166990337,
+      "source_center_seconds": 165.79500166990337,
+      "source_minus_capture_seconds": 160.54500166990337,
+      "fine_correlation": 0.9999189926977439,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 5.0,
+      "capture_end_seconds": 7.5,
+      "capture_center_seconds": 6.25,
+      "rms_dbfs": -14.60722551599186,
+      "coarse_source_start_seconds": 165.54500161470932,
+      "coarse_correlation": 0.9999368437978225,
+      "competing_abs_correlation": 0.2502832053313378,
+      "coarse_peak_margin": 0.7496536384664847,
+      "source_start_seconds": 165.54500167331238,
+      "source_center_seconds": 166.79500167331238,
+      "source_minus_capture_seconds": 160.54500167331238,
+      "fine_correlation": 0.9999105591784369,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 6.0,
+      "capture_end_seconds": 8.5,
+      "capture_center_seconds": 7.25,
+      "rms_dbfs": -14.320147610862797,
+      "coarse_source_start_seconds": 166.54500159664906,
+      "coarse_correlation": 0.9999471873143626,
+      "competing_abs_correlation": 0.23372016526880024,
+      "coarse_peak_margin": 0.7662270220455624,
+      "source_start_seconds": 166.54500163103893,
+      "source_center_seconds": 167.79500163103893,
+      "source_minus_capture_seconds": 160.54500163103893,
+      "fine_correlation": 0.9999179627990602,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 7.0,
+      "capture_end_seconds": 9.5,
+      "capture_center_seconds": 8.25,
+      "rms_dbfs": -14.21457277356565,
+      "coarse_source_start_seconds": 167.54500162658204,
+      "coarse_correlation": 0.9999584806037639,
+      "competing_abs_correlation": 0.23698259177488176,
+      "coarse_peak_margin": 0.7629758888288821,
+      "source_start_seconds": 167.54500161098855,
+      "source_center_seconds": 168.79500161098855,
+      "source_minus_capture_seconds": 160.54500161098855,
+      "fine_correlation": 0.9999351650850656,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 8.0,
+      "capture_end_seconds": 10.5,
+      "capture_center_seconds": 9.25,
+      "rms_dbfs": -15.069937864569226,
+      "coarse_source_start_seconds": 168.54500157635047,
+      "coarse_correlation": 0.9999511901315812,
+      "competing_abs_correlation": 0.20175574797280552,
+      "coarse_peak_margin": 0.7981954421587757,
+      "source_start_seconds": 168.54500157818802,
+      "source_center_seconds": 169.79500157818802,
+      "source_minus_capture_seconds": 160.54500157818802,
+      "fine_correlation": 0.9999252755708657,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 9.0,
+      "capture_end_seconds": 11.5,
+      "capture_center_seconds": 10.25,
+      "rms_dbfs": -15.437747709207592,
+      "coarse_source_start_seconds": 169.5450015764769,
+      "coarse_correlation": 0.9999304303830808,
+      "competing_abs_correlation": 0.2713558154356791,
+      "coarse_peak_margin": 0.7285746149474017,
+      "source_start_seconds": 169.54500164504393,
+      "source_center_seconds": 170.79500164504393,
+      "source_minus_capture_seconds": 160.54500164504393,
+      "fine_correlation": 0.9999058635728963,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 10.0,
+      "capture_end_seconds": 12.5,
+      "capture_center_seconds": 11.25,
+      "rms_dbfs": -15.000039410838713,
+      "coarse_source_start_seconds": 170.5450014845316,
+      "coarse_correlation": 0.9999183288184523,
+      "competing_abs_correlation": 0.2564639086727354,
+      "coarse_peak_margin": 0.7434544201457169,
+      "source_start_seconds": 170.54500161602925,
+      "source_center_seconds": 171.79500161602925,
+      "source_minus_capture_seconds": 160.54500161602925,
+      "fine_correlation": 0.9998937946940786,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 11.0,
+      "capture_end_seconds": 13.5,
+      "capture_center_seconds": 12.25,
+      "rms_dbfs": -14.523269849648555,
+      "coarse_source_start_seconds": 171.54500150251607,
+      "coarse_correlation": 0.9999197868981222,
+      "competing_abs_correlation": 0.22296959703843777,
+      "coarse_peak_margin": 0.7769501898596844,
+      "source_start_seconds": 171.54500161556246,
+      "source_center_seconds": 172.79500161556246,
+      "source_minus_capture_seconds": 160.54500161556246,
+      "fine_correlation": 0.9998953674128402,
+      "accepted": true
+    }
+  ],
+  "quiet_intervals_seconds": [
+    [
+      0.0,
+      0.76
+    ],
+    [
+      2.85,
+      3.12
+    ]
+  ],
+  "limitations": [
+    "Waveform match is evidence of recording identity and relative timing, not subjective listening approval.",
+    "Fit residual is observed anchor consistency, not a guaranteed bound on video capture latency or every sample.",
+    "Parabolic sub-sample positions are estimates; do not equate them with independently verified physical-clock accuracy.",
+    "Repeated music can produce ambiguous matches. Low-margin anchors are excluded.",
+    "Pause/seek boundaries need actual capture/player PTS. Window centers do not locate an action boundary exactly."
+  ],
+  "export": {
+    "requested": false,
+    "performed": false
+  },
+  "requested_region_review": {
+    "requested_video_seconds": [
+      4.5,
+      10.7
+    ],
+    "unique_peak_test": "Whole6.2-second region searched against entire original, competing peak excludes±250ms of primary peak.",
+    "coarse_correlation": 0.9999445451424989,
+    "competing_abs_correlation": 0.15669617470262906,
+    "competing_peak_margin": 0.8432483704398698,
+    "fine_correlation": 0.9999228588699954,
+    "source_start_seconds": 165.0450016284865,
+    "source_end_seconds": 171.24500162848648,
+    "constant_offset_seconds": 160.5450016284865,
+    "quiet_intervals_in_region": [],
+    "source_identity_confirmed": true,
+    "continuous_mapping_confirmed_by_overlapping_windows": true,
+    "core6_join": {
+      "core_video_out_seconds": 18.0,
+      "core_source_out_seconds": 165.29170203123246,
+      "qq_video_in_seconds": 4.746700402745972,
+      "qq_video_out_for_source170_6_seconds": 10.054998371513506,
+      "duration_to_source170_6_seconds": 5.308297968767533,
+      "audio_coverage_for_join": "Within observed continuous audio of both original captures.",
+      "precision_note": "Fractional-sample waveform estimates; displayed decimals are reproducible alignment parameters, not independent physical-clock precision."
+    },
+    "limitations": [
+      "This checks captured audio continuity; visual stability at the in-point is for the director to review.",
+      "No listening review, recognition rerun, or synthetic test was performed."
+    ]
+  }
+}

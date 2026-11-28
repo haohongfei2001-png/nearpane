@@ -1,0 +1,54 @@
+{
+  "language": "Chinese",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "speaker": "Uncle_Fu",
+  "seed": 1128,
+  "model_license": "Apache-2.0",
+  "instruct_supported": false,
+  "clips": [
+    {
+      "key": "opening",
+      "text": "打开音乐，歌词就在手边。",
+      "target_start": 0.65,
+      "target_end": 4.3
+    },
+    {
+      "key": "continuity",
+      "text": "切到文件继续看，歌词依然跟着音乐走。",
+      "target_start": 5.8,
+      "target_end": 11.2
+    },
+    {
+      "key": "controls",
+      "text": "鼠标移入，就能控制播放。",
+      "target_start": 12.5,
+      "target_end": 16.8
+    },
+    {
+      "key": "sources",
+      "text": "也能跟随 QQ 音乐。",
+      "target_start": 18.05,
+      "target_end": 22.6,
+      "music_duck_db": -18
+    },
+    {
+      "key": "modules",
+      "text": "把需要的功能，放在一起。",
+      "target_start": 24.0,
+      "target_end": 27.7
+    },
+    {
+      "key": "capture",
+      "text": "截图之后，卡片自然展开。",
+      "target_start": 31.8,
+      "target_end": 35.4
+    }
+  ],
+  "notes": [
+    "Six short explanations, not a continuous voiceover.",
+    "Do not infer automatic online lyric matching or seamless player transfer.",
+    "No model cloning; predefined generic speaker.",
+    "Synthesis is AI-generated; never describe as a human recording."
+  ]
+}

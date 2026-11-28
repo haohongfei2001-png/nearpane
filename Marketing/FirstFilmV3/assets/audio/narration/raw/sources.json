@@ -1,0 +1,31 @@
+{
+  "key": "sources",
+  "text": "也能跟随 QQ 音乐。",
+  "language": "Chinese",
+  "speaker": "Uncle_Fu",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "seed": 1131,
+  "generation_parameters": {
+    "text": "也能跟随 QQ 音乐。",
+    "speaker": "Uncle_Fu",
+    "language": "Chinese",
+    "non_streaming_mode": true,
+    "do_sample": true,
+    "temperature": 0.75,
+    "top_p": 0.95,
+    "top_k": 50,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 192
+  },
+  "sample_rate": 24000,
+  "samples": 69120,
+  "duration": 2.88,
+  "generation_seconds": 15.12,
+  "peak": 0.5372689962387085,
+  "dtype": "float32",
+  "device": "cpu",
+  "sha256": "f649740fb23e1d78782595d45d317ac0067585899b35a437916345804470ea5f",
+  "status": "SYNTHESIZED_NOT_SUBJECTIVELY_AUDITIONED"
+}

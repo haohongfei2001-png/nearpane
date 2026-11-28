@@ -1,0 +1,221 @@
+{
+  "duration_seconds": 39,
+  "sample_rate": 48000,
+  "samples": 1872000,
+  "placements": [
+    {
+      "key": "opening",
+      "text": "打开音乐，歌词就在手边。",
+      "raw_sha256": "bad1b92efdbccefa25c9b52bf02c95c8138041714122ba964ec389700a1af842",
+      "trim_raw_seconds": [
+        0.65,
+        3.71
+      ],
+      "timeline_seconds": [
+        0.65,
+        3.71
+      ],
+      "samples": 146880,
+      "normalization_input": {
+        "input_i": "-18.57",
+        "input_tp": "-6.63",
+        "input_lra": "0.00",
+        "input_thresh": "-28.89",
+        "output_i": "-17.43",
+        "output_tp": "-5.56",
+        "output_lra": "0.00",
+        "output_thresh": "-27.76",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.57"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -13.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/opening.wav"
+    },
+    {
+      "key": "continuity",
+      "text": "切到文件继续看，歌词依然跟着音乐走。",
+      "raw_sha256": "7e56f435eaf05de3c81bee6773f7f798907acf8adeb6d1bdd33bbacc6d95922a",
+      "trim_raw_seconds": [
+        0.29,
+        5.76
+      ],
+      "timeline_seconds": [
+        5.8,
+        11.27
+      ],
+      "samples": 262560,
+      "normalization_input": {
+        "input_i": "-19.84",
+        "input_tp": "-7.36",
+        "input_lra": "1.10",
+        "input_thresh": "-30.31",
+        "output_i": "-16.54",
+        "output_tp": "-3.38",
+        "output_lra": "2.00",
+        "output_thresh": "-27.00",
+        "normalization_type": "dynamic",
+        "target_offset": "-1.46"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -13.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/continuity.wav"
+    },
+    {
+      "key": "controls",
+      "text": "鼠标移入，就能控制播放。",
+      "raw_sha256": "1a095612409fa0984a512b6df7d024c71cb646d64a475ed94901ed26f93593a1",
+      "trim_raw_seconds": [
+        0.39,
+        3.64
+      ],
+      "timeline_seconds": [
+        12.5,
+        15.75
+      ],
+      "samples": 156000,
+      "normalization_input": {
+        "input_i": "-20.51",
+        "input_tp": "-6.21",
+        "input_lra": "0.30",
+        "input_thresh": "-30.82",
+        "output_i": "-17.46",
+        "output_tp": "-3.12",
+        "output_lra": "0.00",
+        "output_thresh": "-27.77",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.54"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -13.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/controls.wav"
+    },
+    {
+      "key": "sources",
+      "text": "也能跟随 QQ 音乐。",
+      "raw_sha256": "f649740fb23e1d78782595d45d317ac0067585899b35a437916345804470ea5f",
+      "trim_raw_seconds": [
+        0.32,
+        2.44
+      ],
+      "timeline_seconds": [
+        18.05,
+        20.17
+      ],
+      "samples": 101760,
+      "normalization_input": {
+        "input_i": "-18.87",
+        "input_tp": "-6.62",
+        "input_lra": "0.00",
+        "input_thresh": "-29.11",
+        "output_i": "-18.00",
+        "output_tp": "-5.74",
+        "output_lra": "0.00",
+        "output_thresh": "-28.23",
+        "normalization_type": "linear",
+        "target_offset": "-0.00"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -18.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/sources.wav"
+    },
+    {
+      "key": "modules",
+      "text": "把需要的功能，放在一起。",
+      "raw_sha256": "6c07495e1ed914fb6ea905964b439675901f96a913e412bd0d102e10b506f068",
+      "trim_raw_seconds": [
+        0.83,
+        3.37
+      ],
+      "timeline_seconds": [
+        24.0,
+        26.54
+      ],
+      "samples": 121920,
+      "normalization_input": {
+        "input_i": "-20.72",
+        "input_tp": "-5.88",
+        "input_lra": "0.00",
+        "input_thresh": "-30.91",
+        "output_i": "-18.01",
+        "output_tp": "-3.16",
+        "output_lra": "0.00",
+        "output_thresh": "-28.21",
+        "normalization_type": "linear",
+        "target_offset": "0.01"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -13.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/modules.wav"
+    },
+    {
+      "key": "capture",
+      "text": "截图之后，卡片自然展开。",
+      "raw_sha256": "a9ca14f7e1327d0640571a400f84bfb04dba69a6eb1a4fdc950619def6db094c",
+      "trim_raw_seconds": [
+        0.65,
+        4.02
+      ],
+      "timeline_seconds": [
+        31.8,
+        35.17
+      ],
+      "samples": 161760,
+      "normalization_input": {
+        "input_i": "-21.34",
+        "input_tp": "-6.90",
+        "input_lra": "0.30",
+        "input_thresh": "-31.64",
+        "output_i": "-17.50",
+        "output_tp": "-3.19",
+        "output_lra": "0.00",
+        "output_thresh": "-27.80",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.50"
+      },
+      "dialogue_target_lufs": -18,
+      "music_duck_db": -13.0,
+      "time_stretch": false,
+      "pitch_shift": false,
+      "file": "assets/audio/narration/processed/capture.wav"
+    }
+  ],
+  "music_source": "good-to-go-master39.wav",
+  "music_source_interval": [
+    147.6,
+    186.6
+  ],
+  "ducking": {
+    "attack_seconds": 0.22,
+    "hold_seconds": 0.1,
+    "release_seconds": 0.48,
+    "default_depth_db": -13,
+    "per_line_depths_in_placements": true
+  },
+  "mix_target_lufs": -16,
+  "true_peak_ceiling_dbtp": -2,
+  "premaster_measurements": {
+    "input_i": "-17.57",
+    "input_tp": "-2.16",
+    "input_lra": "4.50",
+    "input_thresh": "-28.22",
+    "output_i": "-15.66",
+    "output_tp": "-2.00",
+    "output_lra": "4.00",
+    "output_thresh": "-26.23",
+    "normalization_type": "dynamic",
+    "target_offset": "-0.34"
+  },
+  "final_sha256": "9cba457cc9392ebcf80ab7108808d5762d3540dc6a29e3874c1bd7224ed70996",
+  "audition_status": "Objective content, timing and levels checked separately; no subjective listening claim."
+}

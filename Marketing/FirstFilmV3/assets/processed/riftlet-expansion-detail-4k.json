@@ -1,0 +1,14 @@
+{
+  "source": "assets/native/dual/host-fullscreen.mov",
+  "source_in": 20.6,
+  "duration": 2.3,
+  "native_cards": "native-expansion-alpha.json",
+  "actual_acquired_image": "assets/native/dual/actual-captured-water.png",
+  "actual_acquired_image_sha256": "0bfcfd5f3ade0a96498a666c11b43ebb8aa6b406b205bc86c7d71a3ba2a0e9cc",
+  "editorial_photo_reveal": "Original acquired PNG, revealed only after actual thumbnail arrival. No product movement invented.",
+  "lyric_or_player_ui_in_cutaway": false,
+  "product_pixels_redrawn": false,
+  "pixel_scale_cards": 1,
+  "source_speed": 1,
+  "output_sha256": "d519b9527dd8c5afe48378718fc0c261455ba84b87128a4f16b116f2f4d4a09c"
+}

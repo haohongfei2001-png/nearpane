@@ -1,0 +1,489 @@
+[
+  {
+    "key": "opening",
+    "expected_text": "打开音乐，歌词就在手边。",
+    "transcription": "打开音乐,歌词就在手边。",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 3.48,
+        "text": "打开音乐,歌词就在手边。",
+        "avg_logprob": -0.3666813299059868,
+        "words": [
+          {
+            "word": "打",
+            "start": 0.0,
+            "end": 0.94,
+            "probability": 0.7819017767906189
+          },
+          {
+            "word": "开",
+            "start": 0.94,
+            "end": 1.14,
+            "probability": 0.7035170197486877
+          },
+          {
+            "word": "音",
+            "start": 1.14,
+            "end": 1.36,
+            "probability": 0.9931697845458984
+          },
+          {
+            "word": "乐,",
+            "start": 1.36,
+            "end": 1.58,
+            "probability": 0.9946072697639465
+          },
+          {
+            "word": "歌",
+            "start": 1.9,
+            "end": 2.24,
+            "probability": 0.9293416738510132
+          },
+          {
+            "word": "词",
+            "start": 2.24,
+            "end": 2.52,
+            "probability": 0.9678809940814972
+          },
+          {
+            "word": "就",
+            "start": 2.52,
+            "end": 2.88,
+            "probability": 0.9636530876159668
+          },
+          {
+            "word": "在",
+            "start": 2.88,
+            "end": 3.08,
+            "probability": 0.9981374740600586
+          },
+          {
+            "word": "手",
+            "start": 3.08,
+            "end": 3.24,
+            "probability": 0.9901614189147949
+          },
+          {
+            "word": "边。",
+            "start": 3.24,
+            "end": 3.48,
+            "probability": 0.984943151473999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "continuity",
+    "expected_text": "切到文件继续看，歌词依然跟着音乐走。",
+    "transcription": "切,道文件继续看,歌词依然跟着音乐走。",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 5.44,
+        "text": "切,道文件继续看,歌词依然跟着音乐走。",
+        "avg_logprob": -0.3253179673965161,
+        "words": [
+          {
+            "word": "切,",
+            "start": 0.0,
+            "end": 0.66,
+            "probability": 0.22837352752685547
+          },
+          {
+            "word": "道",
+            "start": 1.36,
+            "end": 1.68,
+            "probability": 0.4551580250263214
+          },
+          {
+            "word": "文",
+            "start": 1.68,
+            "end": 1.92,
+            "probability": 0.9608526825904846
+          },
+          {
+            "word": "件",
+            "start": 1.92,
+            "end": 2.14,
+            "probability": 0.9471178650856018
+          },
+          {
+            "word": "继",
+            "start": 2.14,
+            "end": 2.38,
+            "probability": 0.9519784152507782
+          },
+          {
+            "word": "续",
+            "start": 2.38,
+            "end": 2.64,
+            "probability": 0.9998506009578705
+          },
+          {
+            "word": "看,",
+            "start": 2.64,
+            "end": 2.84,
+            "probability": 0.9975807666778564
+          },
+          {
+            "word": "歌",
+            "start": 3.48,
+            "end": 3.68,
+            "probability": 0.8060801029205322
+          },
+          {
+            "word": "词",
+            "start": 3.68,
+            "end": 3.94,
+            "probability": 0.9500828683376312
+          },
+          {
+            "word": "依",
+            "start": 3.94,
+            "end": 4.2,
+            "probability": 0.9898844063282013
+          },
+          {
+            "word": "然",
+            "start": 4.2,
+            "end": 4.38,
+            "probability": 0.9997960925102234
+          },
+          {
+            "word": "跟",
+            "start": 4.38,
+            "end": 4.56,
+            "probability": 0.9868713617324829
+          },
+          {
+            "word": "着",
+            "start": 4.56,
+            "end": 4.7,
+            "probability": 0.9650682806968689
+          },
+          {
+            "word": "音",
+            "start": 4.7,
+            "end": 4.92,
+            "probability": 0.9864344596862793
+          },
+          {
+            "word": "乐",
+            "start": 4.92,
+            "end": 5.18,
+            "probability": 0.9920096397399902
+          },
+          {
+            "word": "走。",
+            "start": 5.18,
+            "end": 5.44,
+            "probability": 0.9990805387496948
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "controls",
+    "expected_text": "鼠标移入，就能控制播放。",
+    "transcription": "鼠标一入就能控制播放。",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 3.48,
+        "text": "鼠标一入就能控制播放。",
+        "avg_logprob": -0.2954067662358284,
+        "words": [
+          {
+            "word": "鼠",
+            "start": 0.0,
+            "end": 0.8,
+            "probability": 0.8413203954696655
+          },
+          {
+            "word": "标",
+            "start": 0.8,
+            "end": 1.1,
+            "probability": 0.98189377784729
+          },
+          {
+            "word": "一",
+            "start": 1.1,
+            "end": 1.36,
+            "probability": 0.9282609820365906
+          },
+          {
+            "word": "入",
+            "start": 1.36,
+            "end": 1.64,
+            "probability": 0.9889361262321472
+          },
+          {
+            "word": "就",
+            "start": 1.64,
+            "end": 2.3,
+            "probability": 0.8636559247970581
+          },
+          {
+            "word": "能",
+            "start": 2.3,
+            "end": 2.52,
+            "probability": 0.9991045594215393
+          },
+          {
+            "word": "控",
+            "start": 2.52,
+            "end": 2.78,
+            "probability": 0.9975591897964478
+          },
+          {
+            "word": "制",
+            "start": 2.78,
+            "end": 3.04,
+            "probability": 0.9929952025413513
+          },
+          {
+            "word": "播",
+            "start": 3.04,
+            "end": 3.28,
+            "probability": 0.9741549491882324
+          },
+          {
+            "word": "放。",
+            "start": 3.28,
+            "end": 3.48,
+            "probability": 0.999804675579071
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "sources",
+    "expected_text": "也能跟随 QQ 音乐。",
+    "transcription": "也能跟隨QQ音樂",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "music_mixed_under_dialogue": true,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 2.0,
+        "text": "也能跟隨QQ音樂",
+        "avg_logprob": -0.316015211018649,
+        "words": [
+          {
+            "word": "也",
+            "start": 0.0,
+            "end": 0.4,
+            "probability": 0.9429351687431335
+          },
+          {
+            "word": "能",
+            "start": 0.4,
+            "end": 0.6,
+            "probability": 0.9984537363052368
+          },
+          {
+            "word": "跟",
+            "start": 0.6,
+            "end": 0.78,
+            "probability": 0.9875050783157349
+          },
+          {
+            "word": "隨",
+            "start": 0.78,
+            "end": 1.06,
+            "probability": 0.8713738322257996
+          },
+          {
+            "word": "Q",
+            "start": 1.06,
+            "end": 1.4,
+            "probability": 0.9092501401901245
+          },
+          {
+            "word": "Q",
+            "start": 1.4,
+            "end": 1.62,
+            "probability": 0.9962093830108643
+          },
+          {
+            "word": "音",
+            "start": 1.62,
+            "end": 1.86,
+            "probability": 0.9958773851394653
+          },
+          {
+            "word": "樂",
+            "start": 1.86,
+            "end": 2.0,
+            "probability": 0.9932655096054077
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "modules",
+    "expected_text": "把需要的功能，放在一起。",
+    "transcription": "把需要的功能放在一起。",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 3.06,
+        "text": "把需要的功能放在一起。",
+        "avg_logprob": -0.3400215034683545,
+        "words": [
+          {
+            "word": "把",
+            "start": 0.0,
+            "end": 1.1,
+            "probability": 0.968096137046814
+          },
+          {
+            "word": "需要",
+            "start": 1.1,
+            "end": 1.44,
+            "probability": 0.9759758114814758
+          },
+          {
+            "word": "的",
+            "start": 1.44,
+            "end": 1.68,
+            "probability": 0.986339807510376
+          },
+          {
+            "word": "功",
+            "start": 1.68,
+            "end": 1.88,
+            "probability": 0.9979819059371948
+          },
+          {
+            "word": "能",
+            "start": 1.88,
+            "end": 2.22,
+            "probability": 0.9979634284973145
+          },
+          {
+            "word": "放",
+            "start": 2.22,
+            "end": 2.58,
+            "probability": 0.8182494044303894
+          },
+          {
+            "word": "在",
+            "start": 2.58,
+            "end": 2.76,
+            "probability": 0.9979130625724792
+          },
+          {
+            "word": "一起。",
+            "start": 2.76,
+            "end": 3.06,
+            "probability": 0.9841943383216858
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "capture",
+    "expected_text": "截图之后，卡片自然展开。",
+    "transcription": "截图之后卡片自然展开。",
+    "model": "Systran/faster-whisper-small",
+    "revision": "536b0662742c02347bc0e980a01041f333bce120",
+    "expected_transcript_supplied_to_ASR": false,
+    "language": "zh",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 3.82,
+        "text": "截图之后卡片自然展开。",
+        "avg_logprob": -0.4288498777896166,
+        "words": [
+          {
+            "word": "截",
+            "start": 0.0,
+            "end": 0.96,
+            "probability": 0.8208787441253662
+          },
+          {
+            "word": "图",
+            "start": 0.96,
+            "end": 1.22,
+            "probability": 0.7527581751346588
+          },
+          {
+            "word": "之",
+            "start": 1.22,
+            "end": 1.4,
+            "probability": 0.9876745343208313
+          },
+          {
+            "word": "后",
+            "start": 1.4,
+            "end": 1.66,
+            "probability": 0.9998699426651001
+          },
+          {
+            "word": "卡",
+            "start": 1.66,
+            "end": 2.42,
+            "probability": 0.7009305357933044
+          },
+          {
+            "word": "片",
+            "start": 2.42,
+            "end": 2.76,
+            "probability": 0.9949885010719299
+          },
+          {
+            "word": "自",
+            "start": 2.76,
+            "end": 3.04,
+            "probability": 0.9980406165122986
+          },
+          {
+            "word": "然",
+            "start": 3.04,
+            "end": 3.28,
+            "probability": 0.9998148083686829
+          },
+          {
+            "word": "展",
+            "start": 3.28,
+            "end": 3.5,
+            "probability": 0.9561535716056824
+          },
+          {
+            "word": "开。",
+            "start": 3.5,
+            "end": 3.82,
+            "probability": 0.9989550113677979
+          }
+        ]
+      }
+    ]
+  }
+]

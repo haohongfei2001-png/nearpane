@@ -1,0 +1,31 @@
+{
+  "key": "opening",
+  "text": "打开音乐，歌词就在手边。",
+  "language": "Chinese",
+  "speaker": "Uncle_Fu",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "seed": 1128,
+  "generation_parameters": {
+    "text": "打开音乐，歌词就在手边。",
+    "speaker": "Uncle_Fu",
+    "language": "Chinese",
+    "non_streaming_mode": true,
+    "do_sample": true,
+    "temperature": 0.75,
+    "top_p": 0.95,
+    "top_k": 50,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 192
+  },
+  "sample_rate": 24000,
+  "samples": 101760,
+  "duration": 4.24,
+  "generation_seconds": 16.24,
+  "peak": 0.6334319114685059,
+  "dtype": "float32",
+  "device": "cpu",
+  "sha256": "bad1b92efdbccefa25c9b52bf02c95c8138041714122ba964ec389700a1af842",
+  "status": "SYNTHESIZED_NOT_SUBJECTIVELY_AUDITIONED"
+}

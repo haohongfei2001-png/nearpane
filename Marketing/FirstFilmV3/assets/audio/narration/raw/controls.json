@@ -1,0 +1,31 @@
+{
+  "key": "controls",
+  "text": "鼠标移入，就能控制播放。",
+  "language": "Chinese",
+  "speaker": "Uncle_Fu",
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+  "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+  "model_license": "Apache-2.0",
+  "seed": 1130,
+  "generation_parameters": {
+    "text": "鼠标移入，就能控制播放。",
+    "speaker": "Uncle_Fu",
+    "language": "Chinese",
+    "non_streaming_mode": true,
+    "do_sample": true,
+    "temperature": 0.75,
+    "top_p": 0.95,
+    "top_k": 50,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 192
+  },
+  "sample_rate": 24000,
+  "samples": 107520,
+  "duration": 4.48,
+  "generation_seconds": 17.37,
+  "peak": 0.5330285429954529,
+  "dtype": "float32",
+  "device": "cpu",
+  "sha256": "1a095612409fa0984a512b6df7d024c71cb646d64a475ed94901ed26f93593a1",
+  "status": "SYNTHESIZED_NOT_SUBJECTIVELY_AUDITIONED"
+}
