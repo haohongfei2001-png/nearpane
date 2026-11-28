@@ -59,7 +59,7 @@ try:
     apple('tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nset shuffle enabled to false\nset song repeat to off\nplay filmList\nend tell')
     deadline=time.monotonic()+12
     while time.monotonic()<deadline:
-        state=apple('tell application "Music" to return {player state,name of current track,persistent ID of current track,player position}',timeout=5)
+        state=apple('tell application "Music" to return {player state,name of current track,persistent ID of current track,player position}',timeout=5,required=False)
         if 'playing' in state and verified['persistentID'] in state and float(state.split(',')[-1])>0:break
         time.sleep(.25)
     else:raise RuntimeError('Actual verified Music track did not become playing')
