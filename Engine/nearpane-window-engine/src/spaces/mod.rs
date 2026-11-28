@@ -8,7 +8,9 @@ use std::time::{Duration, Instant};
 #[cfg(target_os = "macos")]
 mod installed;
 mod launch;
+mod read_timing;
 mod system;
+use read_timing::ReadTiming;
 type Id = [u8; 16];
 type Check<T> = Result<T, Fault>;
 type Rows = BTreeSet<u64>;
@@ -533,13 +535,16 @@ impl<P: Platform> State<P> {
     }
     fn view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64, hidden: bool) -> Check<Seen> {
         let window = lease.window;
+        let mut timing = ReadTiming::new("view", window, "minimized");
         if self.sys.minimized(w).inspect_err(|&fault| trace_fault("view-minimized-read", lease, sid, fault))? {
             let fault = unknown(Why::MinimizedOrAX);
             trace_fault("view-confirmed-minimized", lease, sid, fault);
             return Err(fault);
         }
         let target = if hidden { sid } else { lease.slot.home.id };
+        timing.stage("first-see");
         let a = self.sys.see(window, w)?;
+        timing.stage("forward-and-target-membership");
         let membership = self.sys.spaces(c, window.number)?;
         if membership != Rows::from([target])
             || !self
@@ -549,6 +554,7 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Membership));
         }
+        timing.stage("other-membership");
         let other = if hidden { lease.slot.home.id } else { sid };
         if other != 0
             && self
@@ -558,10 +564,13 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Membership));
         }
+        timing.stage("second-see");
         let b = self.sys.see(window, w)?;
+        timing.stage("managed-desktops");
         let home_visible = self.sys.desktops(c)?.iter().any(|d| {
             d.display == lease.slot.home.display && d.id == lease.slot.home.id && d.current == 1
         });
+        timing.stage("geometry-and-visibility");
         if a.rect != b.rect
             || a.visible != b.visible
             || (!self.sys.transparent_canary(w)
@@ -570,6 +579,7 @@ impl<P: Platform> State<P> {
         {
             return Err(unknown(Why::Readback));
         }
+        timing.completed();
         Ok(b)
     }
     fn minimized_view(&self, c: i32, lease: Lease, w: &P::Witness, sid: u64) -> Check<Seen> {
@@ -912,27 +922,36 @@ impl<P: Platform> State<P> {
         self.cleanup(c, lease.slot, &top, a)
     }
     fn read(&mut self, c: i32, lease: Lease, a: &impl Authority) -> Check<(Seen, bool)> {
+        let mut timing = ReadTiming::new("read", lease.window, "opening-topology");
         let top = self.topology(c, lease.slot.home)?;
         if let Some(saved) = self.owned.get(&lease.window) {
             if saved.lease != lease {
                 return Err(fail(Why::Identity));
             }
+            timing.stage("lease-membership");
             let sid = self.slots.get(&lease.slot).ok_or(unknown(Why::Unowned))?.id;
             let m = self.sys.spaces(c, lease.window.number)?;
             let hidden = m == Rows::from([sid]);
+            timing.stage("paired-window-observation");
             let seen = self.view(c, lease, &saved.witness, sid, hidden)?;
+            timing.stage("closing-scope");
             self.scope(c, lease.slot.home, &top, a)?;
+            timing.completed();
             Ok((seen, hidden))
         } else {
             if self.visible.len() >= LIMIT && !self.visible.contains_key(&lease.window) {
                 return Err(fail(Why::Capacity));
             }
+            timing.stage("window-binding");
             let w = match self.remembered(lease) { Some(w) => w, None => self.sys.bind(lease.window)? };
+            timing.stage("paired-window-observation");
             let seen = self.view(c, lease, &w, 0, false)?;
+            timing.stage("closing-scope");
             self.scope(c, lease.slot.home, &top, a)?;
             if !self.sys.transparent_canary(&w) {
                 self.visible.insert(lease.window, Remembered { lease, witness: w });
             }
+            timing.completed();
             Ok((seen, false))
         }
     }

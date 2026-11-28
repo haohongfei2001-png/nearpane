@@ -217,8 +217,10 @@ mod mac {
             Ok(Seen { visible: row.onboard == 1, rect: row.rect })
         }
         fn see(&self, w: Window, lease: &Witness) -> Check<Seen> {
+            let mut timing = ReadTiming::new("see", w, "cg-window");
             let observed = self.surface(w)?;
             let on_screen = u32::from(observed.visible);
+            timing.stage("ax-binding");
             let binding = match lease {
                 Witness::Document(reference) => unsafe {
                     np_stage_check_bound_status(
@@ -246,6 +248,7 @@ mod mac {
                     i32::from(same)
                 }
             };
+            timing.stage("fixture-identity");
             let fixture_mismatch = self.fixture.as_ref().is_some_and(|session| {
                 w == session.window()
                     && match lease {
@@ -262,6 +265,7 @@ mod mac {
                 }
                 return Err(unknown(if binding == -25204 && !fixture_mismatch { Why::AXCannotComplete } else { Why::Identity }));
             }
+            timing.completed();
             Ok(observed)
         }
         fn adopt_minimized(&self, w: Window, original: &Witness) -> Check<Witness> {

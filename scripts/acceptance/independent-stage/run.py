@@ -346,6 +346,12 @@ def source_checks(out, env):
         HERE / "r4-file-identity-selftest.c", "-o", identity_test], out, "r4-file-identity-build", env, 30)
     if checks["r4FileIdentityBuild"]["status"] == "PASS":
         checks["r4FileIdentity"] = execute([identity_test], out, "r4-file-identity", env, 30)
+    binding_test = out / "binding-attributes-selftest"
+    checks["bindingAttributesBuild"] = execute(["xcrun", "clang", "-std=gnu11", "-O1", "-Wall", "-Wextra", "-Werror",
+        HERE / "binding-attributes-selftest.c", "-framework", "ApplicationServices", "-framework", "CoreFoundation",
+        "-o", binding_test], out, "binding-attributes-build", env, 30)
+    if checks["bindingAttributesBuild"]["status"] == "PASS":
+        checks["bindingAttributes"] = execute([binding_test], out, "binding-attributes", env, 30)
     checks["rust"] = execute(["cargo", "test", "--manifest-path", ROOT / "Engine/nearpane-window-engine/Cargo.toml",
         "--locked", "--offline", "--no-default-features", "--features", "corner,spaces,isolated-fixtures"], out, "rust", env)
     archive_build = execute(["bash", "scripts/build-window-engine.sh"], out, "build-engine", env)

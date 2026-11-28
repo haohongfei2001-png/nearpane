@@ -4,6 +4,21 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
+## Current R4 latency checkpoint: 5e3a7ea4
+
+The complete, unsampled release candidate confirms its first actual R4 selection in
+**1906.94 ms**, versus **4798.33 ms** for the corresponding d614f58d step. Its second
+SHOW lacks a complete acknowledgement; sampled fast confirms two of three inputs
+before a separate passive-health timeout. Both current Hosts release successfully
+and receive independent two-read home confirmation. The exact target source gate
+passes 180 Rust and 248 Swift cases (one skip); cloud source has eight failed reader
+fixture functions. The complete release build/signature pass, but source and R4
+acceptance remain failed. These results do not grant release qualification.
+
+[Exact source/runtime evidence, non-overlapping click timelines and remaining failures](cloud-5e3a7ea4-latency/README.md)
+are preserved with original hashes. The subsequent AX attribute batch and native
+test-fixture changes require their own native verification.
+
 ## Implemented product path
 
 The complete Swift Host keeps the R4 surface and embedded voice/screenshot/file modules. R4 thumbnail

@@ -16,6 +16,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/input_state.h");
     println!("cargo:rerun-if-changed=src/corner/scope_binding.h");
     println!("cargo:rerun-if-changed=src/corner/patch_site.h");
+    println!("cargo:rerun-if-changed=src/spaces/binding-attributes.h");
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }

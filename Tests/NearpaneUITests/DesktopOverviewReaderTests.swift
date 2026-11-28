@@ -6,50 +6,58 @@ import NearpaneCore
 @testable import NearpaneUI
 
 /// Exercise actual framed pipes and child lifetime without reading or writing a
-/// user's windows. The fixture is a private, hashed Python executable.
+/// user's windows. Compile the small native peer once, outside every read's
+/// deadline; each test gets a private, hashed executable and marker directory.
 struct DesktopOverviewReaderTests {
     private struct Fixture {
         let directory: URL, executable: URL, hash: String
-        init() throws {
+        private static let compiledBytes = Task<Data, Error> {
+            try await withCheckedThrowingContinuation { continuation in
+                // Neither the compiler's startup nor waitUntilExit may occupy
+                // the MainActor/cooperative executor or a transport read budget.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    continuation.resume(with: Result { try compile() })
+                }
+            }
+        }
+
+        private static func compile() throws -> Data {
+            let output = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+                .appendingPathComponent("nearpane-reader-compiler-" + UUID().uuidString)
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
+            defer { try? FileManager.default.removeItem(at: output) }
+            let executable = output.appendingPathComponent("reader")
+            let log = output.appendingPathComponent("compiler.log")
+            try Data().write(to: log)
+            let diagnostics = try FileHandle(forWritingTo: log)
+            defer { try? diagnostics.close() }
+            let source = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+                .deletingLastPathComponent().appendingPathComponent("Fixtures/DesktopOverviewReaderFixture.c")
+            let compiler = Process()
+            compiler.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+            compiler.arguments = ["clang", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
+                                  source.path, "-o", executable.path]
+            compiler.standardInput = FileHandle.nullDevice
+            compiler.standardOutput = diagnostics
+            compiler.standardError = diagnostics
+            try compiler.run()
+            compiler.waitUntilExit()
+            guard compiler.terminationReason == .exit, compiler.terminationStatus == 0 else {
+                let input = try FileHandle(forReadingFrom: log)
+                defer { try? input.close() }
+                let message = String(decoding: try input.read(upToCount: 8192) ?? Data(), as: UTF8.self)
+                throw NSError(domain: "DesktopOverviewReaderFixture", code: Int(compiler.terminationStatus),
+                              userInfo: [NSLocalizedDescriptionKey: "Native reader fixture compilation failed: " + message])
+            }
+            return try Data(contentsOf: executable)
+        }
+
+        init() async throws {
+            let bytes = try await Self.compiledBytes.value
             directory = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
                 .appendingPathComponent("nearpane-reader-test-" + UUID().uuidString)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
             executable = directory.appendingPathComponent("reader")
-            let bytes = Data(#"""
-            #!/usr/bin/python3
-            import json, os, struct, sys, time
-            def exact(n):
-                b = b''
-                while len(b) < n:
-                    x = os.read(0, n - len(b))
-                    if not x: sys.exit(0)
-                    b += x
-                return b
-            count = 0
-            while True:
-                size = struct.unpack('>I', exact(4))[0]
-                request = json.loads(exact(size))
-                count += 1
-                action = request.get('action', 'invalid')
-                if action == 'slow':
-                    open(os.path.join(os.path.dirname(__file__), 'slow-ready'), 'w').close()
-                    while not os.path.exists(os.path.join(os.path.dirname(__file__), 'slow-release')): time.sleep(0.005)
-                if action == 'hang': time.sleep(30)
-                if action == 'oversize':
-                    os.write(1, struct.pack('>I', 1048577))
-                    time.sleep(30)
-                if action == 'truncated':
-                    os.write(1, struct.pack('>I', 100) + b'{')
-                    sys.exit(0)
-                reply = json.dumps({'pid': os.getpid(), 'count': count, 'value': request.get('value')}).encode()
-                header = struct.pack('>I', len(reply))
-                if action == 'split':
-                    os.write(1, header[:1])
-                    os.write(1, header[1:])
-                    for offset in range(0, len(reply), 3): os.write(1, reply[offset:offset+3])
-                else:
-                    os.write(1, header + reply)
-            """#.utf8)
             try bytes.write(to: executable)
             try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
             hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
@@ -60,11 +68,11 @@ struct DesktopOverviewReaderTests {
         }
     }
     private struct Reply: Decodable { let pid: pid_t, count: Int, value: Int? }
-    private final class Spawn: @unchecked Sendable {
+    private final class Observation<Value: Sendable>: @unchecked Sendable {
         private let lock = NSLock()
-        private var value: pid_t?
-        func record(_ pid: pid_t) { lock.lock(); value = pid; lock.unlock() }
-        func read() -> pid_t? { lock.lock(); defer { lock.unlock() }; return value }
+        private var value: Value?
+        func record(_ observed: Value) { lock.lock(); value = observed; lock.unlock() }
+        func read() -> Value? { lock.lock(); defer { lock.unlock() }; return value }
     }
     private func request(_ action: String = "split", value: Int = 1) -> Data {
         Data("{\"action\":\"\(action)\",\"value\":\(value)}".utf8)
@@ -76,7 +84,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader(), session = UUID()
         let first = try reply(await reader.exchange(request(value: 11), session: session))
         let second = try reply(await reader.exchange(request(value: 22), session: session))
@@ -87,7 +95,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func anotherFeedUsesANewChildAndRetiresThePreviousOne() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader()
         let first = try reply(await reader.exchange(request(), session: UUID()))
         let second = try reply(await reader.exchange(request(), session: UUID()))
@@ -97,8 +105,8 @@ struct DesktopOverviewReaderTests {
 
     @Test(arguments: ["oversize", "truncated"])
     func malformedFrameCannotBeConsumedByTheNextRequest(_ action: String) async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
-        let reader = fixture.reader(), session = UUID(), spawned = Spawn()
+        let fixture = try await Fixture(); defer { fixture.clean() }
+        let reader = fixture.reader(), session = UUID(), spawned = Observation<pid_t>()
         await #expect(throws: (any Error).self) {
             try await reader.exchange(request(action), session: session, didSpawn: { spawned.record($0) })
         }
@@ -110,17 +118,31 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test @MainActor func cancellationDoesNotBlockTheMainActorAndReapsItsExactChild() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
-        let reader = fixture.reader(), session = UUID(), spawned = Spawn()
+        let fixture = try await Fixture(); defer { fixture.clean() }
+        let reader = fixture.reader(), session = UUID(), spawned = Observation<pid_t>()
+        let completed = Observation<ContinuousClock.Instant>()
         let payload = request("hang")
-        let job = Task { try await reader.exchange(payload, session: session, didSpawn: { spawned.record($0) }) }
+        let job = Task.detached {
+            defer { completed.record(ContinuousClock.now) }
+            return try await reader.exchange(payload, session: session, didSpawn: { spawned.record($0) })
+        }
+        defer { job.cancel() }
+        let marker = fixture.directory.appendingPathComponent("hang-ready")
         let deadline = ContinuousClock.now + .seconds(2)
-        while spawned.read() == nil && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+        while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        try #require(FileManager.default.fileExists(atPath: marker.path))
         let pid = try #require(spawned.read())
+        let heartbeat = Task { @MainActor in completed.read() == nil }
+        #expect(await heartbeat.value)
         let began = ContinuousClock.now
         job.cancel()
         await #expect(throws: CancellationError.self) { try await job.value }
-        #expect(ContinuousClock.now - began < .seconds(1))
+        // Measure the request's actual completion, excluding any later wait for
+        // unrelated tests to release the MainActor before this assertion runs.
+        let finished = try #require(completed.read())
+        #expect(finished - began < .seconds(1))
         #expect(isReaped(pid))
         let next = try reply(await reader.exchange(request(), session: session))
         #expect(next.pid != pid)
@@ -128,8 +150,8 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func timeoutReapsChildAndDoesNotReturnAnyLateResponse() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
-        let reader = fixture.reader(), spawned = Spawn(), session = UUID()
+        let fixture = try await Fixture(); defer { fixture.clean() }
+        let reader = fixture.reader(), spawned = Observation<pid_t>(), session = UUID()
         await #expect(throws: (any Error).self) {
             try await reader.exchange(request("hang"), session: session, timeout: 0.2, didSpawn: { spawned.record($0) })
         }
@@ -140,7 +162,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader(), session = UUID()
         let original = try reply(await reader.exchange(request(), session: session))
         let slowPayload = request("slow"), queuedPayload = request()
@@ -163,7 +185,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func unusedFeedReleasesItsChildAndTheNextReadStartsCleanly() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader(idleTimeout: 0.1), session = UUID()
         let first = try reply(await reader.exchange(request(), session: session))
         let deadline = ContinuousClock.now + .seconds(2)
@@ -175,7 +197,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader(), session = UUID()
         let original = try reply(await reader.exchange(request(), session: session))
         let input = DesktopReadRequest(session: session, revision: 1, parentPID: getpid(),
@@ -188,7 +210,7 @@ struct DesktopOverviewReaderTests {
     }
 
     @Test func changedExecutableCannotStartANewReader() async throws {
-        let fixture = try Fixture(); defer { fixture.clean() }
+        let fixture = try await Fixture(); defer { fixture.clean() }
         let reader = fixture.reader()
         try Data("#!/bin/sh\nexit 0\n".utf8).write(to: fixture.executable)
         await #expect(throws: (any Error).self) { try await reader.exchange(request(), session: UUID()) }
