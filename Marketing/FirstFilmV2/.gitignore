@@ -1,0 +1,7 @@
+outputs/
+assets/fonts/*.ttf
+assets/fonts/*.ttc
+assets/native/
+assets/audio/
+__pycache__/
+*.rendering.mp4
