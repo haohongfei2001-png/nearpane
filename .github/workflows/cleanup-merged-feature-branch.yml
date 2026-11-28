@@ -1,0 +1,37 @@
+name: Clean up merged feature branches
+on:
+  pull_request_target:
+    types: [closed]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  delete-merged-head:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Remove completed branch if unchanged and not used by another open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import json,os,re,subprocess
+          name=os.environ['HEAD_BRANCH']; sha=os.environ['HEAD_SHA']; repo=os.environ['GITHUB_REPOSITORY']
+          if not (name.startswith(('feature/','fix/')) or name=='pro/independent-stage-engine-20261126'): raise SystemExit(0)
+          if not re.fullmatch(r'[0-9a-f]{40}',sha): raise SystemExit('Invalid SHA')
+          subprocess.run(['git','check-ref-format','refs/heads/'+name],check=True)
+          prs=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/pulls?state=open&per_page=100'],text=True))
+          if len(prs)==100: raise SystemExit('Incomplete PR list; retained')
+          if any(p[k].get('repo') and p[k]['repo']['full_name']==repo and p[k]['ref']==name for p in prs for k in ('head','base')): raise SystemExit(0)
+          ref='refs/heads/'+name
+          live=subprocess.check_output(['git','ls-remote','--refs','origin',ref],text=True).strip()
+          if live!=sha+'\t'+ref: raise SystemExit(0)
+          subprocess.run(['git','push','--force-with-lease='+ref+':'+sha,'origin',':'+ref],check=True)
+          PY

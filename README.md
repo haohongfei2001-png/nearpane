@@ -1,65 +1,50 @@
-> **2026-11-28 主开发基线：** Nearpane 统一工作台（PR #18）已选定为 `main` 的后续开发基线。本次合并以已验收的应用源码 `8c88457332cf55633d071b2992932a1971ded321`、证据快照 `d5767d87bc45245b31d0980e91e43778c5f424ed` 为准。后续主应用、模块、界面及集成开发从最新 `main` 分支开展；旧候选仅作历史参考。独立 Spaces PR #16 保持自己的开发分支，成熟后再将新增改动合入主线，不得回退统一工作台。开发基线不等于正式发行；Spaces 连续调度、真实播放器、四边布局、模块按需下载/删除、默认独立避让及发行验证仍按实际证据推进。
->
-> [统一工作台设计](docs/design/2026-11-28-unified-workbench.md) · [原生验收记录](docs/verification/unified-workbench/8c884573/README.md) · [Spaces PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16)
-
-> **2026-11-28 现行产品权威：** [产品宪章与统一规格](PRODUCT_CONSTITUTION.md) · [开发规则](AGENTS.md)。下方此前版本的说明仅反映旧状态，尤其模块等级、比例、空间路线、默认组合与发行策略以新宪章为准。
-
 # Nearpane
 
-**当前开发：独立台前调度替代。** Nearpane 通过真实隐藏 Space 调度工作组，以 R4 平放缩略图提供唯一台前调度界面。产品与技术采用[唯一现行裁决](engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md)，[实现与验证入口](engineering/verification/independent-stage/README.md)分别记录代码、候选及真实系统证据。独立候选与日常安装使用不同的应用身份和资料目录。
+Nearpane 是可自由组合的 macOS 桌面伴随式工作台：在同一应用中使用语音、截图、歌词、空间调度及其他工具。官网：[nearpane.com](https://nearpane.com)。
 
-日常使用从 Finder 的「应用程序」打开 Nearpane。菜单栏的「打开 Nearpane」集中提供语音档案、截图档案和设置。本机统一安装位置为 `/Applications/Nearpane.app`。[个人 Alpha 使用帮助](docs/ALPHA-HELP.md)
+**唯一产品开发主线：`main`。** 本分支保存最新集成产品；不是对正式发行资格的承诺。产品规格只以 [PRODUCT_CONSTITUTION.md](PRODUCT_CONSTITUTION.md) 为准，开发遵守 [AGENTS.md](AGENTS.md)。
 
-在同一个原生工程中开发 Host、Saytile 文字流、Riftlet 截图托盘和本屏窗口侧栏。当前安装的版本、对应源码和实机验收结果统一记录在[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)。原生窗口专项的当前范围与历史工作包见[专项状态](engineering/native-spaces/STATUS.md)。
+## 当前开发与验收
 
-| 模块 | 当前行为 |
+| 范围 | 当前入口 |
 | --- | --- |
-| Saytile | 在同一进程使用上游音频控制器、文字修订和编辑草稿库。单控件区分暂停、待命和说话；复制只在点击时发生。默认关闭云端，不读取独立应用的凭据或历史。点击收音前不打开设备。 |
-| Riftlet | 在设置中明确连接已有资料库；复用原队列、媒体、锁和回执，不创建替代队列。原应用占用、库缺失或版本不兼容时拒绝连接。截图入口、两列缩略图、展开/补位和附加都属于同一托盘。目录收录与外部草稿授权独立；不自动发送。|
-| 本屏窗口 | 列出当前屏幕、当前桌面的窗口，紧接工具区向下排列，各窗按真实尺寸共用缩尺。实际窗口画面需要录屏权限，精确选窗另需系统提供可核对的窗口与焦点。桌面列表和跨桌面拖放已从这里撤出。 |
+| 统一主窗口、模块、仓库、设置与动态侧栏 | [设计](docs/design/2026-11-28-unified-workbench.md) · [设置](docs/design/2026-11-28-settings-convergence.md) · [原生 UI 验收](docs/verification/unified-workbench/8c884573/README.md) |
+| Spaces 独立真实窗口调度 | [PR #16（唯一在研产品 PR）](https://github.com/haohongfei2001-png/nearpane/pull/16) · [现行技术路线](engineering/research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) · [工程证据](engineering/verification/independent-stage/README.md) |
+| 全屏临时工具工作台 | [设计与实现范围](docs/design/2026-11-28-fullscreen-workspace.md) |
+| 既有 LyricTile 独立发行 | [已发布 build 49](https://github.com/haohongfei2001-png/nearpane/releases/tag/lyrictile-v1.0.0-build49)；原更新通道仅为兼容保留，不是产品主线 |
 
-侧栏以屏幕宽度的 1/8 贴合可用边缘；语音与截图合计占可用高度的 3/8，其余 5/8 留给空间区。菜单栏提供显示、隐藏、设置和退出。Host 配置、摆放与隐藏意图单独保存。语音内容留在 Nearpane 的 Voice 领域库；截图和未确认的附加操作留在已有的 Riftlet 资料库。退出或停用不会删除领域数据，也不会把权限写进 Host 配置。
+PR #18 已合并。其源代码在 `8c88457332cf55633d071b2992932a1971ded321` 通过 986 个源码测试及 53 项原生 UI 检查；真实播放器、连续 Spaces 调度、四边布局、模块按需下载安装、独立窗口避让及发行链仍须按当前实现和证据验收。不要将原候选包或旧 Alpha 安装等同于当前主线的正式发行。
 
-## 产品定义与实施依据
+## 仓库导航
 
-窗口调度采用 Nearpane 自己的 Display → ordinary Desktop → StageGroup → Window 模型。macOS 保留原生桌面及其手势、全屏和 Split View。窗口退出工作区必须是真实隐藏；Corner、壁纸遮罩和苹果原生缩略栏跟随均不是产品路线或自动回退。R4 [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md)继续生效。
+| 目录 | 内容 |
+| --- | --- |
+| `Sources/`、`Products/LyricTile/Sources/` | 当前宿主、内置模块与共享歌词领域（一个集成产品，不是第二个开发主线） |
+| `Engine/` | 原生窗口调度引擎 |
+| `Tests/`、`Resources/`、`Dependencies/` | 测试、产品资源、上游共享组件锁 |
+| `scripts/`、`.github/workflows/` | 构建、真实验收、CI 与发行工具 |
+| `docs/`、`engineering/` | 当前设计、技术、证据入口；历史资料由[历史索引](docs/repository-history.md)指引 |
+| `website/` | 唯一官网源码（GitHub Pages 从 main 发布） |
 
-独立候选从完整 R4 侧栏直接选择工作组，恢复真实窗口与原布局；既有自动平铺监督器不在此路径启动。Docked 的预留区沿用该屏的持久设置。[产品完成状态](engineering/verification/PRODUCT_COMPLETION_STATE.md)保留历史安装证据，不能将早期原生栏或 Corner 的通过结果计入本次独立引擎。
+## 构建
 
-统一构建与实机入口：
-
-```sh
-python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --iterations 3
-```
-
-完整候选、独立夹具、清理与结果解释见[验收说明](scripts/acceptance/independent-stage/README.md)。源码测试可以远程运行；每项真实系统行为必须以对应环境的回读为依据。
-
-## 本地构建与测试
-
-从源码构建完整应用需要 macOS 26+、Swift 工具链和 Python 3。已安装应用自带运行所需的组件。验证环境为 Apple Silicon、macOS 27.0、Swift 6.4 和 Command Line Tools。单独检出 Nearpane 后直接运行下列脚本，首次全量构建会自动从 GitHub 获取两个固定提交的选定文件。此后的构建可用 `NEARPANE_OFFLINE=1` 从校验过的缓存运行。[依赖锁、来源、许可证与升级方法](Dependencies/README.md)
+macOS 26+、Swift 工具链、Python 3。首次全量构建按 [依赖锁](Dependencies/README.md)获取共享组件；校验缓存后可使用 `NEARPANE_OFFLINE=1`。
 
 ```sh
 scripts/test.sh
 scripts/build-app.sh debug
 scripts/build-app.sh release
-# 从空缓存验证单仓库构建，保留独立日志及两个开发包
 scripts/verify-standalone.sh
-# 可选：同时在 build/verification/hidden/ 保存隐藏窗口合成图
-NEARPANE_RENDER_FIXTURES=1 scripts/test.sh
-# 原 Host 独立构建（部署下限 14，不含两个领域模块）
-NEARPANE_FOUNDATION_ONLY=1 scripts/build-app.sh debug
 ```
 
-集成开发包生成在 `build/debug/Nearpane.app` 和 `build/release/Nearpane.app`。独立 Host 开发包在 `build/foundation/` 下。更新日常安装请使用[本地 Alpha 交付流程](docs/ALPHA-RELEASE.md)。打包过程检查可执行文件签名、plist 与资源字节，并通过成品程序的 `--verify-bundled-resources` 调用两个领域原有的资源读取器。这条路径在创建 NSApplication 之前返回，不打开窗口、资料库或连接。开发包未经分发签名或公证；构建不安装或替换应用。
+真实窗口专项入口：
 
-测试采用 Swift Testing。开发包同样使用 SwiftPM 的 native 引擎，避免 File Provider 元数据导致资源包在增量构建中重签失败。该引擎在 Swift 6.4 中有弃用警告。迁移到后续工具链时需复核。全部原始日志、临时库和构建缓存均在忽略目录。
+```sh
+python3 -B scripts/acceptance/independent-stage/run.py /private/tmp/nearpane-independent-01 --scope all --iterations 3
+```
 
-[P3.6 工程准入、现场操作与权限](engineering/verification/P3.6-preflight-closeout.md) · [P3.5 工程收据与运行边界](engineering/verification/P3.5-closeout.md) · [P3.5 验收准备记录](engineering/verification/P3.5-native-acceptance.md)
+[专项验收说明](scripts/acceptance/independent-stage/README.md)。构建不替换日常安装、不发布安装包；候选构建与正式签名发行分别记录。
 
-[完整验收与待验证项](engineering/verification/D-acceptance.md) · [A：Host](engineering/verification/A-host-closeout.md) · [B：Saytile](engineering/verification/B-saytile.md) · [C：Riftlet](engineering/verification/C-riftlet.md) · [阶段文件清单](engineering/verification/changes.txt)
+## 开发方式
 
-[产品定义](PRODUCT_DEFINITION.md) · [视觉权威](design/NEARPANE-VISUAL-AUTHORITY.md) · [P1 技术门禁](docs/reviews/P1-TECHNICAL-GATE-REVIEW.md) · [历史 P2 基线](engineering/P2-HOST-FOUNDATION.md)
-
-## 官网 / Official website
-
-The official Nearpane website lives in [`website/`](website/). It preserves the user-selected R2 visual baseline (「整个桌面。一侧掌握。」). Static site hosted by GitHub Pages using `website/` as the published artifact. Custom domain: `nearpane.com` (DNS activation subject to verification).
+每项新工作从最新 `main` 建立一个短期 `feature/<功能>` 或 `fix/<问题>` 分支；PR 直接指向 main。完成验收后合并，删除功能分支。不得建立永久 develop、每版本分支、按 AI 工具或日期分裂的主线。正式发布使用不可变 Git tag 和 GitHub Release。当前例外和历史回查见[仓库治理与历史索引](docs/repository-history.md)。
