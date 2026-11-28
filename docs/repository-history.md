@@ -22,3 +22,10 @@
 ## 恢复旧资料
 
 从归档锚点的 `branches.json` 取原分支 tip SHA。用 GitHub 固定 commit URL 查看文件，或者本地 `git show <sha>:<path>`；需要复用时从 main 开临时分支。历史资料不在主线工作目录重复堆叠。
+
+## 清理结果（2026-11-28）
+
+- [实际归档与删除流水线](https://github.com/haohongfei2001-png/nearpane/actions/runs/46125537383) 已通过；28 条历史分支引用删除，归档标签经回读指向 `3b2ae003286b9a787a852d2a5f6bc674a6bb4649`。32 条分支收敛为 4 条；10 个开放 PR 收敛为 PR #16 一个。
+- [历史验收依赖审计](https://github.com/haohongfei2001-png/nearpane/actions/runs/46125626421) 发现现行验收脚本仍读取 5.22 原始数据及部分 window-engine 记录，继续保留这些依赖和当前独立 Spaces、统一工作台证据，不把历史证据删除等同于测试成功。
+- 已从当前工作树移除 20 份废弃原型/历史副本以及 143 份旧 5.21 原始收据；[旧 5.21 验收目录](https://github.com/haohongfei2001-png/nearpane/tree/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/verification/native-spaces) 全部保留于固定历史快照。文档历史链接改指固定提交。
+- 一次性分支归档、依赖审计工作流完成后移除；正常合并后的清理由 `.github/workflows/cleanup-merged-feature-branch.yml` 自动处理短期 feature/fix 分支及 Spaces 旧命名分支，且只删除精确匹配的已合并 head。

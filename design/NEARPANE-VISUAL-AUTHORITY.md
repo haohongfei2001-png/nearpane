@@ -15,7 +15,7 @@
 
 下文保留的 Native/Virtual 双模式、自动平铺模板、新窗口自动创建系统 Space、八窗分流、空系统 Space 清除及“重新启动全面接管”等旧调度规则均为历史设计，不再规定当前默认行为，也不得重新启用旧监督器。Docked 预留区的视觉与持久设置继续沿用，但不据此对组切换施加旧的自动平铺模板。Nearpane 是唯一台前调度缩略图界面；不采用 Apple 条带跟随或 Corner 自动回退。
 
-[本次边界澄清前的完整原文](archive/pre-independent-20261126/NEARPANE-VISUAL-AUTHORITY.md)按原字节保留，原图及其图像来源不变。
+[本次边界澄清前的完整原文](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/design/archive/pre-independent-20261126/NEARPANE-VISUAL-AUTHORITY.md)按原字节保留，原图及其图像来源不变。
 
 ## 1. 产品形态
 

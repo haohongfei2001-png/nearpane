@@ -16,13 +16,13 @@
 
 **先前安装版 5.22（91）**　已实测签名候选从 90 原位升级至 91，应用及七个权限助手的签名要求均连续。设备控制和录屏待系统放行，精确选窗、桌面切换和迁移仍待验。[91 升级与权限实测](native-spaces/5.22-91-permissions/RESULTS.md) · [R4 视觉与工具实测](native-spaces/5.22-90-r4/RESULTS.md)
 
-**历史安装版 5.21（86）**　窗口清单、取图、精确选窗仍为 PARTIAL。已修复权限复查使用旧读数、慢应用挤占查询时间、快速重复选择丢失，以及台前调度丢弃已确认完整帧的问题。正式安装版系统权限仍因签名记录失配而被拒，现场 6 扇普通窗口中显示 0 扇，确认切换 0 次。[86 安装与实测](native-spaces/5.21-86-window-recovery/RESULTS.md)
+**历史安装版 5.21（86）**　窗口清单、取图、精确选窗仍为 PARTIAL。已修复权限复查使用旧读数、慢应用挤占查询时间、快速重复选择丢失，以及台前调度丢弃已确认完整帧的问题。正式安装版系统权限仍因签名记录失配而被拒，现场 6 扇普通窗口中显示 0 扇，确认切换 0 次。[86 安装与实测](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/verification/native-spaces/5.21-86-window-recovery/RESULTS.md)
 
-**历史安装版 5.21（85）**　已修复撤下窗口残留、辅助面板误收及异步画面误配风险。正式安装版在单屏实测中遗漏 4 扇已证实的普通窗口。[85 安装与逐项验收](native-spaces/5.21-85-current-windows/RESULTS.md)
+**历史安装版 5.21（85）**　已修复撤下窗口残留、辅助面板误收及异步画面误配风险。正式安装版在单屏实测中遗漏 4 扇已证实的普通窗口。[85 安装与逐项验收](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/verification/native-spaces/5.21-85-current-windows/RESULTS.md)
 
-**历史安装版 5.21（82）**　原生测量覆盖 10 张卡片的比例、顺序和无滚动布局，以及两项系统授权入口。该版的窗口集合准确性在后续实机比对中出现失败。[安装与验收](native-spaces/5.21-82-window-access/RESULTS.md) · [专项状态](../native-spaces/STATUS.md)
+**历史安装版 5.21（82）**　原生测量覆盖 10 张卡片的比例、顺序和无滚动布局，以及两项系统授权入口。该版的窗口集合准确性在后续实机比对中出现失败。[安装与验收](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/verification/native-spaces/5.21-82-window-access/RESULTS.md) · [专项状态](../native-spaces/STATUS.md)
 
-**历史版本 5.21（77）**　真实侧栏与系统读回匹配三个普通桌面及一个全屏空间。精确选窗实测 2 次，目标取得键盘输入 0 次。正式安装身份尚无辅助功能和录屏权限，实际空间切换与拖窗均为 0 次，专项保持 PARTIAL。[专项状态](../native-spaces/STATUS.md) · [逐项结果与回退](native-spaces/5.21-77-delivery/RESULTS.md)
+**历史版本 5.21（77）**　真实侧栏与系统读回匹配三个普通桌面及一个全屏空间。精确选窗实测 2 次，目标取得键盘输入 0 次。正式安装身份尚无辅助功能和录屏权限，实际空间切换与拖窗均为 0 次，专项保持 PARTIAL。[专项状态](../native-spaces/STATUS.md) · [逐项结果与回退](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/verification/native-spaces/5.21-77-delivery/RESULTS.md)
 
 **5.20 Alpha（73）**　统一安装版已运行。同一普通桌面的两款独立测试应用已从实际设置自动左右平分，包含授权后新开第二窗。停止后两窗恢复，AX/CG 最大误差 0 pt。日常安装进程读到 7 张窗口卡，隔离原生侧栏实拍匹配 4 扇窗口。启动日志显示日常进程的辅助功能和录屏尚未授权。苹果系统手势和跨 Space 切换仍有独立限制。[实机、权限与回退](P5.20-DESKTOP-OVERVIEW-AND-AUTO-TILING.md)
 

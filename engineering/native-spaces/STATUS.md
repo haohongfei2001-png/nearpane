@@ -18,4 +18,4 @@ Authority: [Independent Stage Manager replacement decision](../research/NEARPANE
 
 ## Historical records
 
-[All prior experiment and release records](archive/STATUS-pre-independent-20261126.md) are preserved verbatim. They do not define the current product route.
+[All prior experiment and release records](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/native-spaces/archive/STATUS-pre-independent-20261126.md) are preserved verbatim. They do not define the current product route.

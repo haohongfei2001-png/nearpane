@@ -20,4 +20,4 @@
 
 API 返回、合成状态测试、CI 绿色和自身窗口成功都不能替代第三方窗口的真实回读。缺前置是 BLOCKED/NOT_RUN，实际不符才是 FAIL。输出必须保留原始失败及最终清理；不将模拟 Control-arrow 记为实体三指手势。
 
-[本文件此前的完整原文](archive/ACCEPTANCE-pre-independent-20261126.md)仅作为历史依据，不再指导当前开发或自动回退。
+[本文件此前的完整原文](https://github.com/haohongfei2001-png/nearpane/blob/ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f/engineering/native-spaces/archive/ACCEPTANCE-pre-independent-20261126.md)仅作为历史依据，不再指导当前开发或自动回退。
