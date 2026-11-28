@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "head": "7c8cdc7889334c81d3aa335147035dc41a0a052b",
+  "workflowRunID": 46138064939,
+  "jobID": 140957698169,
+  "artifactID": 15260960468,
+  "providerDigest": "sha256:1c9fb31061b81d422afe9a863ad0413770972963a96ad799e413f017d69ebc5f",
+  "frozenUTC": "2026-11-28T11:17:19.947669+00:00",
+  "downloadCount": 1,
+  "rawFileCount": 110,
+  "allRawFilesMatchProviderZIP": true,
+  "rawNeverModified": true,
+  "analysisOwnerModifiedTestedSource": false,
+  "testedArtifactAndExactHeadUnchanged": true,
+  "concurrentNextPatchEditsAreNotPartOfRun": true,
+  "files": [
+    {
+      "path": "fast.zip",
+      "bytes": 25794020,
+      "sha256": "1c9fb31061b81d422afe9a863ad0413770972963a96ad799e413f017d69ebc5f"
+    },
+    {
+      "path": "fast-artifact-api-metadata.json",
+      "bytes": 826,
+      "sha256": "da87387472687931ee83428d254ff90280c5a5f1216822f6363738c5e77ceac4"
+    },
+    {
+      "path": "fast-download-receipt.json",
+      "bytes": 438,
+      "sha256": "803889104943cbe80b82157a8e9fc6c9d0a90c96b28277cbebbffb4af05dc6bb"
+    },
+    {
+      "path": "fast-job-terminal.json",
+      "bytes": 2174,
+      "sha256": "1ead4a28cad7fd7fed8b0869bed3a39f11ad5078cf32d1bda2b3365b22aa605c"
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "bytes": 23203,
+      "sha256": "008f26f7e3f7f95eb9aed643ad3e20903c8adae2308c75dc839b9c84f702adb0"
+    },
+    {
+      "path": "fast-analysis.json",
+      "bytes": 1558997,
+      "sha256": "90a4ea55893b5d130eede51780a1ac13847848bff996d579e06efead7e8b8519"
+    },
+    {
+      "path": "fast-interpretation.json",
+      "bytes": 122030,
+      "sha256": "f3f9ce4b2b6d162d02e11fd763ac8e541391b33c4cef6e91f935cfd9efb94f31"
+    },
+    {
+      "path": "analyze-fast.py",
+      "bytes": 10582,
+      "sha256": "e3cc8a8e4a083d4d49048aa8d192208a9ff37b58d26d600da9a2443ade45e781"
+    },
+    {
+      "path": "interpret-fast.py",
+      "bytes": 19018,
+      "sha256": "608dda9a63acbf3317b201c259fbc47691e509e1e03cf0be90c607193c07a7b1"
+    }
+  ]
+}

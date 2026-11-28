@@ -1,0 +1,3787 @@
+{
+  "schema": 1,
+  "head": "7c8cdc7889334c81d3aa335147035dc41a0a052b",
+  "workflowRunID": 46138064939,
+  "jobID": 140957698169,
+  "artifactID": 15260960468,
+  "providerDigest": "sha256:1c9fb31061b81d422afe9a863ad0413770972963a96ad799e413f017d69ebc5f",
+  "rawFileCount": 110,
+  "buildScope": {
+    "lane": "r4-fast",
+    "configuration": "debug",
+    "foundationOnly": true,
+    "hostBuild": "PASS",
+    "sourceTests": "NOT_RUN",
+    "hostSampling": "disabledByRequest",
+    "limit": "Within-run durations partition this debug foundation Host's work. They are not a release-complete performance benchmark or a claim that the formal suite passed."
+  },
+  "outcome": {
+    "status": "FAIL",
+    "reason": "R4SwitchReadbackFailed",
+    "issuedInputs": 6,
+    "physicalConfirmations": 5,
+    "explicitSelectionSettlements": 0,
+    "groupEdits": 0,
+    "qualified": false,
+    "limit": "The sixth singleton selection fails before a new primitive. Final cycle settlement, join/split, member-level AX presses and later lifecycle checks were not reached."
+  },
+  "readerFix": {
+    "helperStarts": [
+      {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 39327,
+        "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+        "uptime": 1418.6962490833334,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 9
+      }
+    ],
+    "completedReplies": 202,
+    "requestCount": 203,
+    "swiftExclusivityReports": 0,
+    "fatalAccessConflicts": 0,
+    "serviceFailures": [],
+    "windowListFailures": [],
+    "firstCompletedReply": {
+      "completed": true,
+      "durationMS": 101.50616666669521,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0.26595833332976326,
+      "nativeAgeOnReturnMS": 33.30241666662914,
+      "nativeBeganUptime": 1418.7420314166668,
+      "nativeBeginAfterRequestMS": 58.91408333332038,
+      "nativeDurationMS": 32.3761666666087,
+      "nativeEndedUptime": 1418.7744075833334,
+      "nativeEndToReturnMS": 0.9262500000204454,
+      "observeDirectoryMS": 7.0344166665563534,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 92.21649999994952,
+      "readerAwaitStartedUptime": 1418.6831173333335,
+      "readerReturnedUptime": 1418.7753338333334,
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "receivedReply": true,
+      "remainingProcessingMS": 1.9892916668595717,
+      "requestRevision": 1,
+      "sidebarHistoryMS": 0,
+      "step": "complete",
+      "taskCreatedUptime": 1418.6812895,
+      "taskPriority": 17,
+      "taskQueueMS": 1.3490000001183944,
+      "taskStartedUptime": 1418.6826385000002,
+      "uptime": 1418.78426025,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 10
+    },
+    "finalCleanupCancellation": {
+      "completeFrameReceived": false,
+      "errorKind": "CancellationError",
+      "event": "independentStageProduct",
+      "exchangeStage": "response-header-read",
+      "exchangeStageBytes": 0,
+      "failedUptime": 1437.09572625,
+      "failureStage": "exchange",
+      "frameHeaderBytes": 0,
+      "framePayloadBytes": 0,
+      "framePayloadReceived": false,
+      "phase": "desktop-overview-reader-failed",
+      "pid": 39327,
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "requestBytes": 135,
+      "touchedChannel": true,
+      "uptime": 1437.1020274583334,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 2136
+    },
+    "reaped": [
+      {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 39327,
+        "rawWaitStatus": 9,
+        "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+        "uptime": 1437.10172175,
+        "waitpidErrno": null,
+        "waitpidResult": 39327,
+        "waitStatusAvailable": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 2135
+      }
+    ],
+    "interpretation": "The tested Reader returned real snapshots throughout the run and did not reproduce dccee's exclusivity abort. The only transport failure is cancellation after cleanup, not the first product failure."
+  },
+  "firstFailure": {
+    "witness": {
+      "bindings": 3,
+      "claims": 2,
+      "durationMS": 182.00462499999048,
+      "event": "independentStageProduct",
+      "expectedDisplay": "2109FE05-700B-4D86-963C-08B091DE5E60",
+      "expectedSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "expectedSpace": "5F33A352-1A43-64AC-35D8-45D944D73B38",
+      "openingRosterMetrics": {
+        "candidateCount": 0,
+        "candidateEnumerationCompleted": false,
+        "nestedInPhaseDurations": true,
+        "retainedCount": 0,
+        "roleReadCount": 0,
+        "roleReadMaxMS": 0,
+        "roleReadTotalMS": 0,
+        "roleTimingIncludesTaskQueueAndActorResume": true
+      },
+      "phase": "witness-read-rejected",
+      "pid": 0,
+      "rosterRejection": {
+        "reason": "catalog-complete",
+        "stage": "home-catalog"
+      },
+      "rosterSnapshot": {
+        "catalogCensus": {
+          "first": {
+            "acceptedWindows": 19,
+            "eligibleSurfaceRows": 25,
+            "expandedRows": 38,
+            "ownerRejectedRows": 6,
+            "ownersAccepted": 3,
+            "ownersChecked": 7,
+            "ownersExcludedBundle": 0,
+            "ownersMissingBundle": 0,
+            "ownersNotRegular": 4,
+            "ownersUnavailable": 0,
+            "parentExcludedRows": 0,
+            "publicRows": 34
+          },
+          "second": {
+            "acceptedWindows": 20,
+            "eligibleSurfaceRows": 26,
+            "expandedRows": 39,
+            "ownerRejectedRows": 6,
+            "ownersAccepted": 3,
+            "ownersChecked": 7,
+            "ownersExcludedBundle": 0,
+            "ownersMissingBundle": 0,
+            "ownersNotRegular": 4,
+            "ownersUnavailable": 0,
+            "parentExcludedRows": 0,
+            "publicRows": 35
+          }
+        },
+        "catalogComplete": "false",
+        "catalogIssueCount": 2,
+        "catalogIssues": [
+          "windowRosterChanged",
+          "windowIdentityOrBounds:pid=38492,window=86"
+        ],
+        "catalogIssuesTruncated": false,
+        "catalogIssueWindows": [
+          {
+            "issueIndex": 1,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 86,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795864022442832,
+              "frame": {
+                "height": 20,
+                "width": 66,
+                "x": 406,
+                "y": 392
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 38492,
+              "reportedOnscreen": true
+            }
+          }
+        ],
+        "displayCount": 1,
+        "displayPresent": true,
+        "freshness": "fresh",
+        "matchingScopeCount": 1,
+        "nativeBeganUptime": 1427.5550711666667,
+        "nativeEndedUptime": 1427.7015249583335,
+        "population": "workWindows",
+        "revision": 191,
+        "sampledFrom": 1795864056.740088,
+        "sampledTo": 1795864056.8864021,
+        "scopeCount": 1,
+        "scopeFactsTruncated": false,
+        "scopes": [
+          {
+            "recordCount": 2,
+            "records": [
+              {
+                "current": false,
+                "fullscreenUUID": "unavailable",
+                "id": "1",
+                "ordinaryUUID": "unavailable"
+              },
+              {
+                "current": true,
+                "fullscreenUUID": "unavailable",
+                "id": "12",
+                "ordinaryUUID": "5F33A352-1A43-64AC-35D8-45D944D73B38"
+              }
+            ]
+          }
+        ],
+        "separateSpaces": "true",
+        "session": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+        "spaces": "observed",
+        "stageManagerEnabled": "false",
+        "topologyConsistent": true,
+        "windowCount": 1,
+        "windowLimitReached": false
+      },
+      "sequence": 82,
+      "step": "opening-roster",
+      "unchangedPermitTiming": {
+        "count": 0,
+        "maxMS": 0,
+        "nestedInPhaseDurations": true,
+        "totalMS": 0
+      },
+      "uptime": 1427.7298534166669,
+      "window": 0,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1870
+    },
+    "scope": {
+      "scope": "5C04DC1F-6FDF-4D7D-BEC7-C3C56F8C1076",
+      "reserved": {
+        "epoch": "5D245D75-5D1B-46B2-A2A6-9E406753F5A5",
+        "event": "independentStageProduct",
+        "pendingProducer": false,
+        "pendingPublisher": false,
+        "phase": "metadata-scope-reserved",
+        "purpose": "witness",
+        "queuedMS": 0.3097083333614137,
+        "scope": "5C04DC1F-6FDF-4D7D-BEC7-C3C56F8C1076",
+        "uptime": 1427.54716675,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1861
+      },
+      "drained": {
+        "durationMS": 0.6847916665719822,
+        "epoch": "5D245D75-5D1B-46B2-A2A6-9E406753F5A5",
+        "event": "independentStageProduct",
+        "pendingProducer": false,
+        "pendingPublisher": false,
+        "phase": "metadata-scope-drained",
+        "purpose": "witness",
+        "scope": "5C04DC1F-6FDF-4D7D-BEC7-C3C56F8C1076",
+        "uptime": 1427.5475419166667,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1862
+      },
+      "ended": {
+        "drained": true,
+        "durationMS": 183.25395833335278,
+        "epoch": "5D245D75-5D1B-46B2-A2A6-9E406753F5A5",
+        "event": "independentStageProduct",
+        "phase": "metadata-scope-ended",
+        "purpose": "witness",
+        "scope": "5C04DC1F-6FDF-4D7D-BEC7-C3C56F8C1076",
+        "uptime": 1427.7301178750001,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1871
+      },
+      "reservedToDrainedMS": 0.37516666657211317,
+      "drainedToEndedMS": 182.57595833347295,
+      "reservedToEndedMS": 182.95112500004507
+    },
+    "created": {
+      "auditCreationMS": 0.0009583332030160818,
+      "creatorKind": "metadata-owner",
+      "creatorPriority": 25,
+      "dispatching": true,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 1427.5479982916668,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 0.1890833334527997,
+      "readCallStartedUptime": 1427.5479960416667,
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "requestConstructionMS": 0.0009166667496174341,
+      "requestRevision": 191,
+      "sessionAvailabilityMS": 0.17829166654337314,
+      "taskCreatedUptime": 1427.5481851250001,
+      "uptime": 1427.548273625,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1863
+    },
+    "started": {
+      "event": "independentStageProduct",
+      "phase": "desktop-read-task-started",
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "requestRevision": 191,
+      "taskCreatedUptime": 1427.5481851250001,
+      "taskPriority": 25,
+      "taskStartedUptime": 1427.5492699166668,
+      "uptime": 1427.5493600833333,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1866
+    },
+    "exit": {
+      "completed": true,
+      "durationMS": 176.36962500000664,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0.360333333219387,
+      "incompleteCatalog": {
+        "catalogCensus": {
+          "first": {
+            "acceptedWindows": 19,
+            "eligibleSurfaceRows": 25,
+            "expandedRows": 38,
+            "ownerRejectedRows": 6,
+            "ownersAccepted": 3,
+            "ownersChecked": 7,
+            "ownersExcludedBundle": 0,
+            "ownersMissingBundle": 0,
+            "ownersNotRegular": 4,
+            "ownersUnavailable": 0,
+            "parentExcludedRows": 0,
+            "publicRows": 34
+          },
+          "second": {
+            "acceptedWindows": 20,
+            "eligibleSurfaceRows": 26,
+            "expandedRows": 39,
+            "ownerRejectedRows": 6,
+            "ownersAccepted": 3,
+            "ownersChecked": 7,
+            "ownersExcludedBundle": 0,
+            "ownersMissingBundle": 0,
+            "ownersNotRegular": 4,
+            "ownersUnavailable": 0,
+            "parentExcludedRows": 0,
+            "publicRows": 35
+          }
+        },
+        "catalogComplete": false,
+        "catalogIssueCount": 2,
+        "catalogIssues": [
+          "windowRosterChanged",
+          "windowIdentityOrBounds:pid=38492,window=86"
+        ],
+        "catalogIssuesTruncated": false,
+        "catalogIssueWindows": [
+          {
+            "issueIndex": 1,
+            "left": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "number": 86,
+            "right": {
+              "recordCount": 0,
+              "recordIDs": [],
+              "state": "unavailable",
+              "truncated": false
+            },
+            "role": {
+              "ownerRead": false,
+              "source": "notRequested",
+              "windowRead": false
+            },
+            "second": {
+              "active": true,
+              "birth": 1795864022442832,
+              "frame": {
+                "height": 20,
+                "width": 66,
+                "x": 406,
+                "y": 392
+              },
+              "frameValid": true,
+              "observedOnscreen": true,
+              "ordered": true,
+              "ownerUnhidden": true,
+              "pid": 38492,
+              "reportedOnscreen": true
+            }
+          }
+        ]
+      },
+      "nativeAgeOnReturnMS": 152.36670833337485,
+      "nativeBeganUptime": 1427.5550711666667,
+      "nativeBeginAfterRequestMS": 5.366749999893727,
+      "nativeDurationMS": 146.4537916667723,
+      "nativeEndedUptime": 1427.7015249583335,
+      "nativeEndToReturnMS": 5.912916666602541,
+      "observeDirectoryMS": 0.03716666674336011,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 157.73345833326857,
+      "readerAwaitStartedUptime": 1427.5497044166668,
+      "readerReturnedUptime": 1427.707437875,
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "receivedReply": true,
+      "remainingProcessingMS": 18.238666666775316,
+      "requestRevision": 191,
+      "sidebarHistoryMS": 0,
+      "step": "complete",
+      "taskCreatedUptime": 1427.5481851250001,
+      "taskPriority": 25,
+      "taskQueueMS": 1.0847916666989477,
+      "taskStartedUptime": 1427.5492699166668,
+      "uptime": 1427.7259079583334,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1868
+    },
+    "afterAction": {
+      "boundaryDate": 1795864056.7329988,
+      "boundaryRevision": 190,
+      "boundaryUptime": 1427.5479850000002,
+      "cancelled": false,
+      "completed": true,
+      "durationMS": 181.13837500004593,
+      "epochMatches": true,
+      "event": "independentStageProduct",
+      "freshReadMS": 181.13033333338535,
+      "freshRequestedUptime": 1427.5479892916667,
+      "hadPrior": false,
+      "pendingRead": false,
+      "phase": "after-action-directory-read",
+      "priorWaitMS": 0,
+      "receivedRevision": 191,
+      "reusedPrior": false,
+      "revision": 191,
+      "step": "complete",
+      "uptime": 1427.7292340833335,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1869
+    },
+    "priorCompleteObserverPublication": {
+      "catalogComplete": true,
+      "dispatching": true,
+      "epoch": "5D245D75-5D1B-46B2-A2A6-9E406753F5A5",
+      "event": "independentStageProduct",
+      "nativeBeganUptime": 1427.4984297916667,
+      "nativeEndedUptime": 1427.516381375,
+      "nativeFreshAtPublication": true,
+      "navigationEpoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+      "observer": "E78980B6-5357-4C3D-BB23-4B6F86F2E8D5",
+      "phase": "desktop-observer-published",
+      "publicationUptime": 1427.5336725000002,
+      "snapshotPresent": true,
+      "snapshotRevision": 190,
+      "snapshotSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "uptime": 1427.53375475,
+      "wallSampledToAgeMS": 17.39799976348877,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1857
+    },
+    "navigationFailure": {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "尚未核对完整的窗口组状态。",
+      "uptime": 1427.7303109583333,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1872
+    },
+    "actualPress": {
+      "inputUptime": 1427.5151250416668,
+      "uptime": 1427.5290816666668,
+      "issued": true,
+      "status": "ISSUED",
+      "reason": "realAccessibilityPressIssued",
+      "axError": 0,
+      "selectedIdentifier": "native-held-group:DABAF832-499B-472E-A4B0-38239486E8E8",
+      "directEngineInvocation": false,
+      "physicalPointerGesture": false,
+      "sourcePath": "independent-runtime/runtime/product/r4-press-434902a3-0db4-47dd-8678-20af4ab6375f.result.json"
+    },
+    "interpretation": [
+      "The sixth actual press selects the held group for pid38521/window54. Its fresh opening read is metadata-owner priority25 within an already drained exact witness scope, with no pending producer or publisher at reservation.",
+      "Previous observer revision190 was created before the new submit and published complete before this scope. Revision191 is a foreground sample inconsistency, not a late background result bypassing the metadata gate.",
+      "The sample began at1427.555071166667 and ended at1427.701524958334. It reports windowRosterChanged and windowIdentityOrBounds for pid38492/window86, present only in the second census; role was not requested and membership is unavailable in the diagnostic facts.",
+      "The66x20 bounds do not establish the purpose or safety of that surface. The original catalog-complete guard correctly rejects this incomplete sample; no generic retry or ignored positive conflict is inferred.",
+      "The failed read logs sequence82; a different completed read in the previous job also logs82 at sourceLine1839. Sequence alone is not a unique cross-job event identifier."
+    ]
+  },
+  "perInputAndJob": [
+    {
+      "cycle": 0,
+      "press": {
+        "inputUptime": 1419.6405237916667,
+        "uptime": 1419.6692545833334,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "current-desktop-window:38492:51",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-45a4652d-30ca-471b-976c-41551d68d738.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          47,
+          208,
+          122
+        ],
+        "frameRead": 0,
+        "identifier": "current-desktop-window:38492:51",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "37DA5985-FEBA-4060-B909-943F24C7CF9E",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": false,
+        "taskPriority": 25,
+        "uptime": 1419.6691127916667,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 60
+      },
+      "firstWorker": {
+        "cancelled": false,
+        "completedPollCount": 27,
+        "detail": 227,
+        "durationMS": 274.5946666666441,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 1896,
+        "intent": "6659796F-734D-4D70-94BB-ADE22738AF59",
+        "maxPollQueueMS": 0.029041666493867524,
+        "operation": 8,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 27,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1419.9013855833334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1420.1761048333335,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 149
+      },
+      "physicalConfirmation": {
+        "observations": [
+          {
+            "readEnd": 1421.2563530416667,
+            "readStart": 1421.2543163750001,
+            "received": 1421.2563710416669,
+            "uptime": 1421.2563710416669,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1421.3214437083334,
+            "readStart": 1421.319494375,
+            "received": 1421.323751625,
+            "uptime": 1421.323751625,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1683.4484583332596,
+        "step": "singletonCycle/0",
+        "uptime": 1421.323975875,
+        "window": 51
+      },
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "37DA5985-FEBA-4060-B909-943F24C7CF9E",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1421.8400734583333,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 507
+      },
+      "superseded": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1421.8399415000001,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 506
+        }
+      ],
+      "failure": [],
+      "inputToDequeueMS": 28.589000000010856,
+      "inputToFirstWorkerMS": 260.86179166668444,
+      "inputToPhysicalMS": 1683.4484583332596,
+      "inputToJobEndMS": 2199.5496666665986,
+      "physicalToJobEndMS": 516.0975833332486,
+      "jobDurationMS": 2170.9606666665877,
+      "witnessCount": 16,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 1168.3980000004794,
+        "openingDirectoryMS": 396.46354166643505,
+        "bindingMS": 96.23333333388473,
+        "physicalWindowsMS": 373.80983333287077,
+        "closingDirectoryMS": 301.93758333393816
+      },
+      "witnessReferences": [
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 136,
+          "sequence": 1,
+          "uptime": 1419.8992140416667,
+          "focusPID": 0,
+          "focusWindow": 0,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 155.72595833327796
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 173,
+          "sequence": 2,
+          "uptime": 1420.2487504166668,
+          "focusPID": 0,
+          "focusWindow": 0,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 69.57491666662463
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 230,
+          "sequence": 3,
+          "uptime": 1420.4402463333333,
+          "focusPID": 0,
+          "focusWindow": 0,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 69.72854166679099
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 251,
+          "sequence": 4,
+          "uptime": 1420.709879625,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 62.19258333339894
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 266,
+          "sequence": 5,
+          "uptime": 1420.7687197083335,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 57.41437500000757
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 285,
+          "sequence": 6,
+          "uptime": 1420.8444991666668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 3,
+          "durationMS": 58.93516666674259
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 309,
+          "sequence": 7,
+          "uptime": 1421.0431135833335,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 82.08116666673959
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 321,
+          "sequence": 8,
+          "uptime": 1421.1039509166667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 59.05275000009169
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 340,
+          "sequence": 9,
+          "uptime": 1421.1842416250001,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.28095833328916
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 360,
+          "sequence": 10,
+          "uptime": 1421.3209504166668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 65.8430833334478
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 376,
+          "sequence": 11,
+          "uptime": 1421.3812402083333,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 58.112166666660414
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 391,
+          "sequence": 12,
+          "uptime": 1421.4503282916667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 64.66604166666912
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 406,
+          "sequence": 13,
+          "uptime": 1421.53784425,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 84.57062499996937
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 425,
+          "sequence": 14,
+          "uptime": 1421.6308538750002,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 86.10491666672715
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 481,
+          "sequence": 15,
+          "uptime": 1421.7524076250002,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 76.9455833333268
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 496,
+          "sequence": 16,
+          "uptime": 1421.8186230833335,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 64.16916666671568
+        }
+      ],
+      "unchangedPermitNestedMS": 81.67241666683367,
+      "workerCount": 17,
+      "workerDurationMS": 612.8090833333317,
+      "workerOperationCounts": {
+        "8": 1,
+        "6": 6,
+        "2": 8,
+        "3": 2
+      },
+      "scopeCount": 12,
+      "scopeReserveToDrainMS": 41.80716666678563,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 48,
+          "medianMS": 6.0318958333027695,
+          "maxMS": 11.826124999970489,
+          "totalMS": 328.4966666667515
+        },
+        "actorQueueMS": {
+          "count": 48,
+          "medianMS": 0.03497916657124733,
+          "maxMS": 0.16845833329171,
+          "totalMS": 1.9754166673919826
+        },
+        "nativeReadMS": {
+          "count": 48,
+          "medianMS": 2.6979374999882566,
+          "maxMS": 8.499625000013111,
+          "totalMS": 163.44104166682882
+        },
+        "actorToMainActorMS": {
+          "count": 48,
+          "medianMS": 0.02141666664101649,
+          "maxMS": 0.04195833321318787,
+          "totalMS": 1.126208332607348
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 48,
+          "medianMS": 0.005187500050851668,
+          "maxMS": 0.034708333487287746,
+          "totalMS": 0.3114166675004526
+        },
+        "access-before": {
+          "count": 48,
+          "medianMS": 0.8120833333578048,
+          "maxMS": 2.1400000000539876,
+          "totalMS": 39.641791667008874
+        },
+        "owner-before": {
+          "count": 48,
+          "medianMS": 0.7743749999917782,
+          "maxMS": 1.5769583333167247,
+          "totalMS": 40.196166664827615
+        },
+        "physical-await": {
+          "count": 48,
+          "medianMS": 2.764520833352435,
+          "maxMS": 8.598166666615725,
+          "totalMS": 166.84587500071757
+        },
+        "return": {
+          "count": 48,
+          "medianMS": 0.008208333383663557,
+          "maxMS": 0.021291666826073197,
+          "totalMS": 0.4162499999438296
+        },
+        "access-after": {
+          "count": 48,
+          "medianMS": 0.7678541667246463,
+          "maxMS": 1.7327916666545207,
+          "totalMS": 39.626916666975376
+        },
+        "owner-after": {
+          "count": 48,
+          "medianMS": 0.781395833314491,
+          "maxMS": 1.963208333336297,
+          "totalMS": 41.45824999977776
+        }
+      },
+      "completionInterpretation": "New input superseded this job after its confirmed prefix; the activity end is not a final commit timestamp."
+    },
+    {
+      "cycle": 1,
+      "press": {
+        "inputUptime": 1421.6328587916666,
+        "uptime": 1421.6341964583335,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "current-desktop-window:38492:53",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-eadd790d-806c-4598-9d68-cffa9cedf385.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          180,
+          208,
+          122
+        ],
+        "frameRead": 0,
+        "identifier": "current-desktop-window:38492:53",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "70D6E6E8-951C-42F8-9C40-382725C21452",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1421.8402014583335,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 508
+      },
+      "firstWorker": {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 226,
+        "durationMS": 14.748166666549878,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "013639FE-FD90-46A7-9FA0-9F6576E7C9C5",
+        "maxPollQueueMS": 0.007541666718680062,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1422.0090280416669,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1422.0238907500002,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 555
+      },
+      "physicalConfirmation": {
+        "observations": [
+          {
+            "readEnd": 1422.8531435,
+            "readStart": 1422.8499490833335,
+            "received": 1422.8531774583334,
+            "uptime": 1422.8531774583334,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1422.9278326666667,
+            "readStart": 1422.9257392916668,
+            "received": 1422.92786325,
+            "uptime": 1422.92786325,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1295.0504166667542,
+        "step": "singletonCycle/1",
+        "uptime": 1422.9279115416668,
+        "window": 53
+      },
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "70D6E6E8-951C-42F8-9C40-382725C21452",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1423.374190625,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 837
+      },
+      "superseded": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1423.3740857500002,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 836
+        }
+      ],
+      "failure": [],
+      "inputToDequeueMS": 207.34266666681833,
+      "inputToFirstWorkerMS": 376.16925000020274,
+      "inputToPhysicalMS": 1295.0504166667542,
+      "inputToJobEndMS": 1741.3318333333336,
+      "physicalToJobEndMS": 446.27908333313826,
+      "jobDurationMS": 1533.9891666665153,
+      "witnessCount": 17,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 1046.9658333333882,
+        "openingDirectoryMS": 346.96629166683124,
+        "bindingMS": 17.307125000115775,
+        "physicalWindowsMS": 363.168291666625,
+        "closingDirectoryMS": 319.5677916664863
+      },
+      "witnessReferences": [
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 531,
+          "sequence": 17,
+          "uptime": 1421.9458955,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 54.681791666780555
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 548,
+          "sequence": 18,
+          "uptime": 1422.0076688333334,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 59.549000000060914
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 571,
+          "sequence": 19,
+          "uptime": 1422.0834969166667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 50.86712499996793
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 598,
+          "sequence": 20,
+          "uptime": 1422.1927786666668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 71.24758333338832
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 622,
+          "sequence": 21,
+          "uptime": 1422.3671002083333,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.76000000001113
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 634,
+          "sequence": 22,
+          "uptime": 1422.4160941250002,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 47.819749999916894
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 657,
+          "sequence": 23,
+          "uptime": 1422.5181592916667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 66.48041666653626
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 676,
+          "sequence": 24,
+          "uptime": 1422.6294545,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 62.57533333337051
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 691,
+          "sequence": 25,
+          "uptime": 1422.6864113333334,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 55.57508333322403
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 710,
+          "sequence": 26,
+          "uptime": 1422.7758456666668,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 66.30670833328622
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 734,
+          "sequence": 27,
+          "uptime": 1422.9661142083335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 81.26783333341336
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 746,
+          "sequence": 28,
+          "uptime": 1423.0237472083334,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 56.21008333332611
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 761,
+          "sequence": 29,
+          "uptime": 1423.0877626666668,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 60.74379166670951
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 776,
+          "sequence": 30,
+          "uptime": 1423.1669195416669,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 76.90408333337473
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 793,
+          "sequence": 31,
+          "uptime": 1423.2355791666669,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 66.21083333334354
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 808,
+          "sequence": 32,
+          "uptime": 1423.294550625,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 57.0260000001781
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 827,
+          "sequence": 33,
+          "uptime": 1423.3561389166669,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 59.740416666500096
+        }
+      ],
+      "unchangedPermitNestedMS": 62.61758333312173,
+      "workerCount": 11,
+      "workerDurationMS": 304.41462499993577,
+      "workerOperationCounts": {
+        "6": 5,
+        "2": 4,
+        "4": 1,
+        "3": 1
+      },
+      "scopeCount": 13,
+      "scopeReserveToDrainMS": 34.674166666945894,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 51,
+          "medianMS": 5.722750000131782,
+          "maxMS": 13.970833333360133,
+          "totalMS": 320.3053333324988
+        },
+        "actorQueueMS": {
+          "count": 51,
+          "medianMS": 0.04045833338750526,
+          "maxMS": 0.4279999998288986,
+          "totalMS": 2.630875000704691
+        },
+        "nativeReadMS": {
+          "count": 51,
+          "medianMS": 2.416916666788893,
+          "maxMS": 8.308541666565361,
+          "totalMS": 136.16879166784202
+        },
+        "actorToMainActorMS": {
+          "count": 51,
+          "medianMS": 0.02162499981750443,
+          "maxMS": 3.6326250001366134,
+          "totalMS": 5.0358333342046535
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 51,
+          "medianMS": 0.005208333277550992,
+          "maxMS": 0.019249999922976713,
+          "totalMS": 0.28808333263441455
+        },
+        "access-before": {
+          "count": 51,
+          "medianMS": 0.7867083334076597,
+          "maxMS": 1.9554999998945277,
+          "totalMS": 41.354583332804395
+        },
+        "owner-before": {
+          "count": 51,
+          "medianMS": 0.8056249998844578,
+          "maxMS": 3.8274999999430293,
+          "totalMS": 48.396541666534176
+        },
+        "physical-await": {
+          "count": 51,
+          "medianMS": 2.4712083334179624,
+          "maxMS": 8.424333333323375,
+          "totalMS": 144.1478750011811
+        },
+        "return": {
+          "count": 51,
+          "medianMS": 0.008125000022118911,
+          "maxMS": 0.01666666662458738,
+          "totalMS": 0.4240416658376489
+        },
+        "access-after": {
+          "count": 51,
+          "medianMS": 0.8045833333198971,
+          "maxMS": 2.1318750000318687,
+          "totalMS": 41.53604166617697
+        },
+        "owner-after": {
+          "count": 51,
+          "medianMS": 0.8018333332984184,
+          "maxMS": 2.371166666762292,
+          "totalMS": 44.15816666733008
+        }
+      },
+      "completionInterpretation": "New input superseded this job after its confirmed prefix; the activity end is not a final commit timestamp."
+    },
+    {
+      "cycle": 2,
+      "press": {
+        "inputUptime": 1423.2103491666667,
+        "uptime": 1423.2110361250002,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "native-held-group:DABAF832-499B-472E-A4B0-38239486E8E8",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-df733330-d4fa-484e-828c-82d2b9d6deed.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          618,
+          208,
+          18
+        ],
+        "frameRead": 0,
+        "identifier": "native-held-group:DABAF832-499B-472E-A4B0-38239486E8E8",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "CA20F490-3200-4F31-BCF7-083BD353B617",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1423.3743239166668,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 838
+      },
+      "firstWorker": {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 11.39220833329091,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "900338A8-B0D0-46F5-AEE5-85097BC24790",
+        "maxPollQueueMS": 0.008041666660574265,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1423.5579292916668,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1423.5694500416666,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 881
+      },
+      "physicalConfirmation": {
+        "observations": [
+          {
+            "readEnd": 1424.3247972083334,
+            "readStart": 1424.3229077083333,
+            "received": 1424.3248220833334,
+            "uptime": 1424.3248220833334,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 54,
+                "onScreen": true,
+                "pid": 38521,
+                "space": 12,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1424.3911688750002,
+            "readStart": 1424.388905125,
+            "received": 1424.391190125,
+            "uptime": 1424.391190125,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 35,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 54,
+                "onScreen": true,
+                "pid": 38521,
+                "space": 12,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1181.0520833334976,
+        "step": "singletonCycle/2",
+        "uptime": 1424.391404125,
+        "window": 54
+      },
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "CA20F490-3200-4F31-BCF7-083BD353B617",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1424.7813699583335,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1195
+      },
+      "superseded": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1424.7812731666668,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1194
+        }
+      ],
+      "failure": [],
+      "inputToDequeueMS": 163.97475000007944,
+      "inputToFirstWorkerMS": 347.58012500014956,
+      "inputToPhysicalMS": 1181.0520833334976,
+      "inputToJobEndMS": 1571.0207916667969,
+      "physicalToJobEndMS": 389.9658333334628,
+      "jobDurationMS": 1407.0460416667174,
+      "witnessCount": 17,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 925.5567500001689,
+        "openingDirectoryMS": 326.4731250001205,
+        "bindingMS": 15.369499999451364,
+        "physicalWindowsMS": 305.09233333418706,
+        "closingDirectoryMS": 278.6616249998133
+      },
+      "witnessReferences": [
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 857,
+          "sequence": 34,
+          "uptime": 1423.4912900000002,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 75.946624999915
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 874,
+          "sequence": 35,
+          "uptime": 1423.5566190833333,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 62.57783333330735
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 897,
+          "sequence": 36,
+          "uptime": 1423.6406032083335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 57.34087499990892
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 960,
+          "sequence": 37,
+          "uptime": 1423.7358127083335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 48.29749999998967
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 980,
+          "sequence": 38,
+          "uptime": 1423.8662093333335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.35170833336633
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 992,
+          "sequence": 39,
+          "uptime": 1423.9119642916667,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 44.615499999963504
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1015,
+          "sequence": 40,
+          "uptime": 1424.0058712083335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 61.46074999992379
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1034,
+          "sequence": 41,
+          "uptime": 1424.1822617083335,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 71.87679166668204
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1049,
+          "sequence": 42,
+          "uptime": 1424.229474875,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 45.78412500018203
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1068,
+          "sequence": 43,
+          "uptime": 1424.302060375,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 48.48483333330478
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1092,
+          "sequence": 44,
+          "uptime": 1424.4571090416669,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 59.208916666875666
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1104,
+          "sequence": 45,
+          "uptime": 1424.5026099583333,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 44.27899999996043
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1119,
+          "sequence": 46,
+          "uptime": 1424.5597297916668,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 54.5494166667595
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1134,
+          "sequence": 47,
+          "uptime": 1424.6174702916667,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 55.76916666677789
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1151,
+          "sequence": 48,
+          "uptime": 1424.6710907916668,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 51.91712500004542
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1166,
+          "sequence": 49,
+          "uptime": 1424.7179112916667,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 45.151291666570614
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1185,
+          "sequence": 50,
+          "uptime": 1424.764351125,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 44.94529166663597
+        }
+      ],
+      "unchangedPermitNestedMS": 56.82958333431998,
+      "workerCount": 11,
+      "workerDurationMS": 262.56579166670235,
+      "workerOperationCounts": {
+        "6": 5,
+        "2": 4,
+        "4": 1,
+        "3": 1
+      },
+      "scopeCount": 13,
+      "scopeReserveToDrainMS": 43.52383333321086,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 51,
+          "medianMS": 5.034624999780135,
+          "maxMS": 8.776541666520643,
+          "totalMS": 267.0345416665896
+        },
+        "actorQueueMS": {
+          "count": 51,
+          "medianMS": 0.032416666726931,
+          "maxMS": 0.10854166657736641,
+          "totalMS": 1.891041666340243
+        },
+        "nativeReadMS": {
+          "count": 51,
+          "medianMS": 2.175000000079308,
+          "maxMS": 4.556333333312068,
+          "totalMS": 114.38383333165802
+        },
+        "actorToMainActorMS": {
+          "count": 51,
+          "medianMS": 0.01699999984339229,
+          "maxMS": 0.37158333316256176,
+          "totalMS": 1.3168333327939763
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 51,
+          "medianMS": 0.004333333436079556,
+          "maxMS": 0.011458333119662711,
+          "totalMS": 0.242333333062561
+        },
+        "access-before": {
+          "count": 51,
+          "medianMS": 0.706124999851454,
+          "maxMS": 0.9812083333144983,
+          "totalMS": 36.05133333417143
+        },
+        "owner-before": {
+          "count": 51,
+          "medianMS": 0.7033749998299754,
+          "maxMS": 1.0236250000161817,
+          "totalMS": 36.95229166487479
+        },
+        "physical-await": {
+          "count": 51,
+          "medianMS": 2.2523333332173934,
+          "maxMS": 4.654166666568926,
+          "totalMS": 117.83404166703804
+        },
+        "return": {
+          "count": 51,
+          "medianMS": 0.005749999900217517,
+          "maxMS": 0.03654166675914894,
+          "totalMS": 0.38074999997661507
+        },
+        "access-after": {
+          "count": 51,
+          "medianMS": 0.6719999998949788,
+          "maxMS": 1.1279583334271592,
+          "totalMS": 36.619458333916555
+        },
+        "owner-after": {
+          "count": 51,
+          "medianMS": 0.6903333332957118,
+          "maxMS": 1.5297500001452136,
+          "totalMS": 38.954333333549584
+        }
+      },
+      "completionInterpretation": "New input superseded this job after its confirmed prefix; the activity end is not a final commit timestamp."
+    },
+    {
+      "cycle": 3,
+      "press": {
+        "inputUptime": 1424.6368480833335,
+        "uptime": 1424.6374012083334,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "native-held-group:DC91D71D-C1A4-490F-9D19-35C7C5BF7E1A",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-ac9efac5-afae-41ba-ba1e-84763b8bca5d.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          451,
+          208,
+          18
+        ],
+        "frameRead": 0,
+        "identifier": "native-held-group:DC91D71D-C1A4-490F-9D19-35C7C5BF7E1A",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "C5355C19-132B-437A-AED9-8BE4FAFB3784",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1424.7814770416667,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1196
+      },
+      "firstWorker": {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 226,
+        "durationMS": 12.942666666731384,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "B3618B8D-C0FF-46FD-8AB3-BB6E28EA0415",
+        "maxPollQueueMS": 0.0069583334152412135,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1424.90635,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1424.9193915833334,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1238
+      },
+      "physicalConfirmation": {
+        "observations": [
+          {
+            "readEnd": 1425.6547207083333,
+            "readStart": 1425.6526325,
+            "received": 1425.6547545833334,
+            "uptime": 1425.6547545833334,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 37,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1425.7310699583334,
+            "readStart": 1425.7280042083335,
+            "received": 1425.731104125,
+            "uptime": 1425.731104125,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 37,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1094.5937500000582,
+        "step": "singletonCycle/3",
+        "uptime": 1425.7314442083334,
+        "window": 51
+      },
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "C5355C19-132B-437A-AED9-8BE4FAFB3784",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1426.1787572916667,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1523
+      },
+      "superseded": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-superseded",
+          "reason": "已收到新的工作集合选择。",
+          "uptime": 1426.1786159583335,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1522
+        }
+      ],
+      "failure": [],
+      "inputToDequeueMS": 144.62895833321454,
+      "inputToFirstWorkerMS": 269.50191666651335,
+      "inputToPhysicalMS": 1094.5937500000582,
+      "inputToJobEndMS": 1541.9092083332089,
+      "physicalToJobEndMS": 447.31308333325615,
+      "jobDurationMS": 1397.2802499999943,
+      "witnessCount": 17,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 927.2215833329938,
+        "openingDirectoryMS": 319.95249999954467,
+        "bindingMS": 18.113916667061858,
+        "physicalWindowsMS": 312.0267916665398,
+        "closingDirectoryMS": 277.16895833350463
+      },
+      "witnessReferences": [
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1214,
+          "sequence": 51,
+          "uptime": 1424.858485875,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 57.66241666674432
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1231,
+          "sequence": 52,
+          "uptime": 1424.9053271666667,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 44.813375000103406
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1254,
+          "sequence": 53,
+          "uptime": 1424.9732691666668,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 45.770791666654986
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1285,
+          "sequence": 54,
+          "uptime": 1425.0607547500001,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 43.24429166649679
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1309,
+          "sequence": 55,
+          "uptime": 1425.2008735833335,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.39508333327103
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1321,
+          "sequence": 56,
+          "uptime": 1425.2505374166667,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 48.50633333330734
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1344,
+          "sequence": 57,
+          "uptime": 1425.352539875,
+          "focusPID": 38521,
+          "focusWindow": 54,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 65.09762499990757
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1363,
+          "sequence": 58,
+          "uptime": 1425.5020945,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 52.18629166665778
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1378,
+          "sequence": 59,
+          "uptime": 1425.5631184166668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 59.33016666654112
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1397,
+          "sequence": 60,
+          "uptime": 1425.625251375,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 50.056041666721285
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1421,
+          "sequence": 61,
+          "uptime": 1425.8150353333335,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 75.41749999995773
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1433,
+          "sequence": 62,
+          "uptime": 1425.8719933333334,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 55.72379166665087
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1448,
+          "sequence": 63,
+          "uptime": 1425.9480125,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 72.0272500000192
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1463,
+          "sequence": 64,
+          "uptime": 1426.0051949166668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 55.170833333477276
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1480,
+          "sequence": 65,
+          "uptime": 1426.060776625,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 52.182208333306335
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1497,
+          "sequence": 66,
+          "uptime": 1426.113493,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 51.066125000033935
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1514,
+          "sequence": 67,
+          "uptime": 1426.1606148750002,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 45.5714583331428
+        }
+      ],
+      "unchangedPermitNestedMS": 60.35562500028391,
+      "workerCount": 11,
+      "workerDurationMS": 279.5256666665864,
+      "workerOperationCounts": {
+        "6": 5,
+        "2": 4,
+        "4": 1,
+        "3": 1
+      },
+      "scopeCount": 13,
+      "scopeReserveToDrainMS": 28.7930416668587,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 51,
+          "medianMS": 4.98812499995438,
+          "maxMS": 8.66720833346335,
+          "totalMS": 272.3968749994583
+        },
+        "actorQueueMS": {
+          "count": 51,
+          "medianMS": 0.032833333307280554,
+          "maxMS": 0.10650000012901728,
+          "totalMS": 1.8913333328782755
+        },
+        "nativeReadMS": {
+          "count": 51,
+          "medianMS": 2.2402083332053735,
+          "maxMS": 3.795791666561854,
+          "totalMS": 117.21425000041563
+        },
+        "actorToMainActorMS": {
+          "count": 51,
+          "medianMS": 0.017458333331887843,
+          "maxMS": 0.06812500009800715,
+          "totalMS": 1.0359999994307145
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 51,
+          "medianMS": 0.004333333436079556,
+          "maxMS": 0.010416666782475659,
+          "totalMS": 0.24745833297856734
+        },
+        "access-before": {
+          "count": 51,
+          "medianMS": 0.683208333384755,
+          "maxMS": 1.2922916666866513,
+          "totalMS": 37.80004166628714
+        },
+        "owner-before": {
+          "count": 51,
+          "medianMS": 0.6735416666288074,
+          "maxMS": 1.3730833334193449,
+          "totalMS": 37.40145833353381
+        },
+        "physical-await": {
+          "count": 51,
+          "medianMS": 2.2928749999664433,
+          "maxMS": 3.88024999983827,
+          "totalMS": 120.39550000008603
+        },
+        "return": {
+          "count": 51,
+          "medianMS": 0.006374999884428689,
+          "maxMS": 0.013874999922336428,
+          "totalMS": 0.36300000010669464
+        },
+        "access-after": {
+          "count": 51,
+          "medianMS": 0.6872500000554282,
+          "maxMS": 1.1066250001476874,
+          "totalMS": 37.110958334324096
+        },
+        "owner-after": {
+          "count": 51,
+          "medianMS": 0.6784166666875535,
+          "maxMS": 1.3357499999528955,
+          "totalMS": 39.07845833214196
+        }
+      },
+      "completionInterpretation": "New input superseded this job after its confirmed prefix; the activity end is not a final commit timestamp."
+    },
+    {
+      "cycle": 4,
+      "press": {
+        "inputUptime": 1426.0102947916669,
+        "uptime": 1426.0109662083335,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "native-held-group:BE6B21FF-A1D5-4947-88AF-43B7B7B3F640",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-15c9a44d-d20c-47b5-a857-2ad4d2dc133f.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          618,
+          208,
+          18
+        ],
+        "frameRead": 0,
+        "identifier": "native-held-group:BE6B21FF-A1D5-4947-88AF-43B7B7B3F640",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "CD93EC9C-0DCD-4E14-A9B3-44800428894A",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1426.1788996666667,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1524
+      },
+      "firstWorker": {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 14.318666666667923,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "AB9E6ACB-E4F9-4521-B5AF-B5D1B7E68492",
+        "maxPollQueueMS": 0.013458333341986872,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1426.3248506250002,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1426.339279875,
+        "waitPriorities": [
+          25
+        ],
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1595
+      },
+      "physicalConfirmation": {
+        "observations": [
+          {
+            "readEnd": 1427.070394625,
+            "readStart": 1427.0677585,
+            "received": 1427.0704162916668,
+            "uptime": 1427.0704162916668,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 38,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 37,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1427.148089125,
+            "readStart": 1427.1464197500002,
+            "received": 1427.148114,
+            "uptime": 1427.148114,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 38492,
+                "space": 38,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 38492,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 38521,
+                "space": 37,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 1137.975249999954,
+        "step": "singletonCycle/4",
+        "uptime": 1427.1482725,
+        "window": 53
+      },
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "CD93EC9C-0DCD-4E14-A9B3-44800428894A",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1427.4176769166668,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1847
+      },
+      "superseded": [],
+      "failure": [],
+      "inputToDequeueMS": 168.6048749998008,
+      "inputToFirstWorkerMS": 314.5558333333156,
+      "inputToPhysicalMS": 1137.975249999954,
+      "inputToJobEndMS": 1407.3821249999128,
+      "physicalToJobEndMS": 269.4044166667027,
+      "jobDurationMS": 1238.777250000112,
+      "witnessCount": 15,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 815.8013333340932,
+        "openingDirectoryMS": 269.96533333363004,
+        "bindingMS": 16.207791666602134,
+        "physicalWindowsMS": 289.97662499978105,
+        "closingDirectoryMS": 239.68825000019933
+      },
+      "witnessReferences": [
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1571,
+          "sequence": 68,
+          "uptime": 1426.274482125,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 57.86279166682107
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1588,
+          "sequence": 69,
+          "uptime": 1426.3237678750002,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 47.19512500014389
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1611,
+          "sequence": 70,
+          "uptime": 1426.3955182500001,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 48.060541666700374
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1646,
+          "sequence": 71,
+          "uptime": 1426.4991949166667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 43.79991666655769
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1670,
+          "sequence": 72,
+          "uptime": 1426.6367097916668,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 51.45658333344727
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1682,
+          "sequence": 73,
+          "uptime": 1426.6824601666667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 44.615958333224626
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1705,
+          "sequence": 74,
+          "uptime": 1426.7725249166667,
+          "focusPID": 38492,
+          "focusWindow": 51,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 58.42004166674997
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1724,
+          "sequence": 75,
+          "uptime": 1426.8736577500001,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 61.12583333333532
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1739,
+          "sequence": 76,
+          "uptime": 1426.9282229583334,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.20391666646174
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1758,
+          "sequence": 77,
+          "uptime": 1426.9964609583335,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 2,
+          "durationMS": 53.82933333339679
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1778,
+          "sequence": 78,
+          "uptime": 1427.1554039583334,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 69.00725000014063
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1794,
+          "sequence": 79,
+          "uptime": 1427.20833425,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 51.578375000190135
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1809,
+          "sequence": 80,
+          "uptime": 1427.2621804166668,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 50.9341666668206
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1824,
+          "sequence": 81,
+          "uptime": 1427.3301976666667,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 66.23062500011656
+        },
+        {
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1839,
+          "sequence": 82,
+          "uptime": 1427.391252375,
+          "focusPID": 38492,
+          "focusWindow": 53,
+          "managed": 3,
+          "roster": 1,
+          "durationMS": 58.480874999986554
+        }
+      ],
+      "unchangedPermitNestedMS": 52.56074999920202,
+      "workerCount": 11,
+      "workerDurationMS": 254.31695833344747,
+      "workerOperationCounts": {
+        "6": 5,
+        "2": 4,
+        "4": 1,
+        "3": 1
+      },
+      "scopeCount": 11,
+      "scopeReserveToDrainMS": 56.169916666249264,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 45,
+          "medianMS": 5.0980416665424855,
+          "maxMS": 10.681916666499092,
+          "totalMS": 255.38841666593726
+        },
+        "actorQueueMS": {
+          "count": 45,
+          "medianMS": 0.036958333339498495,
+          "maxMS": 0.35537499979909626,
+          "totalMS": 2.5316666660728515
+        },
+        "nativeReadMS": {
+          "count": 45,
+          "medianMS": 2.2535833334131894,
+          "maxMS": 6.481541666744306,
+          "totalMS": 111.8604166665591
+        },
+        "actorToMainActorMS": {
+          "count": 45,
+          "medianMS": 0.018791666661854833,
+          "maxMS": 1.688874999899781,
+          "totalMS": 2.646166667545913
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 45,
+          "medianMS": 0.004416666570250527,
+          "maxMS": 0.014416666545002954,
+          "totalMS": 0.2184999993914971
+        },
+        "access-before": {
+          "count": 45,
+          "medianMS": 0.7094166664955992,
+          "maxMS": 1.2824166667542158,
+          "totalMS": 32.82750000062151
+        },
+        "owner-before": {
+          "count": 45,
+          "medianMS": 0.7162916667766694,
+          "maxMS": 3.953083333271934,
+          "totalMS": 37.80420833322751
+        },
+        "physical-await": {
+          "count": 45,
+          "medianMS": 2.319083333304661,
+          "maxMS": 6.580791666692676,
+          "totalMS": 117.26091666650973
+        },
+        "return": {
+          "count": 45,
+          "medianMS": 0.007416666676363093,
+          "maxMS": 0.012583333273141761,
+          "totalMS": 0.32229166640718176
+        },
+        "access-after": {
+          "count": 45,
+          "medianMS": 0.7260833333475603,
+          "maxMS": 1.1328333332585316,
+          "totalMS": 32.71066666638944
+        },
+        "owner-after": {
+          "count": 45,
+          "medianMS": 0.7516250000207947,
+          "maxMS": 1.2198750000607106,
+          "totalMS": 34.24433333339039
+        }
+      },
+      "completionInterpretation": "Normal job return after the last full witnesses and worker health. No standalone commit-timestamp event exists."
+    },
+    {
+      "cycle": 5,
+      "press": {
+        "inputUptime": 1427.5151250416668,
+        "uptime": 1427.5290816666668,
+        "issued": true,
+        "status": "ISSUED",
+        "reason": "realAccessibilityPressIssued",
+        "axError": 0,
+        "selectedIdentifier": "native-held-group:DABAF832-499B-472E-A4B0-38239486E8E8",
+        "directEngineInvocation": false,
+        "physicalPointerGesture": false,
+        "sourcePath": "independent-runtime/runtime/product/r4-press-434902a3-0db4-47dd-8678-20af4ab6375f.result.json"
+      },
+      "axPrePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          485,
+          208,
+          18
+        ],
+        "frameRead": 0,
+        "identifier": "native-held-group:DABAF832-499B-472E-A4B0-38239486E8E8",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "dequeue": {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "A1082473-3C0D-43EE-8B88-75B80E0F9683",
+        "event": "independentStageProduct",
+        "job": "FBF585BE-757D-4984-B29B-66624B3C7391",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": true,
+        "taskPriority": 25,
+        "uptime": 1427.532714125,
+        "userActivity": true,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1855
+      },
+      "firstWorker": null,
+      "physicalConfirmation": null,
+      "activityEnd": {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "FBF585BE-757D-4984-B29B-66624B3C7391",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1427.7308351666668,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1873
+      },
+      "superseded": [],
+      "failure": [
+        {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-failed",
+          "reason": "尚未核对完整的窗口组状态。",
+          "uptime": 1427.7303109583333,
+          "sourcePath": "independent-runtime/runtime/product.stderr.log",
+          "sourceLine": 1872
+        }
+      ],
+      "inputToDequeueMS": 17.58908333317777,
+      "inputToFirstWorkerMS": null,
+      "inputToPhysicalMS": null,
+      "inputToJobEndMS": 215.71012499998687,
+      "physicalToJobEndMS": null,
+      "jobDurationMS": 198.1210416668091,
+      "witnessCount": 0,
+      "witnessPhaseTotalsMS": {
+        "durationMS": 0,
+        "openingDirectoryMS": 0,
+        "bindingMS": 0,
+        "physicalWindowsMS": 0,
+        "closingDirectoryMS": 0
+      },
+      "witnessReferences": [],
+      "unchangedPermitNestedMS": 0,
+      "workerCount": 0,
+      "workerDurationMS": 0,
+      "workerOperationCounts": {},
+      "scopeCount": 1,
+      "scopeReserveToDrainMS": 0.37516666657211317,
+      "physicalObservationSegments": {
+        "durationMS": {
+          "count": 0
+        },
+        "actorQueueMS": {
+          "count": 0
+        },
+        "nativeReadMS": {
+          "count": 0
+        },
+        "actorToMainActorMS": {
+          "count": 0
+        }
+      },
+      "physicalGuardSegments": {
+        "entry": {
+          "count": 0
+        },
+        "access-before": {
+          "count": 0
+        },
+        "owner-before": {
+          "count": 0
+        },
+        "physical-await": {
+          "count": 0
+        },
+        "return": {
+          "count": 0
+        },
+        "access-after": {
+          "count": 0
+        },
+        "owner-after": {
+          "count": 0
+        }
+      },
+      "completionInterpretation": "Opening witness rejected before this job issued any worker operation; no physical confirmation or commit."
+    }
+  ],
+  "fifthNormalReturn": {
+    "lastThreeFullWitnesses": [
+      {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1809,
+        "sequence": 80,
+        "uptime": 1427.2621804166668,
+        "focusPID": 38492,
+        "focusWindow": 53,
+        "managed": 3,
+        "roster": 1,
+        "durationMS": 50.9341666668206
+      },
+      {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1824,
+        "sequence": 81,
+        "uptime": 1427.3301976666667,
+        "focusPID": 38492,
+        "focusWindow": 53,
+        "managed": 3,
+        "roster": 1,
+        "durationMS": 66.23062500011656
+      },
+      {
+        "sourcePath": "independent-runtime/runtime/product.stderr.log",
+        "sourceLine": 1839,
+        "sequence": 82,
+        "uptime": 1427.391252375,
+        "focusPID": 38492,
+        "focusWindow": 53,
+        "managed": 3,
+        "roster": 1,
+        "durationMS": 58.480874999986554
+      }
+    ],
+    "lastHealth": {
+      "cancelled": false,
+      "completedPollCount": 3,
+      "detail": 226,
+      "durationMS": 14.41329166664218,
+      "epoch": 1,
+      "event": "spacesHostLifecycle",
+      "flags": 192,
+      "intent": "B098F755-386E-4FAA-9BCF-8252EBC8EF1D",
+      "maxPollQueueMS": 0.007458333357135416,
+      "operation": 6,
+      "owned": 2,
+      "phase": "worker-request-exit",
+      "pollCount": 3,
+      "pollPriorities": [
+        25
+      ],
+      "requestedPriority": 25,
+      "requestStartUptime": 1427.392223,
+      "returnPriority": 25,
+      "status": 0,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1427.4067465416667,
+      "waitPriorities": [
+        25
+      ],
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1846
+    },
+    "activityEnd": {
+      "completionHolds": 0,
+      "event": "independentStageProduct",
+      "job": "CD93EC9C-0DCD-4E14-A9B3-44800428894A",
+      "phase": "navigation-user-activity-end",
+      "uptime": 1427.4176769166668,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 1847
+    },
+    "inputToCommitLowerBoundMS": 1396.4517499998692,
+    "inputToJobReturnUpperBoundMS": 1407.3821249999128,
+    "interpretation": "The original verifySelection performs these three complete samples then checks owning-worker health before committing. The job returns normally after that path. No separate commit event gives an exact instant; the final guard/commit/return interval is bounded by this last health return and activity end. This is not the final-cycle R4SelectionSettled acceptance event."
+  },
+  "latency": {
+    "firstPhysicalMS": 1683.4484583332596,
+    "nextFourPhysicalMS": {
+      "count": 4,
+      "medianMS": 1159.5136666667258,
+      "maxMS": 1295.0504166667542,
+      "totalMS": 4708.671500000264
+    },
+    "firstFiveJobTotalMS": 7748.053374999927,
+    "firstFiveCompleteWitnessCount": 82,
+    "firstFiveWitnessPhaseTotalsMS": {
+      "durationMS": 4883.9435000011235,
+      "openingDirectoryMS": 1659.8207916665615,
+      "bindingMS": 163.23166666711586,
+      "physicalWindowsMS": 1644.0738750000037,
+      "closingDirectoryMS": 1417.0242083339417
+    },
+    "firstFiveWorkerDurationMS": 1713.6321250000037,
+    "allCompletedWitnessPhaseStats": {
+      "durationMS": {
+        "count": 85,
+        "medianMS": 57.66241666674432,
+        "maxMS": 328.8788333334196,
+        "totalMS": 5650.047208334627
+      },
+      "openingDirectoryMS": {
+        "count": 85,
+        "medianMS": 18.075624999937645,
+        "maxMS": 92.83354166677782,
+        "totalMS": 1825.6834166666067
+      },
+      "bindingMS": {
+        "count": 85,
+        "medianMS": 0.8133333333262271,
+        "maxMS": 73.0702083333199,
+        "totalMS": 217.66183333397748
+      },
+      "physicalWindowsMS": {
+        "count": 85,
+        "medianMS": 18.99329166667485,
+        "maxMS": 85.28383333327838,
+        "totalMS": 1867.9590833332895
+      },
+      "closingDirectoryMS": {
+        "count": 85,
+        "medianMS": 16.566750000038155,
+        "maxMS": 141.2761666665574,
+        "totalMS": 1739.1066250004314
+      }
+    },
+    "allCompletedWitnessCount": 85,
+    "allPhysicalObservationStats": {
+      "durationMS": {
+        "count": 255,
+        "medianMS": 5.435958333464441,
+        "maxMS": 33.623791666741454,
+        "totalMS": 1626.852541664448
+      },
+      "actorQueueMS": {
+        "count": 255,
+        "medianMS": 0.03525000010995427,
+        "maxMS": 0.4279999998288986,
+        "totalMS": 11.478083333258837
+      },
+      "nativeReadMS": {
+        "count": 255,
+        "medianMS": 2.375125000071421,
+        "maxMS": 16.4849166667409,
+        "totalMS": 738.9955416665543
+      },
+      "actorToMainActorMS": {
+        "count": 255,
+        "medianMS": 0.019250000150350388,
+        "maxMS": 3.6326250001366134,
+        "totalMS": 11.547916666359015
+      }
+    },
+    "allPhysicalGuardStats": {
+      "entry": {
+        "count": 255,
+        "medianMS": 0.004833333377973759,
+        "maxMS": 0.05016666659685143,
+        "totalMS": 1.4473333319529047
+      },
+      "access-before": {
+        "count": 255,
+        "medianMS": 0.7459166665739758,
+        "maxMS": 3.324124999835476,
+        "totalMS": 201.6063333344391
+      },
+      "owner-before": {
+        "count": 255,
+        "medianMS": 0.7324166665512166,
+        "maxMS": 9.252333333506613,
+        "totalMS": 227.92354166290352
+      },
+      "physical-await": {
+        "count": 255,
+        "medianMS": 2.444541666591249,
+        "maxMS": 16.65875000003325,
+        "totalMS": 763.4688750024452
+      },
+      "return": {
+        "count": 255,
+        "medianMS": 0.007458333357135416,
+        "maxMS": 0.10487500003364403,
+        "totalMS": 2.157124999030202
+      },
+      "access-after": {
+        "count": 255,
+        "medianMS": 0.7387499999822467,
+        "maxMS": 3.0723333331934555,
+        "totalMS": 202.46579166746415
+      },
+      "owner-after": {
+        "count": 255,
+        "medianMS": 0.7516250000207947,
+        "maxMS": 9.219499999971958,
+        "totalMS": 227.78354166621284
+      }
+    },
+    "allPreTaskStats": {
+      "sessionAvailabilityMS": {
+        "count": 203,
+        "medianMS": 0.13308333336681244,
+        "maxMS": 110.2370416665508,
+        "totalMS": 162.33937499964668
+      },
+      "auditCreationMS": {
+        "count": 203,
+        "medianMS": 0.0009166667496174341,
+        "maxMS": 0.016250000044237822,
+        "totalMS": 0.20579166448442265
+      },
+      "requestConstructionMS": {
+        "count": 203,
+        "medianMS": 0.0007916667073004646,
+        "maxMS": 0.008624999964013114,
+        "totalMS": 0.1874583347216685
+      },
+      "preTaskCreationMS": {
+        "count": 203,
+        "medianMS": 0.1443333333099872,
+        "maxMS": 110.28670833320575,
+        "totalMS": 164.90991666728405
+      }
+    },
+    "allDirectoryStats": {
+      "durationMS": {
+        "count": 202,
+        "medianMS": 15.095687499979249,
+        "maxMS": 203.20966666668028,
+        "totalMS": 4258.46537499956
+      },
+      "taskQueueMS": {
+        "count": 202,
+        "medianMS": 0.1753750000261789,
+        "maxMS": 54.22395833329574,
+        "totalMS": 267.7747916670796
+      },
+      "readerAwaitMS": {
+        "count": 202,
+        "medianMS": 13.890708333292423,
+        "maxMS": 199.58033333341518,
+        "totalMS": 3943.6593333323344
+      },
+      "nativeDurationMS": {
+        "count": 202,
+        "medianMS": 12.916208333308532,
+        "maxMS": 146.4537916667723,
+        "totalMS": 3399.502166667844
+      },
+      "nativeEndToReturnMS": {
+        "count": 202,
+        "medianMS": 0.5066458332976254,
+        "maxMS": 99.55841666646847,
+        "totalMS": 356.5899999980502
+      },
+      "groupProjectionMS": {
+        "count": 202,
+        "medianMS": 0.1508541668044927,
+        "maxMS": 0.7923333334929339,
+        "totalMS": 35.197666667500016
+      },
+      "observeDirectoryMS": {
+        "count": 202,
+        "medianMS": 0.020124999991821824,
+        "maxMS": 7.0344166665563534,
+        "totalMS": 11.629125000126805
+      },
+      "remainingProcessingMS": {
+        "count": 202,
+        "medianMS": 0.8665624999366628,
+        "maxMS": 18.238666666775316,
+        "totalMS": 267.9792499995983
+      }
+    },
+    "largestPreTask": {
+      "auditCreationMS": 0.009958333293980104,
+      "creatorKind": "observer",
+      "creatorPriority": 17,
+      "dispatching": false,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 1419.3440165000002,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 110.28670833320575,
+      "readCallStartedUptime": 1419.3440137500002,
+      "readSession": "E0898FB2-4413-416E-8485-98C9C9B2F3CF",
+      "requestConstructionMS": 0.008624999964013114,
+      "requestRevision": 2,
+      "sessionAvailabilityMS": 110.2370416665508,
+      "taskCreatedUptime": 1419.4543004583334,
+      "uptime": 1419.4544537916668,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 41
+    },
+    "nestedMetricsLimit": "unchangedPermit and role-await intervals are subsets of witness phases; physical-await contains actor queue/native/return. Durations are wall-clock envelopes and must not be double-counted or labeled pure CPU/AX time.",
+    "deduplicationReview": [
+      "Within the first five jobs, whole witnesses are the largest measured serial component. Their opening/closing directory work and retained physical observations have separate purposes.",
+      "StageEngineSession.prepareCoordinatedDispatch already shares the fresh preflight with dispatch, and its independent post-READBACK witness already serves the coordinator's first confirmation. Removing either again would remove a currently required check, not duplicate work.",
+      "The final verifySelection intentionally takes three more complete samples, followed by worker health. In the fifth job they total175.646ms; its final sample is58.481ms. Reducing three to two would change the final confirmation contract and needs an explicit safety decision/tests; this trace alone does not establish a redundant read safe to remove.",
+      "The new observation instrumentation does not show a seconds-long actor queue in this run. Across255 successful observations actorQueue max0.428ms, nativeRead max16.485ms and actorToMainActor max3.633ms. Access/owner guards remain explicit wall-clock segments.",
+      "The old670ms pre-task gap does not recur. Revision2 contributes the maximum110.287ms pre-task envelope,110.237ms in sessionAvailabilityMS. This does not retroactively identify any earlier run's uninstrumented delay."
+    ]
+  },
+  "native": {
+    "requests": 65,
+    "operationStatusCounts": [
+      {
+        "operation": 2,
+        "status": 0,
+        "detail": 200,
+        "count": 24
+      },
+      {
+        "operation": 3,
+        "status": 0,
+        "detail": 224,
+        "count": 6
+      },
+      {
+        "operation": 4,
+        "status": 0,
+        "detail": 223,
+        "count": 4
+      },
+      {
+        "operation": 6,
+        "status": 0,
+        "detail": 226,
+        "count": 29
+      },
+      {
+        "operation": 8,
+        "status": 0,
+        "detail": 227,
+        "count": 1
+      },
+      {
+        "operation": 13,
+        "status": 0,
+        "detail": 225,
+        "count": 1
+      }
+    ],
+    "moves": [
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 78,
+        "pid": 39334,
+        "target": 32,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 11.885,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 59.504,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 123
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 78,
+        "pid": 39334,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 18.095,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 35.831,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 195
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 53,
+        "pid": 38492,
+        "target": 33,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 33.602,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 73.286,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 315
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 38521,
+        "target": 34,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 17.588,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 39.299,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 362
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 53,
+        "pid": 38492,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 37.83,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 77.61,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 470
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 51,
+        "pid": 38492,
+        "target": 35,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 24.34,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 63.399,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 523
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 38521,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 14.606,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 37.989,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 612
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 53,
+        "pid": 38492,
+        "target": 36,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 22.759,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 66.017,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 672
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 51,
+        "pid": 38492,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 25.634,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 49.059,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 754
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 38521,
+        "target": 37,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 38.298,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 79.997,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 814
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 53,
+        "pid": 38492,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 36.023,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 53.774,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 903
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 51,
+        "pid": 38492,
+        "target": 38,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 6.825,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 46.322,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 956
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 51,
+        "pid": 38492,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 31.587,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 86.636,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 1178
+      },
+      {
+        "event": "spacesMoveConfirmation",
+        "window": 54,
+        "pid": 38521,
+        "target": 12,
+        "completed": true,
+        "finalStage": "completed",
+        "acknowledgementMS": 27.671,
+        "acknowledgementBudgetMS": 120.0,
+        "confirmationBudgetMS": 650.0,
+        "fullViewAttempts": 2,
+        "positiveFullViews": 2,
+        "durationMS": 81.299,
+        "sourcePath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e15fbe13-3c8b-43c0-aeda-ddfef0ca97c2.jsonl",
+        "sourceLine": 1199
+      }
+    ],
+    "moveCount": 14,
+    "acknowledgementMS": {
+      "count": 14,
+      "medianMS": 24.987000000000002,
+      "maxMS": 38.298,
+      "totalMS": 346.743
+    },
+    "confirmationDurationMS": {
+      "count": 14,
+      "medianMS": 61.451499999999996,
+      "maxMS": 86.636,
+      "totalMS": 850.022
+    },
+    "faults": [],
+    "interpretation": "All formal Host worker replies have status0. All14 native moves, including canary and cleanup returns, retain120ms acknowledgement/650ms full confirmation budgets and two positive full views. SixHIDE/fourSHOW operations occur before the sixth selection; no new primitive is issued by the failing sixth job."
+  },
+  "metadataAndPublication": {
+    "scopes": 66,
+    "allReservedDrainedEnded": true,
+    "reserveToDrainMS": {
+      "count": 66,
+      "medianMS": 0.3934166667249883,
+      "maxMS": 29.354666666449702,
+      "totalMS": 219.76249999988795
+    },
+    "initialObservationCompletions": 5,
+    "observerWaits": 5,
+    "observerWaitExits": 5,
+    "publications": 30,
+    "completePublications": 30,
+    "publicationIntervalStats": {
+      "publicationGapMS": {
+        "count": 29,
+        "medianMS": 272.92424999996,
+        "maxMS": 3101.007750000008,
+        "totalMS": 17150.29054166666
+      },
+      "previousNativeBeginAgeAtNextPublicationMS": {
+        "count": 29,
+        "medianMS": 286.73862499999814,
+        "maxMS": 3168.715499999962,
+        "totalMS": 18284.015583333712
+      }
+    },
+    "limit": "A published sample's age starts at native begin. Initial observation completion is only a scheduler admission event, not transaction commit. All nil/incomplete publications remain distinguishable."
+  },
+  "dock": {
+    "pairedConsumedCompleted": 48,
+    "expiryEvents": [],
+    "consumedBeforeCallbackCount": 1,
+    "limit": "A consumed current poll is not, by itself, a window-writing permit."
+  },
+  "cleanup": {
+    "host": {
+      "end": 1436.18155125,
+      "milliseconds": 561.4456666664864,
+      "released": true,
+      "start": 1435.6201055833335
+    },
+    "externalTwoHome": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1436.1961063333333,
+          "readStart": 1436.1851436666668,
+          "received": 1436.228524,
+          "uptime": 1436.228524,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 51,
+              "onScreen": true,
+              "pid": 38492,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 38492,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 38521,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1436.4832579583335,
+          "readStart": 1436.2956599166669,
+          "received": 1437.0836748333334,
+          "uptime": 1437.0836748333334,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 51,
+              "onScreen": true,
+              "pid": 38492,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 38492,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 38521,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "finalLedger": {
+      "version": 1,
+      "owned": []
+    },
+    "finalTransportCancellationIsAfterCleanup": true
+  },
+  "separateControllerReceipt": {
+    "status": "FOREIGN_ENGINE_PASS",
+    "reason": "verified",
+    "operationReason": "verified",
+    "windowWrites": 26
+  },
+  "limits": [
+    "No merge/split, combined-group member AX press, or later lifecycle completion is claimed; only six singleton inputs were issued.",
+    "No source edits, guard changes, timeout changes or retries are part of this evidence analysis. Shared-worktree next-patch edits are not part of tested7c8cdc.",
+    "All110 raw files match the single provider ZIP byte for byte. FAST, source and FULL ownership/results remain separate."
+  ]
+}

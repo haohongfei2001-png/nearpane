@@ -391,6 +391,93 @@ import Testing
     }
 }
 
+@MainActor struct StageHostHeldDirectoryStagingTests {
+    private func staging(_ race: InitialDirectoryRace, within metadata: StageMetadataReadScope) throws -> CurrentDesktopWindows.InitialDirectoryStaging {
+        let baseline = try #require(race.baseline)
+        let states = try Dictionary(uniqueKeysWithValues: baseline.windows.map { row in
+            let meta = try #require(row.metadata), birth = try #require(meta.launchMicroseconds)
+            let key = NativeSpaceWindow(pid: meta.pid, birth: birth, number: meta.number)
+            let lifetime = try #require(race.feed.lifetime(of: race.key(meta.number)))
+            return (key, StageWindowState(window: key, lifetime: lifetime, frame: meta.globalFrame, visibility: .visible))
+        })
+        return .heldPreparation { sample in
+            race.current && race.feed.hasMetadataReadScope(metadata) &&
+                StageWindowEngineWitness.heldOpeningCandidate(sample, display: race.fixture.display, scope: race.scope,
+                    session: baseline.sessionID, topology: baseline.topologyFingerprint, nativeID: 4,
+                    retained: Set(states.keys), authorized: race.authorized, expected: states,
+                    clock: { (.now, ProcessInfo.processInfo.systemUptime) }) != nil
+        }
+    }
+    private func sample(_ race: InitialDirectoryRace, request: DesktopReadRequest, complete: Bool,
+                        extra: UInt32) -> DesktopSnapshot {
+        var result = race.sample(request, complete: complete, numbers: [53, 55, 56, 90, extra],
+                                 issues: complete ? [] : ["windowRosterChanged"])
+        let extraIndex = result.windows.count - 1
+        result.windows[extraIndex].metadata?.overviewOrdinaryRole = false
+        return result
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aHeldFailureStaysUnpublishedWhileItsExactScopeReadsFreshAndTheObserverWaits() async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start(); try await race.acquire(metadata)
+        let token = try staging(race, within: metadata)
+        let baseline = try #require(race.feed.snapshot), directory = race.feed.groups.directory
+        let bystander = try #require(race.feed.lifetime(of: race.key(90)))
+        let firstRead = Task { await race.feed.readAfterAction(staging: token, within: metadata) }
+        defer { firstRead.cancel() }
+        let first = try await race.freshRequest(boundary: 0)
+        race.feed.changed()
+        try await race.until { race.metadataWaits.contains("observer") }
+        let failed = sample(race, request: first, complete: false, extra: 88)
+        race.deliver(failed)
+        #expect(await firstRead.value == failed && token.stagedRevision == first.revision)
+        #expect(race.feed.snapshot == baseline && race.feed.groups.directory == directory)
+        #expect(race.feed.lifetime(of: race.key(90)) == bystander && race.feed.lifetime(of: race.key(88)) == nil)
+
+        let nextRead = Task { await race.feed.readAfterAction(within: metadata) }
+        defer { nextRead.cancel() }
+        let next = try await race.freshRequest(boundary: 1)
+        let fresh = sample(race, request: next, complete: true, extra: 99)
+        race.deliver(fresh)
+        #expect(await nextRead.value == fresh)
+        let freshAppearance = try #require(race.feed.lifetime(of: race.key(99)))
+        #expect(race.feed.lifetime(of: race.key(88)) == nil && !race.published.contains(first.revision))
+        race.feed.endMetadataReadScope(metadata)
+        let observer = try await race.nextRequest(after: next.revision)
+        race.deliver(sample(race, request: observer, complete: true, extra: 99))
+        try await race.until { race.published.contains(observer.revision) }
+        #expect(!race.published.contains(first.revision) && race.feed.snapshot?.revision == observer.revision)
+        #expect(race.feed.lifetime(of: race.key(99)) == freshAppearance)
+        #expect(race.feed.lifetime(of: race.key(90)) == bystander)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: ["current", "metadata", "epoch", "cancel"])
+    func aLostHeldPreparationCannotStageItsLaterFailure(_ invalidation: String) async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start(); try await race.acquire(metadata)
+        let token = try staging(race, within: metadata), cancellation = token.cancellation
+        let action = Task {
+            await withTaskCancellationHandler {
+                await race.feed.readAfterAction(staging: token, within: metadata)
+            } onCancel: { cancellation.cancel() }
+        }
+        defer { action.cancel() }
+        let request = try await race.freshRequest(boundary: 0)
+        switch invalidation {
+        case "current": race.current = false
+        case "metadata": race.feed.endMetadataReadScope(metadata)
+        case "epoch": race.feed.observe(false)
+        default: action.cancel()
+        }
+        race.deliver(sample(race, request: request, complete: false, extra: 88))
+        _ = await action.value
+        #expect(token.stagedRevision == nil)
+    }
+}
+
 @MainActor struct StageHostMetadataReadSchedulingTests {
     @Test(.timeLimit(.minutes(1)))
     func ordinaryReadersWaitOutsidePendingWhileTheExactScopeReadsTwice() async throws {

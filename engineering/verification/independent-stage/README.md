@@ -2,13 +2,71 @@
 
 Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16).
 Implementation started from PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8`.
-PR #16 targets `main`. Its current product constitution and branch-governance
-rules were rechecked at `c74ea94520f55bc784f110176c59f5a38f1f1935` and copied
-exactly into this branch. The existing PR #16 branch remains the explicit engine-work exception;
+PR #16 targets `main`. Product constitution and branch-governance rules were
+copied exactly from `c74ea94520f55bc784f110176c59f5a38f1f1935`. The later main
+`e16798e90343b859f485e623ee902b2b37814777` was also checked: its additional Notes
+rules do not change this R4 engine work. The existing PR #16 branch remains the explicit engine-work exception;
 no main-app source refactor is overwritten by this focused R4 change.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 9af43964
+## Current source/runtime checkpoint: 7c8cdc78
+
+The one-file Reader writeback fix is now exercised by both native lanes: real
+directory replies return from one helper, with no Swift exclusivity abort.
+Source checks pass **299 Swift functions (one existing skip), 188 Rust and 25
+native C checks**; complete candidate and strict signature pass. Formal R4 and
+release qualification remain incomplete.
+
+FAST records **six real inputs and five double physical confirmations**, taking
+**1094.594–1683.448 ms**. The first four physical prefixes are safely superseded;
+the fifth selection completes its final exact-focus witnesses and health check
+and exits normally after **1407.382 ms**. All 65 worker requests and 14 native
+two-positive-view moves pass. Across the five jobs, complete witnesses occupy
+4883.944 ms versus 1713.632 ms for worker requests. The new physical-read
+instrumentation shows no second-scale actor handoff. These are foundation debug
+measurements, not release latency benchmarks.
+
+The sixth held-card preparation fails on its own foreground opening directory:
+a new second-only window makes revision 191 incomplete. The metadata scope has
+already drained, so extending the observer gate would not address this failure.
+The next repair permits at most one complete fresh resample in this specific
+no-write preparation, bound to the original current selection and owner. It
+preserves all retained-window, physical, closing-roster and Coordinator checks;
+its additional read cost and native acceptance still need verification.
+
+FULL independently records **one input and no witness or visibility write**.
+Its complete first directory is returned, but the original selected appearance
+and group lifetime no longer match. The exact failed directory's target fields
+were not logged; earlier and later target observations cannot explain that
+specific instant. The next bounded diagnostics record those same returned facts
+and existing enumeration counts without another native query or a relaxed guard.
+
+[Exact 7c8 source/runtime evidence, successful reader recovery and distinct lane failures](cloud-7c8cdc78-latency/README.md).
+The target Mac remains offline; exact-target GUI acceptance is NOT_RUN. The
+member-button repair, later interactions, continuous stability and release gates
+are still pending.
+
+## Earlier source/runtime checkpoint: dccee047
+
+Source tests pass, but FAST's actual enumeration aborts **37 times** with Swift
+exclusivity conflicts in `Reader.windowList`, valid child status 6 / SIGABRT and
+header EOF before decoding. It issues no R4 input. The additional final
+cleanup cancellation/status 9 is not counted as another crash. This is the
+direct runtime evidence for the subsequent one-file fix above.
+
+FULL receives 28 decoded results and executes one HIDE: native membership ACK
+3.994 ms and two positive views 77.210 ms, with a successful Host receipt and
+first post-witness. Its second complete confirmation fails at a closing roster
+whose accepted count falls from 21 to 19. The missing identities are not logged;
+the earlier physical states cannot replace that failed confirmation. The first
+RELEASE fails when the complete AX list omits the original target; a later
+RELEASE succeeds, and independent double home/frame checks pass.
+
+[Exact dccee source/runtime evidence, crash stack and separate closing/recovery failures](cloud-dccee047-latency/README.md).
+Neither a successful native HIDE receipt nor final cleanup establishes a
+completed R4 transaction.
+
+## Earlier source/runtime checkpoint: 9af43964
 
 Exact source passes **299 Swift functions (one existing skip), 188 Rust and 25
 native AX decoder checks**, including all 12 new geometry and census-wire cases.

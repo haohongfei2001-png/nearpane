@@ -13,6 +13,8 @@ public struct StageMetadataReadScope: Hashable, Sendable {
 @MainActor public protocol StageEngineWindowWitness: AnyObject {
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample
     func read(_ scope: StageGroupScope, owner: StageEngineOwner, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample
+    func readPreparingHeldSelection(_ scope: StageGroupScope, owner: StageEngineOwner,
+                                    current: @escaping @MainActor () -> Bool) async throws -> StageWindowSample
     func beginMetadataReadScope(owner: StageEngineOwner, purpose: StageMetadataReadScope.Purpose) async throws -> StageMetadataReadScope?
     func endMetadataReadScope(_ scope: StageMetadataReadScope)
     func cancelMetadataReadScopes()
@@ -27,6 +29,10 @@ public struct StageMetadataReadScope: Hashable, Sendable {
 
 public extension StageEngineWindowWitness {
     func read(_ scope: StageGroupScope, owner: StageEngineOwner, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        try await read(scope, owner: owner)
+    }
+    func readPreparingHeldSelection(_ scope: StageGroupScope, owner: StageEngineOwner,
+                                    current: @escaping @MainActor () -> Bool) async throws -> StageWindowSample {
         try await read(scope, owner: owner)
     }
     func beginMetadataReadScope(owner: StageEngineOwner, purpose: StageMetadataReadScope.Purpose) async throws -> StageMetadataReadScope? { nil }
@@ -172,11 +178,26 @@ struct PreparedSpacesDispatch {
         try await read(scope, within: nil)
     }
 
-    func read(_ scope: StageGroupScope, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+    /// The held card's first, read-only preparation may replace one narrowly
+    /// qualified incomplete opening directory. This predicate can only refuse
+    /// that extra read; the sample still passes every ordinary session check.
+    package func readPreparingHeldSelection(_ scope: StageGroupScope,
+                                             current: @escaping @MainActor () -> Bool) async throws -> StageWindowSample {
+        try await read(scope, within: nil, heldPreparationCurrent: {
+            !self.closed && !self.frozen && !self.recovering && self.owner.backend == .spaces && current()
+        })
+    }
+
+    func read(_ scope: StageGroupScope, within metadata: StageMetadataReadScope?,
+              heldPreparationCurrent: (@MainActor () -> Bool)? = nil) async throws -> StageWindowSample {
         preparedDispatch = nil
         defer { preparedDispatch = nil }
         guard !closed else { throw StageSwitchError.unavailable }
-        let sample = try await witness.read(scope, owner: owner, within: metadata)
+        let sample: StageWindowSample
+        if let heldPreparationCurrent {
+            guard metadata == nil else { throw StageSwitchError.interrupted }
+            sample = try await witness.readPreparingHeldSelection(scope, owner: owner, current: heldPreparationCurrent)
+        } else { sample = try await witness.read(scope, owner: owner, within: metadata) }
         let area = sample.workArea
         guard sample.scope == scope, sample.generation == owner.generation, (sample.nativeID ?? 0) > 0, area.width > 0, area.height > 0,
               [area.x,area.y,area.width,area.height].allSatisfy(\.isFinite),

@@ -1121,7 +1121,11 @@ import NearpaneOrdinaryWindowRuntime
             throw StageSwitchError.ownership
         }
         let token = revision
-        let observed = try await session.read(held.scope)
+        let observed = try await session.readPreparingHeldSelection(held.scope) {
+            self.revision == token && self.engine === engine && engine.session === session &&
+                self.witness === witness && self.granted == granted &&
+                !self.releasing && !self.terminationOwnsLane && current()
+        }
         guard revision == token, engine.session === session, !releasing, !terminationOwnsLane else {
             throw StageSwitchError.interrupted
         }

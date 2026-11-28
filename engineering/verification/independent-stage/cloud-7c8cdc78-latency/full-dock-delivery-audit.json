@@ -1,0 +1,1965 @@
+{
+  "schema": 1,
+  "sourceTrace": "/workspace/scratch/519883d1dfd8/r4-audit/7c8cdc/full/independent-runtime/runtime/product.stderr.log",
+  "requestCount": 26,
+  "polls": [
+    {
+      "requestID": "E4D35B06-6083-43A6-97E2-9A0BB4846958",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "DECBCB6C-C1D3-456D-B7F6-E689E1FB932A",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "E4D35B06-6083-43A6-97E2-9A0BB4846958",
+          "requestStart": 1214.2569845,
+          "uptime": 1214.2571254166667,
+          "sourceLine": 1
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "DECBCB6C-C1D3-456D-B7F6-E689E1FB932A",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "E4D35B06-6083-43A6-97E2-9A0BB4846958",
+          "requestStart": 1214.2569845,
+          "taskPriority": 17,
+          "uptime": 1214.2994323750002,
+          "sourceLine": 2
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "DECBCB6C-C1D3-456D-B7F6-E689E1FB932A",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1214.3178649166668,
+          "readStart": 1214.3022645833335,
+          "requestID": "E4D35B06-6083-43A6-97E2-9A0BB4846958",
+          "uptime": 1214.3182219166667,
+          "visibility": "ordinary",
+          "sourceLine": 4
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "DECBCB6C-C1D3-456D-B7F6-E689E1FB932A",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1214.3178649166668,
+          "readStart": 1214.3022645833335,
+          "requestID": "E4D35B06-6083-43A6-97E2-9A0BB4846958",
+          "requestStart": 1214.2569845,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1214.3180199166668,
+          "visibility": "ordinary",
+          "sourceLine": 3
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 15.95733333329008,
+      "nativeEndToConsumptionMS": 0.3569999998944695
+    },
+    {
+      "requestID": "99E8B581-F123-4E0E-BC3C-0C8A40C6305D",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "99E8B581-F123-4E0E-BC3C-0C8A40C6305D",
+          "requestStart": 1214.609407875,
+          "uptime": 1214.6095238333335,
+          "sourceLine": 10
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "99E8B581-F123-4E0E-BC3C-0C8A40C6305D",
+          "requestStart": 1214.609407875,
+          "taskPriority": 17,
+          "uptime": 1214.6096947916667,
+          "sourceLine": 11
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1214.6109682083334,
+          "readStart": 1214.609832,
+          "requestID": "99E8B581-F123-4E0E-BC3C-0C8A40C6305D",
+          "uptime": 1214.6117618333335,
+          "visibility": "ordinary",
+          "sourceLine": 13
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1214.6109682083334,
+          "readStart": 1214.609832,
+          "requestID": "99E8B581-F123-4E0E-BC3C-0C8A40C6305D",
+          "requestStart": 1214.609407875,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1214.6114445833334,
+          "visibility": "ordinary",
+          "sourceLine": 12
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 1.92983333340635,
+      "nativeEndToConsumptionMS": 0.7936250001421286
+    },
+    {
+      "requestID": "6D5E4FEF-ED4E-4096-9ACF-ED5799E64DBA",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "6D5E4FEF-ED4E-4096-9ACF-ED5799E64DBA",
+          "requestStart": 1215.4037972916667,
+          "uptime": 1215.4039412083334,
+          "sourceLine": 45
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "6D5E4FEF-ED4E-4096-9ACF-ED5799E64DBA",
+          "requestStart": 1215.4037972916667,
+          "taskPriority": 17,
+          "uptime": 1215.4093706666667,
+          "sourceLine": 47
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1215.4222484583333,
+          "readStart": 1215.411559375,
+          "requestID": "6D5E4FEF-ED4E-4096-9ACF-ED5799E64DBA",
+          "uptime": 1215.4226148750001,
+          "visibility": "ordinary",
+          "sourceLine": 49
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1215.4222484583333,
+          "readStart": 1215.411559375,
+          "requestID": "6D5E4FEF-ED4E-4096-9ACF-ED5799E64DBA",
+          "requestStart": 1215.4037972916667,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1215.422435375,
+          "visibility": "ordinary",
+          "sourceLine": 48
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 11.055500000111351,
+      "nativeEndToConsumptionMS": 0.36641666679315676
+    },
+    {
+      "requestID": "45E59BAF-AB71-463E-B23D-7B582FE77E55",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "45E59BAF-AB71-463E-B23D-7B582FE77E55",
+          "requestStart": 1215.7132257916667,
+          "uptime": 1215.7133409583334,
+          "sourceLine": 56
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "45E59BAF-AB71-463E-B23D-7B582FE77E55",
+          "requestStart": 1215.7132257916667,
+          "taskPriority": 17,
+          "uptime": 1215.714620375,
+          "sourceLine": 57
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1215.7383395416668,
+          "readStart": 1215.7161963333333,
+          "requestID": "45E59BAF-AB71-463E-B23D-7B582FE77E55",
+          "uptime": 1215.7393244166667,
+          "visibility": "ordinary",
+          "sourceLine": 59
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1215.7383395416668,
+          "readStart": 1215.7161963333333,
+          "requestID": "45E59BAF-AB71-463E-B23D-7B582FE77E55",
+          "requestStart": 1215.7132257916667,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1215.7390807916668,
+          "visibility": "ordinary",
+          "sourceLine": 58
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 23.128083333403993,
+      "nativeEndToConsumptionMS": 0.9848749998582207
+    },
+    {
+      "requestID": "089912E9-91C2-42A4-9341-51A5B83983A3",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "089912E9-91C2-42A4-9341-51A5B83983A3",
+          "requestStart": 1216.0441249166668,
+          "uptime": 1216.0442514166668,
+          "sourceLine": 75
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "089912E9-91C2-42A4-9341-51A5B83983A3",
+          "requestStart": 1216.0441249166668,
+          "taskPriority": 17,
+          "uptime": 1216.0482785000002,
+          "sourceLine": 76
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1216.050379125,
+          "readStart": 1216.0486056666668,
+          "requestID": "089912E9-91C2-42A4-9341-51A5B83983A3",
+          "uptime": 1216.0512734583333,
+          "visibility": "ordinary",
+          "sourceLine": 78
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1216.050379125,
+          "readStart": 1216.0486056666668,
+          "requestID": "089912E9-91C2-42A4-9341-51A5B83983A3",
+          "requestStart": 1216.0441249166668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1216.050898125,
+          "visibility": "ordinary",
+          "sourceLine": 77
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 2.6677916664539225,
+      "nativeEndToConsumptionMS": 0.8943333332354086
+    },
+    {
+      "requestID": "634D306B-FD75-484B-B5DF-5932DF5A8F74",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "634D306B-FD75-484B-B5DF-5932DF5A8F74",
+          "requestStart": 1216.3859111666668,
+          "uptime": 1216.3860420416668,
+          "sourceLine": 79
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "634D306B-FD75-484B-B5DF-5932DF5A8F74",
+          "requestStart": 1216.3859111666668,
+          "taskPriority": 17,
+          "uptime": 1216.3862600833334,
+          "sourceLine": 80
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1216.3873290000001,
+          "readStart": 1216.3863842916667,
+          "requestID": "634D306B-FD75-484B-B5DF-5932DF5A8F74",
+          "uptime": 1216.3930872083333,
+          "visibility": "ordinary",
+          "sourceLine": 82
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1216.3873290000001,
+          "readStart": 1216.3863842916667,
+          "requestID": "634D306B-FD75-484B-B5DF-5932DF5A8F74",
+          "requestStart": 1216.3859111666668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1216.3926155833335,
+          "visibility": "ordinary",
+          "sourceLine": 81
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 6.702916666654346,
+      "nativeEndToConsumptionMS": 5.758208333190851
+    },
+    {
+      "requestID": "A12FDC88-9A8E-4E71-8AA1-29D6432F7EB1",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "A12FDC88-9A8E-4E71-8AA1-29D6432F7EB1",
+          "requestStart": 1216.7208775416668,
+          "uptime": 1216.721155875,
+          "sourceLine": 83
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "A12FDC88-9A8E-4E71-8AA1-29D6432F7EB1",
+          "requestStart": 1216.7208775416668,
+          "taskPriority": 17,
+          "uptime": 1216.7217824166667,
+          "sourceLine": 84
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1216.7240460833334,
+          "readStart": 1216.7219562500002,
+          "requestID": "A12FDC88-9A8E-4E71-8AA1-29D6432F7EB1",
+          "uptime": 1216.7247652916667,
+          "visibility": "ordinary",
+          "sourceLine": 86
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1216.7240460833334,
+          "readStart": 1216.7219562500002,
+          "requestID": "A12FDC88-9A8E-4E71-8AA1-29D6432F7EB1",
+          "requestStart": 1216.7208775416668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1216.7243670416667,
+          "visibility": "ordinary",
+          "sourceLine": 85
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 2.809041666523626,
+      "nativeEndToConsumptionMS": 0.7192083332938637
+    },
+    {
+      "requestID": "443FD0CE-DF63-4400-850D-DE6B53FDA6CD",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "443FD0CE-DF63-4400-850D-DE6B53FDA6CD",
+          "requestStart": 1217.058939125,
+          "uptime": 1217.0591987500002,
+          "sourceLine": 87
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "443FD0CE-DF63-4400-850D-DE6B53FDA6CD",
+          "requestStart": 1217.058939125,
+          "taskPriority": 17,
+          "uptime": 1217.059633,
+          "sourceLine": 88
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1217.06168425,
+          "readStart": 1217.0597887916667,
+          "requestID": "443FD0CE-DF63-4400-850D-DE6B53FDA6CD",
+          "uptime": 1217.0623970833335,
+          "visibility": "ordinary",
+          "sourceLine": 90
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1217.06168425,
+          "readStart": 1217.0597887916667,
+          "requestID": "443FD0CE-DF63-4400-850D-DE6B53FDA6CD",
+          "requestStart": 1217.058939125,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1217.0620125416667,
+          "visibility": "ordinary",
+          "sourceLine": 89
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 2.608291666774676,
+      "nativeEndToConsumptionMS": 0.712833333409435
+    },
+    {
+      "requestID": "E44D4EE1-294C-4260-B375-8754F1111EAA",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "E44D4EE1-294C-4260-B375-8754F1111EAA",
+          "requestStart": 1217.4099652083335,
+          "uptime": 1217.4102601250001,
+          "sourceLine": 91
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "E44D4EE1-294C-4260-B375-8754F1111EAA",
+          "requestStart": 1217.4099652083335,
+          "taskPriority": 17,
+          "uptime": 1217.4109273333333,
+          "sourceLine": 92
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1217.4156961666667,
+          "readStart": 1217.411188625,
+          "requestID": "E44D4EE1-294C-4260-B375-8754F1111EAA",
+          "uptime": 1217.4160342500002,
+          "visibility": "ordinary",
+          "sourceLine": 94
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1217.4156961666667,
+          "readStart": 1217.411188625,
+          "requestID": "E44D4EE1-294C-4260-B375-8754F1111EAA",
+          "requestStart": 1217.4099652083335,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1217.4158377083334,
+          "visibility": "ordinary",
+          "sourceLine": 93
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 4.845625000143627,
+      "nativeEndToConsumptionMS": 0.3380833334176714
+    },
+    {
+      "requestID": "D6DD1DF1-E150-4F4D-B516-A10FB944E78B",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "D6DD1DF1-E150-4F4D-B516-A10FB944E78B",
+          "requestStart": 1217.8757434166666,
+          "uptime": 1217.8765852916667,
+          "sourceLine": 98
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "D6DD1DF1-E150-4F4D-B516-A10FB944E78B",
+          "requestStart": 1217.8757434166666,
+          "taskPriority": 17,
+          "uptime": 1217.9389554583333,
+          "sourceLine": 128
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1217.9406264583333,
+          "readStart": 1217.9390647916669,
+          "requestID": "D6DD1DF1-E150-4F4D-B516-A10FB944E78B",
+          "uptime": 1217.946922375,
+          "visibility": "ordinary",
+          "sourceLine": 130
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1217.9406264583333,
+          "readStart": 1217.9390647916669,
+          "requestID": "D6DD1DF1-E150-4F4D-B516-A10FB944E78B",
+          "requestStart": 1217.8757434166666,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1217.9467235,
+          "visibility": "ordinary",
+          "sourceLine": 129
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 7.857583333134244,
+      "nativeEndToConsumptionMS": 6.295916666658741
+    },
+    {
+      "requestID": "EF4C1591-4B8C-4731-9BBC-2429C9E3BCDA",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "EF4C1591-4B8C-4731-9BBC-2429C9E3BCDA",
+          "requestStart": 1218.2941269166668,
+          "uptime": 1218.294309,
+          "sourceLine": 133
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "EF4C1591-4B8C-4731-9BBC-2429C9E3BCDA",
+          "requestStart": 1218.2941269166668,
+          "taskPriority": 17,
+          "uptime": 1218.2960406250002,
+          "sourceLine": 134
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1218.2982701666667,
+          "readStart": 1218.2961616666666,
+          "requestID": "EF4C1591-4B8C-4731-9BBC-2429C9E3BCDA",
+          "uptime": 1218.4092539166668,
+          "visibility": "ordinary",
+          "sourceLine": 136
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1218.2982701666667,
+          "readStart": 1218.2961616666666,
+          "requestID": "EF4C1591-4B8C-4731-9BBC-2429C9E3BCDA",
+          "requestStart": 1218.2941269166668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1218.4088952083334,
+          "visibility": "ordinary",
+          "sourceLine": 135
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 113.09225000013612,
+      "nativeEndToConsumptionMS": 110.98375000005944
+    },
+    {
+      "requestID": "67A5EB2C-DFD4-40F4-8B7E-B3840570191B",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "67A5EB2C-DFD4-40F4-8B7E-B3840570191B",
+          "requestStart": 1218.4663097083335,
+          "uptime": 1218.4664289583334,
+          "sourceLine": 137
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "67A5EB2C-DFD4-40F4-8B7E-B3840570191B",
+          "requestStart": 1218.4663097083335,
+          "taskPriority": 17,
+          "uptime": 1218.4666322916667,
+          "sourceLine": 138
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1218.4688029583333,
+          "readStart": 1218.4666874583334,
+          "requestID": "67A5EB2C-DFD4-40F4-8B7E-B3840570191B",
+          "uptime": 1218.4695929166667,
+          "visibility": "ordinary",
+          "sourceLine": 140
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1218.4688029583333,
+          "readStart": 1218.4666874583334,
+          "requestID": "67A5EB2C-DFD4-40F4-8B7E-B3840570191B",
+          "requestStart": 1218.4663097083335,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1218.469228875,
+          "visibility": "ordinary",
+          "sourceLine": 139
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 2.9054583333163464,
+      "nativeEndToConsumptionMS": 0.7899583333710325
+    },
+    {
+      "requestID": "84CF78CB-4999-4CEE-AE98-F2D096DDE7DB",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "84CF78CB-4999-4CEE-AE98-F2D096DDE7DB",
+          "requestStart": 1218.8155854166666,
+          "uptime": 1218.8159400416666,
+          "sourceLine": 145
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "84CF78CB-4999-4CEE-AE98-F2D096DDE7DB",
+          "requestStart": 1218.8155854166666,
+          "taskPriority": 17,
+          "uptime": 1218.8163085833335,
+          "sourceLine": 146
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1218.8208256666667,
+          "readStart": 1218.816932125,
+          "requestID": "84CF78CB-4999-4CEE-AE98-F2D096DDE7DB",
+          "uptime": 1218.8213801666668,
+          "visibility": "ordinary",
+          "sourceLine": 148
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1218.8208256666667,
+          "readStart": 1218.816932125,
+          "requestID": "84CF78CB-4999-4CEE-AE98-F2D096DDE7DB",
+          "requestStart": 1218.8155854166666,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1218.820995,
+          "visibility": "ordinary",
+          "sourceLine": 147
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 4.448041666819336,
+      "nativeEndToConsumptionMS": 0.5545000001347944
+    },
+    {
+      "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "uptime": 1219.4601976666668,
+          "sourceLine": 149
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "taskPriority": 17,
+          "uptime": 1219.5960625833334,
+          "sourceLine": 150
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1219.5976956666668,
+          "readStart": 1219.5963857083334,
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "uptime": 1219.6019290000002,
+          "visibility": "ordinary",
+          "sourceLine": 151
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1219.5976956666668,
+          "readStart": 1219.5963857083334,
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1219.6477300416668,
+          "visibility": "ordinary",
+          "sourceLine": 153
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": true,
+      "lateActorCallbackNoLongerOwnsPendingRequest": true,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 5.543291666754158,
+      "nativeEndToConsumptionMS": 4.233333333331757
+    },
+    {
+      "requestID": "A53C753E-929B-4537-A9FA-C90C2711CAC7",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "A53C753E-929B-4537-A9FA-C90C2711CAC7",
+          "requestStart": 1220.0077813750001,
+          "uptime": 1220.0080492916668,
+          "sourceLine": 156
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "A53C753E-929B-4537-A9FA-C90C2711CAC7",
+          "requestStart": 1220.0077813750001,
+          "taskPriority": 17,
+          "uptime": 1220.1405680833334,
+          "sourceLine": 158
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1220.1436357083335,
+          "readStart": 1220.1409982500002,
+          "requestID": "A53C753E-929B-4537-A9FA-C90C2711CAC7",
+          "uptime": 1220.2639989166667,
+          "visibility": "ordinary",
+          "sourceLine": 160
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1220.1436357083335,
+          "readStart": 1220.1409982500002,
+          "requestID": "A53C753E-929B-4537-A9FA-C90C2711CAC7",
+          "requestStart": 1220.0077813750001,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1220.2638319583334,
+          "visibility": "ordinary",
+          "sourceLine": 159
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 123.0006666664849,
+      "nativeEndToConsumptionMS": 120.36320833317404
+    },
+    {
+      "requestID": "23945D37-8253-4335-A180-5748F4B6E2FA",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "23945D37-8253-4335-A180-5748F4B6E2FA",
+          "requestStart": 1220.2849370833335,
+          "uptime": 1220.2850615,
+          "sourceLine": 161
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "23945D37-8253-4335-A180-5748F4B6E2FA",
+          "requestStart": 1220.2849370833335,
+          "taskPriority": 17,
+          "uptime": 1220.3147234583334,
+          "sourceLine": 163
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1220.3206136666668,
+          "readStart": 1220.3152158750001,
+          "requestID": "23945D37-8253-4335-A180-5748F4B6E2FA",
+          "uptime": 1220.5049104583334,
+          "visibility": "ordinary",
+          "sourceLine": 194
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1220.3206136666668,
+          "readStart": 1220.3152158750001,
+          "requestID": "23945D37-8253-4335-A180-5748F4B6E2FA",
+          "requestStart": 1220.2849370833335,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1220.504691625,
+          "visibility": "ordinary",
+          "sourceLine": 193
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 189.6945833332211,
+      "nativeEndToConsumptionMS": 184.29679166661117
+    },
+    {
+      "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "uptime": 1220.7835125416668,
+          "sourceLine": 196
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "taskPriority": 17,
+          "uptime": 1221.1141192500002,
+          "sourceLine": 198
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1221.12172975,
+          "readStart": 1221.1145529583334,
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "uptime": 1221.1671057916667,
+          "visibility": "ordinary",
+          "sourceLine": 199
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1221.12172975,
+          "readStart": 1221.1145529583334,
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1221.3688945416668,
+          "visibility": "ordinary",
+          "sourceLine": 200
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": true,
+      "lateActorCallbackNoLongerOwnsPendingRequest": true,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 52.55283333326588,
+      "nativeEndToConsumptionMS": 45.37604166671372
+    },
+    {
+      "requestID": "14E2A7ED-7906-49B5-A946-11C599E6C265",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "14E2A7ED-7906-49B5-A946-11C599E6C265",
+          "requestStart": 1221.4632008333333,
+          "uptime": 1221.463313375,
+          "sourceLine": 201
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "14E2A7ED-7906-49B5-A946-11C599E6C265",
+          "requestStart": 1221.4632008333333,
+          "taskPriority": 17,
+          "uptime": 1221.5371983750001,
+          "sourceLine": 203
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1221.5399668750001,
+          "readStart": 1221.5382541666668,
+          "requestID": "14E2A7ED-7906-49B5-A946-11C599E6C265",
+          "uptime": 1221.6325049583334,
+          "visibility": "ordinary",
+          "sourceLine": 206
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1221.5399668750001,
+          "readStart": 1221.5382541666668,
+          "requestID": "14E2A7ED-7906-49B5-A946-11C599E6C265",
+          "requestStart": 1221.4632008333333,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1221.6323510833333,
+          "visibility": "ordinary",
+          "sourceLine": 205
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 94.25079166658179,
+      "nativeEndToConsumptionMS": 92.53808333323832
+    },
+    {
+      "requestID": "E73A4166-490F-4D4D-B797-D3962EFB9A61",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "E73A4166-490F-4D4D-B797-D3962EFB9A61",
+          "requestStart": 1221.7170730833334,
+          "uptime": 1221.7171838333334,
+          "sourceLine": 208
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "E73A4166-490F-4D4D-B797-D3962EFB9A61",
+          "requestStart": 1221.7170730833334,
+          "taskPriority": 17,
+          "uptime": 1221.7623728333333,
+          "sourceLine": 210
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1221.7636932083335,
+          "readStart": 1221.7625674583335,
+          "requestID": "E73A4166-490F-4D4D-B797-D3962EFB9A61",
+          "uptime": 1221.7850634583333,
+          "visibility": "ordinary",
+          "sourceLine": 212
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1221.7636932083335,
+          "readStart": 1221.7625674583335,
+          "requestID": "E73A4166-490F-4D4D-B797-D3962EFB9A61",
+          "requestStart": 1221.7170730833334,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1221.7848886250001,
+          "visibility": "ordinary",
+          "sourceLine": 211
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 22.495999999819105,
+      "nativeEndToConsumptionMS": 21.370249999790758
+    },
+    {
+      "requestID": "D20D0B4B-EDD8-4190-B6E6-64375C9B97E4",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "D20D0B4B-EDD8-4190-B6E6-64375C9B97E4",
+          "requestStart": 1222.0676505833335,
+          "uptime": 1222.0677258750002,
+          "sourceLine": 218
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "D20D0B4B-EDD8-4190-B6E6-64375C9B97E4",
+          "requestStart": 1222.0676505833335,
+          "taskPriority": 17,
+          "uptime": 1222.199483625,
+          "sourceLine": 220
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1222.2026881250001,
+          "readStart": 1222.1995872083335,
+          "requestID": "D20D0B4B-EDD8-4190-B6E6-64375C9B97E4",
+          "uptime": 1222.2631355833335,
+          "visibility": "ordinary",
+          "sourceLine": 223
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1222.2026881250001,
+          "readStart": 1222.1995872083335,
+          "requestID": "D20D0B4B-EDD8-4190-B6E6-64375C9B97E4",
+          "requestStart": 1222.0676505833335,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1222.2630317083333,
+          "visibility": "ordinary",
+          "sourceLine": 222
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 63.548374999982116,
+      "nativeEndToConsumptionMS": 60.44745833332854
+    },
+    {
+      "requestID": "DEDB3651-6C38-4CE6-BC4F-1BA09D8910EE",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "DEDB3651-6C38-4CE6-BC4F-1BA09D8910EE",
+          "requestStart": 1222.4134179166667,
+          "uptime": 1222.4135374583334,
+          "sourceLine": 225
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "DEDB3651-6C38-4CE6-BC4F-1BA09D8910EE",
+          "requestStart": 1222.4134179166667,
+          "taskPriority": 17,
+          "uptime": 1222.4669834583335,
+          "sourceLine": 227
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1222.4686292083334,
+          "readStart": 1222.4670955833335,
+          "requestID": "DEDB3651-6C38-4CE6-BC4F-1BA09D8910EE",
+          "uptime": 1222.5912204166668,
+          "visibility": "ordinary",
+          "sourceLine": 258
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1222.4686292083334,
+          "readStart": 1222.4670955833335,
+          "requestID": "DEDB3651-6C38-4CE6-BC4F-1BA09D8910EE",
+          "requestStart": 1222.4134179166667,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1222.591049625,
+          "visibility": "ordinary",
+          "sourceLine": 257
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 124.12483333332602,
+      "nativeEndToConsumptionMS": 122.5912083334606
+    },
+    {
+      "requestID": "7EBF397D-7B2B-4F76-8CCC-AD8B38F565EF",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "7EBF397D-7B2B-4F76-8CCC-AD8B38F565EF",
+          "requestStart": 1222.7033290416668,
+          "uptime": 1222.7034896666667,
+          "sourceLine": 259
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "7EBF397D-7B2B-4F76-8CCC-AD8B38F565EF",
+          "requestStart": 1222.7033290416668,
+          "taskPriority": 17,
+          "uptime": 1222.7036782916668,
+          "sourceLine": 260
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1222.7048253333335,
+          "readStart": 1222.703778625,
+          "requestID": "7EBF397D-7B2B-4F76-8CCC-AD8B38F565EF",
+          "uptime": 1222.7054153333333,
+          "visibility": "ordinary",
+          "sourceLine": 262
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1222.7048253333335,
+          "readStart": 1222.703778625,
+          "requestID": "7EBF397D-7B2B-4F76-8CCC-AD8B38F565EF",
+          "requestStart": 1222.7033290416668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1222.7051463333335,
+          "visibility": "ordinary",
+          "sourceLine": 261
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 1.636708333307979,
+      "nativeEndToConsumptionMS": 0.5899999998746353
+    },
+    {
+      "requestID": "581E1621-87C9-4A84-9163-CF08411FDC62",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "581E1621-87C9-4A84-9163-CF08411FDC62",
+          "requestStart": 1223.0323160416667,
+          "uptime": 1223.0324225833333,
+          "sourceLine": 263
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "581E1621-87C9-4A84-9163-CF08411FDC62",
+          "requestStart": 1223.0323160416667,
+          "taskPriority": 17,
+          "uptime": 1223.0981614166667,
+          "sourceLine": 264
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1223.0998237916667,
+          "readStart": 1223.0983108333335,
+          "requestID": "581E1621-87C9-4A84-9163-CF08411FDC62",
+          "uptime": 1223.2012638333333,
+          "visibility": "ordinary",
+          "sourceLine": 266
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1223.0998237916667,
+          "readStart": 1223.0983108333335,
+          "requestID": "581E1621-87C9-4A84-9163-CF08411FDC62",
+          "requestStart": 1223.0323160416667,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1223.2008515833334,
+          "visibility": "ordinary",
+          "sourceLine": 265
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 102.95299999984309,
+      "nativeEndToConsumptionMS": 101.44004166659215
+    },
+    {
+      "requestID": "DC3D124B-B89D-45D6-A245-884725FAB760",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "DC3D124B-B89D-45D6-A245-884725FAB760",
+          "requestStart": 1223.4204397083333,
+          "uptime": 1223.420583375,
+          "sourceLine": 267
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "DC3D124B-B89D-45D6-A245-884725FAB760",
+          "requestStart": 1223.4204397083333,
+          "taskPriority": 17,
+          "uptime": 1223.5813225833333,
+          "sourceLine": 268
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1223.5831624583334,
+          "readStart": 1223.5815063333334,
+          "requestID": "DC3D124B-B89D-45D6-A245-884725FAB760",
+          "uptime": 1223.766121625,
+          "visibility": "ordinary",
+          "sourceLine": 270
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1223.5831624583334,
+          "readStart": 1223.5815063333334,
+          "requestID": "DC3D124B-B89D-45D6-A245-884725FAB760",
+          "requestStart": 1223.4204397083333,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1223.7659270833335,
+          "visibility": "ordinary",
+          "sourceLine": 269
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 184.6152916666597,
+      "nativeEndToConsumptionMS": 182.95916666670564
+    },
+    {
+      "requestID": "58CEA53E-55E3-4EE4-A1AF-BC9A5803FC1A",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "58CEA53E-55E3-4EE4-A1AF-BC9A5803FC1A",
+          "requestStart": 1223.9488417083335,
+          "uptime": 1223.94895975,
+          "sourceLine": 271
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "58CEA53E-55E3-4EE4-A1AF-BC9A5803FC1A",
+          "requestStart": 1223.9488417083335,
+          "taskPriority": 17,
+          "uptime": 1224.0174484583333,
+          "sourceLine": 272
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1224.0199112916666,
+          "readStart": 1224.0177083333333,
+          "requestID": "58CEA53E-55E3-4EE4-A1AF-BC9A5803FC1A",
+          "uptime": 1224.132367375,
+          "visibility": "ordinary",
+          "sourceLine": 276
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1224.0199112916666,
+          "readStart": 1224.0177083333333,
+          "requestID": "58CEA53E-55E3-4EE4-A1AF-BC9A5803FC1A",
+          "requestStart": 1223.9488417083335,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1224.1322059166666,
+          "visibility": "ordinary",
+          "sourceLine": 275
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 114.659041666755,
+      "nativeEndToConsumptionMS": 112.45608333342716
+    },
+    {
+      "requestID": "B98598CE-0D45-480A-9DB1-48F9A53E8014",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "B98598CE-0D45-480A-9DB1-48F9A53E8014",
+          "requestStart": 1224.2328480416668,
+          "uptime": 1224.2329632083333,
+          "sourceLine": 277
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "B98598CE-0D45-480A-9DB1-48F9A53E8014",
+          "requestStart": 1224.2328480416668,
+          "taskPriority": 17,
+          "uptime": 1224.27978325,
+          "sourceLine": 278
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1224.2813820833335,
+          "readStart": 1224.2799512083334,
+          "requestID": "B98598CE-0D45-480A-9DB1-48F9A53E8014",
+          "uptime": 1224.2996,
+          "visibility": "ordinary",
+          "sourceLine": 280
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1224.2813820833335,
+          "readStart": 1224.2799512083334,
+          "requestID": "B98598CE-0D45-480A-9DB1-48F9A53E8014",
+          "requestStart": 1224.2328480416668,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1224.2991339166667,
+          "visibility": "ordinary",
+          "sourceLine": 279
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": false,
+      "lateActorCallbackNoLongerOwnsPendingRequest": null,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 19.64879166666833,
+      "nativeEndToConsumptionMS": 18.21791666657191
+    }
+  ],
+  "consumedCount": 26,
+  "duplicateConsumption": [],
+  "consumedBeforeActorCallback": [
+    {
+      "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "uptime": 1219.4601976666668,
+          "sourceLine": 149
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "taskPriority": 17,
+          "uptime": 1219.5960625833334,
+          "sourceLine": 150
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1219.5976956666668,
+          "readStart": 1219.5963857083334,
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "uptime": 1219.6019290000002,
+          "visibility": "ordinary",
+          "sourceLine": 151
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1219.5976956666668,
+          "readStart": 1219.5963857083334,
+          "requestID": "183CE509-BDD2-49CB-9ED8-E801C2787D40",
+          "requestStart": 1219.459737875,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1219.6477300416668,
+          "visibility": "ordinary",
+          "sourceLine": 153
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": true,
+      "lateActorCallbackNoLongerOwnsPendingRequest": true,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 5.543291666754158,
+      "nativeEndToConsumptionMS": 4.233333333331757
+    },
+    {
+      "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+      "created": [
+        {
+          "creatorPriority": 17,
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-created",
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "uptime": 1220.7835125416668,
+          "sourceLine": 196
+        }
+      ],
+      "started": [
+        {
+          "dispatching": false,
+          "event": "independentStageProduct",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-started",
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "taskPriority": 17,
+          "uptime": 1221.1141192500002,
+          "sourceLine": 198
+        }
+      ],
+      "consumed": [
+        {
+          "current": true,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "phase": "dispatch-dock-poll-consumed",
+          "readEnd": 1221.12172975,
+          "readStart": 1221.1145529583334,
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "uptime": 1221.1671057916667,
+          "visibility": "ordinary",
+          "sourceLine": 199
+        }
+      ],
+      "actorCallback": [
+        {
+          "currentRequest": false,
+          "event": "independentStageProduct",
+          "evidence": "signedDockAXListWithoutMC",
+          "generation": "E4787869-CA7C-4E26-B73C-22022DD13BFA",
+          "hostPresent": true,
+          "phase": "dispatch-dock-poll-completed",
+          "readEnd": 1221.12172975,
+          "readStart": 1221.1145529583334,
+          "requestID": "006B0D30-A56E-4ECA-963B-18C122DD9BC7",
+          "requestStart": 1220.7832594166669,
+          "sameGeneration": true,
+          "taskPriority": 17,
+          "uptime": 1221.3688945416668,
+          "visibility": "ordinary",
+          "sourceLine": 200
+        }
+      ],
+      "consumedBeforeAwaitingActorCallbackTrace": true,
+      "lateActorCallbackNoLongerOwnsPendingRequest": true,
+      "requestAndGenerationMatch": true,
+      "nativeBeginAgeAtConsumptionMS": 52.55283333326588,
+      "nativeEndToConsumptionMS": 45.37604166671372
+    }
+  ],
+  "stalePeriodConsumptions": [],
+  "expiredOldObservations": [],
+  "expiredNewReadAtAcceptance": [],
+  "acceptedAfterRequestQueueDelay": [],
+  "systemOwnershipEvents": [
+    {
+      "disposition": "ordinary",
+      "eligible": true,
+      "event": "independentStageProduct",
+      "evidence": "signedDockAXListWithoutMC",
+      "missionControl": "ordinary",
+      "phase": "system-window-ownership",
+      "previousEligible": false,
+      "readEnd": 1214.3178649166668,
+      "readStart": 1214.3022645833335,
+      "stopped": false,
+      "suspended": false,
+      "systemManagesWindows": false,
+      "uptime": 1214.318661,
+      "wallpaperAwaitingOrdinary": false,
+      "wallpaperHeld": false,
+      "sourceLine": 5
+    },
+    {
+      "disposition": "system",
+      "eligible": false,
+      "event": "independentStageProduct",
+      "evidence": "signedDockAXListWithoutMC",
+      "missionControl": "ordinary",
+      "phase": "system-window-ownership",
+      "previousEligible": true,
+      "readEnd": 1224.2813820833335,
+      "readStart": 1224.2799512083334,
+      "stopped": true,
+      "suspended": false,
+      "systemManagesWindows": false,
+      "uptime": 1224.4331482083335,
+      "wallpaperAwaitingOrdinary": false,
+      "wallpaperHeld": false,
+      "sourceLine": 282
+    }
+  ],
+  "nonSelectionNavigationSubmissions": [],
+  "limitations": [
+    "A consumed current slot is not a window-write permit: existing preference, generation and final native-begin freshness checks follow it.",
+    "Consumption before the callback trace establishes that the earlier actor application path took the one-shot slot; it does not measure OS scheduling intent.",
+    "Consumption trace ages precede the callback's optional preference read; expiredNewReadAtAcceptance and ownership events must also be inspected.",
+    "A request still pending at shutdown is not inferred to have completed or been accepted.",
+    "Non-selection submissions require correlation with acceptance events to establish a join/detach handler; they are not counted as external R4 presses."
+  ]
+}

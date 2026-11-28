@@ -1,0 +1,1224 @@
+{
+  "schema": 1,
+  "revision": "7c8cdc7889334c81d3aa335147035dc41a0a052b",
+  "runID": 46138064939,
+  "jobID": 140957698521,
+  "qualificationGranted": false,
+  "source": {
+    "audit": "source/source-gate-audit.json",
+    "auditSHA256": "06ce04f409ceee6bebf220c04bdd7eaea3a9a6f3de17976ddfbded1582249028",
+    "status": "PASS",
+    "swiftFunctions": 300,
+    "swiftPassed": 299,
+    "swiftSkipped": 1,
+    "swiftFailed": 0,
+    "rustPassed": 188,
+    "bindingDecoderPassed": 25,
+    "bindingDecoderWindowWrites": 0,
+    "scope": "Exact-head native source gate; it does not grant R4 runtime or release qualification."
+  },
+  "candidate": {
+    "schema": 1,
+    "revision": "7c8cdc7889334c81d3aa335147035dc41a0a052b",
+    "sourceChecks": "PASS",
+    "fullBuild": "PASS",
+    "bundleSignature": "PASS",
+    "qualificationGranted": false
+  },
+  "outcome": {
+    "overall": "INCOMPLETE",
+    "productStatus": "FAIL",
+    "productReason": "R4SwitchReadbackFailed",
+    "actualInputs": 1,
+    "physicalConfirmations": 0,
+    "hostCompletedSelectionExits": 0,
+    "finalSettledSelections": 0,
+    "supersededPrefixes": 0,
+    "foregroundWitnesses": 0,
+    "metadataScopes": 0,
+    "formalHostWorkerOperations": 0,
+    "formalHostWindowWrites": 0,
+    "scope": "The only selection rejects during preparation, before any Witness, Spaces worker, launch canary, HIDE, SHOW or FOCUS path."
+  },
+  "firstRefusal": {
+    "kind": "selectionNoLongerCurrentAfterFirstDirectory",
+    "source": "full/independent-runtime/runtime/product.stderr.log",
+    "event": {
+      "appearanceMatches": false,
+      "awaits": [
+        {
+          "durationMS": 40.26812500001142,
+          "resultPresent": true,
+          "revision": 4,
+          "step": "first-directory"
+        }
+      ],
+      "cancelled": false,
+      "completed": false,
+      "durationMS": 48.32637499998782,
+      "epochMatches": true,
+      "event": "independentStageProduct",
+      "groupLifetimePresent": false,
+      "holdsDispatch": false,
+      "pendingRead": false,
+      "phase": "group-selection-preparation-exit",
+      "rejectedBy": "selectionNoLongerCurrent",
+      "revision": 4,
+      "step": "first-directory",
+      "uptime": 1215.9793269583333,
+      "window": 52,
+      "sourceLine": 72
+    },
+    "navigationFailure": {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "窗口或焦点已变化，本次切换已停止。",
+      "uptime": 1215.9804825833335,
+      "sourceLine": 73
+    },
+    "facts": [
+      "The actual current card reports appearancePresent/memberPresent=true before submission.",
+      "choose-group reports lifetimePresent/stillGrouped=true; dequeue and system confirmation retain currentSelection=true.",
+      "The first direct fresh request is revision 4, no prior pending read, no reuse; the decoded result completes successfully.",
+      "At the preparation exit, cancelled=false and epochMatches=true, but appearanceMatches=false and groupLifetimePresent=false.",
+      "No witness, metadata-owner scope, production worker session or physical observation wrapper is reached."
+    ],
+    "causalLimit": "The trace identifies the failed guard, not the reason the appearance or group lifetime changed. It does not prove a reset bug, a vanished target, a PID birth change, a role/membership change, or an empty directory."
+  },
+  "firstInputTimeline": {
+    "externalPress": {
+      "attributeTimeoutMS": 250,
+      "axError": 0,
+      "directEngineInvocation": false,
+      "discoveryBudgetMS": 6000,
+      "inputUptime": 1215.8310074583335,
+      "issued": true,
+      "nonce": "9b9b57be-8a52-4ec7-806b-786d58ec4435",
+      "panelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "physicalPointerGesture": false,
+      "prePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 6,
+        "batchRead": 0,
+        "enabled": true,
+        "enabledRead": 0,
+        "frame": [
+          800,
+          47,
+          208,
+          122
+        ],
+        "frameRead": 0,
+        "identifier": "current-desktop-window:43543:52",
+        "identifierRead": 0,
+        "insidePanel": true,
+        "ownerMatches": true,
+        "ownerRead": 0,
+        "positionRead": 0,
+        "role": "AXButton",
+        "roleRead": 0,
+        "sameOriginalElement": true,
+        "sameRetainedPanel": true,
+        "sizeRead": 0,
+        "windowMatches": true,
+        "windowRead": 0
+      },
+      "prePressContext": {
+        "configurationBytes": true,
+        "onScreenCGPanel": true,
+        "panelFrameChanged": 0,
+        "parentSignatureAndIdentity": true,
+        "retainedAXPanelIdentity": true
+      },
+      "prePressPanelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "prePressPanelIdentity": {
+        "canonicalNumber": 78,
+        "canonicalNumberRead": 0,
+        "expectedNumber": 78,
+        "ownerMatches": true,
+        "ownerRead": 0
+      },
+      "prePressRediscoveries": 0,
+      "processExit": 0,
+      "qualificationGranted": false,
+      "reason": "realAccessibilityPressIssued",
+      "receipt": "r4-press-9779f90e-d74e-422d-af72-d7cb88447b90.result.json",
+      "schema": 1,
+      "selectedIdentifier": "current-desktop-window:43543:52",
+      "status": "ISSUED",
+      "tree": {
+        "complete": true,
+        "matchingButtons": 1,
+        "nodes": [
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXWindow",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": 0,
+            "role": "AXScrollArea",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:43547:55",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:43543:54",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "actionRead": 0,
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "enabled": true,
+            "enabledRead": 0,
+            "frame": [
+              800,
+              47,
+              208,
+              122
+            ],
+            "frameRead": 0,
+            "identifier": "current-desktop-window:43543:52",
+            "identifierRead": 0,
+            "insidePanel": true,
+            "ownerMatches": true,
+            "ownerRead": 0,
+            "positionRead": 0,
+            "pressSupported": true,
+            "role": "AXButton",
+            "roleRead": 0,
+            "sameRetainedPanel": true,
+            "sizeRead": 0,
+            "windowMatches": true,
+            "windowRead": 0
+          }
+        ],
+        "visited": 7
+      },
+      "uptime": 1215.9230337916667,
+      "windowListRead": 0
+    },
+    "steps": [
+      {
+        "appearancePresent": true,
+        "event": "independentStageProduct",
+        "feedPresent": true,
+        "memberCount": 1,
+        "memberPresent": true,
+        "navigationPresented": true,
+        "phase": "current-card-press",
+        "pid": 43543,
+        "routesGroupChoice": true,
+        "uptime": 1215.9160595416668,
+        "visibleGroup": "6562A517-DA83-480E-A364-783C7FFB9A0A",
+        "window": 52,
+        "sourceLine": 60
+      },
+      {
+        "canNavigate": true,
+        "event": "independentStageProduct",
+        "group": "6562A517-DA83-480E-A364-783C7FFB9A0A",
+        "lifetimePresent": true,
+        "phase": "choose-group",
+        "pid": 43543,
+        "routesGroupChoice": true,
+        "stillGrouped": true,
+        "uptime": 1215.9170081666668,
+        "window": 52,
+        "sourceLine": 61
+      },
+      {
+        "dispatchAvailable": true,
+        "event": "independentStageProduct",
+        "needsInitialObservation": true,
+        "pending": 0,
+        "phase": "navigation-submit",
+        "running": false,
+        "selection": true,
+        "stage": true,
+        "stageOwnsDispatch": false,
+        "uptime": 1215.9221539166667,
+        "sourceLine": 62
+      },
+      {
+        "event": "independentStageProduct",
+        "job": "7026BBAD-3FB4-4F3B-9101-7E4640D097EA",
+        "phase": "navigation-user-activity-begin",
+        "uptime": 1215.9226135000001,
+        "sourceLine": 63
+      },
+      {
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "epoch": "AB3BF3D6-2AFF-4A97-8BC1-6DD530D87BD9",
+        "event": "independentStageProduct",
+        "job": "7026BBAD-3FB4-4F3B-9101-7E4640D097EA",
+        "needsInitialObservation": true,
+        "phase": "navigation-dequeue",
+        "sameEpoch": true,
+        "stage": true,
+        "stageOwnsDispatch": false,
+        "taskPriority": 25,
+        "uptime": 1215.923557375,
+        "userActivity": true,
+        "sourceLine": 64
+      },
+      {
+        "eligibleBeforeAccept": true,
+        "event": "independentStageProduct",
+        "evidence": "signedDockAXListWithoutMC",
+        "phase": "dispatch-dock-confirmation-read",
+        "readEnd": 1215.92556525,
+        "readStart": 1215.9238063333335,
+        "requestMilliseconds": 1.8371666667462705,
+        "sameGeneration": true,
+        "uptime": 1215.9257071666668,
+        "visibility": "ordinary",
+        "sourceLine": 65
+      },
+      {
+        "confirmed": true,
+        "currentSelection": true,
+        "dispatchAvailable": true,
+        "event": "independentStageProduct",
+        "phase": "navigation-system-confirmation",
+        "sameEpoch": true,
+        "uptime": 1215.9259326666668,
+        "sourceLine": 66
+      },
+      {
+        "current": true,
+        "event": "independentStageProduct",
+        "phase": "group-job-start",
+        "uptime": 1215.9305528333334,
+        "window": 52,
+        "sourceLine": 67
+      },
+      {
+        "auditCreationMS": 0.0009166667496174341,
+        "creatorKind": "direct",
+        "creatorPriority": 25,
+        "dispatching": true,
+        "event": "independentStageProduct",
+        "metadataAdmittedUptime": 1215.931173125,
+        "phase": "desktop-read-task-created",
+        "preTaskCreationMS": 0.3950000000259024,
+        "readCallStartedUptime": 1215.9311725,
+        "readSession": "13D62FC0-8F9E-4E4B-8638-F6D5B47A012C",
+        "requestConstructionMS": 0.000624999984211172,
+        "requestRevision": 4,
+        "sessionAvailabilityMS": 0.3803333333962655,
+        "taskCreatedUptime": 1215.9315675,
+        "uptime": 1215.931681625,
+        "sourceLine": 68
+      },
+      {
+        "completed": true,
+        "durationMS": 17.87579166671094,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 0.5757500000527216,
+        "nativeAgeOnReturnMS": 14.316124999822932,
+        "nativeBeganUptime": 1215.9331220000001,
+        "nativeBeginAfterRequestMS": 0.9814583333991322,
+        "nativeDurationMS": 13.337999999976091,
+        "nativeEndedUptime": 1215.9464600000001,
+        "nativeEndToReturnMS": 0.9781249998468411,
+        "observeDirectoryMS": 0.029291666578501463,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 15.297583333222065,
+        "readerAwaitStartedUptime": 1215.9321405416667,
+        "readerReturnedUptime": 1215.947438125,
+        "readSession": "13D62FC0-8F9E-4E4B-8638-F6D5B47A012C",
+        "receivedReply": true,
+        "remainingProcessingMS": 1.9731666668576509,
+        "requestRevision": 4,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 1215.9315675,
+        "taskPriority": 25,
+        "taskQueueMS": 0.2707083333461924,
+        "taskStartedUptime": 1215.9318382083334,
+        "uptime": 1215.9498755416666,
+        "sourceLine": 70
+      },
+      {
+        "boundaryDate": 1795864527.168223,
+        "boundaryRevision": 3,
+        "boundaryUptime": 1215.9311446666668,
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 39.72499999986212,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "freshReadMS": 39.69974999995429,
+        "freshRequestedUptime": 1215.931168125,
+        "hadPrior": false,
+        "pendingRead": false,
+        "phase": "after-action-directory-read",
+        "priorWaitMS": 0,
+        "receivedRevision": 4,
+        "reusedPrior": false,
+        "revision": 4,
+        "step": "complete",
+        "uptime": 1215.97118425,
+        "sourceLine": 71
+      },
+      {
+        "appearanceMatches": false,
+        "awaits": [
+          {
+            "durationMS": 40.26812500001142,
+            "resultPresent": true,
+            "revision": 4,
+            "step": "first-directory"
+          }
+        ],
+        "cancelled": false,
+        "completed": false,
+        "durationMS": 48.32637499998782,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "groupLifetimePresent": false,
+        "holdsDispatch": false,
+        "pendingRead": false,
+        "phase": "group-selection-preparation-exit",
+        "rejectedBy": "selectionNoLongerCurrent",
+        "revision": 4,
+        "step": "first-directory",
+        "uptime": 1215.9793269583333,
+        "window": 52,
+        "sourceLine": 72
+      },
+      {
+        "event": "independentStageProduct",
+        "phase": "navigation-job-failed",
+        "reason": "窗口或焦点已变化，本次切换已停止。",
+        "uptime": 1215.9804825833335,
+        "sourceLine": 73
+      },
+      {
+        "completionHolds": 0,
+        "event": "independentStageProduct",
+        "job": "7026BBAD-3FB4-4F3B-9101-7E4640D097EA",
+        "phase": "navigation-user-activity-end",
+        "uptime": 1215.9808304166668,
+        "sourceLine": 74
+      }
+    ],
+    "externalInputToCardHandlerMS": 85.05208333326664,
+    "externalInputToPreparationRefusalMS": 148.31949999984317,
+    "selectionPreparationMS": 48.32637499998782,
+    "firstDirectoryAwaitMS": 40.26812500001142,
+    "scope": "Monotonic elapsed times, not CPU time. No click-to-success latency exists because the switch is never physically confirmed or committed."
+  },
+  "target52Evidence": {
+    "fixtureIdentity": {
+      "pid": 43543,
+      "birth": 1795864497997767,
+      "window": 52,
+      "initialFrame": [
+        120,
+        180,
+        250,
+        202
+      ]
+    },
+    "readinessRevision1": {
+      "accessibilityRead": "available",
+      "accessibilityTrusted": true,
+      "catalogComplete": true,
+      "catalogCompletenessObserved": true,
+      "currentScopes": [
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "ordinaryUUID": "B719228D-4CA4-20AC-B940-1A4E5B57EA1B",
+          "record": "12"
+        }
+      ],
+      "distinctFixtureGroupCount": 3,
+      "fixtureGroupCount": 3,
+      "fresh": true,
+      "missionControlEvidence": "signedDockAXListWithoutMC",
+      "missionControlState": "ordinary",
+      "nativeStageManager": "off",
+      "observedCapability": "spaces",
+      "panelVisible": true,
+      "permitsStageEngine": true,
+      "previewVisibleDisplays": [
+        "2109FE05-700B-4D86-963C-08B091DE5E60"
+      ],
+      "r4OpenRequested": true,
+      "revision": 1,
+      "roster": [
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 55,
+          "onActiveDesktop": true,
+          "ordinaryRole": "ordinary",
+          "pid": 43547
+        },
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 54,
+          "onActiveDesktop": true,
+          "ordinaryRole": "ordinary",
+          "pid": 43543
+        },
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 52,
+          "onActiveDesktop": true,
+          "ordinaryRole": "ordinary",
+          "pid": 43543
+        }
+      ],
+      "snapshotAvailable": true,
+      "spacesRead": "observed",
+      "targets": [
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "included": true,
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 52,
+          "onActiveDesktop": true,
+          "pid": 43543
+        },
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "included": true,
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 54,
+          "onActiveDesktop": true,
+          "pid": 43543
+        },
+        {
+          "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+          "included": true,
+          "isOnscreen": true,
+          "membership": "known(recordIDs: [\"12\"])",
+          "number": 55,
+          "onActiveDesktop": true,
+          "pid": 43547
+        }
+      ],
+      "windowCount": 3,
+      "windowDispatchEligible": true
+    },
+    "firstFreshReadRevision4": {
+      "taskExit": {
+        "completed": true,
+        "durationMS": 17.87579166671094,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 0.5757500000527216,
+        "nativeAgeOnReturnMS": 14.316124999822932,
+        "nativeBeganUptime": 1215.9331220000001,
+        "nativeBeginAfterRequestMS": 0.9814583333991322,
+        "nativeDurationMS": 13.337999999976091,
+        "nativeEndedUptime": 1215.9464600000001,
+        "nativeEndToReturnMS": 0.9781249998468411,
+        "observeDirectoryMS": 0.029291666578501463,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 15.297583333222065,
+        "readerAwaitStartedUptime": 1215.9321405416667,
+        "readerReturnedUptime": 1215.947438125,
+        "readSession": "13D62FC0-8F9E-4E4B-8638-F6D5B47A012C",
+        "receivedReply": true,
+        "remainingProcessingMS": 1.9731666668576509,
+        "requestRevision": 4,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 1215.9315675,
+        "taskPriority": 25,
+        "taskQueueMS": 0.2707083333461924,
+        "taskStartedUptime": 1215.9318382083334,
+        "uptime": 1215.9498755416666,
+        "sourceLine": 70
+      },
+      "afterAction": {
+        "boundaryDate": 1795864527.168223,
+        "boundaryRevision": 3,
+        "boundaryUptime": 1215.9311446666668,
+        "cancelled": false,
+        "completed": true,
+        "durationMS": 39.72499999986212,
+        "epochMatches": true,
+        "event": "independentStageProduct",
+        "freshReadMS": 39.69974999995429,
+        "freshRequestedUptime": 1215.931168125,
+        "hadPrior": false,
+        "pendingRead": false,
+        "phase": "after-action-directory-read",
+        "priorWaitMS": 0,
+        "receivedRevision": 4,
+        "reusedPrior": false,
+        "revision": 4,
+        "step": "complete",
+        "uptime": 1215.97118425,
+        "sourceLine": 71
+      },
+      "observedFields": [
+        "requestRevision",
+        "completed",
+        "receivedReply",
+        "step",
+        "nativeBeganUptime",
+        "nativeEndedUptime",
+        "readerAwaitMS",
+        "groupProjectionMS",
+        "observeDirectoryMS"
+      ],
+      "absentFromOriginalTrace": [
+        "full window rows",
+        "target PID/birth row",
+        "target role",
+        "target membership",
+        "target appearance/lifetime before and after",
+        "window count",
+        "complete-catalog census"
+      ],
+      "catalogCompletenessLimit": "No incompleteCatalog field is present. In this exact source that field is emitted for native.catalogComplete != true; completeness is a source-path inference, not a captured per-window revision-4 snapshot."
+    },
+    "laterDispatchStateRevision12": {
+      "catalogComplete": true,
+      "consentRequestPresent": false,
+      "fresh": true,
+      "groupIssue": "none",
+      "groupLoadIssue": "none",
+      "holdsDispatch": false,
+      "navigationDispatchAvailable": true,
+      "navigationIssue": "窗口或焦点已变化，本次切换已停止。",
+      "revision": 12,
+      "routesGroupChoice": true,
+      "sampleAgeSeconds": 1.779781750000211,
+      "sampleDurationSeconds": 0.09428312500017455,
+      "snapshotAvailable": true,
+      "targets": [
+        {
+          "groupLifetime": "BEF6E1ED-F834-485D-A0DB-9DFC97F8CDFF",
+          "number": 52,
+          "ordinaryLifetime": "BEF6E1ED-F834-485D-A0DB-9DFC97F8CDFF",
+          "pid": 43543,
+          "visibleGroup": "none",
+          "visibleGroupBound": false,
+          "visibleGroupMembers": 0
+        },
+        {
+          "groupLifetime": "E0936500-0532-4F73-9E2C-35EACEE14858",
+          "number": 54,
+          "ordinaryLifetime": "E0936500-0532-4F73-9E2C-35EACEE14858",
+          "pid": 43543,
+          "visibleGroup": "none",
+          "visibleGroupBound": false,
+          "visibleGroupMembers": 0
+        },
+        {
+          "groupLifetime": "A3A9BDD5-1A7E-4C43-AD25-2056769D8F41",
+          "number": 55,
+          "ordinaryLifetime": "A3A9BDD5-1A7E-4C43-AD25-2056769D8F41",
+          "pid": 43547,
+          "visibleGroup": "none",
+          "visibleGroupBound": false,
+          "visibleGroupMembers": 0
+        }
+      ]
+    },
+    "laterExternalReadback": {
+      "focus": {
+        "expectedPID": 43543,
+        "expectedWindow": 52,
+        "focusedElementTypeConfirmed": true,
+        "focusedTimeoutSetError": 0,
+        "focusedWindow": 52,
+        "focusedWindowRead": 0,
+        "frontPID": 434,
+        "frontPIDBefore": 434,
+        "frontUnchanged": true,
+        "required": true,
+        "rootTimeoutSetError": 0,
+        "verified": false
+      },
+      "readEnd": 1223.7622684166668,
+      "readStart": 1223.7340415833335,
+      "received": 1223.900618875,
+      "uptime": 1223.900618875,
+      "verified": false,
+      "windows": [
+        {
+          "framePreserved": true,
+          "frameRequired": true,
+          "home": 12,
+          "homeRequired": true,
+          "number": 52,
+          "onScreen": true,
+          "pid": 43543,
+          "space": 12,
+          "visibilityMatched": true
+        },
+        {
+          "framePreserved": true,
+          "frameRequired": true,
+          "home": 12,
+          "homeRequired": false,
+          "number": 54,
+          "onScreen": true,
+          "pid": 43543,
+          "space": 12,
+          "visibilityMatched": false
+        },
+        {
+          "framePreserved": true,
+          "frameRequired": true,
+          "home": 12,
+          "homeRequired": false,
+          "number": 55,
+          "onScreen": true,
+          "pid": 43547,
+          "space": 12,
+          "visibilityMatched": false
+        }
+      ]
+    },
+    "finalFixtureIdentity": {
+      "pid": 43543,
+      "birth": 1795864497997767,
+      "lastCreatedSequence": 0,
+      "lastCreatedIndex": -1
+    },
+    "interpretation": "Config and final fixture state retain the same PID/birth/number, and the later external readback verifies target 52 on home 12 with its frame preserved. These observations cannot fill the missing revision-4 target row. Final fixture visibility is sampled after cleanup, so it is not used to describe the selection failure."
+  },
+  "readerAndPhysicalCoverage": {
+    "helperStarts": 1,
+    "decodedTaskResults": 12,
+    "taskExitCount": 12,
+    "swiftExclusivityTraps": 0,
+    "parentFailures": 0,
+    "helperThrowingFailures": 0,
+    "targetAXWindowListRejections": 0,
+    "physicalObservationWrappers": 0,
+    "scope": "The fixed Reader exchange is actually exercised. This FULL lane does not reach the retained-binding physical-observation wrapper, launch canary, move ACK or dual full confirmation; zero such errors is not coverage of those operations. The overview reader still performs its original read-only native observations."
+  },
+  "laterIncompleteCatalogs": {
+    "observations": [
+      {
+        "sourceLine": 141,
+        "uptime": 1218.6023553333334,
+        "phase": "desktop-read-task-exit",
+        "requestRevision": 6,
+        "snapshot": {
+          "catalogCensus": {
+            "first": {
+              "acceptedWindows": 19,
+              "eligibleSurfaceRows": 25,
+              "expandedRows": 39,
+              "ownerRejectedRows": 5,
+              "ownersAccepted": 3,
+              "ownersChecked": 7,
+              "ownersExcludedBundle": 0,
+              "ownersMissingBundle": 0,
+              "ownersNotRegular": 4,
+              "ownersUnavailable": 0,
+              "parentExcludedRows": 0,
+              "publicRows": 35
+            },
+            "second": {
+              "acceptedWindows": 20,
+              "eligibleSurfaceRows": 25,
+              "expandedRows": 39,
+              "ownerRejectedRows": 5,
+              "ownersAccepted": 3,
+              "ownersChecked": 7,
+              "ownersExcludedBundle": 0,
+              "ownersMissingBundle": 0,
+              "ownersNotRegular": 4,
+              "ownersUnavailable": 0,
+              "parentExcludedRows": 0,
+              "publicRows": 35
+            }
+          },
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=43543,window=79"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 79,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795864497997767,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 126,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 43543,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "sourceLine": 152,
+        "uptime": 1219.6268855,
+        "phase": "desktop-read-task-exit",
+        "requestRevision": 7,
+        "snapshot": {
+          "catalogCensus": {
+            "first": {
+              "acceptedWindows": 20,
+              "eligibleSurfaceRows": 27,
+              "expandedRows": 43,
+              "ownerRejectedRows": 6,
+              "ownersAccepted": 3,
+              "ownersChecked": 8,
+              "ownersExcludedBundle": 0,
+              "ownersMissingBundle": 0,
+              "ownersNotRegular": 5,
+              "ownersUnavailable": 0,
+              "parentExcludedRows": 0,
+              "publicRows": 39
+            },
+            "second": {
+              "acceptedWindows": 20,
+              "eligibleSurfaceRows": 25,
+              "expandedRows": 41,
+              "ownerRejectedRows": 5,
+              "ownersAccepted": 3,
+              "ownersChecked": 7,
+              "ownersExcludedBundle": 0,
+              "ownersMissingBundle": 0,
+              "ownersNotRegular": 4,
+              "ownersUnavailable": 0,
+              "parentExcludedRows": 0,
+              "publicRows": 37
+            }
+          },
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=43547,window=85"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 85,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795864499247160,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 686,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 43547,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "scope": "Revisions 6 and 7 occur after the first refusal. Their second-only surfaces 79 and 85 are not the revision-4 failure and do not identify its target row."
+  },
+  "publication": {
+    "actualPublications": 11,
+    "incompletePublications": 2,
+    "preparationCompletionMarkers": 0,
+    "allNativeFreshWhenPublished": true,
+    "nativeAgeAtPublicationMaximumMS": 938.745583333457,
+    "continuousActivityEnvelopes": [
+      {
+        "from": 1215.9226135000001,
+        "to": 1215.9808304166668,
+        "jobs": [
+          {
+            "job": "7026BBAD-3FB4-4F3B-9101-7E4640D097EA",
+            "from": 1215.9226135000001,
+            "to": 1215.9808304166668,
+            "beginLine": 63,
+            "endLine": 74
+          }
+        ],
+        "durationMS": 58.21691666665174,
+        "actualPublications": [],
+        "retainedSnapshotIntervals": [
+          {
+            "sourceLine": 55,
+            "revision": 3,
+            "from": 1215.9226135000001,
+            "to": 1215.9808304166668,
+            "sameFeedEpochAtEndpoints": true,
+            "snapshotPresent": true,
+            "catalogComplete": true,
+            "nativeAgeAtIntervalEndMS": 451.7019166667069,
+            "nativeFreshWhenPublished": true
+          }
+        ],
+        "preparationCompletions": [],
+        "nativeAgeAtIntervalEndStatisticsMS": {
+          "count": 1,
+          "minimum": 451.7019166667069,
+          "median": 451.7019166667069,
+          "p95NearestRank": 451.7019166667069,
+          "maximum": 451.7019166667069
+        },
+        "intervalsBeyondNative12s": []
+      }
+    ],
+    "scope": "One 58.217 ms activity envelope, with no publication inside it; its retained native snapshot age ends at 451.702 ms. This is not a continuous 12-second-lane stress test. The first read returns a snapshot but preparation rejects before its completion marker."
+  },
+  "dock": {
+    "requests": 26,
+    "consumed": 26,
+    "duplicateConsumptions": 0,
+    "consumedBeforeActorCallback": 2,
+    "expiredOldObservations": 0,
+    "expiredNewReadAtAcceptance": 0,
+    "scope": "26 one-shot deliveries, two consumed before the awaiting actor callback trace; no expiry event. They do not turn the failed R4 selection into a successful switch."
+  },
+  "cleanup": {
+    "workerReleaseRequests": [],
+    "hostFinalShutdown": {
+      "end": 1224.0840292083335,
+      "milliseconds": 2.752625000084663,
+      "released": true,
+      "start": 1224.0812765833334
+    },
+    "externalTwoHomeReadback": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1224.1123447500001,
+          "readStart": 1224.085764125,
+          "received": 1224.1765446250001,
+          "uptime": 1224.1765446250001,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 52,
+              "onScreen": true,
+              "pid": 43543,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 43543,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 43547,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1224.3164228750002,
+          "readStart": 1224.298748125,
+          "received": 1224.4311235,
+          "uptime": 1224.4311235,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 52,
+              "onScreen": true,
+              "pid": 43543,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 43543,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 43547,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "productCleanup": true,
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "workspaceCleanup": {
+      "cleanup": true,
+      "created": {
+        "id": 12,
+        "type": 0,
+        "uuid": "B719228D-4CA4-20AC-B940-1A4E5B57EA1B"
+      },
+      "current": 1,
+      "currentHasSystemUUID": false,
+      "directWindowOperations": 0,
+      "lastRecordedStep": "issued:closeMissionControl",
+      "originalCurrent": 1,
+      "phase": "cleaned",
+      "physicalGestureClaimed": false,
+      "process": {
+        "exit": 0,
+        "log": "ci-workspace-cleanup.log",
+        "status": "PASS",
+        "stderr": "ci-workspace-cleanup.stderr.log"
+      },
+      "qualificationGranted": false,
+      "schema": 1,
+      "status": "READY",
+      "systemInputs": 11
+    }
+  },
+  "independentController": {
+    "status": "FOREIGN_ENGINE_PASS",
+    "reason": "verified",
+    "windowWrites": 26,
+    "windowWritesScope": "engine hide/restore request attempts, including rejected or unverified requests",
+    "cleanup": true,
+    "scope": "Independent Controller foreign-engine operations pass separately; their 26 request attempts are not formal Host R4 writes."
+  },
+  "laterGates": {
+    "R4ProductPath": {
+      "runtimeSummary": "FAIL",
+      "productReceipt": null
+    },
+    "groupMergeSplit": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "yellowButtonRouting": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopReveal": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeDesktopSwitch": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "nativeFullScreen": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "missionControl": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "appExpose": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "desktopGestures": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "fullScreenSplitView": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "newWindowLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "windowCloseLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "applicationExitLifecycle": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "coldHiddenPreview": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "hostCrashRecovery": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": "NOT_RUN"
+    },
+    "platformForeignMechanism": {
+      "runtimeSummary": "NOT_RUN",
+      "productReceipt": null
+    },
+    "exactTargetEngine": {
+      "runtimeSummary": "NOT_PROVEN",
+      "productReceipt": null
+    }
+  },
+  "limits": [
+    "This is FULL-only evidence. No FAST failure or success fills a missing FULL stage.",
+    "A real external AXPress was issued; the receipt does not claim a physical pointer gesture.",
+    "Cleanup takes 2.753 ms and two independent home/frame/visibility observations pass. No production worker RELEASE was needed because no Host session was created.",
+    "The candidate and source gate pass, but formal R4 fails before window manipulation. Later member selection, group merge/split, system interactions and lifecycle acceptance are NOT_RUN.",
+    "No actual target-machine GUI or release qualification is granted."
+  ],
+  "inputFiles": [
+    {
+      "path": "full/independent-runtime/runtime/product.stderr.log",
+      "sha256": "25b09ae6c07a78b2acba77b7619c5cad3522d153a6f636ea583b80e44ae822d9"
+    },
+    {
+      "path": "full/independent-runtime/runtime/product/product-result.json",
+      "sha256": "0a4d71caece00966e15e17f9c82ce5a8684652c90a018ed6044525a690f35daf"
+    },
+    {
+      "path": "full/independent-runtime/runtime/config.json",
+      "sha256": "ac17ee5fd1cd73acb69e8bc32d1dcd8852012328761940feadd13d484431e13a"
+    },
+    {
+      "path": "full/independent-runtime/runtime/FixtureA/state.json",
+      "sha256": "bfcdde03f538929dfed354eb4c6c78293a4b17f6bb49fb7a9b4347f40194a85f"
+    },
+    {
+      "path": "full/independent-runtime/runtime/engine-result.json",
+      "sha256": "5d597a77e337175606446b528c518ecf829f59fe5f7ea88629d1a026c4610189"
+    },
+    {
+      "path": "source/source-gate-audit.json",
+      "sha256": "06ce04f409ceee6bebf220c04bdd7eaea3a9a6f3de17976ddfbded1582249028"
+    }
+  ]
+}

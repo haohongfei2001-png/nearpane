@@ -324,16 +324,20 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
                                current: @escaping @MainActor () -> Bool,
                                measure supplied: (@MainActor (NativeSpaceWindow, OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation?)? = nil) async throws -> DesktopSnapshot {
         let originalEpoch = epoch, started = ProcessInfo.processInfo.systemUptime
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
         var step = "entry", rejectedBy = "none", completed = false
         var awaits = [[String: Any]]()
+        var returnedDirectories = [[String: Any]]()
         defer {
-            IndependentStageTrace.record("group-selection-preparation-exit", ["window": member.key.number,
+            var facts: [String: Any] = ["window": member.key.number,
                 "completed": completed, "step": step, "rejectedBy": rejectedBy,
                 "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000, "awaits": awaits,
                 "epochMatches": epoch == originalEpoch, "cancelled": Task.isCancelled,
                 "appearanceMatches": lifetimes[member.key] == appearance,
                 "groupLifetimePresent": groupLifetime(of: member.key) != nil,
-                "revision": revision, "pendingRead": pending != nil, "holdsDispatch": stageEngine.holdsDispatch])
+                "revision": revision, "pendingRead": pending != nil, "holdsDispatch": stageEngine.holdsDispatch]
+            if tracing && !completed { facts["returnedDirectories"] = returnedDirectories }
+            IndependentStageTrace.record("group-selection-preparation-exit", facts)
         }
         func valid() -> Bool {
             // Keep the original short-circuit order. Diagnostics reuse these
@@ -353,6 +357,46 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             awaits.append(["step": phase, "durationMS": (ProcessInfo.processInfo.systemUptime - began) * 1000,
                            "resultPresent": result != nil, "revision": result?.revision ?? 0])
             if result == nil { rejectedBy = "directoryUnavailable" }
+            if tracing && returnedDirectories.count < 2 {
+                var facts: [String: Any] = ["step": phase, "snapshotPresent": result != nil,
+                    "selectedPID": member.key.pid, "selectedBirth": member.key.birth, "selectedWindow": member.key.number]
+                if let result {
+                    let matches = result.windows.filter { $0.metadata?.number == member.key.number }
+                    facts["session"] = result.sessionID.uuidString; facts["revision"] = result.revision
+                    facts["windowCount"] = result.windows.count; facts["numberMatches"] = matches.count
+                    facts["exactIdentityMatches"] = matches.filter {
+                        $0.metadata?.pid == member.key.pid && $0.metadata?.launchMicroseconds == member.key.birth
+                    }.count
+                    facts["matchingRows"] = matches.prefix(2).map { row -> [String: Any] in
+                        guard let meta = row.metadata else { return [:] }
+                        var entry: [String: Any] = ["pid": meta.pid, "birth": meta.launchMicroseconds.map { $0 as Any } ?? NSNull(),
+                            "display": String(row.displayID.prefix(80)),
+                            "ordinaryRole": meta.overviewOrdinaryRole.map { $0 as Any } ?? NSNull(),
+                            "minimized": meta.minimized.map { $0 as Any } ?? NSNull(),
+                            "fullscreen": meta.fullScreen.map { $0 as Any } ?? NSNull(),
+                            "onscreen": meta.isOnscreen.map { $0 as Any } ?? NSNull(),
+                            "frame": meta.globalFrame.geometry.isValid ? [meta.globalFrame.x, meta.globalFrame.y,
+                                meta.globalFrame.width, meta.globalFrame.height] as Any : NSNull()]
+                        switch row.membership {
+                        case .unknown: entry["membership"] = "unknown"
+                        case .known(let ids):
+                            entry["membership"] = "known"; entry["membershipCount"] = ids.count
+                            entry["membershipRecords"] = ids.prefix(8).map { String($0.prefix(80)) }
+                            entry["membershipTruncated"] = ids.count > 8 || ids.contains { $0.count > 80 }
+                        }
+                        return entry
+                    }
+                    facts["matchingRowsTruncated"] = matches.count > 2
+                    if let native = result.native {
+                        facts["nativeBeganUptime"] = native.beganUptime.isFinite ? native.beganUptime as Any : NSNull()
+                        facts["nativeEndedUptime"] = native.endedUptime.isFinite ? native.endedUptime as Any : NSNull()
+                        facts["catalogComplete"] = native.catalogComplete.map { $0 as Any } ?? NSNull()
+                        if let census = native.catalogCensus, let data = try? JSONEncoder().encode(census),
+                           let counts = try? JSONSerialization.jsonObject(with: data) { facts["catalogCensus"] = counts }
+                    }
+                }
+                returnedDirectories.append(facts)
+            }
             return result
         }
         guard valid(), let first = await readDirectory("first-directory"), valid() else { throw StageSwitchError.interrupted }
@@ -459,11 +503,22 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         let stagedFor: UUID?
     }
     @MainActor final class InitialDirectoryStaging {
+        fileprivate enum Purpose: Equatable { case initial, heldPreparation }
         fileprivate let id = UUID()
         fileprivate var registered = false
+        fileprivate let purpose: Purpose
+        fileprivate(set) var stagedRevision: UInt64?
         let cancellation = InitialDirectoryReadCancellation()
         fileprivate let eligible: @MainActor (DesktopSnapshot) -> Bool
-        init(eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) { self.eligible = eligible }
+        init(eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) {
+            self.eligible = eligible; purpose = .initial
+        }
+        private init(heldPreparation eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) {
+            self.eligible = eligible; purpose = .heldPreparation
+        }
+        static func heldPreparation(eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) -> InitialDirectoryStaging {
+            .init(heldPreparation: eligible)
+        }
     }
     private struct InitialStage {
         let token: InitialDirectoryStaging, epoch: UUID
@@ -1060,8 +1115,10 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
                result.revision > stage.boundaryRevision, result.native?.catalogComplete == false,
                result.sampledFrom > stage.date, let native = result.native, native.beganUptime > stage.uptime,
                !stage.token.cancellation.isCancelled, stage.token.eligible(result), !stage.token.cancellation.isCancelled {
-                step = "initial-directory-staged"; completed = true
-                IndependentStageTrace.record("initial-directory-staged", ["revision": result.revision,
+                stage.token.stagedRevision = result.revision
+                step = stage.token.purpose == .initial ? "initial-directory-staged" : "held-opening-directory-staged"
+                completed = true
+                IndependentStageTrace.record(step, ["revision": result.revision,
                     "boundaryRevision": stage.boundaryRevision, "token": stage.token.id.uuidString])
                 return .init(snapshot: result, stagedFor: stage.token.id)
             }

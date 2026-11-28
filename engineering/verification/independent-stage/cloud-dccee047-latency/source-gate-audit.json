@@ -1,0 +1,1187 @@
+{
+  "schema": 1,
+  "revision": "dccee047cc4c915732456299a345022fecded8bb",
+  "runID": 46137081160,
+  "jobID": 140954654836,
+  "buildRunID": "independent-46137081160-1-full",
+  "sourceGate": "PASS",
+  "contextArtifact": {
+    "artifactID": 15259969014,
+    "artifactName": "nearpane-independent-context-dccee047cc4c915732456299a345022fecded8bb-full",
+    "runID": 46137081160,
+    "revision": "dccee047cc4c915732456299a345022fecded8bb",
+    "providerDigest": "sha256:e6897d9b218d0e03d72f385314a1de60f69f6e6bac460299b894f42b05a63cc4",
+    "localSHA256": "e6897d9b218d0e03d72f385314a1de60f69f6e6bac460299b894f42b05a63cc4",
+    "sizeInBytes": 36396,
+    "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/source/context.zip",
+    "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/source/context",
+    "metadataPath": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/source/context-artifact-metadata.json",
+    "downloadCount": 1
+  },
+  "swift": {
+    "passed": 299,
+    "skipped": 1,
+    "failed": 0,
+    "failedFunctions": [],
+    "reportedFunctions": 300,
+    "suites": 49,
+    "footer": "✔ Test run with 300 tests in 49 suites passed after 4.363 seconds.",
+    "skippedCases": [
+      "➜ Test observeSignedInactiveSiblingAcrossItsOwnMinimizeAndRestore() skipped."
+    ],
+    "compilerErrors": [],
+    "failures": [],
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/source/context/source/swift.log",
+      "sha256": "71db24e3fae6d79ef85a8fcaf9ee7a903a481a8dbc7f944f5cd5c20eec080ac8"
+    },
+    "compileLog": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/source/context/source/swift.stderr.log",
+      "sha256": "72f8ca10382e23ef094c0ab7738ba181c097f1404d997c280cfeccc5fa80a5fc"
+    },
+    "changedProductionSourceCompilation": {
+      "CurrentSpaceWindows.swift": [],
+      "OverviewReaderService.swift": [],
+      "SystemEvidence.swift": [],
+      "DesktopOverviewReader.swift": [
+        "[174/298] Compiling NearpaneUI DesktopOverviewReader.swift"
+      ]
+    },
+    "changedProductionSourcesHaveExplicitCompilationLines": false,
+    "changedProductionSourcesNativeCompilationVerified": true,
+    "changedTestSourceCompilation": {},
+    "changedTestSourcesHaveExplicitCompilationLines": true,
+    "changedTestSourcesNativeCompilationVerified": true,
+    "moduleNativeCompilationEvidence": {
+      "SystemEvidence.swift": {
+        "explicitProgressLinePresent": false,
+        "moduleNativeBuildVerified": true,
+        "module": "NearpaneOrdinaryWindowRuntime",
+        "moduleEmission": [
+          {
+            "sourceLine": 581,
+            "line": "[101/146] Emitting module NearpaneOrdinaryWindowRuntime"
+          }
+        ],
+        "sourceFile": "Sources/NearpaneOrdinaryWindowController/SystemEvidence.swift",
+        "sourceSHA256": "9a7b5812fa640ac01981c37952f7547c5ff8e7306241cff752cdb729e7b9abce",
+        "exactManifestSourceMembershipVerified": true,
+        "manifestSHA256": "61a03c0fa25829a5c1a5f7cae64dc9207b3f8a48bfc730450f6cbd24b167e186",
+        "evidenceKind": "Exact-head manifest includes this source in the emitted native module; native build and linked test execution succeeded. No per-file progress line is asserted."
+      },
+      "CurrentSpaceWindows.swift": {
+        "explicitProgressLinePresent": false,
+        "moduleNativeBuildVerified": true,
+        "module": "NearpaneDesktopReader",
+        "moduleEmission": [
+          {
+            "sourceLine": 586,
+            "line": "[114/149] Emitting module NearpaneDesktopReader"
+          }
+        ],
+        "sourceFile": "Sources/NearpaneDesktopReader/CurrentSpaceWindows.swift",
+        "sourceSHA256": "b0d60d90be8ead850528b2de02630e5bc0da4c5cd7fa1e861022a1ba1c4b5f22",
+        "exactManifestSourceMembershipVerified": true,
+        "manifestSHA256": "61a03c0fa25829a5c1a5f7cae64dc9207b3f8a48bfc730450f6cbd24b167e186",
+        "evidenceKind": "Exact-head manifest includes this source in the emitted native module; native build and linked test execution succeeded. No per-file progress line is asserted."
+      },
+      "OverviewReaderService.swift": {
+        "explicitProgressLinePresent": false,
+        "moduleNativeBuildVerified": true,
+        "module": "NearpaneDesktopReader",
+        "moduleEmission": [
+          {
+            "sourceLine": 586,
+            "line": "[114/149] Emitting module NearpaneDesktopReader"
+          }
+        ],
+        "sourceFile": "Sources/NearpaneDesktopReader/OverviewReaderService.swift",
+        "sourceSHA256": "83098288738dc32e8c01ee1cf698fe2ae46fe3f8e1087fd5e7d9dbe368e396c9",
+        "exactManifestSourceMembershipVerified": true,
+        "manifestSHA256": "61a03c0fa25829a5c1a5f7cae64dc9207b3f8a48bfc730450f6cbd24b167e186",
+        "evidenceKind": "Exact-head manifest includes this source in the emitted native module; native build and linked test execution succeeded. No per-file progress line is asserted."
+      }
+    },
+    "changedSourceCompilation": [
+      "[174/298] Compiling NearpaneUI DesktopOverviewReader.swift"
+    ],
+    "newFunctions": 0,
+    "newCases": 0,
+    "existingTransport": {
+      "sourceFile": "Tests/NearpaneUITests/DesktopOverviewReaderTests.swift",
+      "functionsExpected": 9,
+      "casesExpected": 10,
+      "functionsPassed": 9,
+      "results": [
+        {
+          "name": "repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.617,
+          "sourceLine": 653
+        },
+        {
+          "name": "anotherFeedUsesANewChildAndRetiresThePreviousOne",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.628,
+          "sourceLine": 655
+        },
+        {
+          "name": "malformedFrameCannotBeConsumedByTheNextRequest",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 3.553,
+          "sourceLine": 649
+        },
+        {
+          "name": "cancellationDoesNotBlockTheMainActorAndReapsItsExactChild",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 4.067,
+          "sourceLine": 892
+        },
+        {
+          "name": "timeoutReapsChildAndDoesNotReturnAnyLateResponse",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.723,
+          "sourceLine": 697
+        },
+        {
+          "name": "cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.641,
+          "sourceLine": 656
+        },
+        {
+          "name": "unusedFeedReleasesItsChildAndTheNextReadStartsCleanly",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.743,
+          "sourceLine": 698
+        },
+        {
+          "name": "invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.619,
+          "sourceLine": 654
+        },
+        {
+          "name": "changedExecutableCannotStartANewReader",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.438,
+          "sourceLine": 648
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "retainedTestSources": {
+      "parentRevision": "9af439644f93bf6c77c3234be19093ef92327c1c",
+      "files": {
+        "Tests/NearpaneUITests/DesktopOverviewReaderTests.swift": {
+          "unchanged": true,
+          "sha256": "038263ccbea9bd1674067723db543d2a048a636ad2f5b4a57281a00d1f0fed2e"
+        },
+        "Tests/NearpaneCoreTests/DesktopReaderFrameTests.swift": {
+          "unchanged": true,
+          "sha256": "0de3040df84fa5b3aec87db7df9c9fe7c8561c96b9355d8ce42bd58b9941145e"
+        },
+        "Tests/NearpaneUITests/StageHostMiniatureGeometryTests.swift": {
+          "unchanged": true,
+          "sha256": "1b199e15de0431b4c95c0a7d6741334689f5daa55d2bec13fa1cf1350eaa6330"
+        }
+      },
+      "allUnchanged": true
+    },
+    "existingGeometry": {
+      "functionsExpected": 2,
+      "casesExpected": 7,
+      "functionsPassed": 2,
+      "results": [
+        {
+          "name": "aVisibleMemberBoundsItsButtonWithoutResizingItsFullPicture",
+          "status": "PASS",
+          "cases": 4,
+          "startedCases": 4,
+          "durationSeconds": 3.883,
+          "sourceLine": 779
+        },
+        {
+          "name": "aMemberWithoutVisibleAreaKeepsTheUnplacedMenuPath",
+          "status": "PASS",
+          "cases": 3,
+          "startedCases": 3,
+          "durationSeconds": 3.881,
+          "sourceLine": 766
+        }
+      ],
+      "allStartedAndPassed": true,
+      "scope": "Pure geometry bounds and retained full-picture crop offsets; does not establish actual SwiftUI AXButton bounds or production R4 press."
+    },
+    "existingCatalogCensus": {
+      "functionsExpected": 2,
+      "casesExpected": 5,
+      "functionsPassed": 2,
+      "results": [
+        {
+          "name": "censusDistinguishesFilteringFromAnEmptyEnumerationWithoutRepairingTheRoster",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.033,
+          "sourceLine": 534
+        },
+        {
+          "name": "malformedCensusCountsFailWireValidation",
+          "status": "PASS",
+          "cases": 4,
+          "startedCases": 4,
+          "durationSeconds": 0.033,
+          "sourceLine": 532
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "existingDockCompletion": {
+      "functionsExpected": 7,
+      "casesExpected": 20,
+      "functionsPassed": 7,
+      "results": [
+        {
+          "name": "aCompletedCurrentPollIsConsumedBeforeTheOldObservationExpires",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.879,
+          "sourceLine": 721
+        },
+        {
+          "name": "aCompletedUnknownOrExposedReadImmediatelyRevokesDispatch",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.074,
+          "sourceLine": 831
+        },
+        {
+          "name": "aCompletedPollStillUsesTheWholeOriginalPhysicalClockBudget",
+          "status": "PASS",
+          "cases": 8,
+          "startedCases": 8,
+          "durationSeconds": 0.085,
+          "sourceLine": 872
+        },
+        {
+          "name": "aCompletedOldPeriodCannotReopenDispatchAfterInvalidation",
+          "status": "PASS",
+          "cases": 6,
+          "startedCases": 6,
+          "durationSeconds": 0.034,
+          "sourceLine": 895
+        },
+        {
+          "name": "anUnfinishedReadStillExpiresAndItsLaterCompletionCannotReviveThatPeriod",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.004,
+          "sourceLine": 897
+        },
+        {
+          "name": "aConsumedPollCannotOverwriteItsResultOrClearTheNextRequest",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.004,
+          "sourceLine": 900
+        },
+        {
+          "name": "theNativeQueueStoresOneResultWhileActorApplicationIsHeld",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.231,
+          "sourceLine": 903
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "existingGroupEditQueue": {
+      "functionsExpected": 7,
+      "casesExpected": 11,
+      "functionsPassed": 7,
+      "results": [
+        {
+          "name": "rejectedSubmissionHasExactlyOneOutcome",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 3.928,
+          "sourceLine": 815
+        },
+        {
+          "name": "queueCapacityAndEpochDiscardFinishEachSubmissionOnce",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.033,
+          "sourceLine": 838
+        },
+        {
+          "name": "coalescingReportsOnlyTheDiscardedSelection",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.024,
+          "sourceLine": 844
+        },
+        {
+          "name": "skippedConfirmationCompletesWithoutRunningWork",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.031,
+          "sourceLine": 863
+        },
+        {
+          "name": "sharedEditUsesProductionSchedulingUntilItsActualOutcome",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.033,
+          "sourceLine": 882
+        },
+        {
+          "name": "sharedEditKeepsTheInputStampBeforeWriting",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.008,
+          "sourceLine": 889
+        },
+        {
+          "name": "cancellingAnEditRevokesOnlyItsTicketAndDoesNotClaimRecoveryFinished",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.253,
+          "sourceLine": 905
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "existingNavigationObservation": {
+      "sourceFile": "Tests/NearpaneUITests/StageHostNavigationObservationTests.swift",
+      "functionsExpected": 8,
+      "casesExpected": 15,
+      "functionsPassed": 8,
+      "results": [
+        {
+          "name": "anInitialObservationGateOpensDuringItsJobWithoutBlockingForegroundReads",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 4.059,
+          "sourceLine": 885
+        },
+        {
+          "name": "anAlreadyAdmittedPublisherStillDrainsDuringNavigation",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.257,
+          "sourceLine": 907
+        },
+        {
+          "name": "aRevokedActualJobLeavesAdmissionOpenUntilTheNextJobDequeues",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.009,
+          "sourceLine": 911
+        },
+        {
+          "name": "revokedObserverWaitsCannotBlockANewFeedEpoch",
+          "status": "PASS",
+          "cases": 3,
+          "startedCases": 3,
+          "durationSeconds": 0.01,
+          "sourceLine": 916
+        },
+        {
+          "name": "eachActualQueuedJobOwnsItsGateAndAReadyJobKeepsPublishing",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 0.006,
+          "sourceLine": 918
+        },
+        {
+          "name": "anOptOutJobCanPublishEvenWhenItReplacesAnOptedInPendingChoice",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.004,
+          "sourceLine": 922
+        },
+        {
+          "name": "aJobThatEndsWithoutACompleteInitialReadReleasesItsGate",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.004,
+          "sourceLine": 926
+        },
+        {
+          "name": "anObserverWaitCancellationUnregistersItsContinuation",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 0.002,
+          "sourceLine": 930
+        }
+      ],
+      "allStartedAndPassed": true,
+      "scope": "Real isolated NativeSidebarNavigation and CurrentDesktopWindows observer loop; controlled fixture samples and blocked hint. No production R4 acceptance claim."
+    },
+    "existingOwnedHandoff": {
+      "functions": 3,
+      "cases": 28,
+      "results": [
+        {
+          "name": "onlyAnEntireOriginallyBoundHiddenGroupCanCrossTheCardHandoff",
+          "status": "PASS",
+          "cases": 7,
+          "startedCases": 7,
+          "durationSeconds": 3.878,
+          "sourceLine": 738
+        },
+        {
+          "name": "anExactMemberWithoutPicturesRequiresTheSameOriginalIdentityAtDequeue",
+          "status": "PASS",
+          "cases": 16,
+          "startedCases": 16,
+          "durationSeconds": 3.878,
+          "sourceLine": 737
+        },
+        {
+          "name": "aRealQueuedClickWaitsForThePreviousSelectionAndRevalidatesBeforeItsExactHeldRead",
+          "status": "PASS",
+          "cases": 5,
+          "startedCases": 5,
+          "durationSeconds": 3.925,
+          "sourceLine": 805
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "existingCoreGates": {
+      "sourceFiles": [
+        "Tests/NearpaneCoreTests/StageWindowEngineTests.swift",
+        "Tests/NearpaneCoreTests/StageGroupCoordinatorTests.swift"
+      ],
+      "functions": 75,
+      "cases": 120,
+      "allStartedAndPassed": true,
+      "results": [
+        {
+          "name": "productSelectsOnlySpacesAndNeverFallsBackToCorner",
+          "cases": 1,
+          "sourceLine": 682
+        },
+        {
+          "name": "isolatedSingleWindowProofNeverEnablesShippingAndMissingEvidenceNeverAdmitsAGroup",
+          "cases": 1,
+          "sourceLine": 687
+        },
+        {
+          "name": "coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth",
+          "cases": 2,
+          "sourceLine": 601
+        },
+        {
+          "name": "coordinatedPreflightCannotWriteAfterItsBaselineChanges",
+          "cases": 6,
+          "sourceLine": 622
+        },
+        {
+          "name": "newInputDuringCoordinatedHealthStopsBeforeAnyWindowWrite",
+          "cases": 1,
+          "sourceLine": 643
+        },
+        {
+          "name": "preparedSpacesDispatchReadsAfterHealthAndConsumesItsPermissionOnce",
+          "cases": 1,
+          "sourceLine": 633
+        },
+        {
+          "name": "preparedSpacesDispatchRejectsChangesDuringWorkerHealth",
+          "cases": 5,
+          "sourceLine": 640
+        },
+        {
+          "name": "preparedSpacesDispatchCannotOutliveItsCommandAndSession",
+          "cases": 6,
+          "sourceLine": 621
+        },
+        {
+          "name": "spacesCoordinatorHandsItsCompletePreflightToTheSameSession",
+          "cases": 1,
+          "sourceLine": 606
+        },
+        {
+          "name": "spacesCoordinatorConfirmsEachVisibilityWriteWithTwoDistinctHostReadsAndRustReadback",
+          "cases": 1,
+          "sourceLine": 597
+        },
+        {
+          "name": "coordinatedVisibilityChecksTheEntireFirstAndSecondSample",
+          "cases": 10,
+          "sourceLine": 644
+        },
+        {
+          "name": "aNewerSpacesChoiceStillSettlesBothPhysicalConfirmationsBeforeYielding",
+          "cases": 1,
+          "sourceLine": 632
+        },
+        {
+          "name": "aFailedSpacesRustReadbackCannotSupplyACoordinatedConfirmation",
+          "cases": 1,
+          "sourceLine": 638
+        },
+        {
+          "name": "publicAndRestoringDispatchKeepTheirOwnReadsAndReturnNoCoordinatedSample",
+          "cases": 2,
+          "sourceLine": 598
+        },
+        {
+          "name": "independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow",
+          "cases": 1,
+          "sourceLine": 595
+        },
+        {
+          "name": "spacesRegistersTheInitiallyVisibleCurrentGroupBeforeAnyRetirement",
+          "cases": 1,
+          "sourceLine": 599
+        },
+        {
+          "name": "systemOverviewReturnsWindowsWithoutRequiringTheOldDesktopToRemainCurrent",
+          "cases": 1,
+          "sourceLine": 594
+        },
+        {
+          "name": "returningMixedGroupRepairsCompositorStackingBeforeConfirmingSelectedFocus",
+          "cases": 1,
+          "sourceLine": 612
+        },
+        {
+          "name": "yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine",
+          "cases": 1,
+          "sourceLine": 603
+        },
+        {
+          "name": "explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow",
+          "cases": 2,
+          "sourceLine": 605
+        },
+        {
+          "name": "wallpaperReturnVerifiesOwnedVisibilityWithoutRequiringOrChangingKeyboardFocus",
+          "cases": 1,
+          "sourceLine": 609
+        },
+        {
+          "name": "ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification",
+          "cases": 1,
+          "sourceLine": 705
+        },
+        {
+          "name": "aNewerGroupCanReuseOnlyIndependentlySettledWork",
+          "cases": 2,
+          "sourceLine": 620
+        },
+        {
+          "name": "newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster",
+          "cases": 2,
+          "sourceLine": 634
+        },
+        {
+          "name": "aQueuedClickCannotDischargeAnUnknownHide",
+          "cases": 1,
+          "sourceLine": 646
+        },
+        {
+          "name": "aBystanderChangeDuringHandoffRetainsTheSealedLease",
+          "cases": 1,
+          "sourceLine": 618
+        },
+        {
+          "name": "withdrawnHidePreservesEarlierIntentsAndTheUsersFocus",
+          "cases": 2,
+          "sourceLine": 625
+        },
+        {
+          "name": "missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry",
+          "cases": 2,
+          "sourceLine": 706
+        },
+        {
+          "name": "lostPrepareReplyAndUnknownSubmittedHideCannotBeWithdrawn",
+          "cases": 1,
+          "sourceLine": 681
+        },
+        {
+          "name": "lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket",
+          "cases": 2,
+          "sourceLine": 626
+        },
+        {
+          "name": "withdrawalRetainsExistingOwnershipAndTheEarlierConfirmedShow",
+          "cases": 1,
+          "sourceLine": 623
+        },
+        {
+          "name": "changedDurableTransactionCannotBeClearedByAnOtherwiseValidWithdrawal",
+          "cases": 1,
+          "sourceLine": 617
+        },
+        {
+          "name": "withdrawalAfterLostReadDoesNotInventAUserFocusForPreviousEffects",
+          "cases": 1,
+          "sourceLine": 680
+        },
+        {
+          "name": "failedRetirementReturnsOnlyTheMeasuredWindow",
+          "cases": 4,
+          "sourceLine": 694
+        },
+        {
+          "name": "fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged",
+          "cases": 1,
+          "sourceLine": 611
+        },
+        {
+          "name": "unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose",
+          "cases": 1,
+          "sourceLine": 695
+        },
+        {
+          "name": "externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend",
+          "cases": 1,
+          "sourceLine": 619
+        },
+        {
+          "name": "obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend",
+          "cases": 2,
+          "sourceLine": 686
+        },
+        {
+          "name": "oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn",
+          "cases": 1,
+          "sourceLine": 789
+        },
+        {
+          "name": "confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns",
+          "cases": 2,
+          "sourceLine": 689
+        },
+        {
+          "name": "changedLifetimeOrExternalGeometryNeverUsedForRestoration",
+          "cases": 1,
+          "sourceLine": 700
+        },
+        {
+          "name": "incompleteWorkerReadAfterConfirmedRestoresKeepsDurableOwnerAcrossRestart",
+          "cases": 1,
+          "sourceLine": 699
+        },
+        {
+          "name": "takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement",
+          "cases": 1,
+          "sourceLine": 647
+        },
+        {
+          "name": "guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide",
+          "cases": 1,
+          "sourceLine": 707
+        },
+        {
+          "name": "lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain",
+          "cases": 2,
+          "sourceLine": 690
+        },
+        {
+          "name": "uncertainStartupRetainsOriginalWorkerUntilItCanClose",
+          "cases": 1,
+          "sourceLine": 691
+        },
+        {
+          "name": "nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup",
+          "cases": 1,
+          "sourceLine": 596
+        },
+        {
+          "name": "coldStartupReleasesOnlyADischargedDeadOwnerWithoutWindowWrites",
+          "cases": 1,
+          "sourceLine": 684
+        },
+        {
+          "name": "coldSpacesOwnerWithAnEmptyWindowWALStillNeedsCompletedWorkerAndPhysicalProof",
+          "cases": 1,
+          "sourceLine": 688
+        },
+        {
+          "name": "coldSpacesReadPlanIncludesUncertainMinimizeAndCannotClearAChangedJournal",
+          "cases": 1,
+          "sourceLine": 683
+        },
+        {
+          "name": "recoveryReturnsKeyboardBeforeRetiringTheShownSibling",
+          "cases": 4,
+          "sourceLine": 693
+        },
+        {
+          "name": "unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite",
+          "cases": 1,
+          "sourceLine": 636
+        },
+        {
+          "name": "tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire",
+          "cases": 2,
+          "sourceLine": 637
+        },
+        {
+          "name": "engineActionsSeeThePrivateCommittedIntentOnDisk",
+          "cases": 1,
+          "sourceLine": 604
+        },
+        {
+          "name": "threeGroupsRequireConsentFocusOwnershipAndFullReadback",
+          "cases": 1,
+          "sourceLine": 703
+        },
+        {
+          "name": "switchAwayAndBackPreservesBothManuallyMovedFramesOfTheComposite",
+          "cases": 1,
+          "sourceLine": 607
+        },
+        {
+          "name": "anUnconfirmedHideNeverPublishesTheDepartingLayout",
+          "cases": 1,
+          "sourceLine": 629
+        },
+        {
+          "name": "selectingTheAlreadyVisibleSingletonKeepsItsCurrentFrameAndDoesNotDispatch",
+          "cases": 1,
+          "sourceLine": 602
+        },
+        {
+          "name": "reselectingTheFocusedWorksetKeepsBothFilesAndYieldsToAFocusChange",
+          "cases": 1,
+          "sourceLine": 628
+        },
+        {
+          "name": "reselectingAWorksetCannotAcknowledgeAnExternallyChangedDirectory",
+          "cases": 1,
+          "sourceLine": 641
+        },
+        {
+          "name": "firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow",
+          "cases": 1,
+          "sourceLine": 600
+        },
+        {
+          "name": "supersededLastReadCannotPublishLayoutAndNextSelectionCanProceed",
+          "cases": 1,
+          "sourceLine": 624
+        },
+        {
+          "name": "supersededAfterFocusDoesNotHideOrRefocusUnasked",
+          "cases": 1,
+          "sourceLine": 639
+        },
+        {
+          "name": "queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix",
+          "cases": 4,
+          "sourceLine": 701
+        },
+        {
+          "name": "focusCannotTakeOwnershipOfUserGeometry",
+          "cases": 1,
+          "sourceLine": 642
+        },
+        {
+          "name": "lossOfAnIndividualWindowLeaseStopsEvenWhenItsGeometryIsUnchanged",
+          "cases": 1,
+          "sourceLine": 630
+        },
+        {
+          "name": "changedDisplayOfFocusCannotPassTheBackendStartReadback",
+          "cases": 1,
+          "sourceLine": 627
+        },
+        {
+          "name": "movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed",
+          "cases": 1,
+          "sourceLine": 635
+        },
+        {
+          "name": "focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch",
+          "cases": 1,
+          "sourceLine": 645
+        },
+        {
+          "name": "unknownAfterIssuedIsDurableAndNeverReplayed",
+          "cases": 1,
+          "sourceLine": 696
+        },
+        {
+          "name": "groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices",
+          "cases": 1,
+          "sourceLine": 608
+        },
+        {
+          "name": "enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches",
+          "cases": 1,
+          "sourceLine": 692
+        },
+        {
+          "name": "userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery",
+          "cases": 2,
+          "sourceLine": 685
+        },
+        {
+          "name": "reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch",
+          "cases": 1,
+          "sourceLine": 631
+        },
+        {
+          "name": "latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup",
+          "cases": 1,
+          "sourceLine": 702
+        }
+      ]
+    },
+    "existingMetadataScopes": {
+      "functions": 7,
+      "cases": 13,
+      "allStartedAndPassed": true,
+      "results": [
+        {
+          "name": "oneMetadataScopeCoversThePrimitiveAndBothConfirmationsUntilItsWALAfterImage",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 1.333,
+          "sourceLine": 610
+        },
+        {
+          "name": "aFailedPrimitivePreparationCannotLeakItsMetadataScopeOrIssueAWrite",
+          "status": "PASS",
+          "cases": 4,
+          "startedCases": 4,
+          "durationSeconds": 3.899,
+          "sourceLine": 791
+        },
+        {
+          "name": "cancellationReleasesTheExactMetadataScopeBeforeABlockedOperationReturns",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.935,
+          "sourceLine": 821
+        },
+        {
+          "name": "ordinaryReadersWaitOutsidePendingWhileTheExactScopeReadsTwice",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 4.046,
+          "sourceLine": 878
+        },
+        {
+          "name": "anAdmittedProducerAndItsLatePublisherDrainWithoutDroppingTheOutcome",
+          "status": "PASS",
+          "cases": 2,
+          "startedCases": 2,
+          "durationSeconds": 4.017,
+          "sourceLine": 862
+        },
+        {
+          "name": "interruptedDrainReopensAdmissionAndCannotGrantTheOldScope",
+          "status": "PASS",
+          "cases": 3,
+          "startedCases": 3,
+          "durationSeconds": 4.025,
+          "sourceLine": 867
+        },
+        {
+          "name": "endingAScopeCannotReturnItsLateProducerThroughAnUnchangedEpoch",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 4.011,
+          "sourceLine": 858
+        }
+      ]
+    },
+    "existingObservationScheduling": {
+      "functionsExpected": 2,
+      "functionsPassed": 2,
+      "results": [
+        {
+          "name": "aSlowWindowNumberHintDoesNotBlockTheInputActor",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.925,
+          "sourceLine": 809
+        },
+        {
+          "name": "aStoppedDetectorCannotPublishItsDelayedHint",
+          "status": "PASS",
+          "cases": 1,
+          "startedCases": 1,
+          "durationSeconds": 3.952,
+          "sourceLine": 832
+        }
+      ],
+      "allStartedAndPassed": true
+    },
+    "existingHandoffTestScope": "Real NativeSidebarNavigation queue; fresh physical observation supplied by a fixture. This does not establish production R4 completion.",
+    "existingAuxiliaryGates": {
+      "staging": {
+        "functions": 5,
+        "cases": 10,
+        "allStartedAndPassed": true
+      },
+      "initialRoster": {
+        "functions": 7,
+        "cases": 43,
+        "allStartedAndPassed": true
+      },
+      "afterAction": {
+        "functions": 1,
+        "cases": 16,
+        "allStartedAndPassed": true
+      },
+      "reader": {
+        "functions": 9,
+        "cases": 10,
+        "allStartedAndPassed": true
+      },
+      "codec": {
+        "functions": 3,
+        "cases": 8,
+        "allStartedAndPassed": true
+      }
+    },
+    "rawXMLVerified": true,
+    "xml": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/full/independent-source/source/swift.xml",
+      "sha256": "f5cba303471a458ad8c5f628d7f511daa77f8ae3f40a25b009ec90a2bc896f63",
+      "entries": 300,
+      "passed": 299,
+      "skipped": 1,
+      "failed": 0
+    },
+    "fullLogsMatchContext": true
+  },
+  "sourceChecks": {
+    "bindingAttributes": {
+      "exit": 0,
+      "log": "binding-attributes.log",
+      "status": "PASS",
+      "stderr": "binding-attributes.stderr.log"
+    },
+    "bindingAttributesBuild": {
+      "exit": 0,
+      "log": "binding-attributes-build.log",
+      "status": "PASS",
+      "stderr": "binding-attributes-build.stderr.log"
+    },
+    "evidence": {
+      "exit": 0,
+      "log": "evidence.log",
+      "status": "PASS",
+      "stderr": "evidence.stderr.log"
+    },
+    "nativeDiagnostic": {
+      "exit": 0,
+      "log": "native-diagnostic.log",
+      "status": "PASS",
+      "stderr": "native-diagnostic.stderr.log"
+    },
+    "r4FileIdentity": {
+      "exit": 0,
+      "log": "r4-file-identity.log",
+      "status": "PASS",
+      "stderr": "r4-file-identity.stderr.log"
+    },
+    "r4FileIdentityBuild": {
+      "exit": 0,
+      "log": "r4-file-identity-build.log",
+      "status": "PASS",
+      "stderr": "r4-file-identity-build.stderr.log"
+    },
+    "readOnlyContext": {
+      "exit": 0,
+      "log": "read-only-context.log",
+      "status": "PASS",
+      "stderr": "read-only-context.stderr.log"
+    },
+    "rust": {
+      "exit": 0,
+      "log": "rust.log",
+      "passed": 188,
+      "status": "PASS",
+      "stderr": "rust.stderr.log"
+    },
+    "spacesWorkerBuild": {
+      "exit": 0,
+      "log": "build-spaces-worker.log",
+      "status": "PASS",
+      "stderr": "build-spaces-worker.stderr.log"
+    },
+    "spacesWorkerProtocol": {
+      "exit": 0,
+      "log": "spaces-worker-protocol.log",
+      "status": "PASS",
+      "stderr": "spaces-worker-protocol.stderr.log"
+    },
+    "swift": {
+      "exit": 0,
+      "log": "swift.log",
+      "passed": 299,
+      "skipped": 1,
+      "status": "PASS",
+      "stderr": "swift.stderr.log"
+    }
+  },
+  "newRustTestSource": {
+    "revision": "dccee047cc4c915732456299a345022fecded8bb",
+    "introducedRevision": "786abfef7d12e5c93be195baead315919523fb22",
+    "file": "Engine/nearpane-window-engine/src/spaces/tests.rs",
+    "sha256": "f7829dc6e2c7a2acef90d14b9c1aef4e22bf409d1d2edfc247870f79a7fa62c0",
+    "expectedLoopCombinationsByFunction": {
+      "timely_move_ack_allows_two_slow_complete_positive_views": 4,
+      "late_or_incomplete_move_ack_never_starts_full_confirmation": 7,
+      "first_and_second_positive_views_share_the_original_move_confirmation_deadline": 3,
+      "post_view_scope_latency_and_authority_revocation_cannot_seal_a_move": 7,
+      "positive_identity_or_geometry_conflicts_never_use_confirmation_grace": 2,
+      "transient_full_view_errors_cannot_borrow_the_positive_confirmation_budget": 9,
+      "recovered_full_view_must_return_before_the_original_retry_deadline": 1,
+      "acknowledgement_misses_keep_the_original_late_health_strike": 1
+    },
+    "original150msTestUnchanged": true
+  },
+  "rust": {
+    "summaryStatus": "PASS",
+    "summaryPassed": 188,
+    "rawLogVerified": true,
+    "expectedPassed": 188,
+    "expectedNewFunctions": 8,
+    "expectedNewLoopCombinations": 34,
+    "newFunctionsRawVerified": true,
+    "original150msTransportTestRawVerified": true,
+    "newResults": [
+      {
+        "name": "timely_move_ack_allows_two_slow_complete_positive_views",
+        "status": "PASS",
+        "sourceLine": 174,
+        "expectedLoopCombinations": 4
+      },
+      {
+        "name": "late_or_incomplete_move_ack_never_starts_full_confirmation",
+        "status": "PASS",
+        "sourceLine": 139,
+        "expectedLoopCombinations": 7
+      },
+      {
+        "name": "first_and_second_positive_views_share_the_original_move_confirmation_deadline",
+        "status": "PASS",
+        "sourceLine": 128,
+        "expectedLoopCombinations": 3
+      },
+      {
+        "name": "post_view_scope_latency_and_authority_revocation_cannot_seal_a_move",
+        "status": "PASS",
+        "sourceLine": 162,
+        "expectedLoopCombinations": 7
+      },
+      {
+        "name": "positive_identity_or_geometry_conflicts_never_use_confirmation_grace",
+        "status": "PASS",
+        "sourceLine": 155,
+        "expectedLoopCombinations": 2
+      },
+      {
+        "name": "transient_full_view_errors_cannot_borrow_the_positive_confirmation_budget",
+        "status": "PASS",
+        "sourceLine": 179,
+        "expectedLoopCombinations": 9
+      },
+      {
+        "name": "recovered_full_view_must_return_before_the_original_retry_deadline",
+        "status": "PASS",
+        "sourceLine": 158,
+        "expectedLoopCombinations": 1
+      },
+      {
+        "name": "acknowledgement_misses_keep_the_original_late_health_strike",
+        "status": "PASS",
+        "sourceLine": 115,
+        "expectedLoopCombinations": 1
+      }
+    ],
+    "caseCountScope": "Rust emits a terminal result per test function; the 34 combinations are loops in those eight functions, not separately logged parameterized cases.",
+    "passed": 188,
+    "failed": 0,
+    "ignored": 0,
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/full/independent-source/source/rust.log",
+      "sha256": "c3ef15b44c7386bfac8e781350060957e01b1bad0c346b0940ec369232f95087"
+    },
+    "original150msTransportTestResult": {
+      "name": "return_ax_transport_exhaustion_keeps_the_lease_and_original_deadline",
+      "status": "PASS",
+      "sourceLine": 166,
+      "expectedLoopCombinations": 2
+    }
+  },
+  "bindingAttributes": {
+    "buildStatus": "PASS",
+    "runStatus": "PASS",
+    "rawLogVerified": true,
+    "rawReceipt": {
+      "schema": 1,
+      "status": "PASS",
+      "passed": 25,
+      "failed": 0,
+      "windowWrites": 0
+    },
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/full/independent-source/source/binding-attributes.log",
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    }
+  },
+  "scope": "Exact-head source evidence. Source tests do not establish production R4 runtime acceptance or release qualification.",
+  "fullSourceSummary": {
+    "path": "/workspace/scratch/519883d1dfd8/r4-audit/dccee/full/independent-source/summary.json",
+    "sha256": "1a801fb5e680de7f1f17339168fc49cfeee5d276bfb3dfc22916776ca2ac08d1"
+  },
+  "auditValidation": "PASS",
+  "auditErrors": []
+}

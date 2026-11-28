@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "revision": "7c8cdc7889334c81d3aa335147035dc41a0a052b",
+  "runID": 46138064939,
+  "jobs": {
+    "full": 140957698521,
+    "fast": 140957698169,
+    "diagnostics": 140957698431
+  },
+  "sourceGate": "PASS",
+  "qualificationGranted": false,
+  "downloads": [
+    {
+      "lane": "source",
+      "artifactID": 15261030282,
+      "bytes": 36392,
+      "sha256": "f15d1ff4c447581eb40dbcc8bafa98ef21780064de7308d6b43e1c166a51bba8",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "fast",
+      "artifactID": 15260960468,
+      "bytes": 25794020,
+      "sha256": "1c9fb31061b81d422afe9a863ad0413770972963a96ad799e413f017d69ebc5f",
+      "providerDigestVerified": true,
+      "downloads": 1
+    },
+    {
+      "lane": "full",
+      "artifactID": 15261261005,
+      "bytes": 53894084,
+      "sha256": "89219d21f94a26eb4f514e8a54ecb890f4a46f64fa21e0440779fd58f90fa175",
+      "providerDigestVerified": true,
+      "downloads": 1
+    }
+  ],
+  "copiedOriginalBytes": [
+    {
+      "path": "source-gate-audit.json",
+      "originalPath": "source/source-gate-audit.json",
+      "bytes": 35926,
+      "sha256": "06ce04f409ceee6bebf220c04bdd7eaea3a9a6f3de17976ddfbded1582249028",
+      "byteIdentical": true
+    },
+    {
+      "path": "cloud-source.zip",
+      "originalPath": "source/context.zip",
+      "bytes": 36392,
+      "sha256": "f15d1ff4c447581eb40dbcc8bafa98ef21780064de7308d6b43e1c166a51bba8",
+      "byteIdentical": true
+    },
+    {
+      "path": "candidate-receipt.json",
+      "originalPath": "full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "ece508e44b39aac63a99aa1699a8c6ef564c35aacacc66acd18aa2e722652fd0",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/swift.xml",
+      "originalPath": "full/independent-source/source/swift.xml",
+      "bytes": 49942,
+      "sha256": "9b5ab4bb43cc18e3b6dc85548b7e7104cec0802204ce26310376aa6b0f964a4e",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/rust.log",
+      "originalPath": "full/independent-source/source/rust.log",
+      "bytes": 17833,
+      "sha256": "8528c7f328a85a0d33b861b4695c2d072a1985a4cb2fdf354acb6e4cabfa3b5a",
+      "byteIdentical": true
+    },
+    {
+      "path": "source/binding-attributes.log",
+      "originalPath": "full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "originalPath": "fast-raw-manifest.json",
+      "bytes": 23203,
+      "sha256": "008f26f7e3f7f95eb9aed643ad3e20903c8adae2308c75dc839b9c84f702adb0",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-raw-manifest.json",
+      "originalPath": "full-raw-manifest.json",
+      "bytes": 109100,
+      "sha256": "b92b7b28b2bde3c4aa9ce01dd1f3da296e1c9c427b93ebc4469078da4101fce6",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-freeze-verification.json",
+      "originalPath": "fast-freeze.json",
+      "bytes": 1985,
+      "sha256": "74281e51f3e96da3a860e9408b8508656436bac06afc24902cff862ddfe6a5de",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-analysis-manifest.json",
+      "originalPath": "full-analysis-manifest.json",
+      "bytes": 2606,
+      "sha256": "c8fca30603ff92aa36b2ef46790a7703a62a4829407b400ca3d8bf839e54b55d",
+      "byteIdentical": true
+    },
+    {
+      "path": "fast-interpretation.json",
+      "originalPath": "fast-interpretation.json",
+      "bytes": 122030,
+      "sha256": "f3f9ce4b2b6d162d02e11fd763ac8e541391b33c4cef6e91f935cfd9efb94f31",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-interpretation.json",
+      "originalPath": "full-interpretation.json",
+      "bytes": 39474,
+      "sha256": "e30eeee44cbfa3bf6a89be68fc0c5fa775cc7de81542261a0dd40c6b9d848a71",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-publication-audit.json",
+      "originalPath": "full-publication-audit.json",
+      "bytes": 20640,
+      "sha256": "7bdf2e196f6a3e644623bcb341b0b0db679e22713d02f25cc0668ba71f5a55a0",
+      "byteIdentical": true
+    },
+    {
+      "path": "full-dock-delivery-audit.json",
+      "originalPath": "full-dock-delivery-audit.json",
+      "bytes": 71059,
+      "sha256": "5719971dd96a828cee7599a8415ed8c2520cee6b0036448a37484bb7cccc82cd",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-run.json",
+      "originalPath": "workflow-run.json",
+      "bytes": 16155,
+      "sha256": "374693ffdeab6f07b97a1beea0431618748c8b8cc942d7d0c24eeee711ed573c",
+      "byteIdentical": true
+    },
+    {
+      "path": "workflow-jobs.json",
+      "originalPath": "workflow-jobs.json",
+      "bytes": 14377,
+      "sha256": "4d4f50f7c19c74959efe345977ce7da1ed7ad57b7f6f43e0e2d763a3e4dccff5",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-7c8cdc.tar.gz",
+      "originalPath": "runtime-traces-7c8cdc.tar.gz",
+      "bytes": 309212,
+      "sha256": "12e196393a8acf9fa145a248ce7fc9431ea4b9c1c0fb584ebbe92b9609ebb8cc",
+      "byteIdentical": true
+    },
+    {
+      "path": "runtime-traces-manifest.json",
+      "originalPath": "runtime-traces-manifest.json",
+      "bytes": 39314,
+      "sha256": "8fa9e9546a0bda735d3dcbe1d85be173556b834468b6590cdccaf53636745d07",
+      "byteIdentical": true
+    }
+  ],
+  "compressedAnalyses": [
+    {
+      "path": "fast-analysis.json.gz",
+      "bytes": 164810,
+      "sha256": "c132176201c0cc9560c9a17a44dbef3f33756664a37fd3eee4b0765c9d75a702",
+      "originalBytes": 1558997,
+      "originalSHA256": "90a4ea55893b5d130eede51780a1ac13847848bff996d579e06efead7e8b8519",
+      "roundTripVerified": true
+    },
+    {
+      "path": "full-analysis.json.gz",
+      "bytes": 9088,
+      "sha256": "f3c716e9c18a64bef8cad36024c99f0893efc203581a9f82ddba75aabd3185ee",
+      "originalBytes": 50851,
+      "originalSHA256": "2b775597605525cb0ff5e7449e454e7098796b79dfed368c850f739b8abb4e13",
+      "roundTripVerified": true
+    }
+  ],
+  "rawFilesVerified": {
+    "source": 10,
+    "fast": 110,
+    "full": 432
+  },
+  "runtimeArchiveFilesVerified": 109,
+  "nextPatchNativeVerification": "Subsequent held preparation resample and selected-row diagnostics are not executed by this run"
+}

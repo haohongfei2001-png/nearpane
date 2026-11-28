@@ -295,7 +295,10 @@ extension Reader {
                 catalogComplete: inventory != nil && complete))
         result.native?.catalogIssues = catalogIssues.isEmpty ? nil : catalogIssues
         result.native?.catalogIssueWindows = catalogIssueWindows.isEmpty ? nil : catalogIssueWindows
-        if !complete, let firstCensus = first.census, let secondCensus = second.census {
+        // A traced complete catalogue can still lose the selected appearance.
+        // Preserve the same existing enumeration counts for that diagnostic;
+        // no owner or window query is repeated to explain a later refusal.
+        if !complete || diagnostic != nil, let firstCensus = first.census, let secondCensus = second.census {
             result.native?.catalogCensus = .init(first: firstCensus, second: secondCensus)
         }
         if let targets = request.sidebarAuditWindows {

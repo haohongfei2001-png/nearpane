@@ -1,0 +1,2536 @@
+{
+  "schema": 1,
+  "head": "dccee047cc4c915732456299a345022fecded8bb",
+  "workflowRunID": 46137081160,
+  "jobID": 140954655082,
+  "artifactID": 15260272726,
+  "providerDigest": "sha256:744e9e0cc5358205008fb45eed4f2323cbec33acd0db3d9de1d7b976c224988b",
+  "rawFileCount": 74,
+  "outcome": {
+    "productStatus": "BLOCKED",
+    "reason": "fixtureGroupsNotReady",
+    "issuedInputs": 0,
+    "physicalConfirmations": 0,
+    "selectionSettlements": 0,
+    "groupEdits": 0,
+    "qualified": false,
+    "firstObservedFailure": "The first overview child reports a Swift exclusivity conflict and aborts inside Reader.windowList before producing a response header."
+  },
+  "firstRead": {
+    "created": {
+      "auditCreationMS": 0.0013333333299669903,
+      "creatorKind": "observer",
+      "creatorPriority": 17,
+      "dispatching": false,
+      "event": "independentStageProduct",
+      "metadataAdmittedUptime": 511.29142470833335,
+      "phase": "desktop-read-task-created",
+      "preTaskCreationMS": 1.4251250000256732,
+      "readCallStartedUptime": 511.29140258333337,
+      "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+      "requestConstructionMS": 0.0010000000543186616,
+      "requestRevision": 1,
+      "sessionAvailabilityMS": 1.3383333333649716,
+      "taskCreatedUptime": 511.2928277083334,
+      "uptime": 511.2931041666667,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 6
+    },
+    "started": {
+      "event": "independentStageProduct",
+      "phase": "desktop-read-task-started",
+      "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+      "requestRevision": 1,
+      "taskCreatedUptime": 511.2928277083334,
+      "taskPriority": 17,
+      "taskStartedUptime": 511.2975160833334,
+      "uptime": 511.29776595833334,
+      "sourceLine": 7,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "channel": {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12479,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.319971875,
+        "sourceLine": 9,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12479,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.4447840416667,
+        "waitpidErrno": null,
+        "waitpidResult": 12479,
+        "waitStatusAvailable": true,
+        "sourceLine": 49,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 511.4445107916667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12479,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 511.44500025,
+        "sourceLine": 50,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 124.81216666668615
+    },
+    "exit": {
+      "completed": false,
+      "durationMS": 149.23854166664796,
+      "event": "independentStageProduct",
+      "groupProjectionMS": 0,
+      "observeDirectoryMS": 0,
+      "phase": "desktop-read-task-exit",
+      "readerAwaitMS": 142.22300000000132,
+      "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+      "receivedReply": false,
+      "remainingProcessingMS": 7.015541666646641,
+      "requestRevision": 1,
+      "sidebarHistoryMS": 0,
+      "step": "reader-validation",
+      "taskCreatedUptime": 511.2928277083334,
+      "taskPriority": 17,
+      "taskQueueMS": 4.688375000000633,
+      "taskStartedUptime": 511.2975160833334,
+      "uptime": 511.4470575833334,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 51
+    },
+    "publication": {
+      "catalogComplete": null,
+      "dispatching": false,
+      "epoch": "78DEE125-EE87-46A8-970B-E57977C8200D",
+      "event": "independentStageProduct",
+      "nativeBeganUptime": null,
+      "nativeEndedUptime": null,
+      "nativeFreshAtPublication": null,
+      "navigationEpoch": "92758D72-D706-4101-9F78-0773A96FE586",
+      "observer": "0009C571-F22A-42C4-8D25-9A4631C89038",
+      "phase": "desktop-observer-published",
+      "publicationUptime": 511.44797487500006,
+      "snapshotPresent": false,
+      "snapshotRevision": null,
+      "snapshotSession": null,
+      "uptime": 511.44808225,
+      "wallSampledToAgeMS": null,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log",
+      "sourceLine": 52
+    }
+  },
+  "firstRuntimeAbort": {
+    "sourcePath": "independent-runtime/runtime/product.stderr.log",
+    "firstLine": 14,
+    "lastLine": 48,
+    "verbatimLines": [
+      {
+        "line": 14,
+        "text": "Simultaneous accesses to 0x75fac04b50, but modification requires exclusive access."
+      },
+      {
+        "line": 15,
+        "text": "Previous access (a modification) started at NearpaneDesktopReader`Reader.windowList(overview:backgroundInventory:) + 20308 (0x1045f66a8)."
+      },
+      {
+        "line": 16,
+        "text": "Current access (a read) started at:"
+      },
+      {
+        "line": 17,
+        "text": "0    libswiftCore.dylib                 0x00000001abc8b69c _swift_reportExclusivityConflict + 332"
+      },
+      {
+        "line": 18,
+        "text": "1    libswiftCore.dylib                 0x00000001abc22f34 swift_beginAccess + 192"
+      },
+      {
+        "line": 19,
+        "text": "2    NearpaneDesktopReader              0x00000001045f1754 Reader.windowList(overview:backgroundInventory:) + 20360"
+      },
+      {
+        "line": 20,
+        "text": "3    NearpaneDesktopReader              0x00000001045c19d4 Reader.windowOverview(diagnostic:) + 3700"
+      },
+      {
+        "line": 21,
+        "text": "4    NearpaneDesktopReader              0x00000001045e6c00 closure #1 in OverviewReaderService.accept(_:) + 1000"
+      },
+      {
+        "line": 22,
+        "text": "5    NearpaneDesktopReader              0x00000001045e8ef4 partial apply for closure #1 in OverviewReaderService.accept(_:) + 52"
+      },
+      {
+        "line": 23,
+        "text": "6    NearpaneDesktopReader              0x00000001045e74c4 autoreleasepool<A, B>(invoking:) + 144"
+      },
+      {
+        "line": 24,
+        "text": "7    NearpaneDesktopReader              0x00000001045e3fb4 OverviewReaderService.accept(_:) + 4040"
+      },
+      {
+        "line": 25,
+        "text": "8    NearpaneDesktopReader              0x00000001045e3ee4 closure #1 in closure #1 in OverviewReaderService.receive() + 184"
+      },
+      {
+        "line": 26,
+        "text": "9    NearpaneDesktopReader              0x00000001045e553c thunk for @escaping @callee_guaranteed @Sendable () -> () + 48"
+      },
+      {
+        "line": 27,
+        "text": "10   libdispatch.dylib                  0x00000001974f4a14 _dispatch_call_block_and_release + 32"
+      },
+      {
+        "line": 28,
+        "text": "11   libdispatch.dylib                  0x000000019750e590 _dispatch_client_callout + 16"
+      },
+      {
+        "line": 29,
+        "text": "12   libdispatch.dylib                  0x000000019752c658 _dispatch_main_queue_drain.cold.6 + 832"
+      },
+      {
+        "line": 30,
+        "text": "13   libdispatch.dylib                  0x0000000197503a5c _dispatch_main_queue_drain + 176"
+      },
+      {
+        "line": 31,
+        "text": "14   libdispatch.dylib                  0x0000000197503a20 _dispatch_main_queue_callback_4CF + 44"
+      },
+      {
+        "line": 32,
+        "text": "15   CoreFoundation                     0x00000001977b39bc __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 16"
+      },
+      {
+        "line": 33,
+        "text": "16   CoreFoundation                     0x0000000197774ea0 __CFRunLoopRun + 1980"
+      },
+      {
+        "line": 34,
+        "text": "17   CoreFoundation                     0x000000019784f614 _CFRunLoopRunSpecificWithOptions + 536"
+      },
+      {
+        "line": 35,
+        "text": "18   HIToolbox                          0x00000001a4ba8450 RunCurrentEventLoopInMode + 320"
+      },
+      {
+        "line": 36,
+        "text": "19   HIToolbox                          0x00000001a4bab730 ReceiveNextEventCommon + 492"
+      },
+      {
+        "line": 37,
+        "text": "20   HIToolbox                          0x00000001a4d2e350 _BlockUntilNextEventMatchingListInMode + 48"
+      },
+      {
+        "line": 38,
+        "text": "21   AppKit                             0x000000019c06f178 _DPSBlockUntilNextEventMatchingListInMode + 292"
+      },
+      {
+        "line": 39,
+        "text": "22   AppKit                             0x000000019bd2c2b8 _DPSNextEvent + 580"
+      },
+      {
+        "line": 40,
+        "text": "23   AppKit                             0x000000019c5a443c -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 780"
+      },
+      {
+        "line": 41,
+        "text": "24   AppKit                             0x000000019c5a4148 -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 292"
+      },
+      {
+        "line": 42,
+        "text": "25   AppKit                             0x000000019bd1f780 -[NSApplication run] + 396"
+      },
+      {
+        "line": 43,
+        "text": "26   NearpaneDesktopReader              0x000000010460071c closure #1 in static DesktopReader.main() + 176"
+      },
+      {
+        "line": 44,
+        "text": "27   NearpaneDesktopReader              0x00000001045ff31c static DesktopReader.main() + 1240"
+      },
+      {
+        "line": 45,
+        "text": "28   NearpaneDesktopReader              0x00000001046007f8 static DesktopReader.$main() + 12"
+      },
+      {
+        "line": 46,
+        "text": "29   NearpaneDesktopReader              0x000000010460080c NearpaneDesktopReader_main + 12"
+      },
+      {
+        "line": 47,
+        "text": "30   dyld                               0x00000001972de460 start + 6688"
+      },
+      {
+        "line": 48,
+        "text": "Fatal access conflict detected."
+      }
+    ],
+    "reaped": {
+      "event": "independentStageProduct",
+      "killErrno": null,
+      "killResult": 0,
+      "phase": "desktop-overview-reader-reaped",
+      "pid": 12479,
+      "rawWaitStatus": 6,
+      "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+      "uptime": 511.4447840416667,
+      "waitpidErrno": null,
+      "waitpidResult": 12479,
+      "waitStatusAvailable": true,
+      "sourceLine": 49,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "parentTransportFailure": {
+      "completeFrameReceived": false,
+      "errorKind": "ReaderFailure.invalidResponse",
+      "event": "independentStageProduct",
+      "exchangeStage": "response-header-read",
+      "exchangeStageBytes": 0,
+      "failedUptime": 511.4445107916667,
+      "failureStage": "exchange",
+      "frameHeaderBytes": 0,
+      "framePayloadBytes": 0,
+      "framePayloadReceived": false,
+      "ioOperation": "read",
+      "ioResult": 0,
+      "phase": "desktop-overview-reader-failed",
+      "pid": 12479,
+      "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+      "requestBytes": 133,
+      "touchedChannel": true,
+      "uptime": 511.44500025,
+      "sourceLine": 50,
+      "sourcePath": "independent-runtime/runtime/product.stderr.log"
+    },
+    "interpretation": [
+      "The child reports conflicting modification/read accesses in Reader.windowList and then Fatal access conflict detected. The original successful waitpid returns raw status 6 (SIGABRT).",
+      "The parent's original response-header read returns zero bytes (EOF): no frame header, no payload, no complete frame, and no decoded DesktopSnapshot.",
+      "killResult=0 does not identify the cause of death: stop sends SIGKILL before waitpid, but waitpid's retained status is the earlier SIGABRT. The raw child conflict report independently identifies the abort.",
+      "No desktopOverviewServiceFailure event is emitted: the fatal runtime access trap does not become a caught service error. This is not evidence of a census wire-validation rejection or a Host decoding failure."
+    ]
+  },
+  "repetition": {
+    "createdRequests": 38,
+    "startedRequests": 38,
+    "childStarts": 38,
+    "childReaps": 38,
+    "swiftConflictReports": 37,
+    "fatalConflictReports": 37,
+    "sigabrtWaitStatuses": 37,
+    "responseHeaderEOFs": 37,
+    "readerValidationExits": 37,
+    "nilPublications": 36,
+    "allRequestsObserverCreated": true,
+    "readerAwaitMedianMS": 170.5368749999252,
+    "readerAwaitMaxMS": 800.9616666665806,
+    "preTaskMaxMS": 9.141499999941516
+  },
+  "channelLifecycles": [
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12479,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.319971875,
+        "sourceLine": 9,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12479,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.4447840416667,
+        "waitpidErrno": null,
+        "waitpidResult": 12479,
+        "waitStatusAvailable": true,
+        "sourceLine": 49,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 511.4445107916667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12479,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 511.44500025,
+        "sourceLine": 50,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 124.81216666668615
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12481,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.46580608333335,
+        "sourceLine": 55,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12481,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.57613183333336,
+        "waitpidErrno": null,
+        "waitpidResult": 12481,
+        "waitStatusAvailable": true,
+        "sourceLine": 91,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 511.5760287916667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12481,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 511.5763250416667,
+        "sourceLine": 92,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 110.32575000001543
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12484,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.61102045833337,
+        "sourceLine": 97,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12484,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.806840125,
+        "waitpidErrno": null,
+        "waitpidResult": 12484,
+        "waitStatusAvailable": true,
+        "sourceLine": 137,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 511.8067334583334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12484,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 511.807114375,
+        "sourceLine": 138,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 195.81966666663675
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12486,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.82250287500005,
+        "sourceLine": 143,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12486,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.97065345833335,
+        "waitpidErrno": null,
+        "waitpidResult": 12486,
+        "waitStatusAvailable": true,
+        "sourceLine": 179,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 511.969479125,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12486,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 511.971087,
+        "sourceLine": 180,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 148.15058333329034
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12488,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 511.9870992916667,
+        "sourceLine": 185,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12488,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.1213508750001,
+        "waitpidErrno": null,
+        "waitpidResult": 12488,
+        "waitStatusAvailable": true,
+        "sourceLine": 225,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.1212408333333,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12488,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 512.1215348750001,
+        "sourceLine": 226,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 134.2515833333664
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12490,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.1411292916667,
+        "sourceLine": 231,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12490,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.336808625,
+        "waitpidErrno": null,
+        "waitpidResult": 12490,
+        "waitStatusAvailable": true,
+        "sourceLine": 267,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.3367065416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12490,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 512.3369834166667,
+        "sourceLine": 269,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 195.67933333325982
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12492,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.3537881666667,
+        "sourceLine": 277,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12492,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.4844217916667,
+        "waitpidErrno": null,
+        "waitpidResult": 12492,
+        "waitStatusAvailable": true,
+        "sourceLine": 313,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.4841407083334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12492,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 512.4847690416667,
+        "sourceLine": 314,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 130.6336249999731
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12493,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.4995760416667,
+        "sourceLine": 319,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12493,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.6355596666667,
+        "waitpidErrno": null,
+        "waitpidResult": 12493,
+        "waitStatusAvailable": true,
+        "sourceLine": 355,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.6354476666667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12493,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 512.6357809583334,
+        "sourceLine": 356,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 135.9836249999944
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12495,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.6554671666667,
+        "sourceLine": 361,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12495,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.8017940000001,
+        "waitpidErrno": null,
+        "waitpidResult": 12495,
+        "waitStatusAvailable": true,
+        "sourceLine": 401,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.801676875,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12495,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 133,
+        "touchedChannel": true,
+        "uptime": 512.8020004583334,
+        "sourceLine": 402,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 146.32683333343266
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12496,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.814814625,
+        "sourceLine": 407,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12496,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.9515302916667,
+        "waitpidErrno": null,
+        "waitpidResult": 12496,
+        "waitStatusAvailable": true,
+        "sourceLine": 443,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 512.9512521666667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12496,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 512.9519740833333,
+        "sourceLine": 444,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 136.71566666664603
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12497,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 512.9772749166667,
+        "sourceLine": 449,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12497,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.1657727083334,
+        "waitpidErrno": null,
+        "waitpidResult": 12497,
+        "waitStatusAvailable": true,
+        "sourceLine": 489,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.1647696250001,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12497,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.1666640000001,
+        "sourceLine": 490,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 188.49779166669123
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12498,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.1911553333333,
+        "sourceLine": 495,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12498,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.3252765416667,
+        "waitpidErrno": null,
+        "waitpidResult": 12498,
+        "waitStatusAvailable": true,
+        "sourceLine": 531,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.3251567083333,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12498,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.3259135000001,
+        "sourceLine": 532,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 134.1212083333403
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12500,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.3413587083334,
+        "sourceLine": 537,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12500,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.46359075,
+        "waitpidErrno": null,
+        "waitpidResult": 12500,
+        "waitStatusAvailable": true,
+        "sourceLine": 577,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.4634848750001,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12500,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.4637817500001,
+        "sourceLine": 578,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 122.23204166662072
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12501,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.4777588750001,
+        "sourceLine": 583,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12501,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.6188872083334,
+        "waitpidErrno": null,
+        "waitpidResult": 12501,
+        "waitStatusAvailable": true,
+        "sourceLine": 619,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.6186635416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12501,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.61909775,
+        "sourceLine": 620,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 141.1283333333131
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12502,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.6333933333334,
+        "sourceLine": 625,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12502,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.755156125,
+        "waitpidErrno": null,
+        "waitpidResult": 12502,
+        "waitStatusAvailable": true,
+        "sourceLine": 665,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.7549771666667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12502,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.7553662083334,
+        "sourceLine": 666,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 121.76279166658333
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12504,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.7713039166667,
+        "sourceLine": 671,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12504,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.9117865000001,
+        "waitpidErrno": null,
+        "waitpidResult": 12504,
+        "waitStatusAvailable": true,
+        "sourceLine": 707,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 513.9116596250001,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12504,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 513.9120045000001,
+        "sourceLine": 708,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 140.48258333332342
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12505,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 513.9265313750001,
+        "sourceLine": 713,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12505,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.0674979583333,
+        "waitpidErrno": null,
+        "waitpidResult": 12505,
+        "waitStatusAvailable": true,
+        "sourceLine": 749,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 514.0673885,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12505,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 514.067736875,
+        "sourceLine": 750,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 140.9665833332383
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12506,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.087532,
+        "sourceLine": 755,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12506,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.2120086666667,
+        "waitpidErrno": null,
+        "waitpidResult": 12506,
+        "waitStatusAvailable": true,
+        "sourceLine": 795,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 514.2118943333334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12506,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 514.2133545,
+        "sourceLine": 796,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 124.4766666667374
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12507,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.23059125,
+        "sourceLine": 801,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12507,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.3622185,
+        "waitpidErrno": null,
+        "waitpidResult": 12507,
+        "waitStatusAvailable": true,
+        "sourceLine": 837,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 514.3620670416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12507,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 514.3630325,
+        "sourceLine": 838,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 131.62725000006503
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12508,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.3801815833334,
+        "sourceLine": 843,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12508,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.7214992500001,
+        "waitpidErrno": null,
+        "waitpidResult": 12508,
+        "waitStatusAvailable": true,
+        "sourceLine": 883,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 514.7212335416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12508,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 514.7220798750001,
+        "sourceLine": 884,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 341.31766666666863
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12510,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 514.9057650833333,
+        "sourceLine": 891,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12510,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 515.2124525833334,
+        "waitpidErrno": null,
+        "waitpidResult": 12510,
+        "waitStatusAvailable": true,
+        "sourceLine": 933,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 515.2113007916666,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12510,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 515.2128582916667,
+        "sourceLine": 934,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 306.6875000000664
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12511,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 515.2890261250001,
+        "sourceLine": 939,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12511,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 515.4900680416667,
+        "waitpidErrno": null,
+        "waitpidResult": 12511,
+        "waitStatusAvailable": true,
+        "sourceLine": 975,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 515.48979675,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12511,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 515.4905615833334,
+        "sourceLine": 977,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 201.04191666666793
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12534,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 516.4148773750001,
+        "sourceLine": 994,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12534,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.1444968333334,
+        "waitpidErrno": null,
+        "waitpidResult": 12534,
+        "waitStatusAvailable": true,
+        "sourceLine": 1038,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 517.1136327916666,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12534,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 517.1450580000001,
+        "sourceLine": 1039,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 729.6194583333317
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12551,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.1626176666667,
+        "sourceLine": 1044,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12551,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.3023262500001,
+        "waitpidErrno": null,
+        "waitpidResult": 12551,
+        "waitStatusAvailable": true,
+        "sourceLine": 1080,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 517.3011265416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12551,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 517.3028097083334,
+        "sourceLine": 1081,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 139.7085833333449
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12567,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.3237,
+        "sourceLine": 1086,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12567,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.5247140833334,
+        "waitpidErrno": null,
+        "waitpidResult": 12567,
+        "waitStatusAvailable": true,
+        "sourceLine": 1126,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 517.52440275,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12567,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 517.5250261250001,
+        "sourceLine": 1127,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 201.01408333334803
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12582,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.5556000833334,
+        "sourceLine": 1132,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12582,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.7531984583334,
+        "waitpidErrno": null,
+        "waitpidResult": 12582,
+        "waitStatusAvailable": true,
+        "sourceLine": 1172,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 517.7530935416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12582,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 517.75461425,
+        "sourceLine": 1173,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 197.59837499998412
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12596,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.7781982083334,
+        "sourceLine": 1178,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12596,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.9707141666667,
+        "waitpidErrno": null,
+        "waitpidResult": 12596,
+        "waitStatusAvailable": true,
+        "sourceLine": 1218,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 517.9705945416667,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12596,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 517.97090125,
+        "sourceLine": 1219,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 192.51595833327428
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12612,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 517.9850635833334,
+        "sourceLine": 1224,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12612,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.2029405833333,
+        "waitpidErrno": null,
+        "waitpidResult": 12612,
+        "waitStatusAvailable": true,
+        "sourceLine": 1260,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 518.2026464583333,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12612,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 518.2031989583334,
+        "sourceLine": 1261,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 217.87699999993038
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12627,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.2214927083334,
+        "sourceLine": 1266,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12627,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.4222042083334,
+        "waitpidErrno": null,
+        "waitpidResult": 12627,
+        "waitStatusAvailable": true,
+        "sourceLine": 1306,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 518.4219205833334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12627,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 518.4224954583334,
+        "sourceLine": 1307,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 200.71150000001126
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12637,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.4427114583334,
+        "sourceLine": 1312,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12637,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.581442375,
+        "waitpidErrno": null,
+        "waitpidResult": 12637,
+        "waitStatusAvailable": true,
+        "sourceLine": 1348,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 518.5813286250001,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12637,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 518.5816347916667,
+        "sourceLine": 1349,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 138.7309166666455
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12648,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.5960727916666,
+        "sourceLine": 1354,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12648,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.7547030000001,
+        "waitpidErrno": null,
+        "waitpidResult": 12648,
+        "waitStatusAvailable": true,
+        "sourceLine": 1394,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 518.752977,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12648,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 518.75528525,
+        "sourceLine": 1395,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 158.63020833342034
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12656,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 518.840215875,
+        "sourceLine": 1400,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12656,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.0238734583334,
+        "waitpidErrno": null,
+        "waitpidResult": 12656,
+        "waitStatusAvailable": true,
+        "sourceLine": 1440,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 519.0237560833334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12656,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 519.0240841666667,
+        "sourceLine": 1441,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 183.6575833333427
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12670,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.0614470833334,
+        "sourceLine": 1446,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12670,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.4490453750001,
+        "waitpidErrno": null,
+        "waitpidResult": 12670,
+        "waitStatusAvailable": true,
+        "sourceLine": 1486,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 519.4487324166666,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12670,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 519.4497251666667,
+        "sourceLine": 1487,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 387.59829166667714
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12681,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.4932760416667,
+        "sourceLine": 1492,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12681,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.8733763333333,
+        "waitpidErrno": null,
+        "waitpidResult": 12681,
+        "waitStatusAvailable": true,
+        "sourceLine": 1532,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 519.8700972083334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12681,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 519.8738083333334,
+        "sourceLine": 1533,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 380.10029166662207
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12692,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 519.9527379166667,
+        "sourceLine": 1538,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12692,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 520.413233,
+        "waitpidErrno": null,
+        "waitpidResult": 12692,
+        "waitStatusAvailable": true,
+        "sourceLine": 1582,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 520.4131217083334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12692,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 520.4136105416667,
+        "sourceLine": 1583,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 460.49508333328504
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12707,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 520.4933348750001,
+        "sourceLine": 1588,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12707,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 520.7687901666667,
+        "waitpidErrno": null,
+        "waitpidResult": 12707,
+        "waitStatusAvailable": true,
+        "sourceLine": 1624,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 520.7686802083334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12707,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 520.7693082916667,
+        "sourceLine": 1625,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 275.4552916666171
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12724,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 520.819906625,
+        "sourceLine": 1634,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12724,
+        "rawWaitStatus": 6,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 521.115656125,
+        "waitpidErrno": null,
+        "waitpidResult": 12724,
+        "waitStatusAvailable": true,
+        "sourceLine": 1676,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "ReaderFailure.invalidResponse",
+        "event": "independentStageProduct",
+        "exchangeStage": "response-header-read",
+        "exchangeStageBytes": 0,
+        "failedUptime": 521.1155559583334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "ioOperation": "read",
+        "ioResult": 0,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12724,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 521.1158320833333,
+        "sourceLine": 1677,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 295.7494999999426
+    },
+    {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12737,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 521.1645664583334,
+        "sourceLine": 1684,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12737,
+        "rawWaitStatus": 9,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 521.1659255833333,
+        "waitpidErrno": null,
+        "waitpidResult": 12737,
+        "waitStatusAvailable": true,
+        "sourceLine": 1685,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "CancellationError",
+        "event": "independentStageProduct",
+        "exchangeStage": "request-header-write",
+        "exchangeStageBytes": 0,
+        "failedUptime": 521.1652195833334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12737,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 521.1660773333334,
+        "sourceLine": 1686,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 1.35912499990809
+    }
+  ],
+  "laterCleanupCancellation": {
+    "channel": {
+      "started": {
+        "event": "independentStageProduct",
+        "phase": "desktop-overview-reader-started",
+        "pid": 12737,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 521.1645664583334,
+        "sourceLine": 1684,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "reaped": {
+        "event": "independentStageProduct",
+        "killErrno": null,
+        "killResult": 0,
+        "phase": "desktop-overview-reader-reaped",
+        "pid": 12737,
+        "rawWaitStatus": 9,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "uptime": 521.1659255833333,
+        "waitpidErrno": null,
+        "waitpidResult": 12737,
+        "waitStatusAvailable": true,
+        "sourceLine": 1685,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "failure": {
+        "completeFrameReceived": false,
+        "errorKind": "CancellationError",
+        "event": "independentStageProduct",
+        "exchangeStage": "request-header-write",
+        "exchangeStageBytes": 0,
+        "failedUptime": 521.1652195833334,
+        "failureStage": "exchange",
+        "frameHeaderBytes": 0,
+        "framePayloadBytes": 0,
+        "framePayloadReceived": false,
+        "phase": "desktop-overview-reader-failed",
+        "pid": 12737,
+        "readSession": "4F4DAE0A-F7FE-427B-B355-FD55F529FBE5",
+        "requestBytes": 134,
+        "touchedChannel": true,
+        "uptime": 521.1660773333334,
+        "sourceLine": 1686,
+        "sourcePath": "independent-runtime/runtime/product.stderr.log"
+      },
+      "startToReapMS": 1.35912499990809
+    },
+    "hostShutdown": {
+      "end": 521.062547125,
+      "milliseconds": 1.8512083333916962,
+      "released": true,
+      "start": 521.0606959166666
+    },
+    "interpretation": "The final attempted request is cancelled at request-header-write after Host shutdown and the external home verification. Its raw wait status 9 is the original cleanup SIGKILL path, separate from the 37 earlier SIGABRT/header-EOF failures. It is not the first failure."
+  },
+  "readiness": {
+    "lastReadiness": {
+      "accessibilityTrusted": true,
+      "distinctFixtureGroupCount": 0,
+      "fixtureGroupCount": 0,
+      "missionControlEvidence": "signedDockAXListWithoutMC",
+      "missionControlState": "ordinary",
+      "observedCapability": "unavailable",
+      "panelVisible": true,
+      "previewVisibleDisplays": [
+        "2109FE05-700B-4D86-963C-08B091DE5E60"
+      ],
+      "r4OpenRequested": true,
+      "snapshotAvailable": false,
+      "windowDispatchEligible": true
+    },
+    "dispatchState": {
+      "consentRequestPresent": false,
+      "groupIssue": "none",
+      "groupLoadIssue": "none",
+      "holdsDispatch": false,
+      "navigationDispatchAvailable": true,
+      "navigationIssue": "none",
+      "routesGroupChoice": true,
+      "snapshotAvailable": false,
+      "targets": [
+        {
+          "groupLifetime": "none",
+          "number": 54,
+          "ordinaryLifetime": "none",
+          "pid": 11748,
+          "visibleGroupBound": false
+        },
+        {
+          "groupLifetime": "none",
+          "number": 56,
+          "ordinaryLifetime": "none",
+          "pid": 11748,
+          "visibleGroupBound": false
+        },
+        {
+          "groupLifetime": "none",
+          "number": 57,
+          "ordinaryLifetime": "none",
+          "pid": 11754,
+          "visibleGroupBound": false
+        }
+      ]
+    },
+    "overviewRequested": {
+      "display": "2109FE05-700B-4D86-963C-08B091DE5E60",
+      "phase": "R4OverviewOpenRequested",
+      "route": "productionOverviewCommand",
+      "uptime": 511.309528875
+    }
+  },
+  "sourceLocalization": {
+    "path": "Sources/NearpaneDesktopReader/Reader.swift",
+    "exactHead": "dccee047cc4c915732456299a345022fecded8bb",
+    "assignment": [
+      {
+        "line": 167,
+        "text": "        result.census?.acceptedWindows = result.windows.count"
+      }
+    ],
+    "interpretation": "The tested Reader assigns through result.census's optional chain while reading result.windows.count on the right side. This is the source-level candidate matching the observed modification/read overlap in Reader.windowList. No binary-address-to-line symbolication is claimed.",
+    "nextPatchScope": "Root is separately changing the expression to read acceptedWindowCount first and then assign it. That shared-worktree next patch is not part of dccee's source, artifact, or runtime result; no next-patch native pass is claimed."
+  },
+  "buildConfigurationEvidence": {
+    "exactHead": "dccee047cc4c915732456299a345022fecded8bb",
+    "sources": [
+      {
+        "path": ".github/workflows/independent-stage.yml",
+        "sha256": "0c69053e0f696073eab5e6a05423d23fac3b22bb5daa973253b39617935e18c7"
+      },
+      {
+        "path": "scripts/build-app.sh",
+        "sha256": "382db70106e6de3399d37b6f8184904f196c49f799c2e3eb97a6d9c9410d6cfc"
+      },
+      {
+        "path": "Package.swift",
+        "sha256": "61a03c0fa25829a5c1a5f7cae64dc9207b3f8a48bfc730450f6cbd24b167e186"
+      },
+      {
+        "path": "scripts/acceptance/independent-stage/package.py",
+        "sha256": "7e688bb45041dbeca416997bf2ccc8e0c54e9a1c09d37111a55fb1fa401c2d7e"
+      }
+    ],
+    "workflow": [
+      {
+        "line": 71,
+        "text": "          bash scripts/build-app.sh release"
+      },
+      {
+        "line": 99,
+        "text": "          NEARPANE_FOUNDATION_ONLY=1 bash scripts/build-app.sh debug"
+      }
+    ],
+    "compilerAndEmbedding": [
+      {
+        "line": 17,
+        "text": "configuration=\"${1:-debug}\""
+      },
+      {
+        "line": 49,
+        "text": "compile=(swift build --build-system native -c \"$configuration\")"
+      },
+      {
+        "line": 53,
+        "text": "  compile+=(-Xswiftc -DNEARPANE_P0_DIAGNOSTIC -Xcc -DNEARPANE_P0_DIAGNOSTIC=1)"
+      },
+      {
+        "line": 56,
+        "text": "compile+=(--disable-sandbox --scratch-path \"$scratch\" --cache-path \"$build_root/cache\""
+      },
+      {
+        "line": 90,
+        "text": "reader=\"$binary_dir/NearpaneDesktopReader\""
+      },
+      {
+        "line": 93,
+        "text": "install -m 755 \"$reader\" \"$stage/Contents/Helpers/NearpaneDesktopReader\""
+      }
+    ],
+    "targetAndFoundationSelection": [
+      {
+        "line": 6,
+        "text": "let full = Context.environment[\"NEARPANE_FOUNDATION_ONLY\"] != \"1\""
+      },
+      {
+        "line": 54,
+        "text": "    .executableTarget(name: \"NearpaneDesktopReader\", dependencies: [\"NearpaneCore\", \"WindowGeometryCore\", \"CReadOnlySpaces\"]),"
+      }
+    ],
+    "explicitExclusivityOverrides": {
+      ".github/workflows/independent-stage.yml": [],
+      "scripts/build-app.sh": [],
+      "Package.swift": [],
+      "scripts/acceptance/independent-stage/package.py": []
+    },
+    "conclusion": "The exact workflow passes debug plus NEARPANE_FOUNDATION_ONLY=1 to FAST and release to FULL. build-app forwards that configuration to swift build --build-system native and embeds that build's Reader executable. No explicit exclusivity override appears in the inspected workflow, build script, package, or acceptance packager. Compiler defaults/optimization and a causal explanation for differing lane behavior are not established by these flags alone."
+  },
+  "requestedCoverage": {
+    "memberAXBounds": "NOT_REACHED",
+    "thirteenthInput": "NOT_REACHED",
+    "splitAndLaterLifecycle": "NOT_REACHED",
+    "physicalObservationSegments": "NOT_REACHED",
+    "catalogCensus": "NO_REPLY_REACHED_HOST",
+    "windowListRejection": "NOT_REACHED"
+  },
+  "dock": {
+    "requestPairs": 30,
+    "allConsumedCurrent": true,
+    "allCompletedOrdinary": false,
+    "timerConsumedBeforeCallback": 0,
+    "expiryEvents": [],
+    "limit": "A current completion record is not itself a window-writing permit; Dock is not the observed first failure in this lane."
+  },
+  "separateControllerReceipt": {
+    "status": "FOREIGN_ENGINE_PASS",
+    "reason": "verified",
+    "operationReason": "verified",
+    "windowWrites": 26,
+    "setupAXWrites": 2,
+    "ordinaryHome": 12
+  },
+  "cleanup": {
+    "host": {
+      "end": 521.062547125,
+      "milliseconds": 1.8512083333916962,
+      "released": true,
+      "start": 521.0606959166666
+    },
+    "externalTwoHomeReadbacks": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 521.0727432916667,
+          "readStart": 521.0654947083334,
+          "received": 521.0727796666667,
+          "uptime": 521.0727796666667,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 11748,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 11748,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 11754,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 521.1492957916666,
+          "readStart": 521.1432622916667,
+          "received": 521.1493372083333,
+          "uptime": 521.1493372083333,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 11748,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 11748,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 57,
+              "onScreen": true,
+              "pid": 11754,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "formalHostWorkerRequests": 0,
+    "visibilityLedgerFilePresent": false,
+    "interpretation": "No formal R4 action was issued. Host cleanup returned released=true and two independent external reads verified all three fixture windows at home with their frames preserved. The separate Controller engine PASS does not establish formal Host readiness or R4 completion."
+  },
+  "verificationLimits": [
+    "The exact-head Host native build passed. FAST source tests were NOT_RUN and this does not replace the separately owned source/FULL results.",
+    "The prior 9af FAST package did not retain child stderr or wait status, so this exact dccee abort cannot be retroactively claimed as an observed 9af root cause.",
+    "All 74 raw files match the single provider ZIP byte for byte. The analysis owner did not modify tested source or raw evidence; dccee artifact and exact head remain unchanged. Concurrent shared-worktree next-patch edits are not part of this run."
+  ]
+}
